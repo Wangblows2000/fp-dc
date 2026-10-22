@@ -229,6 +229,15 @@ void objects_update(void) {
                 anim_restart(&o->an);
             }
             break;
+        case OT_HANG: {
+            /* hang sensor 50x15, hotspot (25, 0); Lilac's PlayerSensorTopBig_332 is 11x11 centred at
+             * (floor X, floor Yref - 13) (RV), tested after this frame's move (RE event 4065) */
+            double ry = p->y - ORIG_REF_DY;
+            double tx = floor(p->x), ty = floor(ry) - 13;
+            if (player_can_hang(p) && overlap(tx - 5, ty - 5, tx + 6, ty + 6, o->x - 25, o->y, o->x + 25, o->y + 15))
+                player_hang(p, o->x, o->y);
+            break;
+        }
         case OT_SIGN:
             if (!G.clear_t && !dead && p->x > o->x) G.clear_t = 1;
             break;
@@ -243,7 +252,7 @@ void objects_draw(int front) {
     (void)front;
     for (int i = 0; i < G.nobjs; i++) {
         const obj_t *o = &G.o[i];
-        if (!o->alive || !o->an.b) continue;
+        if (!o->alive || !o->an.b || o->type == OT_HANG) continue;   /* sensors are invisible */
         float sx = floorf(o->x - G.camx), sy = floorf(o->y - G.camy);
         if (sx < -96 || sx > SCREEN_W + 96 || sy < -96 || sy > SCREEN_H + 96) continue;
         frame_draw(&G.objs, anim_frame(&o->an), sx, sy, o->flip, 0xffffffff);

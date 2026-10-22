@@ -110,6 +110,15 @@ r = run('10 400 R\n', 400)
 sx = [x['x'] - x['cx'] for x in r if 100 <= x['f'] <= 180]      # grounded at top speed (G saturated)
 check('camera_lookahead', sx and max(abs(v - (213 - 64)) for v in sx) < 1.5, 'screen x %.1f..%.1f' % (min(sx), max(sx)))
 
+# RE handlebar grab (event 4065): the diagonal spring at 5600,1088 throws Lilac into the hang sensor at
+# 5361,936; she hangs at X 5361, reference Y 968 (feet 982)
+r = run('5 TP 5615 1000\n', 90)
+h = [x for x in r if abs(x['x'] - 5361) < 0.01 and abs(x['y'] - 982) < 0.01]
+check('hang_grab', len(h) >= 20, '%d hanging frames' % len(h))
+# RE fall cap (event 1577): G is clamped to 15 before gravity, so it tops out at 15.25
+r = run('5 TP 3000 -30\n', 120)   # 913 px clear drop
+check('max_fall_15_25', abs(max(x['vy'] for x in r) - 15.25) < 1e-6, 'max vy %.3f' % max(x['vy'] for x in r))
+
 # 8 recovered animations are driven by state (idle -> run anim index changes, frames advance)
 r = run('0 200 R\n', 200)
 check('anims_change', r[0]['an'] != r[-1]['an'] and len({x['fr'] for x in r[100:]}) > 3)

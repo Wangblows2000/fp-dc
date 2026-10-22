@@ -7,9 +7,9 @@ boost_air_downleft 0 151 0
 boost_air_downright 58 151 50
 boost_air_left 0 151 0
 boost_air_right 121 151 50
-boost_air_up 144 151 50
+boost_air_up 150 151 50
 boost_air_upleft 0 151 0
-boost_air_upright 144 151 50
+boost_air_upright 150 151 50
 boost_hold_long 41 151 40
 boost_left 0 151 0
 boost_petals_full 58 144 40
@@ -63,7 +63,7 @@ special_hold 0 151 0
 special_tap 0 151 0
 spring_yellow_right 0 119 0
 spring_yellow_up 149 149 149
-spring_yellow_upleft 11 149 11
+spring_yellow_upleft 149 149 149
 turretus_attack 0 151 0
 turretus_attack_combo 0 151 0
 turretus_jumpinto 0 151 0

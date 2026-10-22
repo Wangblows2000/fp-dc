@@ -33,7 +33,7 @@ from convert import write_tex, pack, argb1555
 ENGINE_TYPES = {
     'playerstartingpoint': 1, 'objectcrystal': 2, 'enemydragonfly': 3, 'objectpetal': 6,
     'hazardspikesup': 7, 'yellowspringup': 8, 'yellowspringupleft': 13, 'yellowspringupright': 14,
-    'yellowspringright': 15, 'yellowspringleft': 16, 'sign': 9, 'enemyturretus': 10,
+    'yellowspringright': 15, 'yellowspringleft': 16, 'gimmickhangingidlesensor': 17, 'sign': 9, 'enemyturretus': 10,
     'breakablerock': 11, 'monitorcrystals': 12, 'monitorrings': 12, 'monitor1up': 12,
     'monitorinvincibility': 12, 'levelparallaxpiece0': 20, 'levelparallaxpiece1': 21,
     'levelparallaxpiece2': 22, 'levelparallaxpiece3': 23, 'levelparallaxpiece4': 24,
@@ -216,7 +216,7 @@ def main():
     LILAC = [('idle', 0), ('walk', 1), ('run', 2), ('fastrun', 22), ('jump', 24), ('lookup', 11),
              ('crouch', 10), ('skid', 17), ('attack', 26), ('airatk', 25), ('uppercut', 28),
              ('dkwind', 7), ('divekick', 19), ('cyclone', 18), ('charge', 7), ('boost', 13),
-             ('hurt', 16), ('defeat', 38), ('crouchatk', 30), ('spring', 14)]
+             ('hurt', 16), ('defeat', 38), ('crouchatk', 30), ('spring', 14), ('hang', 15)]
     la = an['playerskinsash_341']['anims']
     lb = {'name': 'lilac2', 'anims': []}
     for nm, ai in LILAC:
