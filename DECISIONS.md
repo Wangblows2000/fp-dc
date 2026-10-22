@@ -37,3 +37,8 @@ Music alone exceeds RAM, so everything is loaded per level from disc.
 **D-009 Control mapping (port design, UNVERIFIED vs original defaults):**
 A = jump, X = attack, B = special (Dragon Boost), Y = guard (reserved), Start = pause. D-pad or
 analog stick to move.
+
+**D-010 One data directory per level (`converted2/<lvl>/`).**
+palettize.py builds the 4 PAL8 palettes per level, so each level dir carries its own palettes and Lilac bank (≈5 MB). Shared sounds/music stay at the data root; `levels.txt` lists built levels. Level change frees all textures (`r_reset` → `pvr_mem_reset`) and reloads.
+
+**D-011 Tunables follow the original's traces, in `src/fp.h` (`PHYS_*`), each tagged RV/UNVERIFIED with the evidence.** Where traces contradict the knowledge base (e.g. Dragon Cyclone continues after releasing jump), the trace wins.

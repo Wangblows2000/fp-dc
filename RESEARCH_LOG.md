@@ -66,3 +66,5 @@ Ledger categories: **CONFIRMED** (verified on the files / reproducible test), **
 | Sonic power-of-two physics constants (0.046875, 0.21875, …) referenced 0 times; decimal doubles dominate | CONFIRMED | RIP-relative SSE reference scan |
 | Original binary runs in VM (Xvfb/llvmpipe) with placeholder oggs; `GameManager::set_frame` at 0x9fc8c0, `manager` at 0x285ec60 | CONFIRMED | gdb session |
 | Chowdren source public? | No public source found (mp2.dk/chowdren) | web |
+| All stage frames identified by title card after `set_frame(N)` (DV = 20–23, etc.) | CONFIRMED | RUNTIME_MAP "Frame index table", build/orig/sel_*.png |
+| Move set rules (uppercut, down kick, cyclone, boost, attacks, crouch) and jump-from-raw-angle, air drag, landing-frame friction | CONFIRMED (runtime traces) | RUNTIME_MAP "Moves", tests/orig/ |

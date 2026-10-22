@@ -94,3 +94,18 @@ idle 0 · walk 1 (0 < |B| < 5) · run 2 (5 ≤ |B| < 9.5) · fastrun 22 (≥ 9.5
 
 ## Comparison harness
 `tools/orig/run_all.sh` traces every `tests/orig/*.txt` in the original; `tools/orig/cmp_all.sh` runs the same inputs in the fpdc host build and checks key outcomes (apex, top speed, time to top, airtime, distance, stop timing). **16 / 16 sequences pass** (host-test vs original-trace).
+
+## Frame index table (RV: title card after `set_frame(N)` in the running original, `tools/orig/goto_frame.sh`)
+`N` = "Setting frame: N" = `Frames::on_frame_(N+1)_init` = `build/frames/frame_(N+1).json`. Stage numbers on the cards depend on the character route, so only names are recorded. Screenshots: `build/orig/sel_N.png`.
+| N | Content | N | Content |
+|---|---|---|---|
+| 13 | bonus room (dice) | 44–49 | Thermal Base (6 frames) |
+| 14, 15 | Lilac's treehouse (hub, HUD) | 50–55 | Pangu Lagoon (6) |
+| 16–19 | Aqua Tunnel (4) | 56–58 | Trap Hideout (3) |
+| **20–22** | **Dragon Valley acts (card "Dragon Valley")** | 59–64 | Battle Glacier (6; 64 = boss arena) |
+| 23 | Dragon Valley, no card (continuation/boss section, tree start) | 65–72 | Final Dreadnought rounds 1–4 (2 frames each) |
+| 24–28 | Relic Maze (5) | 73 | "Hit the targets" mini-game |
+| 29–34 | Fortune Night (6; 34 = boss) | 74 | Continue? screen |
+| 35–38 | Sky Battalion (4) | 75–82 | story/scene rooms (dialogue) |
+| 39–43 | Jade Creek (5) | 0–12, 83–86 | intro, menus, file select, map, credits (see `build/frame_summary.txt`) |
+Note: after a few jumps between frames the original swapped the playable character (Milla/Carol appear on later cards): the character is a global, not part of the frame.

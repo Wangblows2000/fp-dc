@@ -15,6 +15,10 @@ all: $(TARGET)
 ifdef KOS_BASE
 include $(KOS_BASE)/Makefile.rules
 KOS_CFLAGS += -std=gnu11 -Wall -Wextra -Wno-unused-parameter -O2 -DFP_PROFILE
+# make FP_DEBUG_SELECT=1 -> boot into the debug level select (verified frame indices/names)
+ifdef FP_DEBUG_SELECT
+KOS_CFLAGS += -DFP_DEBUG_SELECT
+endif
 endif
 
 $(TARGET): $(OBJS)
@@ -28,9 +32,11 @@ data: extracted/assets
 	python3 tools/convert.py extracted/assets "$(FP_GAME)/Data/BGM" converted
 
 DATA_DIR ?= converted2
-build/disc/data: $(DATA_DIR)/dv1.lv2
+build/disc/data: $(DATA_DIR)/levels.txt
 	rm -rf build/disc && mkdir -p build/disc/data
-	cp $(DATA_DIR)/*.tex $(DATA_DIR)/*.spr $(DATA_DIR)/*.lv2 $(DATA_DIR)/*.pal $(DATA_DIR)/*.wav $(DATA_DIR)/*.pcm build/disc/data/
+	cp $(DATA_DIR)/*.wav $(DATA_DIR)/*.pcm $(DATA_DIR)/levels.txt build/disc/data/
+	for d in $$(cat $(DATA_DIR)/levels.txt); do mkdir -p build/disc/data/$$d; \
+	  cp $(DATA_DIR)/$$d/*.tex $(DATA_DIR)/$$d/*.spr $(DATA_DIR)/$$d/*.lv2 $(DATA_DIR)/$$d/*.pal build/disc/data/$$d/; done
 
 cdi: $(TARGET)
 	rm -rf build/disc
