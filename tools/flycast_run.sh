@@ -4,8 +4,11 @@
 # Flycast keyboard: x=A, c=B, s=X, Return=Start, arrows = d-pad. Shots go to build/fc/<name>.png
 DISP=:95; export DISPLAY=$DISP
 mkdir -p build/fc
-xdpyinfo -display $DISP >/dev/null 2>&1 || { (setsid Xvfb $DISP -screen 0 1280x960x24 >/dev/null 2>&1 &); timeout 2 tail -f /dev/null; }
+# fresh display every run: a reused Xvfb sometimes stops delivering xdotool keys to Flycast
 kill $(pgrep -x flycast) 2>/dev/null
+for p in $(pgrep -x Xvfb); do grep -q "$DISP" /proc/$p/cmdline && kill $p; done
+timeout 1 tail -f /dev/null
+(setsid Xvfb $DISP -screen 0 1280x960x24 >/dev/null 2>&1 &); timeout 2 tail -f /dev/null
 (LIBGL_ALWAYS_SOFTWARE=1 setsid third_party/flycast/build/flycast build/fpdc.cdi > /tmp/fc.log 2>&1 &)
 for i in $(seq 60); do W=$(xdotool search --class flycast 2>/dev/null | tail -1); [ -n "$W" ] && break; timeout 0.5 tail -f /dev/null; done
 timeout 3 tail -f /dev/null

@@ -56,32 +56,52 @@ def main():
     f_from = int(a[a.index('--from') + 1]) if '--from' in a else 0
     f_to = int(a[a.index('--to') + 1]) if '--to' in a else 10 ** 9
     quiet = '--quiet' in a
+    # --skip a-b,c-d: frames excluded from the per-frame error report (teleports land 'shift' frames
+    # apart in the two traces, so the frames around a mid-sequence TP are not comparable)
+    skip = set()
+    if '--skip' in a:
+        for rg in a[a.index('--skip') + 1].split(','):
+            if rg:
+                lo, hi = (int(v) for v in rg.split('-')); skip.update(range(lo, hi + 1))
     O = {r['f']: r for r in series(load(a[1]), True)}
     P = series(load(a[2]), False)
     pairs = [(p, O[p['f'] + shift]) for p in P if f_from <= p['f'] <= f_to and p['f'] + shift in O]
     tol = {'X': 4.0, 'Y': 4.0, 'B': 0.05, 'G': 0.05}
     first, maxerr = {}, {k: (0.0, None) for k in tol}
     for p, o in pairs:
+        if p['f'] in skip: continue
         for k in tol:
             e = abs(p[k] - o[k])
             if e > maxerr[k][0]: maxerr[k] = (e, p['f'])
             if e > tol[k] and k not in first: first[k] = (p['f'], p[k], o[k])
-    po = outcomes([p for p, _ in pairs], f_from)
-    oo = outcomes([o for _, o in pairs], f_from + shift)
-    oo = outcomes([dict(o, f=o['f'] - shift) for _, o in pairs], f_from)
+    # outcome metrics describe one continuous movement: evaluate each segment between mid-sequence
+    # teleports separately (every segment must pass)
+    segs, cur = [], []
+    for p, o in pairs:
+        if p['f'] in skip:
+            if cur: segs.append(cur); cur = []
+            continue
+        cur.append((p, o))
+    if cur: segs.append(cur)
     checks = []
     def chk(name, ok, detail): checks.append((name, ok, detail))
-    if 'top_speed' in oo and 'top_speed' in po:
-        chk('top_speed', abs(po['top_speed'] - oo['top_speed']) <= 0.03 * max(oo['top_speed'], 0.1),
-            '%.3f vs %.3f' % (po['top_speed'], oo['top_speed']))
-    if oo.get('frames_to_top') is not None and po.get('frames_to_top') is not None:
-        chk('frames_to_top', abs(po['frames_to_top'] - oo['frames_to_top']) <= 3, '%d vs %d' % (po['frames_to_top'], oo['frames_to_top']))
-    chk('apex_rise', abs(po['apex_rise'] - oo['apex_rise']) <= 3, '%.1f vs %.1f' % (po['apex_rise'], oo['apex_rise']))
-    chk('airtime', abs(po['airtime'] - oo['airtime']) <= 2, '%d vs %d' % (po['airtime'], oo['airtime']))
-    dx = max(abs(oo['distance_x']), 1.0)
-    chk('distance_x', abs(po['distance_x'] - oo['distance_x']) <= max(0.05 * dx, 4), '%.1f vs %.1f' % (po['distance_x'], oo['distance_x']))
-    if oo.get('moving_frames') is not None and po.get('moving_frames') is not None:
-        chk('moving_frames', abs(po['moving_frames'] - oo['moving_frames']) <= 2, '%d vs %d' % (po['moving_frames'], oo['moving_frames']))
+    for si, sg in enumerate(segs):
+        if len(sg) < 5: continue
+        tag = '' if len(segs) == 1 else '[%d] ' % si
+        f0 = sg[0][0]['f']
+        po = outcomes([p for p, _ in sg], f0)
+        oo = outcomes([dict(o, f=o['f'] - shift) for _, o in sg], f0)
+        if 'top_speed' in oo and 'top_speed' in po:
+            chk(tag + 'top_speed', abs(po['top_speed'] - oo['top_speed']) <= 0.03 * max(oo['top_speed'], 0.1),
+                '%.3f vs %.3f' % (po['top_speed'], oo['top_speed']))
+        if oo.get('frames_to_top') is not None and po.get('frames_to_top') is not None:
+            chk(tag + 'frames_to_top', abs(po['frames_to_top'] - oo['frames_to_top']) <= 3, '%d vs %d' % (po['frames_to_top'], oo['frames_to_top']))
+        chk(tag + 'apex_rise', abs(po['apex_rise'] - oo['apex_rise']) <= 3, '%.1f vs %.1f' % (po['apex_rise'], oo['apex_rise']))
+        chk(tag + 'airtime', abs(po['airtime'] - oo['airtime']) <= 2, '%d vs %d' % (po['airtime'], oo['airtime']))
+        dx = max(abs(oo['distance_x']), 1.0)
+        chk(tag + 'distance_x', abs(po['distance_x'] - oo['distance_x']) <= max(0.05 * dx, 4), '%.1f vs %.1f' % (po['distance_x'], oo['distance_x']))
+        if oo.get('moving_frames') is not None and po.get('moving_frames') is not None:
+            chk(tag + 'moving_frames', abs(po['moving_frames'] - oo['moving_frames']) <= 2, '%d vs %d' % (po['moving_frames'], oo['moving_frames']))
     ok = all(c[1] for c in checks)
     print('%s  %s  (fpdc vs original, shift %d, frames %d..%d)' % ('PASS' if ok else 'FAIL', a[2].split('/')[-1], shift, f_from, min(f_to, P[-1]['f'])))
     for n, good, d in checks:

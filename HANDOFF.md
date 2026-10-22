@@ -1,38 +1,37 @@
 # HANDOFF
 
 ## Objective
-Native Dreamcast (KallistiOS) port of Freedom Planet. A custom C engine plays data **recovered from the user's Linux build** (the original Chowdren runtime is compiled C++ and proprietary). Working to prompt v3: evidence from the running original first, then match it.
+Native Dreamcast (KallistiOS) port of Freedom Planet. A custom C engine plays data **recovered from the user's Linux build** (the original Chowdren runtime is compiled C++ and proprietary). Rule: evidence from the running original first, then match it. Label evidence as original-trace / host-test / emulator. **Nothing is hardware-validated.**
 
 ## Environment (ephemeral cloud VM; rebuild if missing)
 - KOS git 5f834c1 at /opt/toolchains/dc/kos, toolchain /opt/toolchains/dc/sh-elf (GCC 15.2.0). **environ.sh patch**: `export KOS_LD_SCRIPT=-T$KOS_BASE/utils/ldscripts/shlelf.xc` before environ_base.sh.
-- mkdcdisc: third_party/mkdcdisc/builddir/mkdcdisc. Flycast: third_party/flycast/build/flycast, driven by `tools/flycast_run.sh` (x=A c=B s=X Return=Start).
-- Original game: writable copy /home/claude/fprun (never the user's folder). `tools/orig/start_orig.sh` (Xvfb :93, 852x480, full window visible) → `tools/orig/route_dv1.sh` (real menus to DV1) → `tools/orig/run_all.sh` (traces) / `tools/orig/goto_frame.sh N` (jump + screenshot).
-- User PC: `C:\Users\wobbles\Desktop\Freedom Planet` (read-only input); deliverables go to its new `fpdc\` subfolder.
+- mkdcdisc: third_party/mkdcdisc/builddir/mkdcdisc. Flycast: third_party/flycast/build/flycast, driven by `tools/flycast_run.sh` (x=A c=B s=X Return=Start, f/v = L/R). If keys stop registering, kill the :95 Xvfb and retry.
+- Original game: writable copy /home/claude/fprun (never the user's folder). `tools/orig/start_orig.sh` (Xvfb :93; exports `DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent`, without it traces crawl) → `tools/orig/route_dv1.sh` → `tools/orig/run_trace.sh <script> <out.csv> <frames>` / `run_all.sh`. Don't kill gdb while breakpoints are set (the game crashes; restart route + goto_frame 20).
+- Trace scripts: `<f> TP x y`, `<f> EN v`, `<f> HP v`, `<a> <b> KEYS`. Sounds go to `<trace>.snd`. Press inputs after ~f40 (intro input lock). Start new scripts with `5 TP 68.715 440`.
+- User PC: `C:\Users\wobbles\Desktop\Freedom Planet` (read-only input); deliverables go to its `fpdc\` subfolder.
 
 ## Pipeline
+See ASSET_PIPELINE.md (levels, UI, font, audio). Then:
 ```sh
-B="/mnt/user-data/uploads/Freedom Planet/game/bin64/Chowdren"
-python3 third_party/fp-assets/fp-assets.py -x -f ".../game/Assets.dat" -m tools/fmt_linux_9d00124a.json extracted/linux
-python3 tools/re/dump_frames.py "$B" build/frames; python3 tools/re/dump_anims.py "$B" build/frames/anims.json
-python3 tools/re/dump_backdrops.py "$B" build/frames/backdrops.json
-python3 tools/convert.py extracted/assets ".../Data/BGM" converted          # legacy: sfx_*.wav + stage1.pcm
-for a in "21 dv1" "22 dv2" "23 dv3" "24 dv4"; do sh tools/build_level.sh $a converted2; done   # converted2/<lvl>/
-make -C host && python3 tests/test_gameplay.py && Q=1 tools/orig/cmp_all.sh
-source /opt/toolchains/dc/kos/environ.sh && make FP_DEBUG_SELECT=1 && make FP_DEBUG_SELECT=1 cdi
+make -C host && python3 tests/test_gameplay.py && python3 tests/test_frontend.py && Q=1 tools/orig/cmp_all.sh
+source /opt/toolchains/dc/kos/environ.sh && make && make cdi        # build/fpdc.cdi (~350 MB)
 ```
+Boot flow: Press Start → title (START GAME / TIME ATTACK / GALLERY / OPTIONS / QUIT). Developer level select: L+R within 2 s on the title screen only.
 
-## Latest verified (2026-10-22)
-- **original-trace vs host-test: 16/16 sequences pass** (run/release/skid/jumps/running jump/slopes+quarter-pipe/ground+air attack/uppercut/high uppercut/down kick/cyclone/boost tap/hold/running boost/crouch).
-- Host tests 16/16. DC build 0 warnings. **Emulator (Flycast):** debug level select → DV3, DV4 (and back via pause → X) load and play.
-- All stage frames identified by their title cards (RUNTIME_MAP "Frame index table").
+## Latest verified (2026-10-22, session 3)
+- host-test: gameplay 33/33, front end 9/9 (incl. 3 title→level→title cycles, valgrind clean).
+- original-trace vs host-test: **16/16 baseline**, **52/70 overall**; first failing frames in BUILD_AND_TEST_LOG.
+- emulator (Flycast): full front-end path, developer select, DV1 with HUD, Time Attack card.
+- Section 2 findings: grounded cyclone, cancels, no 8 s boost cooldown (energy meter gates the boost; petals don't affect it), left boost orientation, rotation. Details in RUNTIME_MAP.
+- Section 6 findings: springs (all three kinds), skid/turn rule, landing look-ahead, ceiling frame, invulnerability ≤ 61 frames.
 
 ## Next three actions
-1. Damage/knockback + spring sequences in the original (needs a route to an enemy/spring; `goto_frame` + walk) → compare; energy meter rules (boost cost/recharge).
-2. Checkpoint 2: HUD from original graphics per docs/reference/hud_dv1.png (energy meter, petals, lives, crystals, timer), title/options menus, D-002 crop decision.
-3. Music library pipeline (68 BGM, loop points, ADPCM vs libtremor), then objects/enemies for DV2–DV4.
+1. Turretus firing (range/period) → the four hurt_* sequences; then Turretus contact/bounce.
+2. Hanging gimmick (M41) and the steep up-slope boost landing (boost_air_right f172).
+3. DV1 mini-boss and the DV4 Serpentine; observe the original's real results screen (replace the INFERRED layout).
 
-## Known issues
-Boost directions other than flat ground untested vs original; air charge behaviour UNVERIFIED; walk/run anim speeds fitted; cyclone has a safety cap; parallax factors guessed; no checkpoint/boss; music loops the whole track; HUD is a placeholder; 4:3 crop.
+## Known issues / INFERRED
+Results layout, card timings, transition stagger, pause cursor are INFERRED. Invulnerability 60 is an estimate under a measured bound. Walk/run anim speeds fitted. Down-kick → cyclone sequences differ by ~3 frames. GALLERY not implemented; only Lilac playable. FP_PROFILE overlay is visible bottom-left in DC builds.
 
 ## Safety
-Never write to the user's game folders. extracted/, converted*/, build/, docs/reference/ are gitignored. Never commit game data (`git ls-files` check before commits).
+Never write to the user's game folders. extracted/, converted*/, build/, docs/reference/, tools/audio/wav2adpcm are gitignored. Never commit game data (`git ls-files` check before commits).

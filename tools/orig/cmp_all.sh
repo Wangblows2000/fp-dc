@@ -15,6 +15,7 @@ r=next(csv.DictReader(open('build/orig_traces/$s.csv')))
 print(r['mv_X'], r.get('en_A') or 100, r.get('c_petals') or 14)")
   [ "$EN" = "0" ] && EN=100
   FP_LEVEL=dv1 FP_SPAWN_X=$X FP_ENERGY=$EN FP_HP=$HP FP_CSV=build/fpdc_traces/$s.csv ./host/fpdc_host converted2 $((FR+5)) tests/orig/$s.txt > /dev/null 2>&1
-  if python3 tools/orig/compare.py build/orig_traces/$s.csv build/fpdc_traces/$s.csv --from 50 --to $FR ${Q:+--quiet}; then pass=$((pass+1)); else fail=$((fail+1)); fi
+  SKIP=$(awk '$2=="TP" && $1>=40 {printf "%d-%d,", $1-3, $1+3}' tests/orig/$s.txt)
+  if python3 tools/orig/compare.py build/orig_traces/$s.csv build/fpdc_traces/$s.csv --from 50 --to $FR ${SKIP:+--skip $SKIP} ${Q:+--quiet}; then pass=$((pass+1)); else fail=$((fail+1)); fi
 done
 echo "== $pass passed, $fail failed"
