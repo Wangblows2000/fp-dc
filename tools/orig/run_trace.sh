@@ -13,5 +13,5 @@ fi
 timeout 3000 gdb -q -batch -p $PID "${RESTART_CMDS[@]}" \
   -ex "set \$script=\"$1\"" -ex "set \$out=\"$2\"" -ex "set \$nframes=$3" -ex "set \$restart=$R" \
   -ex 'python exec(open("tools/orig/trace_orig.py").read())' -ex continue -ex detach 2>&1 \
-  | grep -E 'objects|match|Error|error' | head
+  > /tmp/gdb_trace.log 2>&1; grep -E "objects|match|Error|error|Traceback" /tmp/gdb_trace.log | head
 wc -l "$2"
