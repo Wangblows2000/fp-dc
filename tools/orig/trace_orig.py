@@ -74,6 +74,7 @@ def build_imgmap():
 
 SETC = {}
 WATCH = {}
+REFIND = set()
 WHO = {}
 WATCHES = []
 TP = {}   # debug route: "<frame> TP <x> <y>" teleports Lilac (writes PlayerMovementValues X/Y, zeroes B/G)
@@ -86,6 +87,8 @@ def load_script(path):
                 SETC[int(t[0])] = ('en_alt', float(t[2]))
             elif len(t) == 3 and t[1] == 'HP':      # debug: "<frame> HP <v>" writes the petal counter value
                 SETC[int(t[0])] = ('c_petals', float(t[2]))
+            elif len(t) == 2 and t[1] == 'REFIND':  # "<f> REFIND": find the objects again (after a frame change)
+                REFIND.add(int(t[0]))
             elif len(t) == 4 and t[1] == 'WHO':     # "<f> WHO <func addr> <off,off,..>": log member classes on each call
                 WHO.setdefault(int(t[0]), []).append((int(t[2], 16), [int(x, 16) for x in t[3].split(',')]))
             elif len(t) == 4 and t[1] == 'WATCH':   # "<f> WATCH <obj> <alt index|cnt>": log every write (bt)
@@ -164,7 +167,7 @@ class Tracer(gdb.Breakpoint):
         self.ev = load_script(script); self.n = n; self.f = -1; self.prev = set()
         self.sndf = open(out[:-4] + '.snd', 'w')
         SndBP('*0xa4e650', 'id', self); SndBP('*0xa4e2c0', 'str', self)
-        self.outpath = out; self.out = open(out, 'w'); self.objs = None; self.restart_wait = 120 if restart else 0; self.warm = 0
+        self.outpath = out; self.out = open(out, 'w'); self.objs = None; self.restart_wait = (int(os.environ.get('WARM', 120)) if restart else 0); self.warm = 0
         # skin_anim = animation*1000 + frame
         # sk_ang/sk_xs/sk_ys: Active angle @+0xc4, x/y scale @+0xc8/+0xcc (Active::set_angle/set_x_scale)
         hdr = (['frame', 'held', 'px', 'py', 'skin_anim'] + ['mv_' + chr(65 + i) for i in range(26)] +
@@ -209,6 +212,8 @@ class Tracer(gdb.Breakpoint):
         # done by the driver script before this tracer is armed (see run_trace.sh).
         if self.warm < self.restart_wait:              # let a freshly (re)started frame settle
             self.warm += 1; self.write_keys(set()); self.prev = set(); return False
+        if self.f + 1 in REFIND and self.objs is not None:
+            REFIND.discard(self.f + 1); self.objs = None; self.restart_wait = 0
         if self.objs is None:
             o = find_objs()
             if not all(k in o for k in VT):

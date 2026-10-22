@@ -239,7 +239,7 @@ void objects_update(void) {
             break;
         }
         case OT_SIGN:
-            if (!G.clear_t && !dead && p->x > o->x) G.clear_t = 1;
+            /* sign_390 / sign_781 are camera-bound markers (events 2860-2863), not goals */
             break;
         case OT_EXPLODE:
             if (!o->an.b || o->an.done) o->alive = 0;

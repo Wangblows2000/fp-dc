@@ -161,6 +161,7 @@ typedef struct {
     /* MasterCamera_408 alterables (RE, loop_camera_mode0_13 + events 2873-2886, 3539) */
     struct { float A, B, W, G, H, S, T, N, O; int V; } cam;
     int frame, clear_t, paused, kills;
+    int act_in, act_fade, act_carry;   /* act change (RE 4135/5045, 3310/3311/3578, 4526/5047) */
     char lvdir[8];              /* current level data dir under the data root ("dv1") */
     int debug_select, in_select, sel, sel_top, sel_msg_t;
     int mode, card_t, pause_sel, time_attack, res_t, res_time;

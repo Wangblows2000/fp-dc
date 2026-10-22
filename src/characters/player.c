@@ -506,7 +506,7 @@ static void clamp_edges(player_t *p, double x0) {
     /* only stops crossing the line; standing beyond it (spawn at X 0) is left alone, as in the original */
     if (x0 >= EDGE_X && p->x < EDGE_X) { p->x = EDGE_X; if (p->ground) p->gsp = 0; else p->vx = 0; }
     double r = G.lvl.w - EDGE_X;
-    if (x0 <= r && p->x > r) { p->x = r; if (p->ground) p->gsp = 0; else p->vx = 0; }
+    if (x0 <= r && p->x > r && !G.clear_t) {   /* RV: during the act-end run-out she leaves the frame */ p->x = r; if (p->ground) p->gsp = 0; else p->vx = 0; }
 }
 
 void player_update(player_t *p, const input_t *in) {
