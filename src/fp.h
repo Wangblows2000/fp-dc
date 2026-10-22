@@ -27,7 +27,8 @@ enum {
     BTN_ATTACK = 1 << 5, /* DC X  = original "B" (attack)          */
     BTN_SPECIAL = 1 << 6,/* DC B  = original "C" (Dragon Boost)    */
     BTN_START = 1 << 7,
-    BTN_GUARD = 1 << 8   /* DC Y  (reserved) */
+    BTN_GUARD = 1 << 8,  /* DC Y  (reserved) */
+    BTN_LT = 1 << 9, BTN_RT = 1 << 10   /* DC triggers (title-screen developer level select only) */
 };
 
 typedef struct { uint32_t held, pressed, released; } input_t;
@@ -44,6 +45,7 @@ void   snd_play(int h, int vol, int pan);
 int    music_play(const char *name);
 void   music_update(void);
 void   music_stop(void);
+void   music_volume(int pct);
 
 /* ---------------------------------------------------------------- renderer */
 typedef struct { int id, w, h, srcw, srch; } tex_t;
@@ -153,13 +155,26 @@ typedef struct {
     int frame, clear_t, paused, kills;
     char lvdir[8];              /* current level data dir under the data root ("dv1") */
     int debug_select, in_select, sel, sel_top, sel_msg_t;
+    int mode, card_t, pause_sel, time_attack, res_t, res_time;
     struct { int jump, crystal, hit, explode, attack, hurt, boost; } sfx;
     uint32_t prof_update_us, prof_draw_us;
 } game_t;
 
 extern game_t G;
 
+enum { MODE_FRONTEND, MODE_PLAY, MODE_RESULTS, MODE_SELECT };
 int  game_init(void);
+void game_unload_all(void);
+void game_start_adventure(const char *dir, int time_attack);
+void game_dev_select(void);
+int  fe_enter(void);
+void fe_update(const input_t *in);
+void fe_draw(void);
+void hud_reset(void);
+void snd_play_orig(int id, int vol, int pan);
+void voice_play(const char *name);
+void plat_quit(void);
+void r_fade(float alpha);      /* full-screen black overlay with alpha (translucent list) */
 int  game_load_level(const char *dir);   /* unloads the current level first */
 void game_update(const input_t *in);
 void game_draw(void);

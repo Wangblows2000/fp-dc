@@ -7,6 +7,13 @@
 
 game_t G;
 
+#define CARD_RISE1 24
+#define CARD_RISE2 48
+#define CARD_FADE0 84
+#define CARD_FADE1 108
+#define CARD_OUT0  168
+#define CARD_DONE  192
+
 #ifndef FP_LEVEL
 #define FP_LEVEL "dv1"
 #endif
@@ -20,14 +27,22 @@ static void level_start(void) {
     /* crystals, lives, energy persist across restarts (RV: debug restart kept them) */
     player_reset(&G.p, G.p.spawn_x, G.p.spawn_y);
     objects_spawn();
-    G.clear_t = 0; G.frame = 0;
+    G.clear_t = 0; G.frame = 0; G.card_t = 0; G.paused = 0;
     G.camx = G.p.x - SCREEN_W / 2; G.camy = G.p.y - 150;
     camera_update();
 }
 
+/* stage music per level dir (RV from the original's play_music events: m_stage1 frame 20,
+ * m_stage1b frames 21-22, m_boss frame 23 (boss)); DV4's start track is INFERRED (m_stage1b) */
+static const char *level_music(const char *dir) {
+    if (!strcmp(dir, "dv1")) return "bgm/m_stage1.adp";
+    return "bgm/m_stage1b.adp";
+}
+static int act_of(const char *dir) { return dir[2] - '0'; }
+
 static void bank_free(bank_t *b) { free(b->frames); free(b->anims); free(b->seq); memset(b, 0, sizeof *b); }
 
-static void game_unload(void) {
+void game_unload_all(void) {
     bank_free(&G.lilac); bank_free(&G.objs);
     free(G.lvl.pieces); free(G.lvl.objs); free(G.lvl.blob);
     memset(&G.lvl, 0, sizeof G.lvl);
@@ -37,7 +52,7 @@ static void game_unload(void) {
 
 /* every level lives in its own data dir (own palettes + Lilac bank; tools/build_level.sh) */
 int game_load_level(const char *dir) {
-    game_unload();
+    game_unload_all();
     snprintf(G.lvdir, sizeof G.lvdir, "%s", dir);
     int bad = 0;
     char nm[48];
@@ -55,7 +70,9 @@ int game_load_level(const char *dir) {
         if (tex_load_file(&G.par[G.npar], nm) < 0) break;
     }
     G.p.spawn_x = G.p.spawn_y = 0;
+    hud_reset();
     level_start();
+    music_play(level_music(dir));
     return 0;
 }
 
@@ -104,9 +121,11 @@ static void sel_update(const input_t *in) {
     if (in->pressed & BTN_LEFT) G.sel = G.sel - SEL_ROWS >= 0 ? G.sel - SEL_ROWS : 0;
     if (G.sel < G.sel_top) G.sel_top = G.sel;
     if (G.sel >= G.sel_top + SEL_ROWS) G.sel_top = G.sel - SEL_ROWS + 1;
+    if (in->pressed & BTN_SPECIAL) { G.in_select = 0; fe_enter(); return; }   /* B: back to the title */
     if (in->pressed & (BTN_JUMP | BTN_START)) {
         if (!sel_have[G.sel]) { G.sel_msg_t = 90; return; }
-        if (game_load_level(SEL[G.sel].dir) == 0) G.in_select = 0; else G.sel_msg_t = 90;
+        if (game_load_level(SEL[G.sel].dir) == 0) { G.in_select = 0; G.mode = MODE_PLAY; G.card_t = CARD_DONE; }
+        else G.sel_msg_t = 90;
     }
 }
 
@@ -126,30 +145,54 @@ static void sel_draw(void) {
         text_draw(170, 38 + r * 11, buf, c, 1);
         text_draw(206, 38 + r * 11, sel_have[i] ? "READY" : "NOT CONVERTED", c, 1);
     }
-    text_draw(12, SCREEN_H - 14, G.sel_msg_t ? "LEVEL DATA NOT ON DISC" : "A START  UP DOWN  LEFT RIGHT PAGE", G.sel_msg_t ? 0xffff6060 : 0xff8090b0, 1);
+    text_draw(12, SCREEN_H - 14, G.sel_msg_t ? "LEVEL DATA NOT ON DISC" : "A START  B TITLE  UP DOWN  LEFT RIGHT PAGE", G.sel_msg_t ? 0xffff6060 : 0xff8090b0, 1);
     r_end();
+}
+
+/* ---- sounds: original Assets.dat sound IDs (Media::play_id, RUNTIME_MAP "Sound IDs") */
+static const int SND_IDS[] = { 4, 8, 9, 17, 21, 25, 26, 27, 28, 37, 53, 56, 63, 64, 81, 100, 174, 176, 288, 396, 405 };
+static int snd_handle[512];
+static const char *VOICES[] = { "lilac_attack0", "lilac_attack1", "lilac_attack2", "lilac_attack3", "lilac_uppercut0",
+    "lilac_uppercut1", "lilac_uppercut2", "lilac_uppercut3", "lilac_cyclone1", "lilac_cyclone2", "lilac_hurt0",
+    "lilac_hurt1", "lilac_hurt2", "lilac_hurt3", "lilac_die" };
+static int voice_handle[16];
+
+void snd_play_orig(int id, int vol, int pan) { if (id >= 0 && id < 512 && snd_handle[id] >= 0) snd_play(snd_handle[id], vol, pan); }
+void voice_play(const char *name) {
+    for (int i = 0; i < (int)(sizeof VOICES / sizeof VOICES[0]); i++)
+        if (!strcmp(VOICES[i], name)) { if (voice_handle[i] >= 0) snd_play(voice_handle[i], 255, 128); return; }
 }
 
 int game_init(void) {
     memset(&G, 0, sizeof G);
-    G.sfx.jump = snd_load("sfx_jump.wav");
-    G.sfx.crystal = snd_load("sfx_crystal.wav");
-    G.sfx.hit = snd_load("sfx_hit.wav");
-    G.sfx.explode = snd_load("sfx_explode.wav");
-    G.sfx.attack = snd_load("sfx_attack.wav");
-    G.sfx.hurt = snd_load("sfx_hurt.wav");
-    G.sfx.boost = snd_load("sfx_boost.wav");
-#ifdef FP_DEBUG_SELECT
-    G.debug_select = 1;
-#endif
-    const char *lv = FP_LEVEL;
+    char nm[48];
+    for (int i = 0; i < 512; i++) snd_handle[i] = -1;
+    for (int i = 0; i < (int)(sizeof SND_IDS / sizeof SND_IDS[0]); i++) {
+        snprintf(nm, sizeof nm, "sfx/s%d.wav", SND_IDS[i]); snd_handle[SND_IDS[i]] = snd_load(nm);
+    }
+    for (int i = 0; i < (int)(sizeof VOICES / sizeof VOICES[0]); i++) { snprintf(nm, sizeof nm, "sfx/%s.wav", VOICES[i]); voice_handle[i] = snd_load(nm); }
+    /* legacy handles used by gameplay code, now mapped to the original sound IDs */
+    G.sfx.jump = snd_handle[8]; G.sfx.attack = snd_handle[21]; G.sfx.boost = snd_handle[53];
+    G.sfx.hurt = snd_handle[17]; G.sfx.crystal = snd_handle[27]; G.sfx.explode = snd_handle[81]; G.sfx.hit = snd_handle[25];
 #ifdef FP_HOST_ENV
-    if (getenv("FP_SELECT")) G.debug_select = 1;
-    if (getenv("FP_LEVEL")) lv = getenv("FP_LEVEL");
+    /* host tests: FP_LEVEL starts a level directly (no front end) */
+    if (getenv("FP_LEVEL")) { G.mode = MODE_PLAY; int r = game_load_level(getenv("FP_LEVEL")); G.card_t = getenv("FP_CARD") ? 0 : CARD_DONE; return r; }
 #endif
-    music_play("stage1.pcm");
-    if (G.debug_select) { sel_scan(); G.in_select = 1; return 0; }
-    return game_load_level(lv);
+    return fe_enter();
+}
+
+/* from the front end: character/stage chosen */
+void game_start_adventure(const char *dir, int time_attack) {
+    G.time_attack = time_attack;
+    G.p.energy_init = 0;                       /* fresh run: lives/crystals reset by player_reset */
+    G.mode = MODE_PLAY;
+    if (game_load_level(dir) < 0) { fe_enter(); return; }
+}
+
+/* developer level select: reachable only from the title screen (L+R within 2 s, frontend.c) */
+void game_dev_select(void) {
+    game_unload_all();
+    G.mode = MODE_SELECT; G.in_select = 1; sel_scan();
 }
 
 void camera_update(void) {
@@ -167,17 +210,59 @@ void camera_update(void) {
     if (G.camy < 0) G.camy = 0;
 }
 
+/* ---- stage title card (RV images levelcardintro2/3 = name / "STAGE n"; sequence from a 10 fps
+ * capture of the original: STAGE rises, name rises, hold on black, stage fades in, hold, both slide out
+ * while the HUD drops in; frame counts are approximate) */
+
+static void next_act(void) {
+    char d[8]; snprintf(d, sizeof d, "%s", G.lvdir);
+    int a = act_of(d);
+    if (a >= 4 || G.time_attack) { G.mode = MODE_RESULTS; G.res_t = 0; G.res_time = G.frame; music_play("bgm/m_clear.adp"); return; }
+    d[2] = (char)('0' + a + 1);
+    int frame = G.frame;                         /* RV: the stage timer continues across acts */
+    if (game_load_level(d) < 0) { fe_enter(); return; }
+    G.frame = frame; G.card_t = 0;
+}
+
+static void pause_update(const input_t *in) {
+    uint32_t p = in->pressed;
+    if (p & BTN_UP) { G.pause_sel = (G.pause_sel + 2) % 3; snd_play_orig(64, 220, 128); }
+    if (p & BTN_DOWN) { G.pause_sel = (G.pause_sel + 1) % 3; snd_play_orig(64, 220, 128); }
+    if (p & BTN_START) { G.paused = 0; return; }
+    if (p & BTN_JUMP) {
+        snd_play_orig(63, 230, 128);
+        if (G.pause_sel == 0) G.paused = 0;
+        else if (G.pause_sel == 1) { int f = G.frame; game_load_level(G.lvdir); G.frame = f; }   /* RESTART act */
+        else fe_enter();                                                                         /* QUIT to title */
+    }
+}
+
 void game_update(const input_t *in) {
+    if (G.mode == MODE_FRONTEND) { fe_update(in); return; }
     if (G.in_select) { sel_update(in); return; }
-    if (in->pressed & BTN_START) G.paused = !G.paused;
-    /* debug select: attack while paused returns to the level list */
-    if (G.paused && G.debug_select && (in->pressed & BTN_ATTACK)) { G.paused = 0; sel_scan(); G.in_select = 1; return; }
-    if (G.paused) return;
+    if (G.mode == MODE_RESULTS) {
+        G.res_t++;
+        if (G.res_t == 150) music_play("bgm/m_results.adp");
+        if (G.res_t > 120 && (in->pressed & (BTN_JUMP | BTN_START))) { snd_play_orig(63, 230, 128); fe_enter(); }
+        return;
+    }
+    if (G.card_t < CARD_DONE) {                   /* intro card: no control, timer not running */
+        G.card_t++;
+        input_t none = {0};
+        player_update(&G.p, &none);
+        camera_update();
+        return;
+    }
+    if (G.paused) { pause_update(in); return; }
+    if (in->pressed & BTN_START) { G.paused = 1; G.pause_sel = 0; return; }
     G.frame++;
-    if (G.clear_t) { if (++G.clear_t > 300) level_start(); return; }
+    if (G.clear_t) { if (++G.clear_t > 60) next_act(); return; }
     player_update(&G.p, in);
     objects_update();
     camera_update();
+    /* act end: the original moves to the next frame when Lilac reaches the right end of the act
+     * (RV: running right at X 14700+ in DV1 set frame 21); the port uses the level's right edge */
+    if (G.p.x > G.lvl.w - 40 && !G.clear_t) G.clear_t = 1;
 }
 
 /* Parallax bands: positions/images from the level's levelparallaxpiece objects.
@@ -236,12 +321,18 @@ void text_draw(float x, float y, const char *s, uint32_t argb, int scale) {
 
 /* ---- HUD: original GUI images (object bank anims hud_*), layout measured in the original at its
  * native 426x240 by template matching a screenshot (RUNTIME_MAP "HUD"). All coordinates = image top-left. */
-static int hud_anim[6] = { -2 };
-static void hud_img(int which, int frame, float x, float y, int w_override) {
+#define NHUD 15
+static int hud_anim[NHUD] = { -2 };
+void hud_reset(void) { hud_anim[0] = -2; }
+static void hud_init(void) {
     if (hud_anim[0] == -2) {
-        static const char *nm[6] = { "hud_frame", "hud_fill", "hud_petals", "hud_icon", "hud_clock", "hud_digits" };
-        for (int i = 0; i < 6; i++) hud_anim[i] = bank_anim(&G.objs, nm[i]);
+        static const char *nm[NHUD] = { "hud_frame", "hud_fill", "hud_petals", "hud_icon", "hud_clock", "hud_digits",
+            "card_stage", "card_name", "pause", "res_complete", "res_results", "res_panel", "res_rows", "res_digits", "res_small" };
+        for (int i = 0; i < NHUD; i++) hud_anim[i] = bank_anim(&G.objs, nm[i]);
     }
+}
+static void hud_img(int which, int frame, float x, float y, int w_override) {
+    hud_init();
     int a = hud_anim[which];
     if (a < 0) return;
     const anim_t *an = &G.objs.anims[a];
@@ -252,33 +343,46 @@ static void hud_img(int which, int frame, float x, float y, int w_override) {
     if (w <= 0) return;
     r_sprite(&G.objs.tex, f->u, f->v, w, f->h, x, y, w, f->h, 0, 0xffffffff);
 }
+/* draw a bank frame by its hotspot (cards, pause, results are placed by their original hot spots) */
+static void hud_img_hot(int which, int frame, float x, float y) {
+    hud_init();
+    int a = hud_anim[which];
+    if (a < 0) return;
+    const anim_t *an = &G.objs.anims[a];
+    if (frame >= an->count) frame = an->count - 1;
+    if (frame < 0) frame = 0;
+    frame_draw(&G.objs, &G.objs.frames[G.objs.seq[an->first + frame]], x, y, 0, 0xffffffff);
+}
 
 static void hud_number(int v, int digits, float x, float y) {
     for (int i = digits - 1; i >= 0; i--) { hud_img(5, v % 10, x + i * 10, y, -1); v /= 10; }
 }
 
+static float hud_dy;
 void hud_draw(void) {
     const player_t *p = &G.p;
+    /* HUD drops in from the top when the card slides out (RV capture); offset applied to all items */
+    hud_dy = G.card_t >= CARD_DONE ? 0.f : G.card_t < CARD_OUT0 ? -40.f : -40.f + 40.f * (G.card_t - CARD_OUT0) / (CARD_DONE - CARD_OUT0);
+    if (G.card_t < CARD_OUT0) return;
     /* energy meter: fill = guienergy alt A / 100 as x scale (RV en_xs); shine loop while full (RV en_img) */
     int full = p->energy >= PHYS_ENERGY_MAX;
     int fill_frame = full ? (G.frame / 2) % 20 : 0;      /* anim 1, speed 50 = one frame per 2 ticks */
-    hud_img(0, 0, 8, 8, -1);                             /* frame interior is opaque: fill goes on top */
-    hud_img(1, fill_frame, 16, 10, (int)(100.f * p->energy / PHYS_ENERGY_MAX + 0.5f));
+    hud_img(0, 0, 8, 8 + hud_dy, -1);                             /* frame interior is opaque: fill goes on top */
+    hud_img(1, fill_frame, 16, 10 + hud_dy, (int)(100.f * p->energy / PHYS_ENERGY_MAX + 0.5f));
     /* life petals: counter value = half-petals 0..14 (RV GUIRings_125, max 14) */
-    if (p->hp > 0) hud_img(2, p->hp, 8, 19, -1);
+    if (p->hp > 0) hud_img(2, p->hp, 8, 19 + hud_dy, -1);
     /* character head + crystal icon, lives (2 digits), crystals (3 digits) */
-    hud_img(3, 0, 128, 8, -1);
-    hud_number(p->lives < 0 ? 0 : p->lives > 99 ? 99 : p->lives, 2, 144, 8);
-    hud_number(p->crystals < 0 ? 0 : p->crystals > 999 ? 999 : p->crystals, 3, 176, 8);
+    hud_img(3, 0, 128, 8 + hud_dy, -1);
+    hud_number(p->lives < 0 ? 0 : p->lives > 99 ? 99 : p->lives, 2, 144, 8 + hud_dy);
+    hud_number(p->crystals < 0 ? 0 : p->crystals > 999 ? 999 : p->crystals, 3, 176, 8 + hud_dy);
     /* clock + stage timer mm:ss:cc (RV GUITimerM/S/Milli counters; colons are part of the clock image) */
-    hud_img(4, 0, 322, 0, -1);
+    hud_img(4, 0, 322, 0 + hud_dy, -1);
     int cs = G.frame * 100 / FPS, mm = cs / 6000, ss = cs / 100 % 60;
-    hud_number(mm > 99 ? 99 : mm, 2, 343, 8);
-    hud_number(ss, 2, 369, 8);
-    hud_number(cs % 100, 2, 395, 8);
+    hud_number(mm > 99 ? 99 : mm, 2, 343, 8 + hud_dy);
+    hud_number(ss, 2, 369, 8 + hud_dy);
+    hud_number(cs % 100, 2, 395, 8 + hud_dy);
     char buf[32];
-    if (G.clear_t) text_draw(SCREEN_W / 2 - 66, 100, "STAGE CLEAR", 0xffffe040, 3);
-    if (G.paused) text_draw(SCREEN_W / 2 - 34, 100, "PAUSED", 0xffffffff, 3);
+
 #ifdef FP_PROFILE
     snprintf(buf, sizeof buf, "U%u D%u", (unsigned)G.prof_update_us, (unsigned)G.prof_draw_us);
     text_draw(8, SCREEN_H - 12, buf, 0xff80ff80, 1);
@@ -287,14 +391,66 @@ void hud_draw(void) {
 #endif
 }
 
+static void card_draw(void) {
+    int t = G.card_t, act = act_of(G.lvdir);
+    if (t >= CARD_DONE) return;
+    (void)act;
+    /* black until the stage fades in */
+    if (t < CARD_FADE1) r_fade(t < CARD_FADE0 ? 1.f : 1.f - (float)(t - CARD_FADE0) / (CARD_FADE1 - CARD_FADE0));
+    float ys = 159, yn = 185;                      /* RV final positions (sel_20 capture) */
+    float rise1 = t < CARD_RISE1 ? 1.f - (float)t / CARD_RISE1 : 0.f;
+    float rise2 = t < CARD_RISE1 ? 1.f : t < CARD_RISE2 ? 1.f - (float)(t - CARD_RISE1) / (CARD_RISE2 - CARD_RISE1) : 0.f;
+    float out = t < CARD_OUT0 ? 0.f : (float)(t - CARD_OUT0) / (CARD_DONE - CARD_OUT0);
+    rise1 *= rise1; rise2 *= rise2;                /* decelerating rise */
+    hud_img_hot(6, 0, 213 - out * 300, ys + rise1 * 100);         /* "STAGE 1": Dragon Valley is stage 1 */
+    if (t >= CARD_RISE1) hud_img_hot(7, 0, 213 + out * 300, yn + rise2 * 80);
+}
+
+static void pause_draw(void) {
+    if (!G.paused) return;
+    hud_img_hot(8, 1, 213, 101);                  /* RV image 6685: Paused + RESUME/RESTART/QUIT */
+    /* selection marker: original crystal cursor not in the level bank; the item icons stay as drawn
+     * (cursor placement INFERRED): small red petal left of the selected row */
+    hud_img(2, 1, 150, 136 + G.pause_sel * 23, -1);
+}
+
+/* results: original images (Stage Complete! build-in, Results banner, panel, rows, bonus digits);
+ * the original sequence was not observed (it follows the Dragon Valley boss), so layout and timing
+ * here are INFERRED from the assets. */
+static void results_draw(void) {
+    int t = G.res_t;
+    r_fade(1.f);
+    int nf = 0;
+    hud_init();
+    if (hud_anim[9] >= 0) nf = G.objs.anims[hud_anim[9]].count;
+    /* top-left placement: banner 320x48 centred; panel 180x48 and rows 148x40 centred */
+    hud_img(9, t / 2 < nf ? t / 2 : nf - 1, 53, 24, -1);
+    if (t > 60) {
+        hud_img(11, 0, 123, 112, -1);
+        hud_img(12, 0, 139, 116, -1);
+        int cr = CRYSTALS_PER_LIFE - G.p.crystals;              /* crystals collected */
+        hud_number(cr < 0 ? 0 : cr > 999 ? 999 : cr, 3, 139 + 20, 118);
+        hud_number(G.p.hp / 2, 1, 139 + 120, 118);              /* petals left (INFERRED meaning of the icon) */
+        int cs = G.res_time * 100 / FPS, mm = cs / 6000, ss = cs / 100 % 60;
+        hud_number(mm > 99 ? 99 : mm, 2, 139 + 76, 144);         /* colons in the rows image at x 98 and 124 */
+        hud_number(ss, 2, 139 + 102, 144);
+        hud_number(cs % 100, 2, 139 + 128, 144);
+    }
+}
+
 void game_draw(void) {
+    if (G.mode == MODE_FRONTEND) { fe_draw(); return; }
     if (G.in_select) { sel_draw(); return; }
     r_begin();
+    if (G.mode == MODE_RESULTS) { results_draw(); r_end(); return; }
     draw_parallax();
     draw_pieces(0, 2);
     objects_draw(0);
     player_draw(&G.p);
     draw_pieces(3, 7);
     hud_draw();
+    card_draw();
+    pause_draw();
+    if (G.clear_t) r_fade(G.clear_t / 60.f);      /* act transition: fade to black (RV: DV1 -> card) */
     r_end();
 }
