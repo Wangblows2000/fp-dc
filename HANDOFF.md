@@ -18,20 +18,22 @@ source /opt/toolchains/dc/kos/environ.sh && make && make cdi        # build/fpdc
 ```
 Boot flow: Press Start → title (START GAME / TIME ATTACK / GALLERY / OPTIONS / QUIT). Developer level select: L+R within 2 s on the title screen only.
 
-## Latest verified (2026-10-22, session 3)
-- host-test: gameplay 33/33, front end 9/9 (incl. 3 title→level→title cycles, valgrind clean).
-- original-trace vs host-test: **16/16 baseline**, **52/70 overall**; first failing frames in BUILD_AND_TEST_LOG.
-- emulator (Flycast): full front-end path, developer select, DV1 with HUD, Time Attack card.
-- Section 2 findings: grounded cyclone, cancels, no 8 s boost cooldown (energy meter gates the boost; petals don't affect it), left boost orientation, rotation. Details in RUNTIME_MAP.
-- Section 6 findings: springs (all three kinds), skid/turn rule, landing look-ahead, ceiling frame, invulnerability ≤ 61 frames.
+## Latest verified (2026-10-23, session 4)
+- host-test: gameplay 38/38, front end 9/9 (valgrind clean).
+- original-trace vs host-test: **16/16 baseline, 57/70 overall, strict 2524/10471 exact frames** (ratchet in tests/orig/strict_baseline.txt). First failing frames are in BUILD_AND_TEST_LOG.
+- Recovered from the executable (RE_NOTES.md): damage + 60-frame invulnerability, Turretus + pellet (shot and hit on the original's exact frames), camera, animation counter rule, angle smoothing, slope force, landing formula, 4-decimal rounding (physics now in doubles), fall cap 15.25, handlebar grab, landing reach from the bottom sensor.
+- emulator (Flycast): unchanged since session 3 for the front end; DV1 with the new camera checked.
+
+## How to recover more logic (see RE_NOTES.md "Method")
+`tools/re/decomp.sh 'Frames::event_func_N()'` (Ghidra project build/re/ghidra/fp: create once with `analyzeHeadless build/re/ghidra fp -import <Chowdren> -noanalysis`), `tools/re/annot.py`, tracer `WATCH` / `WHO` commands, `tools/re/callgraph.py`. Re-record any trace after probes from a fresh game (`start_orig.sh` + `route_dv1.sh`).
 
 ## Next three actions
-1. Turretus firing (range/period) → the four hurt_* sequences; then Turretus contact/bounce.
-2. Hanging gimmick (M41) and the steep up-slope boost landing (boost_air_right f172).
-3. DV1 mini-boss and the DV4 Serpentine; observe the original's real results screen (replace the INFERRED layout).
+1. **Port the sensor system** (`loop_player01detectsensor*`, `loop_player01up/down/slopes*/wallcollision`, angle routines in events 1590 and 1603). It explains most remaining differences: landing angle, start-slope angle, push-out from solids.
+2. **Results screen** from the located block (DV4 events 4560–4589, `loop_tally_19`): timeline, positions, tally, sounds.
+3. Turretus hit-by-attack (events 4776/4777: A = 8 health), pellet destroy handlers (`col_7_20`, `col_20_20`), handlebar release/move (4057–4066), jump animation frame selection.
 
 ## Known issues / INFERRED
-Results layout, card timings, transition stagger, pause cursor are INFERRED. Invulnerability 60 is an estimate under a measured bound. Walk/run anim speeds fitted. Down-kick → cyclone sequences differ by ~3 frames. GALLERY not implemented; only Lilac playable. FP_PROFILE overlay is visible bottom-left in DC builds.
+Results layout, card timings, transition stagger, pause cursor and the handlebar release are INFERRED. Walk/run anim speeds fitted. Down-kick → cyclone sequences differ by ~3 frames. GALLERY not implemented; only Lilac playable. FP_PROFILE overlay is visible bottom-left in DC builds.
 
 ## Safety
 Never write to the user's game folders. extracted/, converted*/, build/, docs/reference/, tools/audio/wav2adpcm are gitignored. Never commit game data (`git ls-files` check before commits).

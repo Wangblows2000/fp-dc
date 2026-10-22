@@ -57,3 +57,12 @@ The user required this. `FP_DEBUG_SELECT` is kept as a no-op build flag for old 
 
 **D-016 Unknown original behaviour is labelled, not invented.**
 Where the original could not be observed (results layout after a boss, card timings, pause cursor, transition stagger, invulnerability length), the port uses the closest evidence and marks it INFERRED or UNVERIFIED in code and in RUNTIME_MAP.
+
+**D-017 Lilac's physics in doubles.**
+The original keeps Clickteam alterables as doubles and floors B, G and N to 4 decimals every frame (event 1574). In float the rounding drifts (−2.9 floors to −2.9001), which cost exact frames. Lilac's position, speeds and angles are now doubles with double constants. The SH4 has hardware double precision and this is a handful of operations per frame. The renderer and the other objects stay float.
+
+**D-018 Recover logic from the executable; never ship decompiled code.**
+Behaviour is taken from the original's compiled events (named functions, readable with Ghidra and gdb watchpoints) whenever possible, and confirmed with traces. Decompiled or disassembled output stays in `build/re/` (gitignored); the port is written from the prose and formulas in RE_NOTES.md.
+
+**D-019 Camera from MasterCamera_408 (replaces the reconstruction).**
+The recovered dead-zone camera also decides which enemies are active (Turretus counts only within 200 px of the view), so it is a gameplay rule as well as presentation.

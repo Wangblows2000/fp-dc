@@ -120,8 +120,8 @@ Note: after a few jumps between frames the original swapped the playable charact
 - Petal counter max 14 half-petals (7 petals). Crystal counter counts DOWN from 200 (200 = a life). Lives start at 5.
 
 ## Damage and invulnerability (RV)
-- Hurt: vx = −2.2·(away), vy = −4.2, gravity 0.5, state M8 for 22 frames (skin alt O counts 1..22). Turretus shot = 2 half-petals. Hurt sounds 17/25 (+ voice).
-- Post-hit invulnerability: **≤ 61 frames** (re-hurt 61 frames after a hit in `boost_upright` while standing in contact). No countdown alterable exists on the movement/skin objects (`tests/orig_probe/invuln_retouch.txt`); fpdc uses 60.
+- Hurt (RE, event 2414): **B = 0.75·B − 2.2·Q, G = 0.75·G − 4.2** (Q = facing, so the knock-back is away from the facing), gravity 0.5, state M8 for 22 frames (skin alt O counts 1..22). Damage = mult × source / 5 half-petals (Turretus pellet 10 → 2 on Normal, 4 on Hard; Casual none). Sound 25 (+17 logged, + voice).
+- Post-hit invulnerability (RE + RV): **60 frames**, PlayerOthers_126.E set to 60 and counted down 1 per frame; collision handlers ignore Lilac while E > 0.
 
 ## Springs (RV, DV1 = on_frame_21; traces `tests/orig/spring_*.txt`)
 | Spring | Effect |
@@ -134,8 +134,8 @@ Spring sound id 5 (played on contact).
 ## Skid / turning rule (RV, `skid`, `spring_yellow_right`)
 Input against the motion: if it turns Lilac round, that frame is friction (5E / 9E) + acceleration toward the input, and the skid state starts next frame (−0.5/frame, anim 17, until stopped). If she already faces the input (e.g. thrown backwards by a spring), there is no skid, just friction + acceleration every frame (6E above speed 2, ×9 rules below).
 
-## Landing (RV, landing snaps in 20+ traces)
-On the last vertical step of a falling frame the original lands when the ground is up to 4 px below the feet, and snaps down to it (+2…+3.99 px observed). A boost that lands keeps its speed: no friction step on the landing frame.
+## Landing (RE/RV)
+Ground is detected by PlayerSensorBottomBig_334 (11×11 at floor Yref + 13): surface rows up to **floor(feet) + 4** count, then the slope loops move Lilac onto the surface. Landing speed (event 1591): **B = B − G·0.84·sin(N)** for 22° < N < 338°, with N from the landing-angle routine (not ported yet; ours measures the angle differently). A boost that lands keeps its speed. Falling speed tops out at **15.25** (event 1577 clamps G to 15 before gravity).
 
 ## Ceiling (RV, `spring_yellow_upleft` f52)
 On the frame the head reaches a ceiling, vy becomes 0 at once (no gravity that frame; air drag still applies).
@@ -163,3 +163,12 @@ Meter frame 3784 at (8,8); fill 7439 at (16,10) scaled by energy/100 and drawn o
 - Pause images: 5502 (Resume/Quit), 6685 (Resume/Restart/Quit), 1553 (Restart greyed). Cursor marker INFERRED.
 - Act transition DV1 → DV2: fade + card, no results, timer continues.
 - Results assets: 8005 "Stage Complete!" (320×48; build-in from levelcardactclear1 anim 7), 955 "Results" banner, 10860 panel (180×48), 10837 rows (148×40: crystal icon, TIME, colons), totalbonus digits 2794…, small digits 1922…. **Layout INFERRED**: the original's post-boss results were not observed (killing the Serpentine via memory failed, time-boxed).
+
+## Recovered from the executable (session 4; details and event numbers in RE_NOTES.md)
+- **Camera:** MasterCamera_408: ±16 px horizontal dead zone (the view snaps after a teleport), grounded landing ease 4 px/frame, air dead zone −48…+16, look-ahead up to 64 px at speed ≥ 5 (2.5/frame while boosting), look up/down 96 px after 120 frames, display clamp to the frame. Replaces the reconstructed 0.15 easing.
+- **Turretus:** idle, aims in direction 15/1 (11.25° up), timer E counts while within 200 px of the view, shoots at E > 60 then E = −40; pellet released at shoot-animation frame 7 from the action point (±18, −14). **EnemyPellet:** PinballMovement 5 px/frame, gravity 0.25 px/frame², floor stepping (exact).
+- **Animation timing:** a frame advances when the counter goes above 100 (not at 100); changing animation keeps the counter.
+- **Angle smoothing:** k = max(0.175, |B|/15) within 45°, snap beyond. **Slope force:** N in 35…325°, ×0.38 below speed 5, none when stopped.
+- **Precision:** the original floors B, G, N to 4 decimals every frame in doubles; the port now uses doubles for Lilac's physics.
+- **Handlebar:** grabbed by the top-big sensor while falling; Lilac hangs at (sensor x, sensor y + 32).
+- **Results screen:** located (DV4 events 4560–4589, `loop_tally_19`), not ported; the port's layout is still INFERRED.

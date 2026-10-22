@@ -1,13 +1,16 @@
 # TODO (priority order)
 
 ## Gameplay evidence still missing
-- [ ] Turretus firing pattern / range (hurt_* sequences fail from the first shot)
-- [ ] Hanging gimmick (gimmickhangingidlesensor, M41) — spring_yellow_upleft fails at f61
-- [ ] Landing on a steep up-slope at boost speed (boost_air_right first failing frame f172: gsp 7.897 vs 11.878)
+- [x] Turretus firing pattern / pellet / damage (RE, session 4)
+- [x] Handlebar grab and hold (RE); [ ] release and moving along the bar (events 4057-4066)
+- [ ] Sensor system port: landing-angle routine (1590: boost_air_right f172), ground angle (1603), push-out loops (turretus_landon)
 - [ ] Down-kick/cyclone moving_frames (3-frame difference) and 1-frame late landings in dk_* sequences
-- [ ] Exact invulnerability length (needs a continuous-contact hazard)
+- [x] Invulnerability length (RE: 60 frames)
 - [ ] DV1 pole-robot mini-boss (x ≈ 14400), Serpentine boss (DV4)
-- [ ] Original results screen after a boss (layout currently INFERRED)
+- [ ] Results screen from the located events 4560-4589 + loop_tally_19 (layout currently INFERRED)
+- [ ] Turretus hit by attack (events 4776/4777), pellet destroy handlers (col_7_20, col_20_20)
+- [ ] Jump animation frame chosen by vertical speed (animation agreement 29%)
+- [ ] Parallax layer offsets (backgrounds differ from the original at the DV1 start)
 
 ## Front end / presentation
 - [ ] GALLERY; Carol/Milla
