@@ -67,3 +67,9 @@ Visual check: frames rendered by the software renderer (`build/run1/montage.png`
 - Original game: boots; jump to frame 20 loads DV geometry but the stage doesn't progress (menu state missing). **No physics measured from the original yet.**
 
 - **Incident:** commits 3947e7a/21eaf68 accidentally included converted game data (converted2/, .gitignore only covered converted/). Never published. Rewritten locally to e60ab9d, .gitignore now covers converted*/ and __pycache__, reflog expired and gc run. Verified the largest remaining git objects are source files.
+
+## 2026-10-22 — move set + level select
+- player.c rewritten from traces: **16/16 original-vs-fpdc sequences pass** (`Q=1 FR=220 tools/orig/cmp_all.sh`). Fixes found by comparison: jump uses raw angle N (apex 94→90 on run_jump), cyclone continues after release (airtime 96→100), landing-frame friction, crouch stop under speed 2, boost keeps slope force, floor mode extended to ~47° (MODE_EDGE 0.82) after a 45° slope→flat glitch.
+- Host tests 16/16 (quarter-pipe and boost tests updated to the evidence; added boost_tap_nothing).
+- Frame identification: 70 frames screenshotted in the original via set_frame (game survived all jumps).
+- FP_DEBUG_SELECT: host (FP_SELECT=1) and **Flycast**: select DV3 → plays; pause → X → select DV4 → plays (VRAM reset + reload works). CDI 45 MB with DV1–DV4. Perf: draw paced at 16.6 ms, update ≤80 µs.

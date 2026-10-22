@@ -43,3 +43,6 @@ Object codes: 1 player start, 2 crystal, 3 hornet, 4 checkpoint, 5 goal.
 ## Current slice output (measured)
 40 Lilac frames (512² atlas), 8 object frames (256²), 5 background textures. VRAM 1,589,248 B (1.52 MB).
 7 SFX (6–30 KB each). Stage 1 music 15,797,076 B.
+
+## Per-level layout (2026-10-22, D-010)
+`tools/build_level.sh <on_frame_N> <name> converted2` → `converted2/<name>/{<name>.lv2, <name>_p*.tex, <name>_par*.tex, <name>_obj.*, lilac2.*, pal0-3.pal}` + `converted2/levels.txt`. Built: dv1 (frame 21), dv2 (22), dv3 (23), dv4 (24): 5.5 / 5.7 / 4.6 / 5.7 MB. `make cdi` copies every listed level to `/cd/data/<name>/`.

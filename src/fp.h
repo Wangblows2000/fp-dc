@@ -48,6 +48,7 @@ void   r_sprite(const tex_t *t, int u, int v, int uw, int vh,
                 float x, float y, float w, float h, int flip, uint32_t argb);
 void   r_rect(float x, float y, float w, float h, uint32_t argb);
 void   r_end(void);
+void   r_reset(void);                 /* free all textures (level change) */
 
 /* ---------------------------------------------------------------- resources */
 typedef struct { uint16_t u, v, w, h; int16_t hx, hy; } frame_t;
@@ -136,6 +137,8 @@ typedef struct {
     int nobjs;
     float camx, camy;
     int frame, clear_t, paused, kills;
+    char lvdir[8];              /* current level data dir under the data root ("dv1") */
+    int debug_select, in_select, sel, sel_top, sel_msg_t;
     struct { int jump, crystal, hit, explode, attack, hurt, boost; } sfx;
     uint32_t prof_update_us, prof_draw_us;
 } game_t;
@@ -143,6 +146,7 @@ typedef struct {
 extern game_t G;
 
 int  game_init(void);
+int  game_load_level(const char *dir);   /* unloads the current level first */
 void game_update(const input_t *in);
 void game_draw(void);
 void player_reset(player_t *p, float x, float y);

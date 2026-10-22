@@ -1,39 +1,19 @@
-# TODO (priority order)
+# TODO (priority order, prompt v3)
 
-## Blockers / need from user
-- [ ] **GOG Linux build of Freedom Planet** (same GOG account offers it). Its `bin64/Chowdren` ELF keeps symbols. That unlocks freedom_editor-style recovery of the **real stage layouts** (`Frames::on_frame_N_init`), object classes and per-object image lists (= animation frame sets).
-- [ ] Ask whether the user owns the **2014 v1.0 build** (fp-assets profile md5 `f14f24317d…`). The supplied install is v1.21.5.
+## Checkpoint 1 remainder
+- [ ] Trace damage/knockback and spring in the original; compare (`tests/orig/`)
+- [ ] Boost in six directions + air charge vs original
+- [ ] Energy meter: boost cost / recharge / shield rules from the original
+- [ ] Attack hitboxes from the original (sizes currently reconstructed)
+- [ ] Sprite rotation by ground angle
 
-## Milestone 1/6 (toolchain + bootable slice)
-- [ ] Finish the kos-chain build, then build KOS (`environ.sh`, `make`)
-- [ ] `make` → fpdc.elf; fix compile errors against real KOS headers
-- [ ] `make cdi` → build/fpdc.cdi
-- [ ] Build Flycast, boot the CDI headless under Xvfb, screenshot, check input via xdotool
-- [ ] Record perf counters printed by `plat_dc.c` (update/draw µs, polys, slow frames)
+## Checkpoint 2
+- [ ] HUD from original graphics (reference docs/reference/hud_dv1.png): energy meter, petals (verify max), lives, crystals, timer mm:ss:cc
+- [ ] D-002: 4:3 crop vs 424-wide letterbox (decide in DECISIONS.md)
+- [ ] Title + options menus from the original frames (2, 3, 4, 13)
+- [ ] Music: 68 BGM, loop points (code or approximate), manifest, ADPCM vs libtremor measured
 
-## Milestone 7 (real data)
-- [ ] Linux-build symbol dump → animation tables (replace hand-picked frame orders in `tools/slice_manifest.json`)
-- [ ] Linux-build frame dump → stage terrain pieces + object placement → converter → `.lvl` v2 (piece-based terrain, not tiles)
-- [ ] Collision from terrain-piece images (alpha → heightmaps) instead of hand tiles
-- [ ] Sound name mapping (sound handles referenced from code)
-
-## Gameplay fidelity
-- [ ] Recover physics constants (D-005); compare with footage frame by frame
-- [ ] Sprite rotation on slopes; loops/360° running (needs angle-mode collision: walls/ceilings)
-- [ ] Real checkpoint lamp + goal sprites (placeholders now)
-- [ ] Lilac moveset per original: hair whip combo, Dragon Cyclone hold, Dragon Boost aim + recharge rules
-- [ ] Carol, Milla
-- [ ] Health petals, life counter, HUD graphics from the archive
-
-## Engine / platform
-- [ ] Music loop points (per-track table; none in the oggs)
-- [ ] ADPCM music (4:1) or libtremor to cut disc size
-- [ ] Twiddled / VQ textures, per-room texture loading
-- [ ] Title screen, stage select, pause menu
+## Checkpoint 3
+- [ ] DV2–DV4 objects/enemies; checkpoints; boss
+- [ ] More stages through build_level.sh (dirs named in game.c SEL table)
 - [ ] Real-hardware test (CD-R / ODE)
-
-## Known issues
-- Hand-picked animation orders and SFX choices are guesses (UNVERIFIED).
-- 4:3 crop of the 16:9 original (D-002).
-- Host software renderer has no rotation/scaling beyond integer sprite blits.
-- `.rdata` double-constant probe near the event-group strings was inconclusive (only generic integers).

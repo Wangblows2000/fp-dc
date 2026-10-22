@@ -64,6 +64,9 @@ int r_tex_load(tex_t *t, const void *data, size_t size) {
     return 0;
 }
 
+/* drop every texture (level change): VRAM texture memory is reset as a whole */
+void r_reset(void) { pvr_wait_ready(); pvr_mem_reset(); ntex = 0; }
+
 int r_pal_load(const void *data, size_t size) {
     const uint8_t *d = data;
     uint16_t g, pal[256];

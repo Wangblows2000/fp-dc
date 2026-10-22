@@ -32,6 +32,11 @@ int r_tex_load(tex_t *t, const void *data, size_t size) {
     return 0;
 }
 
+void r_reset(void) {
+    for (int i = 0; i < ntex; i++) { free(texs[i].px); free(texs[i].idx); texs[i].px = NULL; texs[i].idx = NULL; }
+    ntex = 0;
+}
+
 int r_pal_load(const void *data, size_t size) {
     const uint8_t *d = data; uint16_t g;
     if (size < 8 + 512 || memcmp(d, "FPPL", 4)) return -1;
