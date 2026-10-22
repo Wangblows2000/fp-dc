@@ -93,10 +93,29 @@ def held_at(ev, f):
         if a <= f < b: s |= set(btn)
     return s
 
+SND = []   # (frame, kind, value): Media::play_id(this, id, channel, loop) / Media::play(this, std::string&, ch, loop)
+class SndBP(gdb.Breakpoint):
+    def __init__(self, spec, kind, tracer):
+        super().__init__(spec, internal=True); self.kind = kind; self.t = tracer
+    def stop(self):
+        try:
+            if self.kind == 'id':
+                v = '%d ch%d loop%d' % (int(gdb.parse_and_eval('$esi')) & 0xffffffff, int(gdb.parse_and_eval('$edx')), int(gdb.parse_and_eval('$ecx')))
+            else:
+                rsi = int(gdb.parse_and_eval('$rsi')) & 0xffffffffffffffff
+                ptr, ln = struct.unpack('<QQ', bytes(inf.read_memory(rsi, 16)))
+                v = '%s ch%d loop%d' % (bytes(inf.read_memory(ptr, min(ln, 200))).decode('latin1'), int(gdb.parse_and_eval('$edx')), int(gdb.parse_and_eval('$ecx')))
+        except Exception as e:
+            v = 'err %s' % e
+        if self.t.sndf: self.t.sndf.write('%d %s %s\n' % (self.t.f, self.kind, v)); self.t.sndf.flush()
+        return False
+
 class Tracer(gdb.Breakpoint):
     def __init__(self, script, out, n, restart):
         super().__init__('*0x9fcb7a', internal=True)
         self.ev = load_script(script); self.n = n; self.f = -1; self.prev = set()
+        self.sndf = open(out[:-4] + '.snd', 'w')
+        SndBP('*0xa4e650', 'id', self); SndBP('*0xa4e2c0', 'str', self)
         self.out = open(out, 'w'); self.objs = None; self.restart_wait = 120 if restart else 0; self.warm = 0
         # skin_anim = animation*1000 + frame
         # sk_ang/sk_xs/sk_ys: Active angle @+0xc4, x/y scale @+0xc8/+0xcc (Active::set_angle/set_x_scale)

@@ -4,6 +4,7 @@
  * Physics constants: fp.h (RV = runtime-verified against the original, see RUNTIME_MAP.md). */
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "../fp.h"
 
 enum { ST_NORMAL, ST_ATTACK, ST_CYCLONE, ST_CHARGE, ST_BOOST, ST_HURT, ST_DEAD,
@@ -46,8 +47,9 @@ void player_reset(player_t *p, float x, float y) {
     float sx = p->spawn_x, sy = p->spawn_y;
     *p = (player_t){0};
     p->crystals = init_energy ? crystals : CRYSTALS_PER_LIFE; p->lives = init_energy ? lives : LIVES_START;
-    /* RV: the energy meter survived stage restarts in the original (debug restart); start full */
-    p->energy = init_energy ? energy : PHYS_ENERGY_MAX; p->energy_init = 1;
+    /* RV (GUIEnergy_127 at stage start, hud_dv1.png): the meter starts EMPTY on every stage/act start and
+     * refills at 0.4/frame; the earlier "persists" reading came from a stale object */
+    (void)energy; p->energy = 0.f; p->energy_init = 1;
     p->spawn_x = sx ? sx : x; p->spawn_y = sy ? sy : y;
     p->x = x; p->y = y; p->face = 1; p->hp = MAX_HP;
     set_anim(p, A_IDLE);
@@ -60,7 +62,8 @@ int player_invincible(const player_t *p) {
 void player_hurt(player_t *p, float from_x) {
     if (player_invincible(p)) return;
     p->hp -= 2;                     /* RV: a Turretus hit costs 2 half-petals */
-    snd_play(G.sfx.hurt, 220, 128);
+    snd_play_orig(17, 220, 128);    /* RV: hurt = 17 */
+    { static const char *vh[4] = { "lilac_hurt0", "lilac_hurt1", "lilac_hurt2", "lilac_hurt3" }; voice_play(vh[rand() & 3]); }
     if (p->hp <= 0) { p->state = ST_DEAD; p->dead_t = 0; p->vy = -5; p->vx = 0; p->ground = 0; return; }
     p->state = ST_HURT; p->state_t = 0;
     float dir = (p->x < from_x) ? -1.f : 1.f;
@@ -332,7 +335,7 @@ static void start_boost(player_t *p, const input_t *in) {
     p->state = ST_BOOST; p->state_t = 0; p->boost_used = 1;
 
     if (dy < 0 && p->ground) detach(p);
-    snd_play(G.sfx.boost, 230, 128);
+    snd_play_orig(53, 230, 128);                  /* RV: boost fire = 53 */
 }
 
 static void set_state(player_t *p, int s) { p->state = s; p->state_t = 0; }
@@ -342,7 +345,8 @@ static void set_state(player_t *p, int s) { p->state = s; p->state_t = 0; }
 static void start_air_cyclone(player_t *p, const input_t *in) {
     set_state(p, ST_CYCLONE); p->cyclone_used = 1; p->jumping = 0;
     p->vy = (in->held & BTN_DOWN) ? 0.f : -PHYS_CYCLONE_VY;
-    snd_play(G.sfx.attack, 200, 128);
+    snd_play_orig(288, 220, 128); snd_play_orig(174, 220, 128);       /* RV: cyclone start = 288 + 174 */
+    voice_play(rand() & 1 ? "lilac_cyclone1" : "lilac_cyclone2");     /* voice choice/frequency INFERRED */
 }
 
 /* grounded ST_NORMAL: action inputs (RV unless noted) */
@@ -351,7 +355,7 @@ static int ground_actions(player_t *p, const input_t *in) {
         /* RV (gc_run_down_attack): Down + attack while MOVING on the ground = grounded Dragon Cyclone
          * (M26, anim 18). From a standstill the same input is the crouch kick (anim 30). */
         set_state(p, ST_CYCLONE); p->cyclone_ground_start = 1;
-        snd_play(G.sfx.attack, 200, 128);
+        snd_play_orig(288, 220, 128); snd_play_orig(174, 220, 128);
         return 1;
     }
     if ((in->pressed & BTN_ATTACK) && fabsf(p->gsp) < 0.01f && (in->held & BTN_DOWN)) {
@@ -363,12 +367,11 @@ static int ground_actions(player_t *p, const input_t *in) {
             if (in->pressed & BTN_JUMP) { jump(p); p->jumping = 0; }        /* RV: high uppercut */
         }
         else set_state(p, ST_ATTACK);                                        /* RV: M20 anim 26 */
-        snd_play(G.sfx.attack, 200, 128);
-        return 1;
+        return 1;                                                            /* sound: see ST_ATTACK */
     }
     if ((in->pressed & BTN_SPECIAL) || ((in->held & BTN_SPECIAL) && p->energy >= PHYS_ENERGY_MAX)) {
         /* RV: charging needs a FULL energy meter; holding special waits for it (boost_hold_long) */
-        if (p->energy >= PHYS_ENERGY_MAX) { set_state(p, ST_CHARGE); return 1; }
+        if (p->energy >= PHYS_ENERGY_MAX) { set_state(p, ST_CHARGE); snd_play_orig(9, 230, 128); return 1; }   /* RV: 9 */
     }
     if (in->pressed & BTN_JUMP) {
         ground_move(p, in, 0, 0);
@@ -391,9 +394,9 @@ static int air_action_wanted(const player_t *p, const input_t *in) {
 static void air_action_apply(player_t *p, const input_t *in, int act) {
     if (p->ground) return;                 /* landed this frame: the action is dropped */
     switch (act) {
-    case ACT_DKWIND: set_state(p, ST_DKWIND); snd_play(G.sfx.attack, 200, 128); break;   /* RV: M19 anim 7 */
-    case ACT_AIRATK: set_state(p, ST_ATTACK); snd_play(G.sfx.attack, 200, 128); break;   /* RV: M20 anim 25 */
-    case ACT_CHARGE: set_state(p, ST_CHARGE); break;
+    case ACT_DKWIND: set_state(p, ST_DKWIND); snd_play_orig(405, 220, 128); break;   /* RV: M19 anim 7, sound 405 */
+    case ACT_AIRATK: set_state(p, ST_ATTACK); break;                                  /* RV: M20 anim 25 */
+    case ACT_CHARGE: set_state(p, ST_CHARGE); snd_play_orig(9, 230, 128); break;
     case ACT_CYCLONE: start_air_cyclone(p, in); break;
     }
 }
@@ -443,10 +446,19 @@ void player_update(player_t *p, const input_t *in) {
         }
         break;
     case ST_ATTACK:   /* RV: 22 frames, physics unchanged (ground: no input; air: normal) */
+        if (p->state_t == 7) {                     /* RV: swing sound 21, 7 frames into the attack */
+            snd_play_orig(21, 220, 128);
+            static const char *vo[4] = { "lilac_attack0", "lilac_attack1", "lilac_attack2", "lilac_attack3" };
+            voice_play(vo[rand() & 3]);           /* voice choice/frequency INFERRED (sound_attack0-3 loops exist) */
+        }
         if (p->ground) ground_move(p, in, 0, 1); else air_move(p, in, 1, PHYS_GRAV);
         if (p->state == ST_ATTACK && p->state_t >= PHYS_ATTACK_T) p->state = ST_NORMAL;
         break;
     case ST_UPPERCUT: /* RV: stand 10 f (jump allowed = high uppercut), then vx 2*face, vy -7; ~39 f total */
+        if (p->state_t == 1) {
+            static const char *vu[4] = { "lilac_uppercut0", "lilac_uppercut1", "lilac_uppercut2", "lilac_uppercut3" };
+            voice_play(vu[rand() & 3]);           /* INFERRED (sound_uppercut0-3 loops exist) */
+        }
         if (p->state_t <= PHYS_UPPER_WIND) {
             if (p->ground) {
                 if (in->pressed & BTN_JUMP) { jump(p); p->jumping = 0; }
@@ -466,7 +478,10 @@ void player_update(player_t *p, const input_t *in) {
         air_move(p, in, 0, PHYS_DK_WIND_GRAV);
         if (p->ground) { p->state = ST_NORMAL; break; }
         /* RV: kick vy = windup vy + 5 (down_kick -1.25 -> 3.875, cyc_dk_early -0.075 -> 4.925, dk_wind 1.375 -> 6.375) */
-        if (p->state_t >= PHYS_DK_WIND_T) { set_state(p, ST_DIVEKICK); p->vx = PHYS_DK_VX * p->face; p->vy += PHYS_DK_VY_ADD; }
+        if (p->state_t >= PHYS_DK_WIND_T) {
+            set_state(p, ST_DIVEKICK); p->vx = PHYS_DK_VX * p->face; p->vy += PHYS_DK_VY_ADD;
+            snd_play_orig(176, 220, 128); snd_play_orig(396, 220, 128);   /* RV: kick launch = 176 + 396 */
+        }
         break;
     case ST_DIVEKICK: /* RV: normal air physics (M0) with the kick animation until landing; jump = cyclone if unused */
         {
@@ -487,7 +502,7 @@ void player_update(player_t *p, const input_t *in) {
         } else {
             int dk = (in->pressed & BTN_ATTACK) && (in->held & BTN_DOWN);
             air_move(p, in, 1, (in->held & BTN_DOWN) ? PHYS_GRAV : PHYS_CYCLONE_GRAV);
-            if (dk && !p->ground) { set_state(p, ST_DKWIND); snd_play(G.sfx.attack, 200, 128); break; }
+            if (dk && !p->ground) { set_state(p, ST_DKWIND); snd_play_orig(405, 220, 128); break; }
         }
         if (p->state == ST_CYCLONE && p->state_t >= PHYS_CYCLONE_T) p->state = ST_NORMAL;
         break;

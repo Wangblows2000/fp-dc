@@ -54,11 +54,20 @@ static int nsnd;
 void snd_init_fp(void) {}
 int  snd_load(const char *name) { size_t s; void *d = plat_load_file(name, &s); if (!d) return -1; free(d); return nsnd++; }
 void snd_play(int h, int vol, int pan) { (void)vol; (void)pan; if (getenv("FP_TRACE_SND")) printf("snd %d @%d\n", h, cur_frame); }
-int  music_play(const char *name) { (void)name; return 0; }
+/* host: no audio output; FP_TRACE_SND logs music starts so tests can check transitions (no duplicates) */
+static char host_mus[64];
+int  music_play(const char *name) {
+    if (!strcmp(host_mus, name)) return 0;
+    snprintf(host_mus, sizeof host_mus, "%s", name);
+    if (getenv("FP_TRACE_SND")) printf("music %s @%d\n", name, cur_frame);
+    return 0;
+}
+void music_volume(int pct) { (void)pct; }
 void music_update(void) {}
-void music_stop(void) {}
+void music_stop(void) { if (host_mus[0] && getenv("FP_TRACE_SND")) printf("music stop @%d\n", cur_frame); host_mus[0] = 0; }
 
 extern void soft_dump(const char *path);
+void plat_quit(void) { printf("quit @%d\n", cur_frame); exit(0); }
 
 /* debug-route commands shared with tools/orig/trace_orig.py: "<f> TP x y" (original units: Y is the
  * reference point 14 px above the feet), "<f> EN v" energy, "<f> HP v" petals (half-petals) */
@@ -80,6 +89,7 @@ static uint32_t parse_btn(const char *s) {
         case 'L': m |= BTN_LEFT; break; case 'R': m |= BTN_RIGHT; break;
         case 'U': m |= BTN_UP; break; case 'D': m |= BTN_DOWN; break;
         case 'J': m |= BTN_JUMP; break; case 'X': m |= BTN_ATTACK; break;
+        case 'l': m |= BTN_LT; break; case 'r': m |= BTN_RT; break;
         case 'B': m |= BTN_SPECIAL; break; case 'S': m |= BTN_START; break;
     }
     return m;
@@ -130,9 +140,9 @@ int main(int argc, char **argv) {
         apply_dbg(cur_frame);
         game_update(&in);
         const player_t *p = &G.p;
-        printf("f %d x %.2f y %.2f gsp %.3f vx %.3f vy %.3f gnd %d ang %.3f st %d hp %d cr %d k %d an %d fr %d rot %.2f en %.2f lv %d face %d\n",
+        printf("f %d x %.2f y %.2f gsp %.3f vx %.3f vy %.3f gnd %d ang %.3f st %d hp %d cr %d k %d an %d fr %d rot %.2f en %.2f lv %d face %d mode %d sel %d\n",
                cur_frame, p->x, p->y, p->gsp, p->vx, p->vy, p->ground, p->angle, p->state, p->hp, p->crystals, G.kills, p->an.anim, p->an.frame,
-               p->rot, p->energy, p->lives, p->face);
+               p->rot, p->energy, p->lives, p->face, G.mode, G.in_select);
         if (csv) {
             char h[16]; int k = 0;
             const char *bn = "LRUDJXBS";

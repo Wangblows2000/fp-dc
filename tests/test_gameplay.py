@@ -10,7 +10,8 @@ DATA = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, '..', 'converted
 def run(script, frames):
     with tempfile.NamedTemporaryFile('w', suffix='.txt', delete=False) as f:
         f.write(script); name = f.name
-    out = subprocess.run([BIN, DATA, str(frames), name], capture_output=True, text=True, check=True).stdout
+    out = subprocess.run([BIN, DATA, str(frames), name], capture_output=True, text=True, check=True,
+                         env=dict(os.environ, FP_LEVEL=os.environ.get("FP_LEVEL", "dv1"))).stdout
     os.unlink(name)
     rows = []
     for line in out.splitlines():
@@ -63,10 +64,14 @@ check('turretus_destroyed', r6[-1]['k'] >= 1, 'kills %d' % r6[-1]['k'])
 
 # 7 moves
 # RV: hold special -> 30 f charge -> auto-fire at speed 12 for 33 f (a tap does nothing)
-r = run('10 90 B\n', 110)
+r = run('5 EN 100\n10 90 B\n', 110)
 b = [x for x in r if x['st'] == 4]
 check('dragon_boost', 30 <= len(b) <= 36 and max(abs(x['gsp']) for x in b) >= 11.9, '%d boost frames' % len(b))
-r = run('10 14 B\n', 60)
+# RV: the meter starts EMPTY at stage start and fills at 0.4/frame (250 frames): no boost before that
+r = run('10 300 B\n', 320)
+first = next((i for i, x in enumerate(r) if x['st'] == 3), None)
+check('energy_starts_empty', r[0]['en'] < 1 and first is not None and first >= 240, 'en0 %.1f charge at %s' % (r[0]['en'], first))
+r = run('5 EN 100\n10 14 B\n', 60)
 check('boost_tap_nothing', all(x['st'] != 4 for x in r) and abs(r[-1]['gsp']) < 0.01)
 r = run('10 12 X\n', 90)
 check('attack_and_recover', any(x['st'] == 1 for x in r) and r[-1]['st'] == 0)

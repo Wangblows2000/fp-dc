@@ -171,7 +171,16 @@ def main():
            ('hud_petals', an['guirings_125']['images']),        # counter 0..14 half-petals
            ('hud_icon', [311]),                                 # guiicon anim 0 = Lilac head + crystal
            ('hud_clock', an['guitimer_536']['anims'][0]['0']['frames']),
-           ('hud_digits', an['guilives_425']['images'][:10])]   # counter digits 0-9 (lives/crystals/timer)
+           ('hud_digits', an['guilives_425']['images'][:10]),   # counter digits 0-9 (lives/crystals/timer)
+           ('card_stage', an['levelcardintro3_684']['anims'][0]['0']['frames']),   # "STAGE n" (index n-1)
+           ('card_name', an['levelcardintro2_683']['anims'][0]['0']['frames']),    # stage names
+           ('card_fade', [129]), ('card_gameover', [27]),
+           ('pause', an['guipause_347']['anims'][0]['0']['frames']),               # Paused banner + options
+           ('res_complete', an['levelcardactclear1_864']['anims'][7]['0']['frames']),  # "Stage Complete!" build-in
+           ('res_results', [955]), ('res_panel', [10860]), ('res_rows', [10837]),
+           ('res_bar', [10844, 10660]),
+           ('res_digits', an['totalbonus_870']['images'][:10]),
+           ('res_small', an['levelcardbonus3_869']['images'][:10])]
     for nm, frames in HUD:
         bank['anims'].append({'name': nm, 'frames': frames, 'speed': 0, 'loop': -1, 'back_to': 0})
     write_bank2(src, bank, out, report)
