@@ -102,10 +102,16 @@ def main():
         chk(tag + 'distance_x', abs(po['distance_x'] - oo['distance_x']) <= max(0.05 * dx, 4), '%.1f vs %.1f' % (po['distance_x'], oo['distance_x']))
         if oo.get('moving_frames') is not None and po.get('moving_frames') is not None:
             chk(tag + 'moving_frames', abs(po['moving_frames'] - oo['moving_frames']) <= 2, '%d vs %d' % (po['moving_frames'], oo['moving_frames']))
+    # strict: frames where X, Y, B, G all agree to 0.01 (skipped teleport frames excluded); exact prefix from --from
+    ex = [all(abs(p[k] - o[k]) < 0.01 for k in 'XYBG') for p, o in pairs if p['f'] not in skip]
+    n_exact = sum(ex); prefix = next((i for i, e in enumerate(ex) if not e), len(ex))
     ok = all(c[1] for c in checks)
     print('%s  %s  (fpdc vs original, shift %d, frames %d..%d)' % ('PASS' if ok else 'FAIL', a[2].split('/')[-1], shift, f_from, min(f_to, P[-1]['f'])))
     for n, good, d in checks:
         print('   %-14s %s  %s' % (n, 'ok ' if good else 'BAD', d))
+    print('   strict: exact %d/%d frames, exact prefix %d' % (n_exact, len(ex), prefix))
+    if '--strict-out' in a:
+        open(a[a.index('--strict-out') + 1], 'a').write('%s %d %d %d\n' % (a[2].split('/')[-1][:-4], n_exact, len(ex), prefix))
     if not quiet:
         print('   max error: ' + ', '.join('%s %.3f@%s' % (k, v[0], v[1]) for k, v in maxerr.items()))
         print('   first out of tolerance: ' + (', '.join('%s @f%d (%.3f vs %.3f)' % (k, *v) for k, v in first.items()) or 'none'))
