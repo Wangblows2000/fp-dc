@@ -18,7 +18,9 @@ KEYS = {'L': 0x40000050, 'R': 0x4000004f, 'U': 0x40000052, 'D': 0x40000051,
 ORDER = 'LRUDJXBS'
 VT = {'mv': 0x20b2910, 'player': 0x20b6f30, 'skin': 0x20b7890}   # vtable+0x10 of the classes
 # optional HUD/gameplay objects dumped when present (vtable+0x10): alterables A-Z + x scale + image id
-XVT = {'en': 0x20aa470, 'life': 0x20aa510}
+XVT = {'en': 0x20aa470, 'life': 0x20aa510, 'others': 0x20aa3d0, 'turr': 0x20d65d0, 'cam': 0x20bbbd0}
+# instances picked by x position instead of the last one found (probes of one specific enemy)
+XVT_PICK = {'turr': 1233}   # others = PlayerOthers_126 (invulnerability timer E, RE)
 # HUD counters (Counter::set: value double @+0xa0, min int @+0xa8, max int @+0xac)
 CVT = {'c_petals': 0x20aa330, 'c_lives': 0x20bc670, 'c_crystals': 0x20aa290,
        'c_tm': 0x20bd890, 'c_ts': 0x20bd750, 'c_tms': 0x20bd610}
@@ -71,6 +73,9 @@ def build_imgmap():
                 IMGMAP.setdefault(ptr, (a, d, i))
 
 SETC = {}
+WATCH = {}
+WHO = {}
+WATCHES = []
 TP = {}   # debug route: "<frame> TP <x> <y>" teleports Lilac (writes PlayerMovementValues X/Y, zeroes B/G)
 def load_script(path):
     ev = []
@@ -81,6 +86,10 @@ def load_script(path):
                 SETC[int(t[0])] = ('en_alt', float(t[2]))
             elif len(t) == 3 and t[1] == 'HP':      # debug: "<frame> HP <v>" writes the petal counter value
                 SETC[int(t[0])] = ('c_petals', float(t[2]))
+            elif len(t) == 4 and t[1] == 'WHO':     # "<f> WHO <func addr> <off,off,..>": log member classes on each call
+                WHO.setdefault(int(t[0]), []).append((int(t[2], 16), [int(x, 16) for x in t[3].split(',')]))
+            elif len(t) == 4 and t[1] == 'WATCH':   # "<f> WATCH <obj> <alt index|cnt>": log every write (bt)
+                WATCH.setdefault(int(t[0]), []).append((t[2], t[3]))
             elif len(t) == 4 and t[1] == 'TP':
                 TP[int(t[0])] = (float(t[2]), float(t[3]))
             elif len(t) == 3 and not line.startswith('#'):
@@ -110,18 +119,57 @@ class SndBP(gdb.Breakpoint):
         if self.t.sndf: self.t.sndf.write('%d %s %s\n' % (self.t.f, self.kind, v)); self.t.sndf.flush()
         return False
 
+class WatchBP(gdb.Breakpoint):
+    # hardware write watchpoint on one double; logs frame, new value and the backtrace to <out>.watch
+    def __init__(self, addr, name, tracer):
+        super().__init__('*(double*)0x%x' % addr, gdb.BP_WATCHPOINT, gdb.WP_WRITE, internal=True)
+        self.addr = addr; self.name = name; self.t = tracer
+        self.wf = open(tracer.outpath[:-4] + '.watch', 'a')
+    def stop(self):
+        try:
+            v = struct.unpack('<d', bytes(inf.read_memory(self.addr, 8)))[0]
+            bt = gdb.execute('bt 8', to_string=True)
+        except Exception as e:
+            v, bt = 0, 'err %s' % e
+        self.wf.write('== f%d %s = %.6g\n%s' % (self.t.f, self.name, v, bt)); self.wf.flush()
+        return False
+
+class WhoBP(gdb.Breakpoint):
+    # on each call of a Frames:: function, log the class (vtable symbol), position and alterables of
+    # the objects pointed to by this+off (e.g. the selected instance of a collision handler)
+    def __init__(self, fn, offs, tracer):
+        super().__init__('*0x%x' % fn, internal=True); self.offs = offs; self.t = tracer; self.n = 0
+        self.wf = open(tracer.outpath[:-4] + '.who', 'a')
+    def stop(self):
+        self.n += 1
+        if self.n > 40: return False
+        this = int(gdb.parse_and_eval('$rdi')) & 0xffffffffffffffff
+        for o in self.offs:
+            try:
+                p = struct.unpack('<Q', bytes(inf.read_memory(this + o, 8)))[0]
+                vt = struct.unpack('<Q', bytes(inf.read_memory(p, 8)))[0]
+                sym = gdb.execute('info symbol 0x%x' % vt, to_string=True).split(' in section')[0]
+                x, y = struct.unpack('<ii', bytes(inf.read_memory(p + 8, 8)))
+                alt = struct.unpack('<Q', bytes(inf.read_memory(p + 0x20, 8)))[0]
+                vals = struct.unpack('<26d', bytes(inf.read_memory(alt + 0x50, 208))) if alt > 0x10000 else ()
+                self.wf.write('f%d +0x%x %s @%d,%d %s\n' % (self.t.f, o, sym, x, y, ' '.join('%s=%g' % (chr(65 + i), v) for i, v in enumerate(vals) if v)))
+            except Exception as e:
+                self.wf.write('f%d +0x%x err %s\n' % (self.t.f, o, e))
+        self.wf.flush()
+        return False
+
 class Tracer(gdb.Breakpoint):
     def __init__(self, script, out, n, restart):
         super().__init__('*0x9fcb7a', internal=True)
         self.ev = load_script(script); self.n = n; self.f = -1; self.prev = set()
         self.sndf = open(out[:-4] + '.snd', 'w')
         SndBP('*0xa4e650', 'id', self); SndBP('*0xa4e2c0', 'str', self)
-        self.out = open(out, 'w'); self.objs = None; self.restart_wait = 120 if restart else 0; self.warm = 0
+        self.outpath = out; self.out = open(out, 'w'); self.objs = None; self.restart_wait = 120 if restart else 0; self.warm = 0
         # skin_anim = animation*1000 + frame
         # sk_ang/sk_xs/sk_ys: Active angle @+0xc4, x/y scale @+0xc8/+0xcc (Active::set_angle/set_x_scale)
         hdr = (['frame', 'held', 'px', 'py', 'skin_anim'] + ['mv_' + chr(65 + i) for i in range(26)] +
                ['sk_ang', 'sk_xs', 'sk_ys'] + ['pl_' + chr(65 + i) for i in range(26)] + ['gv%d' % i for i in range(NGV)] +
-               sum([[k + '_' + chr(65 + i) for i in range(26)] + [k + '_xs', k + '_img'] for k in XVT], []) +
+               sum([[k + '_' + chr(65 + i) for i in range(26)] + [k + '_xs', k + '_img', k + '_afr', k + '_acc'] for k in XVT], []) +
                sum([[k, k + '_max'] for k in CVT], []) +
                ['sa_' + chr(65 + i) for i in range(26)] + ['sw_%x' % o for o in range(0x10, 0xc4, 4)])
         # sa_*: skin (Lilac display Active) alterables; sw_*: raw u32 words of the skin object (flags/blink search)
@@ -138,15 +186,17 @@ class Tracer(gdb.Breakpoint):
         out = []
         for k in XVT:
             o = self.objs.get(k)
-            if not o: out += ['0'] * 28; continue
+            if not o: out += ['0'] * 30; continue
             try:
                 try: _, _, vals, _ = rd_obj(o)
                 except Exception: vals = (0,) * 26
                 xs = struct.unpack('<f', bytes(inf.read_memory(o + 0xc8, 4)))[0]
                 img = struct.unpack('<Q', bytes(inf.read_memory(o + 0x110, 8)))[0]
-                out += ['%.6g' % v for v in vals] + ['%.6g' % xs, '%x' % img]
+                afr = struct.unpack('<h', bytes(inf.read_memory(o + 0xb4, 2)))[0]    # Active frame index
+                acc = struct.unpack('<i', bytes(inf.read_memory(o + 0xc0, 4)))[0]    # Active animation counter
+                out += ['%.6g' % v for v in vals] + ['%.6g' % xs, '%x' % img, str(afr), str(acc)]
             except Exception:
-                out += ['0'] * 28
+                out += ['0'] * 30
         for k in CVT:
             o = self.objs.get(k)
             if not o: out += ['', '']; continue
@@ -177,12 +227,20 @@ class Tracer(gdb.Breakpoint):
                         if best is None or sc < best[0]: best = (sc, pl, sk, mv)
             self.objs = {'player': best[1], 'skin': best[2], 'mv': best[3]}
             for k in list(XVT) + list(CVT):
-                if k in o: self.objs[k] = o[k][-1]
+                if k in o:
+                    if k in XVT_PICK:
+                        self.objs[k] = min(o[k], key=lambda a: abs(rd_obj(a)[0] - XVT_PICK[k]) if rd_obj(a)[2] else 1e9)
+                    else: self.objs[k] = o[k][-1]
             gdb.write('extra %s\n' % {k: [hex(v) for v in o.get(k, [])] for k in XVT})
             gdb.write('match score %d\n' % best[0])
             for pl in o['player']:
                 gdb.write('player cand %x %s\n' % (pl, rd_obj(pl)[:2]))
             gdb.write('objects %s\n' % {k: hex(v) for k, v in self.objs.items()})
+            # petals and lives are globals that survive the stage restart: reset them so every trace starts
+            # from a fresh-file state (14 half-petals, 5 lives) regardless of earlier probes
+            if self.restart_wait:
+                for k, v in (('c_petals', 14.0), ('c_lives', 5.0)):
+                    if k in self.objs: inf.write_memory(self.objs[k] + 0xa0, struct.pack('<d', v))
         self.f += 1
         if self.f % 50 == 0:
             import time
@@ -194,6 +252,15 @@ class Tracer(gdb.Breakpoint):
             inf.write_memory(alt + 0x50, struct.pack('<d', SETC[self.f][1]))
         elif self.f in SETC and SETC[self.f][0] in self.objs:
             inf.write_memory(self.objs[SETC[self.f][0]] + 0xa0, struct.pack('<d', SETC[self.f][1]))
+        for fn, offs in WHO.get(self.f, []):
+            WATCHES.append(WhoBP(fn, offs, self))
+        for k, idx in WATCH.get(self.f, []):
+            if idx == 'cnt': addr = self.objs[k] + 0xa0
+            else:
+                alt = struct.unpack('<Q', bytes(inf.read_memory(self.objs[k] + 0x20, 8)))[0]
+                addr = alt + 0x50 + 8 * int(idx)
+            WATCHES.append(WatchBP(addr, '%s.%s' % (k, idx), self))   # keep a reference (else GC drops it)
+            gdb.write('watch %s.%s at 0x%x\n' % (k, idx, addr)); gdb.write(gdb.execute('info watchpoints', to_string=True))
         if self.f in TP:
             alt = struct.unpack('<Q', bytes(inf.read_memory(self.objs['mv'] + 0x20, 8)))[0]
             x, y = TP[self.f]
