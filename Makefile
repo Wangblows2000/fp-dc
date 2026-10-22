@@ -5,7 +5,8 @@
 #   make host test  -> host build + gameplay regression tests
 TARGET = fpdc.elf
 OBJS = src/platform/plat_dc.o src/renderer/render_pvr.o src/resources/assets.o \
-       src/physics/level.o src/characters/player.o src/game/objects.o src/game/game.o
+       src/physics/level.o src/characters/player.o src/game/objects.o src/game/game.o \
+       src/game/ui.o src/game/frontend.o
 
 FP_GAME ?= /mnt/user-data/uploads/Freedom Planet
 MKDCDISC ?= third_party/mkdcdisc/builddir/mkdcdisc
@@ -15,7 +16,8 @@ all: $(TARGET)
 ifdef KOS_BASE
 include $(KOS_BASE)/Makefile.rules
 KOS_CFLAGS += -std=gnu11 -Wall -Wextra -Wno-unused-parameter -O2 -DFP_PROFILE
-# make FP_DEBUG_SELECT=1 -> boot into the debug level select (verified frame indices/names)
+# make FP_DEBUG_SELECT=1 -> (kept for compatibility, no effect) the developer level select is reached only by
+#                          pressing L and R within 2 s on the title screen (src/game/frontend.c)
 ifdef FP_DEBUG_SELECT
 KOS_CFLAGS += -DFP_DEBUG_SELECT
 endif
@@ -37,6 +39,11 @@ build/disc/data: $(DATA_DIR)/levels.txt
 	cp $(DATA_DIR)/*.wav $(DATA_DIR)/*.pcm $(DATA_DIR)/levels.txt build/disc/data/
 	for d in $$(cat $(DATA_DIR)/levels.txt); do mkdir -p build/disc/data/$$d; \
 	  cp $(DATA_DIR)/$$d/*.tex $(DATA_DIR)/$$d/*.spr $(DATA_DIR)/$$d/*.lv2 $(DATA_DIR)/$$d/*.pal build/disc/data/$$d/; done
+	# front end (ui scenes + banks + font), ADPCM music library (.adp), ADPCM sfx/voices
+	mkdir -p build/disc/data/ui build/disc/data/bgm build/disc/data/sfx
+	cp $(DATA_DIR)/ui/*.ui $(DATA_DIR)/ui/*.spr $(DATA_DIR)/ui/*.tex build/disc/data/ui/
+	cp $(DATA_DIR)/bgm/*.adp build/disc/data/bgm/
+	cp $(DATA_DIR)/sfx/*.wav build/disc/data/sfx/
 
 cdi: $(TARGET)
 	rm -rf build/disc

@@ -53,6 +53,8 @@ void plat_poll_input(input_t *in) {
             if (b & CONT_B) held |= BTN_SPECIAL;
             if (b & CONT_Y) held |= BTN_GUARD;
             if (b & CONT_START) held |= BTN_START;
+            if (st->ltrig > 128) held |= BTN_LT;
+            if (st->rtrig > 128) held |= BTN_RT;
         }
     }
     in->held = held;
@@ -62,7 +64,7 @@ void plat_poll_input(input_t *in) {
 }
 
 /* ------------------------------------------------------------- audio */
-#define MAX_SFX 32
+#define MAX_SFX 96
 static sfxhnd_t sfx[MAX_SFX];
 static int nsfx;
 
@@ -84,10 +86,14 @@ void snd_play(int h, int vol, int pan) {
     if (h >= 0 && h < nsfx) snd_sfx_play(sfx[h], vol, pan);
 }
 
-/* Music: raw s16le stereo 22050 Hz streamed from disc, looping. */
+/* Music (D-013): AICA 4-bit ADPCM, stereo, 32 kHz (.adp, byte-interleaved; hardware-decoded so the
+ * SH4 only reads the disc) or legacy raw s16le stereo 22050 Hz (.pcm). Every track loops whole-file
+ * (the original's ChowdrenAudio has no loop points). Streaming runs on its own thread. */
 #define MUS_CHUNK 16384
 static snd_stream_hnd_t mus = SND_STREAM_INVALID;
 static FILE *mus_f;
+static char mus_name[64];
+static int mus_vol = 255;
 static uint8_t mus_buf[MUS_CHUNK * 2] __attribute__((aligned(32)));
 
 static void *mus_cb(snd_stream_hnd_t hnd, int smp_req, int *smp_recv) {
@@ -97,15 +103,15 @@ static void *mus_cb(snd_stream_hnd_t hnd, int smp_req, int *smp_recv) {
     int got = 0, rewinds = 0;
     while (got < want && rewinds < 2) {
         size_t n = fread(mus_buf + got, 1, want - got, mus_f);
-        if (n == 0) { fseek(mus_f, 0, SEEK_SET); rewinds++; continue; }   /* loop */
+        if (n == 0) { fseek(mus_f, 0, SEEK_SET); rewinds++; continue; }   /* whole-file loop */
         got += (int)n;
     }
     *smp_recv = got & ~3;
     return mus_buf;
 }
 
-/* Streaming runs on its own thread: snd_stream_poll() calls mus_cb(), which reads
- * the disc; doing that in the game loop caused ~130 ms frame spikes in Flycast. */
+/* snd_stream_poll() calls mus_cb(), which reads the disc; doing that in the game loop caused
+ * ~130 ms frame spikes in Flycast, so it runs here. */
 static volatile int mus_thread_run;
 static kthread_t *mus_thd;
 static mutex_t mus_lock = MUTEX_INITIALIZER;
@@ -120,28 +126,49 @@ static void *mus_thread(void *arg) {
     return NULL;
 }
 
+static void music_stop_locked(void) {
+    if (mus != SND_STREAM_INVALID) { snd_stream_stop(mus); snd_stream_destroy(mus); mus = SND_STREAM_INVALID; }
+    if (mus_f) { fclose(mus_f); mus_f = NULL; }
+    mus_name[0] = 0;
+}
+
 int music_play(const char *name) {
     char path[128];
-    music_stop();
+    mutex_lock(&mus_lock);
+    if (mus != SND_STREAM_INVALID && !strcmp(mus_name, name)) { mutex_unlock(&mus_lock); return 0; }  /* no restart / no duplicate */
+    music_stop_locked();
     snprintf(path, sizeof path, FP_DATA_ROOT "/%s", name);
     mus_f = fopen(path, "rb");
-    if (!mus_f) { plat_log("music missing %s\n", path); return -1; }
-    mus = snd_stream_alloc(mus_cb, MUS_CHUNK);
-    if (mus == SND_STREAM_INVALID) { fclose(mus_f); mus_f = NULL; return -1; }
-    snd_stream_volume(mus, 200);
-    snd_stream_start(mus, 22050, 1);
+    if (!mus_f) { mutex_unlock(&mus_lock); plat_log("music missing %s\n", path); return -1; }
+    int adpcm = strstr(name, ".adp") != NULL;
+    mus = snd_stream_alloc(mus_cb, adpcm ? SND_STREAM_BUFFER_MAX_ADPCM : MUS_CHUNK);
+    if (mus == SND_STREAM_INVALID) { fclose(mus_f); mus_f = NULL; mutex_unlock(&mus_lock); return -1; }
+    snd_stream_volume(mus, mus_vol);
+    if (adpcm) snd_stream_start_adpcm(mus, 32000, 1);
+    else snd_stream_start(mus, 22050, 1);
+    snprintf(mus_name, sizeof mus_name, "%s", name);
+    mutex_unlock(&mus_lock);
     if (!mus_thd) { mus_thread_run = 1; mus_thd = thd_create(0, mus_thread, NULL); }
     return 0;
+}
+
+void music_volume(int pct) {
+    mutex_lock(&mus_lock);
+    mus_vol = pct * 255 / 100;
+    if (mus != SND_STREAM_INVALID) snd_stream_volume(mus, mus_vol);
+    mutex_unlock(&mus_lock);
 }
 
 void music_update(void) { /* handled by mus_thread */ }
 
 void music_stop(void) {
     mutex_lock(&mus_lock);
-    if (mus != SND_STREAM_INVALID) { snd_stream_stop(mus); snd_stream_destroy(mus); mus = SND_STREAM_INVALID; }
-    if (mus_f) { fclose(mus_f); mus_f = NULL; }
+    music_stop_locked();
     mutex_unlock(&mus_lock);
 }
+
+/* QUIT on the title menu: return to the Dreamcast BIOS menu (the console equivalent of quitting) */
+void plat_quit(void) { music_stop(); arch_menu(); }
 
 /* ------------------------------------------------------------- main */
 extern uint32_t r_stat_polys;

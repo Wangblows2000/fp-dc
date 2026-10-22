@@ -21,3 +21,4 @@ __pycache__/
 *.pyc
 docs/reference/
 converted_audio/
+tools/audio/wav2adpcm
