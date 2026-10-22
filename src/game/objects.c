@@ -3,9 +3,13 @@
  * noted) because the original logic is compiled event code. */
 #include <math.h>
 #include <string.h>
+#include <stdlib.h>
 #include "../fp.h"
 
 static int A_EXPLODE = -1;
+/* recovered sequences (tools/import_frame.py) */
+static int A_TURR[6] = { -1, -1, -1, -1, -1, -1 };   /* idle, idle_l, shoot, shoot_l, off, off_l */
+static int A_PELLET = -1, A_EXPLODE2 = -1;
 
 static obj_t *alloc_obj(void) {
     for (int i = 0; i < MAX_OBJS; i++)
@@ -15,6 +19,9 @@ static obj_t *alloc_obj(void) {
 
 void objects_spawn(void) {
     A_EXPLODE = bank_anim(&G.objs, "explosion");
+    { static const char *tn[6] = { "turr_idle", "turr_idle_l", "turr_shoot", "turr_shoot_l", "turr_off", "turr_off_l" };
+      for (int i = 0; i < 6; i++) A_TURR[i] = bank_anim(&G.objs, tn[i]); }
+    A_PELLET = bank_anim(&G.objs, "pellet"); A_EXPLODE2 = bank_anim(&G.objs, "explosion02");
     memset(G.o, 0, sizeof G.o);
     G.nobjs = 0;
     for (int i = 0; i < G.lvl.nobj; i++) {
@@ -27,7 +34,7 @@ void objects_spawn(void) {
         o->t = i * 13;
         if (lo->anim != 0xffff && lo->anim < G.objs.nanims) anim_set(&o->an, &G.objs, lo->anim);
         else o->an.b = NULL;
-        if (o->type == OT_TURRETUS) o->hp = 2;
+        if (o->type == OT_TURRETUS) { o->hp = 2; o->st = 0; o->tm = 0; o->dir = 14; }   /* RE: created with direction 14 */
     }
 }
 
@@ -39,6 +46,73 @@ static void explode(float x, float y) {
     snd_play(G.sfx.explode, 220, 128);
 }
 
+/* ---- Turretus + EnemyPellet: recovered event logic (RE, docs/RE_NOTES.md "Turretus") ---------------- */
+#define TURR_FIRE_FRAME 7          /* RE event 4773: shoot animation frame that releases the pellet */
+#define TURR_PERIOD     60         /* RE event 4771: E > 60 starts a shot */
+#define TURR_RELOAD     (-40)      /* RE event 4771: E = -40 after a shot starts */
+#define TURR_NEAR       200        /* RE event 4770: E counts only while within 200 px of the 426x240 view */
+#define PELLET_SPEED    50.f       /* RE create_enemypellet_934: PinballMovement max speed 50, gravity 25 */
+#define PELLET_GRAV     25.f
+#define PELLET_DAMAGE   10         /* RE col_4_20: GUILifeBaseMeter.B += 10 (2 half-petals on Normal) */
+
+static int dir_left(int d) { d &= 31; return d > 8 && d < 24; }   /* 32-direction image set: 16 = left */
+
+static void set_anim_keep(obj_t *o, int a) {         /* force_animation: frame 0, speed counter kept */
+    if (a < 0) return;
+    if (o->an.b != &G.objs || o->an.anim != a) { int acc = o->an.acc; anim_set(&o->an, &G.objs, a); o->an.acc = acc; }
+}
+
+static void spawn_pellet(float x, float y, int dir) {
+    obj_t *e = alloc_obj();
+    if (!e) return;
+    e->type = OT_PELLET; e->alive = 1; e->x = floorf(x); e->y = floorf(y); e->fx = e->fy = 0; e->born = G.frame;
+    float a = (float)(dir & 31) * 11.25f * 3.14159265f / 180.f;   /* PinballMovement::set_direction */
+    e->vx = PELLET_SPEED * cosf(a); e->vy = -PELLET_SPEED * sinf(a);
+    if (A_PELLET >= 0) anim_set(&e->an, &G.objs, A_PELLET);
+}
+
+/* PinballMovement::update (RE; floor split of the position reproduces the logged path exactly):
+ * vy += gravity/10; speed = |v| (<= 100); position += v/10 with the fraction carried */
+static void pellet_move(obj_t *o) {
+    o->vy += PELLET_GRAV / 10.f;
+    float sp = sqrtf(o->vx * o->vx + o->vy * o->vy);
+    if (sp > 100.f) { o->vx *= 100.f / sp; o->vy *= 100.f / sp; }
+    float dx = o->vx / 10.f + o->fx, dy = o->vy / 10.f + o->fy;
+    float ix = floorf(dx), iy = floorf(dy);
+    o->fx = dx - ix; o->fy = dy - iy; o->x += ix; o->y += iy;
+}
+
+static void explode2(float x, float y) {
+    obj_t *e = alloc_obj();
+    if (!e) return;
+    e->type = OT_EXPLODE; e->alive = 1; e->x = x; e->y = y;
+    if (A_EXPLODE2 >= 0) anim_set(&e->an, &G.objs, A_EXPLODE2);
+    else if (A_EXPLODE >= 0) anim_set(&e->an, &G.objs, A_EXPLODE);
+    snd_play_orig(80, 220, 128);   /* RV: id 80 with the pellet hit */
+}
+
+/* Turretus events 4767-4774 in their original order, after this frame's animation update */
+static void turretus_events(obj_t *o, const player_t *p, float bx0, float by0, float bx1, float by1) {
+    int L = dir_left(o->dir);
+    if (o->st == 0) set_anim_keep(o, A_TURR[0 + L]);                                   /* 4767 */
+    if (o->st == 0 && p->x < o->x) o->dir = 15;                                        /* 4768 */
+    if (o->st == 0 && o->x < p->x) o->dir = 1;                                         /* 4769 */
+    L = dir_left(o->dir);
+    if (o->st == 0) set_anim_keep(o, A_TURR[0 + L]);
+    int near = bx0 > G.camx - TURR_NEAR && bx1 < G.camx + SCREEN_W + TURR_NEAR &&
+               by0 > G.camy - TURR_NEAR && by1 < G.camy + SCREEN_H + TURR_NEAR;
+    if (o->st == 0 && near) o->tm++;                                                   /* 4770 */
+    if (o->st == 0 && o->tm > TURR_PERIOD && p->hp > 0) { o->tm = TURR_RELOAD; o->st = 1; }   /* 4771 */
+    if (o->st == 1) set_anim_keep(o, A_TURR[2 + L]);                                   /* 4772 */
+    if (o->st == 1 && o->an.anim == A_TURR[2 + L] && o->an.frame == TURR_FIRE_FRAME) { /* 4773 */
+        snd_play_orig(28, 220, 128);
+        spawn_pellet(o->x + (L ? -18.f : 18.f), o->y - 14.f, o->dir);   /* action point (RE image data) */
+        o->st = 2;
+    }
+    if (o->st == 2 && (o->an.anim != A_TURR[2 + L] || o->an.done)) o->st = 0;          /* 4774 */
+    if (getenv("FP_DBG_TURR") && fabs(o->x - p->x) < 300) plat_log("turr f%d x%.0f st%d tm%d an%d fr%d acc%d\n", G.frame, o->x, o->st, o->tm, o->an.anim, o->an.frame, o->an.acc);
+}
+
 static int overlap(float ax0, float ay0, float ax1, float ay1, float bx0, float by0, float bx1, float by1) {
     return ax0 < bx1 && bx0 < ax1 && ay0 < by1 && by0 < ay1;
 }
@@ -47,8 +121,15 @@ static int overlap(float ax0, float ay0, float ax1, float ay1, float bx0, float 
 static void obj_box(const obj_t *o, float *x0, float *y0, float *x1, float *y1) {
     if (!o->an.b) { *x0 = o->x - 8; *x1 = o->x + 8; *y0 = o->y - 16; *y1 = o->y; return; }
     const frame_t *f = anim_frame(&o->an);
-    *x0 = o->x - f->hx + 2; *y0 = o->y - f->hy + 2;
-    *x1 = *x0 + f->w - 4;   *y1 = *y0 + f->h - 4;
+    int m = o->type == OT_PELLET ? 0 : 2;          /* pellets: whole image box (small sprite) */
+    *x0 = o->x - f->hx + m; *y0 = o->y - f->hy + m;
+    *x1 = *x0 + f->w - 2 * m; *y1 = *y0 + f->h - 2 * m;
+}
+
+/* comparison harness: objects of the original trace have been animated n ticks before its frame 0 */
+void objects_pretick(int n) {
+    for (int k = 0; k < n; k++)
+        for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].an.b) anim_tick(&G.o[i].an, -1);
 }
 
 void objects_update(void) {
@@ -63,7 +144,12 @@ void objects_update(void) {
         if (!o->alive) continue;
         o->t++;
         /* sleep far off-screen objects (Fusion-style "inactive if far") */
-        if (fabsf(o->x - (G.camx + SCREEN_W / 2)) > SCREEN_W * 1.5f && o->type != OT_EXPLODE) continue;
+        if (fabsf(o->x - (G.camx + SCREEN_W / 2)) > SCREEN_W * 1.5f && o->type != OT_EXPLODE &&
+            o->type != OT_TURRETUS && o->type != OT_PELLET) continue;
+        /* objects created by this frame's events are first moved/tested next frame (RE frame order:
+         * update_objects, then events) */
+        if (o->type == OT_PELLET && o->born == G.frame) continue;
+        if (o->type == OT_PELLET) pellet_move(o);                 /* update_objects: movement, then animation */
         anim_tick(&o->an, -1);
         float bx0, by0, bx1, by1;
         obj_box(o, &bx0, &by0, &bx1, &by1);
@@ -91,7 +177,20 @@ void objects_update(void) {
             if (hit) { o->alive = 0; G.kills++; explode(o->x, o->y); player_bounce(p, -4.f); break; }
             if (touch) player_hurt(p, o->x);
             break;
+        case OT_PELLET: {
+            /* RE col_4_20: the pellet hits Lilac's sensor (PlayerCharacterSensor_375, 15x46, hotspot 7,34 at
+             * her reference point) unless she is invulnerable; it is destroyed with effectsexplosion02 */
+            float sx0 = p->x - 7, sx1 = p->x + 8, sy0 = p->y - 48, sy1 = p->y - 2;
+            if (!dead && !player_invincible(p) && overlap(sx0, sy0, sx1, sy1, bx0, by0, bx1, by1)) {
+                player_damage(p, PELLET_DAMAGE); o->alive = 0; explode2(o->x, o->y); break;
+            }
+            /* INFERRED: removed on solid ground or well outside the view (destroy events not yet recovered) */
+            if (solid_at(&G.lvl, o->x, o->y)) { o->alive = 0; explode2(o->x, o->y); break; }
+            if (o->x < G.camx - 400 || o->x > G.camx + SCREEN_W + 400 || o->y > G.camy + SCREEN_H + 400) o->alive = 0;
+            break;
+        }
         case OT_TURRETUS:
+            turretus_events(o, p, bx0, by0, bx1, by1);
             if (hit && o->t > 0) { if (--o->hp <= 0) { o->alive = 0; G.kills++; explode(o->x, o->y); } else o->t = -20; player_bounce(p, -4.f); break; }
             if (touch) player_hurt(p, o->x);
             break;

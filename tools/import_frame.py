@@ -166,6 +166,16 @@ def main():
     for extra, nm in (('effectsexplosion01_367', 'explosion'),):
         d = first_anim_frames(an.get(extra, {}))
         if d: bank['anims'].append({'name': nm, 'frames': d['frames'], 'speed': d['max_speed'], 'loop': d['loop'], 'back_to': d['back_to']})
+    # specific (class, animation, direction) sequences driven by recovered event logic (RE_NOTES.md)
+    for cls, ai, dk, nm in (('enemyturretus_878', 0, '0', 'turr_idle'), ('enemyturretus_878', 0, '16', 'turr_idle_l'),
+                            ('enemyturretus_878', 7, '0', 'turr_shoot'), ('enemyturretus_878', 7, '16', 'turr_shoot_l'),
+                            ('enemyturretus_878', 8, '0', 'turr_off'), ('enemyturretus_878', 8, '16', 'turr_off_l'),
+                            ('enemypellet_934', 0, '0', 'pellet'), ('effectsexplosion02_368', 4, '0', 'explosion02')):
+        try:
+            d = an[cls]['anims'][ai][dk]
+        except (KeyError, IndexError, TypeError):
+            report.append('  missing %s anim %d dir %s' % (cls, ai, dk)); continue
+        bank['anims'].append({'name': nm, 'frames': d['frames'], 'speed': d['max_speed'], 'loop': d['loop'], 'back_to': d['back_to']})
     # ---- HUD (recovered GUI classes; positions measured in the original at 426x240, see RUNTIME_MAP "HUD")
     HUD = [('hud_frame', [3784, 12760]),                        # guimeters frame (normal, red flash)
            ('hud_fill', an['guienergy_127']['anims'][1]['0']['frames']),  # fill; anim 1 = shine loop when full

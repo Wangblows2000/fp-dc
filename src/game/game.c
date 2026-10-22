@@ -28,7 +28,7 @@ static void level_start(void) {
     player_reset(&G.p, G.p.spawn_x, G.p.spawn_y);
     objects_spawn();
     G.clear_t = 0; G.frame = 0; G.card_t = 0; G.paused = 0;
-    G.camx = G.p.x - SCREEN_W / 2; G.camy = G.p.y - 150;
+    camera_reset();
     camera_update();
 }
 
@@ -195,19 +195,85 @@ void game_dev_select(void) {
     G.mode = MODE_SELECT; G.in_select = 1; sel_scan();
 }
 
+/* Camera: MasterCamera_408, recovered (RE; docs/RE_NOTES.md "Camera"). A,B = centre target; W = landing
+ * ease; G = look-ahead; H = look up/down; S,T = display offsets; N,O = look-up / crouch hold counters.
+ * Constants are the object's alterables at DV1 start (I -16, J 0, K -48, L 16, P 120, Q 64, R 96, X 213,
+ * Y 120; bounds C 0 .. E, D 0 .. F). Shake (Z) is not used yet. */
+#define CAM_I (-16.f)
+#define CAM_J 0.f
+#define CAM_K (-48.f)
+#define CAM_L 16.f
+#define CAM_P 120.f
+#define CAM_Q 64.f
+#define CAM_R 96.f
+#define CAM_HX 213.f
+#define CAM_HY 120.f
+void camera_reset(void) {
+    const player_t *p = &G.p;
+    G.cam.A = p->x; G.cam.B = p->y - 14.f; G.cam.W = G.cam.G = G.cam.H = G.cam.S = G.cam.T = G.cam.N = G.cam.O = 0;
+    G.cam.V = p->ground;
+    float C = 0, E = (float)G.lvl.w, D = 0, F = (float)G.lvl.h;
+    if (G.cam.A < C + CAM_HX) G.cam.A = C + CAM_HX;
+    if (G.cam.A > E - CAM_HX) G.cam.A = E - CAM_HX;
+    if (G.cam.B < D + CAM_HY) G.cam.B = D + CAM_HY;
+    if (G.cam.B > F - CAM_HY) G.cam.B = F - CAM_HY;
+}
+
 void camera_update(void) {
     const player_t *p = &G.p;
-    float lead = p->ground ? p->gsp * cosf(p->angle) : p->vx;
-    float tx = p->x - SCREEN_W / 2 + fmaxf(-48.f, fminf(48.f, lead * 8.f));
-    float ty = p->y - 150;
-    G.camx += (tx - G.camx) * 0.15f;
-    if (p->ground) G.camy += (ty - G.camy) * 0.2f;
-    else { if (ty < G.camy - 40) G.camy = ty + 40; if (ty > G.camy + 24) G.camy = ty - 24; }
-    float maxx = G.lvl.w - SCREEN_W, maxy = G.lvl.h - SCREEN_H;
-    if (G.camx > maxx) G.camx = maxx;
-    if (G.camx < 0) G.camx = 0;
-    if (G.camy > maxy) G.camy = maxy;
-    if (G.camy < 0) G.camy = 0;
+    float X = p->x, Y = p->y - 14.f;                    /* movement object X, Y (reference point) */
+    float C = 0, E = (float)G.lvl.w, D = 0, F = (float)G.lvl.h;
+    int L = p->ground;
+    float Bsp = p->ground ? p->gsp : p->vx;             /* movement B */
+    float Q = (float)p->face;
+    int M = p->state == 4 || p->state == 3 ? 5 : p->state == 8 ? 19 : p->look;   /* boost/charge M5, kick windup M19 */
+    /* vertical */
+    if (L == 1) {
+        if (L != G.cam.V) G.cam.W = G.cam.B - Y;         /* landing: keep the current offset, then ease it */
+        if (G.cam.W > 0) G.cam.W = fmaxf(G.cam.W - 4.f, 0.f);
+        if (G.cam.W < 0) G.cam.W = fminf(G.cam.W + 4.f, 0.f);
+        G.cam.B = fminf(fmaxf(Y + G.cam.W, D + CAM_HY), F - CAM_HY);
+    }
+    G.cam.V = L;
+    /* horizontal dead zone */
+    if (X < G.cam.A + CAM_I && C + CAM_HX < G.cam.A) G.cam.A = X - CAM_I;
+    if (CAM_J + G.cam.A < X && G.cam.A < E - CAM_HX) G.cam.A = X - CAM_J;
+    if (L == 0) {                                        /* air dead zone */
+        if (Y < G.cam.B + CAM_K && D + CAM_HY < G.cam.B) G.cam.B = Y - CAM_K;
+        if (CAM_L + G.cam.B < Y && G.cam.B < F - CAM_HY) G.cam.B = Y - CAM_L;
+    }
+    /* look up / crouch holds */
+    G.cam.N = (M == 2 && L && Bsp == 0) ? G.cam.N + 1 : 0;
+    if (G.cam.N < CAM_P && G.cam.O < CAM_P && G.cam.H < 0) G.cam.H = fminf(G.cam.H + 2.f, 0.f);
+    if (G.cam.N >= CAM_P) G.cam.H = fmaxf(G.cam.H - 2.f, -CAM_R);
+    G.cam.O = (M == 3 && L && Bsp == 0) ? G.cam.O + 1 : 0;
+    if (G.cam.O < CAM_P && G.cam.N < CAM_P && G.cam.H > 0) G.cam.H = fmaxf(G.cam.H - 2.f, 0.f);
+    if (G.cam.O >= CAM_P) G.cam.H = fminf(G.cam.H + 2.f, CAM_R);
+    /* look-ahead */
+    if (Bsp >= 5.f && Q == 1 && L) G.cam.G = fminf(G.cam.G + 2.f, CAM_Q);
+    if (Bsp <= -5.f && Q == -1 && L) G.cam.G = fmaxf(G.cam.G - 2.f, -CAM_Q);
+    if (M == 5) G.cam.G = Q == 1 ? fminf(G.cam.G + 2.5f, CAM_Q) : fmaxf(G.cam.G - 2.5f, -CAM_Q);
+    else if (M == 19) G.cam.G = Q == 1 ? fminf(G.cam.G + 2.f, CAM_Q) : fmaxf(G.cam.G - 2.f, -CAM_Q);
+    {   /* event 1357 + loop tail: decay when airborne or slow (not boosting / kicking) */
+        int slow = Bsp < 5.f && Bsp > -5.f && M != 5 && M != 19;
+        if (G.cam.G > 0 && (!L || slow)) G.cam.G = fmaxf(G.cam.G - 2.f, 0.f);
+        else if (G.cam.G < 0 && (!L || slow)) G.cam.G = fminf(G.cam.G + 2.f, 0.f);
+    }
+    /* display offsets (events 2877-2886, no shake) */
+    float S = G.cam.G, T = G.cam.H;
+    if (G.cam.A <= C + CAM_HX - S) S = fminf(0.f, fmaxf(S, C + CAM_HX - G.cam.A));
+    if (E - CAM_HX - S <= G.cam.A) S = fmaxf(0.f, fminf(S, E - CAM_HX - G.cam.A));
+    if (S > 0) S = fminf(S, fmaxf(0.f, S - (G.cam.A - X)));
+    else if (S < 0) S = fmaxf(S, fminf(0.f, S - (G.cam.A - X)));
+    if (G.cam.B <= D + CAM_HY - T) T = fminf(0.f, fmaxf(T, D + CAM_HY - G.cam.B));
+    if (F - CAM_HY - T <= G.cam.B) T = fmaxf(0.f, fminf(T, F - CAM_HY - G.cam.B));
+    if (T > 0) T = fminf(T, fmaxf(0.f, T - (G.cam.B - Y)));
+    else if (T < 0) T = fmaxf(T, fminf(0.f, T - (G.cam.B - Y)));
+    G.cam.S = S; G.cam.T = T;
+    /* event 3539 + Frame::set_display_center */
+    float cx = floorf(G.cam.A + S), cy = floorf(G.cam.B + T);
+    G.camx = fminf(fmaxf(cx - 213.f, 0.f), (float)G.lvl.w - SCREEN_W);
+    G.camy = fminf(fmaxf(cy - 120.f, 0.f), (float)G.lvl.h - SCREEN_H);
 }
 
 /* ---- stage title card (RV images levelcardintro2/3 = name / "STAGE n"; sequence from a 10 fps
