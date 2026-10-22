@@ -182,9 +182,12 @@ def main():
     report.append('parallax pieces: %s' % par)
 
     # ---- Lilac (playerskinsash_341) from recovered animation tables, both facings
-    LILAC = [('idle', 0), ('walk', 1), ('run', 2), ('lookup', 5), ('spin', 7), ('charge', 8), ('crouch', 10),
-             ('boost', 13), ('hurt', 16), ('cyclone', 22), ('skid', 24), ('airatk', 25), ('attack', 26),
-             ('uppercut', 28), ('divekick', 30), ('defeat', 38)]
+    # Animation numbers RUNTIME-VERIFIED from original traces (sprite image -> images_* table),
+    # except hurt/defeat (still by eye). See RUNTIME_MAP.md "Lilac animations".
+    LILAC = [('idle', 0), ('walk', 1), ('run', 2), ('fastrun', 22), ('jump', 24), ('lookup', 11),
+             ('crouch', 10), ('skid', 17), ('attack', 26), ('airatk', 25), ('uppercut', 28),
+             ('dkwind', 7), ('divekick', 19), ('cyclone', 18), ('charge', 7), ('boost', 13),
+             ('hurt', 16), ('defeat', 38)]
     la = an['playerskinsash_341']['anims']
     lb = {'name': 'lilac2', 'anims': []}
     for nm, ai in LILAC:

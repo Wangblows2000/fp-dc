@@ -1,22 +1,24 @@
 /* Lilac. Animations: recovered tables of playerskinsash_341 (both facings drawn
  * separately in the original). Rules marked [KB] come from the SDA knowledge
  * base (kb.speeddemosarchive.com/Freedom_Planet/Lilac, /Mechanics_and_Bugs).
- * Physics constants are UNVERIFIED placeholders (fp.h). */
+ * Physics constants: fp.h (RV = runtime-verified against the original, see RUNTIME_MAP.md). */
 #include <math.h>
 #include <stdio.h>
 #include "../fp.h"
 
-enum { ST_NORMAL, ST_ATTACK, ST_CYCLONE, ST_CHARGE, ST_BOOST, ST_HURT, ST_DEAD };
+enum { ST_NORMAL, ST_ATTACK, ST_CYCLONE, ST_CHARGE, ST_BOOST, ST_HURT, ST_DEAD,
+       ST_UPPERCUT, ST_DKWIND, ST_DIVEKICK };
 
 #define HALF_W   7.f
 #define BODY_H   30.f
 #define STEP_UP  12.f
 #define MAX_HP   6       /* "life=6" in the game's own room files */
 
-enum { A_IDLE, A_WALK, A_RUN, A_LOOKUP, A_SPIN, A_CHARGE, A_CROUCH, A_BOOST, A_HURT,
-       A_CYCLONE, A_SKID, A_AIRATK, A_ATTACK, A_UPPERCUT, A_DIVEKICK, A_DEFEAT, A_COUNT };
-static const char *anim_names[A_COUNT] = { "idle", "walk", "run", "lookup", "spin", "charge", "crouch",
-    "boost", "hurt", "cyclone", "skid", "airatk", "attack", "uppercut", "divekick", "defeat" };
+enum { A_IDLE, A_WALK, A_RUN, A_FASTRUN, A_JUMP, A_LOOKUP, A_CROUCH, A_SKID, A_ATTACK, A_AIRATK,
+       A_UPPERCUT, A_DKWIND, A_DIVEKICK, A_CYCLONE, A_CHARGE, A_BOOST, A_HURT, A_DEFEAT, A_COUNT };
+/* names = tools/import_frame.py LILAC (runtime-verified playerskinsash_341 animation numbers) */
+static const char *anim_names[A_COUNT] = { "idle", "walk", "run", "fastrun", "jump", "lookup", "crouch",
+    "skid", "attack", "airatk", "uppercut", "dkwind", "divekick", "cyclone", "charge", "boost", "hurt", "defeat" };
 static int anim_r[A_COUNT], anim_l[A_COUNT];
 static int cur_anim = -1;
 
@@ -79,10 +81,13 @@ static const int MODE_DOWN[4][2] = { {0, 1}, {1, 0}, {0, -1}, {-1, 0} };   /* fl
 static const int MODE_FWD[4][2]  = { {1, 0}, {0, -1}, {-1, 0}, {0, 1} };
 #define SLIP_SPEED 2.5f
 
+/* Floor mode extends to ~50 deg (not 45): DV1 has long exact-45-degree slopes (orig N = 315),
+ * and switching to wall probing right at 45 broke the concave slope->flat transition. */
+#define MODE_EDGE 0.82f
 static int mode_of(float a) {
-    if (a > -0.785f && a <= 0.785f) return 0;
-    if (a > 0.785f && a <= 2.356f) return 1;
-    if (a < -0.785f && a >= -2.356f) return 3;
+    if (a > -MODE_EDGE && a <= MODE_EDGE) return 0;
+    if (a > MODE_EDGE && a <= 3.14159f - MODE_EDGE) return 1;
+    if (a < -MODE_EDGE && a >= -(3.14159f - MODE_EDGE)) return 3;
     return 2;
 }
 
@@ -166,7 +171,7 @@ static int probe2(float x, float y0, float dist, int oneway, float *sy, float *a
 }
 
 static void land(player_t *p, float sy, float ang) {
-    p->y = sy; p->ground = 1; p->angle = ang;
+    p->y = sy; p->ground = 1; p->angle = ang; p->angle_s = ang;
     /* [KB] downhill landing converts fall speed to ground speed (angle-dependent) */
     if (fabsf(p->vx) >= fabsf(p->vy) || fabsf(ang) < 0.2f) p->gsp = p->vx;
     else p->gsp = p->vx * cosf(ang) - p->vy * sinf(ang);
@@ -179,33 +184,60 @@ static void detach(player_t *p) {
     p->ground = 0; p->angle = 0;
 }
 
-static void ground_move(player_t *p, const input_t *in, int control) {
-    float a = p->angle;
-    if (control && (in->held & BTN_RIGHT)) {
-        if (p->gsp < 0) p->gsp += PHYS_DEC;
-        else if (p->gsp < PHYS_TOP) p->gsp = fminf(p->gsp + PHYS_ACC, PHYS_TOP);
-        p->face = 1;
-    } else if (control && (in->held & BTN_LEFT)) {
-        if (p->gsp > 0) p->gsp -= PHYS_DEC;
-        else if (p->gsp > -PHYS_TOP) p->gsp = fmaxf(p->gsp - PHYS_ACC, -PHYS_TOP);
-        p->face = -1;
+/* RV: original order per logic frame = MOVE with the current speed, THEN update the speed
+ * (dX(f) = B(f-1)*cos(O); see RUNTIME_MAP "Ground movement"). */
+static void ground_speed_update(player_t *p, const input_t *in, int control) {
+    float a = p->angle_s;
+    int dir = 0;
+    if (control && (in->held & BTN_RIGHT)) dir = 1;
+    else if (control && (in->held & BTN_LEFT)) dir = -1;
+    float s = fabsf(p->gsp);
+    /* RV: the x9 rate is used when the NORMAL step would leave |gsp| below 2
+     * (accel: 0->0.66->1.33->1.99 then +E; friction: 2.43->2.06 (5E) then 2.06->1.40 (9E)) */
+    if (dir) {
+        p->face = dir;
+        if (p->gsp * dir < 0) {
+            p->gsp += dir * PHYS_DEC;                  /* RV: skid -0.5/frame, stops at 0 */
+            if (p->gsp * dir > 0) p->gsp = 0;
+        } else if (s < PHYS_TOP) {
+            float n = s + PHYS_ACC;
+            if (n < PHYS_LOWSPD) n = s + PHYS_ACC * PHYS_ACC_LOWMUL;
+            p->gsp = dir * fminf(n, PHYS_TOP);
+        }                                              /* RV: >= top while holding: speed kept */
     } else {
-        p->gsp -= fminf(fabsf(p->gsp), PHYS_FRIC) * (p->gsp > 0 ? 1 : -1);
+        float f = PHYS_ACC * PHYS_FRIC_MUL;
+        if (s - f < PHYS_LOWSPD) f = PHYS_ACC * PHYS_ACC_LOWMUL;
+        p->gsp -= fminf(s, f) * (p->gsp > 0 ? 1 : -1);
     }
-    if (fabsf(a) > 0.1f) p->gsp -= PHYS_SLOPE * sinf(a);
+    if (fabsf(sinf(a)) > PHYS_SLOPE_MIN) p->gsp -= PHYS_SLOPE * sinf(a);   /* RV: > ~30 deg only */
     if (p->gsp > PHYS_MAXSPD) p->gsp = PHYS_MAXSPD;
     if (p->gsp < -PHYS_MAXSPD) p->gsp = -PHYS_MAXSPD;
+}
 
+/* smoothed angle O eases toward the sensed angle N; rate fitted from traces
+ * (k 0.175 @ |B|~1.3, 0.33 @ 5, 0.40 @ 6.1) -> k = 0.05|B| + 0.11  [fitted, not exact] */
+static void smooth_angle(player_t *p) {
+    float d = p->angle - p->angle_s;
+    while (d > 3.14159f) d -= 6.28318f;
+    while (d < -3.14159f) d += 6.28318f;
+    float k = fminf(1.f, 0.05f * fabsf(p->gsp) + 0.11f);
+    if (mode_of(p->angle) != 0) k = 1.f;             /* walls/loops: follow the surface directly */
+    p->angle_s += d * k;
+}
+
+/* upd: 1 = normal speed update, 0 = speed frozen (boost charge / boost: RV, B constant) */
+static void ground_move(player_t *p, const input_t *in, int control, int upd) {
     /* too slow on a wall or ceiling: fall off */
     if (mode_of(p->angle) != 0 && fabsf(p->gsp) < SLIP_SPEED) { detach(p); return; }
 
     float dist = fabsf(p->gsp);
     int n = (int)(dist / 4.f) + 1;
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < n && p->gsp != 0; i++) {
         float dir = p->gsp >= 0 ? 1.f : -1.f;
-        if (p->gsp != 0 && wall_ahead(p, dir)) { p->gsp = 0; break; }
+        if (wall_ahead(p, dir)) { p->gsp = 0; break; }
         float step = p->gsp / n;
-        float nx = p->x + cosf(p->angle) * step, ny = p->y - sinf(p->angle) * step;
+        float ma = mode_of(p->angle) == 0 ? p->angle_s : p->angle;
+        float nx = p->x + cosf(ma) * step, ny = p->y - sinf(ma) * step;
         int m = mode_of(p->angle);
         float ox, oy, oa;
         float down = 6.f + fabsf(p->gsp) * 1.5f;
@@ -217,19 +249,27 @@ static void ground_move(player_t *p, const input_t *in, int control) {
             return;
         }
     }
+    smooth_angle(p);
+    if (upd) ground_speed_update(p, in, control);
     if (mode_of(p->angle) == 2 && fabsf(p->gsp) < SLIP_SPEED) detach(p);
 }
 
-static void air_move(player_t *p, const input_t *in, int control, int gravity) {
+/* RV order: air accel -> gravity -> Sonic-style air drag tested on the NEW vy
+ * (uppercut trace: vx 2 -> 1.9375 on the frame vy goes -4 -> -3.75; stops once vy >= 0) */
+static void air_speed_update(player_t *p, const input_t *in, int control, float grav) {
     if (control) {
         if ((in->held & BTN_RIGHT) && p->vx < PHYS_TOP) { p->vx = fminf(p->vx + PHYS_AIR_ACC, PHYS_TOP); p->face = 1; }
         if ((in->held & BTN_LEFT) && p->vx > -PHYS_TOP) { p->vx = fmaxf(p->vx - PHYS_AIR_ACC, -PHYS_TOP); p->face = -1; }
     }
-    /* [KB] moving upward bleeds horizontal speed down to normal run speed */
-    if (gravity && p->vy < 0 && fabsf(p->vx) > PHYS_TOP)
-        p->vx -= (p->vx > 0 ? 1 : -1) * fminf(PHYS_AIR_DRAG, fabsf(p->vx) - PHYS_TOP);
-    if (gravity) { p->vy += PHYS_GRAV; if (p->vy > PHYS_MAXFALL) p->vy = PHYS_MAXFALL; }
+    if (grav > 0) {
+        p->vy += grav; if (p->vy > PHYS_MAXFALL) p->vy = PHYS_MAXFALL;
+        if (p->vy > -PHYS_DRAG_VY && p->vy < 0) p->vx *= PHYS_AIR_DRAG;
+    }
+}
 
+/* RV: in the air the original also moves first, then adds acceleration and gravity
+ * (jump: y moves -7 on the first air frame, then G = -6.75) */
+static void air_move(player_t *p, const input_t *in, int control, float grav) {
     int n = (int)(fabsf(p->vx) / 4.f) + 1;
     for (int i = 0; i < n; i++) {
         float nx = p->x + p->vx / n, sy, ang;
@@ -239,7 +279,7 @@ static void air_move(player_t *p, const input_t *in, int control, int gravity) {
             break;
         }
         p->x = nx;
-        if (p->vy >= 0 && probe2(p->x, p->y - STEP_UP, STEP_UP, 0, &sy, &ang) && sy <= p->y) { land(p, sy, ang); return; }
+        if (p->vy >= 0 && probe2(p->x, p->y - STEP_UP, STEP_UP, 0, &sy, &ang) && sy <= p->y) { land(p, sy, ang); ground_speed_update(p, in, control); return; }
     }
     n = (int)(fabsf(p->vy) / 4.f) + 1;
     for (int i = 0; i < n; i++) {
@@ -248,12 +288,16 @@ static void air_move(player_t *p, const input_t *in, int control, int gravity) {
             if (solid_at(&G.lvl, p->x - 4, ny - BODY_H) || solid_at(&G.lvl, p->x + 4, ny - BODY_H)) { p->vy = 0; break; }
             p->y = ny;
         } else {
-            if (probe2(p->x, p->y - 2, (ny - p->y) + 3, 1, &sy, &ang) && sy <= ny + 1) { land(p, sy, ang); return; }
+            if (probe2(p->x, p->y - 2, (ny - p->y) + 3, 1, &sy, &ang) && sy <= ny + 1) { land(p, sy, ang); ground_speed_update(p, in, control); return; }
             p->y = ny;
         }
     }
+    air_speed_update(p, in, control, grav);
 }
 
+/* RV: on the jump frame Lilac first moves along the ground with her current speed, then the
+ * velocity becomes B along + 7 perpendicular to the RAW surface angle N (run_jump: N 355.914,
+ * B 5.013 -> vx 5.499, vy -6.625; using the smoothed O gives 5.396 / -6.71). No gravity that frame. */
 static void jump(player_t *p) {
     float a = p->angle;
     p->vx = p->gsp * cosf(a) - PHYS_JUMP * sinf(a);
@@ -266,12 +310,52 @@ static void start_boost(player_t *p, const input_t *in) {
     /* [KB] six directions: left/right and the four diagonals (no straight up/down) */
     float dx = (in->held & BTN_LEFT) ? -1.f : (in->held & BTN_RIGHT) ? 1.f : (float)p->face;
     float dy = (in->held & BTN_UP) ? -1.f : (in->held & BTN_DOWN) ? 1.f : 0.f;
+    if (p->ground && dy > 0) dy = 0;                  /* down-diagonal on the ground = along the ground */
     float len = sqrtf(dx * dx + dy * dy);
     p->boost_dx = dx / len; p->boost_dy = dy / len;
     p->face = dx > 0 ? 1 : -1;
     p->state = ST_BOOST; p->state_t = 0; p->boost_used = 1;
-    if (dy < 0 || !p->ground) p->ground = 0;
+    if (dy < 0 && p->ground) detach(p);
     snd_play(G.sfx.boost, 230, 128);
+}
+
+static void set_state(player_t *p, int s) { p->state = s; p->state_t = 0; }
+
+/* grounded ST_NORMAL: action inputs (RV unless noted) */
+static int ground_actions(player_t *p, const input_t *in) {
+    if (in->pressed & BTN_ATTACK) {
+        if (in->held & BTN_UP) {                                             /* RV: M21 anim 28 */
+            set_state(p, ST_UPPERCUT); p->gsp = 0;
+            if (in->pressed & BTN_JUMP) { jump(p); p->jumping = 0; }        /* RV: high uppercut */
+        }
+        else set_state(p, ST_ATTACK);                                        /* RV: M20 anim 26 */
+        snd_play(G.sfx.attack, 200, 128);
+        return 1;
+    }
+    if (in->pressed & BTN_SPECIAL) { set_state(p, ST_CHARGE); return 1; }    /* RV: M5 anim 7 */
+    if (in->pressed & BTN_JUMP) {
+        ground_move(p, in, 0, 0);
+        if (p->ground) jump(p);
+        return 1;
+    }
+    return 0;
+}
+
+static int air_actions(player_t *p, const input_t *in) {
+    if (in->pressed & BTN_ATTACK) {
+        if (in->held & BTN_DOWN) set_state(p, ST_DKWIND);                   /* RV: M19 anim 7 */
+        else set_state(p, ST_ATTACK);                                        /* RV: M20 anim 25 */
+        snd_play(G.sfx.attack, 200, 128);
+        return 1;
+    }
+    if (in->pressed & BTN_SPECIAL) { set_state(p, ST_CHARGE); return 1; }
+    if ((in->pressed & BTN_JUMP) && !p->cyclone_used && !p->boost_used) {
+        set_state(p, ST_CYCLONE); p->cyclone_used = 1; p->jumping = 0;      /* RV: M26 anim 18 */
+        p->vy = -PHYS_CYCLONE_VY;
+        snd_play(G.sfx.attack, 200, 128);
+        return 1;
+    }
+    return 0;
 }
 
 void player_update(player_t *p, const input_t *in) {
@@ -285,55 +369,81 @@ void player_update(player_t *p, const input_t *in) {
         return;
     }
 
+    int crouch_look = 0;
     switch (p->state) {
     case ST_NORMAL:
-        if (in->pressed & BTN_ATTACK) { p->state = ST_ATTACK; p->state_t = 0; snd_play(G.sfx.attack, 200, 128); break; }
-        if (in->pressed & BTN_SPECIAL) { p->state = ST_CHARGE; p->state_t = 0; break; }
         if (p->ground) {
-            if (in->pressed & BTN_JUMP) { jump(p); break; }
-            ground_move(p, in, 1);
+            if (ground_actions(p, in)) break;
+            /* RV: Down / Up while stopped -> crouch (M3) / look up (M2); no walking from them */
+            if (fabsf(p->gsp) < 0.01f && (in->held & (BTN_DOWN | BTN_UP))) crouch_look = 1;
+            ground_move(p, in, !crouch_look, 1);
+            /* RV: with Down held (no direction) Lilac drops into a crouch once speed falls below 2
+             * (down_kick: B 2.05 -> 0, M3 on the frame friction would take it under 2) */
+            if (p->ground && (in->held & BTN_DOWN) && !(in->held & (BTN_LEFT | BTN_RIGHT)) && fabsf(p->gsp) < PHYS_LOWSPD) p->gsp = 0;
         } else {
-            if ((in->pressed & BTN_JUMP) && !p->cyclone_used && !p->boost_used) {
-                p->state = ST_CYCLONE; p->state_t = 0; p->cyclone_used = 1;
-                if (p->vy > -2.f) p->vy = -2.f;
-                snd_play(G.sfx.attack, 200, 128);
-                break;
+            if (air_actions(p, in)) break;
+            air_move(p, in, 1, PHYS_GRAV);
+            /* RV: order move -> gravity -> cut (tap: -6.25 -> -3 -> -2.75) */
+            if (p->jumping && !p->ground && !(in->held & BTN_JUMP) && p->vy < -PHYS_JUMP_CUT) p->vy = -PHYS_JUMP_CUT;
+        }
+        break;
+    case ST_ATTACK:   /* RV: 22 frames, physics unchanged (ground: no input; air: normal) */
+        if (p->ground) ground_move(p, in, 0, 1); else air_move(p, in, 1, PHYS_GRAV);
+        if (p->state == ST_ATTACK && p->state_t >= PHYS_ATTACK_T) p->state = ST_NORMAL;
+        break;
+    case ST_UPPERCUT: /* RV: stand 10 f (jump allowed = high uppercut), then vx 2*face, vy -7; ~39 f total */
+        if (p->state_t <= PHYS_UPPER_WIND) {
+            if (p->ground) {
+                if (in->pressed & BTN_JUMP) { jump(p); p->jumping = 0; }
+                else ground_move(p, in, 0, 1);
+            } else air_move(p, in, 0, PHYS_GRAV);
+            if (p->state_t == PHYS_UPPER_WIND) {
+                if (p->ground) detach(p);
+                p->ground = 0; p->vx = PHYS_UPPER_VX * p->face; p->vy = -PHYS_UPPER_VY;
             }
-            if (p->jumping && !(in->held & BTN_JUMP) && p->vy < -PHYS_JUMP_CUT) p->vy = -PHYS_JUMP_CUT;
-            air_move(p, in, 1, 1);
+        } else {
+            air_move(p, in, 0, PHYS_GRAV);
+            if (p->state == ST_UPPERCUT && p->state_t >= PHYS_UPPER_T) p->state = ST_NORMAL;
         }
+        if (p->ground && p->state_t > PHYS_UPPER_WIND) p->state = ST_NORMAL;
         break;
-    case ST_ATTACK:
-        if (p->ground) ground_move(p, in, 0); else air_move(p, in, 1, 1);
-        if (p->an.done || p->state_t > 40) p->state = ST_NORMAL;
-        break;
-    case ST_CYCLONE:
+    case ST_DKWIND:   /* RV: 15 f windup at gravity 0.125, then vx 5*face, vy 3.875 */
+        air_move(p, in, 0, PHYS_DK_WIND_GRAV);
         if (p->ground) { p->state = ST_NORMAL; break; }
-        p->vy = fminf(p->vy, 1.0f);
-        air_move(p, in, 1, 1);
-        if (p->state == ST_CYCLONE && (p->state_t >= 30 || !(in->held & BTN_JUMP))) p->state = ST_NORMAL;
+        if (p->state_t >= PHYS_DK_WIND_T) { set_state(p, ST_DIVEKICK); p->vx = PHYS_DK_VX * p->face; p->vy = PHYS_DK_VY; }
         break;
-    case ST_CHARGE:
-        /* [KB] charging in the air stops Lilac */
-        if (p->ground) { p->gsp *= 0.85f; ground_move(p, in, 0); }
-        else { p->vx *= 0.8f; p->vy *= 0.8f; air_move(p, in, 0, 0); }
-        if (!(in->held & BTN_SPECIAL)) {
-            if (p->state_t >= 20) start_boost(p, in); else p->state = ST_NORMAL;
-        }
+    case ST_DIVEKICK: /* RV: normal air physics (M0) with the kick animation until landing */
+        air_move(p, in, 1, PHYS_GRAV);
+        if (p->ground) p->state = ST_NORMAL;
         break;
-    case ST_BOOST: {
+    case ST_CYCLONE:  /* RV: gravity 0.1 until landing; releasing jump does NOT end it (cyclone trace:
+                       * M26 for 78 f after jump was released). Cap is a safety net (UNVERIFIED). */
+        air_move(p, in, 1, PHYS_CYCLONE_GRAV);
+        if (p->ground || p->state_t >= PHYS_CYCLONE_MAX) p->state = ST_NORMAL;
+        break;
+    case ST_CHARGE:   /* RV (ground): speed frozen for 30 f, then auto-fire. Release first = cancel */
+        if (!(in->held & BTN_SPECIAL)) { p->state = ST_NORMAL; break; }
+        if (p->ground) ground_move(p, in, 0, 0);
+        else { p->vx = 0; p->vy = 0; }                 /* [KB] air charge holds Lilac in place (UNVERIFIED) */
+        if (p->state_t >= PHYS_CHARGE_T) start_boost(p, in);
+        break;
+    case ST_BOOST: {  /* RV: speed 12 held constant for 33 f, then normal physics carry the speed */
         float ox = p->x, oy = p->y;
-        if (p->ground && p->boost_dy >= 0) { p->gsp = p->boost_dx * PHYS_BOOST; ground_move(p, in, 0); }
+        if (p->ground && p->boost_dy >= 0) {
+            /* RV: B set to 12 when fired; afterwards only the slope force changes it (12 -> 12.82 down a 45 deg slope) */
+            if (p->state_t == 1) p->gsp = p->boost_dx * PHYS_BOOST;
+            ground_move(p, in, 0, 0);
+            if (p->ground && fabsf(sinf(p->angle_s)) > PHYS_SLOPE_MIN) p->gsp -= PHYS_SLOPE * sinf(p->angle_s);
+        }
         else { p->vx = p->boost_dx * PHYS_BOOST; p->vy = p->boost_dy * PHYS_BOOST; air_move(p, in, 0, 0); }
-        if (p->state == ST_BOOST && (p->state_t >= 24 || (p->x == ox && p->y == oy))) {
+        if (p->state == ST_BOOST && (p->state_t >= PHYS_BOOST_T || (p->x == ox && p->y == oy))) {
             p->state = ST_NORMAL;
             p->invuln = 30;   /* [KB] brief invincibility after the boost (duration UNVERIFIED) */
-            if (p->ground) p->gsp = p->boost_dx * PHYS_TOP; else { p->vx *= 0.6f; p->vy *= 0.6f; }
         }
         break;
     }
     case ST_HURT:
-        air_move(p, in, 0, 1);
+        air_move(p, in, 0, PHYS_GRAV);
         if (p->ground) p->state = ST_NORMAL;
         break;
     }
@@ -343,10 +453,13 @@ void player_update(player_t *p, const input_t *in) {
         snd_play(G.sfx.hurt, 220, 128);
     }
 
-    /* animation state -> recovered animation */
-    int a, speed = -1;
+    /* animation selection (RV: recovered indices, speed bands from traces) */
+    int a, speed = -1, restart = 0;
     switch (p->state) {
-    case ST_ATTACK: a = p->ground ? A_ATTACK : A_AIRATK; break;
+    case ST_ATTACK: a = p->ground ? A_ATTACK : A_AIRATK; restart = 1; break;
+    case ST_UPPERCUT: a = A_UPPERCUT; restart = 1; break;
+    case ST_DKWIND: a = A_DKWIND; restart = 1; break;
+    case ST_DIVEKICK: a = A_DIVEKICK; break;
     case ST_CYCLONE: a = A_CYCLONE; break;
     case ST_CHARGE: a = A_CHARGE; break;
     case ST_BOOST: a = A_BOOST; break;
@@ -355,13 +468,14 @@ void player_update(player_t *p, const input_t *in) {
         if (p->ground) {
             float s = fabsf(p->gsp);
             int pushing_back = (p->gsp > 0.5f && (in->held & BTN_LEFT)) || (p->gsp < -0.5f && (in->held & BTN_RIGHT));
-            if (pushing_back && s > 3.f) a = A_SKID;
-            else if (s < 0.2f) a = (in->held & BTN_DOWN) ? A_CROUCH : (in->held & BTN_UP) ? A_LOOKUP : A_IDLE;
-            else if (s < 4.0f) { a = A_WALK; speed = 10 + (int)(s * 6); }   /* speed scaling UNVERIFIED */
-            else { a = A_RUN; speed = 10 + (int)(s * 4); }
-        } else a = A_SPIN;
+            if (pushing_back && s > PHYS_LOWSPD) a = A_SKID;
+            else if (s < 0.01f) a = crouch_look ? ((in->held & BTN_DOWN) ? A_CROUCH : A_LOOKUP) : A_IDLE;
+            else if (s < PHYS_TOP) { a = A_WALK; speed = 30; }          /* RV band; speed fitted */
+            else if (s < 9.5f) { a = A_RUN; speed = 35 + (int)s; }      /* RV band; speed fitted */
+            else { a = A_FASTRUN; speed = 35 + (int)s; }
+        } else a = A_JUMP;
     }
-    if (a == A_ATTACK || a == A_AIRATK) { if (cur_anim != a || p->state_t == 1) { set_anim(p, a); anim_restart(&p->an); } }
+    if (restart) { if (cur_anim != a || p->state_t == 1) { set_anim(p, a); anim_restart(&p->an); } }
     else set_anim(p, a);
     anim_tick(&p->an, speed);
 }
@@ -377,6 +491,11 @@ int player_attack_box(const player_t *p, float *x0, float *y0, float *x1, float 
         float fx = p->x + p->face * 4;
         *x0 = p->face > 0 ? fx : fx - 34; *x1 = *x0 + 34;
         *y0 = p->y - 34; *y1 = p->y - 2;
+        return 1;
+    }
+    case ST_UPPERCUT: case ST_DIVEKICK: {
+        float fx = p->x + p->face * 2;
+        *x0 = fx - 16; *x1 = fx + 16; *y0 = p->y - 40; *y1 = p->y + 2;
         return 1;
     }
     case ST_CYCLONE: case ST_BOOST:
