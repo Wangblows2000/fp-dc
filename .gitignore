@@ -1,0 +1,16 @@
+# Original game data and anything derived from it is NEVER committed.
+original/*
+!original/SHA256SUMS
+!original/README.md
+extracted/
+converted/
+build/
+third_party/freedom_editor/
+third_party/CTFAK/
+*.o
+*.elf
+*.bin
+*.cdi
+*.iso
+romdisk.img
+host/fpdc_host
