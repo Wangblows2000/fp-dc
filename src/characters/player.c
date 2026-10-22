@@ -8,7 +8,7 @@
 #include "../fp.h"
 
 enum { ST_NORMAL, ST_ATTACK, ST_CYCLONE, ST_CHARGE, ST_BOOST, ST_HURT, ST_DEAD,
-       ST_UPPERCUT, ST_DKWIND, ST_DIVEKICK, ST_CROUCHATK };
+       ST_UPPERCUT, ST_DKWIND, ST_DIVEKICK, ST_CROUCHATK, ST_HANG };
 
 #define HALF_W   7.
 #define BODY_H   30.
@@ -16,10 +16,10 @@ enum { ST_NORMAL, ST_ATTACK, ST_CYCLONE, ST_CHARGE, ST_BOOST, ST_HURT, ST_DEAD,
 #define MAX_HP   14      /* RV: petal counter max 14 half-petals = 7 petals (GUIRings_125 Counter max) */
 
 enum { A_IDLE, A_WALK, A_RUN, A_FASTRUN, A_JUMP, A_LOOKUP, A_CROUCH, A_SKID, A_ATTACK, A_AIRATK,
-       A_UPPERCUT, A_DKWIND, A_DIVEKICK, A_CYCLONE, A_CHARGE, A_BOOST, A_HURT, A_DEFEAT, A_CROUCHATK, A_SPRING, A_COUNT };
+       A_UPPERCUT, A_DKWIND, A_DIVEKICK, A_CYCLONE, A_CHARGE, A_BOOST, A_HURT, A_DEFEAT, A_CROUCHATK, A_SPRING, A_HANG, A_COUNT };
 /* names = tools/import_frame.py LILAC (runtime-verified playerskinsash_341 animation numbers) */
 static const char *anim_names[A_COUNT] = { "idle", "walk", "run", "fastrun", "jump", "lookup", "crouch",
-    "skid", "attack", "airatk", "uppercut", "dkwind", "divekick", "cyclone", "charge", "boost", "hurt", "defeat", "crouchatk", "spring" };
+    "skid", "attack", "airatk", "uppercut", "dkwind", "divekick", "cyclone", "charge", "boost", "hurt", "defeat", "crouchatk", "spring", "hang" };
 static int anim_r[A_COUNT], anim_l[A_COUNT];
 static int cur_anim = -1;
 
@@ -81,6 +81,18 @@ void player_damage(player_t *p, int amount) {
     p->ground = 0; p->jumping = 0; p->hurt_land_t = 1000;
     p->cyclone_used = 0;            /* [KB] cyclone usable again after taking damage */
     p->invuln = PHYS_INVULN_T;      /* RE: PlayerOthers.E = 60 */
+}
+
+/* RE (event 4065): a falling Lilac (G > 0), not in state 9, Down not held, whose top-big sensor overlaps a
+ * hang sensor grabs it: M = 41, X = sensor x, Y (reference point) = sensor y + 32; events 4062/4065 hold
+ * that position every frame. Release (INFERRED, events 4057-4066 not fully read): Jump jumps off, Down drops. */
+int player_can_hang(const player_t *p) {
+    return p->state != ST_HANG && p->state != ST_HURT && p->state != ST_DEAD && !p->ground && p->vy > 0 && !(p->held & BTN_DOWN);
+}
+void player_hang(player_t *p, double hx, double hy) {
+    p->state = ST_HANG; p->state_t = 0; p->hang_x = hx; p->hang_y = hy;
+    p->x = hx; p->y = hy + 32 + ORIG_REF_DY; p->gsp = 0; p->ground = 0;   /* RV: B, G not reset on the grab */
+    p->jumping = 0; p->cyclone_used = 0; p->boost_used = 0; p->springing = 0;
 }
 
 /* sources whose damage value has not been recovered yet use the Turretus pellet's 10 (2 half-petals) */
@@ -352,7 +364,8 @@ static void air_speed_update(player_t *p, const input_t *in, int control, double
         if ((in->held & BTN_LEFT) && p->vx > -PHYS_TOP) { p->vx = fmax(p->vx - PHYS_AIR_ACC, -PHYS_TOP); p->face = -1; }
     }
     if (grav > 0) {
-        p->vy += grav; if (p->vy > PHYS_MAXFALL) p->vy = PHYS_MAXFALL;
+        if (p->vy > PHYS_MAXFALL) p->vy = PHYS_MAXFALL;   /* RE 1577: G clamped to H BEFORE gravity (max 15.25) */
+        p->vy += grav;
         if (p->vy > -PHYS_DRAG_VY && p->vy < 0 && fabs(p->vx) >= 0.125) p->vx *= PHYS_AIR_DRAG;   /* RE 1648: only |B| >= 0.125 */
     }
 }
@@ -519,6 +532,15 @@ void player_update(player_t *p, const input_t *in) {
 
     int crouch_look = 0;
     p->look = 0;
+    p->held = in->held;
+    if (p->state == ST_HANG) {
+        /* RE 4062/4065 hold the position; RV: B is 0 from the next frame, G keeps gaining gravity (unused) */
+        p->x = p->hang_x; p->y = p->hang_y + 32 + ORIG_REF_DY; p->vx = 0; if (p->vy > PHYS_MAXFALL) p->vy = PHYS_MAXFALL; p->vy += PHYS_GRAV;
+        if (in->pressed & BTN_JUMP) { p->state = ST_NORMAL; p->vx = 0; p->vy = -PHYS_JUMP; p->jumping = 1; snd_play(G.sfx.jump, 200, 128); }   /* INFERRED */
+        else if (in->pressed & BTN_DOWN) { p->state = ST_NORMAL; p->vy = 0; p->y += 1; }                                                     /* INFERRED */
+        set_anim(p, A_HANG); anim_tick(&p->an, -1);
+        return;
+    }
     switch (p->state) {
     case ST_NORMAL:
         if (p->ground) {

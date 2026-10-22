@@ -97,7 +97,7 @@ typedef struct { uint16_t type, anim; int32_t x, y; } lvobj_t;
 /* engine object types (tools/import_frame.py ENGINE_TYPES) */
 enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_PETAL = 6, OT_SPIKES = 7,
        OT_SPRING = 8, OT_SIGN = 9, OT_TURRETUS = 10, OT_ROCK = 11, OT_MONITOR = 12,
-       OT_SPRING_UL = 13, OT_SPRING_UR = 14, OT_SPRING_R = 15, OT_SPRING_L = 16,
+       OT_SPRING_UL = 13, OT_SPRING_UR = 14, OT_SPRING_R = 15, OT_SPRING_L = 16, OT_HANG = 17,
        OT_PARALLAX = 20, OT_EXPLODE = 100, OT_PELLET = 101 };
 
 #define MAX_ATLAS 4
@@ -131,7 +131,9 @@ typedef struct {
     float energy, energy_drain;  /* RV energy meter 0..100 (boost needs 100) */
     int energy_init;
     int springing, skidding, ctrl_lock;
-    int look;                      /* 2 = looking up (M2), 3 = crouching (M3) this frame (camera) */                 /* launched by a spring, until landing (spring anim while rising) */
+    int look;                      /* 2 = looking up (M2), 3 = crouching (M3) this frame (camera) */
+    uint32_t held;                 /* this frame's held buttons (object events that test input) */
+    double hang_x, hang_y;         /* grabbed hang sensor position (state M41) */                 /* launched by a spring, until landing (spring anim while rising) */
     float rot;                   /* sprite angle, degrees CCW (original Active angle @+0xc4) */
     float boost_dx, boost_dy;
     float spawn_x, spawn_y;
@@ -190,7 +192,9 @@ void player_draw(const player_t *p);
 int  player_attack_box(const player_t *p, float *x0, float *y0, float *x1, float *y1);
 int  player_invincible(const player_t *p);
 void player_hurt(player_t *p, double from_x);
-void player_damage(player_t *p, int amount);   /* RE event 2414: amount in GUILifeBaseMeter units (5 = 1 half-petal on Normal) */
+void player_damage(player_t *p, int amount);
+void player_hang(player_t *p, double hx, double hy);
+int  player_can_hang(const player_t *p);   /* RE event 2414: amount in GUILifeBaseMeter units (5 = 1 half-petal on Normal) */
 void player_bounce(player_t *p, double vy);
 void player_spring(player_t *p, double vx, double vy, double top);
 void player_spring_side(player_t *p, double gsp);
@@ -221,7 +225,7 @@ void text_draw(float x, float y, const char *s, uint32_t argb, int scale);
 #define PHYS_JUMP_CUT   3.0       /* RV: releasing jump clamps rising speed to -3 */
 #define PHYS_SLOPE      0.203125  /* RV: alt F. gsp -= F*sin(angle) ... */
 #define PHYS_SLOPE_MIN  0.5       /* RV: ... only when |sin(angle)| > 0.5 (steeper than ~30 deg) */
-#define PHYS_MAXFALL    12.0      /* UNVERIFIED */
+#define PHYS_MAXFALL    15.0      /* RE: movement H = 15; event 1577 clamps G to H before gravity -> 15.25 */
 #define PHYS_BOOST      12.0      /* RV: Dragon Boost speed (B = 12 held constant) */
 #define PHYS_BOOST_T    33         /* RV: boost lasts 33 frames, then speed carries with normal friction */
 #define PHYS_CHARGE_T   30         /* RV: holding special charges 30 f (speed frozen), then auto-fires */
