@@ -105,7 +105,9 @@ static int fprobe(double x, double y0, double dist, int oneway, double *sy, doub
     if (r) { *sy = fs; *ang = fa; }
     return r;
 }
-#define LAND_REACH 4.
+/* RV/RE: PlayerSensorBottomBig_334 is 11x11 (hotspot 5,5) placed at (floor X, floor Yref + 13), so it covers
+ * pixel rows up to floor(Yref) + 18 = floor(feet) + 4: ground whose surface row is at most that is found */
+#define LAND_REACH 5.0
 /* RE (events 1644 / 1646): on the ground, with the RAW sensed angle N between 35 and 325 degrees,
  * B -= F sin(N) when |B| >= C (5), and B -= 0.38 F sin(N) when 0 < |B| < C (no force when stopped) */
 static void slope_force(player_t *p) {
@@ -400,7 +402,8 @@ static void air_move(player_t *p, const input_t *in, int control, double grav) {
             /* RV (landing snaps in 20+ traces: +2..+3.99 px): on the last step the original lands when the
              * ground is up to LAND_REACH px below the feet and snaps down to it */
             double reach = (i == n - 1) ? LAND_REACH : 1.;
-            if (probe2(p->x, p->y - 2, (ny - p->y) + 2 + reach, 1, &sy, &ang) && sy <= ny + reach) { land(p, sy, ang); if (p->state != ST_BOOST) ground_speed_update(p, in, control); return; }
+            double lim = (i == n - 1) ? floor(ny) + 4. : ny + 1.;
+            if (probe2(p->x, p->y - 2, (ny - p->y) + 2 + reach, 1, &sy, &ang) && sy <= lim) { land(p, sy, ang); if (p->state != ST_BOOST) ground_speed_update(p, in, control); return; }
             p->y = ny;
         }
     }
