@@ -14,3 +14,5 @@ third_party/CTFAK/
 *.iso
 romdisk.img
 host/fpdc_host
+third_party/flycast/
+third_party/mkdcdisc/
