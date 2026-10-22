@@ -42,10 +42,12 @@ def main():
         plain.setdefault(strip(n), v)
 
     # classes = create_<cls>_<id>
-    classes = {}
+    classes = {}; creates = {}
     for n in syms:
         m = re.match(r'_Z\d+create_(\w+?)_(\d+)ii$', n)
-        if m: classes['%s_%s' % (m.group(1), m.group(2))] = int(m.group(2))
+        if m:
+            classes['%s_%s' % (m.group(1), m.group(2))] = int(m.group(2))
+            creates[int(m.group(2))] = syms[n]
     # constructor per class id: _ZN<len><Name>_<id>C2Eii
     ctors = {}
     for n, (va, sz) in syms.items():
@@ -84,8 +86,8 @@ def main():
             entry['anims'] = anims
         # constructor scan for image ids
         loaded = []
-        if cid in ctors:
-            va, sz = ctors[cid]
+        ranges = [r for r in (creates.get(cid), ctors.get(cid)) if r and r[1]]
+        for va, sz in ranges:
             code = rd(va, sz)
             last = None
             for ins in md.disasm(code, va):

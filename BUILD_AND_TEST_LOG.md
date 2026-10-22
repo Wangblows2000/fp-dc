@@ -54,3 +54,14 @@ Visual check: frames rendered by the software renderer (`build/run1/montage.png`
 - **Flycast fa9d39a (Xvfb, llvmpipe, HLE BIOS): BOOTS.** Serial: `KallistiOS v2.3.0 [dreamcast/pristine]`. All assets load from /cd/data and the scene renders identically to the host build (build/fc_shot1_crop.png).
   Perf sample at frame 600: update 132,822 µs (!), draw 868 µs, 301 polys, 121/600 slow frames. Suspect: music `snd_stream_poll` → blocking fread from CD inside the update timing window.
   This is emulator timing; real hardware not tested.
+
+## 2026-10-22 Session 2: evidence-driven overhaul
+- Linux build staged; RE tools: dump_frames (11.8 s, 87 frames, 0 unresolved), dump_anims (4,208 classes; 4 of 5,596 directions unresolved), dump_backdrops (1,713 classes).
+- Linux Assets.dat extracted with custom format (12 s).
+- First collision import used a wrong "8 = platform" theory: Lilac fell through and stalled. Corrected after resolving collider vtables (InstanceBox vs BackdropCollision).
+- Bugs found and fixed: invisible overlay pieces drawn black (flag not read by the loader); quarter-pipe detach at 45° (stale host binary; clean rebuild shows riding to 90°); parallax loader probing a missing file.
+- `python3 tests/test_gameplay.py converted2` → **14/14 PASS** (spawn, accel, cap, jump 92.7 px, variable jump 52.7 px, quarter-pipe max angle 1.57, passes curve, no fall-out, Turretus kill, boost, attack, cyclone, anim changes).
+- DC: `make` 0 warnings; `make cdi` 26 MB (`-N`: no padding). Flycast: renders DV1 with PAL8 twiddled textures correctly.
+- Perf (Flycast): before the music thread, update spikes of 132.8 ms and 121/600 slow frames. After moving `snd_stream_poll` to a KOS thread: **update 70 µs, 10/600 slow frames (startup only)**.
+- Input: Flycast keyboard → port A works after `xdotool windowfocus --sync` + click; Lilac runs right under pad input (build/fc_in4c.png).
+- Original game: boots; jump to frame 20 loads DV geometry but the stage doesn't progress (menu state missing). **No physics measured from the original yet.**

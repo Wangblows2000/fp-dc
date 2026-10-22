@@ -1,83 +1,44 @@
-/* Tile collision: per-column heightmaps, floor probes, solid tests.
- * Heights are measured in px from the tile's bottom edge (0..16). */
+/* Pixel-mask terrain collision. Masks are the alpha channels of the original
+ * terrain pieces (solid = obstacle type 9, platform = type 8), rasterised by
+ * tools/import_frame.py into deduplicated 16x16 1-bit tiles. */
 #include <math.h>
 #include "../fp.h"
 
-int level_tile(const level_t *l, int tx, int ty) {
-    if (tx < 0 || tx >= l->w) return T_SOLID;      /* side walls */
-    if (ty < 0) return T_EMPTY;
-    if (ty >= l->h) return T_EMPTY;                /* bottomless */
-    return l->tiles[ty * l->w + tx];
+static inline int bit(const level_t *l, const uint16_t *map, int x, int y) {
+    if (x < 0 || x >= l->w) return map == l->smap;   /* level sides are walls */
+    if (y < 0 || y >= l->h) return 0;                  /* open top, bottomless pit */
+    int t = map[(y >> 4) * l->tw + (x >> 4)];
+    if (t == 0) return 0;
+    if (t == 1) return 1;
+    return (l->tiles[t * 16 + (y & 15)] >> (x & 15)) & 1;
 }
 
-int tile_height(int t, int cx) {
-    switch (t) {
-    case T_SOLID: case T_SPIKE: case T_ONEWAY: return 16;
-    case T_SLOPE_R: return cx + 1;
-    case T_SLOPE_L: return 16 - cx;
-    case T_GENTLE_R_LO: return (cx + 2) / 2;
-    case T_GENTLE_R_HI: return 8 + (cx + 2) / 2;
-    case T_GENTLE_L_HI: return 16 - cx / 2;
-    case T_GENTLE_L_LO: return 8 - cx / 2;
-    default: return 0;
-    }
-}
+int px_solid(const level_t *l, int x, int y) { return bit(l, l->smap, x, y); }
+int px_platform(const level_t *l, int x, int y) { return bit(l, l->pmap, x, y); }
+int solid_at(const level_t *l, float x, float y) { return px_solid(l, (int)floorf(x), (int)floorf(y)); }
 
-/* topmost surface in column x within [y0, y0+maxdist] */
-static int surface(const level_t *l, float x, float y0, float maxdist, int oneway, float *sy) {
-    int tx = (int)floorf(x / TILE);
-    int cx = (int)floorf(x) - tx * TILE;
-    int ty0 = (int)floorf(y0 / TILE);
-    int ty1 = (int)floorf((y0 + maxdist) / TILE);
-    for (int ty = ty0; ty <= ty1; ty++) {
-        int t = level_tile(l, tx, ty);
-        if (t == T_ONEWAY && !oneway) continue;
-        int h = tile_height(t, cx);
-        if (h <= 0) continue;
-        float s = (float)(ty * TILE + TILE - h);
-        if (s < y0) {
-            /* started inside this tile's solid part; a surface above is not
-             * reachable this way. Fully solid tile => wall, keep scanning. */
-            continue;
-        }
-        if (s > y0 + maxdist) return 0;
-        /* the surface must be exposed: tile above must not be solid at the top */
-        if (h == 16) {
-            int above = level_tile(l, tx, ty - 1);
-            if (above != T_ONEWAY && tile_height(above, cx) > 0) continue;
-        }
-        *sy = s;
-        return 1;
+static int surface(const level_t *l, int x, int y0, int maxdist, int oneway, int *sy) {
+    /* starting inside solid: this column is a wall at this height */
+    if (px_solid(l, x, y0)) return 0;
+    for (int y = y0 + 1; y <= y0 + maxdist; y++) {
+        if (px_solid(l, x, y)) { *sy = y; return 1; }
+        if (oneway && px_platform(l, x, y) && !px_platform(l, x, y - 1)) { *sy = y; return 1; }
     }
     return 0;
 }
 
-int floor_probe(const level_t *l, float x, float y0, float maxdist, int oneway, float *sy, float *angle) {
-    float s;
-    if (!surface(l, x, y0, maxdist, oneway, &s)) return 0;
-    *sy = s;
+int floor_probe(const level_t *l, float fx, float fy0, float maxdist, int oneway, float *sy, float *angle) {
+    int x = (int)floorf(fx), y0 = (int)floorf(fy0), s;
+    if (!surface(l, x, y0, (int)maxdist, oneway, &s)) return 0;
+    *sy = (float)s;
     if (angle) {
-        float sl, sr;
-        int okl = surface(l, x - 4, s - 8, 16, oneway, &sl);
-        int okr = surface(l, x + 4, s - 8, 16, oneway, &sr);
+        int sl, sr, okl, okr;
+        okl = surface(l, x - 6, s - 12, 24, oneway, &sl);
+        okr = surface(l, x + 6, s - 12, 24, oneway, &sr);
         if (!okl) sl = s;
         if (!okr) sr = s;
-        float dx = (okl ? 4.f : 0.f) + (okr ? 4.f : 0.f);
-        *angle = dx > 0 ? atan2f(sl - sr, dx) : 0.f;
+        float dx = (okl ? 6.f : 0.f) + (okr ? 6.f : 0.f);
+        *angle = dx > 0 ? atan2f((float)(sl - sr), dx) : 0.f;
     }
     return 1;
-}
-
-int solid_at(const level_t *l, float x, float y) {
-    int tx = (int)floorf(x / TILE), ty = (int)floorf(y / TILE);
-    int t = level_tile(l, tx, ty);
-    if (t == T_EMPTY || t == T_ONEWAY) return 0;
-    int cx = (int)floorf(x) - tx * TILE;
-    float ly = y - ty * TILE;                 /* 0 top .. 16 bottom */
-    return ly >= TILE - tile_height(t, cx);
-}
-
-int spike_at(const level_t *l, float x, float y) {
-    int t = level_tile(l, (int)floorf(x / TILE), (int)floorf(y / TILE));
-    return t == T_SPIKE;
 }
