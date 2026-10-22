@@ -99,8 +99,8 @@ int main(int argc, char **argv) {
         plat_poll_input(&in);
         game_update(&in);
         const player_t *p = &G.p;
-        printf("f %d x %.2f y %.2f gsp %.3f vx %.3f vy %.3f gnd %d ang %.3f st %d hp %d cr %d\n",
-               cur_frame, p->x, p->y, p->gsp, p->vx, p->vy, p->ground, p->angle, p->state, p->hp, p->crystals);
+        printf("f %d x %.2f y %.2f gsp %.3f vx %.3f vy %.3f gnd %d ang %.3f st %d hp %d cr %d k %d\n",
+               cur_frame, p->x, p->y, p->gsp, p->vx, p->vy, p->ground, p->angle, p->state, p->hp, p->crystals, G.kills);
         if (dump && cur_frame % every == 0) {
             game_draw();
             char path[512];

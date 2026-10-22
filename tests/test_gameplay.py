@@ -79,5 +79,9 @@ check('attack_state', any(x['st'] == 1 for x in r) and r[-1]['st'] == 0)
 r = run('10 20 J\n30 34 J\n', 120)
 check('cyclone', any(x['st'] == 2 for x in r) and r[-1]['gnd'] == 1)
 
+# 12. spin jump destroys the first hornet
+r = run('0 400 R\n100 112 J\n', 300)
+check('hornet_killed_by_spin', r[-1]['k'] >= 1)
+
 print('%d failure(s)' % fails)
 sys.exit(1 if fails else 0)
