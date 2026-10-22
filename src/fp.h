@@ -107,6 +107,7 @@ int  solid_at(const level_t *l, float x, float y);
 /* ---------------------------------------------------------------- game */
 typedef struct {
     float x, y, vx, vy, gsp, angle;
+    float angle_s;              /* smoothed angle (original alt O): movement direction + slope force */
     int ground, face;
     int state, state_t;
     animator_t an;
@@ -159,21 +160,41 @@ void camera_update(void);
 void hud_draw(void);
 void text_draw(float x, float y, const char *s, uint32_t argb, int scale);
 
-/* Physics tunables: px/frame at 60 Hz. UNVERIFIED placeholders until the
- * original's values are recovered (DECISIONS D-005, PROJECT_AUDIT §3). */
-#define PHYS_ACC        0.125f
-#define PHYS_DEC        0.5f
-#define PHYS_FRIC       0.09375f
-#define PHYS_TOP        6.0f
-#define PHYS_MAXSPD     14.0f
-#define PHYS_AIR_ACC    0.1875f
-#define PHYS_AIR_DRAG   0.03125f   /* rising: |vx| decays toward PHYS_TOP (KB "Air physics") */
-#define PHYS_GRAV       0.21875f
-#define PHYS_JUMP       6.5f
-#define PHYS_JUMP_CUT   4.0f
-#define PHYS_SLOPE      0.125f
-#define PHYS_MAXFALL    12.0f
-#define PHYS_BOOST      10.0f
-#define PHYS_SPRING     11.0f
+/* Physics tunables, px/frame at 60 Hz.
+ * RV = runtime-verified against the original (PlayerMovementValues_253 alterables,
+ * traces in build/orig_traces/, see RUNTIME_MAP.md). Others are still UNVERIFIED. */
+#define PHYS_ACC        0.07375f   /* RV: alt E. +E/frame while holding a direction */
+#define PHYS_ACC_LOWMUL 9.0f       /* RV: x9 (0.66375) while |gsp| < PHYS_LOWSPD (start burst) */
+#define PHYS_LOWSPD     2.0f       /* RV: low-speed threshold for the x9 accel/friction */
+#define PHYS_FRIC_MUL   5.0f       /* RV: release friction 5*E (0.36875) at |gsp| >= 2, 9*E below */
+#define PHYS_DEC        0.5f       /* RV: skid (input against motion) -0.5/frame */
+#define PHYS_TOP        5.0f       /* RV: alt C. Above it, holding keeps speed (no friction) */
+#define PHYS_MAXSPD     15.0f      /* INF: alt D = 15 */
+#define PHYS_AIR_ACC    0.1475f    /* RV: 2*E per frame in the air */
+#define PHYS_AIR_DRAG   0.96875f   /* RV: vx *= 0.96875 each air frame while -4 < vy < 0 (after gravity) */
+#define PHYS_DRAG_VY    4.0f       /* RV: drag window upper bound on rising speed */
+#define PHYS_GRAV       0.25f      /* RV: alt I */
+#define PHYS_JUMP       7.0f       /* RV: jump sets vy = -7 (apex 102 px from flat ground) */
+#define PHYS_JUMP_CUT   3.0f       /* RV: releasing jump clamps rising speed to -3 */
+#define PHYS_SLOPE      0.203125f  /* RV: alt F. gsp -= F*sin(angle) ... */
+#define PHYS_SLOPE_MIN  0.5f       /* RV: ... only when |sin(angle)| > 0.5 (steeper than ~30 deg) */
+#define PHYS_MAXFALL    12.0f      /* UNVERIFIED */
+#define PHYS_BOOST      12.0f      /* RV: Dragon Boost speed (B = 12 held constant) */
+#define PHYS_BOOST_T    33         /* RV: boost lasts 33 frames, then speed carries with normal friction */
+#define PHYS_CHARGE_T   30         /* RV: holding special charges 30 f (speed frozen), then auto-fires */
+#define PHYS_ATTACK_T   22         /* RV: ground (anim 26) / air (anim 25) attack length, no physics change */
+#define PHYS_UPPER_WIND 10         /* RV: uppercut stands 10 f before launching */
+#define PHYS_UPPER_VX   2.0f       /* RV: uppercut launch vx = 2*facing */
+#define PHYS_UPPER_VY   7.0f       /* RV: uppercut launch vy = -7 (also after a jump = high uppercut) */
+#define PHYS_UPPER_T    39         /* RV: uppercut state length (~39 f, +-1) */
+#define PHYS_DK_WIND_T  15         /* RV: down-kick windup (anim 7) */
+#define PHYS_DK_WIND_GRAV 0.125f   /* RV: gravity during the windup */
+#define PHYS_DK_VX      5.0f       /* RV: kick vx = 5*facing */
+#define PHYS_DK_VY      3.875f     /* RV: kick vy */
+#define PHYS_CYCLONE_VY 3.0f       /* RV: Dragon Cyclone sets vy = -3 */
+#define PHYS_CYCLONE_GRAV 0.1f     /* RV: gravity during the cyclone (held or not) */
+#define PHYS_CYCLONE_MAX 240       /* UNVERIFIED safety cap; the original ran 78+ f until landing */
+#define PHYS_SPRING     11.0f      /* UNVERIFIED */
+#define ORIG_REF_DY     14.0f      /* RV: original's reference point is ~14 px above the feet */
 
 #endif

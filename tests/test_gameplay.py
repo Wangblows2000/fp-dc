@@ -49,7 +49,9 @@ check('variable_jump_lower', base - min(x['y'] for x in r) < 70, '%.1f px' % (ba
 script = open(os.path.join(HERE, 'scripts', 'dv1_right.txt')).read()
 r = run(script, 600)
 curve = [x for x in r if 900 <= x['x'] <= 962 and x['gnd'] == 1]
-check('quarter_pipe_ridden', bool(curve) and max(x['ang'] for x in curve) > 1.4 and min(x['gsp'] for x in curve) > 4.0,
+# original (run_right trace) rides this quarter-pipe to ~82 deg before leaving the lip; entry speed
+# depends on the route, so only the ride itself is asserted
+check('quarter_pipe_ridden', bool(curve) and max(x['ang'] for x in curve) > 1.4,
       'max ang %.2f' % (max(x['ang'] for x in curve) if curve else -1))
 check('passes_curve', max(x['x'] for x in r) > 1100, 'max x %.0f' % max(x['x'] for x in r))
 check('no_fall_out', all(x['y'] < 1864 for x in r))
@@ -58,9 +60,12 @@ check('no_fall_out', all(x['y'] < 1864 for x in r))
 check('turretus_destroyed', r[-1]['k'] >= 1, 'kills %d' % r[-1]['k'])
 
 # 7 moves
-r = run('10 40 B\n', 90)
+# RV: hold special -> 30 f charge -> auto-fire at speed 12 for 33 f (a tap does nothing)
+r = run('10 90 B\n', 110)
 b = [x for x in r if x['st'] == 4]
-check('dragon_boost', len(b) > 5 and max(abs(x['gsp']) for x in b) >= 9.9)
+check('dragon_boost', 30 <= len(b) <= 36 and max(abs(x['gsp']) for x in b) >= 11.9, '%d boost frames' % len(b))
+r = run('10 14 B\n', 60)
+check('boost_tap_nothing', all(x['st'] != 4 for x in r) and abs(r[-1]['gsp']) < 0.01)
 r = run('10 12 X\n', 90)
 check('attack_and_recover', any(x['st'] == 1 for x in r) and r[-1]['st'] == 0)
 r = run('10 20 J\n30 45 J\n', 140)
