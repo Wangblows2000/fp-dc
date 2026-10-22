@@ -110,6 +110,16 @@ void r_rect(float x, float y, float w, float h, uint32_t argb) {
             fb[sy * SCREEN_W + sx] = argb & 0xffffff;
 }
 
+void r_fade(float alpha) {
+    if (alpha <= 0) return;
+    if (alpha > 1) alpha = 1;
+    int k = (int)((1.f - alpha) * 256);
+    for (int i = 0; i < SCREEN_W * SCREEN_H; i++) {
+        uint32_t c = fb[i];
+        fb[i] = ((((c >> 16) & 255) * k >> 8) << 16) | ((((c >> 8) & 255) * k >> 8) << 8) | ((c & 255) * k >> 8);
+    }
+}
+
 void soft_dump(const char *path) {
     FILE *f = fopen(path, "wb");
     if (!f) return;
