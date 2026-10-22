@@ -11,7 +11,7 @@ def run(script, frames, env=None):
     with tempfile.NamedTemporaryFile('w', suffix='.txt', delete=False) as f:
         f.write(script); name = f.name
     out = subprocess.run([BIN, DATA, str(frames), name], capture_output=True, text=True, check=True,
-                         env=dict(os.environ, FP_LEVEL=os.environ.get("FP_LEVEL", "dv1"), **(env or {}))).stdout
+                         env={**os.environ, 'FP_LEVEL': os.environ.get("FP_LEVEL", "dv1"), **(env or {})}).stdout
     os.unlink(name)
     rows = []
     for line in out.splitlines():
@@ -118,6 +118,18 @@ check('hang_grab', len(h) >= 20, '%d hanging frames' % len(h))
 # RE fall cap (event 1577): G is clamped to 15 before gravity, so it tops out at 15.25
 r = run('5 TP 3000 -30\n', 120)   # 913 px clear drop
 check('max_fall_15_25', abs(max(x['vy'] for x in r) - 15.25) < 1e-6, 'max vy %.3f' % max(x['vy'] for x in r))
+
+# RE act change (events 4135/5045 trigger at X > width - 50; fade 3310/2905; next frame 3578; walk-in
+# 4526/5047): DV1 -> DV2 without results, petals/energy/timer carried, Lilac enters at start - 50 = -29
+r = run('5 TP 14600 300\n7 HP 5\n10 400 R\n', 300)
+trig = next((x for x in r if x['x'] > 14766), None)
+new = next((x for x in r if x.get('act') == 2), None)
+check('act_change_dv1_dv2', trig and new and new['mode'] == 1 and abs(new['x'] + 29) < 0.01 and new['hp'] == 5 and new['en'] > 40
+      and 50 <= new['f'] - trig['f'] <= 58, new and 'after %d f, x %.1f hp %d en %.1f' % (new['f'] - trig['f'], new['x'], new['hp'], new['en']))
+walk = [x for x in r if x.get('act') == 2][:33]
+check('act_walk_in_b3', walk and all(abs(x['gsp'] - 3) < 1e-9 or abs(x['vx'] - 3) < 1e-9 for x in walk[1:32]), 'walk-in frames %d' % len(walk))
+r = run('5 TP 16032 1192\n10 400 R\n', 200, env={'FP_LEVEL': 'dv4'})
+check('dv4_end_results', any(x['mode'] == 2 for x in r), 'mode %d' % r[-1]['mode'])
 
 # 8 recovered animations are driven by state (idle -> run anim index changes, frames advance)
 r = run('0 200 R\n', 200)

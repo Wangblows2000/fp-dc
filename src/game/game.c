@@ -27,7 +27,7 @@ static void level_start(void) {
     /* crystals, lives, energy persist across restarts (RV: debug restart kept them) */
     player_reset(&G.p, G.p.spawn_x, G.p.spawn_y);
     objects_spawn();
-    G.clear_t = 0; G.frame = 0; G.card_t = 0; G.paused = 0;
+    G.clear_t = 0; G.act_in = 0; G.act_fade = 0; G.frame = 0; G.card_t = 0; G.paused = 0;
     camera_reset();
     camera_update();
 }
@@ -283,11 +283,21 @@ void camera_update(void) {
 static void next_act(void) {
     char d[8]; snprintf(d, sizeof d, "%s", G.lvdir);
     int a = act_of(d);
-    if (a >= 4 || G.time_attack) { G.mode = MODE_RESULTS; G.res_t = 0; G.res_time = G.frame; music_play("bgm/m_clear.adp"); return; }
+    /* DV4 ends with the Serpentine boss and then the results (events 5385 / 4560-4589); the boss is not
+     * ported, so the end of DV4 goes straight to the results. Time Attack plays every act as well. */
+    if (a >= 4) { G.mode = MODE_RESULTS; G.res_t = 0; G.res_time = G.frame; music_play("bgm/m_clear.adp"); return; }
     d[2] = (char)('0' + a + 1);
-    int frame = G.frame;                         /* RV: the stage timer continues across acts */
-    if (game_load_level(d) < 0) { fe_enter(); return; }
-    G.frame = frame; G.card_t = 0;
+    /* RV (DV1 -> DV2 traces): petals, lives, crystals, energy and the timer carry over (globals) */
+    int frame = G.frame, hp = G.p.hp; double energy = G.p.energy;
+    G.act_carry = 1;
+    if (game_load_level(d) < 0) { G.act_carry = 0; fe_enter(); return; }
+    G.act_carry = 0;
+    G.frame = frame; G.p.hp = hp; G.p.energy = energy;
+    /* RE (events 4526 / 5047): no stage card on an act change; a 32-frame fade from black while Lilac,
+     * placed 50 px left of the start marker, walks in at B = 3 with no control; then control returns */
+    G.card_t = CARD_DONE; G.act_in = 1; G.act_fade = 248;
+    G.p.x = G.p.spawn_x - 50; G.p.face = 1;
+    camera_reset(); camera_update();
 }
 
 static void pause_update(const input_t *in) {
@@ -322,13 +332,29 @@ void game_update(const input_t *in) {
     if (G.paused) { pause_update(in); return; }
     if (in->pressed & BTN_START) { G.paused = 1; G.pause_sel = 0; return; }
     G.frame++;
-    if (G.clear_t) { if (++G.clear_t > 60) next_act(); return; }
-    player_update(&G.p, in);
+    input_t none = {0};
+    const input_t *pin = (G.clear_t || G.act_in) ? &none : in;   /* act end / walk-in: no control (RE) */
+    player_update(&G.p, pin);
+    if (G.act_in) {                               /* RE 4526: B = 3 every frame for 32 frames */
+        if (G.p.ground) G.p.gsp = 3; else G.p.vx = 3;
+        G.act_fade = G.act_fade - 8 < 0 ? 0 : G.act_fade - 8;
+        if (++G.act_in > 32) { G.act_in = 0; G.act_fade = 0; }  /* RE 5047: control returns at A >= 32 */
+    }
+    if (G.clear_t) {                              /* RE 3311: grounded, B = max(B, 2), facing right */
+        G.p.face = 1;
+        if (G.p.ground && G.p.gsp < 2) G.p.gsp = 2;
+    }
     objects_update();
     camera_update();
-    /* act end: the original moves to the next frame when Lilac reaches the right end of the act
-     * (RV: running right at X 14700+ in DV1 set frame 21); the port uses the level's right edge */
-    if (G.p.x > G.lvl.w - 40 && !G.clear_t) G.clear_t = 1;
+    if (G.clear_t) {                              /* RE 3310 / 3578: fade +4 per frame; at 255 next frame */
+        int a = G.clear_t == 1 ? 0 : G.clear_t;     /* fade object created with alpha 0 */
+        if (a != 255 && a < 128) a = 2 * (a >> 1) + 2;                       /* RE 2905: +2 while < 128 */
+        if (a != 255) a = 2 * (a >> 1) + 4 > 255 ? 255 : 2 * (a >> 1) + 4;  /* RE 3310: +4 */
+        G.clear_t = a ? a : 1;
+        if (G.clear_t == 255) { next_act(); return; }
+    }
+    /* RE (events 4135 / 5045): the act ends when Lilac passes X > frame width - 50 moving right */
+    if (!G.clear_t && !G.act_in && G.p.x > G.lvl.w - 50 && (G.p.ground ? G.p.gsp : G.p.vx) > 0) G.clear_t = 1;
 }
 
 /* Parallax bands: positions/images from the level's levelparallaxpiece objects.
@@ -517,6 +543,7 @@ void game_draw(void) {
     hud_draw();
     card_draw();
     pause_draw();
-    if (G.clear_t) r_fade(G.clear_t / 60.f);      /* act transition: fade to black (RV: DV1 -> card) */
+    if (G.clear_t) r_fade(G.clear_t / 255.f);     /* act end: fade object alpha (RE 3310) */
+    if (G.act_in && G.act_fade) r_fade(G.act_fade / 255.f);   /* act start: fade from black (RE 4526) */
     r_end();
 }
