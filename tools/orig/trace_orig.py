@@ -122,7 +122,9 @@ class Tracer(gdb.Breakpoint):
         hdr = (['frame', 'held', 'px', 'py', 'skin_anim'] + ['mv_' + chr(65 + i) for i in range(26)] +
                ['sk_ang', 'sk_xs', 'sk_ys'] + ['pl_' + chr(65 + i) for i in range(26)] + ['gv%d' % i for i in range(NGV)] +
                sum([[k + '_' + chr(65 + i) for i in range(26)] + [k + '_xs', k + '_img'] for k in XVT], []) +
-               sum([[k, k + '_max'] for k in CVT], []))
+               sum([[k, k + '_max'] for k in CVT], []) +
+               ['sa_' + chr(65 + i) for i in range(26)] + ['sw_%x' % o for o in range(0x10, 0xc4, 4)])
+        # sa_*: skin (Lilac display Active) alterables; sw_*: raw u32 words of the skin object (flags/blink search)
         self.out.write(','.join(hdr) + '\n'); self.out.flush()
     def write_keys(self, held):
         data = b''
@@ -212,11 +214,20 @@ class Tracer(gdb.Breakpoint):
         gv = struct.unpack('<%dd' % NGV, bytes(inf.read_memory(gptr, 8 * NGV))) if gptr else (0,) * NGV
         self.out.write(','.join([str(self.f), ''.join(sorted(held)) or '-', str(px), str(py), str(anim)] +
                                 ['%.6g' % v for v in mv] + ['%.6g' % v for v in sk] + ['%.6g' % v for v in pl] +
-                                ['%.6g' % v for v in gv] + self.extra()) + '\n')
+                                ['%.6g' % v for v in gv] + self.extra() + self.skin_extra()) + '\n')
         if self.f >= self.n:
             self.out.close(); self.enabled = False
             gdb.post_event(lambda: gdb.execute('interrupt'))
         return False
+
+def _skin_extra(self):
+    try:
+        _, _, sa, _ = rd_obj(self.objs['skin'])
+    except Exception:
+        sa = (0,) * 26
+    w = struct.unpack('<%dI' % ((0xc4 - 0x10) // 4), bytes(inf.read_memory(self.objs['skin'] + 0x10, 0xc4 - 0x10)))
+    return ['%.6g' % v for v in sa] + ['%x' % v for v in w]
+Tracer.skin_extra = _skin_extra
 
 Tracer(str(gdb.parse_and_eval('$script').string()), str(gdb.parse_and_eval('$out').string()),
        int(gdb.parse_and_eval('$nframes')), int(gdb.parse_and_eval('$restart')))

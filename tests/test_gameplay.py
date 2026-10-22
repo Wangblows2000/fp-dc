@@ -78,6 +78,23 @@ check('attack_and_recover', any(x['st'] == 1 for x in r) and r[-1]['st'] == 0)
 r = run('10 20 J\n30 45 J\n', 140)
 check('dragon_cyclone', any(x['st'] == 2 for x in r) and r[-1]['gnd'] == 1)
 
+# RV upper bound (boost_upright: re-hurt 61 frames after a hit): hits every frame from frame 50 land
+# at 50 and again once invulnerability (60) has run out
+r = run('5 HP 14\n' + ''.join('%d HURT 10\n' % f for f in range(50, 140)), 150)
+hits = [i for i in range(1, len(r)) if r[i]['hp'] < r[i - 1]['hp']]
+check('invuln_window', len(hits) >= 2 and 55 <= hits[1] - hits[0] <= 61, 'hits at %s' % hits[:3])
+
+# springs (RV spring_yellow_up / _upleft / _right traces in DV1)
+r = run('5 TP 3984 1300\n', 60)
+vys = [x['vy'] for x in r]
+check('spring_up_vy', abs(min(vys) + 10.75) < 0.01, 'min vy %.2f' % min(vys))
+r = run('5 TP 5615 1000\n', 40)
+l = next((x for x in r if x['vy'] < -8), None)
+check('spring_upleft_vel', l is not None and abs(l['vx'] + 9) < 0.01 and abs(l['vy'] + 8.75) < 0.01, str(l and (l['vx'], l['vy'])))
+r = run('5 TP 6130 440\n60 120 L\n', 130)
+g = [x['gsp'] for x in r]
+check('spring_side_gsp', max(g) > 9.6 and max(g) <= 10.0, 'max gsp %.3f' % max(g))
+
 # 8 recovered animations are driven by state (idle -> run anim index changes, frames advance)
 r = run('0 200 R\n', 200)
 check('anims_change', r[0]['an'] != r[-1]['an'] and len({x['fr'] for x in r[100:]}) > 3)

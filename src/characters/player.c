@@ -16,10 +16,10 @@ enum { ST_NORMAL, ST_ATTACK, ST_CYCLONE, ST_CHARGE, ST_BOOST, ST_HURT, ST_DEAD,
 #define MAX_HP   14      /* RV: petal counter max 14 half-petals = 7 petals (GUIRings_125 Counter max) */
 
 enum { A_IDLE, A_WALK, A_RUN, A_FASTRUN, A_JUMP, A_LOOKUP, A_CROUCH, A_SKID, A_ATTACK, A_AIRATK,
-       A_UPPERCUT, A_DKWIND, A_DIVEKICK, A_CYCLONE, A_CHARGE, A_BOOST, A_HURT, A_DEFEAT, A_CROUCHATK, A_COUNT };
+       A_UPPERCUT, A_DKWIND, A_DIVEKICK, A_CYCLONE, A_CHARGE, A_BOOST, A_HURT, A_DEFEAT, A_CROUCHATK, A_SPRING, A_COUNT };
 /* names = tools/import_frame.py LILAC (runtime-verified playerskinsash_341 animation numbers) */
 static const char *anim_names[A_COUNT] = { "idle", "walk", "run", "fastrun", "jump", "lookup", "crouch",
-    "skid", "attack", "airatk", "uppercut", "dkwind", "divekick", "cyclone", "charge", "boost", "hurt", "defeat", "crouchatk" };
+    "skid", "attack", "airatk", "uppercut", "dkwind", "divekick", "cyclone", "charge", "boost", "hurt", "defeat", "crouchatk", "spring" };
 static int anim_r[A_COUNT], anim_l[A_COUNT];
 static int cur_anim = -1;
 
@@ -69,14 +69,31 @@ void player_hurt(player_t *p, float from_x) {
     float dir = (p->x < from_x) ? -1.f : 1.f;
     p->vx = PHYS_HURT_VX * dir; p->vy = -PHYS_HURT_VY; p->ground = 0; p->jumping = 0; p->hurt_land_t = 1000;
     p->cyclone_used = 0;            /* [KB] cyclone usable again after taking damage */
-    p->invuln = 120;
+    /* RV upper bound: the original re-hurt Lilac 61 frames after a hit while she stood still in contact
+     * (boost_upright f200 -> f261), so invulnerability is <= 61 frames; 60 (1 s) is the estimate.
+     * No countdown alterable was found on the player objects (invuln_retouch probe). */
+    p->invuln = PHYS_INVULN_T;
 }
+
+static float fric_step(float g);
 
 void player_bounce(player_t *p, float vy) { if (!p->ground && p->vy > 0) p->vy = vy; }
 
-void player_spring(player_t *p, float vy) {
-    p->ground = 0; p->vy = -vy; p->jumping = 0; p->cyclone_used = 0; p->boost_used = 0;
+/* RV (spring_yellow_up / _upleft): on contact the feet snap to the spring top and the speed is set
+ * (vertical: vy -10.75, vx kept; diagonal: (+-9, -8.75)); the original's spring state (M40, skin anim 14)
+ * lasts until the apex, then the fall animation; normal gravity and air drag apply */
+void player_spring(player_t *p, float vx, float vy, float top) {
+    p->ground = 0; p->y = top; p->vy = -vy; if (vx) { p->vx = vx; p->face = vx > 0 ? 1 : -1; }
+    p->jumping = 0; p->cyclone_used = 0; p->boost_used = 0; p->springing = 1;
     if (p->state != ST_BOOST) p->state = ST_NORMAL;
+    snd_play_orig(5, 230, 128);    /* RV: id 5 at spring contact (spring_yellow_up .snd) */
+}
+
+/* RV (spring_yellow_right): a wall spring sets the ground speed to +-10, no input lock */
+void player_spring_side(player_t *p, float gsp) {
+    /* the trigger frame already includes that frame's (input-free) friction step: 10 -> 9.63125 */
+    if (p->ground) { p->gsp = fric_step(gsp); p->ctrl_lock = 4; p->skidding = 0; } else p->vx = gsp;
+    snd_play_orig(5, 230, 128);
 }
 
 /* ---- 360-degree ground collision (Sonic-Worlds-style modes) ----------------
@@ -179,7 +196,7 @@ static int probe2(float x, float y0, float dist, int oneway, float *sy, float *a
 }
 
 static void land(player_t *p, float sy, float ang) {
-    p->y = sy; p->ground = 1; p->angle = ang; p->angle_s = ang;
+    p->y = sy; p->ground = 1; p->angle = ang; p->angle_s = ang; p->springing = 0;
     if (p->state == ST_BOOST) {
         /* RV (boost_air_downright/downleft): a down-diagonal boost (8, 8) that lands carries on along the
          * ground at a constant 10 for the rest of the boost */
@@ -202,29 +219,50 @@ static void detach(player_t *p) {
 
 /* RV: original order per logic frame = MOVE with the current speed, THEN update the speed
  * (dX(f) = B(f-1)*cos(O); see RUNTIME_MAP "Ground movement"). */
+/* friction step toward 0 (RV: 5E, or 9E when the step would leave |gsp| below 2) */
+static float fric_step(float g) {
+    float s = fabsf(g), f = PHYS_ACC * PHYS_FRIC_MUL;
+    if (s - f < PHYS_LOWSPD) f = PHYS_ACC * PHYS_ACC_LOWMUL;
+    return g - fminf(s, f) * (g > 0 ? 1 : -1);
+}
+
 static void ground_speed_update(player_t *p, const input_t *in, int control) {
     float a = p->angle_s;
     int dir = 0;
+    if (p->ctrl_lock > 0) { p->ctrl_lock--; control = 0; }   /* RV: side spring locks input 4 frames */
     if (control && (in->held & BTN_RIGHT)) dir = 1;
     else if (control && (in->held & BTN_LEFT)) dir = -1;
     float s = fabsf(p->gsp);
     /* RV: the x9 rate is used when the NORMAL step would leave |gsp| below 2
      * (accel: 0->0.66->1.33->1.99 then +E; friction: 2.43->2.06 (5E) then 2.06->1.40 (9E)) */
-    if (dir) {
+    if (dir && p->gsp * dir < 0) {
+        /* RV (skid, spring_yellow_right): input against the motion. A skid (-0.5/frame, anim 17) only
+         * starts when the input turns Lilac round; that frame and any frame where she already faces the
+         * input (e.g. thrown backwards by a spring) use friction then acceleration toward the input */
+        int turning = p->face != dir;
         p->face = dir;
-        if (p->gsp * dir < 0) {
-            p->gsp += dir * PHYS_DEC;                  /* RV: skid -0.5/frame, stops at 0 */
+        if (p->skidding) {
+            p->gsp += dir * PHYS_DEC;
             if (p->gsp * dir > 0) p->gsp = 0;
-        } else if (s < PHYS_TOP) {
+        } else {
+            p->gsp = fric_step(p->gsp);
+            float g = fabsf(p->gsp) * -1.f, n = g + PHYS_ACC;     /* signed along dir */
+            if (fabsf(n) < PHYS_LOWSPD) n = g + PHYS_ACC * PHYS_ACC_LOWMUL;
+            p->gsp = dir * n;
+            if (turning) p->skidding = 1;
+        }
+    } else if (dir) {
+        p->face = dir; p->skidding = 0;
+        if (s < PHYS_TOP) {
             float n = s + PHYS_ACC;
             if (n < PHYS_LOWSPD) n = s + PHYS_ACC * PHYS_ACC_LOWMUL;
             p->gsp = dir * fminf(n, PHYS_TOP);
         }                                              /* RV: >= top while holding: speed kept */
     } else {
-        float f = PHYS_ACC * PHYS_FRIC_MUL;
-        if (s - f < PHYS_LOWSPD) f = PHYS_ACC * PHYS_ACC_LOWMUL;
-        p->gsp -= fminf(s, f) * (p->gsp > 0 ? 1 : -1);
+        p->skidding = 0;
+        p->gsp = fric_step(p->gsp);
     }
+    if (p->gsp == 0) p->skidding = 0;
     if (fabsf(sinf(a)) > PHYS_SLOPE_MIN) p->gsp -= PHYS_SLOPE * sinf(a);   /* RV: > ~30 deg only */
     if (p->gsp > PHYS_MAXSPD) p->gsp = PHYS_MAXSPD;
     if (p->gsp < -PHYS_MAXSPD) p->gsp = -PHYS_MAXSPD;
@@ -303,6 +341,12 @@ static void air_move(player_t *p, const input_t *in, int control, float grav) {
         if (p->vy < 0) {
             if (solid_at(&G.lvl, p->x - 4, ny - BODY_H) || solid_at(&G.lvl, p->x + 4, ny - BODY_H)) { p->vy = 0; break; }
             p->y = ny;
+            /* RV (spring_yellow_upleft f52): the frame the head reaches the ceiling, G becomes 0 at once
+             * and no gravity is added that frame */
+            if (i == n - 1 && (solid_at(&G.lvl, p->x - 4, p->y - BODY_H - 1) || solid_at(&G.lvl, p->x + 4, p->y - BODY_H - 1))) {
+                if (p->vy > -PHYS_DRAG_VY) p->vx *= PHYS_AIR_DRAG;   /* drag still applies that frame */
+                p->vy = 0; air_speed_update(p, in, control, 0); return;
+            }
         } else {
             if (probe2(p->x, p->y - 2, (ny - p->y) + 3, 1, &sy, &ang) && sy <= ny + 1) { land(p, sy, ang); ground_speed_update(p, in, control); return; }
             p->y = ny;
@@ -580,12 +624,13 @@ void player_update(player_t *p, const input_t *in) {
         if (p->ground) {
             float s = fabsf(p->gsp);
             int pushing_back = (p->gsp > 0.5f && (in->held & BTN_LEFT)) || (p->gsp < -0.5f && (in->held & BTN_RIGHT));
-            if (pushing_back && s > PHYS_LOWSPD) a = A_SKID;
+            (void)pushing_back;
+            if (p->skidding) a = A_SKID;                                  /* RV: anim 17 while skidding */
             else if (s < 0.01f) a = crouch_look ? ((in->held & BTN_DOWN) ? A_CROUCH : A_LOOKUP) : A_IDLE;
             else if (s < PHYS_TOP) { a = A_WALK; speed = 30; }          /* RV band; speed fitted */
             else if (s < 9.5f) { a = A_RUN; speed = 35 + (int)s; }      /* RV band; speed fitted */
             else { a = A_FASTRUN; speed = 35 + (int)s; }
-        } else a = A_JUMP;
+        } else a = (p->springing && p->vy < 0) ? A_SPRING : A_JUMP;
     }
     if (restart) { if (cur_anim != a || p->state_t == 1) { set_anim(p, a); anim_restart(&p->an); } }
     else set_anim(p, a);
