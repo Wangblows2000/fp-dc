@@ -1,12 +1,20 @@
 /* PowerVR2 backend (Dreamcast). All game drawing goes into the punch-through
  * list: ARGB1555 textures give 1-bit alpha which matches the pixel art.
- * Logical 320x240 is scaled x2 to the 640x480 framebuffer. */
+ * Logical 426x240 is scaled x1.5 and letterboxed on the 640x480 framebuffer (D-012). */
 #include <string.h>
 #include <kos.h>
 #include "../fp.h"
 
 #define MAXTEX 64
+#ifdef FP_VIEW_320
 #define SCALE 2.0f
+#define OFF_X 0.0f
+#define OFF_Y 0.0f
+#else
+#define SCALE 1.5f                 /* 426x240 -> 639x360, letterboxed (D-012) */
+#define OFF_X 0.5f
+#define OFF_Y 60.0f
+#endif
 
 static struct { pvr_ptr_t ptr; pvr_poly_hdr_t hdr; int w, h; } texs[MAXTEX];
 static int ntex;
@@ -114,11 +122,37 @@ void r_sprite(const tex_t *t, int u, int v, int uw, int vh, float x, float y, fl
     float iw = 1.0f / texs[t->id].w, ih = 1.0f / texs[t->id].h;
     float u0 = u * iw, u1 = (u + uw) * iw, v0 = v * ih, v1 = (v + vh) * ih;
     if (flip) { float tmp = u0; u0 = u1; u1 = tmp; }
-    quad(x * SCALE, y * SCALE, (x + w) * SCALE, (y + h) * SCALE, u0, v0, u1, v1, argb);
+    quad(x * SCALE + OFF_X, y * SCALE + OFF_Y, (x + w) * SCALE + OFF_X, (y + h) * SCALE + OFF_Y, u0, v0, u1, v1, argb);
+}
+
+/* rotated sprite: texel (hx,hy) of the rect lands on screen (px,py); angle in degrees CCW
+ * (Fusion/Chowdren convention: Active::set_angle rotates around the hotspot) */
+void r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float py, float hx, float hy,
+                  float angle, uint32_t argb) {
+    if (t->id < 0 || t->id >= ntex) return;
+    float r = (uw > vh ? uw : vh) * 1.5f;
+    if (px + r < 0 || py + r < 0 || px - r >= SCREEN_W || py - r >= SCREEN_H) return;
+    if (cur_hdr != t->id) { pvr_prim(&texs[t->id].hdr, sizeof(pvr_poly_hdr_t)); cur_hdr = t->id; }
+    float iw = 1.0f / texs[t->id].w, ih = 1.0f / texs[t->id].h;
+    float u0 = u * iw, u1 = (u + uw) * iw, v0 = v * ih, v1 = (v + vh) * ih;
+    float a = angle * 0.017453293f, c = fcos(a), sn = fsin(a);
+    float lx[4] = { -hx, uw - hx, -hx, uw - hx }, ly[4] = { -hy, -hy, vh - hy, vh - hy };
+    float tu[4] = { u0, u1, u0, u1 }, tv[4] = { v0, v0, v1, v1 };
+    pvr_vertex_t vt;
+    zc += 0.0001f;
+    vt.z = zc; vt.argb = argb; vt.oargb = 0;
+    for (int i = 0; i < 4; i++) {
+        vt.flags = i == 3 ? PVR_CMD_VERTEX_EOL : PVR_CMD_VERTEX;
+        vt.x = (px + lx[i] * c + ly[i] * sn) * SCALE + OFF_X;     /* screen y points down: CCW = (c, -s; s, c) */
+        vt.y = (py - lx[i] * sn + ly[i] * c) * SCALE + OFF_Y;
+        vt.u = tu[i]; vt.v = tv[i];
+        pvr_prim(&vt, sizeof vt);
+    }
+    r_stat_polys++;
 }
 
 void r_rect(float x, float y, float w, float h, uint32_t argb) {
     if (x + w < 0 || y + h < 0 || x >= SCREEN_W || y >= SCREEN_H) return;
     if (cur_hdr != -1) { pvr_prim(&col_hdr, sizeof col_hdr); cur_hdr = -1; }
-    quad(x * SCALE, y * SCALE, (x + w) * SCALE, (y + h) * SCALE, 0, 0, 0, 0, argb | 0xff000000);
+    quad(x * SCALE + OFF_X, y * SCALE + OFF_Y, (x + w) * SCALE + OFF_X, (y + h) * SCALE + OFF_Y, 0, 0, 0, 0, argb | 0xff000000);
 }

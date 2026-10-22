@@ -77,6 +77,32 @@ void r_sprite(const tex_t *t, int u, int v, int uw, int vh, float x, float y, fl
     }
 }
 
+void r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float py, float hx, float hy,
+                  float angle, uint32_t argb) {
+    if (t->id < 0 || t->id >= ntex) return;
+    if (angle == 0) { r_sprite(t, u, v, uw, vh, px - hx, py - hy, uw, vh, 0, argb); return; }
+    const uint16_t *pxl = texs[t->id].px; const uint8_t *ix = texs[t->id].idx;
+    const uint16_t *pal = pals[texs[t->id].grp & 3];
+    int tw = texs[t->id].w;
+    float a = angle * 0.017453293f, c = cosf(a), s = sinf(a);
+    int r = (int)((uw > vh ? uw : vh) * 1.5f) + 1;
+    for (int sy = (int)py - r; sy <= (int)py + r; sy++) {
+        if (sy < 0 || sy >= SCREEN_H) continue;
+        for (int sx = (int)px - r; sx <= (int)px + r; sx++) {
+            if (sx < 0 || sx >= SCREEN_W) continue;
+            float dx = sx + 0.5f - px, dy = sy + 0.5f - py;
+            /* inverse of (x' = x c + y s, y' = -x s + y c) */
+            float lx = dx * c - dy * s + hx, ly = dx * s + dy * c + hy;
+            if (lx < 0 || ly < 0 || lx >= uw || ly >= vh) continue;
+            int tu = u + (int)lx, tv = v + (int)ly;
+            uint16_t col = ix ? pal[ix[tv * tw + tu]] : pxl[tv * tw + tu];
+            if (!(col & 0x8000)) continue;
+            uint32_t rgb = (((col >> 10) & 31) << 19) | (((col >> 5) & 31) << 11) | ((col & 31) << 3);
+            fb[sy * SCREEN_W + sx] = modulate(rgb, argb);
+        }
+    }
+}
+
 void r_rect(float x, float y, float w, float h, uint32_t argb) {
     int x0 = (int)floorf(x), y0 = (int)floorf(y), x1 = (int)floorf(x + w), y1 = (int)floorf(y + h);
     for (int sy = y0 < 0 ? 0 : y0; sy < y1 && sy < SCREEN_H; sy++)

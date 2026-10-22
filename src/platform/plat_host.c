@@ -60,6 +60,20 @@ void music_stop(void) {}
 
 extern void soft_dump(const char *path);
 
+/* debug-route commands shared with tools/orig/trace_orig.py: "<f> TP x y" (original units: Y is the
+ * reference point 14 px above the feet), "<f> EN v" energy, "<f> HP v" petals (half-petals) */
+typedef struct { int f; char k; float a, b; } dbg_t;
+static dbg_t dbg[32]; static int ndbg;
+static void apply_dbg(int f) {
+    for (int i = 0; i < ndbg; i++) {
+        if (dbg[i].f != f) continue;
+        player_t *p = &G.p;
+        if (dbg[i].k == 'T') { p->x = dbg[i].a; p->y = dbg[i].b + ORIG_REF_DY; p->ground = 0; p->vx = p->vy = p->gsp = 0; p->angle = p->angle_s = 0; }
+        if (dbg[i].k == 'E') p->energy = dbg[i].a;
+        if (dbg[i].k == 'H') p->hp = (int)dbg[i].a;
+    }
+}
+
 static uint32_t parse_btn(const char *s) {
     uint32_t m = 0;
     for (; *s; s++) switch (*s) {
@@ -83,6 +97,10 @@ int main(int argc, char **argv) {
         char line[128], btn[32];
         while (fgets(line, sizeof line, f) && nscript < 512) {
             if (line[0] == '#') continue;
+            float fx, fy; int ff;
+            if (sscanf(line, "%d TP %f %f", &ff, &fx, &fy) == 3 && ndbg < 32) { dbg[ndbg++] = (dbg_t){ ff, 'T', fx, fy }; continue; }
+            if (sscanf(line, "%d EN %f", &ff, &fx) == 2 && ndbg < 32) { dbg[ndbg++] = (dbg_t){ ff, 'E', fx, 0 }; continue; }
+            if (sscanf(line, "%d HP %f", &ff, &fx) == 2 && ndbg < 32) { dbg[ndbg++] = (dbg_t){ ff, 'H', fx, 0 }; continue; }
             if (sscanf(line, "%d %d %31s", &script[nscript].a, &script[nscript].b, btn) == 3)
                 script[nscript++].m = parse_btn(btn);
         }
@@ -102,23 +120,28 @@ int main(int argc, char **argv) {
         player_reset(&G.p, G.p.spawn_x, G.p.spawn_y);
         camera_update();
     }
+    if (getenv("FP_ENERGY")) G.p.energy = (float)atof(getenv("FP_ENERGY"));
+    if (getenv("FP_HP")) G.p.hp = atoi(getenv("FP_HP"));
     FILE *csv = getenv("FP_CSV") ? fopen(getenv("FP_CSV"), "w") : NULL;
-    if (csv) fprintf(csv, "frame,held,X,Y,B,G,L,Q,state,anim,afr\n");
+    if (csv) fprintf(csv, "frame,held,X,Y,B,G,L,Q,state,anim,afr,rot,energy,hp\n");
     input_t in;
     for (cur_frame = 0; cur_frame < frames; cur_frame++) {
         plat_poll_input(&in);
+        apply_dbg(cur_frame);
         game_update(&in);
         const player_t *p = &G.p;
-        printf("f %d x %.2f y %.2f gsp %.3f vx %.3f vy %.3f gnd %d ang %.3f st %d hp %d cr %d k %d an %d fr %d\n",
-               cur_frame, p->x, p->y, p->gsp, p->vx, p->vy, p->ground, p->angle, p->state, p->hp, p->crystals, G.kills, p->an.anim, p->an.frame);
+        printf("f %d x %.2f y %.2f gsp %.3f vx %.3f vy %.3f gnd %d ang %.3f st %d hp %d cr %d k %d an %d fr %d rot %.2f en %.2f lv %d face %d\n",
+               cur_frame, p->x, p->y, p->gsp, p->vx, p->vy, p->ground, p->angle, p->state, p->hp, p->crystals, G.kills, p->an.anim, p->an.frame,
+               p->rot, p->energy, p->lives, p->face);
         if (csv) {
             char h[16]; int k = 0;
             const char *bn = "LRUDJXBS";
             for (int b = 0; b < 8; b++) if (in.held & (1u << (b < 4 ? b : b))) h[k++] = bn[b];
             h[k] = 0;
             /* original units: B = ground speed (ground) or x speed (air); G = y speed in air; Y = feet - 14 */
-            fprintf(csv, "%d,%s,%.4f,%.4f,%.5f,%.5f,%d,%d,%d,%d,%d\n", cur_frame, k ? h : "-", p->x, p->y - ORIG_REF_DY,
-                    p->ground ? p->gsp : p->vx, p->ground ? 0.f : p->vy, p->ground, p->face, p->state, p->an.anim, p->an.frame);
+            fprintf(csv, "%d,%s,%.4f,%.4f,%.5f,%.5f,%d,%d,%d,%d,%d,%.3f,%.2f,%d\n", cur_frame, k ? h : "-", p->x, p->y - ORIG_REF_DY,
+                    p->ground ? p->gsp : p->vx, p->ground ? 0.f : p->vy, p->ground, p->face, p->state, p->an.anim, p->an.frame,
+                    p->rot, p->energy, p->hp);
         }
         if (dump && cur_frame % every == 0) {
             game_draw();

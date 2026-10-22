@@ -165,6 +165,15 @@ def main():
     for extra, nm in (('effectsexplosion01_367', 'explosion'),):
         d = first_anim_frames(an.get(extra, {}))
         if d: bank['anims'].append({'name': nm, 'frames': d['frames'], 'speed': d['max_speed'], 'loop': d['loop'], 'back_to': d['back_to']})
+    # ---- HUD (recovered GUI classes; positions measured in the original at 426x240, see RUNTIME_MAP "HUD")
+    HUD = [('hud_frame', [3784, 12760]),                        # guimeters frame (normal, red flash)
+           ('hud_fill', an['guienergy_127']['anims'][1]['0']['frames']),  # fill; anim 1 = shine loop when full
+           ('hud_petals', an['guirings_125']['images']),        # counter 0..14 half-petals
+           ('hud_icon', [311]),                                 # guiicon anim 0 = Lilac head + crystal
+           ('hud_clock', an['guitimer_536']['anims'][0]['0']['frames']),
+           ('hud_digits', an['guilives_425']['images'][:10])]   # counter digits 0-9 (lives/crystals/timer)
+    for nm, frames in HUD:
+        bank['anims'].append({'name': nm, 'frames': frames, 'speed': 0, 'loop': -1, 'back_to': 0})
     write_bank2(src, bank, out, report)
     # parallax pieces (first frame image as a texture each)
     par = []
@@ -187,7 +196,7 @@ def main():
     LILAC = [('idle', 0), ('walk', 1), ('run', 2), ('fastrun', 22), ('jump', 24), ('lookup', 11),
              ('crouch', 10), ('skid', 17), ('attack', 26), ('airatk', 25), ('uppercut', 28),
              ('dkwind', 7), ('divekick', 19), ('cyclone', 18), ('charge', 7), ('boost', 13),
-             ('hurt', 16), ('defeat', 38)]
+             ('hurt', 16), ('defeat', 38), ('crouchatk', 30)]
     la = an['playerskinsash_341']['anims']
     lb = {'name': 'lilac2', 'anims': []}
     for nm, ai in LILAC:

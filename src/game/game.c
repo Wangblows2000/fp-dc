@@ -17,7 +17,7 @@ static void level_start(void) {
     /* snap spawn to the floor below the start marker */
     float sy, a;
     if (floor_probe(&G.lvl, G.p.spawn_x, G.p.spawn_y - 32, 400, 1, &sy, &a)) G.p.spawn_y = sy;
-    G.p.crystals = 0;
+    /* crystals, lives, energy persist across restarts (RV: debug restart kept them) */
     player_reset(&G.p, G.p.spawn_x, G.p.spawn_y);
     objects_spawn();
     G.clear_t = 0; G.frame = 0;
@@ -234,21 +234,56 @@ void text_draw(float x, float y, const char *s, uint32_t argb, int scale) {
     }
 }
 
+/* ---- HUD: original GUI images (object bank anims hud_*), layout measured in the original at its
+ * native 426x240 by template matching a screenshot (RUNTIME_MAP "HUD"). All coordinates = image top-left. */
+static int hud_anim[6] = { -2 };
+static void hud_img(int which, int frame, float x, float y, int w_override) {
+    if (hud_anim[0] == -2) {
+        static const char *nm[6] = { "hud_frame", "hud_fill", "hud_petals", "hud_icon", "hud_clock", "hud_digits" };
+        for (int i = 0; i < 6; i++) hud_anim[i] = bank_anim(&G.objs, nm[i]);
+    }
+    int a = hud_anim[which];
+    if (a < 0) return;
+    const anim_t *an = &G.objs.anims[a];
+    if (frame < 0) frame = 0;
+    if (frame >= an->count) frame = an->count - 1;
+    const frame_t *f = &G.objs.frames[G.objs.seq[an->first + frame]];
+    int w = w_override >= 0 ? w_override : f->w;
+    if (w <= 0) return;
+    r_sprite(&G.objs.tex, f->u, f->v, w, f->h, x, y, w, f->h, 0, 0xffffffff);
+}
+
+static void hud_number(int v, int digits, float x, float y) {
+    for (int i = digits - 1; i >= 0; i--) { hud_img(5, v % 10, x + i * 10, y, -1); v /= 10; }
+}
+
 void hud_draw(void) {
+    const player_t *p = &G.p;
+    /* energy meter: fill = guienergy alt A / 100 as x scale (RV en_xs); shine loop while full (RV en_img) */
+    int full = p->energy >= PHYS_ENERGY_MAX;
+    int fill_frame = full ? (G.frame / 2) % 20 : 0;      /* anim 1, speed 50 = one frame per 2 ticks */
+    hud_img(0, 0, 8, 8, -1);                             /* frame interior is opaque: fill goes on top */
+    hud_img(1, fill_frame, 16, 10, (int)(100.f * p->energy / PHYS_ENERGY_MAX + 0.5f));
+    /* life petals: counter value = half-petals 0..14 (RV GUIRings_125, max 14) */
+    if (p->hp > 0) hud_img(2, p->hp, 8, 19, -1);
+    /* character head + crystal icon, lives (2 digits), crystals (3 digits) */
+    hud_img(3, 0, 128, 8, -1);
+    hud_number(p->lives < 0 ? 0 : p->lives > 99 ? 99 : p->lives, 2, 144, 8);
+    hud_number(p->crystals < 0 ? 0 : p->crystals > 999 ? 999 : p->crystals, 3, 176, 8);
+    /* clock + stage timer mm:ss:cc (RV GUITimerM/S/Milli counters; colons are part of the clock image) */
+    hud_img(4, 0, 322, 0, -1);
+    int cs = G.frame * 100 / FPS, mm = cs / 6000, ss = cs / 100 % 60;
+    hud_number(mm > 99 ? 99 : mm, 2, 343, 8);
+    hud_number(ss, 2, 369, 8);
+    hud_number(cs % 100, 2, 395, 8);
     char buf[32];
-    for (int i = 0; i < 6; i++)
-        r_rect(8 + i * 10, 8, 8, 8, i < G.p.hp ? 0xffff4080 : 0xff402030);
-    snprintf(buf, sizeof buf, "%d", G.p.crystals);
-    text_draw(8, 22, buf, 0xffffffff, 2);
-    int secs = G.frame / FPS;
-    snprintf(buf, sizeof buf, "%d:%02d", secs / 60, secs % 60);
-    text_draw(SCREEN_W - 50, 8, buf, 0xffffffff, 2);
     if (G.clear_t) text_draw(SCREEN_W / 2 - 66, 100, "STAGE CLEAR", 0xffffe040, 3);
     if (G.paused) text_draw(SCREEN_W / 2 - 34, 100, "PAUSED", 0xffffffff, 3);
-    if (G.paused && G.debug_select) text_draw(SCREEN_W / 2 - 70, 124, "X: LEVEL SELECT", 0xffa0c0ff, 2);
 #ifdef FP_PROFILE
     snprintf(buf, sizeof buf, "U%u D%u", (unsigned)G.prof_update_us, (unsigned)G.prof_draw_us);
     text_draw(8, SCREEN_H - 12, buf, 0xff80ff80, 1);
+#else
+    (void)buf;
 #endif
 }
 

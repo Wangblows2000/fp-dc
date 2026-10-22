@@ -71,10 +71,17 @@ void objects_update(void) {
         int hit = !dead && atk && overlap(ax0, ay0, ax1, ay1, bx0, by0, bx1, by1);
         switch (o->type) {
         case OT_CRYSTAL:
-            if (touch) { o->alive = 0; p->crystals++; snd_play(G.sfx.crystal, 160, 128); }
+            /* RV: crystal pickup = +5 energy and the HUD crystal counter goes DOWN by 1 (from 200);
+             * extra life at 0 is INFERRED (not traced) */
+            if (touch) {
+                o->alive = 0; p->energy = fminf(PHYS_ENERGY_MAX, p->energy + PHYS_ENERGY_CRYSTAL);
+                if (--p->crystals <= 0) { p->crystals = CRYSTALS_PER_LIFE; p->lives++; }
+                snd_play(G.sfx.crystal, 160, 128);
+            }
             break;
         case OT_PETAL:
-            if (touch) { o->alive = 0; if (p->hp < 6) p->hp++; snd_play(G.sfx.crystal, 220, 128); }
+            /* RV: a red life petal restores 1 half-petal (max 14); no energy, no effect at full health */
+            if (touch) { o->alive = 0; if (p->hp < 14) p->hp++; snd_play(G.sfx.crystal, 220, 128); }
             break;
         case OT_DRAGONFLY:
             /* hover patrol (reconstructed) */
@@ -91,7 +98,7 @@ void objects_update(void) {
         case OT_ROCK: case OT_MONITOR:
             if (hit) {
                 o->alive = 0; explode(o->x, o->y - 8);
-                if (o->type == OT_MONITOR) p->crystals += 10;   /* reward UNVERIFIED */
+                if (o->type == OT_MONITOR) p->crystals = p->crystals > 10 ? p->crystals - 10 : 1;   /* reward UNVERIFIED */
                 player_bounce(p, -4.f);
             }
             break;

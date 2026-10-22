@@ -56,8 +56,10 @@ check('quarter_pipe_ridden', bool(curve) and max(x['ang'] for x in curve) > 1.4,
 check('passes_curve', max(x['x'] for x in r) > 1100, 'max x %.0f' % max(x['x'] for x in r))
 check('no_fall_out', all(x['y'] < 1864 for x in r))
 
-# 6 combat: spin jump destroys the first Turretus on this route
-check('turretus_destroyed', r[-1]['k'] >= 1, 'kills %d' % r[-1]['k'])
+# 6 combat (RV turretus_attack: a ground attack next to the first Turretus destroys it; whether a plain
+#   jump damages enemies is not verified, so the old jump-kill check was replaced)
+r6 = run('5 TP 1190 420\n60 64 X\n', 140)
+check('turretus_destroyed', r6[-1]['k'] >= 1, 'kills %d' % r6[-1]['k'])
 
 # 7 moves
 # RV: hold special -> 30 f charge -> auto-fire at speed 12 for 33 f (a tap does nothing)
@@ -74,6 +76,45 @@ check('dragon_cyclone', any(x['st'] == 2 for x in r) and r[-1]['gnd'] == 1)
 # 8 recovered animations are driven by state (idle -> run anim index changes, frames advance)
 r = run('0 200 R\n', 200)
 check('anims_change', r[0]['an'] != r[-1]['an'] and len({x['fr'] for x in r[100:]}) > 3)
+
+# 9 Section-2 fixes (2026-10-22, all rules runtime-verified, see RUNTIME_MAP "Moves")
+ST_CYCLONE, ST_BOOST, ST_DKWIND, ST_DIVEKICK, ST_CHARGE = 2, 4, 8, 9, 3
+# A grounded cyclone: run, Down + attack -> cyclone on the ground for 79 frames, speed kept
+r = run('0 140 R\n80 200 D\n85 88 X\n', 200)
+cyc = [x for x in r if x['st'] == ST_CYCLONE]
+check('grounded_cyclone', len(cyc) in range(78, 81) and all(x['gnd'] == 1 for x in cyc[:30]) and cyc[0]['gsp'] > 4,
+      '%d frames' % len(cyc))
+# A standstill Down + attack = crouch kick, not a cyclone
+r = run('0 100 D\n40 43 X\n', 80)
+check('crouch_kick_not_cyclone', not any(x['st'] == ST_CYCLONE for x in r))
+# B aerial cyclone -> down-kick cancel, and down-kick (kick phase) -> cyclone, one cyclone per airtime
+r = run('5 TP 68.715 440\n60 75 J\n80 84 J\n90 200 D\n91 95 X\n', 200)
+check('cyclone_to_downkick', any(x['st'] == ST_DKWIND for x in r) and any(x['st'] == ST_DIVEKICK for x in r))
+r = run('5 TP 68.715 440\n60 75 J\n78 200 D\n79 83 X\n98 100 J\n', 160)
+i = next((k for k, x in enumerate(r) if x['st'] == ST_CYCLONE), None)
+check('downkick_to_cyclone', i is not None and abs(r[i]['vx'] - 5) < 0.01 and abs(r[i]['vy']) < 0.3)
+r = run('5 TP 68.715 440\n60 75 J\n80 84 J\n90 200 D\n91 95 X\n112 116 J\n', 200)
+check('one_cyclone_per_airtime', sum(1 for a, b in zip(r, r[1:]) if b['st'] == ST_CYCLONE and a['st'] != ST_CYCLONE) == 1)
+# C boost needs a full meter; drains to 0 over the boost, refills 0.4/frame (250 frames)
+r = run('10 EN 100\n20 600 B\n', 600)
+starts = [k for k, (a, b) in enumerate(zip(r, r[1:])) if b['st'] == ST_CHARGE and a['st'] != ST_CHARGE]
+check('boost_energy_cycle', len(starts) == 2 and 278 <= starts[1] - starts[0] <= 320, 'charges at %s' % starts)
+r = run('10 EN 60\n20 100 B\n', 100)
+check('boost_needs_full_meter', not any(x['st'] in (ST_CHARGE, ST_BOOST) for x in r))
+# D left boost: sprite angle 180 (direction of motion), right boost 0
+r = run('10 EN 100\n20 TP 700 430\n60 62 L\n70 200 B\n70 200 L\n', 120)
+b = [x for x in r if x['st'] == ST_BOOST and x['gnd'] == 0]
+r2 = run('10 EN 100\n20 TP 700 430\n60 75 J\n70 200 B\n75 200 L\n', 130)
+b2 = [x for x in r2 if x['st'] == ST_BOOST and x['gnd'] == 0]
+check('boost_left_orientation', b2 and all(abs(x['rot'] - 180) < 0.5 and x['face'] == -1 for x in b2), 'rot %s' % (b2[0]['rot'] if b2 else None))
+# E slope rotation: ground angle follows the surface, air eases back to 0 by 4 deg/frame
+r = run('0 400 R\n', 140)
+slope = [x for x in r if x['gnd'] == 1 and x['ang'] < -0.6]
+check('slope_rotation', slope and all(abs(((x['rot'] + 180) % 360) - 180) > 20 for x in slope), '%d slope frames' % len(slope))
+r = run('0 400 R\n', 260)
+air = [x for x in r if x['gnd'] == 0]
+steps = [abs(b['rot'] - a['rot']) for a, b in zip(air, air[1:]) if a['rot'] != 0]
+check('air_rotation_eases', steps and max(steps) <= 4.01, 'max step %.2f' % (max(steps) if steps else -1))
 
 print('%d failure(s)' % fails)
 sys.exit(1 if fails else 0)

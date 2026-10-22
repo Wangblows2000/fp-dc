@@ -115,6 +115,12 @@ void frame_draw(const bank_t *b, const frame_t *f, float x, float y, int flip, u
     r_sprite(&b->tex, f->u, f->v, f->w, f->h, dx, y - f->hy, f->w, f->h, flip, argb);
 }
 
+/* rotation around the hotspot (the original rotates Actives around their hot spot) */
+void frame_draw_rot(const bank_t *b, const frame_t *f, float x, float y, float angle_deg, uint32_t argb) {
+    if (angle_deg == 0) { frame_draw(b, f, x, y, 0, argb); return; }
+    r_sprite_rot(&b->tex, f->u, f->v, f->w, f->h, x, y, f->hx, f->hy, angle_deg, argb);
+}
+
 /* ------------------------------------------------------------------ FPL2 */
 int level_load(level_t *l, const char *name) {
     char fn[64]; size_t sz;
