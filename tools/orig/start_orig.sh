@@ -13,6 +13,8 @@ if ! xdpyinfo -display $DISP >/dev/null 2>&1; then
 fi
 kill -9 $(pgrep -x Chowdren) $(pgrep -x gdb) 2>/dev/null
 cd $RUN
+# no D-Bus in the VM: without this SDL forks dbus-launch every frame (51k forks, traces crawl)
+export DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent
 export SDL_AUDIODRIVER=dummy ALSOFT_DRIVERS=null LIBGL_ALWAYS_SOFTWARE=1 LD_LIBRARY_PATH=$RUN/bin64
 if [ -n "$1" ]; then
   (setsid gdb -q -batch -x "$1" ./bin64/Chowdren > /tmp/fp_run.log 2>&1 &)
