@@ -8,8 +8,16 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define SCREEN_W 320          /* logical resolution, scaled x2 to 640x480 */
+/* D-012: the original renders 426x240 (global values 16/17 = 426, 240). Default view = the same
+ * 426x240, scaled 1.5x and letterboxed to 639x360 on the 640x480 display. FP_VIEW_320 keeps the
+ * old 320x240 crop at 2x. */
+#ifdef FP_VIEW_320
+#define SCREEN_W 320
 #define SCREEN_H 240
+#else
+#define SCREEN_W 426
+#define SCREEN_H 240
+#endif
 #define FPS 60
 
 /* ---------------------------------------------------------------- platform */
@@ -47,6 +55,8 @@ void   r_begin(void);
 void   r_sprite(const tex_t *t, int u, int v, int uw, int vh,
                 float x, float y, float w, float h, int flip, uint32_t argb);
 void   r_rect(float x, float y, float w, float h, uint32_t argb);
+void   r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float py, float hx, float hy,
+                    float angle_deg, uint32_t argb);
 void   r_end(void);
 void   r_reset(void);                 /* free all textures (level change) */
 
@@ -73,6 +83,7 @@ void anim_restart(animator_t *a);
 void anim_tick(animator_t *a, int speed_override);       /* <0: use table speed */
 const frame_t *anim_frame(const animator_t *a);
 void frame_draw(const bank_t *b, const frame_t *f, float x, float y, int flip, uint32_t argb);
+void frame_draw_rot(const bank_t *b, const frame_t *f, float x, float y, float angle_deg, uint32_t argb);
 int  tex_load_file(tex_t *t, const char *name);
 int  pal_load_file(const char *name);
 
@@ -112,8 +123,11 @@ typedef struct {
     int ground, face;
     int state, state_t;
     animator_t an;
-    int hp, invuln, crystals;
-    int jumping, cyclone_used, boost_used;
+    int hp, invuln, crystals, lives;   /* hp in half-petals; crystals count DOWN from 200 (RV HUD) */
+    int jumping, cyclone_used, boost_used, cyclone_ground_start, hurt_land_t;
+    float energy, energy_drain;  /* RV energy meter 0..100 (boost needs 100) */
+    int energy_init;
+    float rot;                   /* sprite angle, degrees CCW (original Active angle @+0xc4) */
     float boost_dx, boost_dy;
     float spawn_x, spawn_y;
     int dead_t;
@@ -194,10 +208,23 @@ void text_draw(float x, float y, const char *s, uint32_t argb, int scale);
 #define PHYS_DK_WIND_T  15         /* RV: down-kick windup (anim 7) */
 #define PHYS_DK_WIND_GRAV 0.125f   /* RV: gravity during the windup */
 #define PHYS_DK_VX      5.0f       /* RV: kick vx = 5*facing */
-#define PHYS_DK_VY      3.875f     /* RV: kick vy */
 #define PHYS_CYCLONE_VY 3.0f       /* RV: Dragon Cyclone sets vy = -3 */
 #define PHYS_CYCLONE_GRAV 0.1f     /* RV: gravity during the cyclone (held or not) */
-#define PHYS_CYCLONE_MAX 240       /* UNVERIFIED safety cap; the original ran 78+ f until landing */
+#define PHYS_CYCLONE_T  79         /* RV: cyclone state lasts 79 frames (4 traces, ground and air); landing keeps it */
+#define PHYS_GCYC_JUMP  4.9f       /* RV: jump out of a grounded cyclone: vy -4.9 */
+#define PHYS_DK_VY_ADD  5.0f       /* RV: down-kick adds +5 to vy (after the windup frame's gravity) */
+#define PHYS_CROUCHATK_T 18        /* RV: crouch kick (anim 30) length */
+#define PHYS_BOOST_DIAG 8.0f       /* RV: diagonal boost components (8, 8) */
+#define PHYS_BOOST_LAND 10.0f      /* RV: ground speed when a down-diagonal boost lands */
+#define PHYS_ENERGY_MAX 100.0f     /* RV: GUIEnergy_127 alt A; boost needs a full meter */
+#define PHYS_ENERGY_DRAIN 3.0f     /* RV: -3/frame during the boost (100 -> 0 over 33 f) */
+#define PHYS_ENERGY_REFILL 0.4f    /* RV: +0.4/frame otherwise (250 f = 4.17 s from empty) */
+#define PHYS_ENERGY_CRYSTAL 5.0f   /* RV: each crystal pickup adds 5 (petals add none) */
+#define CRYSTALS_PER_LIFE 200     /* RV: HUD crystal counter starts at 200 on a fresh file and counts down */
+#define LIVES_START     5          /* RV: fresh file shows 05 */
+#define PHYS_HURT_VX    2.2f       /* RV: knockback speed away from the hazard */
+#define PHYS_HURT_VY    4.2f       /* RV: knockback rise */
+#define PHYS_HURT_GRAV  0.5f       /* RV: gravity during hurt knockback */
 #define PHYS_SPRING     11.0f      /* UNVERIFIED */
 #define ORIG_REF_DY     14.0f      /* RV: original's reference point is ~14 px above the feet */
 

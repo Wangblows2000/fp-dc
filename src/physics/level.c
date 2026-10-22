@@ -5,7 +5,10 @@
 #include "../fp.h"
 
 static inline int bit(const level_t *l, const uint16_t *map, int x, int y) {
-    if (x < 0 || x >= l->w) return map == l->smap;   /* level sides are walls */
+    /* level sides: the edge column continues outwards (the original stands flat at X 0); horizontal
+     * movement is limited to [16, w-16] by the player code instead (RV: gcyc_steer_back stops at X 16) */
+    if (x < 0) x = 0;
+    if (x >= l->w) x = l->w - 1;
     if (y < 0 || y >= l->h) return 0;                  /* open top, bottomless pit */
     int t = map[(y >> 4) * l->tw + (x >> 4)];
     if (t == 0) return 0;
