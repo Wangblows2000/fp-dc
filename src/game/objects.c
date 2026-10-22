@@ -1,10 +1,11 @@
-/* Level objects: crystals, hornet enemies, checkpoint, goal, explosions. */
+/* Level objects placed from the recovered frame data. Visuals/animations are the
+ * original classes' first animation; behaviour is reconstructed (UNVERIFIED unless
+ * noted) because the original logic is compiled event code. */
 #include <math.h>
 #include <string.h>
 #include "../fp.h"
 
-enum { OT_EXPLODE = 100 };
-static int A_HORNET, A_EXPLODE, A_CRYSTAL;
+static int A_EXPLODE = -1;
 
 static obj_t *alloc_obj(void) {
     for (int i = 0; i < MAX_OBJS; i++)
@@ -13,33 +14,41 @@ static obj_t *alloc_obj(void) {
 }
 
 void objects_spawn(void) {
-    A_HORNET = bank_anim(&G.objs, "hornet");
-    A_EXPLODE = bank_anim(&G.objs, "explode");
-    A_CRYSTAL = bank_anim(&G.objs, "crystal");
+    A_EXPLODE = bank_anim(&G.objs, "explosion");
     memset(G.o, 0, sizeof G.o);
     G.nobjs = 0;
     for (int i = 0; i < G.lvl.nobj; i++) {
-        const lvlobj_t *lo = &G.lvl.objs[i];
-        if (lo->type == O_PLAYER) continue;
+        const lvobj_t *lo = &G.lvl.objs[i];
+        if (lo->type == OT_START || lo->type >= OT_PARALLAX) continue;
         obj_t *o = alloc_obj();
         if (!o) { plat_log("object limit reached\n"); break; }
-        o->type = lo->type; o->alive = 1;
-        o->x = o->ox = lo->x; o->y = o->oy = lo->y;
-        o->t = i * 17;   /* desynchronise idle motion */
-        if (o->type == O_HORNET) o->anim = A_HORNET;
-        if (o->type == O_CRYSTAL) o->anim = A_CRYSTAL;
+        o->type = lo->type; o->alive = 1; o->hp = 1;
+        o->x = o->ox = (float)lo->x; o->y = o->oy = (float)lo->y;
+        o->t = i * 13;
+        if (lo->anim != 0xffff && lo->anim < G.objs.nanims) anim_set(&o->an, &G.objs, lo->anim);
+        else o->an.b = NULL;
+        if (o->type == OT_TURRETUS) o->hp = 2;
     }
 }
 
 static void explode(float x, float y) {
     obj_t *e = alloc_obj();
     if (!e) return;
-    e->type = OT_EXPLODE; e->alive = 1; e->x = x; e->y = y; e->anim = A_EXPLODE;
+    e->type = OT_EXPLODE; e->alive = 1; e->x = x; e->y = y;
+    if (A_EXPLODE >= 0) anim_set(&e->an, &G.objs, A_EXPLODE);
     snd_play(G.sfx.explode, 220, 128);
 }
 
 static int overlap(float ax0, float ay0, float ax1, float ay1, float bx0, float by0, float bx1, float by1) {
     return ax0 < bx1 && bx0 < ax1 && ay0 < by1 && by0 < ay1;
+}
+
+/* object box from its current frame (hotspot-relative image rect), shrunk a little */
+static void obj_box(const obj_t *o, float *x0, float *y0, float *x1, float *y1) {
+    if (!o->an.b) { *x0 = o->x - 8; *x1 = o->x + 8; *y0 = o->y - 16; *y1 = o->y; return; }
+    const frame_t *f = anim_frame(&o->an);
+    *x0 = o->x - f->hx + 2; *y0 = o->y - f->hy + 2;
+    *x1 = *x0 + f->w - 4;   *y1 = *y0 + f->h - 4;
 }
 
 void objects_update(void) {
@@ -52,67 +61,63 @@ void objects_update(void) {
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i];
         if (!o->alive) continue;
-        o->t++; o->tick++;
+        o->t++;
+        /* sleep far off-screen objects (Fusion-style "inactive if far") */
+        if (fabsf(o->x - (G.camx + SCREEN_W / 2)) > SCREEN_W * 1.5f && o->type != OT_EXPLODE) continue;
+        anim_tick(&o->an, -1);
+        float bx0, by0, bx1, by1;
+        obj_box(o, &bx0, &by0, &bx1, &by1);
+        int touch = !dead && overlap(px0, py0, px1, py1, bx0, by0, bx1, by1);
+        int hit = !dead && atk && overlap(ax0, ay0, ax1, ay1, bx0, by0, bx1, by1);
         switch (o->type) {
-        case O_CRYSTAL:
-            o->y = o->oy - 6 + sinf(o->t * 0.08f) * 2.f;
-            if (!dead && overlap(px0, py0, px1, py1, o->x - 8, o->y - 10, o->x + 8, o->y + 6)) {
-                o->alive = 0; p->crystals++;
-                snd_play(G.sfx.crystal, 180, 128);
+        case OT_CRYSTAL:
+            if (touch) { o->alive = 0; p->crystals++; snd_play(G.sfx.crystal, 160, 128); }
+            break;
+        case OT_PETAL:
+            if (touch) { o->alive = 0; if (p->hp < 6) p->hp++; snd_play(G.sfx.crystal, 220, 128); }
+            break;
+        case OT_DRAGONFLY:
+            /* hover patrol (reconstructed) */
+            o->x = o->ox + sinf(o->t * 0.015f) * 40.f;
+            o->y = o->oy + sinf(o->t * 0.06f) * 6.f;
+            o->flip = cosf(o->t * 0.015f) > 0;  /* art faces left; mirror when moving right */
+            if (hit) { o->alive = 0; G.kills++; explode(o->x, o->y); player_bounce(p, -4.f); break; }
+            if (touch) player_hurt(p, o->x);
+            break;
+        case OT_TURRETUS:
+            if (hit && o->t > 0) { if (--o->hp <= 0) { o->alive = 0; G.kills++; explode(o->x, o->y); } else o->t = -20; player_bounce(p, -4.f); break; }
+            if (touch) player_hurt(p, o->x);
+            break;
+        case OT_ROCK: case OT_MONITOR:
+            if (hit) {
+                o->alive = 0; explode(o->x, o->y - 8);
+                if (o->type == OT_MONITOR) p->crystals += 10;   /* reward UNVERIFIED */
+                player_bounce(p, -4.f);
             }
             break;
-        case O_HORNET: {
-            float nx = o->ox + sinf(o->t * 0.02f) * 48.f;
-            o->flip = nx > o->x;               /* sprite faces left by default */
-            o->x = nx;
-            o->y = o->oy - 8 + sinf(o->t * 0.07f) * 6.f;
-            float hx0 = o->x - 12, hx1 = o->x + 12, hy0 = o->y - 22, hy1 = o->y;
-            if (dead) break;
-            if (atk && overlap(ax0, ay0, ax1, ay1, hx0, hy0, hx1, hy1)) {
-                o->alive = 0; G.kills++;
-                explode(o->x, o->y);
-                if (!p->ground && p->vy > 0) p->vy = -4.f;   /* bounce off */
-                break;
-            }
-            if (overlap(px0, py0, px1, py1, hx0, hy0, hx1, hy1)) player_hurt(p, o->x);
+        case OT_SPIKES:
+            if (touch) { player_hurt(p, p->x - p->face); }
             break;
-        }
-        case O_CHECKPOINT:
-            if (!o->tick || o->flip) break;
-            if (!dead && p->x > o->x - 8 && fabsf(p->y - o->y) < 48) {
-                o->flip = 1;                       /* activated */
-                p->spawn_x = o->x; p->spawn_y = o->y;
-                snd_play(G.sfx.crystal, 255, 128);
-            }
+        case OT_SPRING:
+            if (touch && p->vy >= 0) { player_spring(p, PHYS_SPRING); anim_restart(&o->an); }
             break;
-        case O_GOAL:
-            if (!G.clear_t && !dead && p->x > o->x - 8) G.clear_t = 1;
+        case OT_SIGN:
+            if (!G.clear_t && !dead && p->x > o->x) G.clear_t = 1;
             break;
         case OT_EXPLODE:
-            if (anim_done(&G.objs, o->anim, o->tick)) o->alive = 0;
+            if (!o->an.b || o->an.done) o->alive = 0;
             break;
         }
     }
 }
 
-void objects_draw(void) {
+void objects_draw(int front) {
+    (void)front;
     for (int i = 0; i < G.nobjs; i++) {
         const obj_t *o = &G.o[i];
-        if (!o->alive) continue;
-        float sx = o->x - G.camx, sy = o->y - G.camy;
-        if (sx < -64 || sx > SCREEN_W + 64 || sy < -64 || sy > SCREEN_H + 96) continue;
-        switch (o->type) {
-        case O_CRYSTAL: case O_HORNET: case OT_EXPLODE:
-            bank_draw(&G.objs, o->anim, o->tick, sx, sy, o->flip, 0xffffffff);
-            break;
-        case O_CHECKPOINT:  /* placeholder lamp until the original sprite is identified */
-            r_rect(sx - 2, sy - 40, 4, 40, 0xff705030);
-            r_rect(sx - 6, sy - 48, 12, 10, o->flip ? 0xff40ff60 : 0xffff4040);
-            break;
-        case O_GOAL:        /* placeholder goal post */
-            r_rect(sx - 2, sy - 64, 4, 64, 0xffc0c0c0);
-            r_rect(sx + 2, sy - 64, 24, 16, (G.frame & 16) ? 0xffffd000 : 0xffff8000);
-            break;
-        }
+        if (!o->alive || !o->an.b) continue;
+        float sx = floorf(o->x - G.camx), sy = floorf(o->y - G.camy);
+        if (sx < -96 || sx > SCREEN_W + 96 || sy < -96 || sy > SCREEN_H + 96) continue;
+        frame_draw(&G.objs, anim_frame(&o->an), sx, sy, o->flip, 0xffffffff);
     }
 }

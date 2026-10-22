@@ -34,27 +34,45 @@ int r_init(void) {
     return 0;
 }
 
-void r_shutdown(void) { pvr_shutdown(); }
 
 int r_tex_load(tex_t *t, const void *data, size_t size) {
     const uint8_t *d = data;
     uint16_t hdr[6];
     if (size < 16 || memcmp(d, "FPTX", 4) || ntex >= MAXTEX) return -1;
     memcpy(hdr, d + 4, 12);
-    int w = hdr[0], h = hdr[1];
-    if (hdr[2] != 0 || w < 8 || h < 8 || (w & (w - 1)) || (h & (h - 1)) || (size_t)w * h * 2 + 16 > size) return -1;
-    pvr_ptr_t p = pvr_mem_malloc(w * h * 2);
+    int w = hdr[0], h = hdr[1], fmt = hdr[2], grp = hdr[5];
+    size_t bpp = fmt == 1 ? 1 : 2;
+    if (fmt > 1 || (fmt == 1 && grp > 3) || w < 8 || h < 8 || (w & (w - 1)) || (h & (h - 1)) || (size_t)w * h * bpp + 16 > size) return -1;
+    pvr_ptr_t p = pvr_mem_malloc(w * h * bpp);
     if (!p) { plat_log("VRAM exhausted (%dx%d)\n", w, h); return -1; }
-    pvr_txr_load(d + 16, p, w * h * 2);
+    int txfmt;
+    if (fmt == 1) {       /* 8-bit palettized: KOS twiddles while uploading */
+        pvr_txr_load_ex(d + 16, p, w, h, PVR_TXRLOAD_8BPP);
+        txfmt = PVR_TXRFMT_PAL8BPP | PVR_TXRFMT_8BPP_PAL(grp);
+    } else {
+        pvr_txr_load(d + 16, p, w * h * 2);
+        txfmt = PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_NONTWIDDLED;
+    }
     pvr_poly_cxt_t cxt;
-    pvr_poly_cxt_txr(&cxt, PVR_LIST_PT_POLY, PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_NONTWIDDLED,
-                     w, h, p, PVR_FILTER_NONE);
+    pvr_poly_cxt_txr(&cxt, PVR_LIST_PT_POLY, txfmt, w, h, p, PVR_FILTER_NONE);
     cxt.depth.comparison = PVR_DEPTHCMP_GEQUAL;
     cxt.gen.culling = PVR_CULLING_NONE;
     cxt.txr.env = PVR_TXRENV_MODULATE;
     pvr_poly_compile(&texs[ntex].hdr, &cxt);
     texs[ntex].ptr = p; texs[ntex].w = w; texs[ntex].h = h;
     t->id = ntex++; t->w = w; t->h = h; t->srcw = hdr[3]; t->srch = hdr[4];
+    return 0;
+}
+
+int r_pal_load(const void *data, size_t size) {
+    const uint8_t *d = data;
+    uint16_t g, pal[256];
+    if (size < 8 + 512 || memcmp(d, "FPPL", 4)) return -1;
+    memcpy(&g, d + 4, 2);
+    if (g > 3) return -1;
+    memcpy(pal, d + 8, 512);
+    pvr_set_pal_format(PVR_PAL_ARGB1555);
+    for (int i = 0; i < 256; i++) pvr_set_pal_entry(g * 256 + i, pal[i]);
     return 0;
 }
 

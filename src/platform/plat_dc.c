@@ -15,8 +15,6 @@
 static uint32_t prev_held;
 
 void plat_init(void) {}
-void plat_shutdown(void) { music_stop(); }
-int  plat_running(void) { return 1; }
 
 void plat_log(const char *fmt, ...) {
     va_list ap; va_start(ap, fmt); vprintf(fmt, ap); va_end(ap);
@@ -106,6 +104,22 @@ static void *mus_cb(snd_stream_hnd_t hnd, int smp_req, int *smp_recv) {
     return mus_buf;
 }
 
+/* Streaming runs on its own thread: snd_stream_poll() calls mus_cb(), which reads
+ * the disc; doing that in the game loop caused ~130 ms frame spikes in Flycast. */
+static volatile int mus_thread_run;
+static kthread_t *mus_thd;
+static mutex_t mus_lock = MUTEX_INITIALIZER;
+static void *mus_thread(void *arg) {
+    (void)arg;
+    while (mus_thread_run) {
+        mutex_lock(&mus_lock);
+        if (mus != SND_STREAM_INVALID) snd_stream_poll(mus);
+        mutex_unlock(&mus_lock);
+        thd_sleep(10);
+    }
+    return NULL;
+}
+
 int music_play(const char *name) {
     char path[128];
     music_stop();
@@ -116,16 +130,17 @@ int music_play(const char *name) {
     if (mus == SND_STREAM_INVALID) { fclose(mus_f); mus_f = NULL; return -1; }
     snd_stream_volume(mus, 200);
     snd_stream_start(mus, 22050, 1);
+    if (!mus_thd) { mus_thread_run = 1; mus_thd = thd_create(0, mus_thread, NULL); }
     return 0;
 }
 
-void music_update(void) {
-    if (mus != SND_STREAM_INVALID) snd_stream_poll(mus);
-}
+void music_update(void) { /* handled by mus_thread */ }
 
 void music_stop(void) {
+    mutex_lock(&mus_lock);
     if (mus != SND_STREAM_INVALID) { snd_stream_stop(mus); snd_stream_destroy(mus); mus = SND_STREAM_INVALID; }
     if (mus_f) { fclose(mus_f); mus_f = NULL; }
+    mutex_unlock(&mus_lock);
 }
 
 /* ------------------------------------------------------------- main */

@@ -51,3 +51,18 @@ Ledger categories: **CONFIRMED** (verified on the files / reproducible test), **
 2. Recover physics constants (double literals in `.rdata`) and verify against footage.
 3. Map sound indices to names (none in archive; maybe via code references to sound handles).
 4. Identify the 2014 v1.0 build if the user owns it (fp-assets knows md5 `f14f24317d…`, zlib images, 16,893 images) – matters for "original release" fidelity.
+
+## 5. Linux build (supplied 2026-10-22): `game/bin64/Chowdren`
+| Finding | Status | Evidence |
+|---|---|---|
+| ELF64 x86-64, **not stripped**, 89,974 symbols, sha256 `ff514984…`; Assets.dat md5 `9d00124a…` (31.5 MB) | CONFIRMED | `file`, `nm` |
+| 87 frames; `Frames::on_frame_N_init` places objects via `create_<cls>_<id>(x,y)` + `Frame::add_(background_)object(obj, layer)` | CONFIRMED | dump_frames.py: all coordinates resolved |
+| Dragon Valley pieces (`dv*`) appear in frames 21, 22, 23, 24, 76; frame 21 = 14,816×1,864 with `playerstartingpoint` | CONFIRMED (act number UNVERIFIED) | frame summaries |
+| Animation structs: `anim_<cls>` {u64 n; ptr}, Animation = 32 Direction ptrs, Direction 24 B {u8 idx,u8,u16 min,u16 max,u16 back_to,s16 loop,u16 n,u32,ptr} | CONFIRMED | Lilac decode matches frame counts in constructor |
+| `playerskinsash_341` = Lilac (42 anims; dir 0 right / 16 left drawn separately); `playerskinsashhair_424` = hair object | CONFIRMED (labels by eye) | renders |
+| **Backdrop collision:** 0xac=9 → InstanceBox (box), 0xac=8 → BackdropCollision (pixel mask), 11 → ladder; no field → no collision; blend colour alpha 0 → invisible | CONFIRMED | collider vtable symbols. **Corrects an earlier wrong inference** ("8 = jump-through platform") |
+| Layer coefficients all 1.0 (layer 6 = 0.0); parallax done by `levelparallaxpiece*` objects moved in events | CONFIRMED / STRONGLY INFERRED | Layer::init args |
+| Fast loops `player01allsensors`, `toolsanglecalculator` → Sonic-Worlds-style sensor/angle engine | STRONGLY INFERRED | symbol names |
+| Sonic power-of-two physics constants (0.046875, 0.21875, …) referenced 0 times; decimal doubles dominate | CONFIRMED | RIP-relative SSE reference scan |
+| Original binary runs in VM (Xvfb/llvmpipe) with placeholder oggs; `GameManager::set_frame` at 0x9fc8c0, `manager` at 0x285ec60 | CONFIRMED | gdb session |
+| Chowdren source public? | No public source found (mp2.dk/chowdren) | web |

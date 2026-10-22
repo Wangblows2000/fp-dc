@@ -15,8 +15,6 @@ static int nscript, cur_frame;
 static uint32_t prev_held;
 
 void plat_init(void) {}
-void plat_shutdown(void) {}
-int  plat_running(void) { return 1; }
 
 void plat_log(const char *fmt, ...) {
     va_list ap; va_start(ap, fmt); vfprintf(stderr, fmt, ap); va_end(ap);
@@ -99,8 +97,8 @@ int main(int argc, char **argv) {
         plat_poll_input(&in);
         game_update(&in);
         const player_t *p = &G.p;
-        printf("f %d x %.2f y %.2f gsp %.3f vx %.3f vy %.3f gnd %d ang %.3f st %d hp %d cr %d k %d\n",
-               cur_frame, p->x, p->y, p->gsp, p->vx, p->vy, p->ground, p->angle, p->state, p->hp, p->crystals, G.kills);
+        printf("f %d x %.2f y %.2f gsp %.3f vx %.3f vy %.3f gnd %d ang %.3f st %d hp %d cr %d k %d an %d fr %d\n",
+               cur_frame, p->x, p->y, p->gsp, p->vx, p->vy, p->ground, p->angle, p->state, p->hp, p->crystals, G.kills, p->an.anim, p->an.frame);
         if (dump && cur_frame % every == 0) {
             game_draw();
             char path[512];

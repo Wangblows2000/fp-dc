@@ -27,19 +27,22 @@ data: extracted/assets
 	python3 tools/make_test_level.py
 	python3 tools/convert.py extracted/assets "$(FP_GAME)/Data/BGM" converted
 
-build/disc/data: converted/manifest.json
+DATA_DIR ?= converted2
+build/disc/data: $(DATA_DIR)/dv1.lv2
 	rm -rf build/disc && mkdir -p build/disc/data
-	cp converted/*.tex converted/*.spr converted/*.lvl converted/*.wav converted/*.pcm build/disc/data/
+	cp $(DATA_DIR)/*.tex $(DATA_DIR)/*.spr $(DATA_DIR)/*.lv2 $(DATA_DIR)/*.pal $(DATA_DIR)/*.wav $(DATA_DIR)/*.pcm build/disc/data/
 
-cdi: $(TARGET) build/disc/data
+cdi: $(TARGET)
+	rm -rf build/disc
+	$(MAKE) build/disc/data
 	$(MKDCDISC) -e $(TARGET) -D build/disc -n "FREEDOM PLANET DC TEST" -a "fpdc" \
-	    -o build/fpdc.cdi --allow-overwrite --no-banner
+	    -o build/fpdc.cdi --allow-overwrite --no-banner -N
 
 host:
 	$(MAKE) -C host
 
 test: host
-	python3 tests/test_gameplay.py converted
+	python3 tests/test_gameplay.py converted2
 
 clean:
 	rm -f $(OBJS) $(TARGET)

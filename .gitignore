@@ -4,6 +4,7 @@ original/*
 !original/README.md
 extracted/
 converted/
+converted*/
 build/
 third_party/freedom_editor/
 third_party/CTFAK/
