@@ -77,8 +77,9 @@ int bank_anim(const bank_t *b, const char *name) {
     return -1;
 }
 
+/* RE (Active::force_animation): an animation change/restart resets the frame but KEEPS the speed counter */
 void anim_restart(animator_t *a) {
-    a->frame = 0; a->acc = 0; a->done = 0;
+    a->frame = 0; a->done = 0;
     a->loops = a->b ? a->b->anims[a->anim].loop : -1;
 }
 
@@ -93,8 +94,10 @@ void anim_tick(animator_t *a, int speed_override) {
     if (!a->b || a->done) return;
     const anim_t *an = &a->b->anims[a->anim];
     int spd = speed_override >= 0 ? speed_override : an->speed;
+    /* RE (Active::update): counter += speed; a frame advances only when the counter goes ABOVE 100 */
     a->acc += spd;
-    while (a->acc >= 100) {
+    if (a->acc <= 100) return;
+    while (a->acc > 100) {
         a->acc -= 100;
         if (++a->frame >= an->count) {
             if (an->loop < 0) a->frame = an->back_to;

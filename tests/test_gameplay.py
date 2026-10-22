@@ -7,11 +7,11 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 BIN = os.path.join(HERE, '..', 'host', 'fpdc_host')
 DATA = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, '..', 'converted2')
 
-def run(script, frames):
+def run(script, frames, env=None):
     with tempfile.NamedTemporaryFile('w', suffix='.txt', delete=False) as f:
         f.write(script); name = f.name
     out = subprocess.run([BIN, DATA, str(frames), name], capture_output=True, text=True, check=True,
-                         env=dict(os.environ, FP_LEVEL=os.environ.get("FP_LEVEL", "dv1"))).stdout
+                         env=dict(os.environ, FP_LEVEL=os.environ.get("FP_LEVEL", "dv1"), **(env or {}))).stdout
     os.unlink(name)
     rows = []
     for line in out.splitlines():
@@ -94,6 +94,21 @@ check('spring_upleft_vel', l is not None and abs(l['vx'] + 9) < 0.01 and abs(l['
 r = run('5 TP 6130 440\n60 120 L\n', 130)
 g = [x['gsp'] for x in r]
 check('spring_side_gsp', max(g) > 9.6 and max(g) <= 10.0, 'max gsp %.3f' % max(g))
+
+# RE Turretus + pellet + damage (events 4766-4774, PinballMovement, event 2414; hurt_turretus trace):
+# with the original's start phase the pellet hits on frame 189 with B = -2.2, G = -4.2
+r = run(open(os.path.join(HERE, 'orig', 'hurt_turretus.txt')).read(), 200, env={'FP_SPAWN_X': '0', 'FP_OBJ_PRETICK': '2'})
+hit = next((x for x in r if x['hp'] < 14), None)
+check('turretus_pellet_hit', hit is not None and hit['f'] == 188   # stdout numbering (= CSV / trace-aligned row 189)
+       and abs(hit['vx'] + 2.2) < 1e-6 and abs(hit['vy'] + 4.2) < 1e-6,
+      hit and 'f%d vx %.3f vy %.3f' % (hit['f'], hit['vx'], hit['vy']))
+# RE camera (MasterCamera_408): after a teleport the view snaps (centre within X .. X+16); running fast the
+# look-ahead G reaches 64, so Lilac sits 64 px left of the centre (213)
+r = run('5 TP 1190 420\n', 30)
+check('camera_snaps', 1190 - 213 <= r[-1]['cx'] <= 1190 + 16 - 213, 'cx %.1f' % r[-1]['cx'])
+r = run('10 400 R\n', 400)
+sx = [x['x'] - x['cx'] for x in r if 100 <= x['f'] <= 180]      # grounded at top speed (G saturated)
+check('camera_lookahead', sx and max(abs(v - (213 - 64)) for v in sx) < 1.5, 'screen x %.1f..%.1f' % (min(sx), max(sx)))
 
 # 8 recovered animations are driven by state (idle -> run anim index changes, frames advance)
 r = run('0 200 R\n', 200)

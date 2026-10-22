@@ -131,7 +131,15 @@ int main(int argc, char **argv) {
         G.p.spawn_x = (float)atof(sx);
         if (floor_probe(&G.lvl, G.p.spawn_x, G.p.spawn_y - 64, 200, 1, &y, &a)) G.p.spawn_y = y;
         player_reset(&G.p, G.p.spawn_x, G.p.spawn_y);
-        camera_update();
+        camera_reset(); camera_update();
+    }
+    if (getenv("FP_COLPROBE")) {            /* "x,y0,y1": print the solid column (collision debugging) */
+        int cx, y0, y1;
+        if (sscanf(getenv("FP_COLPROBE"), "%d,%d,%d", &cx, &y0, &y1) == 3)
+            for (int y = y0; y <= y1; y++) printf("col %d %d %d\n", cx, y, solid_at(&G.lvl, (float)cx, (float)y));
+    }
+    if (getenv("FP_OBJ_PRETICK")) {
+        objects_pretick(atoi(getenv("FP_OBJ_PRETICK")));
     }
     if (getenv("FP_ENERGY")) G.p.energy = (float)atof(getenv("FP_ENERGY"));
     if (getenv("FP_HP")) G.p.hp = atoi(getenv("FP_HP"));
@@ -143,9 +151,9 @@ int main(int argc, char **argv) {
         apply_dbg(cur_frame);
         game_update(&in);
         const player_t *p = &G.p;
-        printf("f %d x %.2f y %.2f gsp %.3f vx %.3f vy %.3f gnd %d ang %.3f st %d hp %d cr %d k %d an %d fr %d rot %.2f en %.2f lv %d face %d mode %d sel %d\n",
+        printf("f %d x %.2f y %.2f gsp %.3f vx %.3f vy %.3f gnd %d ang %.3f st %d hp %d cr %d k %d an %d fr %d rot %.2f en %.2f lv %d face %d mode %d sel %d cx %.1f cy %.1f\n",
                cur_frame, p->x, p->y, p->gsp, p->vx, p->vy, p->ground, p->angle, p->state, p->hp, p->crystals, G.kills, p->an.anim, p->an.frame,
-               p->rot, p->energy, p->lives, p->face, G.mode, G.in_select);
+               p->rot, p->energy, p->lives, p->face, G.mode, G.in_select, G.camx, G.camy);
         if (csv) {
             char h[16]; int k = 0;
             const char *bn = "LRUDJXBS";
