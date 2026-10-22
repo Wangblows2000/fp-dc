@@ -105,8 +105,30 @@ void objects_update(void) {
         case OT_SPIKES:
             if (touch) { player_hurt(p, p->x - p->face); }
             break;
-        case OT_SPRING:
-            if (touch && p->vy >= 0) { player_spring(p, PHYS_SPRING); anim_restart(&o->an); }
+        case OT_SPRING: {
+            /* RV (spring_yellow_up): fires on the frame the feet reach the spring's top edge (untrimmed
+             * box) and puts them at top + 0.25 */
+            float top = by0 - 2;
+            if (!dead && !p->ground && p->vy >= 0 && px1 > bx0 && px0 < bx1 && p->y >= top && p->y - 30 < by1) {
+                player_spring(p, 0, PHYS_SPRING, top + 0.25f); anim_restart(&o->an);
+            }
+            break;
+        }
+        case OT_SPRING_UL: case OT_SPRING_UR:
+            /* RV (spring_yellow_upleft): same top-edge rule, feet put exactly on the top edge */
+            if (!dead && !p->ground && p->vy >= 0 && px1 > bx0 && px0 < bx1 && p->y >= by0 - 2 && p->y - 30 < by1) {
+                player_spring(p, o->type == OT_SPRING_UL ? -PHYS_SPRING_DX : PHYS_SPRING_DX, PHYS_SPRING_DY, by0 - 2);
+                anim_restart(&o->an);
+            }
+            break;
+        case OT_SPRING_R: case OT_SPRING_L:
+            /* pushes away from its wall when touched while moving into it. RV (spring_yellow_right): the
+             * original fires at X 6104.77 but not 6107.43 for a spring ending at 6088, so the player's
+             * half-width against it is 16.8..19.4 (18 used), not the +-7 body box */
+            if (!dead && p->x - 18 < bx1 + 2 && p->x + 18 > bx0 - 2 && py1 > by0 && py0 < by1 && (o->type == OT_SPRING_R ? (p->ground ? p->gsp : p->vx) <= 0 : (p->ground ? p->gsp : p->vx) >= 0)) {
+                player_spring_side(p, o->type == OT_SPRING_R ? PHYS_SPRING_GSP : -PHYS_SPRING_GSP);
+                anim_restart(&o->an);
+            }
             break;
         case OT_SIGN:
             if (!G.clear_t && !dead && p->x > o->x) G.clear_t = 1;

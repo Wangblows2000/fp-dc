@@ -150,7 +150,7 @@ static void sel_draw(void) {
 }
 
 /* ---- sounds: original Assets.dat sound IDs (Media::play_id, RUNTIME_MAP "Sound IDs") */
-static const int SND_IDS[] = { 4, 8, 9, 17, 21, 25, 26, 27, 28, 37, 53, 56, 63, 64, 81, 100, 174, 176, 288, 396, 405 };
+static const int SND_IDS[] = { 4, 5, 8, 9, 17, 21, 25, 26, 27, 28, 37, 53, 56, 63, 64, 81, 100, 174, 176, 288, 396, 405 };
 static int snd_handle[512];
 static const char *VOICES[] = { "lilac_attack0", "lilac_attack1", "lilac_attack2", "lilac_attack3", "lilac_uppercut0",
     "lilac_uppercut1", "lilac_uppercut2", "lilac_uppercut3", "lilac_cyclone1", "lilac_cyclone2", "lilac_hurt0",

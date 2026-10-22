@@ -70,15 +70,17 @@ extern void soft_dump(const char *path);
 void plat_quit(void) { printf("quit @%d\n", cur_frame); exit(0); }
 
 /* debug-route commands shared with tools/orig/trace_orig.py: "<f> TP x y" (original units: Y is the
- * reference point 14 px above the feet), "<f> EN v" energy, "<f> HP v" petals (half-petals) */
+ * reference point 14 px above the feet), "<f> EN v" energy, "<f> HP v" petals (half-petals);
+ * host only: "<f> HURT dx" a hit from x+dx, ignored while invulnerable (like an enemy contact) */
 typedef struct { int f; char k; float a, b; } dbg_t;
-static dbg_t dbg[32]; static int ndbg;
+static dbg_t dbg[256]; static int ndbg;
 static void apply_dbg(int f) {
     for (int i = 0; i < ndbg; i++) {
         if (dbg[i].f != f) continue;
         player_t *p = &G.p;
         if (dbg[i].k == 'T') { p->x = dbg[i].a; p->y = dbg[i].b + ORIG_REF_DY; p->ground = 0; p->vx = p->vy = p->gsp = 0; p->angle = p->angle_s = 0; }
         if (dbg[i].k == 'E') p->energy = dbg[i].a;
+        if (dbg[i].k == 'D' && !player_invincible(p)) player_hurt(p, p->x + dbg[i].a);   /* test hit from dx */
         if (dbg[i].k == 'H') p->hp = (int)dbg[i].a;
     }
 }
@@ -108,9 +110,10 @@ int main(int argc, char **argv) {
         while (fgets(line, sizeof line, f) && nscript < 512) {
             if (line[0] == '#') continue;
             float fx, fy; int ff;
-            if (sscanf(line, "%d TP %f %f", &ff, &fx, &fy) == 3 && ndbg < 32) { dbg[ndbg++] = (dbg_t){ ff, 'T', fx, fy }; continue; }
-            if (sscanf(line, "%d EN %f", &ff, &fx) == 2 && ndbg < 32) { dbg[ndbg++] = (dbg_t){ ff, 'E', fx, 0 }; continue; }
-            if (sscanf(line, "%d HP %f", &ff, &fx) == 2 && ndbg < 32) { dbg[ndbg++] = (dbg_t){ ff, 'H', fx, 0 }; continue; }
+            if (sscanf(line, "%d TP %f %f", &ff, &fx, &fy) == 3 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'T', fx, fy }; continue; }
+            if (sscanf(line, "%d EN %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'E', fx, 0 }; continue; }
+            if (sscanf(line, "%d HURT %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'D', fx, 0 }; continue; }
+            if (sscanf(line, "%d HP %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'H', fx, 0 }; continue; }
             if (sscanf(line, "%d %d %31s", &script[nscript].a, &script[nscript].b, btn) == 3)
                 script[nscript++].m = parse_btn(btn);
         }

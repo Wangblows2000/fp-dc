@@ -97,6 +97,7 @@ typedef struct { uint16_t type, anim; int32_t x, y; } lvobj_t;
 /* engine object types (tools/import_frame.py ENGINE_TYPES) */
 enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_PETAL = 6, OT_SPIKES = 7,
        OT_SPRING = 8, OT_SIGN = 9, OT_TURRETUS = 10, OT_ROCK = 11, OT_MONITOR = 12,
+       OT_SPRING_UL = 13, OT_SPRING_UR = 14, OT_SPRING_R = 15, OT_SPRING_L = 16,
        OT_PARALLAX = 20, OT_EXPLODE = 100 };
 
 #define MAX_ATLAS 4
@@ -129,6 +130,7 @@ typedef struct {
     int jumping, cyclone_used, boost_used, cyclone_ground_start, hurt_land_t;
     float energy, energy_drain;  /* RV energy meter 0..100 (boost needs 100) */
     int energy_init;
+    int springing, skidding, ctrl_lock;                 /* launched by a spring, until landing (spring anim while rising) */
     float rot;                   /* sprite angle, degrees CCW (original Active angle @+0xc4) */
     float boost_dx, boost_dy;
     float spawn_x, spawn_y;
@@ -185,7 +187,8 @@ int  player_attack_box(const player_t *p, float *x0, float *y0, float *x1, float
 int  player_invincible(const player_t *p);
 void player_hurt(player_t *p, float from_x);
 void player_bounce(player_t *p, float vy);
-void player_spring(player_t *p, float vy);
+void player_spring(player_t *p, float vx, float vy, float top);
+void player_spring_side(player_t *p, float gsp);
 void objects_spawn(void);
 void objects_update(void);
 void objects_draw(int front);
@@ -237,10 +240,14 @@ void text_draw(float x, float y, const char *s, uint32_t argb, int scale);
 #define PHYS_ENERGY_CRYSTAL 5.0f   /* RV: each crystal pickup adds 5 (petals add none) */
 #define CRYSTALS_PER_LIFE 200     /* RV: HUD crystal counter starts at 200 on a fresh file and counts down */
 #define LIVES_START     5          /* RV: fresh file shows 05 */
+#define PHYS_INVULN_T    60      /* post-hit invulnerability, RV upper bound 61 (estimate) */
 #define PHYS_HURT_VX    2.2f       /* RV: knockback speed away from the hazard */
 #define PHYS_HURT_VY    4.2f       /* RV: knockback rise */
 #define PHYS_HURT_GRAV  0.5f       /* RV: gravity during hurt knockback */
-#define PHYS_SPRING     11.0f      /* UNVERIFIED */
+#define PHYS_SPRING     10.75f     /* RV spring_yellow_up: vy -10.75 on contact, then normal gravity */
+#define PHYS_SPRING_DX  9.0f       /* RV spring_yellow_upleft: (-9, -8.75) */
+#define PHYS_SPRING_DY  8.75f
+#define PHYS_SPRING_GSP 10.0f      /* RV spring_yellow_right: ground speed 10 (no input lock) */
 #define ORIG_REF_DY     14.0f      /* RV: original's reference point is ~14 px above the feet */
 
 #endif
