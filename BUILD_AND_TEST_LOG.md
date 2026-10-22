@@ -41,3 +41,16 @@ Visual check: frames rendered by the software renderer (`build/run1/montage.png`
 
 ### mkdcdisc: PASS (built from source, meson/ninja, v0.0.4)
 ### Flycast: cloned (fa9d39a), configured with CMake/Ninja (GL, no Vulkan)
+
+## 2026-10-22 Session 1 (continued): Dreamcast toolchain proof
+
+- kos-chain finished (EXIT 0): `sh-elf-gcc (GCC) 15.2.0`.
+- KOS `make`: libkallisti.a built. utils/dcbumpgen first failed (`jpeglib.h` missing); fixed with `apt-get install libjpeg-dev`, then rebuilt to EXIT 0.
+- **KOS env ordering bug at commit 5f834c1:** `env/gcc/environ_toolchain.sh` composes `KOS_LDFLAGS` using `KOS_LD_SCRIPT` before
+  `env/gcc/environ_dreamcast.sh` defines it. As a result, no linker script/startup was used: "cannot find entry symbol start" and a 25 KB ELF (stock `hello` example affected too).
+  Workaround in `/opt/toolchains/dc/kos/environ.sh`: export `KOS_LD_SCRIPT=-T$KOS_BASE/utils/ldscripts/shlelf.xc` before sourcing environ_base.sh. `hello.elf` is then 2.0 MB / 1,218 symbols.
+- `source $KOS_BASE/environ.sh && make` → fpdc.elf, **0 warnings**. sh-elf-size: text 244,412, data 5,804, bss 80,104.
+- `make cdi` (mkdcdisc 0.0.4) → build/fpdc.cdi (740 MB: data-track padding is on by default).
+- **Flycast fa9d39a (Xvfb, llvmpipe, HLE BIOS): BOOTS.** Serial: `KallistiOS v2.3.0 [dreamcast/pristine]`. All assets load from /cd/data and the scene renders identically to the host build (build/fc_shot1_crop.png).
+  Perf sample at frame 600: update 132,822 µs (!), draw 868 µs, 301 polys, 121/600 slow frames. Suspect: music `snd_stream_poll` → blocking fread from CD inside the update timing window.
+  This is emulator timing; real hardware not tested.
