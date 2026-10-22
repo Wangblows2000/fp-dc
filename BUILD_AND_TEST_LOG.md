@@ -106,3 +106,30 @@ Evidence labels: **original-trace** (gdb trace of the running Linux original), *
 | snd_moves | B @f150 (2.000 vs 0.000) | suspected: landing 1 frame different after a cyclone |
 | spring_yellow_upleft | X @f61 (5338.311 vs 5361.000) | verified: hanging gimmick (M41) not implemented |
 | turretus_jumpinto | B @f60 (0.000 vs 0.664) | suspected: Turretus contact/bounce not implemented |
+
+## 2026-10-22/23 Session 4: recovering logic from the executable
+Labels: original-trace, host-test, emulator. Nothing hardware-validated.
+
+- **Tooling:** Ghidra 11.4.2 headless on an unanalysed import (`tools/re/decomp.sh`, ~10 s per function); gdb hardware watchpoints and `WHO` probes in the tracer; call graph and qualifier tools. Output stays in `build/re/` (never committed).
+- **Trace hygiene:** probes drained the original's petals and lives (globals that survive the stage restart), so eight re-recorded traces briefly started at 0 petals and showed deaths. The tracer now resets petals to 14 and lives to 5 at frame 0, and those eight were re-recorded from a fresh game. Two sequences that had "passed" before (turretus_jumpinto, turretus_landon) fail on the valid traces.
+- **Comparisons:** **57/70** (was 52 at the start of the session), **16/16 baseline**; strict **2524 / 10471 exact frames (24.1%)**, new ratchet `tests/orig/strict_baseline.txt` with no per-sequence regressions. Fixed this session: hurt_turretus, hurt_then_petal, hurt_boost_petal, snd_hurt_pickups, spring_yellow_upleft, dk_wind_then_cyc.
+- **Host tests:** gameplay **38/38** (new: turretus_pellet_hit, camera_snaps, camera_lookahead, hang_grab, max_fall_15_25); front end **9/9**; valgrind on the title→level cycles: 0 errors, 0 definitely lost.
+- **Exact matches (original-trace vs host-test):** Turretus D = 1 at row 162 and shot at row 187 (identical animation counter values); the pellet hit frame and knock-back velocities; 30/30 pellet positions (replayed PinballMovement model); camera after a teleport.
+- Animation agreement (`tools/orig/anim_match.py`): animation number 87%, number + frame 29%. The Chowdren counter rule is applied, but the jump animation frame is driven by vertical speed (not ported) and the intro shifts the idle phase.
+
+### Failing comparisons: first failing frame
+| Sequence | First out of tolerance (fpdc vs original) | Cause |
+|---|---|---|
+| boost_air_right | B @f100 (0.000 vs 12.000) | verified: landing angle routine (event 1590) not ported: N 29.74 vs ours 36.87 at f172 |
+| boost_upleft | B @f60 (0.000 vs -0.664) | suspected: start-slope angle (original 4.0856 deg = atan 1/14) |
+| dk_kick_cyc_hold | B @f134 (0.000 vs 1.386) | as dk_kick_then_cyc2 |
+| dk_kick_then_cyc | B @f100 (5.355 vs 4.844) | verified: ground angle at the jump (~352 deg in the original) differs |
+| dk_kick_then_cyc2 | B @f134 (0.000 vs 1.386) | suspected: friction stop timing on the slope (angle) |
+| dk_kick_then_cyc3 | B @f134 (0.000 vs 1.386) | as dk_kick_then_cyc2 |
+| energy_pickups_fullhp | X @f91 (80.715 vs 68.715) | suspected: boost fires one frame early after crystal pickups |
+| gc_run_down_jump | B @f142 (5.000 vs 5.074) | suspected: ground angle at the jump |
+| gcyc_steer_back | X @f125 (317.119 vs 322.482) | suspected: steering back during the grounded cyclone |
+| rot_run_left | Y @f50 (546.250 vs 353.739) | suspected: old script without TP (start position) |
+| snd_moves | B @f150 (2.000 vs 0.000) | suspected: landing one frame different after a cyclone |
+| turretus_jumpinto | B @f60 (0.000 vs 0.664) | suspected: landing/collision after the teleport below the rock (sensor system) |
+| turretus_landon | X @f50 (1200.681 vs 1233.000) | verified: the original pushes Lilac up out of the rock she is teleported into (loop_player01up/down push-out not ported) |

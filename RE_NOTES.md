@@ -50,3 +50,33 @@ Alterables at DV1 start: I −16, J 0, K −48, L 16, P 120, Q 64, R 96, X 213 (
 - **Look up / crouch H:** counter N (state M2, grounded, B = 0) or O (M3); after P = 120 frames H moves 2 per frame toward −R / +R; otherwise it returns to 0 by 2 per frame.
 - **Display offsets:** S = G + shake(Z), clamped so A + S stays within the bounds, and S = min(S, max(0, S − (A − X))) when S > 0 (mirror when S < 0). T is the same with H, B and Y.
 - **Display centre** (3539) = floor(A + S), floor(B + T); Z (shake) −0.1 per frame.
+
+## Lilac's movement block (frame 21 events ~1542-1940 + loop_player01* sensor loops)
+795 frame-21 events touch the movement object (PlayerMovementValues_253). Recovered so far:
+| Event | Rule |
+|---|---|
+| 1573 | a character constants table (this copy for another character: C 4.5, J 0.5; Lilac's values match the stage-start dump: C 5, D 15, E 0.07375, F 0.203125, H 15, I 0.25, J 0.84) |
+| 1574 | B, G, N **floored to 4 decimals** every frame (start of the block). Needs doubles: in float, -2.9 floors to -2.9001 |
+| 1577 | G = min(G, H) **before** gravity, so falling speed tops out at H + I = 15.25 |
+| 1584-1590 | sensor loops: wall collision, `loop_player01up` (air: Y += G, then up to 10 one-pixel steps out of a ceiling), `loop_player01down` (one-pixel push-out from the floor), edges, landing-angle detection (1590: N from `loop_player01detectangle` + `loop_toolsanglecalculator`; e.g. atan(4/7) = 29.74 deg) |
+| 1591 | landing: if V = 1, L = 0, G >= 0 and 22 < N < 338: B = B - G * J * sin(N) |
+| 1592 | landing: W = G, G = 0, L = 1, K = 1 |
+| 1603 | ground angle detection (different span from 1590; e.g. atan(1/14) = 4.0856 deg on the DV1 start slope) |
+| 1605-1607 | angle smoothing: O = fmod(O + (N - O) * max(0.175, abs(B) / D), 360) within 45 deg, else O = N |
+| 1610 | detach (no floor under the sensors): N = floor(N), G = -B sin(N), B = B cos(N), N = O = L = 0 |
+| 1621-1636 | ground acceleration / friction (constants are multiples of E) |
+| 1644 / 1646 | slope force with N in (35, 325) deg and state != 6: B -= 0.38 F sin(N) if 0 < abs(B) < C, B -= F sin(N) if abs(B) >= C |
+| 1647 | airborne: G += I |
+| 1648 | airborne, -4 < G < 0, abs(B) >= 0.125: B *= 0.96875 (a value read from PlayerActionValuesB) |
+| 1649 | airborne, G < 0, ceiling sensor: G = 0 |
+| 1651 | grounded: G = 0 |
+| 2015 | down-kick launch: B = 5 (facing), M = 0 |
+| 3047 | jump from the ground (B, G from N; jump 7) |
+
+**Sensors (RV positions relative to the movement object, airborne):** PlayerSensorTopBig_332 (11x11, hotspot 5,5) at (floor X, floor Y - 13); PlayerSensorTop_331 (9x9) at Y - 12; PlayerSensorBottomBig_334 (11x11) at Y + 13; also left/right/slope/main sensors (`loop_player01detectsensor*`). Ground contact is pixel overlap of these boxes with backgrounds or the **obstacle group** (QualifierList +0x218d8: bridge logs, the three yellow spring classes, ladder tops, LevelValleyPlatform1, LevelMovingPlatform2/3). So the landing reach is floor(feet) + 4. The angle routines (1590, 1603) and the push-out loops are **not ported yet**; they explain most remaining comparison differences (landing angle 29.74 vs our 36.87; start slope 4.0856 vs ~0.6; teleports into rock).
+
+## Handlebar (gimmickhangingidlesensor_674; events 4057-4066)
+4065: the top-big sensor overlaps the hang group (QualifierList +0x22040), G > 0, M != 9, controller B = 0 (Down not held): M = 41, X = sensor x, Y = sensor y + 32. 4062/4065 rewrite the position every frame; B becomes 0 the next frame while G keeps gaining gravity. Hang sensor image 50x15, hotspot (25, 0). Release and moving along the bar are in 4057-4064/4066 (with `Frame::test_ladder`): not read yet.
+
+## Results screen (DV4 / frame 24; located, not ported)
+Lists: LevelCardActClear1 +0x8bf0, LevelCardActClear2 +0x8c30, LevelCardBonus1-3 +0x8cb0/+0x8cf0/+0x8d30, TotalBonus +0x8d70, BossSerpentineHead +0x9070. Sequence events 4560-4589 + `loop_tally_19` + 5389/5395, driven by a controller timer (B, counts to 200): 140 HUD shifts up (`loop_gui_shiftup_14`), 150 music strings (`play_music`, `stop_music`) and counters, 180 clear-card animation, tally sub-states (A = 1, 2) with their own timers (120, 100), character voice lines (e.g. Milla's `yay` / `thatwasfun`), then (+150) records.dat save, Steam upload and the frame change. Loops are started by name through a hash table, so call graphs miss them: find them by string (`str_*` symbols) or by object-list offsets as above.
