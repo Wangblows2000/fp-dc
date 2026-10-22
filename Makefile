@@ -9,6 +9,10 @@ OBJS = src/platform/plat_dc.o src/renderer/render_pvr.o src/resources/assets.o \
        src/game/ui.o src/game/frontend.o
 
 FP_GAME ?= /mnt/user-data/uploads/Freedom Planet
+# BGM: music tracks put on the disc (default: the whole ADPCM library). Lean disc with only the
+# tracks the game plays now: make cdi BGM="$(addprefix converted2/bgm/,m_title.adp m_menu1.adp m_stage1.adp m_stage1b.adp m_clear.adp m_results.adp)" CDI=build/fpdc_lean.cdi
+BGM ?= $(DATA_DIR)/bgm/*.adp
+CDI ?= build/fpdc.cdi
 MKDCDISC ?= third_party/mkdcdisc/builddir/mkdcdisc
 
 all: $(TARGET)
@@ -42,14 +46,14 @@ build/disc/data: $(DATA_DIR)/levels.txt
 	# front end (ui scenes + banks + font), ADPCM music library (.adp), ADPCM sfx/voices
 	mkdir -p build/disc/data/ui build/disc/data/bgm build/disc/data/sfx
 	cp $(DATA_DIR)/ui/*.ui $(DATA_DIR)/ui/*.spr $(DATA_DIR)/ui/*.tex build/disc/data/ui/
-	cp $(DATA_DIR)/bgm/*.adp build/disc/data/bgm/
+	cp $(BGM) build/disc/data/bgm/
 	cp $(DATA_DIR)/sfx/*.wav build/disc/data/sfx/
 
 cdi: $(TARGET)
 	rm -rf build/disc
 	$(MAKE) build/disc/data
 	$(MKDCDISC) -e $(TARGET) -D build/disc -n "FREEDOM PLANET DC TEST" -a "fpdc" \
-	    -o build/fpdc.cdi --allow-overwrite --no-banner -N
+	    -o $(CDI) --allow-overwrite --no-banner -N
 
 host:
 	$(MAKE) -C host
