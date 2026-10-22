@@ -65,3 +65,5 @@ Visual check: frames rendered by the software renderer (`build/run1/montage.png`
 - Perf (Flycast): before the music thread, update spikes of 132.8 ms and 121/600 slow frames. After moving `snd_stream_poll` to a KOS thread: **update 70 µs, 10/600 slow frames (startup only)**.
 - Input: Flycast keyboard → port A works after `xdotool windowfocus --sync` + click; Lilac runs right under pad input (build/fc_in4c.png).
 - Original game: boots; jump to frame 20 loads DV geometry but the stage doesn't progress (menu state missing). **No physics measured from the original yet.**
+
+- **Incident:** commits 3947e7a/21eaf68 accidentally included converted game data (converted2/, .gitignore only covered converted/). Never published. Rewritten locally to e60ab9d, .gitignore now covers converted*/ and __pycache__, reflog expired and gc run. Verified the largest remaining git objects are source files.
