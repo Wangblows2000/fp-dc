@@ -73,3 +73,36 @@ Visual check: frames rendered by the software renderer (`build/run1/montage.png`
 - Host tests 16/16 (quarter-pipe and boost tests updated to the evidence; added boost_tap_nothing).
 - Frame identification: 70 frames screenshotted in the original via set_frame (game survived all jumps).
 - FP_DEBUG_SELECT: host (FP_SELECT=1) and **Flycast**: select DV3 → plays; pause → X → select DV4 → plays (VRAM reset + reload works). CDI 45 MB with DV1–DV4. Perf: draw paced at 16.6 ms, update ≤80 µs.
+
+## 2026-10-22 Session 3: Section 2 fixes, HUD, front end, audio, Section 6
+Evidence labels: **original-trace** (gdb trace of the running Linux original), **host-test** (fpdc host build, scripted), **emulator** (Flycast). Nothing here is hardware-validated.
+
+- Host gameplay tests: **33/33 PASS** (`python3 tests/test_gameplay.py`; new: grounded cyclone, cancels, boost 6 directions + left orientation, slope/air rotation, energy_starts_empty, invuln_window, spring_up_vy, spring_upleft_vel, spring_side_gsp).
+- Front-end tests: **9/9 PASS** (`python3 tests/test_frontend.py`: menus, dev select only by L+R within 2 s on the title, three title→level→title cycles with no stale state, music restarts per cycle; valgrind 0 errors / 0 definitely lost).
+- Comparisons (`tools/orig/cmp_all.sh`): **16/16 baseline**, **52/70 overall**. The comparator now skips the ±3 frames around mid-sequence teleports, and evaluates each segment between teleports separately (all must pass).
+- Fixes found by comparison this session: landing look-ahead (the original lands with ground up to 4 px below and snaps down: +2 passes); a landed boost keeps 10 (no friction on the landing frame: +2); springs (3 new sequences, 2 pass; the third diverges at the unimplemented hang gimmick); skid only on turning round; ceiling-contact frame.
+- Energy meter now starts empty (original-trace + hud_dv1.png); `energy_starts_empty` checks the first charge at frame 249.
+- DC: `make FP_DEBUG_SELECT=1` 0 warnings; `make cdi` → build/fpdc.cdi 348 MB (DV1–DV4, ui/, 67 ADPCM BGM, 60 sfx). The disc rule now copies ui/, bgm/ and sfx/.
+- **Emulator (Flycast):** press start → title menu → L+R → developer select → DV1 with HUD; title → file select ("Press START to begin a new game.", NORMAL) → options (Normal / 100 % / 70 %) → Time Attack → Dragon Valley stage select → STAGE 1 Dragon Valley card → level with HUD. Audio is not judged from screenshots. One run lost all key input (an Xvfb/focus race); restarting the display fixed it.
+
+### Failing comparisons: first failing frame
+| Sequence | First out of tolerance (fpdc vs original) | Cause |
+|---|---|---|
+| boost_air_right | B @f100 (0.000 vs 12.000) | verified: landing on a 38° up-slope at boost speed, f172 (gsp 7.897 vs 11.878); formula not recovered |
+| boost_upleft | B @f60 (0.000 vs -0.664) | suspected: pre-boost walk start differs by a frame |
+| dk_kick_cyc_hold | B @f134 (0.000 vs 1.386) | suspected: kick-phase speed decay (moving_frames off by ~3) |
+| dk_kick_then_cyc | B @f98 (5.000 vs 4.631) | suspected: kick-phase B (5.000 vs 4.631) |
+| dk_kick_then_cyc2 | B @f134 (0.000 vs 1.386) | as dk_kick_cyc_hold |
+| dk_kick_then_cyc3 | B @f134 (0.000 vs 1.386) | as dk_kick_cyc_hold |
+| dk_wind_then_cyc | B @f98 (5.000 vs 4.631) | as dk_kick_then_cyc |
+| energy_pickups_fullhp | X @f91 (80.715 vs 68.715) | suspected: boost fires one frame early after crystal pickups |
+| gc_run_down_jump | B @f142 (5.000 vs 5.074) | suspected: slope term during grounded cyclone (B 5.000 vs 5.074) |
+| gcyc_steer_back | X @f125 (317.147 vs 322.482) | suspected: steering back during grounded cyclone |
+| hurt_boost_petal | B @f188 (0.000 vs -2.200) | verified: Turretus shot not implemented |
+| hurt_then_petal | B @f188 (0.000 vs -2.200) | verified: Turretus shot not implemented |
+| hurt_turretus | B @f188 (0.000 vs -2.200) | verified: Turretus shot not implemented |
+| rot_run_left | Y @f50 (546.250 vs 353.739) | suspected: old script without TP, start position/terrain differs |
+| snd_hurt_pickups | B @f188 (0.000 vs -2.200) | verified: Turretus shot not implemented |
+| snd_moves | B @f150 (2.000 vs 0.000) | suspected: landing 1 frame different after a cyclone |
+| spring_yellow_upleft | X @f61 (5338.311 vs 5361.000) | verified: hanging gimmick (M41) not implemented |
+| turretus_jumpinto | B @f60 (0.000 vs 0.664) | suspected: Turretus contact/bounce not implemented |

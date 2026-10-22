@@ -1,19 +1,18 @@
-# TODO (priority order, prompt v3)
+# TODO (priority order)
 
-## Checkpoint 1 remainder
-- [ ] Trace damage/knockback and spring in the original; compare (`tests/orig/`)
-- [ ] Boost in six directions + air charge vs original
-- [ ] Energy meter: boost cost / recharge / shield rules from the original
-- [ ] Attack hitboxes from the original (sizes currently reconstructed)
-- [ ] Sprite rotation by ground angle
+## Gameplay evidence still missing
+- [ ] Turretus firing pattern / range (hurt_* sequences fail from the first shot)
+- [ ] Hanging gimmick (gimmickhangingidlesensor, M41) — spring_yellow_upleft fails at f61
+- [ ] Landing on a steep up-slope at boost speed (boost_air_right first failing frame f172: gsp 7.897 vs 11.878)
+- [ ] Down-kick/cyclone moving_frames (3-frame difference) and 1-frame late landings in dk_* sequences
+- [ ] Exact invulnerability length (needs a continuous-contact hazard)
+- [ ] DV1 pole-robot mini-boss (x ≈ 14400), Serpentine boss (DV4)
+- [ ] Original results screen after a boss (layout currently INFERRED)
 
-## Checkpoint 2
-- [ ] HUD from original graphics (reference docs/reference/hud_dv1.png): energy meter, petals (verify max), lives, crystals, timer mm:ss:cc
-- [ ] D-002: 4:3 crop vs 424-wide letterbox (decide in DECISIONS.md)
-- [ ] Title + options menus from the original frames (2, 3, 4, 13)
-- [ ] Music: 68 BGM, loop points (code or approximate), manifest, ADPCM vs libtremor measured
+## Front end / presentation
+- [ ] GALLERY; Carol/Milla
+- [ ] Card/transition timings from a higher-rate capture
 
-## Checkpoint 3
-- [ ] DV2–DV4 objects/enemies; checkpoints; boss
-- [ ] More stages through build_level.sh (dirs named in game.c SEL table)
+## Platform
 - [ ] Real-hardware test (CD-R / ODE)
+- [ ] Remove the FP_PROFILE overlay from release builds

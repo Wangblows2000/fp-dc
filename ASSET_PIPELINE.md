@@ -46,3 +46,20 @@ Object codes: 1 player start, 2 crystal, 3 hornet, 4 checkpoint, 5 goal.
 
 ## Per-level layout (2026-10-22, D-010)
 `tools/build_level.sh <on_frame_N> <name> converted2` → `converted2/<name>/{<name>.lv2, <name>_p*.tex, <name>_par*.tex, <name>_obj.*, lilac2.*, pal0-3.pal}` + `converted2/levels.txt`. Built: dv1 (frame 21), dv2 (22), dv3 (23), dv4 (24): 5.5 / 5.7 / 4.6 / 5.7 MB. `make cdi` copies every listed level to `/cd/data/<name>/`.
+
+## Front end, audio (2026-10-22, D-013/D-014; outputs gitignored)
+```sh
+G="/mnt/user-data/uploads/Freedom Planet/game"          # read-only copy of the user's install
+python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui title 3 4   # press start + hub
+python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui chsel 7      # character select
+python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui stsel 12     # Time Attack stage select
+python3 tools/import_font.py "$G/Data/font.bmp" converted2/ui                             # 8x20 original font
+python3 tools/audio/catalog.py "$G/Data/BGM" "$G/Data/voices" extracted/linux/audio build/audio/catalog.csv
+tools/audio/convert_bgm.sh "$G/Data/BGM" converted2/bgm          # 67 x .adp + bgm_manifest.csv
+tools/audio/convert_sfx.sh extracted/linux/audio "$G/Data/voices" converted2/sfx   # s<id>.wav + lilac_*.wav
+python3 tools/audio/adpcm_check.py <wav> <adp>                     # round-trip SNR (AICA-accurate decoder)
+```
+Re-running the UI commands reproduces `converted2/ui/` byte for byte (checked 2026-10-22).
+Note: the original's `on_frame_N` is `set_frame(N-1)` (DV1 = set_frame 20 = frame_21.json).
+
+Measured: BGM 67 files, 218.7 MB Ogg, 8,005.8 s → 256.2 MB ADPCM (32 kHz stereo). Voices 1,373 / 76.2 MB (Lilac's gameplay voices converted). SFX 475 / 18.7 MB / 917 s (traced IDs converted: 4 5 8 9 17 21 25 26 27 28 37 53 56 63 64 81 100 174 176 288 396 405). UI banks 5.1 MB.

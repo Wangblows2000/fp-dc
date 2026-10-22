@@ -1,15 +1,18 @@
-# Project Status (2026-10-22)
+# Project Status (2026-10-22, session 3)
 
 **Objective:** native Sega Dreamcast port of Freedom Planet, built from data and behaviour recovered from the user's Linux build.
 
-| Milestone (prompt v3) | State |
-|---|---|
-| Original playable + launch recorded | **Done**: headless, full window, real-menu route to DV1, frame jumps (`tools/orig/`) |
-| Player logic mapped | **Done** for movement, jump, attacks, uppercut, down kick, cyclone, boost, crouch/lookup, anim selection (RUNTIME_MAP.md) |
-| Comparison harness | **Done**: original trace + fpdc CSV + compare.py; **16/16 sequences pass** |
-| Divergence fixes 1–6 | **Done** for traced sequences; damage, spring, boost directions, energy meter still to trace |
-| Debug level select (FP_DEBUG_SELECT) | **Done**: verified frame indices/names; DV1–DV4 converted; Flycast-validated |
-| Checkpoint 2 (front end, HUD, music) | Not started |
-| Checkpoint 3 (objects, enemies, levels) | DV1 objects partly (Turretus, Dragonfly, crystals, petals, spikes, springs, sign) |
-
-Labels: movement/attacks = original-trace vs host-test; level select/reload = emulator. Not yet tested on hardware.
+| Area | State | Evidence label |
+|---|---|---|
+| Original playable + traced | Done: headless, menu route, frame jumps, tracer with sound + HUD-counter logging | — |
+| Movement / move set | Done: incl. grounded cyclone, cyclone ↔ down-kick cancels, crouch kick, 6-direction boost + orientation, slope/air rotation, skid/turn rule | original-trace vs host-test |
+| Energy / petals / lives / crystals | Done (meter starts empty, 0.4/f refill, 3/f drain, +5 crystal; no boost cooldown) | original-trace |
+| Damage / invulnerability | Hurt done; invulnerability 60 f (upper bound 61, estimate) | original-trace (bound) |
+| Springs | Done: vertical, diagonal, wall springs | original-trace vs host-test |
+| HUD | Done from original graphics at RV positions (426×240, D-012) | host-test + emulator |
+| Front end | Done: press start, title, file select, options, character select, Time Attack stage select, transitions, original strings/sounds/music | host-test + emulator |
+| Stage card / pause / results | Done; results layout INFERRED | host-test + emulator |
+| Music + sound library | Done: 67 BGM as ADPCM streams, 60 sfx/voices; catalogue of 68/1,373/475 | host-test + emulator |
+| Comparisons | 16/16 baseline; 46/71 overall | original-trace vs host-test |
+| Enemies beyond Turretus/Dragonfly, hang gimmicks, mini-boss, boss | Not done | — |
+| Real hardware | **Not tested** | — |

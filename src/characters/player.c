@@ -76,6 +76,7 @@ void player_hurt(player_t *p, float from_x) {
 }
 
 static float fric_step(float g);
+#define LAND_REACH 4.f
 
 void player_bounce(player_t *p, float vy) { if (!p->ground && p->vy > 0) p->vy = vy; }
 
@@ -333,7 +334,7 @@ static void air_move(player_t *p, const input_t *in, int control, float grav) {
             break;
         }
         p->x = nx;
-        if (p->vy >= 0 && probe2(p->x, p->y - STEP_UP, STEP_UP, 0, &sy, &ang) && sy <= p->y) { land(p, sy, ang); ground_speed_update(p, in, control); return; }
+        if (p->vy >= 0 && probe2(p->x, p->y - STEP_UP, STEP_UP, 0, &sy, &ang) && sy <= p->y) { land(p, sy, ang); if (p->state != ST_BOOST) ground_speed_update(p, in, control); return; }
     }
     n = (int)(fabsf(p->vy) / 4.f) + 1;
     for (int i = 0; i < n; i++) {
@@ -348,7 +349,10 @@ static void air_move(player_t *p, const input_t *in, int control, float grav) {
                 p->vy = 0; air_speed_update(p, in, control, 0); return;
             }
         } else {
-            if (probe2(p->x, p->y - 2, (ny - p->y) + 3, 1, &sy, &ang) && sy <= ny + 1) { land(p, sy, ang); ground_speed_update(p, in, control); return; }
+            /* RV (landing snaps in 20+ traces: +2..+3.99 px): on the last step the original lands when the
+             * ground is up to LAND_REACH px below the feet and snaps down to it */
+            float reach = (i == n - 1) ? LAND_REACH : 1.f;
+            if (probe2(p->x, p->y - 2, (ny - p->y) + 2 + reach, 1, &sy, &ang) && sy <= ny + reach) { land(p, sy, ang); if (p->state != ST_BOOST) ground_speed_update(p, in, control); return; }
             p->y = ny;
         }
     }

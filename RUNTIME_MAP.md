@@ -85,15 +85,18 @@ Tags: **RV** = runtime-verified (traced in the running game) · **SD** = static-
 | Air attack | x in air | M20 / 25 | 22 frames; physics unchanged |
 | Uppercut | Up + x on ground | M21 / 28 | stands 10 frames, then vx = 2·facing, vy = −7; state ends ~39 frames after start; jump cut does not apply |
 | High uppercut | Up + x + z together | M21 / 28 | jumps during the 10-frame windup, then vy is reset to −7 (rises ~160 px total) |
-| Down kick | Down + x in air | M19 / 7, then M0 / 19 | windup 15 frames at gravity 0.125, then vx = 5·facing, vy = +3.875, normal gravity until landing |
-| Dragon Cyclone | z again in the air | M26 / 18 | vy = −3, gravity 0.1 **until landing** (releasing z does not end it; ran 78 frames in the trace) |
-| Dragon Boost | hold c | M5 / 7, then M5 / 13 | a tap does nothing. Holding: 30-frame charge with speed frozen (2.5807 kept while running), then auto-fires: B = 12, held constant on flat (slope force still applies: 12 → 12.82 down a 45° slope) for 33 frames, then normal friction from the carried speed |
+| Crouch kick | Down + x on ground, stopped | M? / 30 | 18 frames |
+| Down kick | Down + x in air | M19 / 7, then M0 / 19 | windup 15 frames at gravity 0.125 (jump ignored), then vy += 5, vx = 5·facing, normal gravity until landing. From the kick phase a Dragon Cyclone is allowed if not yet used this airtime |
+| Dragon Cyclone (air) | z again in the air | M26 / 18 | vy = −3 (0 if Down held), gravity 0.1 (0.25 with Down); lasts **79 frames**, landing does not end it; once per airtime; can be cancelled into a down kick |
+| Dragon Cyclone (ground) | Down + x while moving (gsp ≠ 0) | M26 / 18 | 79 frames with normal ground physics and steering; jump during it → vy −4.9 |
+| Action entry | — | — | on the frame an action starts, the old state's physics run first, then the state switches ("move-then-switch") |
+| Dragon Boost | hold c with a FULL meter | M5 / 7, then M5 / 13 | a tap does nothing; needs energy = 100. Holding: 30-frame charge (speed frozen; in the air one move frame, then hover), then auto-fires for 33 frames: straight 12, diagonals (±8, ±8); Up/Down alone give the facing-side diagonal; a down-diagonal boost that lands continues on the ground at 10. Slope force still applies. Sprite angle = direction of travel; left-facing boosts use the dir-16 frames rotated 180° |
 
 ## Animation selection (playerskinsash_341, RV indices)
-idle 0 · walk 1 (0 < |B| < 5) · run 2 (5 ≤ |B| < 9.5) · fastrun 22 (≥ 9.5) · jump 24 · skid 17 · lookup 11 · crouch 10 · attack 26 · airatk 25 · uppercut 28 · charge / down-kick windup 7 · down kick 19 · cyclone 18 · boost 13 · hurt 16 · defeat 38. Walk/run playback speeds are fitted (≈30 and ≈35+|B|), not read from code.
+idle 0 · walk 1 (0 < |B| < 5) · run 2 (5 ≤ |B| < 9.5) · fastrun 22 (≥ 9.5) · jump 24 · skid 17 · lookup 11 · crouch 10 · attack 26 · airatk 25 · uppercut 28 · charge / down-kick windup 7 · down kick 19 · cyclone 18 · boost 13 · hurt 16 · defeat 38 · crouch kick 30 · spring 14. Walk/run playback speeds are fitted (≈30 and ≈35+|B|), not read from code.
 
 ## Comparison harness
-`tools/orig/run_all.sh` traces every `tests/orig/*.txt` in the original; `tools/orig/cmp_all.sh` runs the same inputs in the fpdc host build and checks key outcomes (apex, top speed, time to top, airtime, distance, stop timing). **16 / 16 sequences pass** (host-test vs original-trace).
+`tools/orig/run_all.sh` traces every `tests/orig/*.txt` in the original; `tools/orig/cmp_all.sh` runs the same inputs in the fpdc host build and checks key outcomes (apex, top speed, time to top, airtime, distance, stop timing). The **16 baseline sequences pass** (host-test vs original-trace); 46 of 71 sequences pass overall (see BUILD_AND_TEST_LOG for the failing ones and their first failing frames).
 
 ## Frame index table (RV: title card after `set_frame(N)` in the running original, `tools/orig/goto_frame.sh`)
 `N` = "Setting frame: N" = `Frames::on_frame_(N+1)_init` = `build/frames/frame_(N+1).json`. Stage numbers on the cards depend on the character route, so only names are recorded. Screenshots: `build/orig/sel_N.png`.
@@ -109,3 +112,54 @@ idle 0 · walk 1 (0 < |B| < 5) · run 2 (5 ≤ |B| < 9.5) · fastrun 22 (≥ 9.5
 | 35–38 | Sky Battalion (4) | 75–82 | story/scene rooms (dialogue) |
 | 39–43 | Jade Creek (5) | 0–12, 83–86 | intro, menus, file select, map, credits (see `build/frame_summary.txt`) |
 Note: after a few jumps between frames the original swapped the playable character (Milla/Carol appear on later cards): the character is a global, not part of the frame.
+
+## Energy meter, petals, lives, crystals (RV; GUIEnergy_127 alt A, counters at +0xa0 / max +0xac)
+- Meter 0..100. **Starts empty at every stage/act start** and refills **0.4/frame** (250 frames). Boost needs 100; drains **3/frame** while boosting (paused during the 4-frame enemy hitstop).
+- Crystal +5 energy (enemy-drop crystal +10; the meter can briefly read 110). Petals heal one half-petal, add no energy, do nothing at full health.
+- **No 8-second boost cooldown exists, and petals do not shorten one.** The boost is gated only by the meter (prompt §2C discrepancy).
+- Petal counter max 14 half-petals (7 petals). Crystal counter counts DOWN from 200 (200 = a life). Lives start at 5.
+
+## Damage and invulnerability (RV)
+- Hurt: vx = −2.2·(away), vy = −4.2, gravity 0.5, state M8 for 22 frames (skin alt O counts 1..22). Turretus shot = 2 half-petals. Hurt sounds 17/25 (+ voice).
+- Post-hit invulnerability: **≤ 61 frames** (re-hurt 61 frames after a hit in `boost_upright` while standing in contact). No countdown alterable exists on the movement/skin objects (`tests/orig_probe/invuln_retouch.txt`); fpdc uses 60.
+
+## Springs (RV, DV1 = on_frame_21; traces `tests/orig/spring_*.txt`)
+| Spring | Effect |
+|---|---|
+| yellowspringup (32×16) | fires on the frame the feet reach its top edge; feet put at top + 0.25; vy = −10.75 (vx kept); state M40, skin anim 14 while rising, then the fall anim; normal gravity; lands back on it → same bounce |
+| yellowspringupleft/right (32×32) | same top-edge rule (feet exactly on the top); (∓9 / ±9, −8.75); normal air drag below |vy| 4 |
+| yellowspringright/left (16×32, on walls) | ground speed ±10, and that frame's friction already applied (9.63125); **input ignored for 4 more frames**; player half-width against it 16.8–19.4 (not the ±7 body box) |
+Spring sound id 5 (played on contact).
+
+## Skid / turning rule (RV, `skid`, `spring_yellow_right`)
+Input against the motion: if it turns Lilac round, that frame is friction (5E / 9E) + acceleration toward the input, and the skid state starts next frame (−0.5/frame, anim 17, until stopped). If she already faces the input (e.g. thrown backwards by a spring), there is no skid, just friction + acceleration every frame (6E above speed 2, ×9 rules below).
+
+## Landing (RV, landing snaps in 20+ traces)
+On the last vertical step of a falling frame the original lands when the ground is up to 4 px below the feet, and snaps down to it (+2…+3.99 px observed). A boost that lands keeps its speed: no friction step on the landing frame.
+
+## Ceiling (RV, `spring_yellow_upleft` f52)
+On the frame the head reaches a ceiling, vy becomes 0 at once (no gravity that frame; air drag still applies).
+
+## Sound IDs (Media::play_id 0xa4e650 / play(string) 0xa4e2c0, logged by the tracer to `<trace>.snd`)
+8 jump · 9 boost charge · 53 boost fire · 21 attack swing (7 frames in) · 288 + 174 cyclone · 405 kick windup · 176 + 396 kick launch · 17/25/81 hurt · 28 Turretus shot · 5 spring · 27 crystal pickup · 4 pickup (ambiguous) · 100 Press Start · 64 menu move · 63 confirm · 56 begin.
+
+## Music (RV: `loop_play_music_<n>_<frame>` / `on_frame_N` handlers)
+m_title (title frames) · m_menu1 (character / stage select) · m_stage1 (DV frame 20) · m_stage1b (21–22) · m_boss (23) · m_clear → m_results (results, Time Attack trace: m_clear at act end, m_results 150 frames later). BGM loops whole-file: ChowdrenAudio has no loop points (SD). `m_stage2a.ogg` is referenced but absent in this build.
+
+## Front end (RV positions in the original frames; 426×240 view)
+- Index 2 = Press Start (camera 107,0). Index 3 = 1440×480 hub: title menu camera (43,0), file select (43,240), options (523,0). Index 6 = character select, 11 = Time Attack stage select (camera 107,0).
+- Title cursor x 138, rows y 131/151/171/191/211 (START GAME, TIME ATTACK, GALLERY, OPTIONS, QUIT).
+- File select: cursor x 170 at y 160/184/216; slots centred at 213, 120 px pitch, wrapping; hint box fileback frame 0 at (93,16), text at (101,24)/(101,44), wrapped at 26 chars. Strings: "Press START to begin a new game.", "Press LEFT or RIGHT to adjust the DIFFICULTY.", "Select RETURN to pick another file slot.".
+- Options: cursor x 90 at y 72/128/160/184, OKAY x 170 y 216; values right-aligned (last digit x 337, y 120 music / 176 sensitivity, 14 px pitch). Difficulty dirs 0 HARD, 1 NORMAL, 2 EASY, 3 CASUAL. Defaults Normal, music 100 %, sensitivity 70 %.
+- Footer " A: Select ... B: Return". Font Data/font.bmp, 8×20 cells. Transition: 32 px tiles shrinking over 6 frames (stagger INFERRED).
+- Stage select: stagename_138 / stageicon1_139 frames 0 Aqua Tunnel, 1 Dragon Valley, 2 Relic Maze, 3 Fortune Night.
+- Developer level select (port-only): **only** L+R within 2 s on the title screen (Press Start or title menu).
+
+## HUD (RV template match on docs/reference/hud_dv1.png, 426×240)
+Meter frame 3784 at (8,8); fill 7439 at (16,10) scaled by energy/100 and drawn on top; red end cap 12760 at low health; shine loop (guienergy anim 1) when full. Petals guirings frame = hp at (8,19). Lives icon 311 at (128,8), digits x 144/154. Crystal digits x 176/186/196. Clock 4564 at (322,0); timer digits 343/353, 369/379, 395/405 at y 8 (mm:ss:cc).
+
+## Stage card, pause, results
+- Card: STAGE text final y 159, name y 185, centred x 213 (10 fps capture; rise/fade timings approximate).
+- Pause images: 5502 (Resume/Quit), 6685 (Resume/Restart/Quit), 1553 (Restart greyed). Cursor marker INFERRED.
+- Act transition DV1 → DV2: fade + card, no results, timer continues.
+- Results assets: 8005 "Stage Complete!" (320×48; build-in from levelcardactclear1 anim 7), 955 "Results" banner, 10860 panel (180×48), 10837 rows (148×40: crystal icon, TIME, colons), totalbonus digits 2794…, small digits 1922…. **Layout INFERRED**: the original's post-boss results were not observed (killing the Serpentine via memory failed, time-boxed).
