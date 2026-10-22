@@ -10,7 +10,7 @@
    {"name": "charge",  "frames": [5665, 5666, 5667, 5668], "speed": 2},
    {"name": "boost",   "frames": [5670, 5671, 5673, 5671], "speed": 2},
    {"name": "hurt",    "frames": [5644, 5646], "speed": 6},
-   {"name": "fall",    "frames": [5592, 5593], "speed": 6}
+   {"name": "fall",    "frames": [5584], "speed": 60}
   ]},
   {"name": "objs", "anims": [
    {"name": "hornet",  "frames": [12600, 12601, 12602, 12601], "speed": 3},
