@@ -16,7 +16,12 @@
 #define OFF_Y 60.0f
 #endif
 
-static struct { pvr_ptr_t ptr; pvr_poly_hdr_t hdr; int w, h; } texs[MAXTEX];
+static struct { pvr_ptr_t ptr; pvr_poly_hdr_t hdr, hdr_tr; int w, h; } texs[MAXTEX];
+/* Fades: r_fade() queues a translucent black quad; everything drawn after it in the same frame is
+ * deferred and replayed in the translucent list on top of the fade (PVR lists are submitted once). */
+typedef struct { int kind; const tex_t *t; int u, v, uw, vh, flip; float a[8]; uint32_t argb; } dcmd_t;
+static dcmd_t dq[192]; static int ndq, overlay, in_tr;
+static pvr_poly_hdr_t col_hdr_tr;
 static int ntex;
 static pvr_poly_hdr_t col_hdr;
 static int cur_hdr;           /* -2 none, -1 colour, >=0 texture */
@@ -25,7 +30,7 @@ uint32_t r_stat_polys;
 
 int r_init(void) {
     pvr_init_params_t params = {
-        .opb_sizes = { PVR_BINSIZE_16, PVR_BINSIZE_0, PVR_BINSIZE_0, PVR_BINSIZE_0, PVR_BINSIZE_16 },
+        .opb_sizes = { PVR_BINSIZE_16, PVR_BINSIZE_0, PVR_BINSIZE_16, PVR_BINSIZE_0, PVR_BINSIZE_16 },
         .vertex_buf_size = 512 * 1024,
         .dma_enabled = 0,
         .fsaa_enabled = 0,
@@ -39,6 +44,10 @@ int r_init(void) {
     cxt.depth.comparison = PVR_DEPTHCMP_GEQUAL;
     cxt.gen.culling = PVR_CULLING_NONE;
     pvr_poly_compile(&col_hdr, &cxt);
+    pvr_poly_cxt_col(&cxt, PVR_LIST_TR_POLY);
+    cxt.depth.comparison = PVR_DEPTHCMP_GEQUAL;
+    cxt.gen.culling = PVR_CULLING_NONE;
+    pvr_poly_compile(&col_hdr_tr, &cxt);
     return 0;
 }
 
@@ -67,6 +76,11 @@ int r_tex_load(tex_t *t, const void *data, size_t size) {
     cxt.gen.culling = PVR_CULLING_NONE;
     cxt.txr.env = PVR_TXRENV_MODULATE;
     pvr_poly_compile(&texs[ntex].hdr, &cxt);
+    pvr_poly_cxt_txr(&cxt, PVR_LIST_TR_POLY, txfmt, w, h, p, PVR_FILTER_NONE);
+    cxt.depth.comparison = PVR_DEPTHCMP_GEQUAL;
+    cxt.gen.culling = PVR_CULLING_NONE;
+    cxt.txr.env = PVR_TXRENV_MODULATE;
+    pvr_poly_compile(&texs[ntex].hdr_tr, &cxt);
     texs[ntex].ptr = p; texs[ntex].w = w; texs[ntex].h = h;
     t->id = ntex++; t->w = w; t->h = h; t->srcw = hdr[3]; t->srch = hdr[4];
     return 0;
@@ -94,12 +108,28 @@ void r_begin(void) {
     cur_hdr = -2;
     zc = 1.0f;
     r_stat_polys = 0;
+    ndq = 0; overlay = 0; in_tr = 0;
 }
 
+static void replay(void);
 void r_end(void) {
     pvr_list_finish();
+    if (ndq) {
+        pvr_list_begin(PVR_LIST_TR_POLY);
+        in_tr = 1; cur_hdr = -2;
+        replay();
+        pvr_list_finish();
+    }
     pvr_scene_finish();
 }
+
+void r_fade(float alpha) {
+    if (alpha <= 0) return;
+    if (alpha > 1) alpha = 1;
+    if (ndq < 192) { dcmd_t *c = &dq[ndq++]; c->kind = 2; c->argb = ((uint32_t)(alpha * 255) << 24); }
+    overlay = 1;
+}
+#define HDR(i) (in_tr ? &texs[i].hdr_tr : &texs[i].hdr)
 
 static inline void quad(float x0, float y0, float x1, float y1,
                         float u0, float v0, float u1, float v1, uint32_t argb) {
@@ -117,8 +147,12 @@ static inline void quad(float x0, float y0, float x1, float y1,
 
 void r_sprite(const tex_t *t, int u, int v, int uw, int vh, float x, float y, float w, float h, int flip, uint32_t argb) {
     if (t->id < 0 || t->id >= ntex) return;
+    if (overlay && !in_tr) {
+        if (ndq < 192) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 0, t, u, v, uw, vh, flip, { x, y, w, h }, argb }; }
+        return;
+    }
     if (x + w < 0 || y + h < 0 || x >= SCREEN_W || y >= SCREEN_H) return;
-    if (cur_hdr != t->id) { pvr_prim(&texs[t->id].hdr, sizeof(pvr_poly_hdr_t)); cur_hdr = t->id; }
+    if (cur_hdr != t->id) { pvr_prim(HDR(t->id), sizeof(pvr_poly_hdr_t)); cur_hdr = t->id; }
     float iw = 1.0f / texs[t->id].w, ih = 1.0f / texs[t->id].h;
     float u0 = u * iw, u1 = (u + uw) * iw, v0 = v * ih, v1 = (v + vh) * ih;
     if (flip) { float tmp = u0; u0 = u1; u1 = tmp; }
@@ -130,9 +164,13 @@ void r_sprite(const tex_t *t, int u, int v, int uw, int vh, float x, float y, fl
 void r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float py, float hx, float hy,
                   float angle, uint32_t argb) {
     if (t->id < 0 || t->id >= ntex) return;
+    if (overlay && !in_tr) {
+        if (ndq < 192) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 1, t, u, v, uw, vh, 0, { px, py, hx, hy, angle }, argb }; }
+        return;
+    }
     float r = (uw > vh ? uw : vh) * 1.5f;
     if (px + r < 0 || py + r < 0 || px - r >= SCREEN_W || py - r >= SCREEN_H) return;
-    if (cur_hdr != t->id) { pvr_prim(&texs[t->id].hdr, sizeof(pvr_poly_hdr_t)); cur_hdr = t->id; }
+    if (cur_hdr != t->id) { pvr_prim(HDR(t->id), sizeof(pvr_poly_hdr_t)); cur_hdr = t->id; }
     float iw = 1.0f / texs[t->id].w, ih = 1.0f / texs[t->id].h;
     float u0 = u * iw, u1 = (u + uw) * iw, v0 = v * ih, v1 = (v + vh) * ih;
     float a = angle * 0.017453293f, c = fcos(a), sn = fsin(a);
@@ -153,6 +191,25 @@ void r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float 
 
 void r_rect(float x, float y, float w, float h, uint32_t argb) {
     if (x + w < 0 || y + h < 0 || x >= SCREEN_W || y >= SCREEN_H) return;
-    if (cur_hdr != -1) { pvr_prim(&col_hdr, sizeof col_hdr); cur_hdr = -1; }
+    if (overlay && !in_tr) {
+        if (ndq < 192) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 3, NULL, 0, 0, 0, 0, 0, { x, y, w, h }, argb }; }
+        return;
+    }
+    if (cur_hdr != -1) { pvr_prim(in_tr ? &col_hdr_tr : &col_hdr, sizeof col_hdr); cur_hdr = -1; }
     quad(x * SCALE + OFF_X, y * SCALE + OFF_Y, (x + w) * SCALE + OFF_X, (y + h) * SCALE + OFF_Y, 0, 0, 0, 0, argb | 0xff000000);
+}
+
+static void replay(void) {
+    for (int i = 0; i < ndq; i++) {
+        dcmd_t *c = &dq[i];
+        switch (c->kind) {
+        case 0: r_sprite(c->t, c->u, c->v, c->uw, c->vh, c->a[0], c->a[1], c->a[2], c->a[3], c->flip, c->argb); break;
+        case 1: r_sprite_rot(c->t, c->u, c->v, c->uw, c->vh, c->a[0], c->a[1], c->a[2], c->a[3], c->a[4], c->argb); break;
+        case 2:   /* fade: translucent black over the whole display (incl. letterbox) */
+            if (cur_hdr != -1) { pvr_prim(&col_hdr_tr, sizeof col_hdr_tr); cur_hdr = -1; }
+            quad(0, 0, 640, 480, 0, 0, 0, 0, c->argb);
+            break;
+        case 3: r_rect(c->a[0], c->a[1], c->a[2], c->a[3], c->argb); break;
+        }
+    }
 }
