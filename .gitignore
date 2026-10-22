@@ -19,3 +19,4 @@ third_party/flycast/
 third_party/mkdcdisc/
 __pycache__/
 *.pyc
+docs/reference/

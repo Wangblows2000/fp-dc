@@ -92,6 +92,18 @@ int main(int argc, char **argv) {
     r_init();
     snd_init_fp();
     if (game_init() < 0) return 2;
+    /* comparison harness: FP_SPAWN_X overrides the spawn x (original Lilac starts at 68.715 after
+     * the intro); FP_CSV writes rows in the original trace's columns/units (tools/orig/compare.py) */
+    const char *sx = getenv("FP_SPAWN_X");
+    if (sx) {
+        float y, a;
+        G.p.spawn_x = (float)atof(sx);
+        if (floor_probe(&G.lvl, G.p.spawn_x, G.p.spawn_y - 64, 200, 1, &y, &a)) G.p.spawn_y = y;
+        player_reset(&G.p, G.p.spawn_x, G.p.spawn_y);
+        camera_update();
+    }
+    FILE *csv = getenv("FP_CSV") ? fopen(getenv("FP_CSV"), "w") : NULL;
+    if (csv) fprintf(csv, "frame,held,X,Y,B,G,L,Q,state,anim,afr\n");
     input_t in;
     for (cur_frame = 0; cur_frame < frames; cur_frame++) {
         plat_poll_input(&in);
@@ -99,6 +111,15 @@ int main(int argc, char **argv) {
         const player_t *p = &G.p;
         printf("f %d x %.2f y %.2f gsp %.3f vx %.3f vy %.3f gnd %d ang %.3f st %d hp %d cr %d k %d an %d fr %d\n",
                cur_frame, p->x, p->y, p->gsp, p->vx, p->vy, p->ground, p->angle, p->state, p->hp, p->crystals, G.kills, p->an.anim, p->an.frame);
+        if (csv) {
+            char h[16]; int k = 0;
+            const char *bn = "LRUDJXBS";
+            for (int b = 0; b < 8; b++) if (in.held & (1u << (b < 4 ? b : b))) h[k++] = bn[b];
+            h[k] = 0;
+            /* original units: B = ground speed (ground) or x speed (air); G = y speed in air; Y = feet - 14 */
+            fprintf(csv, "%d,%s,%.4f,%.4f,%.5f,%.5f,%d,%d,%d,%d,%d\n", cur_frame, k ? h : "-", p->x, p->y - ORIG_REF_DY,
+                    p->ground ? p->gsp : p->vx, p->ground ? 0.f : p->vy, p->ground, p->face, p->state, p->an.anim, p->an.frame);
+        }
         if (dump && cur_frame % every == 0) {
             game_draw();
             char path[512];
