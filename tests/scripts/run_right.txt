@@ -1,0 +1,9 @@
+# stand 30, run right through slopes, jump over pit, attack
+30 900 R
+200 215 J
+330 345 J
+520 540 J
+560 575 J
+600 605 X
+700 715 J
+720 723 J
