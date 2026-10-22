@@ -69,7 +69,7 @@ void objects_update(void) {
             float hx0 = o->x - 12, hx1 = o->x + 12, hy0 = o->y - 22, hy1 = o->y;
             if (dead) break;
             if (atk && overlap(ax0, ay0, ax1, ay1, hx0, hy0, hx1, hy1)) {
-                o->alive = 0;
+                o->alive = 0; G.kills++;
                 explode(o->x, o->y);
                 if (!p->ground && p->vy > 0) p->vy = -4.f;   /* bounce off */
                 break;

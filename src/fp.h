@@ -139,6 +139,7 @@ typedef struct {
     int frame;
     int clear_t;
     int paused;
+    int kills;
     struct { int jump, crystal, hit, explode, attack, hurt, boost; } sfx;
     /* stats for profiling */
     uint32_t prof_update_us, prof_draw_us;
