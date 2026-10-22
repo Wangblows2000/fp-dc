@@ -11,6 +11,7 @@
 - [ ] Turretus hit by attack (events 4776/4777), pellet destroy handlers (col_7_20, col_20_20)
 - [ ] Jump animation frame chosen by vertical speed (animation agreement 29%)
 - [ ] Parallax layer offsets (backgrounds differ from the original at the DV1 start)
+- [ ] 1 px vertical seam seen in Flycast near screen x 240 in DV1 (tile edge under the 1.5x scale?)
 
 ## Front end / presentation
 - [ ] GALLERY; Carol/Milla
