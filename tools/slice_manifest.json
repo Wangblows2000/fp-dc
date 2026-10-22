@@ -1,0 +1,25 @@
+{
+ "_comment": "Image/sound ids are indices into the fp-assets extraction of Assets.dat md5 4085c983fb918703ce459f17f69c474c (Windows v1.21.5). Animation frame ORDER and SFX choices are UNVERIFIED picks (archive has no names/animation tables). Edit and re-run tools/convert.py.",
+ "banks": [
+  {"name": "lilac", "anims": [
+   {"name": "idle",    "frames": [5519, 5520, 5521, 5522], "speed": 10},
+   {"name": "run",     "frames": [5628, 5629, 5630, 5632, 5633, 5634, 5635, 5591], "speed": 4},
+   {"name": "spin",    "frames": [5648, 5650, 5651, 5653, 5654, 5656, 5657], "speed": 2},
+   {"name": "cyclone", "frames": [5655, 5658, 5659, 5660, 5661, 5662, 5663, 5664], "speed": 2},
+   {"name": "attack",  "frames": [5631, 5638, 5638], "speed": 5, "loop": false},
+   {"name": "charge",  "frames": [5665, 5666, 5667, 5668], "speed": 2},
+   {"name": "boost",   "frames": [5670, 5671, 5673, 5671], "speed": 2},
+   {"name": "hurt",    "frames": [5644, 5646], "speed": 6},
+   {"name": "fall",    "frames": [5592, 5593], "speed": 6}
+  ]},
+  {"name": "objs", "anims": [
+   {"name": "hornet",  "frames": [12600, 12601, 12602, 12601], "speed": 3},
+   {"name": "explode", "frames": [360, 363, 364, 365], "speed": 4, "loop": false},
+   {"name": "crystal", "frames": [47], "speed": 60}
+  ]}
+ ],
+ "textures": {"sky": 3032, "mount": 3034, "forest": 3036, "rock": 9, "log": 2},
+ "sfx": {"jump": 33, "crystal": 15, "hit": 45, "explode": 8, "attack": 26, "hurt": 21, "boost": 52},
+ "music": {"stage1": "m_stage1.ogg"},
+ "levels": {"test1": "test1.txt"}
+}
