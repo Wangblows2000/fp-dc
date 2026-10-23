@@ -199,6 +199,11 @@ int main(int argc, char **argv) {
         printf("f %d x %.2f y %.2f gsp %.3f vx %.3f vy %.3f gnd %d ang %.3f st %d hp %d cr %d k %d an %d fr %d rot %.2f en %.2f lv %d face %d mode %d sel %d cx %.1f cy %.1f act %d\n",
                cur_frame, p->x, p->y, p->gsp, p->vx, p->vy, p->ground, p->N, p->state, p->hp, p->crystals, G.kills, p->an.anim, p->an.frame,
                p->rot, p->energy, p->lives, p->face, G.mode, G.in_select, G.camx, G.camy, G.lvdir[0] ? G.lvdir[2] - '0' : 0);
+        if (getenv("FP_FE_TRACE")) {
+            int idx = 19 + (G.lvdir[0] ? G.lvdir[2] - '0' : 1), cur = 0;
+            if (G.mode == MODE_FRONTEND) fe_trace_info(&idx, &cur);
+            printf("fe %d idx %d cur %d\n", cur_frame, idx, cur);
+        }
         if (csv) {
             char h[16]; int k = 0;
             const char *bn = "LRUDJXBS";

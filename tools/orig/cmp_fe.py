@@ -32,12 +32,11 @@ def load_host(path):
         if t[0] == 'sid': pend.append(int(t[1])); continue
         if t[0] == 'f':
             f = int(t[1]); snd[f] += pend; pend = []
-            kv = {t[i]: t[i + 1] for i in range(2, len(t) - 1, 2)}
-            if 'cur' in kv: cur[f] = int(float(kv['cur']))
-            if 'idx' in kv:
-                idx = int(kv['idx'])
-                if last_idx is not None and idx != last_idx: frames[f] = idx
-                last_idx = idx
+        if t[0] == 'fe':
+            f = int(t[1]); kv = {t[i]: t[i + 1] for i in range(2, len(t) - 1, 2)}
+            cur[f] = int(kv['cur']); idx = int(kv['idx'])
+            if last_idx is not None and idx != last_idx: frames[f] = idx
+            last_idx = idx
     return snd, frames, cur
 
 def main():
@@ -52,9 +51,12 @@ def main():
     for f in sorted(set(os_) | set(hs)):
         if f0 <= f <= f1 and sorted(os_.get(f, [])) != sorted(hs.get(f, [])):
             print('sound f%d: orig %s host %s' % (f, os_.get(f), hs.get(f))); bad += 1
-    for f in sorted(set(of) | set(hf)):
-        if f0 <= f <= f1 and of.get(f) != hf.get(f):
-            print('frame change f%d: orig %s host %s' % (f, of.get(f), hf.get(f))); bad += 1
+    # set_frame logged during the original's frame f takes effect at the start of f+1; the host's row f
+    # already shows the new screen: original f <-> host f-1
+    hf1 = {f + 1: v for f, v in hf.items()}
+    for f in sorted(set(of) | set(hf1)):
+        if f0 <= f <= f1 and of.get(f) != hf1.get(f):
+            print('frame change f%d: orig %s host %s' % (f, of.get(f), hf1.get(f))); bad += 1
     n = 0
     for f in sorted(oc):
         if f0 <= f <= f1 and f in hc:
