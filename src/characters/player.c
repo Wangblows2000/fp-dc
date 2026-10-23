@@ -323,6 +323,7 @@ static int ground_actions(player_t *p, const input_t *in) {
     if ((in->pressed & BTN_ATTACK) && (in->held & BTN_DOWN) && fabs(p->gsp) >= 0.01) {
         /* RV (gc_run_down_attack): Down + attack while MOVING on the ground = grounded Dragon Cyclone
          * (M26, anim 18). From a standstill the same input is the crouch kick (anim 30). */
+        ground_move(p, in, 1, 1);      /* RV (gcyc_steer_back): the press frame moves with the normal rules */
         set_state(p, ST_CYCLONE); p->cyclone_ground_start = 1;
         snd_play_orig(288, 220, 128); snd_play_orig(174, 220, 128);
         return 1;
