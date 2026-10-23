@@ -305,6 +305,23 @@ Method: `tools/re/member_map.py` (gdb) maps each frame's member offsets to objec
   B timer 4 (shows 3); dust every 3 steps; a resting block keeps its Y (no bob, so 1271 lifts only when its bottom row is in
   the ground); pushed into a wall it keeps D = 1 and Lilac stays put; 1876 leaves M11 only after the 4-frame grace PAV_B.S.
 
+## Shields and water (session 8; specs build/re/spec_shields.md (static RE), spec_water.md (RE + 4 DV3 traces))
+- **Shields:** OTHERS.B = 1 wood, 2 fire, 3 metal, 4 water, 5 earth (earth is 5, not 2). Monitor icon frames C = 10/3/4/5/11;
+  the reward comes when the MonitorIcon's A reaches 64 (2640-2658): sound 0/2/1/3/57, B = type, C = clamp(difficulty, 0, 2).
+  2412 (C > 0): C -= 1, E = 30, sound 315; 2413 (C ≤ 0): B = 0, E = max(60, 30·diff + 30), sound 11; both clear MV.R, so
+  no hurt at all. Metal: no damage from spikes (3259-3262), bamboo spike 2 (5228), Tredd claws (5237/5238), Ganseki B = 0
+  (4392). Fire: boss fireballs harmless (5071/5310), front flame burns one touching enemy every 8 frames (2746), lost in
+  water (2691). Wood: petal magnet ±119 px and a petal every 15 crystals (2684); earth: crystal magnet; homing
+  pos = (pos·(100 − D) + MV·D)/100, D += 1. Visual: additive 56×56 at (X − 10 sin a, Y − 10 cos a), anim 7 appear / 8
+  vanish, hidden while invincible. HUD: none. Act change keeps the shield (OTHERS is global; INFERRED).
+- **Water (DV2 5109, DV3 5314: ML.A = 1, ML.B = 2700; spec_traversal §10 was wrong):** entry/exit only while airborne at
+  Y ≥ / ≤ 2708 (4150/4153): G ×0.2, B ×0.5 / G ×1.3 (−5 first when swimming: leap −6.5), sound 14, splash, J = −30.
+  Next frame's tables: E 0.056875, C 4, I 0.15, jump −6, cut −2, roll O 0.0217 / P 0.12. 1678 fall cap 2 (+1 Down);
+  1802 swim (up/jump held): G = min(max(G − 0.2, −3), −1); 1758 hold-jump re-jumps; no air cyclone; skin anim 39 (code 26).
+  Air J: +1 at t % 60 == 6 below the surface + 8 (no water shield); dings 5/10/15, music fade at 20, digits 5..0 at
+  20-30, drowning at 32 (RV 62 s). Bubble patches (DV3 only) refill J by 1/frame to −30 and cut J ≥ 20 to 18.
+  RV checks: entry 1.2 → 1.35 → cap 2; walk −0.51187 (9E) then +E; jump −6, swim −3, leap −6.5, re-entry 1.4 → −1.0.
+
 ## Loading pipeline (session 7, measured with src/game/loadprof.c)
 Per load the profiler logs: heap (mallinfo), largest free VRAM, and time in open / read / texture upload / sfx / decode /
 music / object creation / other, plus allocation count and skipped work.

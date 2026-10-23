@@ -1,42 +1,50 @@
 # HANDOFF
 
 ## Objective
-Native Dreamcast (KallistiOS) port of Freedom Planet. A custom C engine plays data **recovered from the user's Linux build** (the original Chowdren runtime is compiled C++ and proprietary). Rule: evidence from the running original first, then match it. Label evidence as original-trace / host-test / emulator. **Nothing is hardware-validated.**
+Native Dreamcast (KallistiOS) port of Freedom Planet. A custom C engine plays data **recovered from the user's Linux build** (the original Chowdren runtime is compiled C++ and proprietary). Rule: evidence from the running original first, then match it. Label evidence RE (read from code) / RV (original trace) / INFERRED; host tests and emulator runs are labelled as such. **Nothing is hardware-validated.**
 
 ## Environment (ephemeral cloud VM; rebuild if missing)
 - KOS git 5f834c1 at /opt/toolchains/dc/kos, toolchain /opt/toolchains/dc/sh-elf (GCC 15.2.0). **environ.sh patch**: `export KOS_LD_SCRIPT=-T$KOS_BASE/utils/ldscripts/shlelf.xc` before environ_base.sh.
-- mkdcdisc: third_party/mkdcdisc/builddir/mkdcdisc. Flycast: third_party/flycast/build/flycast, driven by `tools/flycast_run.sh` (x=A c=B s=X Return=Start, f/v = L/R). If keys stop registering, kill the :95 Xvfb and retry.
-- Original game: writable copy /home/claude/fprun (never the user's folder). `tools/orig/start_orig.sh` (Xvfb :93; exports `DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent`, without it traces crawl) → `tools/orig/route_dv1.sh` → `tools/orig/run_trace.sh <script> <out.csv> <frames>` / `run_all.sh`. Don't kill gdb while breakpoints are set (the game crashes; restart route + goto_frame 20).
-- Trace scripts: `<f> TP x y`, `<f> EN v`, `<f> HP v`, `<a> <b> KEYS`. Sounds go to `<trace>.snd`. Press inputs after ~f40 (intro input lock). Start new scripts with `5 TP 68.715 440`.
+- mkdcdisc: third_party/mkdcdisc/builddir/mkdcdisc. Flycast: third_party/flycast/build/flycast, driven by `tools/flycast_run.sh` (x=A c=B s=X Return=Start, f/v = L/R; developer select = `key:f key:v` on the title).
+- Original game: writable copy /home/claude/fprun (never the user's folder). `tools/orig/start_orig.sh` → `tools/orig/route_dv1.sh` → `FRAME=<20 dv1 / 21 dv2 / 22 dv3 / 23 dv4> tools/orig/run_trace.sh <script> <out.csv> <frames>`. `XVT_EXTRA="name=0x<vtable+0x10>#<instance>"` logs extra objects. A teleport far from the start can be blocked by the camera bounds (sensors are clamped to them).
+- Trace scripts: `<f> TP x y`, `<f> EN v`, `<f> HP v`, `<a> <b> KEYS` (a 1-frame range sends nothing; use ≥ 2 frames).
+- Host-only debug script commands: `<f> MON <type>` (shield monitor ahead of Lilac), `<f> HURT <dx>`.
 - User PC: `C:\Users\wobbles\Desktop\Freedom Planet` (read-only input); deliverables go to its `fpdc\` subfolder.
 
 ## Pipeline
 See ASSET_PIPELINE.md (levels, UI, font, audio). Then:
 ```sh
+for l in "21 dv1" "22 dv2" "23 dv3" "24 dv4"; do set -- $l; tools/build_level.sh $1 $2 converted2; done
 make -C host && python3 tests/test_gameplay.py && python3 tests/test_frontend.py && Q=1 tools/orig/cmp_all.sh
-source /opt/toolchains/dc/kos/environ.sh && make && make cdi        # build/fpdc.cdi (~350 MB)
+source /opt/toolchains/dc/kos/environ.sh && make && make cdi        # build/fpdc.cdi (~300 MB)
+make cdi DEMO=tests/play/<route>.txt CDI=build/fpdc_demo.cdi        # verification disc: scripted input ("LEVEL dv1" line starts the act)
 ```
-Boot flow: Press Start → title (START GAME / TIME ATTACK / GALLERY / OPTIONS / QUIT). Developer level select: L+R within 2 s on the title screen only.
+Route search (host): `FP_SEARCH=1 FP_EXPLORE=4000 FP_SEARCH_OUT=out.txt FP_LEVEL=dv1 host/fpdc_host converted2 N script /dev/null 1`; `FP_SEARCH_FROM=<frame>` replays the script before that frame. Run searches from a copy of the binary.
 
-## Latest verified (2026-10-23, session 7)
-- host-test: gameplay, front end and pack tests 0 failures. original-trace vs host: 76/76, strict 11311/11377 (99.4%).
-- Fixed the Time Attack regression (stale objects; Makefiles now track header dependencies).
-- Loading: DV1 41.1 s → 0.24 s in Flycast (hardware model ~1.2 s, INFERRED). Profiler: src/game/loadprof.c; packs: src/resources/pack.c.
-- Ladders (grab, fast catch, climb, climb-over, enter from the top, jump/drop), moving/valley platforms, bridges, Ganseki Jr, push.
-- Emulator: DV1-DV4 load with no VRAM exhaustion.
+## Session 8 (2026-10-23/24): Dragon Valley completion
+Done (details in RE_NOTES "Session 8 additions" and "Shields and water", RUNTIME_MAP "Session 8"):
+- Bosses/minibosses: Wretchnid (DV1), Tredd (DV3), Serpentine DV2 encounter and DV4 boss, DV4 boulder chase, DV4 results.
+- Traversal: roll M6, spiral helix, DV3 ball tunnel, spinning logs, pushable block, corkscrews, loops; keystones; cards.
+- Water (DV2/DV3) with swimming, air meter, drowning, bubble patches; elemental shields (5 types).
+- Parallax as 4 bpp chunks; translucent/additive sprites through the PVR translucent list; second atlas for big _ens banks.
+- Brief items from earlier in the session: 16:9 letterbox option (save v2), title credit, momentum change, card totals.
+- Death restarts the act with one life less; game over returns to the menu.
 
-## Tracer probes (tools/orig/trace_orig.py, trace_fe.py)
-TRACE_ADDOBJ / TRACE_CREATE / TRACE_FANIM / SHOTS / REFIND as before. `trace_fe.py` logs every object of the current frame (x, y, anim, alterables) plus globals, sounds, music and set_frame. The script keys are `LRUDJXBSE` and `SHOT`.
+## Latest verified
+- host-test: gameplay 0 failures (incl. spiral/ball tunnel/pushable block/water values against original traces, shields,
+  card persistence), front end 0. original-trace vs host: cmp_all 76/76, strict 11311/11377 (99.4%).
+- emulator (Flycast): DV1-DV4 load and draw (16:9), pvr free after load 2046/1211/1326/1144 KB (before shields/water data).
 
-## Next three actions
-1. Results screen (DV4 events 4560-4589): file-slot progress and deaths in the save.
-2. DV3 floating platforms and waterfall logs (unmapped object types); Ganseki crystal absorption/spin; full hit-stop.
-3. A trace that really exercises the fast ladder catch; hardware timing of loads.
+## Next actions
+1. Finish the consecutive DV1→DV4 route search (DV4 boss is the slow part), save it in tests/play, replay it on a DEMO disc in Flycast and compare the `demo f` lines with the host replay.
+2. Flycast: both letterbox modes, VRAM after the shield/water data, a shield and the water tint on the PVR path.
+3. Traces still worth doing (spec §7/§9 lists): shield icon timing and particles, the water tint extent, the spinning log
+   (needs a reachable teleport), jump-release cap under water.
 
 ## Known issues / INFERRED
-- **INFERRED:** stage-select confirm timing (3 frames late); results layout; card timings; pause QUIT target from a file game (hub); handlebar release.
-- **Not ported:** gallery (inert), finished-file stage select (idx 11), mahjong; Carol and Milla (locked, D-020).
-- **Other:** FP_PROFILE overlay visible bottom-left in DC builds.
+- **INFERRED:** water tint extent (drawn full width below the surface, also over left foreground rocks); shield carry-over
+  between acts; spinning-log phase (global counter offset); breath bubbles' SKIN condition; stage-select confirm timing.
+- **Not ported:** gallery, Carol/Milla (locked, D-020), the original's game-over card, enemies' own water splashes.
 
 ## Safety
-Never write to the user's game folders. extracted/, converted*/, build/, docs/reference/, tools/audio/wav2adpcm are gitignored. Never commit game data (`git ls-files` check before commits).
+Never write to the user's game folders. extracted/, converted*/, build/, docs/reference/, tools/audio/wav2adpcm are gitignored. Never commit game data or decompiled output (`git ls-files` check before commits).

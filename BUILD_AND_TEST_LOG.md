@@ -192,3 +192,16 @@ Labels: original-trace, host-test, emulator. Nothing hardware-validated. Audio n
 - **Host tests:** gameplay 0 failures, front end 0, pack 0. Host renders of the ladder traces show the climb, climb-over
   and climb-down sprites.
 - **Emulator:** DV1-DV4 load from the developer select with no VRAM exhaustion (largest free 191/191/895/191 KB).
+
+## Session 8 (2026-10-23/24)
+- **Original traces recorded** (scripts tests/orig_extra_*.txt): tredd 1-3, snake_t1, dv4_chase, dv4_results, dv4_boss,
+  spiral_dv1, spiralb_dv1, balltunnel_dv3, pblock_dv2, plus four DV3 water traces (spec_water.md §7).
+- **Host vs original:** Tredd 1100/1100 frames; DV2 snake 271/271; results timings exact; spiral bottom ride, DV3 ball
+  tunnel, pushable block exact per frame (TP offset 2-4 frames); water entry/walk/swim/leap/re-entry values exact.
+- **Host tests:** gameplay 0 failures (new: spiral, ball tunnel, pushable block, card persistence, shields, water,
+  drowning), front end 0. cmp_all 76/76, strict 11311/11377 (99.4%).
+- **DC build:** 0 warnings. Flycast: DV1-DV4 load and render from the developer select; pvr free after load
+  2046/1211/1326/1144 KB (16:9). Found and fixed: parallax `<lv>_par.bin` was not copied onto the disc; translucent
+  sprites were drawn opaque on the PVR (punch-through list ignores vertex alpha).
+- **Sound:** 72 original ids + 16 voices loaded at boot (~1.25 MB SPU RAM for the ids). Not audible here (no audio device).
+- **Route search:** DV1 cleared incl. Wretchnid (f6039); consecutive DV2-DV4 search in progress.
