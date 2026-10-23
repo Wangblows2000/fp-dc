@@ -586,11 +586,27 @@ void player_update(player_t *p, const input_t *in) {
         if (p->ground) {
             if (in->pressed & BTN_JUMP) {
                 ground_move(p, in, 0, 0);
-                if (p->ground) { jump(p); p->vy = -PHYS_GCYC_JUMP; p->jumping = 0; p->cyclone_used = 1; }
+                if (p->ground) {
+                    /* RE event 2045 (group 0x21a5c = cyclone, L = 1, jump pressed): like the normal jump 3047
+                     * but the perpendicular part is scaled by 0.7: G = cos(N) A 0.7 - sin(N) B,
+                     * B = cos(N) B + A sin(N) with A = -7 (PAV_A.A); L = N = 0; the state stays M26.
+                     * It also clears PAV_B.O (the air cyclone becomes available again). The jump-cut flag
+                     * PAV_A.C = 1 is set too, but the event that cuts is not identified: no cut here (RV). */
+                    double n = p->N, c = o_cos(n), sn = o_sin(n), b = p->gsp;
+                    p->vy = c * -PHYS_JUMP * PHYS_GCYC_JUMP_MUL - sn * b;
+                    p->vx = c * b + -PHYS_JUMP * sn;
+                    p->ground = 0; p->N = 0; p->jumping = 0; p->cyclone_used = 0;
+                    snd_play(G.sfx.jump, 200, 128);
+                }
             } else ground_move(p, in, 1, 1);
         } else {
             int dk = (in->pressed & BTN_ATTACK) && (in->held & BTN_DOWN);
-            air_move(p, in, 1, (in->held & BTN_DOWN) ? PHYS_GRAV : PHYS_CYCLONE_GRAV);
+            /* RE: gravity is the normal +I (0.25, event 1647; the drag test 1648 sees that value); later in the
+             * frame event 2041 (group 0x21a5c, switched on by 1702 while M = 26) takes 0.15 off again when
+             * Lilac is still airborne and Down (controller B) is not held. Applying 0.1 in one step rounds
+             * differently under the 4-decimal floor (event 1574): trace "cyclone" drifted from f118. */
+            air_move(p, in, 1, PHYS_GRAV);
+            if (!p->ground && !(in->held & BTN_DOWN)) p->vy -= PHYS_CYCLONE_GRAV_SUB;
             if (dk && !p->ground) { set_state(p, ST_DKWIND); snd_play_orig(405, 220, 128); break; }
         }
         if (p->state == ST_CYCLONE && p->state_t >= PHYS_CYCLONE_T) p->state = ST_NORMAL;
