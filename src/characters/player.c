@@ -17,11 +17,11 @@
 
 enum { A_IDLE, A_WALK, A_RUN, A_FASTRUN, A_JUMP, A_LOOKUP, A_CROUCH, A_SKID, A_ATTACK, A_AIRATK,
        A_UPPERCUT, A_DKWIND, A_DIVEKICK, A_CYCLONE, A_CHARGE, A_BOOST, A_HURT, A_DEFEAT, A_CROUCHATK, A_SPRING, A_HANG,
-       A_PUSH, A_CLIMB, A_CLIMBDOWN, A_CLIMBOVER, A_CATCH, A_CORK, A_CORK2, A_COUNT };
+       A_PUSH, A_CLIMB, A_CLIMBDOWN, A_CLIMBOVER, A_CATCH, A_CORK, A_CORK2, A_SWIM, A_COUNT };
 /* names = tools/import_frame.py LILAC (runtime-verified playerskinsash_341 animation numbers) */
 static const char *anim_names[A_COUNT] = { "idle", "walk", "run", "fastrun", "jump", "lookup", "crouch",
     "skid", "attack", "airatk", "uppercut", "dkwind", "divekick", "cyclone", "charge", "boost", "hurt", "defeat", "crouchatk", "spring", "hang",
-    "push", "climb", "climbdown", "climbover", "catch", "cork", "cork2" };
+    "push", "climb", "climbdown", "climbover", "catch", "cork", "cork2", "swim" };
 static int anim_r[A_COUNT], anim_l[A_COUNT], hair_r[A_COUNT], hair_l[A_COUNT];
 static int cur_anim = -1;
 static animator_t hair;          /* PlayerSkinSashHair_424: follows the skin's animation id (RV) */
@@ -512,11 +512,12 @@ static int ground_actions(player_t *p, const input_t *in) {
 /* RV: on the frame an air action starts, the original still moves with the old state's physics
  * (gravity included) and only then switches state / sets the new speed (down_kick: G -3.25 -> -3.0 on
  * the press frame, then +0.125; cyclone: moves with the old vy, then vy = -3). So: decide, move, apply. */
-enum { ACT_NONE, ACT_DKWIND, ACT_AIRATK, ACT_CHARGE, ACT_CYCLONE };
+enum { ACT_NONE, ACT_DKWIND, ACT_AIRATK, ACT_CHARGE, ACT_CYCLONE, ACT_UPPER };
 static int air_action_wanted(const player_t *p, const input_t *in) {
+    if (p->water && (in->pressed & BTN_ATTACK) && (in->held & BTN_UP)) return ACT_UPPER;          /* 1792 */
     if (in->pressed & BTN_ATTACK) return (in->held & BTN_DOWN) ? ACT_DKWIND : ACT_AIRATK;
     if ((in->held & BTN_SPECIAL) && p->energy >= PHYS_ENERGY_MAX) return ACT_CHARGE;
-    if ((in->pressed & BTN_JUMP) && !p->cyclone_used && !p->boost_used) return ACT_CYCLONE;
+    if ((in->pressed & BTN_JUMP) && !p->cyclone_used && !p->boost_used && !p->water && p->cyc_block <= 0) return ACT_CYCLONE;   /* 1790: not under water / OTHERS.P < 3 */
     return ACT_NONE;
 }
 static void air_action_apply(player_t *p, const input_t *in, int act) {
@@ -526,6 +527,7 @@ static void air_action_apply(player_t *p, const input_t *in, int act) {
     case ACT_AIRATK: set_state(p, ST_ATTACK); break;                                  /* RV: M20 anim 25 */
     case ACT_CHARGE: start_charge(p, 0); break;
     case ACT_CYCLONE: start_air_cyclone(p, in); break;
+    case ACT_UPPER: set_state(p, ST_UPPERCUT); break;
     }
 }
 
@@ -703,8 +705,8 @@ static int push_wants(const player_t *p, const input_t *in) {
 
 /* ---- roll, state M6 (build/re/spec_roll_gimmicks.md §1). Lilac's table 1543: O 0.0334 friction, P 0.2 brake,
  * Q 0.035 uphill, R 0.25 downhill (water values 1545/1546 not used: the port has no water physics yet). */
-#define ROLL_O 0.0334
-#define ROLL_P 0.2
+#define ROLL_O (phys_w.RO)   /* 0.0334; 0.0217 under water (1545) */
+#define ROLL_P (phys_w.RP)   /* 0.2; 0.12 under water */
 #define ROLL_Q 0.035
 #define ROLL_R 0.25
 /* movement block + speed events of one M6 frame: acceleration (1625-1630) and slope force (1644-1646) skipped,
@@ -763,6 +765,7 @@ void player_update(player_t *p, const input_t *in) {
     double x_start = p->x;
     int st0 = p->state;
     p->state_t++;
+    phys_set_water(p->water);                     /* 1543-1548: tables for this frame (H changed late last frame) */
     objects_mon_ghost = p->state == ST_ROLL || p->state == ST_CHARGE || p->state == ST_BOOST;   /* 1581 (5 <= M <= 6) */
     if (p->ground) p->roll_ball = 0;
     if (p->invuln) p->invuln--;
@@ -820,6 +823,9 @@ void player_update(player_t *p, const input_t *in) {
     switch (p->state) {
     case ST_NORMAL:
         if (p->ground) {
+            if (p->water && (in->held & BTN_JUMP) && !(in->pressed & BTN_JUMP) && p->vy > -3) {   /* 1758: holding jump re-jumps under water */
+                ground_move(p, in, 1, 1); if (p->ground) jump(p); break;
+            }
             if (ground_actions(p, in)) break;
             /* RV: Down / Up while stopped -> crouch (M3) / look up (M2); no walking from them */
             /* RV (gcyc_jump): Down + direction from a standstill walks; crouch/look-up need no direction */
@@ -835,6 +841,7 @@ void player_update(player_t *p, const input_t *in) {
             air_move(p, in, 1, PHYS_GRAV);
             /* RV: order move -> gravity -> cut (tap: -6.25 -> -3 -> -2.75) */
             if (p->jumping && !p->ground && !(in->held & BTN_JUMP) && p->vy < -PHYS_JUMP_CUT) p->vy = -PHYS_JUMP_CUT;
+            if (p->water && !p->ground && (in->held & (BTN_UP | BTN_JUMP)) && p->vy > -3) p->vy = fmin(fmax(p->vy - 0.2, -3.), -1.);   /* 1802 swim */
             air_action_apply(p, in, act);
         }
         break;
@@ -952,6 +959,12 @@ void player_update(player_t *p, const input_t *in) {
         break;
     }
 
+    if (p->water && !p->ground && !hs_frozen) {                 /* 1678: fall cap 2 (+1 with Down) under water */
+        double cap = 2 + ((in->held & BTN_DOWN) ? 1 : 0);
+        if (p->vy > cap) p->vy = fmax(p->vy - 0.4, cap);
+    }
+    if (p->ground) p->cyc_block = 0; else if (p->cyc_block > 0) p->cyc_block--;
+    p->y26 = p->water && p->state == ST_NORMAL && !p->ground && !p->springing;   /* 1787 (code 26) / 1785 */
     clamp_edges(p, x_start);
     if (hs_frozen) { p->x = hs_save[0]; p->y = hs_save[1]; p->gsp = hs_save[2]; p->vx = hs_save[3]; p->vy = hs_save[4]; p->N = hs_save[5]; p->O = hs_save[6]; }
     else if (p->hitstop > 0) { p->hitstop--; p->hs_off = 1; }                       /* 1654 */
@@ -1014,7 +1027,8 @@ void player_update(player_t *p, const input_t *in) {
             else if (s < PHYS_TOP) { a = A_WALK; speed = 30; }          /* RV band; speed fitted */
             else if (s < 9.5) { a = A_RUN; speed = 35 + (int)s; }      /* RV band; speed fitted */
             else { a = A_FASTRUN; speed = 35 + (int)s; }
-        } else if (p->roll_ball) { a = A_CHARGE; speed = (int)(fabs(p->vx) * 5 + 25); }   /* M1 keeps OTHERS.Y = 8 (INFERRED: until landing) */
+        } else if (p->y26) { a = A_SWIM; }                                              /* 2455: code 26 -> skin anim 39 */
+        else if (p->roll_ball) { a = A_CHARGE; speed = (int)(fabs(p->vx) * 5 + 25); }   /* M1 keeps OTHERS.Y = 8 (INFERRED: until landing) */
         else a = (p->springing && p->vy < 0) ? A_SPRING : A_JUMP;
     }
     if (restart) { if (cur_anim != a || (p->state_t == 1 && a != A_CATCH)) { set_anim(p, a); anim_restart(&p->an); if (hair.b) anim_restart(&hair); } }

@@ -35,7 +35,7 @@ void r_set_additive(int on) { add_on = on; }
 typedef struct { int kind; const tex_t *t; int u, v, uw, vh, flip; float a[8]; uint32_t argb; int inv, add; } dcmd_t;
 #define NDQ 640
 static dcmd_t dq[NDQ]; static int ndq, overlay, in_tr;
-static pvr_poly_hdr_t col_hdr_tr;
+static pvr_poly_hdr_t col_hdr_tr, col_hdr_mul;
 static int ntex;
 static pvr_poly_hdr_t col_hdr;
 static int cur_hdr;           /* -2 none, -1 colour, >=0 texture */
@@ -62,6 +62,8 @@ int r_init(void) {
     cxt.depth.comparison = PVR_DEPTHCMP_GEQUAL;
     cxt.gen.culling = PVR_CULLING_NONE;
     pvr_poly_compile(&col_hdr_tr, &cxt);
+    cxt.blend.src = PVR_BLEND_ZERO; cxt.blend.dst = PVR_BLEND_INVDESTCOLOR;   /* dst factor INVDESTCOLOR = 1 - source colour */
+    pvr_poly_compile(&col_hdr_mul, &cxt);
     return 0;
 }
 
@@ -243,6 +245,13 @@ void r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float 
     r_stat_polys++;
 }
 
+/* darkening rectangle (Chowdren blend 20, GeneralWater): dst = dst * (1 - rgb); translucent list, src x 0 + dst x (1 - src colour) */
+void r_tint(float x, float y, float w, float h, uint32_t rgb) {
+    if (x + w < 0 || y + h < 0 || x >= SCREEN_W || y >= SCREEN_H || w <= 0 || h <= 0) return;
+    if (!in_tr) { if (ndq < NDQ) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 4, NULL, 0, 0, 0, 0, 0, { x, y, w, h }, rgb | 0xff000000, 0, 0 }; } return; }
+    pvr_prim(&col_hdr_mul, sizeof col_hdr_mul); cur_hdr = -3;
+    quad(x * SX + OFF_X, y * SY + OFF_Y, (x + w) * SX + OFF_X, (y + h) * SY + OFF_Y, 0, 0, 0, 0, rgb | 0xff000000);
+}
 void r_rect(float x, float y, float w, float h, uint32_t argb) {
     if (x + w < 0 || y + h < 0 || x >= SCREEN_W || y >= SCREEN_H) return;
     if (overlay && !in_tr) {
@@ -276,6 +285,7 @@ static void replay(void) {
             quad(0, 0, 640, 480, 0, 0, 0, 0, c->argb);
             break;
         case 3: r_rect(c->a[0], c->a[1], c->a[2], c->a[3], c->argb); break;
+        case 4: r_tint(c->a[0], c->a[1], c->a[2], c->a[3], c->argb); break;
         }
     }
 }

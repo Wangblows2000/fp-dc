@@ -47,7 +47,7 @@ ENGINE_TYPES = {
     'enemystarflounder': 37, 'enemycacteon': 38, 'enemysporepod': 39, 'enemylimiter': 40, 'objectcodec': 41,
     'hazardspikesleft': 42, 'hazardspikesright': 43, 'hazardspikesdown': 44, 'redspringupleft': 45,
     'halfcorkscrewleft': 46, 'halfcorkscrewright': 47, 'layerchangeswitch': 48, 'layerchangeto0': 49, 'layerchangeto1': 50,
-    'spiraltunnelfront': 147, 'monitorwoodshield': 151, 'monitorearthshield': 152, 'monitorfireshield': 153, 'monitormetalshield': 154, 'monitorwatershield': 155, 'frontrock1': 148, 'fronttree': 149, 'treefront': 150, 'spiraltunneltop': 51, 'spiraltunnelbottom': 52, 'spiraltunnelmask': 53, 'levelballtunnel1': 54, 'levelgeyserplate': 55,
+    'spiraltunnelfront': 147, 'monitorwoodshield': 151, 'monitorearthshield': 152, 'monitorfireshield': 153, 'monitormetalshield': 154, 'monitorwatershield': 155, 'bubblepatch': 157, 'frontrock1': 148, 'fronttree': 149, 'treefront': 150, 'spiraltunneltop': 51, 'spiraltunnelbottom': 52, 'spiraltunnelmask': 53, 'levelballtunnel1': 54, 'levelgeyserplate': 55,
     'minibosswretchnidbase': 56, 'minibosswretchnidturret': 57, 'minibosswretchnidweakspot': 58, 'minibossrailing': 59, 'minibossbarrier': 60,
     'minibosswretchnidleftleg1': 61, 'minibosswretchnidleftleg2': 62, 'minibosswretchnidleftleg3': 63, 'minibosswretchnidleftleg4': 64,
     'minibosswretchnidleftleg5': 65, 'minibosswretchnidleftleg6': 66, 'minibosswretchnidrightleg1': 67, 'minibosswretchnidrightleg2': 68,
@@ -116,15 +116,18 @@ ENS = [('enemydragonfly_942', a, d, nm + ('' if d == '0' else '_l')) for a, nm i
        for ai, sfx in ((0, ''), (7, '_in'), (8, '_out'))] + \
       [('shieldflameback_376', 0, '0', 'shfb'), ('monitoricon_363', 0, '0', 'monicon'), ('effectsshield_440', 0, '0', 'shpart'),
        ('monitorwoodshield_441', 0, '0', 'mon_wood'), ('monitorearthshield_442', 0, '0', 'mon_earth'), ('monitorfireshield_359', 0, '0', 'mon_fire'),
-       ('monitormetalshield_360', 0, '0', 'mon_metal'), ('monitorwatershield_361', 0, '0', 'mon_water')]
+       ('monitormetalshield_360', 0, '0', 'mon_metal'), ('monitorwatershield_361', 0, '0', 'mon_water'),
+       ('effectswatersplash_379', 4, '0', 'splash'), ('bubblepatch_804', 0, '0', 'bpatch'), ('bubblepatch_804', 7, '0', 'bpatch_open'),
+       ('bubblepatch_804', 8, '0', 'bpatch_close'), ('mediumbubble_805', 0, '0', 'mbubble'), ('generalwaterhorizon_377', 0, '0', 'horizon')] + \
+      [('bubblenumbers_405', 0, d, 'bnum%s' % d) for d in ('0', '1', '2', '3', '4', '5')]
 ENS_WITH = {'enemysporeprojectile_1022': ('enemysporepod',), 'objectkeystone_429': ('enemysporepod', 'enemyturretus', 'monitorkeystone'),
             'effectsdebris_427': ('enemysporepod', 'bossserpentinehead'), 'effectsexplosion06_435': ('minibosswretchnidbase', 'minibosstredd', 'bossserpentinehead'),
             'effectsshade_436': ('enemygansekijr', 'enemydragonfly', 'enemystarflounder', 'enemycacteon'),
             'minibosstreddbomb_1060': ('minibosstredd',), 'minibosstredddebris_1058': ('minibosstredd',), 'monitoricon_363': ('minibosstredd', 'shieldmonitor_onmap'),
             'bossfireball_1003': ('bossserpentinehead',), 'bossboulder_1099': ('bossgiantboulder',), 'effectwarning_1100': ('bossgiantboulder',),
-            'breakablerockpiece_432': ('bosstunnel2', 'bosstunnel'), 'breakabledebris1_1098': ('breakable1',), 'effectsdust_437': ('pushableblock1',), 'shieldwood_342': ('shieldmonitor_onmap',), 'shieldearth_443': ('shieldmonitor_onmap',), 'shieldwater_439': ('shieldmonitor_onmap',), 'shieldmagnetic_344': ('shieldmonitor_onmap',), 'shieldflamefront_343': ('shieldmonitor_onmap',), 'shieldflameback_376': ('shieldmonitor_onmap',), 'effectsshield_440': ('shieldmonitor_onmap',)}
+            'breakablerockpiece_432': ('bosstunnel2', 'bosstunnel'), 'breakabledebris1_1098': ('breakable1',), 'effectsdust_437': ('pushableblock1',), 'effectswatersplash_379': ('water_level',), 'bubblepatch_804': ('water_level',), 'mediumbubble_805': ('water_level',), 'generalwaterhorizon_377': ('water_level',), 'bubblenumbers_405': ('water_level',), 'shieldwood_342': ('shieldmonitor_onmap',), 'shieldearth_443': ('shieldmonitor_onmap',), 'shieldwater_439': ('shieldmonitor_onmap',), 'shieldmagnetic_344': ('shieldmonitor_onmap',), 'shieldflamefront_343': ('shieldmonitor_onmap',), 'shieldflameback_376': ('shieldmonitor_onmap',), 'effectsshield_440': ('shieldmonitor_onmap',)}
 
-ENS_ONLY_WITH = {'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
+ENS_ONLY_WITH = {'effectswatersplash_379', 'bubblepatch_804', 'mediumbubble_805', 'generalwaterhorizon_377', 'bubblenumbers_405', 'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 # classes whose untrimmed image box matters (spring top edges RV, box-collision platforms/logs, invisible
 # sensors): their images are never cropped. Everything else in the object bank is cropped to its opaque pixels.
 BOX_TYPES = {8, 13, 14, 15, 16, 17, 30, 32, 33, 34, 35, 36}
@@ -369,7 +372,7 @@ def main():
            ('card_name', an['levelcardintro2_683']['anims'][0]['0']['frames'][:1]),    # "Dragon Valley"
            ('card_fade', [129]), ('card_gameover', [27]),
            ('pause', an['guipause_347']['anims'][0]['0']['frames']),               # Paused banner + options
-           ] + ([('res_complete', an['levelcardactclear1_864']['anims'][7]['0']['frames']),  # "Stage Complete!" build-in
+           ] + ([('hud_air', an['guiair_700']['images'])] if n in (22, 23) else []) + ([('res_complete', an['levelcardactclear1_864']['anims'][7]['0']['frames']),  # "Stage Complete!" build-in
            ('res_results', [955]), ('res_panel', [10860]), ('res_rows', an['levelcardactclear3_866']['anims'][7]['0']['frames']),   # 6-frame reveal (RE 4570-4573)
            ('res_bar', [10844, 10660]),
            ('res_complete_t', [-8005]), ('res_panel_t', [-10860]), ('res_bar_t', [-10844, -10660]),   # alpha-87 layers (RV screenshots)
@@ -381,6 +384,7 @@ def main():
     # ---- enemies / bosses / gimmicks bank (cropped; their collision uses masks relative to the hotspot)
     placed = {o['cls'].rsplit('_', 1)[0] for o in fr['objects']}
     if any(o['cls'].startswith('monitor') and o['cls'].endswith('shield') and o['x'] >= 0 for o in fr['objects']): placed.add('shieldmonitor_onmap')
+    if n in (22, 23): placed.add('water_level')          # DV2 / DV3: MasterLevel A = 1 (5109 / 5314)
     ens = {'name': name + '_ens', 'anims': [], 'keep_box': set()}
     for e in ENS:
         cls, ai, dk, nm = e[:4]
@@ -408,7 +412,7 @@ def main():
              ('dkwind', 7), ('divekick', 19), ('cyclone', 18), ('charge', 7), ('boost', 13),
              ('hurt', 8), ('defeat', 38), ('crouchatk', 30), ('spring', 14), ('hang', 15),
              ('push', 12), ('climb', 9), ('climbdown', 35), ('climbover', 36), ('catch', 33),
-             ('cork', 32), ('cork2', 31)]   # cork: RV cork_dv1 (M45, OTHERS.Y 45 -> skin 32, 46 -> 31); RV push_wall / ladder_* traces, RE events 2456-2467
+             ('cork', 32), ('cork2', 31), ('swim', 39)]   # cork: RV cork_dv1 (M45, OTHERS.Y 45 -> skin 32, 46 -> 31); RV push_wall / ladder_* traces, RE events 2456-2467
     la = an['playerskinsash_341']['anims']
     lb = {'name': 'lilac2', 'anims': []}
     def mirrored(d0, d16):
@@ -472,15 +476,36 @@ def write_bank2(src, bank, out, report):
         im, hx, hy = imgs[i]; bb = im.getbbox()
         if bb and (bb[2] - bb[0], bb[3] - bb[1]) != im.size:
             imgs[i] = (im.crop(bb), hx - bb[0], hy - bb[1])
-    size, pos = 64, None
+    size, pos, second = 64, None, []
     while not pos:          # smallest power-of-two atlas: square, then half height (PVR textures may be 2:1)
         pos = pack([(i, imgs[i][0]) for i in ids], size, size // 2) or pack([(i, imgs[i][0]) for i in ids], size)
         if not pos:
             size *= 2
-            if size > 1024: raise SystemExit('bank %s too large' % bank['name'])
+            if size > 1024:
+                if not bank['name'].endswith('_ens'): raise SystemExit('bank %s too large' % bank['name'])
+                # _ens only: a second 1024 atlas (<name>_2.tex); its frames carry v | 0x8000 (assets.c bank_load)
+                size = 1024; take = list(ids)
+                while take:
+                    pos = pack([(i, imgs[i][0]) for i in take], 1024)
+                    if pos: break
+                    take = take[:len(take) * 7 // 8]
+                second = [i for i in ids if i not in take]
+                pos2 = None; s2 = 64
+                while not pos2:
+                    pos2 = pack([(i, imgs[i][0]) for i in second], s2, s2 // 2) or pack([(i, imgs[i][0]) for i in second], s2)
+                    if not pos2:
+                        s2 *= 2
+                        if s2 > 1024: raise SystemExit('bank %s too large for two atlases' % bank['name'])
+                at2 = Image.new('RGBA', (s2, s2), (0, 0, 0, 0))
+                for i in second: at2.paste(imgs[i][0], pos2[i])
+                bb2 = at2.getbbox() or (0, 0, 8, 8)
+                write_tex(at2.crop((0, 0, s2, max(8, bb2[3]))), os.path.join(out, bank['name'] + '_2.tex'))
+                for i in second: pos[i] = (pos2[i][0], pos2[i][1] | 0x8000)
+                report.append('bank %s: second atlas %d (%d frames)' % (bank['name'], s2, len(second)))
     atlas = Image.new('RGBA', (size, size), (0, 0, 0, 0))
     # (atlas height is cropped to content by write_tex's pow2 rounding below)
-    for i in ids: atlas.paste(imgs[i][0], pos[i])
+    for i in ids:
+        if i not in second: atlas.paste(imgs[i][0], pos[i])
     bb = atlas.getbbox() or (0, 0, 8, 8)
     atlas = atlas.crop((0, 0, size, max(8, bb[3])))
     write_tex(atlas, os.path.join(out, bank['name'] + '.tex'))

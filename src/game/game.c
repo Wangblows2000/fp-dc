@@ -59,7 +59,7 @@ void camera_shake(int z) { float n = G.cam.Z + z; G.cam.Z = n < z ? n : (float)z
 
 static void level_free(void) {   /* everything of the level except Lilac's banks */
     tex_drop(&G.objs.tex); bank_free(&G.objs);
-    if (G.ens.nframes) { tex_drop(&G.ens.tex); bank_free(&G.ens); }
+    if (G.ens.nframes) { tex_drop(&G.ens.tex); if (G.ens.tex2.w > 0) tex_drop(&G.ens.tex2); bank_free(&G.ens); }
     memset(&G.ens, 0, sizeof G.ens); G.ens.tex.id = -1;
     for (int i = 0; i < G.lvl.natlas && i < MAX_ATLAS; i++) tex_drop(&G.lvl.atlas[i]);
     for (int i = 0; i < G.npar; i++) tex_drop(&G.par[i]);
@@ -189,7 +189,7 @@ static void sel_draw(void) {
 }
 
 /* ---- sounds: original Assets.dat sound IDs (Media::play_id, RUNTIME_MAP "Sound IDs") */
-static const int SND_IDS[] = { 4, 5, 7, 8, 9, 10, 13, 14, 15, 16, 17, 21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 34, 35, 37, 38, 39, 40, 43, 45, 46, 47, 48, 49, 50, 51, 53, 56, 63, 64, 74, 76, 78, 80, 81, 95, 98, 100, 174, 176, 220, 288, 289, 290, 311, 313, 314, 319, 320, 396, 405 };
+static const int SND_IDS[] = { 0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 34, 35, 37, 38, 39, 40, 41, 42, 43, 45, 46, 47, 48, 49, 50, 51, 53, 56, 57, 58, 63, 64, 74, 76, 78, 80, 81, 95, 98, 100, 174, 176, 220, 288, 289, 290, 311, 313, 314, 315, 319, 320, 396, 405 };
 static int snd_handle[512];
 static const char *VOICES[] = { "lilac_attack0", "lilac_attack1", "lilac_attack2", "lilac_attack3", "lilac_uppercut0",
     "lilac_uppercut1", "lilac_uppercut2", "lilac_uppercut3", "lilac_cyclone1", "lilac_cyclone2", "lilac_hurt0",
@@ -507,6 +507,7 @@ void game_update(const input_t *in) {
         return;
     }
     shields_update(&G.p);                         /* RE 2673-2705, 2804-2812 */
+    water_events(&G.p);                           /* RE 4150-4170, 4396/4397, 4464-4473 */
     pblocks_update(&G.p);                         /* RE 2711-2735 (after the state groups) */
     spinlogs_update(&G.p);                        /* RE 4980-4986 (DV2) */
     tunnel_events(&G.p);                          /* RE 4739-4755 (end of the frame) */
@@ -694,13 +695,16 @@ void game_draw(void) {
     objects_draw(0);
     draw_pieces(2, 2);
     objects_draw(1);
+    water_draw_front();
     player_draw(&G.p);
     shields_draw(&G.p);
     spiral_front_draw();
+    water_draw_tint();
     draw_pieces(3, 3);
     objects_draw(2);
     draw_pieces(4, 7);
     hud_draw();
+    water_draw_hud();
     serp_draw_hud();
     results_draw();
     card_draw();
