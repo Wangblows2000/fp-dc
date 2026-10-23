@@ -331,8 +331,13 @@ static int ground_actions(player_t *p, const input_t *in) {
     if ((in->pressed & BTN_ATTACK) && fabs(p->gsp) < 0.01 && (in->held & BTN_DOWN)) {
         set_state(p, ST_CROUCHATK); snd_play(G.sfx.attack, 200, 128); return 1;   /* RV: anim 30, M stays 3 */
     }
+    /* RE (1742 runs before 1766): standing still (B = 0) with Up and no direction, the look-up (M2) takes
+     * the frame and switches the M0 events off, so an attack pressed on the SAME frame is dropped; from M2
+     * the uppercut needs the attack pressed while Up is held (1818) */
+    if ((in->pressed & BTN_ATTACK) && (in->held & BTN_UP) && p->gsp == 0 && !(in->held & (BTN_LEFT | BTN_RIGHT)) && p->look_prev != 2)
+        return 0;
     if (in->pressed & BTN_ATTACK) {
-        if (in->held & BTN_UP) {                                             /* RV: M21 anim 28 */
+        if (in->held & BTN_UP) {                                             /* RE 1766/1818: M21 anim 28 */
             set_state(p, ST_UPPERCUT); p->gsp = 0;
             if (in->pressed & BTN_JUMP) { jump(p); p->jumping = 0; }        /* RV: high uppercut */
         }
@@ -412,7 +417,7 @@ void player_update(player_t *p, const input_t *in) {
     }
 
     int crouch_look = 0;
-    p->look = 0;
+    p->look_prev = p->look; p->look = 0;
     p->held = in->held;
     if (p->state == ST_HANG) {
         /* RE 4062/4065 hold the position; RV: B is 0 from the next frame, G keeps gaining gravity (unused) */

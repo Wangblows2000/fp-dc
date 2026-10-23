@@ -57,7 +57,7 @@ run_release 0 151 0
 run_right 0 151 0
 skid 0 151 0
 snd_hurt_pickups 97 144 0
-snd_moves 100 151 100
+snd_moves 151 151 151
 snd_moves2 151 151 151
 special_hold 0 151 0
 special_tap 0 151 0
