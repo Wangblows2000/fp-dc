@@ -97,10 +97,10 @@ typedef struct { int32_t x, y; uint16_t u, v, w, h; uint8_t atlas, layer, col, p
 typedef struct { uint16_t type, anim; int32_t x, y; } lvobj_t;
 
 /* engine object types (tools/import_frame.py ENGINE_TYPES) */
-enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_PETAL = 6, OT_SPIKES = 7,
+enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_MON_INVINC = 4, OT_MON_RINGS = 18, OT_MON_1UP = 19, OT_PETAL = 6, OT_SPIKES = 7,
        OT_SPRING = 8, OT_SIGN = 9, OT_TURRETUS = 10, OT_ROCK = 11, OT_MONITOR = 12,
        OT_SPRING_UL = 13, OT_SPRING_UR = 14, OT_SPRING_R = 15, OT_SPRING_L = 16, OT_HANG = 17,
-       OT_PARALLAX = 20, OT_EXPLODE = 100, OT_PELLET = 101 };
+       OT_PARALLAX = 20, OT_EXPLODE = 100, OT_PELLET = 101, OT_ITEM_FLY = 102 };
 
 #define MAX_ATLAS 4
 typedef struct {
@@ -143,6 +143,7 @@ typedef struct {
     int state, state_t;
     animator_t an;
     int hp, invuln, crystals, lives;   /* hp in half-petals; crystals count DOWN from 200 (RV HUD) */
+    int invinc;                    /* monitor invincibility (PlayerOthers D = 1), with p->invuln as its timer */
     int jumping, cyclone_used, boost_used, cyclone_ground_start, hurt_land_t;
     float energy, energy_drain;  /* RV energy meter 0..100 (boost needs 100) */
     int energy_init, energy_hold;
@@ -177,7 +178,8 @@ typedef struct {
     /* MasterCamera_408 alterables (RE, loop_camera_mode0_13 + events 2873-2886, 3539) */
     struct { float A, B, W, G, H, S, T, N, O; int V; } cam;
     int frame, clear_t, paused, kills;
-    int act_in, act_fade, act_carry;   /* act change (RE 4135/5045, 3310/3311/3578, 4526/5047) */
+    int act_in, act_fade, act_carry;
+    int mus_resume_t;           /* frames until the stage music resumes after a jingle */   /* act change (RE 4135/5045, 3310/3311/3578, 4526/5047) */
     char lvdir[8];              /* current level data dir under the data root ("dv1") */
     int debug_select, in_select, sel, sel_top, sel_msg_t;
     int mode, card_t, pause_sel, time_attack, res_t, res_time;

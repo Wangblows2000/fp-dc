@@ -546,7 +546,7 @@ void player_update(player_t *p, const input_t *in) {
         else { p->vx = p->boost_vx; p->vy = p->boost_vy; air_move(p, in, 0, 0); }
         if (p->state == ST_BOOST && (p->state_t >= PHYS_BOOST_T || (p->x == ox && p->y == oy))) {
             p->state = ST_NORMAL;
-            p->invuln = 30;   /* [KB] brief invincibility after the boost (duration UNVERIFIED) */
+            if (p->invuln < 30) p->invuln = 30;   /* [KB] brief invincibility after the boost (duration UNVERIFIED) */
         }
         break;
     }
@@ -611,7 +611,7 @@ void player_update(player_t *p, const input_t *in) {
 }
 
 void player_draw(const player_t *p) {
-    if (p->invuln && (p->invuln & 4) && p->state != ST_HURT) return;
+    if (p->invuln && !p->invinc && (p->invuln & 4) && p->state != ST_HURT) return;   /* invincibility: no blink (INFERRED) */
     /* the sprite hotspot (= rotation centre) is the movement object's position: p->y - ORIG_REF_DY */
     if (hair.b) frame_draw_rot(&G.hair, anim_frame(&hair), floor(p->x - G.camx), floor(p->y - ORIG_REF_DY - G.camy), p->rot, 0xffffffff);
     const frame_t *f = anim_frame(&p->an);
