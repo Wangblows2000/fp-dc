@@ -95,13 +95,14 @@ static void stsel_update(const input_t *now) {
     }
     if (T.slide) {                                                                                /* 691-697 */
         int k = T.sel_k;
-        T.iv[k] = (9 * T.iv[k] + 184) * 0.1f; T.iw[k] = (9 * T.iw[k] + 16) * 0.1f;
-        T.nv = (9 * T.nv + 336) * 0.1f; T.nw = (9 * T.nw + 32) * 0.1f;
-        for (int i = 0; i < 13; i++) if (i != k) T.iv[i] = (9 * T.iv[i] - 80) * 0.1f;
+        /* RV (r_ta trace: YES active 68 frames after the confirm): the slide works on integer positions */
+        T.iv[k] = (int)((9 * T.iv[k] + 184) * 0.1f); T.iw[k] = (int)((9 * T.iw[k] + 16) * 0.1f);
+        T.nv = (int)((9 * T.nv + 336) * 0.1f); T.nw = (int)((9 * T.nw + 32) * 0.1f);
+        for (int i = 0; i < 13; i++) if (i != k) T.iv[i] = (int)((9 * T.iv[i] - 80) * 0.1f);
         if (T.nw <= 37) {
-            if (T.startx > 320) T.startx = T.startx - 20 < 320 ? 320 : T.startx - 20;
-            else if (T.yesx > 320) T.yesx = T.yesx - 20 < 320 ? 320 : T.yesx - 20;
-            else if (T.retx > 320) T.retx = T.retx - 20 < 320 ? 320 : T.retx - 20;
+            if (T.startx > 320) T.startx = T.startx - 20 < 320 ? 320 : T.startx - 20;            /* in order, same frame */
+            if (T.startx <= 320 && T.yesx > 320) T.yesx = T.yesx - 20 < 320 ? 320 : T.yesx - 20;
+            if (T.yesx <= 320 && T.retx > 320) T.retx = T.retx - 20 < 320 ? 320 : T.retx - 20;
         }
         if (T.retx < 321) { T.slide = 0; T.confirm_on = 1; T.A = 2; }
     }

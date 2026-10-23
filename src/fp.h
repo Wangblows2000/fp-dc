@@ -246,7 +246,8 @@ void hub_draw(void);
 int  hub_selected_file(void);
 int  hub_cursor(void);
 int  hub_on_title(void);
-int  hub_lives_for_difficulty(int d);   /* pause QUIT: Time Attack -> stage select, otherwise the title */
+int  hub_lives_for_difficulty(int d);
+void fe_trace_info(int *idx, int *cur);   /* pause QUIT: Time Attack -> stage select, otherwise the title */
 void fe_update(const input_t *in);
 void fe_draw(void);
 void hud_reset(void);

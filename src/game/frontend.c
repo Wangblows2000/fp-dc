@@ -454,7 +454,7 @@ void fe_update(const input_t *in) {
     G.frame++; fe_t++;
     if (fe_dev_select_check(in)) { fe_unload(); game_dev_select(); return; }
     switch (fe_state) {
-    case FE_PRESS: title_update(in->pressed); break;
+    case FE_PRESS: { static uint32_t prev; uint32_t p = prev; prev = in->pressed; title_update(p); break; }   /* RE order: presses act next frame */
     case FE_HUB: {
         int ex = hub_update(in);
         if (ex == HUB_EXIT_QUIT) { plat_quit(); break; }
@@ -472,6 +472,12 @@ void fe_update(const input_t *in) {
     case FE_CHSEL: chsel_update(in); break;
     case FE_STSEL: stsel_update(in); break;
     }
+}
+
+/* trace helper (host tests): the original frame index this screen corresponds to, and its cursor */
+void fe_trace_info(int *idx, int *cur) {
+    *idx = fe_state == FE_PRESS ? 2 : fe_state == FE_HUB ? 3 : fe_state == FE_CHSEL ? 6 : 5;
+    *cur = fe_state == FE_HUB ? hub_cursor() : fe_state == FE_CHSEL ? C.cur : fe_state == FE_STSEL ? T.A : 0;
 }
 
 void fe_draw(void) {
