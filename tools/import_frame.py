@@ -40,6 +40,10 @@ ENGINE_TYPES = {
     'levelparallaxpiece5': 25, 'levelparallaxpiece6': 26, 'levelparallaxpiece7': 27,
 }
 
+# collision mask threshold: Chowdren builds image collision bits from alpha != 0 (RE Image::upload_texture,
+# collide_sprite_sprite); FP_ALPHA_MIN overrides for experiments
+ALPHA_MIN = int(os.environ.get('FP_ALPHA_MIN', '1'))
+
 def load_img(src, i):
     im = Image.open(os.path.join(src, 'img_%d.png' % i)).convert('RGBA')
     m = [int(v, 0) for v in open(os.path.join(src, 'img_%d_meta.txt' % i)).read().split()]
@@ -120,7 +124,7 @@ def main():
         im, hx, hy = imgs[p['img']]
         mk = (p['img'], p['box'])
         if mk not in masks:
-            masks[mk] = b'\x01' * (im.width * im.height) if p['box'] else im.getchannel('A').point(lambda v: 1 if v >= 128 else 0).tobytes()
+            masks[mk] = b'\x01' * (im.width * im.height) if p['box'] else im.getchannel('A').point(lambda v: 1 if v >= ALPHA_MIN else 0).tobytes()
         m = masks[mk]; x0 = p['x'] - hx; y0 = p['y'] - hy
         tgt = solid if p['col'] == 1 else plat
         for yy in range(im.height):
@@ -260,6 +264,16 @@ def write_bank2(src, bank, out, report):
         data += a['name'].encode()[:15].ljust(16, b'\0') + struct.pack('<2H2Bh', first, len(a['frames']), min(255, a['speed']), min(255, a['back_to']), a['loop'])
         seq += [ids.index(i) for i in a['frames']]; first += len(a['frames'])
     data += struct.pack('<%dH' % len(seq), *seq)
+    # collision masks (Chowdren: image collision bit = alpha != 0): 'MSK1', then per frame rows of
+    # ceil(w / 8) bytes, bit 7 of byte 0 = leftmost pixel
+    data += b'MSK1'
+    for i in ids:
+        im = imgs[i][0]; a = im.getchannel('A'); w, h = im.size
+        for y in range(h):
+            row = bytearray((w + 7) // 8)
+            for x in range(w):
+                if a.getpixel((x, y)): row[x >> 3] |= 0x80 >> (x & 7)
+            data += row
     open(os.path.join(out, bank['name'] + '.spr'), 'wb').write(data)
     report.append('bank %s: %d frames, %d anims, atlas %d' % (bank['name'], len(ids), len(bank['anims']), size))
 

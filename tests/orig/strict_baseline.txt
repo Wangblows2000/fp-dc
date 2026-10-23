@@ -66,6 +66,6 @@ spring_yellow_up 149 149 149
 spring_yellow_upleft 149 149 149
 turretus_attack 151 151 151
 turretus_attack_combo 151 151 151
-turretus_jumpinto 20 151 20
+turretus_jumpinto 151 151 151
 turretus_landon 0 151 0
 uppercut_high 0 151 0

@@ -63,12 +63,29 @@ int bank_load(bank_t *b, const char *name) {
         b->seq[i] = rd16(p + 2 * i);
         if (b->seq[i] >= b->nframes) goto bad;
     }
+    {   /* optional collision masks after the sequence table */
+        size_t off = need + (size_t)total * 2, msz = 0;
+        for (int i = 0; i < b->nframes; i++) msz += (size_t)((b->frames[i].w + 7) / 8) * b->frames[i].h;
+        if (off + 4 + msz <= sz && !memcmp(d + off, "MSK1", 4)) {
+            b->mbits = malloc(msz); b->moff = malloc(sizeof(uint32_t) * b->nframes);
+            memcpy(b->mbits, d + off + 4, msz);
+            uint32_t o = 0;
+            for (int i = 0; i < b->nframes; i++) { b->moff[i] = o; o += (uint32_t)((b->frames[i].w + 7) / 8) * b->frames[i].h; }
+        }
+    }
     free(d);
     return 0;
 bad:
     plat_log("bank %s: invalid file\n", name);
     free(d);
     return -1;
+}
+
+int frame_mask_px(const bank_t *b, const frame_t *f, int x, int y) {
+    if (x < 0 || y < 0 || x >= f->w || y >= f->h) return 0;
+    if (!b->mbits) return 1;                         /* no masks: whole image box */
+    const uint8_t *m = b->mbits + b->moff[f - b->frames] + (size_t)y * ((f->w + 7) / 8);
+    return (m[x >> 3] >> (7 - (x & 7))) & 1;
 }
 
 int bank_anim(const bank_t *b, const char *name) {
