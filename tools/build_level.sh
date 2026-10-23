@@ -7,7 +7,7 @@ F=${1:-21}; N=${2:-dv1}; O=${3:-converted2}
 mkdir -p "$O"
 T="$O/$N.tmp"; rm -rf "$T" && mkdir -p "$T"
 python3 tools/import_frame.py build/frames extracted/linux/images "$F" "$N" "$T"
-python3 tools/palettize.py "$T" "^${N}_p[0-9]" '_par[0-9]' '^lilac' '_obj'
+python3 tools/palettize.py "$T" "^${N}_p[0-9]" '_par[0-9]' '^lilac' '_obj' '--flex=_ens'
 rm -rf "$O/$N" && mv "$T" "$O/$N"
 cp converted/sfx_*.wav "$O"/ 2>/dev/null || true
 cp converted/stage1.pcm "$O"/ 2>/dev/null || true

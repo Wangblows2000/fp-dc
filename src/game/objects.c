@@ -44,7 +44,11 @@ void objects_spawn(void) {
         if (lo->anim != 0xffff && lo->anim < G.objs.nanims) anim_set(&o->an, &G.objs, lo->anim);
         else o->an.b = NULL;
         if (o->type == OT_TURRETUS) { o->A = 8; o->st = 0; o->tm = 0; o->dir = 14; }   /* RE: created with A = 8, direction 14 */
-        if (o->type == OT_DRAGONFLY) { o->A = 4; }                                      /* RE create_enemydragonfly_942: A = 4 */
+        if (o->type == OT_DRAGONFLY) dragonfly_spawn(o);                                 /* RE create_enemydragonfly_942: A = 4, E = -2 */
+        if (o->type == OT_FLOUNDER) flounder_spawn(o);
+        if (o->type == OT_CACTEON) cacteon_spawn(o);
+        if (o->type == OT_SPOREPOD) sporepod_spawn(o);
+        if (o->type == OT_LIMITER) { o->an.b = NULL; if (o->x < 0) o->alive = 0; }      /* invisible ceiling marker; off-map template */
         if (plat_type(o->type)) { o->vx = 0; o->vy = 0; o->fx = o->oy; o->fl = 0; }   /* 3565: I = X, J = Y */
         if (o->type == OT_LOG) { o->alive = 0; continue; }       /* the template log (placed off-screen) */
         if (o->type == OT_GANSEKI) {                   /* RE create_enemygansekijr_835: anim 0, direction 14 (left set), A = 8, B = 5 */
@@ -447,6 +451,8 @@ void objects_update(void) {
         anim_tick(&o->an, -1);
         act[i] = 1;
     }
+    /* test_collisions: enemies absorb free crystals (col_3_13 + 1290 + 2546) */
+    enemies_absorb_crystals();
     /* Lilac's attacks and contact, shared enemy events (2731-2767) */
     combat_frame(p);
     /* per-object events */
@@ -492,13 +498,11 @@ void objects_update(void) {
                 }
             }
             break;
-        case OT_DRAGONFLY:
-            if (defeated) break;
-            /* hover patrol (reconstructed) */
-            o->x = o->ox + (float)fd_sin(o->t * 0.015f) * 40.f;
-            o->y = o->oy + (float)fd_sin(o->t * 0.06f) * 6.f;
-            o->flip = (float)fd_cos(o->t * 0.015f) > 0;  /* art faces left; mirror when moving right */
-            break;
+        case OT_DRAGONFLY: dragonfly_update(o, p); break;
+        case OT_FLOUNDER: flounder_update(o, p); break;
+        case OT_CACTEON: cacteon_update(o, p); break;
+        case OT_SPOREPOD: sporepod_update(o, p); break;
+        case OT_SPORE: spore_update(o, p); break;
         case OT_PELLET: {
             /* RE col_4_20: the pellet hits Lilac's sensor (PlayerCharacterSensor_375, 15x46, hotspot 7,34 at
              * her reference point) unless she is invulnerable; it is destroyed with effectsexplosion02 */
@@ -592,8 +596,8 @@ void objects_draw(int front) {
         if (sx < -96 || sx > SCREEN_W + 96 || sy < -96 || sy > SCREEN_H + 96) continue;
         if (o->type == OT_SHIELD) continue;
         if (o->inv) r_set_invert(1);
-        if (o->ang != 0) frame_draw_rot(&G.objs, anim_frame(&o->an), sx, sy, o->ang, o->flip, 0xffffffff);
-        else frame_draw(&G.objs, anim_frame(&o->an), sx, sy, o->flip, 0xffffffff);
+        if (o->ang != 0) frame_draw_rot(o->an.b, anim_frame(&o->an), sx, sy, o->ang, o->flip, 0xffffffff);
+        else frame_draw(o->an.b, anim_frame(&o->an), sx, sy, o->flip, 0xffffffff);
         if (o->inv) r_set_invert(0);
     }
     combat_draw_shields(1);           /* visible slash shields, behind Lilac */
@@ -608,7 +612,9 @@ void objects_draw(int front) {
  *                   bridge logs, ladder tops, spikes, platforms, keystone monitor
  * Ported members: monitors, breakable rock, upward spikes, wall springs (solid); the obstacle group's
  * springs are still handled by their own contact rules (RV); OBJGRP_OBSTACLE: LadderTop so far. */
-static int in_group(int type, int grp) {
+int obj_in_group(int type, int grp);
+static int in_group(int type, int grp) { return obj_in_group(type, grp); }
+int obj_in_group(int type, int grp) {
     switch (grp) {
     case OBJGRP_SOLID: return type == OT_MONITOR || type == OT_MON_RINGS || type == OT_MON_1UP || type == OT_MON_INVINC || type == OT_ROCK || type == OT_SPIKES || type == OT_SPRING_R;
     case OBJGRP_OBSTACLE: case OBJGRP_OBSTACLE_ALL:

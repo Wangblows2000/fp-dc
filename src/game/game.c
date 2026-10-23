@@ -55,8 +55,12 @@ static int chr_resident;
 /* only textures that were actually created (a zeroed tex_t has id 0 = somebody else's slot) */
 static void tex_drop(tex_t *t) { if (t->w > 0) r_tex_free(t); memset(t, 0, sizeof *t); t->id = -1; }
 
+void camera_shake(int z) { float n = G.cam.Z + z; G.cam.Z = n < z ? n : (float)z; }
+
 static void level_free(void) {   /* everything of the level except Lilac's banks */
     tex_drop(&G.objs.tex); bank_free(&G.objs);
+    if (G.ens.nframes) { tex_drop(&G.ens.tex); bank_free(&G.ens); }
+    memset(&G.ens, 0, sizeof G.ens); G.ens.tex.id = -1;
     for (int i = 0; i < G.lvl.natlas && i < MAX_ATLAS; i++) tex_drop(&G.lvl.atlas[i]);
     for (int i = 0; i < G.npar; i++) tex_drop(&G.par[i]);
     free(G.lvl.pieces); free(G.lvl.objs); free(G.lvl.blob);
@@ -96,6 +100,7 @@ int game_load_level(const char *dir) {
         chr_resident = !bad && chr_crcs(dir, chr_crc) == 0;   /* only packed data can be matched later */
     }
     snprintf(nm, sizeof nm, "%s/%s_obj", dir, dir); bad |= bank_load(&G.objs, nm) < 0;
+    snprintf(nm, sizeof nm, "%s/%s_ens", dir, dir); if (bank_load(&G.ens, nm) < 0) { memset(&G.ens, 0, sizeof G.ens); G.ens.tex.id = -1; }
     snprintf(nm, sizeof nm, "%s/%s", dir, dir); bad |= level_load(&G.lvl, nm) < 0;
     if (bad) { loading_end(); lp_end(); plat_log("level %s: data load failed\n", dir); return -1; }
     int want = 0;
@@ -314,8 +319,9 @@ void camera_update(void) {
         if (G.cam.G > 0 && (!L || slow)) G.cam.G = fmaxf(G.cam.G - 2.f, 0.f);
         else if (G.cam.G < 0 && (!L || slow)) G.cam.G = fminf(G.cam.G + 2.f, 0.f);
     }
-    /* display offsets (events 2877-2886, no shake) */
-    float S = G.cam.G, T = G.cam.H;
+    /* display offsets (events 2877-2886): shake Z adds G - Z + rand(2Z) (one cross_seed step each, every frame) */
+    float S, T;
+    { double Z = G.cam.Z; S = (float)(G.cam.G - Z + cross_rand_raw((int)(Z + Z) & 0xffff)); T = (float)(G.cam.H - Z + cross_rand_raw((int)(Z + Z) & 0xffff)); }
     if (G.cam.A <= C + CAM_HX - S) S = fminf(0.f, fmaxf(S, C + CAM_HX - G.cam.A));
     if (E - CAM_HX - S <= G.cam.A) S = fmaxf(0.f, fminf(S, E - CAM_HX - G.cam.A));
     if (S > 0) S = fminf(S, fmaxf(0.f, S - (G.cam.A - X)));
@@ -327,6 +333,7 @@ void camera_update(void) {
     G.cam.S = S; G.cam.T = T;
     /* event 3539 + Frame::set_display_center */
     float cx = floorf(G.cam.A + S), cy = floorf(G.cam.B + T);
+    G.cam.Z = G.cam.Z - 0.1f >= 0 ? G.cam.Z - 0.1f : 0;
     G.camx = fminf(fmaxf(cx - 213.f, 0.f), (float)G.lvl.w - SCREEN_W);
     G.camy = fminf(fmaxf(cy - 120.f, 0.f), (float)G.lvl.h - SCREEN_H);
 }
