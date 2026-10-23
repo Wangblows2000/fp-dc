@@ -152,3 +152,21 @@ Labels: original-trace, host-test, emulator. Nothing hardware-validated. No audi
   - The loading screen shows the crystal bottom-right in two successive shots with different frames.
   - DV1, DV2, DV3 and DV4 load from the developer select and play. Crystals were collected in DV3 (counter 198), and pause works.
   - Act transitions DV1→DV4 were checked on the host only, not played through in the emulator.
+
+## 2026-10-23 Session 6: front end from the original, pause, VMU saves and LCD
+Labels: original-trace, host-test, emulator. Nothing hardware-validated. Audio not audible in the emulator VM.
+- **Host tests:** front end **24/24** (rewritten: Classic route, Time Attack route, options save/size/reload, pause open/clamp/freeze/quit, VMU crystal + life icon, three title→level→pause-QUIT cycles); gameplay **39/39**.
+- **Comparisons:** cmp_all **69/70, strict 10033/10471 (95.8%)**, unchanged (no regression).
+- **Front-end comparisons (cmp_fe, original vs host, same input script):**
+  - **Classic route (r_classic):** all sound ids and frame changes match frame for frame.
+  - **Time Attack route (r_ta):** 7 sound frames and 4 frame changes match. The stage-select confirm cursor is 3 frames late (first failing frame **f539**: original A = 2, host 0 until f542). f641 is a trace-boundary artefact.
+  - **Pause (t_pause, original only):** 63 at open, 64 per move, 56 on QUIT, 51 frames to the frame change. The host test checks the same ids and a 50-frame wipe.
+- **Save:** 515-byte payload, 5 blocks on the VMU including the 3-frame icon.
+- **Emulator (Flycast, build/fpdc_lean.cdi, `rend.FloatVMUs`):**
+  - **Classic route:** title → hub → FILE 1 → mode → character select (Carol dimmed with a padlock, Milla padlocked) → Lilac → DV1.
+  - **Pause:** open; cursor moves; resume.
+  - **Time Attack route:** character select → stage select (Shang Mu shown, Dragon Valley startable) → START?/YES → DV1 with the timer → pause QUIT → back to stage select.
+  - **Options:** music volume 100 → 70, OKAY. `FPDC.SAV` appears on VMU A1 (parsed: 5 blocks, 3 icons, crystal icon, payload FPS v1 music 70). After a reboot, Options shows 70 %.
+  - **VMU LCD:** crystal in the menus, life head + "×5" in DV1.
+- **Found in the emulator and fixed:** Carol's lock overlay was a translucent rect on the host but opaque black on PVR (r_rect forces alpha in the PT list). Now the portrait is dimmed with vertex colour.
+- **Not checked:** audio by ear; the BIOS file manager view of the save icon (the HLE BIOS has none; the icon was decoded from the VMU image instead); real VMU hardware.

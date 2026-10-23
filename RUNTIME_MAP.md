@@ -149,10 +149,10 @@ On the frame the head reaches a ceiling, vy becomes 0 at once (no gravity that f
 8 jump · 9 boost charge · 53 boost fire · 21 attack swing (7 frames in) · 288 + 174 cyclone · 405 kick windup · 176 + 396 kick launch · 17/25/81 hurt · 28 Turretus shot · 5 spring · 27 crystal pickup · 4 pickup (ambiguous) · 100 Press Start · 64 menu move · 63 confirm · 56 begin.
 
 ## Music (RV: `loop_play_music_<n>_<frame>` / `on_frame_N` handlers)
-m_title (title frames) · m_menu1 (character / stage select) · m_stage1 (DV frame index 20) · m_stage1b (21–22) · m_boss (23 = DV4; RE: `Frames::loop_play_music_4_23` string) · m_stage2 (24, Relic Maze 1) · m_invincibility (invincibility monitor) · m_1up (1-up monitor) · m_clear → m_results (results, Time Attack trace: m_clear at act end, m_results 150 frames later). BGM loops whole-file: ChowdrenAudio has no loop points (SD). `m_stage2a.ogg` is referenced but absent in this build.
+m_title (title frames) · m_menu2 (hub: title menu, files, options; RV) · m_menu1 (Time Attack character select + stage select) · m_results (Classic/Adventure character select; RV) · m_stage1 (DV frame index 20) · m_stage1b (21–22) · m_boss (23 = DV4; RE: `Frames::loop_play_music_4_23` string) · m_stage2 (24, Relic Maze 1) · m_invincibility (invincibility monitor) · m_1up (1-up monitor) · m_clear → m_results (results, Time Attack trace: m_clear at act end, m_results 150 frames later). BGM loops whole-file: ChowdrenAudio has no loop points (SD). `m_stage2a.ogg` is referenced but absent in this build.
 
 ## Front end (RV positions in the original frames; 426×240 view)
-- Index 2 = Press Start (camera 107,0). Index 3 = 1440×480 hub: title menu camera (43,0), file select (43,240), options (523,0). Index 6 = character select, 11 = Time Attack stage select (camera 107,0).
+- Frame indices (RE, member maps): 2 Press Start (camera 107,0) · 3 hub 1440×480: title menu camera (43,0), file select (43,240), options (523,0) · 5 Time Attack stage select · 6 character select · 7 dispatcher · 8 stage card · 10 gallery · 11 finished-file stage select · 12 mahjong. (Session 5 listed the stage select as 11: corrected, 11 is the finished-file variant.)
 - Title cursor x 138, rows y 131/151/171/191/211 (START GAME, TIME ATTACK, GALLERY, OPTIONS, QUIT).
 - File select: cursor x 170 at y 160/184/216; slots centred at 213, 120 px pitch, wrapping; hint box fileback frame 0 at (93,16), text at (101,24)/(101,44), wrapped at 26 chars. Strings: "Press START to begin a new game.", "Press LEFT or RIGHT to adjust the DIFFICULTY.", "Select RETURN to pick another file slot.".
 - Options: cursor x 90 at y 72/128/160/184, OKAY x 170 y 216; values right-aligned (last digit x 337, y 120 music / 176 sensitivity, 14 px pitch). Difficulty dirs 0 HARD, 1 NORMAL, 2 EASY, 3 CASUAL. Defaults Normal, music 100 %, sensitivity 70 %.
@@ -165,7 +165,7 @@ Meter frame 3784 at (8,8); fill 7439 at (16,10) scaled by energy/100 and drawn o
 
 ## Stage card, pause, results
 - Card: STAGE text final y 159, name y 185, centred x 213 (10 fps capture; rise/fade timings approximate).
-- Pause images: 5502 (Resume/Quit), 6685 (Resume/Restart/Quit), 1553 (Restart greyed). Cursor marker INFERRED.
+- Pause (RE, events 4878-4881/4296-4305): GUIPause at (214,101), art frame 3 = Resume/Restart/Quit, 4 = Restart greyed (lives ≤ 1); Crystal cursor at (166, 141 + 24·row); 50-frame wipe for Restart/Quit. Sounds 63 open, 64 move, 56 confirm.
 - Act transition DV1 → DV2: fade + card, no results, timer continues.
 - Results assets: 8005 "Stage Complete!" (320×48; build-in from levelcardactclear1 anim 7), 955 "Results" banner, 10860 panel (180×48), 10837 rows (148×40: crystal icon, TIME, colons), totalbonus digits 2794…, small digits 1922…. **Layout INFERRED**: the original's post-boss results were not observed (killing the Serpentine via memory failed, time-boxed).
 
@@ -185,3 +185,14 @@ Meter frame 3784 at (8,8); fill 7439 at (16,10) scaled by energy/100 and drawn o
 
 ## Loading screen and audio (port design, host-test + emulator)
 Every level, front-end and boot load runs behind a black loading screen with ObjectCrystal_317's spin bottom-right. The music stream and every SFX channel are stopped for the whole load, and the next track starts after it. Root cause of the doubled or stuttering music on the Dreamcast: the AICA loops the stream ring buffer in hardware (`chan->loop = 1`), and blocking GD-ROM loads starve the refill thread, so stale halves replay. Also fixed: the stream volume was set before `snd_stream_start`, which forces volume 255.
+
+## Front-end screens in the port (session 6)
+| screen | original frame | port | sounds | from the original | INFERRED / not ported |
+|---|---|---|---|---|---|
+| Press Start | 2 | frontend.c FE_PRESS | 100 | events 307-330, 1-frame input latency | – |
+| Title menu | 3 (cam 43,0) | fe_hub.c title_events | 63/64 | 380-392, console layout | GALLERY inert; QUIT hidden (console) |
+| File / mode select | 3 (cam 43,240) | file_events, delete_events | 63/64/56 | 393-437 | Adventure skips the cutscene; continue starts DV1 |
+| Options | 3 (cam 523,0) | options_events | 63/64 | 464-511 | Controls / screen size / sensitivity hidden (console); SFX volume display-only on host |
+| Character select | 6 | frontend.c FE_CHSEL | 63, 220, 56 | spec_charselect | Carol and Milla locked (port rule) |
+| TA stage select | 5 | fe_stsel.inc | 63/64/56 | spec_stageselect | only Dragon Valley startable; BG parallax drift not ported; confirm 3 frames late |
+| Pause | 20 (DV1) | game.c pause_* | 63/64/56 | 4878-4881, 4296-4305, 3551 | QUIT from Classic → hub |

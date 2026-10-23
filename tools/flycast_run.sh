@@ -9,7 +9,7 @@ kill $(pgrep -x flycast) 2>/dev/null
 for p in $(pgrep -x Xvfb); do grep -q "$DISP" /proc/$p/cmdline && kill $p; done
 timeout 1 tail -f /dev/null
 (setsid Xvfb $DISP -screen 0 1280x960x24 >/dev/null 2>&1 &); timeout 2 tail -f /dev/null
-(LIBGL_ALWAYS_SOFTWARE=1 setsid third_party/flycast/build/flycast build/fpdc.cdi > /tmp/fc.log 2>&1 &)
+(LIBGL_ALWAYS_SOFTWARE=1 setsid third_party/flycast/build/flycast ${CDI:-build/fpdc.cdi} > /tmp/fc.log 2>&1 &)
 for i in $(seq 60); do W=$(xdotool search --class flycast 2>/dev/null | tail -1); [ -n "$W" ] && break; timeout 0.5 tail -f /dev/null; done
 timeout 3 tail -f /dev/null
 xdotool windowfocus --sync $W 2>/dev/null; xdotool mousemove --window $W 50 50 click 1

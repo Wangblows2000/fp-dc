@@ -426,13 +426,18 @@ static void chsel_draw(void) {
     if (C.ch[0] && !C.chosen) ui_obj_select(s, C.ch[0], 0, alt ? 8 : 0);
     if (C.ch[1]) ui_obj_select(s, C.ch[1], 0, alt ? 8 : 0);
     if (C.cursor) C.cursor->vis = 0;
+    /* Carol: not playable in the port -> her portrait dimmed (vertex colour: same result on PVR and the
+     * soft renderer; a translucent rect would land in the PVR TR list after the padlock) and the padlock
+     * image over it (DECISIONS D-020) */
+    int carol_vis = C.ch[1] ? C.ch[1]->vis : 0;
+    if (C.ch[1] && C.ch[2]) C.ch[1]->vis = 0;
     ui_draw(s, cam_x, cam_y, 0, 3);
-    /* Carol: not playable in the port -> the padlock image over her portrait (DECISIONS D-020) */
     if (C.ch[1] && C.ch[2]) {
         ui_obj_t *lk = C.ch[2];
+        C.ch[1]->vis = carol_vis;
+        ui_draw_obj(s, C.ch[1], cam_x, cam_y, 0xff505050);
         float dx = lk->dx, dy = lk->dy;
-        lk->dx = C.ch[1]->x - lk->x; lk->dy = C.ch[1]->y - lk->y;
-        r_rect(C.ch[1]->x - 8 - cam_x, C.ch[1]->y - 8 - cam_y, 132, 48, 0xa0000000);
+        lk->dx = C.ch[1]->x + C.ch[1]->dx - lk->x; lk->dy = C.ch[1]->y + C.ch[1]->dy - lk->y;
         ui_draw_obj(s, lk, cam_x, cam_y, 0xffffffff);
         lk->dx = dx; lk->dy = dy;
     }
