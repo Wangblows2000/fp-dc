@@ -21,6 +21,8 @@ static uint32_t prev_held;
  * scripts: "<first frame> <end frame> <buttons LRUDJXBS>") replaces the pad; positions go to the serial log
  * every 60 frames so a run can be compared with the host replay of the same script. */
 static struct { int a, b; uint32_t m; } *demo; static int ndemo, demo_frame, demo_on;
+static char demo_level[8];
+const char *plat_start_level(void) { return demo_level[0] ? demo_level : NULL; }
 static void demo_load(void) {
     size_t sz; char *t = plat_read_raw("demo.txt", &sz);
     if (!t) return;
@@ -29,6 +31,7 @@ static void demo_load(void) {
     while (p < end && ndemo < 8192) {
         int a, b, n = 0; char btn[16];
         char line[64]; size_t k = 0; while (p < end && *p != '\n' && k < sizeof line - 1) line[k++] = *p++; line[k] = 0; if (p < end) p++;
+        if (!strncmp(line, "LEVEL ", 6)) { size_t L = strlen(line + 6); if (L > 0 && L < sizeof demo_level) memcpy(demo_level, line + 6, L + 1); continue; }
         if (sscanf(line, "%d %d %15s%n", &a, &b, btn, &n) == 3) {
             uint32_t m = 0;
             for (char *c = btn; *c; c++) switch (*c) {
