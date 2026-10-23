@@ -114,7 +114,7 @@ void serp_fireball_update(obj_t *f, player_t *p) {
     double sx = floor(dx), sy = floor(dy);
     f->fx = (float)(dx - sx); f->fy = (float)(dy - sy);
     f->x += (float)sx; f->y += (float)sy;
-    if (p->state != ST_HURT && p->state != ST_DEAD && !p->hurt_pending && !player_invincible(p)) {
+    if (p->state != ST_HURT && p->state != ST_DEAD && !p->hurt_pending && !player_invincible(p) && p->shield != 2) {   /* 5071 / 5310: fire shield immune */
         int px = (int)floor(p->x), py = (int)floor(p->y - ORIG_REF_DY);
         if (obj_rect_hit(f, px - 7, py - 34, px + 8, py + 12)) player_contact(p, 10);
     }

@@ -198,7 +198,7 @@ static void td_update(player_t *p) {
             obj_t *o = td_piece(k);
             if (!o || !o->an.b) continue;
             int kind = k % 6;
-            if (kind == 0 && !TD.claw8 && obj_rect_hit(o, sx0, sy0, sx0 + 15, sy0 + 46) && floor(p->y - ORIG_REF_DY) <= o->y + 7) { player_contact(p, 5); break; }
+            if (kind == 0 && p->shield != 3 && !TD.claw8 && obj_rect_hit(o, sx0, sy0, sx0 + 15, sy0 + 46) && floor(p->y - ORIG_REF_DY) <= o->y + 7) { player_contact(p, 5); break; }
             if (kind == 2 && TD.colE > 274 && TD.colE < 285 && ((k < 6) ? TD.pd < 0 : TD.pd > 0) && obj_rect_hit(o, sx0, sy0, sx0 + 15, sy0 + 46)) { player_contact(p, 10); break; }
         }
     }

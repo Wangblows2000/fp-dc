@@ -6,7 +6,7 @@
 TARGET = fpdc.elf
 OBJS = src/platform/plat_dc.o src/renderer/render_pvr.o src/resources/assets.o \
        src/physics/level.o src/physics/sensors.o src/characters/player.o src/game/objects.o src/game/game.o \
-       src/game/ui.o src/game/frontend.o src/game/loading.o src/game/vmu.o src/game/fe_hub.o src/game/save.o src/game/loadprof.o src/resources/pack.o src/game/snap.o src/physics/fmath.o src/game/combat.o src/game/enemies.o src/game/gimmicks.o src/game/bosses.o src/game/serpentine.o src/game/results.o src/game/chase.o src/game/parallax.o
+       src/game/ui.o src/game/frontend.o src/game/loading.o src/game/vmu.o src/game/fe_hub.o src/game/save.o src/game/loadprof.o src/resources/pack.o src/game/snap.o src/physics/fmath.o src/game/combat.o src/game/enemies.o src/game/gimmicks.o src/game/bosses.o src/game/serpentine.o src/game/results.o src/game/chase.o src/game/parallax.o src/game/shields.o
 
 FP_GAME ?= /mnt/user-data/uploads/Freedom Planet
 # BGM: music tracks put on the disc (default: the whole ADPCM library). Lean disc with only the
@@ -50,7 +50,8 @@ build/disc/data: $(DATA_DIR)/levels.txt
 	rm -rf build/disc && mkdir -p build/disc/data
 	cp $(DATA_DIR)/levels.txt build/disc/data/      # (the old root sfx_*.wav / stage1.pcm are unused: not on the disc)
 	for d in $$(cat $(DATA_DIR)/levels.txt); do mkdir -p build/disc/data/$$d; \
-	  cp $(DATA_DIR)/$$d/*.tex $(DATA_DIR)/$$d/*.spr $(DATA_DIR)/$$d/*.lv2 $(DATA_DIR)/$$d/*.pal build/disc/data/$$d/; done
+	  cp $(DATA_DIR)/$$d/*.tex $(DATA_DIR)/$$d/*.spr $(DATA_DIR)/$$d/*.lv2 $(DATA_DIR)/$$d/*.pal build/disc/data/$$d/; \
+	  cp $(DATA_DIR)/$$d/*.bin build/disc/data/$$d/ 2>/dev/null || true; done   # *_par.bin: parallax pieces
 	# front end (ui scenes + banks + font), ADPCM music library (.adp), ADPCM sfx/voices
 	mkdir -p build/disc/data/ui build/disc/data/bgm build/disc/data/sfx
 	cp $(DATA_DIR)/ui/*.ui $(DATA_DIR)/ui/*.spr $(DATA_DIR)/ui/*.tex $(DATA_DIR)/ui/*.bin build/disc/data/ui/

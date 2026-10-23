@@ -133,7 +133,10 @@ static uint32_t gx_seed = 12345;
 static int gx_rand(int n) { gx_seed = gx_seed * 1103515245u + 12345u; return (int)((gx_seed >> 8) % (unsigned)n); }
 static int cell_key(void) { return ((int)(G.p.x / 64)) * 1000 + (int)((G.p.y - ORIG_REF_DY) / 64) + (G.p.state == 13 ? 500 : 0) + (boss_progress() / 4) * 1000000; }
 /* progress: x plus damage dealt to the act's boss (a boss arena blocks x until the boss is beaten) */
-static double prog_now(void) { return G.p.x + boss_progress() * 60.0; }
+static double prog_now(void) {
+    if (G.cam.U) return 20000.0 + boss_progress() * 60.0 + G.p.hp;   /* boss arena (bounds locked): x means nothing, damage does */
+    return G.p.x + boss_progress() * 60.0;
+}
 
 int *search_explore(int iters, int *n, uint32_t prev0) {
     size_t ss = snap_size();
@@ -176,7 +179,8 @@ int *search_explore(int iters, int *n, uint32_t prev0) {
         if (getenv("FP_SEARCH_V") && it % 2000 == 0) fprintf(stderr, "explore it %d cells %d best x %.0f\n", it, nc, bestx);
     }
     if (!res) {        /* not reached: return the path to the rightmost cell so the run moves on */
-        int bi = 0; for (int i = 1; i < nc; i++) if (C[i].x > C[bi].x) bi = i;
+        int bi = 0; for (int i = 1; i < nc; i++) if (C[i].x > C[bi].x || (bi == 0 && C[i].x >= C[bi].x - 1 && C[i].len > 0)) bi = i;
+        if (!C[bi].len) for (int i = 1; i < nc; i++) if (C[i].len > C[bi].len && C[i].hp >= C[0].hp) bi = i;   /* stalled: keep moving (most explored path) */
         if (C[bi].len) { res = malloc(sizeof(int) * C[bi].len); memcpy(res, C[bi].path, sizeof(int) * C[bi].len); *n = C[bi].len; }
         fprintf(stderr, "explore: act end not reached (cells %d, best x %.0f)\n", nc, C[bi].x);
     }

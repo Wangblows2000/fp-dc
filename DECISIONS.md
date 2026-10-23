@@ -87,3 +87,21 @@ anything. Packs remove hundreds of ISO9660 opens; textures are twiddled on the P
 compatible transitions (CRC-checked, dropped otherwise). No general cache: only the one pack in RAM, freed at loading_end.
 **D-023 Mirrored sprites by UV flip.** Halves Lilac/hair VRAM (lilac2 1 MB → 512 KB, hair 512 KB → 256 KB) so DV levels fit.
 **D-024 Header dependencies in the Makefiles** after the TA regression caused by stale objects.
+**D-025 16:9 letterbox is an option, the logical view stays 426×240.** OPTIONS → SCREEN SIZE (a row the console layout
+hides, shown by the port) switches between 16:9 letterbox (×1.5, opaque bars over anything drawn outside the view) and
+4:3 fill (×1.5 across, ×2 down). Nothing in gameplay sees the difference. Default: letterbox. Saved in the save (v2).
+**D-026 One enemy/boss/gimmick bank per level (`<lv>_ens`).** Sprites the level's events need are picked by
+(class, animation, direction) in tools/import_frame.py ENS and loaded by name; palettes share flexible groups.
+**D-027 Parallax as 4 bpp power-of-two chunks.** Each image key gets one 16-colour block (`palettize --pal4`), so the
+DV backgrounds use ~0.9 MB less VRAM and match the original's tiling exactly (spec_parallax).
+**D-028 Momentum (intentional change, brief):** the uppercut slides through its wind-up and keeps 90 % of a faster run speed;
+the down-kick wind-up keeps its speed. `FP_ORIG_MOVES=1` restores the original for trace comparisons.
+**D-029 Save v2.** Letterbox and per-act card bits are appended; v1 files still load. Writes happen only on explicit
+actions or act boundaries: options OKAY, a new Time Attack record, cards at the act change (only when a new card was
+taken), the results save at D = 150. Never mid-stage.
+**D-030 Death restarts the act with one life less** (keystones and crystal counts restored to the act start); at 0 lives
+the game returns to the menu (the original's game-over card is not ported).
+**D-031 Every sound a ported event plays is loaded at boot** (61 original ids + 16 voices, ~1.1 MB of SPU RAM as 4-bit
+ADPCM). Ids not in the list are silent, so new events must add theirs to `SND_IDS` and `convert_sfx.sh`.
+**D-032 Verification demos can start a level directly** (`LEVEL <dir>` line in demo.txt, same path as host `FP_LEVEL`),
+so host and emulator replays of a route script start from the same state.

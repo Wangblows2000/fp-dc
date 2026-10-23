@@ -274,5 +274,11 @@ _p2 = subprocess.run([BIN, DATA, '2', '-'], capture_output=True, text=True, env=
 check('card_saved_once_at_act_change', len(_writes) == 1, str(_writes))
 check('card_total_persists_across_boot', 'save cards 1' in _p2.stdout, [l for l in _p2.stdout.splitlines() if 'save cards' in l][:1].__str__())
 
+# shields (spec_shields): a wood monitor broken at f70 gives the shield 64 icon frames later; on Normal it takes two hits
+# (absorb, break) with no hurt; the third hit hurts (host MON debug command places the monitor)
+r = run('60 MON 151\n70 73 X\n200 HURT 10\n300 HURT 10\n400 HURT 10\n', 460, {'FP_LEVEL': 'dv2'})
+check('shield_given_after_icon', at(r, 140)['sh'] == 1 and at(r, 100)['sh'] == 0)
+check('shield_absorbs_then_breaks', at(r, 250)['sh'] == 1 and at(r, 250)['shc'] == 0 and at(r, 350)['sh'] == 0 and at(r, 350)['hp'] == 14 and at(r, 450)['hp'] < 14)
+
 print('%d failure(s)' % fails)
 sys.exit(1 if fails else 0)

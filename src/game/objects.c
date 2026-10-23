@@ -62,7 +62,8 @@ void objects_spawn(void) {
                 { OT_LOOP016, "loop016" }, { OT_LOOP0Q, "loop0q" }, { OT_LOOP115, "loop115" }, { OT_LOOP1Q, "loop1q" },
                 { OT_GEYSER, "geyser" }, { OT_MON_KEYSTONE, "mon_key" }, { OT_SPIRAL_MASK, "spiralmask" }, { OT_BALLTUNNEL, "balltunnel" }, { OT_CARD, "card" },
                 { OT_SPIRAL_FRONT, "spiralfront" }, { OT_SPINLOG, "slog0" }, { OT_SPINLOG_MASK, "slogmask" }, { OT_PBLOCK1, "pblock1" },
-                { OT_FRONTROCK, "frontrock1" }, { OT_FRONTTREE, "fronttree" }, { OT_TREEFRONT, "treefront" } };
+                { OT_FRONTROCK, "frontrock1" }, { OT_MON_WOOD, "mon_wood" }, { OT_MON_EARTH, "mon_earth" }, { OT_MON_FIRE, "mon_fire" },
+                { OT_MON_METAL, "mon_metal" }, { OT_MON_WATER, "mon_water" }, { OT_FRONTTREE, "fronttree" }, { OT_TREEFRONT, "treefront" } };
             for (unsigned k = 0; k < sizeof EA / sizeof EA[0]; k++) if (o->type == EA[k].t) {
                 int a = ens_anim(EA[k].a);
                 if (a >= 0) anim_set(&o->an, &G.ens, a); else o->an.b = NULL;
@@ -87,7 +88,7 @@ void objects_spawn(void) {
     cards_spawn_all();
     layers_refresh(&G.p);
     bosses_spawn();
-    wlogs_spawn(); dv3_switch_spawn(); tunnels_reset();
+    wlogs_spawn(); dv3_switch_spawn(); tunnels_reset(); shields_reset();
     /* 3566 / 3567: 12 logs per bridge at (bx + 16k, by + 56), A = k, B = base y */
     int nb = G.nobjs;
     for (int b = 0; b < nb; b++) {
@@ -328,6 +329,13 @@ static void throw_items(const obj_t *m, int type, int n) {
         e->vx = 3.f * (float)fd_cos(ang); e->vy = 3.f * (float)fd_sin(ang) - 1.f;
         if (a >= 0) anim_set(&e->an, &G.objs, a);
     }
+}
+/* 2684 (wood shield): one petal thrown straight up from the shield (motion as the monitor petals, INFERRED) */
+void obj_throw_petal(float x, float y) {
+    obj_t *e = alloc_obj();
+    if (!e) return;
+    e->type = OT_ITEM_FLY; e->st = OT_PETAL; e->alive = 1; e->x = x; e->y = y; e->vx = 0; e->vy = -3.f;
+    if (A_PETAL >= 0) anim_set(&e->an, &G.objs, A_PETAL);
 }
 /* 2766: one absorbed crystal per frame from a defeated enemy, fanned around straight up (spec_combat; the Pinball
  * movement's speed is INFERRED: 4 px/frame, then the thrown-item rules) */
@@ -578,6 +586,7 @@ void objects_update(void) {
                 o->alive = 0; p->energy = fminf(PHYS_ENERGY_MAX, p->energy + PHYS_ENERGY_CRYSTAL);
                 if (--p->crystals <= 0) { p->crystals = CRYSTALS_PER_LIFE; p->lives++; }   /* extra life INFERRED */
                 G.stage_crystals++;                                                     /* MasterLevel J */
+                shield_on_crystal(p);                                                   /* 1289: ShieldWood.A += 1 */
                 snd_play_orig(27, 200, 128);
                 spawn_effect(o->x, o->y, A_SPARKLE);
             }
@@ -636,12 +645,14 @@ void objects_update(void) {
             if (defeated) { set_anim_keep(o, A_TURR[4 + dir_left(o->dir)]); break; }   /* 4775: anim 8 */
             turretus_events(o, p, bx0, by0, bx1, by1);
             break;
+        case OT_MONICON: shield_icon_update(o, p); break;
         case OT_ROCK: case OT_MONITOR: case OT_MON_RINGS: case OT_MON_1UP: case OT_MON_INVINC: case OT_MON_KEYSTONE:
+        case OT_MON_WOOD: case OT_MON_EARTH: case OT_MON_FIRE: case OT_MON_METAL: case OT_MON_WATER:
             if (!dead && (monitor_hit(p, bx0, by0, bx1, by1) || side_sensor_break(p, o))) {
                 if (side_sensor_break(p, o)) player_hitstop(p, 5);          /* RV spiral_dv1: OTHERS.K = 5 per rock */
                 obj_t m = *o;                /* the freed slot is reused by the thrown items */
                 o->alive = 0; explode(m.x, m.y - 8);
-                monitor_reward(&m, p);
+                monitor_reward(&m, p); shield_monitor_broken(&m);
                 player_bounce(p, -4.f);
             }
             break;
@@ -719,6 +730,7 @@ void objects_draw(int pass) {
         if (o->scale != 0 && o->scale != 1.f) r_set_scale(o->scale);
         if (o->ang != 0 || (o->scale != 0 && o->scale != 1.f)) frame_draw_rot(o->an.b, anim_frame(&o->an), sx, sy, o->ang, o->flip, col);
         else frame_draw(o->an.b, anim_frame(&o->an), sx, sy, o->flip, col);
+        if (o->type >= OT_MON_WOOD && o->type <= OT_MON_WATER) shield_preview_draw(o, sx, sy);
         r_set_scale(1.f);
         if (inv) r_set_invert(0);
     }
@@ -742,11 +754,11 @@ int obj_in_group(int type, int grp) {
     case OBJGRP_SOLID: return type == OT_MONITOR || type == OT_MON_RINGS || type == OT_MON_1UP || type == OT_MON_INVINC || type == OT_ROCK || type == OT_SPIKES || type == OT_SPRING_R ||
                               type == OT_SPIKES_L || type == OT_SPIKES_R || type == OT_SPIKES_D || (type >= OT_LOOP016 && type <= OT_LOOP1Q) ||
                               type == OT_SPIRAL_MASK || type == OT_BALLTUNNEL || type == OT_WR_BARRIER || type == OT_BROCK2 || type == OT_MON_KEYSTONE ||
-                              type == OT_TRUNK || type == OT_PBLOCK2 || type == OT_DOOR || type == OT_BTUNNEL2 || type == OT_PBLOCK1;
+                              type == OT_TRUNK || type == OT_PBLOCK2 || type == OT_DOOR || type == OT_BTUNNEL2 || type == OT_PBLOCK1 || (type >= OT_MON_WOOD && type <= OT_MON_WATER);
     case OBJGRP_OBSTACLE: case OBJGRP_OBSTACLE_ALL:
         return type == OT_LADDERTOP || type == OT_LOG || type == OT_PLAT_VALLEY || type == OT_PLAT_MOVE2 || type == OT_PLAT_MOVE3 || type == OT_GEYSER || type == OT_RSPRING_UL || type == OT_FLOATPLAT || type == OT_WLOG || type == OT_SPINLOG_MASK;
     case OBJGRP_NOEDGE: return type == OT_LADDERTOP || type == OT_LOG || type == OT_PLAT_VALLEY || type == OT_PLAT_MOVE2 || type == OT_PLAT_MOVE3 || type == OT_MONITOR || type == OT_MON_RINGS || type == OT_MON_1UP || type == OT_MON_INVINC || type == OT_SPIKES || type == OT_SPRING || type == OT_SPRING_UL ||
-                               type == OT_SPRING_UR || type == OT_SPRING_R || type == OT_GEYSER || type == OT_RSPRING_UL || type == OT_SPIKES_L || type == OT_SPIKES_R || type == OT_SPIKES_D || type == OT_MON_KEYSTONE || type == OT_FLOATPLAT || type == OT_PBLOCK2 || type == OT_PBLOCK1;
+                               type == OT_SPRING_UR || type == OT_SPRING_R || type == OT_GEYSER || type == OT_RSPRING_UL || type == OT_SPIKES_L || type == OT_SPIKES_R || type == OT_SPIKES_D || type == OT_MON_KEYSTONE || type == OT_FLOATPLAT || type == OT_PBLOCK2 || type == OT_PBLOCK1 || (type >= OT_MON_WOOD && type <= OT_MON_WATER);
     default: return 0;
     }
 }
@@ -756,7 +768,7 @@ static int sensor_hit_any(int grp, int type, int ox, int oy, const signed char *
         if (!o->alive || !o->an.b || (type >= 0 ? o->type != type : !in_group(o->type, grp))) continue;
         if ((grp == OBJGRP_OBSTACLE || grp == OBJGRP_SOLID) && (o->fl & 1)) continue;   /* flag 0: ignored (4738 platforms; loop layers 3025/3026) */
         if (grp == OBJGRP_SOLID && objects_mon_ghost && (o->type == OT_MONITOR || o->type == OT_MON_RINGS || o->type == OT_MON_1UP ||
-                                                          o->type == OT_MON_INVINC || o->type == OT_MON_KEYSTONE || o->type == OT_ROCK)) continue;   /* 1581 (RV spiral_dv1: rocks too) */
+                                                          o->type == OT_MON_INVINC || o->type == OT_MON_KEYSTONE || o->type == OT_ROCK || (o->type >= OT_MON_WOOD && o->type <= OT_MON_WATER))) continue;   /* 1581 (RV spiral_dv1: rocks too) */
         const frame_t *f = anim_frame(&o->an);
         int bx = (int)floorf(o->x) - (o->flip ? f->w - f->hx : f->hx), by = (int)floorf(o->y) - f->hy;
         if (ox > bx + f->w || ox + 27 < bx || oy >= by + f->h || oy + h <= by) continue;
