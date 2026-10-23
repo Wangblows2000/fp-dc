@@ -377,6 +377,8 @@ void   chase_spawn(void), chase_update(player_t *p), chase_chunk_update(obj_t *d
 int    chase_running(void);
 int    boss_progress(void), serp_progress(void), serp4_input(uint32_t *held), serp4_flash(void), serp4_hud(int *k);
 void   serp_draw_hud(void);
+int    par_load(const char *dir), par_count(void);
+void   par_free(void), par_update(void), par_draw(int gframe);
 int    boss_invert_base(void), boss_hidden(const obj_t *o), boss_flash(const obj_t *o);
 int    obj_near_view(const obj_t *o, int n);
 int    ens_anim(const char *name);

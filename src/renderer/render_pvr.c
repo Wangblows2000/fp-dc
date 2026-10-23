@@ -5,7 +5,7 @@
 #include <kos.h>
 #include "../fp.h"
 
-#define MAXTEX 64
+#define MAXTEX 192
 #ifdef FP_VIEW_320
 static float SX = 2.0f, SY = 2.0f, OFF_X = 0.0f, OFF_Y = 0.0f;
 static int letterbox = 0;
@@ -70,12 +70,15 @@ int r_tex_load(tex_t *t, const void *data, size_t size) {
     if (size < 16 || memcmp(d, "FPTX", 4) || slot >= MAXTEX) return -1;
     memcpy(hdr, d + 4, 12);
     int w = hdr[0], h = hdr[1], fmt = hdr[2], grp = hdr[5];
-    size_t bpp = fmt >= 1 ? 1 : 2;      /* fmt 1: PAL8 linear, 2: PAL8 pre-twiddled on the disc (tools/twiddle_disc.py) */
-    if (fmt > 2 || (fmt >= 1 && grp > 3) || w < 8 || h < 8 || (w & (w - 1)) || (h & (h - 1)) || (size_t)w * h * bpp + 16 > size) return -1;
-    pvr_ptr_t p = pvr_mem_malloc(w * h * bpp);
+    size_t bytes = fmt == 3 ? (size_t)w * h / 2 : fmt >= 1 ? (size_t)w * h : (size_t)w * h * 2;   /* fmt 1: PAL8 linear, 2: PAL8 pre-twiddled (tools/twiddle_disc.py), 3: PAL4 linear */
+    if (fmt > 3 || (fmt >= 1 && fmt <= 2 && grp > 3) || (fmt == 3 && grp > 63) || w < 8 || h < 8 || (w & (w - 1)) || (h & (h - 1)) || bytes + 16 > size) return -1;
+    pvr_ptr_t p = pvr_mem_malloc(bytes);
     if (!p) { plat_log("VRAM exhausted (%dx%d)\n", w, h); return -1; }
     int txfmt;
-    if (fmt == 2) {       /* already in VRAM order: straight store-queue copy */
+    if (fmt == 3) {       /* 4-bit palettized (parallax): KOS twiddles while uploading; bank = 16-entry palette block */
+        pvr_txr_load_ex(d + 16, p, w, h, PVR_TXRLOAD_4BPP);
+        txfmt = PVR_TXRFMT_PAL4BPP | PVR_TXRFMT_4BPP_PAL(grp);
+    } else if (fmt == 2) {       /* already in VRAM order: straight store-queue copy */
         pvr_txr_load(d + 16, p, w * h);
         txfmt = PVR_TXRFMT_PAL8BPP | PVR_TXRFMT_8BPP_PAL(grp);
     } else if (fmt == 1) { /* 8-bit palettized, linear: KOS twiddles every texel while uploading */

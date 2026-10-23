@@ -134,6 +134,74 @@ def load_img(src, i):
     hx, hy = [v - 65536 if v > 32767 else v for v in m[:2]]
     return im, hx, hy
 
+PAR_IMG = {'levelparallaxpiece0_491': 16032, 'levelparallaxpiece1_891': 3030, 'levelparallaxpiece2_893': 3031,
+           'levelparallaxpiece3_894': 937, 'levelparallaxpiece4_895': 326, 'levelparallaxpiece5_896': 3032,
+           'levelparallaxpiece6_897': 3033, 'levelparallaxpiece2_892': 4216, 'levelparallaxpiece7_913': 3238,
+           'levelparallaxpiece7_987': 3404, 'levelparallaxpiece8_1006': 5422, 'levelparallaxpiece9_1005': 6320,
+           'levelparallaxpiece10_1007': 6272, 'levelparallaxpiece11_1009': 5129, 'levelparallaxpiece12_1067': 6388,
+           'levelparallaxpiece13_1068': 6387, 'levelparallaxpiece13_1092': 6387}
+PAR_BOXH = {'levelparallaxpiece6_897': 160, 'levelparallaxpiece13_1068': 1024, 'levelparallaxpiece13_1092': 820}
+# D, E, G (RE 5110 / 5315 / 5603; DV1's start events not read: the same table is used, INFERRED)
+PAR_DEG = {491: (.99, .94, 0), 891: (.98, .93, 0), 893: (.95, .91, 0), 894: (.96, .92, -.1), 895: (.92, .88, -.3),
+           896: (.6, .7, 0), 897: (.5, .6, 0), 892: (.4, .5, 0), 913: (.35, .43, 0), 987: (.35, .43, 0),
+           1006: (.7, .8, 0), 1005: (.6, .7, 0), 1007: (.4, .5, 0), 1009: (.35, .43, 0), 1067: (.15, .15, 0),
+           1068: (.15, .15, 0), 1092: (.15, .15, 0)}
+
+def pow2_split(n, cap=1024):
+    out, r = [], n
+    while r > 0:
+        p = 8
+        while p * 2 <= min(r, cap): p *= 2
+        if r < 8: p = 8
+        out.append(p); r -= p
+    return out
+
+def export_parallax(fr, src, name, out):
+    """<name>_par.bin + chunk textures <name>_px<img>_<k>.tex (ARGB1555; palettize --pal4 converts them)"""
+    pieces, images, ntex = [], [], 0
+    imgidx = {}
+    has_switch = any(o['cls'] == 'levelparallaxpiece8' for o in fr['objects'])
+    water = None
+    for o in fr['objects']:
+        key = '%s_%d' % (o['cls'], o['id'])
+        if o['cls'] == 'levelparalaxwatersurface' and o['x'] is not None: water = 2700
+        if key not in PAR_IMG or o['y'] is None: continue
+        img = PAR_IMG[key]
+        if img not in imgidx:
+            im, hx, hy = load_img(src, img)
+            chunks = []
+            y = 0
+            for ch in pow2_split(im.height):
+                x = 0
+                for cw in pow2_split(im.width):
+                    sub = im.crop((x, y, min(x + cw, im.width), min(y + ch, im.height)))
+                    tn = '%s_px%d_%d' % (name, len(images), len(chunks))
+                    write_tex(sub, os.path.join(out, tn + '.tex'))
+                    chunks.append((x, y, sub.width, sub.height))
+                    x += cw
+                y += ch
+            imgidx[img] = len(images); images.append((im.width, im.height, chunks))
+        D, E, G = PAR_DEG.get(o['id'], (.5, .5, 0))
+        flags = 0
+        if has_switch and o['id'] in (491, 891): flags |= 1        # shown while view top < 1360 (5101/5102)
+        if has_switch and o['id'] in (1006, 1005): flags |= 2      # shown while view top >= 1360
+        if o['id'] == 1005: flags |= 4                             # piece9: water frames (5094)
+        iw, ih = images[imgidx[img]][0], images[imgidx[img]][1]
+        pieces.append((imgidx[img], D, E, G, o['y'], iw, PAR_BOXH.get(key, ih), flags))
+    d = bytearray(b'FPPX' + struct.pack('<4H', len(images), len(pieces), 1 if water else 0, 0))
+    for w, h, chunks in images:
+        d += struct.pack('<3H', w, h, len(chunks))
+        for c in chunks: d += struct.pack('<4H', *c)
+    for (ii, D, E, G, y0, bw, bh, fl) in pieces: d += struct.pack('<H3fi3H', ii, D, E, G, y0, bw, bh, fl)
+    if water:
+        for img in (987, 1078):
+            im, hx, hy = load_img(src, img)
+            tn = '%s_pw%d' % (name, img == 1078)
+            write_tex(im, os.path.join(out, tn + '.tex'))
+        d += struct.pack('<i', water)
+    open(os.path.join(out, name + '_par.bin'), 'wb').write(d)
+    return [(p[0], p[4]) for p in pieces]
+
 def first_anim_frames(entry):
     """frames of the first non-empty animation, right-facing direction"""
     for ds in entry.get('anims') or []:
@@ -314,19 +382,10 @@ def main():
         ens['anims'].append({'name': nm, 'frames': fr_, 'speed': d['max_speed'], 'loop': d['loop'], 'back_to': d['back_to']})
     if ens['anims']: write_bank2(src, ens, out, report)
     report.append('ens bank: %s' % [a['name'] for a in ens['anims']])
-    # parallax pieces (first frame image as a texture each)
-    par = []
-    for o in objs:
-        if 20 <= o['type'] < 28:
-            e = an.get(o['cls'], {})
-            d = first_anim_frames(e)
-            img = d['frames'][0] if d and d['frames'] and d['frames'][0] is not None else (e.get('images') or [None])[0]
-            if img is not None:
-                im, hx, hy = load_img(src, img)
-                tn = '%s_par%d' % (name, len(par))
-                write_tex(im, os.path.join(out, tn + '.tex'))
-                par.append((o['type'] - 20, o['x'] - hx, o['y'] - hy, im.width, im.height))
-                o['par_index'] = len(par) - 1
+    # parallax (RE + RV: build/re/spec_parallax.md): layer-0 SystemBox pieces, tiled, moved every frame by
+    # sx = fmod(trunc(D*vl + F - vl), A), sy = trunc(E*vt + C) - vt. Images are split into power-of-two chunks
+    # (each <= 16 colours: palettize --pal4 makes them 4 bpp with one 16-entry block per image).
+    par = export_parallax(fr, src, name, out)
     report.append('parallax pieces: %s' % par)
 
     # ---- Lilac (playerskinsash_341) from recovered animation tables, both facings
