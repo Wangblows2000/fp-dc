@@ -16,7 +16,7 @@ boost_petals_full 143 144 40
 boost_repeat 150 151 40
 boost_run 0 151 0
 boost_upleft 10 151 10
-boost_upright 105 151 105
+boost_upright 148 151 148
 crouch 0 151 0
 cyc_dk_cyc 151 151 151
 cyc_dk_early 151 151 151

@@ -148,7 +148,7 @@ typedef struct {
     uint32_t held;                 /* this frame's held buttons (object events that test input) */
     double hang_x, hang_y;         /* grabbed hang sensor position (state M41) */                 /* launched by a spring, until landing (spring anim while rising) */
     float rot;                   /* sprite angle, degrees CCW (original Active angle @+0xc4) */
-    float boost_dx, boost_dy;
+    double boost_vx, boost_vy;    /* Dragon Boost speed (RV: 12 straight, (8, 8) diagonal, 10 after a landing) */
     float spawn_x, spawn_y;
     int dead_t;
 } player_t;
