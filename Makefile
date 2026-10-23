@@ -20,12 +20,17 @@ all: $(TARGET)
 ifdef KOS_BASE
 include $(KOS_BASE)/Makefile.rules
 KOS_CFLAGS += -std=gnu11 -Wall -Wextra -Wno-unused-parameter -O2 -DFP_PROFILE
+# header dependencies (.d files): a changed fp.h / ui.h / .inc rebuilds every object that includes it.
+# Without this, objects compiled against an older game_t layout were linked into the disc (session 6 regression).
+KOS_CFLAGS += -MMD -MP
 # make FP_DEBUG_SELECT=1 -> (kept for compatibility, no effect) the developer level select is reached only by
 #                          pressing L and R within 2 s on the title screen (src/game/frontend.c)
 ifdef FP_DEBUG_SELECT
 KOS_CFLAGS += -DFP_DEBUG_SELECT
 endif
 endif
+
+-include $(OBJS:.o=.d)
 
 $(TARGET): $(OBJS)
 	kos-cc -o $(TARGET) $(OBJS) -lm
@@ -62,7 +67,7 @@ test: host
 	python3 tests/test_gameplay.py converted2
 
 clean:
-	rm -f $(OBJS) $(TARGET)
+	rm -f $(OBJS) $(OBJS:.o=.d) $(TARGET)
 	$(MAKE) -C host clean
 
 .PHONY: all data cdi host test clean
