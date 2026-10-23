@@ -67,9 +67,37 @@ int  music_play(const char *name) {
     return 0;
 }
 void music_volume(int pct) { (void)pct; }
+void music_pause(void) { if (getenv("FP_TRACE_SND")) printf("music pause @%d\n", cur_frame); }
+void music_resume(void) { if (getenv("FP_TRACE_SND")) printf("music resume @%d\n", cur_frame); }
 void snd_stop_all(void) { if (getenv("FP_TRACE_SND")) printf("snd stopall @%d\n", cur_frame); }
 void music_update(void) {}
 void music_stop(void) { if (host_mus[0] && getenv("FP_TRACE_SND")) printf("music stop @%d\n", cur_frame); host_mus[0] = 0; }
+
+/* host VMU: FP_VMU_DUMP=<dir> writes each new LCD image as PBM (tests); FP_TRACE_VMU logs changes */
+int plat_vmu_lcd(const uint8_t bm[192]) {
+    if (getenv("FP_TRACE_VMU")) printf("vmu @%d\n", cur_frame);
+    const char *d = getenv("FP_VMU_DUMP");
+    if (d) {
+        char path[512]; snprintf(path, sizeof path, "%s/vmu%05d.pbm", d, cur_frame);
+        FILE *f = fopen(path, "wb");
+        if (f) { fprintf(f, "P4\n48 32\n"); fwrite(bm, 1, 192, f); fclose(f); }
+    }
+    return 0;
+}
+/* host save: FP_SAVE=<file> (no saving without it, so tests stay deterministic) */
+int plat_save_write(const void *data, size_t size) {
+    const char *p = getenv("FP_SAVE"); if (!p) return -1;
+    FILE *f = fopen(p, "wb"); if (!f) return -1;
+    size_t n = fwrite(data, 1, size, f); fclose(f);
+    if (getenv("FP_TRACE_SND")) printf("save %zu @%d\n", size, cur_frame);
+    return n == size ? 0 : -1;
+}
+int plat_save_read(void *data, size_t max) {
+    const char *p = getenv("FP_SAVE"); if (!p) return -1;
+    FILE *f = fopen(p, "rb"); if (!f) return -1;
+    size_t n = fread(data, 1, max, f); fclose(f);
+    return (int)n;
+}
 
 extern void soft_dump(const char *path);
 void plat_quit(void) { printf("quit @%d\n", cur_frame); exit(0); }
