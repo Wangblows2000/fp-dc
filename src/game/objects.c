@@ -74,6 +74,7 @@ void objects_spawn(void) {
     }
     cards_spawn_all();
     layers_refresh(&G.p);
+    bosses_spawn();
     /* 3566 / 3567: 12 logs per bridge at (bx + 16k, by + 56), A = k, B = base y */
     int nb = G.nobjs;
     for (int b = 0; b < nb; b++) {
@@ -275,7 +276,9 @@ static void set_anim_keep(obj_t *o, int a) {         /* force_animation: frame 0
     if (o->an.b != &G.objs || o->an.anim != a) { int acc = o->an.acc; anim_set(&o->an, &G.objs, a); o->an.acc = acc; }
 }
 
-static void spawn_pellet(float x, float y, int dir) {
+void obj_spawn_pellet(float x, float y, int dir);
+static void spawn_pellet(float x, float y, int dir) { obj_spawn_pellet(x, y, dir); }
+void obj_spawn_pellet(float x, float y, int dir) {
     obj_t *e = alloc_obj();
     if (!e) return;
     e->type = OT_PELLET; e->alive = 1; e->x = floorf(x); e->y = floorf(y); e->fx = e->fy = 0; e->born = G.frame;
@@ -485,6 +488,8 @@ void objects_update(void) {
     enemies_absorb_crystals();
     /* Lilac's attacks and contact, shared enemy events (2731-2767) */
     combat_frame(p);
+    /* minibosses / bosses (their event blocks follow the enemies') */
+    bosses_update(p);
     /* per-object events */
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i];
@@ -624,11 +629,13 @@ void objects_draw(int front) {
         float sx = floorf(o->x - G.camx), sy = floorf(o->y - G.camy);
         if (sx < -96 || sx > SCREEN_W + 96 || sy < -96 || sy > SCREEN_H + 96) continue;
         if (o->type == OT_SHIELD || o->type == OT_GEYSER || o->type == OT_SPIRAL_MASK || o->type == OT_BALLTUNNEL || o->type == OT_WR_WEAK) continue;   /* invisible */
+        if (boss_hidden(o)) continue;
         uint32_t col = (o->type == OT_CARD && (o->fl & 2)) ? 0x80ffffff : 0xffffffff;     /* 2573: already collected */
-        if (o->inv) r_set_invert(1);
+        int inv = boss_flash(o);
+        if (inv) r_set_invert(1);
         if (o->ang != 0) frame_draw_rot(o->an.b, anim_frame(&o->an), sx, sy, o->ang, o->flip, col);
         else frame_draw(o->an.b, anim_frame(&o->an), sx, sy, o->flip, col);
-        if (o->inv) r_set_invert(0);
+        if (inv) r_set_invert(0);
     }
     combat_draw_shields(1);           /* visible slash shields, behind Lilac */
 }
