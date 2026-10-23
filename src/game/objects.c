@@ -537,6 +537,7 @@ void objects_update(void) {
             if (!dead && p->state != 5 /* ST_HURT */ && item_in_reach(o, p, 39)) {
                 o->alive = 0; p->energy = fminf(PHYS_ENERGY_MAX, p->energy + PHYS_ENERGY_CRYSTAL);
                 if (--p->crystals <= 0) { p->crystals = CRYSTALS_PER_LIFE; p->lives++; }   /* extra life INFERRED */
+                G.stage_crystals++;                                                     /* MasterLevel J */
                 snd_play_orig(27, 200, 128);
                 spawn_effect(o->x, o->y, A_SPARKLE);
             }

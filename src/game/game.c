@@ -27,6 +27,7 @@ static void level_start(void) {
     /* crystals, lives, energy persist across restarts (RV: debug restart kept them) */
     player_reset(&G.p, G.p.spawn_x, G.p.spawn_y);
     objects_spawn();
+    results_reset();
     G.clear_t = 0; G.act_in = 0; G.act_fade = 0; G.frame = 0; G.card_t = 0; G.paused = 0;
     G.pause_a = 0; G.pause_wipe_f = 0;
     G.act_lives = G.p.lives; G.act_crystals = G.p.crystals;   /* RE 4311/4312 (act-carry values are applied after this; see next_act) */
@@ -42,7 +43,7 @@ const char *level_music(const char *dir) {
     if (!strcmp(dir, "dv4")) return "bgm/m_boss.adp";
     return "bgm/m_stage1b.adp";
 }
-static int act_of(const char *dir) { return dir[2] - '0'; }
+int act_of(const char *dir) { return dir[2] - '0'; }
 
 static void bank_free(bank_t *b) { free(b->act); free(b->frames); free(b->anims); free(b->seq); free(b->mbits); free(b->moff); memset(b, 0, sizeof *b); }
 
@@ -241,6 +242,7 @@ int game_init(void) {
 void game_start_adventure(const char *dir, int time_attack) {
     G.time_attack = time_attack;
     G.p.energy_init = 0;                       /* fresh run: lives/crystals reset by player_reset */
+    G.stage_crystals = 0; G.keystones = 0;
     G.mode = MODE_PLAY;
     if (game_load_level(dir) < 0) { fe_enter(); return; }
 }
@@ -477,8 +479,8 @@ void game_update(const input_t *in) {
     if (G.pause_a > 0) G.pause_a--;                  /* RE 2928: closing lockout 1 -> 0 */
     if (pause_try_open(in)) return;                  /* (the original pauses after this frame's gameplay events) */
     G.frame++;
-    input_t none = {0};
-    const input_t *pin = (G.clear_t || G.act_in) ? &none : in;   /* act end / walk-in: no control (RE) */
+    input_t none = {0}, rin = results_input(in);
+    const input_t *pin = (G.clear_t || G.act_in) ? &none : results_on() ? &rin : in;   /* act end / walk-in / results: no control (RE) */
     objects_platforms(&G.p);                      /* RE: platform/bridge events run before Lilac's movement */
     player_update(&G.p, pin);
     layers_update(&G.p);                          /* RE 1613-1616 + 3031/3032: loop collision layer */
@@ -505,8 +507,10 @@ void game_update(const input_t *in) {
         G.clear_t = a ? a : 1;
         if (G.clear_t == 255) { next_act(); return; }
     }
-    /* RE (events 4135 / 5045): the act ends when Lilac passes X > frame width - 50 moving right */
-    if (!G.clear_t && !G.act_in && G.p.x > G.lvl.w - 50 && (G.p.ground ? G.p.gsp : G.p.vx) > 0) G.clear_t = 1;
+    /* RE (events 4135 / 5045): the act ends when Lilac passes X > frame width - 50 moving right; DV4 runs the
+     * results instead (5381 / 5576, src/game/results.c) */
+    if (results_update(&G.p)) return;
+    if (act_of(G.lvdir) < 4 && !G.clear_t && !G.act_in && G.p.x > G.lvl.w - 50 && (G.p.ground ? G.p.gsp : G.p.vx) > 0) G.clear_t = 1;
 }
 
 /* Parallax bands: positions/images from the level's levelparallaxpiece objects.
@@ -617,6 +621,7 @@ void hud_draw(void) {
     const player_t *p = &G.p;
     /* HUD drops in from the top when the card slides out (RV capture); offset applied to all items */
     hud_dy = G.card_t >= CARD_DONE ? 0.f : G.card_t < CARD_OUT0 ? -40.f : -40.f + 40.f * (G.card_t - CARD_OUT0) / (CARD_DONE - CARD_OUT0);
+    hud_dy += results_hud_dy();                                    /* RE 4561: slides up 80 px during the results */
     if (G.card_t < CARD_OUT0) return;
     /* energy meter: fill = guienergy alt A / 100 as x scale (RV en_xs); shine loop while full (RV en_img) */
     int full = p->energy >= PHYS_ENERGY_MAX;
@@ -684,41 +689,17 @@ static void pause_draw(void) {
     }
 }
 
-/* results: original images (Stage Complete! build-in, Results banner, panel, rows, bonus digits);
- * the original sequence was not observed (it follows the Dragon Valley boss), so layout and timing
- * here are INFERRED from the assets. */
-static void results_draw(void) {
-    int t = G.res_t;
-    r_fade(1.f);
-    int nf = 0;
-    hud_init();
-    if (hud_anim[9] >= 0) nf = G.objs.anims[hud_anim[9]].count;
-    /* top-left placement: banner 320x48 centred; panel 180x48 and rows 148x40 centred */
-    hud_img(9, t / 2 < nf ? t / 2 : nf - 1, 53, 24, -1);
-    if (t > 60) {
-        hud_img(11, 0, 123, 112, -1);
-        hud_img(12, 0, 139, 116, -1);
-        int cr = CRYSTALS_PER_LIFE - G.p.crystals;              /* crystals collected */
-        hud_number(cr < 0 ? 0 : cr > 999 ? 999 : cr, 3, 139 + 20, 118);
-        hud_number(G.p.hp / 2, 1, 139 + 120, 118);              /* petals left (INFERRED meaning of the icon) */
-        int cs = G.res_time * 100 / FPS, mm = cs / 6000, ss = cs / 100 % 60;
-        hud_number(mm > 99 ? 99 : mm, 2, 139 + 76, 144);         /* colons in the rows image at x 98 and 124 */
-        hud_number(ss, 2, 139 + 102, 144);
-        hud_number(cs % 100, 2, 139 + 128, 144);
-    }
-}
-
 void game_draw(void) {
     if (G.mode == MODE_FRONTEND) { fe_draw(); return; }
     if (G.in_select) { sel_draw(); return; }
     r_begin();
-    if (G.mode == MODE_RESULTS) { results_draw(); r_end(); return; }
     draw_parallax();
     draw_pieces(0, 2);
     objects_draw(0);
     player_draw(&G.p);
     draw_pieces(3, 7);
     hud_draw();
+    results_draw();
     card_draw();
     pause_draw();
     if (G.clear_t) r_fade(G.clear_t / 255.f);     /* act end: fade object alpha (RE 3310) */
