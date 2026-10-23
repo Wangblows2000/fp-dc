@@ -312,3 +312,18 @@ int boss_flash(const obj_t *o) {
     return o->inv;
 }
 void bosses_draw(void) {}
+
+/* route search heuristic (host): damage dealt to the current act's boss */
+int boss_progress(void) {
+    int pr = 0;
+    for (int i = 0; i < G.nobjs; i++) {
+        const obj_t *o = &G.o[i];
+        if (!o->alive) continue;
+        if (o->type == OT_WR_WEAK) pr += 50 - (int)o->A;
+        if (o->type == OT_TD_BODY) pr += 50 - (int)o->A + ((o->fl & 0x40) ? 20 : 0);
+        if (o->type == OT_SNAKE_BODY) pr += (o->fl & 0x40) ? 10 : 8 - (int)o->A;
+        if (o->type == OT_SNAKE_HIT && (o->fl & 0x40)) pr += 40;
+    }
+    if (WR.defeat) pr += 100;
+    return pr + serp_progress();
+}

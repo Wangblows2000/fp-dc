@@ -179,7 +179,8 @@ enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_MON_INVINC = 4, OT_MON
        OT_SNAKE_HEAD = 118, OT_SNAKE_BODY = 119, OT_SNAKE_HIT = 120, OT_GEYSER_HOLE1 = 121, OT_GEYSER_HOLE2 = 122,
        OT_GBOULDER = 123, OT_BTUNNEL = 124, OT_BTUNNEL2 = 125, OT_BTUNNEL3 = 126, OT_BRK1 = 127, OT_BRK2 = 128, OT_BRK3 = 129,
        OT_BOUNCEMODE = 130, OT_CAMTRIGGER = 131, OT_JUMPPAD = 132, OT_MON_KEYSTONE = 133,
-       OT_LOOP016 = 134, OT_LOOP0Q = 135, OT_LOOP115 = 136, OT_LOOP1Q = 137, OT_CHUNK = 138 };
+       OT_LOOP016 = 134, OT_LOOP0Q = 135, OT_LOOP115 = 136, OT_LOOP1Q = 137, OT_CHUNK = 138,
+       OT_WF_BACK = 139, OT_WF_FRONT = 140, OT_WF_FRONT2 = 141, OT_WF_FRONT3 = 142, OT_WF_FRONT4 = 143, OT_BBOULDER = 144 };
 
 #define MAX_ATLAS 4
 typedef struct {
@@ -250,6 +251,7 @@ typedef struct {
     int hurt_pending;             /* RE movement R = 1 + GUILifeBaseMeter.B: contact damage applied by 2414 the next frame */   /* RE ladder: OTHERS.Y selector (27 climb, 29 down, 28 climb-over, 47 catch), SKIN.O counter, LadderTop, first frame after a grab */         /* RE: OTHERS.N charge/boost timer (fires at 30), OTHERS.Q latched vertical direction (-1 up, 0, +1 down) */
     float spawn_x, spawn_y;
     int dead_t;
+    int scripted;                 /* DV4 exit (loop_stop_player_13): player block off, moved by the boss script */
 } player_t;
 
 #define F_NOFLY 0x10000          /* enemy alterable flag 16: no death flight (bosses keep the object) */
@@ -265,6 +267,7 @@ typedef struct {
     int bd;                      /* enemy contact damage B (2731 needs B > 0) */
     float scale;                 /* Active scale (0 = 1) */
     int hidden;                  /* invisible (still collides) */
+    int layer;                   /* frame layer for drawing (2 = the play layer; waterfalls 0-3) */
     double av[8];                /* class alterables (boss scripts) */
     animator_t an;
 } obj_t;
@@ -281,7 +284,7 @@ typedef struct {
     int nobjs;
     float camx, camy;
     /* MasterCamera_408 alterables (RE, loop_camera_mode0_13 + events 2873-2886, 3539) */
-    struct { float A, B, W, G, H, S, T, N, O, Z; int V, M4; int U; float bC, bD, bE, bF, lC, lD, lE, lF; int M3; float minC; } cam;   /* U = 1: boss bounds bC..bF easing to the limits lC..lF (2862-2868) */   /* M4: CAM.M = 4 while entering a ladder from the top (not modelled further) */
+    struct { float A, B, W, G, H, S, T, N, O, Z; int V, M4; int U; float bC, bD, bE, bF, lC, lD, lE, lF; int M3; float minC; int cine; float cineX, cineY; } cam;   /* U = 1: boss bounds bC..bF easing to the limits lC..lF (2862-2868) */   /* M4: CAM.M = 4 while entering a ladder from the top (not modelled further) */
     int frame, clear_t, paused, kills;
     int act_in, act_fade, act_carry;
     int mus_resume_t;           /* frames until the stage music resumes after a jingle */   /* act change (RE 4135/5045, 3310/3311/3578, 4526/5047) */
@@ -372,6 +375,8 @@ int    serp_hidden(const obj_t *o), serp_active(void);
 void   serp_fireball_update(obj_t *f, player_t *p);
 void   chase_spawn(void), chase_update(player_t *p), chase_chunk_update(obj_t *d), chase_end(void);
 int    chase_running(void);
+int    boss_progress(void), serp_progress(void), serp4_input(uint32_t *held), serp4_flash(void), serp4_hud(int *k);
+void   serp_draw_hud(void);
 int    boss_invert_base(void), boss_hidden(const obj_t *o), boss_flash(const obj_t *o);
 int    obj_near_view(const obj_t *o, int n);
 int    ens_anim(const char *name);

@@ -268,7 +268,7 @@ void game_dev_select(void) {
 void camera_reset(void) {
     const player_t *p = &G.p;
     G.cam.A = p->x; G.cam.B = p->y - 14.f; G.cam.W = G.cam.G = G.cam.H = G.cam.S = G.cam.T = G.cam.N = G.cam.O = 0;
-    G.cam.V = p->ground; G.cam.U = 0; G.cam.M3 = 0; G.cam.minC = 0;
+    G.cam.V = p->ground; G.cam.U = 0; G.cam.M3 = 0; G.cam.minC = 0; G.cam.cine = 0;
     float C = 0, E = (float)G.lvl.w, D = 0, F = (float)G.lvl.h;
     if (G.cam.A < C + CAM_HX) G.cam.A = C + CAM_HX;
     if (G.cam.A > E - CAM_HX) G.cam.A = E - CAM_HX;
@@ -355,6 +355,7 @@ void camera_update(void) {
     /* event 3539 + Frame::set_display_center */
     float cx = floorf(G.cam.A + S), cy = floorf(G.cam.B + T);
     G.cam.Z = G.cam.Z - 0.1f >= 0 ? G.cam.Z - 0.1f : 0;
+    if (G.cam.cine) { cx = floorf(G.cam.cineX); cy = floorf(G.cam.cineY); C = 0; E = (float)G.lvl.w; D = 0; F = (float)G.lvl.h; }   /* 5590 */
     G.camx = fminf(fmaxf(cx - 213.f, C), E - SCREEN_W);
     G.camy = fminf(fmaxf(cy - 120.f, D), F - SCREEN_H);
 }
@@ -480,8 +481,9 @@ void game_update(const input_t *in) {
     if (G.pause_a > 0) G.pause_a--;                  /* RE 2928: closing lockout 1 -> 0 */
     if (pause_try_open(in)) return;                  /* (the original pauses after this frame's gameplay events) */
     G.frame++;
-    input_t none = {0}, rin = results_input(in);
+    input_t none = {0}, rin = results_input(in), sin_ = {0};
     const input_t *pin = (G.clear_t || G.act_in) ? &none : results_on() ? &rin : in;   /* act end / walk-in / results: no control (RE) */
+    { static uint32_t sprev; uint32_t h; if (serp4_input(&h)) { sin_.held = h; sin_.pressed = h & ~sprev; sprev = h; pin = &sin_; } else sprev = 0; }   /* DV4 boss exit (5547 lock, 5573-5577) */
     objects_platforms(&G.p);                      /* RE: platform/bridge events run before Lilac's movement */
     player_update(&G.p, pin);
     layers_update(&G.p);                          /* RE 1613-1616 + 3031/3032: loop collision layer */
@@ -695,11 +697,16 @@ void game_draw(void) {
     if (G.in_select) { sel_draw(); return; }
     r_begin();
     draw_parallax();
-    draw_pieces(0, 2);
+    draw_pieces(0, 1);
     objects_draw(0);
+    draw_pieces(2, 2);
+    objects_draw(1);
     player_draw(&G.p);
-    draw_pieces(3, 7);
+    draw_pieces(3, 3);
+    objects_draw(2);
+    draw_pieces(4, 7);
     hud_draw();
+    serp_draw_hud();
     results_draw();
     card_draw();
     pause_draw();

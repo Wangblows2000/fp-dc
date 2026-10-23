@@ -696,6 +696,7 @@ static int push_wants(const player_t *p, const input_t *in) {
 }
 
 void player_update(player_t *p, const input_t *in) {
+    if (p->scripted) { p->held = 0; anim_tick(&p->an, -1); return; }     /* loop_stop_player_13: moved by the DV4 exit script */
     double x_start = p->x;
     int st0 = p->state;
     p->state_t++;

@@ -101,7 +101,7 @@ static void shield_creators(player_t *p) {
 /* qualifier 20 ("enemies"; RE on_frame_N_init): every class that takes Lilac's hits by the shared rules */
 int enemy_type(int t) {
     return t == OT_GANSEKI || t == OT_TURRETUS || t == OT_DRAGONFLY || t == OT_FLOUNDER || t == OT_CACTEON || t == OT_SPOREPOD ||
-           t == OT_WR_WEAK || t == OT_TD_BODY || t == OT_SNAKE_BODY || t == OT_SNAKE_HIT;
+           t == OT_WR_WEAK || t == OT_TD_BODY || t == OT_SNAKE_BODY || t == OT_SNAKE_HIT || t == OT_BBOULDER;
 }
 static int candidates[MAX_OBJS], ncand;
 
