@@ -301,6 +301,9 @@ static void start_boost(player_t *p, const input_t *in) {
     p->state = ST_BOOST; p->state_t = 0; p->boost_used = 1;
 
     if (dy < 0 && p->ground) detach(p);
+    /* RV (boost_* traces): B and G already hold the boost speed on the fire frame (before any move) */
+    if (p->ground) p->gsp = p->boost_dx * PHYS_BOOST;
+    else { p->vx = p->boost_dx * PHYS_BOOST; p->vy = p->boost_dy * PHYS_BOOST; }
     snd_play_orig(53, 230, 128);                  /* RV: boost fire = 53 */
 }
 
