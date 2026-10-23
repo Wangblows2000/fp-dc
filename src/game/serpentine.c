@@ -53,7 +53,7 @@ void serp_spawn(void) {
     if (strstr(d, "dv2")) { SN.level = 2; SN.climL = 8240; SN.climR = 9039; SN.climT = 632; SN.climB = 919; SN.trigX = 8568; }
     else if (strstr(d, "dv4")) { SN.level = 4; SN.climL = 12360; SN.climR = 13191; SN.climT = 1832; SN.climB = 2303; SN.trigX = 12608; }
     else return;
-#ifndef DREAMCAST
+#ifdef FP_HOST_ENV
     if (getenv("FP_GCOUNT0")) SN.gc0 = atoi(getenv("FP_GCOUNT0"));
 #endif
     /* geyser markers: selection order is last-created first (spec §1 notes; RV snake_t1: 8768 = 0, 8512 = 1,
@@ -144,7 +144,7 @@ static void dv2_update(player_t *p) {
         if (hb) { hb->fl |= F_ARMOURED; }
     }
     int t = gcount();
-#ifndef DREAMCAST
+#ifdef FP_HOST_ENV
     if (getenv("FP_SN_KILL") && G.frame == atoi(getenv("FP_SN_KILL"))) for (int h = 1; h <= SN.nseg; h++) { obj_t *b = seg(h); if (b) b->A = 0; }
     if (getenv("FP_SN_KILLH") && G.frame == atoi(getenv("FP_SN_KILLH")) && hb) hb->A = 0;
 #endif
@@ -275,7 +275,7 @@ static void dv2_update(player_t *p) {
 
 void serp_update(player_t *p) {
     if (SN.level == 2) dv2_update(p);
-#ifndef DREAMCAST
+#ifdef FP_HOST_ENV
     if (getenv("FP_DBG_SN") && SN.active) { obj_t *hd = head(), *b7 = seg(7), *hb = hitbox();
         printf("sn f%d B%d A%g C%g D%g E%d F%g G%d H%.2f xy %d,%d b7 %d,%d hb %d,%d c%d fl%x\n", G.frame, SN.B, SN.A, SN.C, SN.D, SN.E, SN.F, SN.Gt, SN.H,
                hd ? (int)hd->x : 0, hd ? (int)hd->y : 0, b7 ? (int)b7->x : 0, b7 ? (int)b7->y : 0, hb ? (int)hb->x : 0, hb ? (int)hb->y : 0, hb ? hb->c : 0, hb ? hb->fl : 0); }

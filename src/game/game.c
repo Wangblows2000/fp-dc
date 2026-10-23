@@ -40,7 +40,6 @@ static void level_start(void) {
 const char *level_music(const char *dir) {
     /* RE: Frames::loop_play_music_N_<frame index> strings: 20 m_stage1, 21/22 m_stage1b, 23 m_boss */
     if (!strcmp(dir, "dv1")) return "bgm/m_stage1.adp";
-    if (!strcmp(dir, "dv4")) return "bgm/m_boss.adp";
     return "bgm/m_stage1b.adp";
 }
 int act_of(const char *dir) { return dir[2] - '0'; }
@@ -269,7 +268,7 @@ void game_dev_select(void) {
 void camera_reset(void) {
     const player_t *p = &G.p;
     G.cam.A = p->x; G.cam.B = p->y - 14.f; G.cam.W = G.cam.G = G.cam.H = G.cam.S = G.cam.T = G.cam.N = G.cam.O = 0;
-    G.cam.V = p->ground; G.cam.U = 0;
+    G.cam.V = p->ground; G.cam.U = 0; G.cam.M3 = 0; G.cam.minC = 0;
     float C = 0, E = (float)G.lvl.w, D = 0, F = (float)G.lvl.h;
     if (G.cam.A < C + CAM_HX) G.cam.A = C + CAM_HX;
     if (G.cam.A > E - CAM_HX) G.cam.A = E - CAM_HX;
@@ -297,8 +296,9 @@ void camera_update(void) {
         if (G.cam.bD < G.cam.lD) G.cam.bD = fminf(G.cam.lD, G.cam.bD + 2.f);
         if (G.cam.bF > G.cam.lF) G.cam.bF = fmaxf(G.cam.lF, G.cam.bF - 2.f);
     }
-    float C = 0, E = (float)G.lvl.w, D = 0, F = (float)G.lvl.h;
+    float C = G.cam.minC, E = (float)G.lvl.w, D = 0, F = (float)G.lvl.h;
     if (G.cam.U == 1) { C = G.cam.bC; E = G.cam.bE; D = G.cam.bD; F = G.cam.bF; }
+    if (!G.cam.M3) {   /* CAM.M = 3 (DV4 chase): A / B are set by 5404-5408, the mode-0 rules are skipped */
     int L = p->ground;
     float Bsp = p->ground ? p->gsp : p->vx;             /* movement B */
     float Q = (float)p->face;
@@ -338,6 +338,7 @@ void camera_update(void) {
         int slow = Bsp < 5.f && Bsp > -5.f && M != 5 && M != 19;
         if (G.cam.G > 0 && (!L || slow)) G.cam.G = fmaxf(G.cam.G - 2.f, 0.f);
         else if (G.cam.G < 0 && (!L || slow)) G.cam.G = fminf(G.cam.G + 2.f, 0.f);
+    }
     }
     /* display offsets (events 2877-2886): shake Z adds G - Z + rand(2Z) (one cross_seed step each, every frame) */
     float S, T;
@@ -537,7 +538,7 @@ static void draw_parallax(void) {
 
 static void draw_pieces(int lmin, int lmax) {
     const level_t *l = &G.lvl;
-#ifndef DREAMCAST
+#ifdef FP_HOST_ENV
     { static int done; const char *e = getenv("FP_DBG_PIECE"); int qx, qy;
       if (e && !done && G.frame > 30 && sscanf(e, "%d,%d", &qx, &qy) == 2) { done = 1;
         for (int i = 0; i < l->npieces; i++) { const piece_t *p = &l->pieces[i];
@@ -547,7 +548,7 @@ static void draw_pieces(int lmin, int lmax) {
     for (int i = 0; i < l->npieces; i++) {
         const piece_t *p = &l->pieces[i];
         if (p->layer < lmin || p->layer > lmax || (p->pad & 1)) continue;   /* bit0: invisible (blend alpha 0) */
-#ifndef DREAMCAST
+#ifdef FP_HOST_ENV
         { static const char *hp; static int init; if (!init) { init = 1; hp = getenv("FP_HIDE_PIECE"); }
           if (hp) { char k[16]; snprintf(k, sizeof k, ",%d,", i); if (strstr(hp, k)) continue; } }
 #endif

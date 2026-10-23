@@ -90,6 +90,18 @@ void layers_update(player_t *p) {                              /* after the move
  * (32,15); B = 80 (plateau), D = 240 (ramp), F = 100 (height). Object fields: st = flag 0 (active), fx = E,
  * fy = A, vy = C (MV.Y at entry). */
 #define CK_B 80.0
+/* plateau length B per pair: 80 for the 528 px pairs (constructor), and the pair distance - 448 in general
+ * (RV dv4_chase: the 784 px DV4 pair holds the plateau to X - x = 576, i.e. B = 336); instance values INFERRED */
+static double ck_plateau(const obj_t *o) {
+    double best = 1e9;
+    for (int k = 0; k < G.nobjs; k++) {
+        const obj_t *q = &G.o[k];
+        if (!q->alive || q->type != (o->type == OT_CORK_L ? OT_CORK_R : OT_CORK_L) || fabsf(q->y - o->y) > 1) continue;
+        double d = o->type == OT_CORK_L ? q->x - o->x : o->x - q->x;
+        if (d > 0 && d < best) best = d;
+    }
+    return best < 1e9 ? best - 448.0 : CK_B;
+}
 #define CK_D 240.0
 #define CK_F 100.0
 static int ck_overlap(const obj_t *o) { return box_sensor(SENS_BOTTOMBIG, o->x - 32, o->y - 15, o->x + 32, o->y + 1); }
@@ -121,8 +133,9 @@ void cork_move(player_t *p) {
         double d = o->type == OT_CORK_L ? p->x - o->x : o->x - p->x, E = o->fx, A = o->fy, C = o->vy, Y = MVY(p);
         p->cork_e = E;                                           /* 4715/4716 use last frame's E */
         if (E < 1) { E = d / CK_D; Y = C + CK_F / 2 * c_cos(fmod(180 * E, 360)) - CK_F / 2; }            /* 4717 / 4721 */
-        if (E >= 1 && A < CK_B + CK_D) { Y = C - CK_F; E = d / (2 * CK_D); A = d; }                      /* 4718 / 4722 */
-        if (E >= 1 && A >= CK_B + CK_D) { E = (d - CK_B) / CK_D; Y = C + CK_F / 2 * c_cos(fmod(180 * E, 360)) - CK_F / 2; }   /* 4719 / 4723 */
+        double PB = ck_plateau(o);
+        if (E >= 1 && A < PB + CK_D) { Y = C - CK_F; E = d / (2 * CK_D); A = d; }                        /* 4718 / 4722 */
+        if (E >= 1 && A >= PB + CK_D) { E = (d - PB) / CK_D; Y = C + CK_F / 2 * c_cos(fmod(180 * E, 360)) - CK_F / 2; }   /* 4719 / 4723 */
         o->fx = (float)E; o->fy = (float)A;
         p->y = Y + ORIG_REF_DY;
         /* 4720 / 4724: slowed down, or reached the far end */
