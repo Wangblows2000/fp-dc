@@ -76,7 +76,7 @@ void plat_poll_input(input_t *in) {
     uint32_t held = 0;
     for (int i = 0; i < nscript; i++)
         if (cur_frame >= script[i].a && cur_frame < script[i].b) held |= script[i].m;
-    if (search_on && !held && G.mode == MODE_PLAY && !G.clear_t) {
+    if (search_on && !held && G.mode == MODE_PLAY && !G.clear_t && !results_on()) {
         int L = search_macro_len();
         if (!plan || plan_i >= plan_n * L) {
             free(plan); plan = NULL; plan_i = 0;
@@ -85,7 +85,7 @@ void plat_poll_input(input_t *in) {
             if (!plan || !plan_n) { fprintf(stderr, "search: no plan at f%d\n", cur_frame); search_on = 0; }
         }
         if (plan && plan_i < plan_n * L) { held = search_macro_buttons(plan[plan_i / L], plan_i % L); plan_i++; }
-    } else if (search_on && (G.mode != MODE_PLAY || G.clear_t)) {
+    } else if (search_on && (G.mode != MODE_PLAY || G.clear_t || results_on())) {
         free(plan); plan = NULL; plan_i = 0;
         if (G.mode == MODE_RESULTS) held = (cur_frame % 40) < 2 ? BTN_JUMP : 0;
     }

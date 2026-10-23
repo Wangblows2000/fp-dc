@@ -40,7 +40,14 @@ void objects_spawn(void) {
         if (!o) { plat_log("object limit reached\n"); break; }
         o->type = lo->type; o->alive = 1; o->hp = 1;
         o->x = o->ox = (float)lo->x; o->y = o->oy = (float)lo->y;
-        o->t = i * 13;
+        o->t = i * 13; o->layer = 2;
+        if (o->type >= OT_WF_BACK && o->type <= OT_WF_FRONT4) {      /* waterfalls (lvobj anim = instance layer) */
+            static const char *wn[5] = { "wfback", "wffront", "wffront2", "wffront3", "wffront4" };
+            o->layer = lo->anim; int a = ens_anim(wn[o->type - OT_WF_BACK]);
+            if (a >= 0) anim_set(&o->an, &G.ens, a); else o->alive = 0;
+            if (o->x < 0) o->alive = 0;
+            continue;
+        }
         if (lo->anim != 0xffff && lo->anim < G.objs.nanims) anim_set(&o->an, &G.objs, lo->anim);
         else o->an.b = NULL;
         if (o->type == OT_TURRETUS) { o->A = 8; o->st = 0; o->tm = 0; o->dir = 14; }   /* RE: created with A = 8, direction 14 */
@@ -474,7 +481,16 @@ int obj_overlaps_bg(const obj_t *o) {
         }
     return 0;
 }
-void obj_effect(float x, float y, const char *anim) { spawn_effect(x, y, bank_anim(&G.objs, anim)); }
+void obj_effect(float x, float y, const char *anim) {
+    int a = bank_anim(&G.objs, anim);
+    if (a >= 0) { spawn_effect(x, y, a); return; }
+    a = ens_anim(anim);                                    /* effects kept in the level's _ens bank (explosion06 ...) */
+    if (a < 0) return;
+    obj_t *e = alloc_obj();
+    if (!e) return;
+    e->type = OT_EXPLODE; e->alive = 1; e->x = x; e->y = y; e->layer = 3;
+    anim_set(&e->an, &G.ens, a);
+}
 
 /* comparison harness: objects of the original trace have been animated n ticks before its frame 0 */
 void objects_pretick(int n) {
@@ -657,17 +673,20 @@ void objects_update(void) {
     }
 }
 
-void objects_draw(int front) {
-    (void)front;
+/* pass 0: objects on layers 0-1 (before the play layer's pieces), 1: layer 2, 2: layers 3+ (after Lilac) */
+void objects_draw(int pass) {
     for (int i = 0; i < G.nobjs; i++) {
         const obj_t *o = &G.o[i];
         if (!o->alive || !o->an.b || o->type == OT_HANG || o->type == OT_LADDERTOP || o->type == OT_BRIDGE) continue;   /* sensors / LadderTop are invisible */
+        if ((pass == 0 && o->layer > 1) || (pass == 1 && o->layer != 2) || (pass == 2 && o->layer < 3)) continue;
         float sx = floorf(o->x - G.camx), sy = floorf(o->y - G.camy);
         if (sx < -96 || sx > SCREEN_W + 96 || sy < -96 || sy > SCREEN_H + 96) continue;
         if (o->type == OT_SHIELD || o->type == OT_GEYSER || o->type == OT_SPIRAL_MASK || o->type == OT_BALLTUNNEL || o->type == OT_WR_WEAK || o->type == OT_FLOATPLAT || o->type == OT_TD_PUSH || o->type == OT_TD_PUSH2) continue;   /* invisible */
         if (boss_hidden(o)) continue;
         if (o->type == OT_WLOG && o->st == 0) continue;                                    /* emerging behind the waterfall (layer 0) */
         uint32_t col = (o->type == OT_CARD && (o->fl & 2)) ? 0x80ffffff : 0xffffffff;     /* 2573: already collected */
+        if (o->type == OT_WF_BACK) col = 0x9cffffff;                                        /* RE create_waterfallback: blend alpha 0x9c */
+        if (o->type == OT_WF_FRONT) col = 0x60ffffff;                                       /* texture shader (0x20): approximated by alpha (INFERRED) */
         int inv = boss_flash(o);
         if (inv) r_set_invert(1);
         if (o->hidden) { if (inv) r_set_invert(0); continue; }
@@ -677,7 +696,7 @@ void objects_draw(int front) {
         r_set_scale(1.f);
         if (inv) r_set_invert(0);
     }
-    combat_draw_shields(1);           /* visible slash shields, behind Lilac */
+    if (pass == 1) combat_draw_shields(1);           /* visible slash shields, behind Lilac */
 }
 
 /* Collision groups tested by Lilac's sensors (RE: QualifierLists of frame 21, read at runtime):

@@ -46,6 +46,7 @@ static double score_of(int *wp) {
     if (*wp < nwp) s -= hypot(p->x - wpx[*wp], (fy - wpy[*wp]) * 1.5);
     else s += p->x;
     s += p->hp * 50.0 + p->lives * 2000.0;
+    s += boss_progress() * 3000.0;                           /* damage dealt to the act's (mini)boss */
     return s;
 }
 
@@ -55,7 +56,7 @@ static int sim(uint32_t *prev, int act, int *done) {
         input_t in; in.held = ACT[act][k < MACRO / 2 ? 0 : 1];
         in.pressed = in.held & ~*prev; in.released = *prev & ~in.held; *prev = in.held;
         game_update(&in);
-        if (G.clear_t || G.mode != MODE_PLAY || strcmp(dir0, G.lvdir)) { *done = 1; return 1; }
+        if (G.clear_t || G.mode != MODE_PLAY || strcmp(dir0, G.lvdir) || results_on()) { *done = 1; return 1; }
         if (G.p.state == 6 || G.p.hp <= 0) return 0;          /* dead: prune */
     }
     return 1;
@@ -97,7 +98,7 @@ int *search_act(int beam, int maxdepth, int *n, uint32_t prev0) {
         for (int i = 0; i < nc && ncur < beam; i++) {
             node_t *c = &all[cand[i]];
             snap_load(c->st);
-            int key = ((int)(G.p.x / 32) * 977 + (int)(G.p.y / 32) * 31 + G.p.ground + c->wp * 7919) & 0x7fffffff;
+            int key = ((int)(G.p.x / 32) * 977 + (int)(G.p.y / 32) * 31 + G.p.ground + c->wp * 7919 + boss_progress() * 104729) & 0x7fffffff;
             int cnt = 0; for (int k = 0; k < ncell; k++) if (cellk[k] == key) cnt++;
             if (cnt >= 2) continue;
             if (ncell < 4096) cellk[ncell++] = key;

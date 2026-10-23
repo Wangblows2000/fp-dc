@@ -117,7 +117,7 @@ int results_update(player_t *p) {
         }
     }
     /* 5382 / 5383 wipe: path B at D >= 150; path A when Lilac passes the right edge afterwards */
-    if (!R.wipe && R.svD >= 150 && (R.pathB || (p->x > G.lvl.w - 50 && (p->ground ? p->gsp : p->vx) > 0))) {
+    if (!R.wipe && R.svD >= 150 && (R.pathB || p->x > G.lvl.w - 50)) {
         R.wipe = 1; R.wipe_f = 0; R.wipe_x = -(SCREEN_W + 120); snd_play_orig(56, 230, 128);
     }
     if (R.wipe) {
