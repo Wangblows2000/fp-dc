@@ -340,7 +340,9 @@ static int ground_actions(player_t *p, const input_t *in) {
     }
     if ((in->pressed & BTN_SPECIAL) || ((in->held & BTN_SPECIAL) && p->energy >= PHYS_ENERGY_MAX)) {
         /* RV: charging needs a FULL energy meter; holding special waits for it (boost_hold_long) */
-        if (p->energy >= PHYS_ENERGY_MAX) { set_state(p, ST_CHARGE); snd_play_orig(9, 230, 128); return 1; }   /* RV: 9 */
+        /* RV (boost_upleft): the press frame still moves and takes the normal speed rules (L + special
+         * from a standstill: B = -9E), then the charge (M5) freezes B and keeps moving with it */
+        if (p->energy >= PHYS_ENERGY_MAX) { ground_move(p, in, 1, 1); set_state(p, ST_CHARGE); snd_play_orig(9, 230, 128); return 1; }   /* RV: 9 */
     }
     if (in->pressed & BTN_JUMP) {
         /* RE order: move + sensors (1584-1611), speed rules (1621-1646), then the jump (3047) */
