@@ -61,7 +61,8 @@ void objects_spawn(void) {
                 { OT_SPIKES_L, "spk_left" }, { OT_SPIKES_R, "spk_right" }, { OT_SPIKES_D, "spk_down" }, { OT_RSPRING_UL, "rspring_ul" },
                 { OT_LOOP016, "loop016" }, { OT_LOOP0Q, "loop0q" }, { OT_LOOP115, "loop115" }, { OT_LOOP1Q, "loop1q" },
                 { OT_GEYSER, "geyser" }, { OT_MON_KEYSTONE, "mon_key" }, { OT_SPIRAL_MASK, "spiralmask" }, { OT_BALLTUNNEL, "balltunnel" }, { OT_CARD, "card" },
-                { OT_SPIRAL_FRONT, "spiralfront" }, { OT_SPINLOG, "slog0" }, { OT_SPINLOG_MASK, "slogmask" }, { OT_PBLOCK1, "pblock1" } };
+                { OT_SPIRAL_FRONT, "spiralfront" }, { OT_SPINLOG, "slog0" }, { OT_SPINLOG_MASK, "slogmask" }, { OT_PBLOCK1, "pblock1" },
+                { OT_FRONTROCK, "frontrock1" }, { OT_FRONTTREE, "fronttree" }, { OT_TREEFRONT, "treefront" } };
             for (unsigned k = 0; k < sizeof EA / sizeof EA[0]; k++) if (o->type == EA[k].t) {
                 int a = ens_anim(EA[k].a);
                 if (a >= 0) anim_set(&o->an, &G.ens, a); else o->an.b = NULL;

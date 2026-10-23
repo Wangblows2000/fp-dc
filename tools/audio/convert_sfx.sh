@@ -9,7 +9,7 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 # wav2adpcm is built locally from KallistiOS utils/wav2adpcm (not committed)
 [ -x "$HERE/wav2adpcm" ] || cc -O2 -o "$HERE/wav2adpcm" "${KOS_BASE:-/opt/toolchains/dc/kos}/utils/wav2adpcm/wav2adpcm.c"
 mkdir -p "$OUT"; TMP=$(mktemp -d)
-IDS="4 5 8 9 17 21 25 26 27 28 37 53 56 63 64 81 100 174 176 220 288 396 405"
+IDS="4 5 7 8 9 10 13 14 15 16 17 21 23 24 25 26 27 28 29 30 31 32 34 35 37 38 39 40 43 45 46 47 48 49 50 51 53 56 63 64 74 76 78 80 81 95 98 100 174 176 220 288 289 290 311 313 314 319 320 396 405"
 echo "name,source,duration_s,bytes" > "$OUT/sfx_manifest.csv"
 conv() {  # src dst
   ffmpeg -v error -y -i "$1" -ac 1 -ar $RATE -sample_fmt s16 "$TMP/x.wav"
