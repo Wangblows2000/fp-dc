@@ -1,9 +1,9 @@
-/* Front end built from the ORIGINAL menu frames (tools/import_ui.py):
- *   title_3 = frame index 2 ("Press Start"), title_4 = index 3 (title menu / file select / options /
- *   controls on one 1440x480 canvas, camera pans between panels), chsel_7 = index 6 (character select),
- *   stsel_12 = index 11 (Time Attack stage select).
- * Camera offsets, cursor positions and strings were measured from / read out of the running original
- * (RUNTIME_MAP "Front end"). Where the original's behaviour was not observed the code says INFERRED. */
+/* Front end built from the ORIGINAL menu frames (tools/import_ui.py) and their decompiled events:
+ *   title_3 = frame index 2 ("Press Start", events 307-330, below),
+ *   title_4 = index 3 (title menu / file select / mode select / options on one 1440x480 canvas: fe_hub.c),
+ *   chsel_7 = index 6 (character select, events 750-810, below), tasel_6 = index 5 (Time Attack stage select).
+ * RE = read from the decompiled events (build/re/fe/spec_*.md, RE_NOTES "Front end"), RV = observed in the
+ * running original, INFERRED = neither. Only Lilac and Dragon Valley exist in the port (DECISIONS D-020). */
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
@@ -11,25 +11,20 @@
 #include "../fp.h"
 #include "ui.h"
 
-enum { FE_PRESS, FE_MENU, FE_FILE, FE_OPTIONS, FE_CHSEL, FE_STSEL, FE_OUT };
+enum { FE_PRESS, FE_HUB, FE_CHSEL, FE_STSEL };
 
-static ui_banks_t b_title, b_chsel, b_stsel, b_font;
-static ui_scene_t s_press, s_hub, s_chsel, s_stsel;
-static int fe_state, fe_t, fe_sel, fe_file, fe_loaded, fe_lt_t, fe_rt_t;
-static float cam_x, cam_y, cam_tx, cam_ty;
-static int fe_go_time_attack;
-static const char *fe_next_level;
+static ui_banks_t b_title, b_scr, b_font;         /* b_scr: the character select or the stage select bank */
+static ui_scene_t s_press, s_hub, s_scr;
+static int fe_state, fe_t, fe_loaded, fe_lt_t, fe_rt_t, scr_loaded = -1;
+static float cam_x, cam_y;
+int fe_mode;                     /* original global 0: 0 Time Attack, 1 Classic, 2 Adventure */
 
-/* settings (RV defaults: fresh install shows Difficulty NORMAL, Music Volume 100%, Sensitivity 70%) */
-int fe_difficulty = 1;           /* difficulty2/4 directions: 0 HARD, 1 NORMAL, 2 EASY, 3 CASUAL */
-int fe_music_volume = 100;
+/* settings (RE 602 / records.dat; RV defaults: Difficulty NORMAL, Music Volume 100%) */
+int fe_difficulty = 1;           /* global 12: 0 HARD, 1 NORMAL, 2 EASY, 3 CASUAL */
+int fe_music_volume = 100;       /* global 25 */
 int fe_sensitivity = 70;
 
-/* original menu sound IDs (Media::play_id, traced: RUNTIME_MAP "Sound IDs") */
 #define SND_START   100   /* "Press Start" */
-#define SND_MOVE     64   /* cursor move */
-#define SND_SELECT   63   /* confirm */
-#define SND_BEGIN    56   /* begin game (heard on START GAME / file confirm; exact role UNVERIFIED) */
 
 /* ---- original font (Data/font.bmp, 8x20 cells) */
 void fe_text(float x, float y, const char *s) {
@@ -42,50 +37,54 @@ void fe_text(float x, float y, const char *s) {
     }
 }
 
-static void cursor_to(ui_scene_t *s, ui_obj_t *cur, float sx, float sy) {
-    /* positions measured on screen in the original; convert to scene coordinates */
-    if (!cur) return;
-    cur->dx = sx + cam_x - cur->x; cur->dy = sy + cam_y - cur->y;
-    (void)s;
-}
-
 static int fe_load(void) {
     if (fe_loaded) return 0;
     loading_begin();
     int bad = 0;
     bad |= ui_banks_load(&b_title, "title", 1) < 0;
-    bad |= ui_banks_load(&b_chsel, "chsel", 1) < 0;
-    bad |= ui_banks_load(&b_stsel, "stsel", 1) < 0;
-    bad |= ui_banks_load(&b_font, "font_", 0) < 0;
+    memset(&b_font, 0, sizeof b_font);
     if (bank_load(&b_font.bank[0], "ui/font") == 0) b_font.n = 1; else bad = 1;
     bad |= ui_load(&s_press, "title_3", &b_title) < 0;
     bad |= ui_load(&s_hub, "title_4", &b_title) < 0;
-    bad |= ui_load(&s_chsel, "chsel_7", &b_chsel) < 0;
-    bad |= ui_load(&s_stsel, "stsel_12", &b_stsel) < 0;
     loading_end();
     if (bad) { plat_log("front end data missing\n"); return -1; }
-    fe_loaded = 1;
+    hub_bind(&s_hub);
+    fe_difficulty = SV.difficulty <= 3 ? SV.difficulty : 1;
+    fe_music_volume = SV.music_volume <= 100 ? SV.music_volume : 100;
+    fe_loaded = 1; scr_loaded = -1;
+    return 0;
+}
+
+/* the screen banks are swapped (VRAM): loaded while the previous screen's wipe has the view black */
+static int scr_load(int which) {
+    if (scr_loaded == which) return 0;
+    if (scr_loaded >= 0) { ui_free(&s_scr); ui_banks_free(&b_scr); }
+    scr_loaded = -1;
+    int bad = which == 0 ? (ui_banks_load(&b_scr, "chsel", 1) < 0 || ui_load(&s_scr, "chsel_7", &b_scr) < 0)
+                         : (ui_banks_load(&b_scr, "tasel", 1) < 0 || ui_load(&s_scr, "tasel_6", &b_scr) < 0);
+    if (bad) { plat_log("front end screen %d missing\n", which); return -1; }
+    scr_loaded = which;
     return 0;
 }
 
 static void fe_unload(void) {
     if (!fe_loaded) return;
-    ui_free(&s_press); ui_free(&s_hub); ui_free(&s_chsel); ui_free(&s_stsel);
-    ui_banks_free(&b_title); ui_banks_free(&b_chsel); ui_banks_free(&b_stsel); ui_banks_free(&b_font);
+    if (scr_loaded >= 0) { ui_free(&s_scr); ui_banks_free(&b_scr); scr_loaded = -1; }
+    ui_free(&s_press); ui_free(&s_hub);
+    ui_banks_free(&b_title); ui_banks_free(&b_font);
     r_reset();
     fe_loaded = 0;
 }
 
-static void set_state(int s) { fe_state = s; fe_t = 0; fe_sel = 0; }
+static void set_state(int s) { fe_state = s; fe_t = 0; }
 static void title_start(void);
-static void hub_prepare(void);
 
 int fe_enter(void) {
     game_unload_all();
     if (fe_load() < 0) return -1;
     G.mode = MODE_FRONTEND;
     set_state(FE_PRESS);
-    cam_x = cam_tx = 107; cam_y = cam_ty = 0;
+    cam_x = 107; cam_y = 0;
     title_start();
     fe_lt_t = fe_rt_t = -1000;
     music_volume(fe_music_volume);
@@ -93,6 +92,20 @@ int fe_enter(void) {
     return 0;
 }
 
+static void chsel_enter(void);
+static void stsel_enter(void);
+/* a new file: written when the player completes a stage (the original's file<n>.sav exists once its play time > 0) */
+static void fe_new_file(int classic) { G.file_slot = hub_selected_file(); G.file_mode = classic; }
+/* pause QUIT (RE 4305 -> frame 7 dispatcher): RV Time Attack -> stage select (frame 5); otherwise the title
+ * menu (the dispatcher's other routes are not traced; INFERRED) */
+int fe_enter_from_stage(int time_attack) {
+    game_unload_all();
+    if (fe_load() < 0) return -1;
+    G.mode = MODE_FRONTEND;
+    if (time_attack && scr_load(1) == 0) { fe_mode = 0; set_state(FE_STSEL); stsel_enter(); return 0; }
+    set_state(FE_HUB); hub_enter();
+    return 0;
+}
 
 /* ---- Press Start / title (frame index 2 = on_frame_3; RE events 307-330, docs/RE_NOTES.md "Title screen").
  * Objects: PlanetAvalice (centre of the star field), Moon (orbits the planet), Stars (3D star field,
@@ -142,9 +155,7 @@ static void title_start(void) {
 
 static void title_leave(void) {
     music_stop();                                      /* RE 327: the title stops the music channel */
-    music_volume(fe_music_volume);
-    music_play("bgm/m_title.adp");                     /* RE 331 (title menu frame start): m_title again */
-    set_state(FE_MENU); hub_prepare(); cam_x = cam_tx = 43; cam_y = cam_ty = 0;
+    set_state(FE_HUB); hub_enter();                    /* frame index 3 starts m_menu2 (RE 602, RV) */
 }
 
 static void title_update(uint32_t p) {
@@ -249,245 +260,227 @@ static void title_draw(void) {
         r_rect(0, 0, SCREEN_W, SCREEN_H, ((uint32_t)tfade_alpha << 24) | (tfade_dir ? 0xf8fcf8 : 0x080000));
 }
 
-/* ---- per-panel object handles */
-static const int MENU_Y[5] = { 131, 151, 171, 191, 211 };          /* RV screen rows (cursor x 138) */
-static const int FILE_Y[3] = { 160, 184, 216 };                     /* RV: FILE n, difficulty, RETURN */
-static const int OPT_Y[5] = { 72, 128, 160, 184, 216 };             /* DIFFICULTY, MUSIC, CONTROLS, SENSITIVITY, OKAY */
-
-static void hub_prepare(void) {
-    /* SCREEN SIZE is a PC window option; it has no meaning on the Dreamcast, so its row is hidden */
-    ui_obj_t *o;
-    if ((o = ui_find(&s_hub, "screensize", 0))) o->vis = 0;
-    if ((o = ui_find(&s_hub, "screenres", 0))) o->vis = 0;
-    /* objects the original keeps off-panel or drives from save data */
-    static const char *hide[] = { "warningbox", "warningmessage", "filesaveslotcopy", "filesaveslotcharactercopy",
-                                  "copyarrow", "yes", "copy", "mouseobject", "livessetting", "active", "scrolldot",
-                                  /* save-info widgets: only shown for an existing save (all slots are NEW) */
-                                  "filecurrentstage", "filestageicon", "fileicon", "filelives", "filetimemilli",
-                                  "filedeaths", "filecrystals", "filelabel", "filelabel2", "filetimes", "filetimem",
-                                  "filesaveslot", "filesaveslotcharacter", "filemessage", 0 };
-    for (int i = 0; hide[i]; i++) for (int k = 0; (o = ui_find(&s_hub, hide[i], k)); k++) o->vis = 0;
-    /* the file panel's DIFFICULTY label object sits under the value (only the value shows there) */
-    if ((o = ui_find(&s_hub, "difficulty", 0))) o->vis = 0;
-    if ((o = ui_find(&s_hub, "fileback", 0))) ui_obj_frame(o, 0);    /* frame 0 = hint box */
-}
-
-/* counter objects hold digit images 0-9; RV placement: right-aligned, last digit top-left at
- * (sx, sy) on screen, 14 px pitch (options) */
-static void counter(ui_scene_t *s, ui_obj_t *o, int value, float sx, float sy, float pitch) {
-    if (!o) return;
-    char buf[8]; snprintf(buf, sizeof buf, "%d", value);
-    int n = (int)strlen(buf);
-    for (int i = 0; i < n; i++) {
-        ui_obj_frame(o, buf[i] - '0');
-        const frame_t *f = anim_frame(&o->an);
-        if (!f) return;
-        frame_draw(o->an.b, f, sx - (n - 1 - i) * pitch + f->hx, sy + f->hy, 0, 0xffffffff);
-    }
-    (void)s;
-}
 
 static int fe_dev_select_check(const input_t *in) {
-    /* developer level select: L and R triggers within the same two seconds, title screen only */
-    if (fe_state != FE_PRESS && fe_state != FE_MENU) return 0;
+    /* developer level select: L and R triggers within the same two seconds, title screen and title menu only */
+    if (fe_state != FE_PRESS && !(fe_state == FE_HUB && hub_on_title())) return 0;
     if (in->pressed & BTN_LT) fe_lt_t = G.frame;
     if (in->pressed & BTN_RT) fe_rt_t = G.frame;
     if (fe_lt_t > 0 && fe_rt_t > 0 && abs(fe_lt_t - fe_rt_t) <= 2 * FPS) return 1;
     return 0;
 }
 
-void fe_update(const input_t *in) {
-    G.frame++; fe_t++;
-    if (fe_dev_select_check(in)) { fe_unload(); game_dev_select(); return; }
-    cam_x += (cam_tx - cam_x) * 0.2f; cam_y += (cam_ty - cam_y) * 0.2f;   /* pan speed INFERRED */
-    if (fabsf(cam_tx - cam_x) < 0.5f) cam_x = cam_tx;
-    if (fabsf(cam_ty - cam_y) < 0.5f) cam_y = cam_ty;
-    uint32_t p = in->pressed;
-    int up = p & BTN_UP, down = p & BTN_DOWN, left = p & BTN_LEFT, right = p & BTN_RIGHT;
-    int ok = p & (BTN_JUMP | BTN_START), back = p & BTN_SPECIAL;
-    switch (fe_state) {
-    case FE_PRESS:
-        title_update(p);
-        break;
-    case FE_MENU:
-        ui_tick(&s_hub);
-        if (up) { fe_sel = (fe_sel + 4) % 5; snd_play_orig(SND_MOVE, 220, 128); }
-        if (down) { fe_sel = (fe_sel + 1) % 5; snd_play_orig(SND_MOVE, 220, 128); }
-        if (ok) {
-            switch (fe_sel) {
-            case 0: snd_play_orig(SND_BEGIN, 230, 128); set_state(FE_FILE); cam_tx = 43; cam_ty = 240; break;
-            case 1: snd_play_orig(SND_SELECT, 230, 128); fe_go_time_attack = 1; set_state(FE_STSEL); cam_x = cam_tx = 107; cam_y = cam_ty = 0; music_play("bgm/m_menu1.adp"); break;
-            case 2: break;                                   /* GALLERY: not implemented in the port */
-            case 3: snd_play_orig(SND_SELECT, 230, 128); set_state(FE_OPTIONS); cam_tx = 523; cam_ty = 0; break;
-            case 4: plat_quit(); break;                      /* QUIT: back to the Dreamcast menu */
-            }
-        }
-        break;
-    case FE_FILE:
-        ui_tick(&s_hub);
-        if (up) { fe_sel = (fe_sel + 2) % 3; snd_play_orig(SND_MOVE, 220, 128); }
-        if (down) { fe_sel = (fe_sel + 1) % 3; snd_play_orig(SND_MOVE, 220, 128); }
-        if (fe_sel == 0 && (left || right)) { fe_file = (fe_file + (right ? 1 : 7)) % 8; snd_play_orig(SND_MOVE, 220, 128); }
-        if (fe_sel == 1 && (left || right)) { fe_difficulty = (fe_difficulty + (right ? 3 : 1)) % 4; snd_play_orig(SND_MOVE, 220, 128); }
-        if ((ok && fe_sel == 2) || back) { snd_play_orig(SND_SELECT, 230, 128); set_state(FE_MENU); cam_tx = 43; cam_ty = 0; break; }
-        if ((p & BTN_START) || (ok && fe_sel == 0)) {
-            snd_play_orig(SND_BEGIN, 230, 128); fe_go_time_attack = 0;
-            set_state(FE_CHSEL); cam_x = cam_tx = 107; cam_y = cam_ty = 0;
-            music_play("bgm/m_menu1.adp");                   /* RV: m_menu1 in on_frame_7_start_events */
-        }
-        break;
-    case FE_OPTIONS:
-        ui_tick(&s_hub);
-        if (up) { fe_sel = (fe_sel + 4) % 5; snd_play_orig(SND_MOVE, 220, 128); }
-        if (down) { fe_sel = (fe_sel + 1) % 5; snd_play_orig(SND_MOVE, 220, 128); }
-        if (fe_sel == 0 && (left || right)) { fe_difficulty = (fe_difficulty + (right ? 3 : 1)) % 4; snd_play_orig(SND_MOVE, 220, 128); }
-        if (fe_sel == 1 && (left || right)) {
-            fe_music_volume += right ? 10 : -10;
-            if (fe_music_volume < 0) fe_music_volume = 0;
-            if (fe_music_volume > 100) fe_music_volume = 100;
-            music_volume(fe_music_volume); snd_play_orig(SND_MOVE, 220, 128);
-        }
-        if (fe_sel == 3 && (left || right || ok)) {          /* RV: Return steps sensitivity +5% */
-            fe_sensitivity += left ? -5 : 5;
-            if (fe_sensitivity > 100) fe_sensitivity = 5;
-            if (fe_sensitivity < 5) fe_sensitivity = 100;
-            snd_play_orig(SND_SELECT, 220, 128);
-        }
-        if ((ok && fe_sel == 4) || back) { snd_play_orig(SND_SELECT, 230, 128); set_state(FE_MENU); fe_sel = 3; cam_tx = 43; cam_ty = 0; }
-        break;
-    case FE_CHSEL:
-        ui_tick(&s_chsel);
-        /* rows: 0 Lilac, 1 Carol (not implemented in the port), 2 RETURN */
-        if (left || up) { fe_sel = (fe_sel + 2) % 3; snd_play_orig(SND_MOVE, 220, 128); }
-        if (right || down) { fe_sel = (fe_sel + 1) % 3; snd_play_orig(SND_MOVE, 220, 128); }
-        if (back || (ok && fe_sel == 2)) { snd_play_orig(SND_SELECT, 230, 128); set_state(FE_FILE); cam_x = cam_tx = 43; cam_y = cam_ty = 240; music_play("bgm/m_title.adp"); break; }
-        if (ok && fe_sel == 0) { snd_play_orig(SND_BEGIN, 230, 128); fe_next_level = "dv1"; set_state(FE_OUT); }
-        break;
-    case FE_STSEL:
-        ui_tick(&s_stsel);
-        if (up || down) { fe_sel ^= 1; snd_play_orig(SND_MOVE, 220, 128); }
-        if (back || (ok && fe_sel == 1)) { snd_play_orig(SND_SELECT, 230, 128); set_state(FE_MENU); fe_sel = 1; cam_x = cam_tx = 43; cam_y = cam_ty = 0; music_play("bgm/m_title.adp"); break; }
-        if (ok && fe_sel == 0) { snd_play_orig(SND_BEGIN, 230, 128); fe_next_level = "dv1"; set_state(FE_OUT); }
-        break;
-    case FE_OUT:
-        if (fe_t >= 30) {                                     /* fade length INFERRED */
-            const char *lv = fe_next_level;
-            fe_unload();
-            game_start_adventure(lv, fe_go_time_attack);
-        }
-        break;
+/* ---- leaving wipe shared by frames 5 and 6 (RE 577: Fade_50 + FadeEdge_77, +32 px/frame, exit at F > 50) */
+static struct { int on, F; float x; } wipe;
+static void wipe_start(void) { wipe.on = 1; wipe.F = 0; wipe.x = -(SCREEN_W + 120); }
+static int wipe_step(void) { if (!wipe.on) return 0; wipe.x = wipe.x + 32 > 0 ? 0 : wipe.x + 32; return ++wipe.F > 50; }
+static void wipe_draw(void) {
+    if (!wipe.on) return;
+    float x = wipe.x;
+    if (x + SCREEN_W > 0) r_rect(0, 0, x + SCREEN_W, SCREEN_H, 0xff080000);
+    for (int y = 0; y < SCREEN_H; y += 2) {
+        float w = 120.f * (1.f - (float)y / SCREEN_H), x0 = x + SCREEN_W;
+        if (x0 < 0) { w += x0; x0 = 0; }
+        if (w > 0) r_rect(x0, (float)y, w, 2, 0xff080000);
     }
 }
 
-/* tile transition (original "fadein" objects: 32 px tiles, anim 4 shrinks each tile over 6 frames).
- * The per-tile stagger is INFERRED (diagonal). */
-static void tiles(const ui_scene_t *s, ui_obj_t *tile, int t, int out) {
-    if (!tile) return;
-    for (int ty = 0; ty < 8; ty++)
-        for (int tx = 0; tx < 14; tx++) {
-            int k = t - (tx + ty);
-            int f = out ? 5 - k : k;
-            if (f < 0) f = 0;
-            if (f > 5) continue;
-            ui_obj_select((ui_scene_t *)s, tile, 4, 0); ui_obj_frame(tile, f);
-            float dx = tile->dx, dy = tile->dy;
-            tile->dx = tx * 32 - tile->x + cam_x; tile->dy = ty * 32 - tile->y + cam_y;
-            ui_draw_obj((ui_scene_t *)s, tile, cam_x, cam_y, 0xffffffff);
-            tile->dx = dx; tile->dy = dy;
+/* ---- tile fade-in (FadeIn_146 x104: RE 615 runs 4 times per frame and destroys a random remaining tile;
+ * a destroyed tile plays its disappearing animation 4 (6 frames) and is removed; RE 750 removes the black
+ * cover once a tile reaches frame 2) */
+#define NTILE 104
+static struct { int state, frame; } tile[NTILE];   /* 0 present, 1 disappearing, 2 gone */
+static int tiles_left, cover_on;
+static unsigned fe_seed = 1;
+static int fe_rand(int n) { fe_seed = fe_seed * 0x343fd + 0x269ec3; return (int)((((fe_seed >> 16) & 0x7fff) * (unsigned)n) >> 15); }
+static void tiles_start(void) { memset(tile, 0, sizeof tile); tiles_left = NTILE; cover_on = 1; }
+static int tiles_step(void) {     /* returns 1 when every tile is gone */
+    for (int i = 0; i < NTILE; i++) if (tile[i].state == 1 && ++tile[i].frame >= 6) { tile[i].state = 2; tiles_left--; }
+    for (int k = 0; k < 4; k++) {
+        int n = 0;
+        for (int i = 0; i < NTILE; i++) n += tile[i].state == 0;
+        if (!n) break;
+        int r = fe_rand(n);
+        for (int i = 0; i < NTILE; i++) if (tile[i].state == 0 && r-- == 0) { tile[i].state = 1; tile[i].frame = 0; break; }
+    }
+    for (int i = 0; i < NTILE; i++) if (tile[i].state == 1 && tile[i].frame >= 2) cover_on = 0;
+    return tiles_left == 0;
+}
+static void tiles_draw(ui_scene_t *s) {
+    ui_obj_t *t = ui_find(s, "fadein", 0);
+    if (cover_on) r_rect(0, 0, SCREEN_W, SCREEN_H, 0xff000000);
+    if (!t) return;
+    for (int i = 0; i < NTILE; i++) {
+        if (tile[i].state == 2) continue;
+        int cx = i % 13, cy = i / 13;               /* 13 columns x 112..496 (frame), 8 rows */
+        float x = 112 + cx * 32 - cam_x, y = cy * 32 - cam_y;
+        if (tile[i].state == 0) { r_rect(x, y, 32, 32, 0xff000000); continue; }
+        ui_obj_select(s, t, 4, 0); ui_obj_frame(t, tile[i].frame);
+        const frame_t *f = anim_frame(&t->an);
+        if (f) frame_draw(t->an.b, f, x + f->hx, y + f->hy, 0, 0xffffffff);
+    }
+}
+
+/* ---- character select (frame index 6 = on_frame_7; RE: build/re/fe/spec_charselect.md) */
+static struct {
+    int main, chosen, cur, moved, confirm, shake, timer, exit_to;
+    float checkA;
+    input_t prev;
+    ui_obj_t *slot[5], *ch[3], *name[3], *ret, *cursor;
+} C;
+static void chsel_enter(void) {
+    memset(&C, 0, sizeof C);
+    ui_scene_t *s = &s_scr;
+    static const int SX[5] = { 183, 319, 119, 255, 391 }, SY[5] = { 56, 56, 112, 112, 112 };
+    for (int k = 0; k < 5; k++)
+        for (int j = 0; ui_find(s, "characterslot", j); j++) { ui_obj_t *o = ui_find(s, "characterslot", j); if (o->x == SX[k] && o->y == SY[k]) C.slot[k] = o; }
+    C.ch[0] = ui_find(s, "character1", 0); C.ch[1] = ui_find(s, "character2", 0); C.ch[2] = ui_find(s, "character3", 0);
+    C.name[0] = ui_find(s, "charname1", 0); C.name[1] = ui_find(s, "charname2", 0); C.name[2] = ui_find(s, "charname3", 0);
+    C.ret = ui_find(s, "return", 0); C.cursor = ui_find(s, "crystalcursor", 0);
+    for (int i = 0; i < s->nobj; i++) { s->o[i].vis = 1; s->o[i].dx = s->o[i].dy = 0; s->o[i].shz = 0; s->o[i].shx = s->o[i].shy = 0; }
+    static const char *hide[] = { "character4", "character5", "charname4", "charname5", "fadein", "fade", "fadeedge", "helpmessage",
+                                  "listhelpmessage", "icona", "iconb", "ringsparkle", "backgroundsystembox", "mouseobject", 0 };
+    ui_obj_t *o;
+    for (int i = 0; hide[i]; i++) for (int k = 0; (o = ui_find(s, hide[i], k)); k++) o->vis = 0;
+    if (C.slot[2]) C.slot[2]->vis = 0;                       /* RE 809/810: Spade and Torque slots */
+    if (C.slot[4]) C.slot[4]->vis = 0;
+    /* RE start 7: Milla locked until records (2,42) >= 2 (fresh save: locked); the port has only Lilac, so
+     * Carol and Milla are both shown locked (padlock = Character3 anim 5) and cannot be chosen */
+    if (C.name[1]) C.name[1]->vis = 0;
+    if (C.name[2]) C.name[2]->vis = 0;
+    if (C.ch[2]) ui_obj_select(s, C.ch[2], 5, 0);
+    if (C.ch[1]) ui_obj_select(s, C.ch[1], 0, 0);
+    C.cur = 0;                                               /* start cursor from global 1 (Lilac = 0) */
+    tiles_start(); wipe.on = 0;
+    cam_x = 320 - 213; cam_y = 0;                            /* RE 801: display centre x 320 */
+    if (fe_mode <= 0) music_play("bgm/m_menu1.adp");         /* start: only if channel 31 is silent (RV) */
+    else music_play("bgm/m_results.adp");                    /* RE/RV: Classic / Adventure play m_results here */
+}
+static int chsel_locked(int c) { return c == 1 || c == 3; }  /* Carol (port: not playable), Milla (records) */
+static void chsel_update(const input_t *now) {
+    const input_t *in = &C.prev;
+    uint32_t p = in->pressed;
+    C.checkA = fmodf(C.checkA + 0.5f, 64.f);                  /* checker scroll */
+    if (!C.main && !C.chosen && !wipe.on) { if (tiles_step()) C.main = 1; }
+    if (C.main) {
+        int c0 = C.cur;
+        if ((p & BTN_RIGHT) && C.cur < 5) { C.cur++; C.moved = 1; }
+        if (p & BTN_DOWN) { if (C.cur >= 2 && C.cur < 5) { C.cur = 5; C.moved = 1; } else if (C.cur < 2) { C.cur = 3; C.moved = 1; } }
+        if ((p & BTN_LEFT) && C.cur > 0) { C.cur--; C.moved = 1; }
+        if (p & BTN_UP) { if (C.cur > 0 && C.cur < 5) { C.cur = C.cur - 3 < 0 ? 0 : C.cur - 3; C.moved = 1; } else if (C.cur == 5) { C.cur = 3; C.moved = 1; } }
+        if (C.moved && C.cur != c0) snd_play_orig(64, 220, 128);
+        else if (C.moved) C.moved = 0;
+        if (p & (BTN_JUMP | BTN_START)) C.confirm = 1;                                   /* RE 761 */
+        if ((p & BTN_RIGHT) && C.cur == 2) C.cur = 3;                                    /* hidden slots skipped */
+        if ((p & BTN_LEFT) && C.cur == 2) C.cur = 1;
+        if ((p & BTN_RIGHT) && C.cur == 4) C.cur = 5;
+        if ((p & BTN_LEFT) && C.cur == 4) C.cur = 3;
+        if (C.shake > 10) { int n = (int)((C.shake - 10) * 0.1); cam_x = 107 + fe_rand(n); cam_y = fe_rand(n); }   /* RE 766 */
+        else { cam_x = 107; cam_y = 0; }
+        if (C.moved) {
+            C.moved = 0; C.shake += 7; if (C.shake > 50) C.shake = 50;
+            ui_obj_t *nm = C.cur == 0 ? C.name[0] : C.cur == 1 ? C.name[1] : C.cur == 3 ? C.name[2] : C.cur == 5 ? C.ret : NULL;
+            if (nm) nm->shz = 4;
         }
+        if (C.shake > 0) C.shake--;
+        if (C.confirm && C.cur < 5 && !chsel_locked(C.cur)) {                            /* RE 782 */
+            snd_play_orig(63, 230, 128); C.main = 0; C.chosen = 1; C.timer = 0;
+            G.character = 0;
+            snd_play_orig(220, 255, 128);                                                 /* Lilac's voice; Character1 anim 7 */
+            if (C.ch[0]) ui_obj_select(&s_scr, C.ch[0], 7, 0);
+        } else if ((C.confirm && C.cur == 5) || ((p & BTN_ATTACK) && C.cur == 5)) {      /* RE 783 RETURN */
+            snd_play_orig(56, 230, 128); C.main = 0; music_stop(); wipe_start(); C.exit_to = 3;
+        } else if ((p & BTN_ATTACK) && C.cur != 5) { snd_play_orig(64, 220, 128); C.cur = 5; if (C.ret) C.ret->shz = 4; C.shake += 7; }
+        C.confirm = 0;
+    }
+    if (C.chosen) {
+        C.timer++;
+        if (C.timer == 20) {
+            if (fe_mode > 0) { snd_play_orig(56, 230, 128); music_stop(); }
+            C.chosen = 0; wipe_start(); C.exit_to = fe_mode <= 0 ? 5 : 20;
+        }
+    }
+    for (int i = 0; i < s_scr.nobj; i++) {                                            /* RE 328/329 */
+        ui_obj_t *o = &s_scr.o[i];
+        if (o->shz > 0) {
+            double a = 200.0 * o->shz, c = (a == 90. || a == 270.) ? 0. : cos(a / 57.29577951), sn = a == 180. ? 0. : sin(a / 57.29577951);
+            o->shx = (int)floor(c * o->shz); o->shy = (int)floor(sn * o->shz * 0.5);
+            o->shz -= 0.4f; if (o->shz < 0.01f) { o->shz = 0; o->shx = o->shy = 0; }
+        }
+    }
+    ui_tick(&s_scr);
+    C.prev = *now;
+    if (wipe_step()) {
+        wipe.on = 0;
+        if (C.exit_to == 3) { set_state(FE_HUB); hub_enter(); }
+        else if (C.exit_to == 5) { if (scr_load(1) == 0) { set_state(FE_STSEL); stsel_enter(); } }
+        else { const char *lv = "dv1"; fe_unload(); game_start_adventure(lv, 0); }
+    }
+}
+static void chsel_draw(void) {
+    ui_scene_t *s = &s_scr;
+    ui_obj_t *ck = ui_find(s, "checkerpattern", 0);
+    if (ck) ck->dy = -C.checkA;
+    for (int k = 0; k < 5; k++) if (C.slot[k]) ui_obj_select(s, C.slot[k], 0, (C.main || C.chosen) && C.cur == k ? 1 : 0);   /* RE 752/753 */
+    int alt = C.shake > 30;                                                              /* RE 767/768 */
+    if (C.ch[0] && !C.chosen) ui_obj_select(s, C.ch[0], 0, alt ? 8 : 0);
+    if (C.ch[1]) ui_obj_select(s, C.ch[1], 0, alt ? 8 : 0);
+    if (C.cursor) C.cursor->vis = 0;
+    ui_draw(s, cam_x, cam_y, 0, 3);
+    /* Carol: not playable in the port -> the padlock image over her portrait (DECISIONS D-020) */
+    if (C.ch[1] && C.ch[2]) {
+        ui_obj_t *lk = C.ch[2];
+        float dx = lk->dx, dy = lk->dy;
+        lk->dx = C.ch[1]->x - lk->x; lk->dy = C.ch[1]->y - lk->y;
+        r_rect(C.ch[1]->x - 8 - cam_x, C.ch[1]->y - 8 - cam_y, 132, 48, 0xa0000000);
+        ui_draw_obj(s, lk, cam_x, cam_y, 0xffffffff);
+        lk->dx = dx; lk->dy = dy;
+    }
+    fe_text(12, 220, "A: Select");
+    fe_text(SCREEN_W - 12 - 9 * 8, 220, "B: Return");
+    if (C.cursor && C.cur == 5 && C.main) {
+        float x, y;
+        if (C.ret && ui_action_point(C.ret, &x, &y) == 0) { C.cursor->dx = x - C.cursor->x; C.cursor->dy = y - C.cursor->y; }
+        C.cursor->vis = 1; ui_draw_obj(s, C.cursor, cam_x, cam_y, 0xffffffff); C.cursor->vis = 0;
+    }
+    if (!C.main && !C.chosen && !wipe.on) tiles_draw(s);
+    wipe_draw();
+}
+
+/* ---- Time Attack stage select (frame index 5 = on_frame_6): see stsel_* below */
+#include "fe_stsel.inc"
+
+void fe_update(const input_t *in) {
+    G.frame++; fe_t++;
+    if (fe_dev_select_check(in)) { fe_unload(); game_dev_select(); return; }
+    switch (fe_state) {
+    case FE_PRESS: title_update(in->pressed); break;
+    case FE_HUB: {
+        int ex = hub_update(in);
+        if (ex == HUB_EXIT_QUIT) { plat_quit(); break; }
+        if (ex == HUB_EXIT_TIME_ATTACK) { fe_mode = 0; if (scr_load(0) == 0) { set_state(FE_CHSEL); chsel_enter(); } }
+        if (ex == HUB_EXIT_NEW_CLASSIC) { fe_mode = 1; fe_new_file(1); if (scr_load(0) == 0) { set_state(FE_CHSEL); chsel_enter(); } }
+        if (ex == HUB_EXIT_NEW_ADVENTURE) {   /* original: frame 81 (opening cutscene, not ported) -> DV1 */
+            fe_mode = 2; fe_new_file(0); fe_unload(); game_start_adventure("dv1", 0);
+        }
+        if (ex == HUB_EXIT_CONTINUE) {        /* original: frame 8 (stage from the save); the port has Dragon Valley only */
+            fe_mode = SV.file[hub_selected_file()].mode ? 1 : 2; G.file_slot = hub_selected_file();
+            fe_unload(); game_start_adventure("dv1", 0);
+        }
+        break;
+    }
+    case FE_CHSEL: chsel_update(in); break;
+    case FE_STSEL: stsel_update(in); break;
+    }
 }
 
 void fe_draw(void) {
     r_begin();
     switch (fe_state) {
-    case FE_PRESS:
-        title_draw();
-        break;
-    case FE_MENU: case FE_FILE: case FE_OPTIONS: {
-        ui_obj_t *cur = ui_find(&s_hub, "crystalcursor", 0);
-        /* file panel values */
-        ui_obj_t *d2 = ui_find(&s_hub, "difficulty2", 0); if (d2) ui_obj_select(&s_hub, d2, 0, fe_difficulty);
-        ui_obj_t *d4 = ui_find(&s_hub, "difficulty4", 0); if (d4) ui_obj_select(&s_hub, d4, 0, fe_difficulty);
-        ui_obj_t *mv = ui_find(&s_hub, "musicvolume", 1); if (mv) mv->vis = 0;
-        ui_obj_t *cs = ui_find(&s_hub, "controllersensitivity", 0); if (cs) cs->vis = 0;
-        ui_obj_t *fid = ui_find(&s_hub, "fileid", 0); if (fid) fid->vis = 0;
-        ui_draw(&s_hub, cam_x, cam_y, 0, 3);
-        if (fe_state == FE_FILE || fabsf(cam_y - 240) < 200) counter(&s_hub, fid, fe_file + 1, 244 - cam_x + 43, 152 - cam_y + 240, 14);
-        counter(&s_hub, mv, fe_music_volume, 337 - cam_x + 523, 120 - cam_y, 14);
-        counter(&s_hub, cs, fe_sensitivity, 337 - cam_x + 523, 176 - cam_y, 14);
-        /* save-slot carousel (RV fe_a: slot centred at x 213, 120 px pitch, wraps around the 8 files) */
-        {
-            ui_obj_t *sl = ui_find(&s_hub, "filesaveslot", 0), *sc = ui_find(&s_hub, "filesaveslotcharacter", 0);
-            for (int rel = -2; rel <= 2; rel++) {
-                float sx = 213 + rel * 120 - cam_x + 43, sy = 104 - cam_y + 240;
-                if (sl) { sl->vis = 1; ui_obj_select(&s_hub, sl, 0, rel == 0 ? 1 : 0); sl->dx = sx + cam_x - sl->x; sl->dy = sy + cam_y - sl->y; ui_draw_obj(&s_hub, sl, cam_x, cam_y, 0xffffffff); sl->vis = 0; }
-                if (sc) { sc->vis = 1; sc->dx = sx + cam_x - sc->x - 0; sc->dy = sy + cam_y - sc->y; ui_draw_obj(&s_hub, sc, cam_x, cam_y, 0xffffffff); sc->vis = 0; }
-            }
-        }
-        if (fe_state == FE_FILE) {
-            /* RV strings (binary): hint box text for the selected row */
-            static const char *msg[3] = { "Press START to begin a new game.", "Press LEFT or RIGHT to adjust the DIFFICULTY.",
-                                          "Select RETURN to pick another file slot." };
-            /* RV (fe_a): lines at (101,24) and (101,44) in the hint box, wrapped at 26 characters */
-            const char *m = msg[fe_sel];
-            char l1[32] = {0}; const char *l2 = "";
-            size_t n = strlen(m), cut = n <= 26 ? n : 26;
-            while (cut > 0 && n > 26 && m[cut] != ' ') cut--;
-            memcpy(l1, m, cut); l2 = m + cut + (m[cut] == ' ');
-            fe_text(101 - cam_x + 43, 24 - cam_y + 240, l1); fe_text(101 - cam_x + 43, 44 - cam_y + 240, l2);
-            cursor_to(&s_hub, cur, 170, FILE_Y[fe_sel]);
-        } else if (fe_state == FE_OPTIONS) {
-            cursor_to(&s_hub, cur, fe_sel == 4 ? 170 : 90, OPT_Y[fe_sel]);
-        } else {
-            cursor_to(&s_hub, cur, 138, MENU_Y[fe_sel]);
-        }
-        if (cur) ui_draw_obj(&s_hub, cur, cam_x, cam_y, 0xffffffff);
-        break;
-    }
-    case FE_CHSEL: {
-        ui_obj_t *o;
-        for (int k = 3; k <= 5; k++) { char nm[16]; snprintf(nm, sizeof nm, "character%d", k); if ((o = ui_find(&s_chsel, nm, 0))) ui_obj_select(&s_chsel, o, 5, 0); }
-        for (int k = 3; k <= 5; k++) { char nm[16]; snprintf(nm, sizeof nm, "charname%d", k); if ((o = ui_find(&s_chsel, nm, 0))) o->vis = 0; }
-        if ((o = ui_find(&s_chsel, "character4", 0))) o->vis = 0;
-        if ((o = ui_find(&s_chsel, "character5", 0))) o->vis = 0;
-        if ((o = ui_find(&s_chsel, "character1", 0))) ui_obj_select(&s_chsel, o, 0, fe_sel == 0 ? 8 : 0);
-        if ((o = ui_find(&s_chsel, "character2", 0))) ui_obj_select(&s_chsel, o, 0, fe_sel == 1 ? 8 : 0);
-        if ((o = ui_find(&s_chsel, "return", 0))) ui_obj_select(&s_chsel, o, 0, fe_sel == 2 ? 8 : 0);
-        for (int k = 0; (o = ui_find(&s_chsel, "fadein", k)); k++) o->vis = 0;
-        if ((o = ui_find(&s_chsel, "fade", 0))) o->vis = 0;
-        if ((o = ui_find(&s_chsel, "helpmessage", 0))) o->vis = 0;
-        if ((o = ui_find(&s_chsel, "icona", 0))) o->vis = 0;
-        if ((o = ui_find(&s_chsel, "iconb", 0))) o->vis = 0;
-        ui_draw(&s_chsel, cam_x, cam_y, 0, 3);
-        fe_text(8, 222, " A: Select                                B: Return");
-        ui_obj_t *cur = ui_find(&s_chsel, "crystalcursor", 0);
-        if (cur) cur->vis = fe_sel == 2;
-        if (cur && fe_sel == 2) ui_draw_obj(&s_chsel, cur, cam_x, cam_y, 0xffffffff);
-        if (fe_t < 20) tiles(&s_chsel, ui_find(&s_chsel, "fadein", 0), fe_t, 0);
-        break;
-    }
-    case FE_STSEL: case FE_OUT: {
-        ui_obj_t *o;
-        for (int k = 0; (o = ui_find(&s_stsel, "fadein", k)); k++) o->vis = 0;
-        if ((o = ui_find(&s_stsel, "fade", 0))) o->vis = 0;
-        if ((o = ui_find(&s_stsel, "helpmessage", 0))) o->vis = 0;
-        if ((o = ui_find(&s_stsel, "filemessage", 0))) o->vis = 0;
-        if ((o = ui_find(&s_stsel, "charname1", 0))) o->vis = 0;
-        if ((o = ui_find(&s_stsel, "active2", 0))) o->vis = 0;
-        if ((o = ui_find(&s_stsel, "icona", 0))) o->vis = 0;
-        if ((o = ui_find(&s_stsel, "iconb", 0))) o->vis = 0;
-        /* stagename / stageicon1 frames: 0 Aqua Tunnel, 1 Dragon Valley, 2 Relic Maze, 3 Fortune Night */
-        if ((o = ui_find(&s_stsel, "stagename", 0))) { ui_obj_select(&s_stsel, o, 0, 0); ui_obj_frame(o, 1); }
-        if ((o = ui_find(&s_stsel, "stageicon1", 0))) ui_obj_frame(o, 1);
-        if ((o = ui_find(&s_stsel, "return", 0))) ui_obj_select(&s_stsel, o, 0, fe_sel == 1 ? 8 : 0);
-        ui_obj_t *cur = ui_find(&s_stsel, "crystalcursor", 0);
-        if (cur) cur->vis = fe_sel == 1;
-        if (fe_state == FE_STSEL || fe_go_time_attack) ui_draw(&s_stsel, cam_x, cam_y, 0, 3);
-        else ui_draw(&s_chsel, cam_x, cam_y, 0, 3);
-        fe_text(8, 222, " A: Select                                B: Return");
-        if (fe_state == FE_OUT) { ui_scene_t *sc = fe_go_time_attack ? &s_stsel : &s_chsel; tiles(sc, ui_find(sc, "fadein", 0), fe_t, 1); }
-        break;
-    }
+    case FE_PRESS: title_draw(); break;
+    case FE_HUB: hub_draw(); break;
+    case FE_CHSEL: chsel_draw(); break;
+    case FE_STSEL: stsel_draw(); break;
     }
     r_end();
 }

@@ -6,7 +6,7 @@
 TARGET = fpdc.elf
 OBJS = src/platform/plat_dc.o src/renderer/render_pvr.o src/resources/assets.o \
        src/physics/level.o src/physics/sensors.o src/characters/player.o src/game/objects.o src/game/game.o \
-       src/game/ui.o src/game/frontend.o src/game/loading.o
+       src/game/ui.o src/game/frontend.o src/game/loading.o src/game/vmu.o src/game/fe_hub.o src/game/save.o
 
 FP_GAME ?= /mnt/user-data/uploads/Freedom Planet
 # BGM: music tracks put on the disc (default: the whole ADPCM library). Lean disc with only the
@@ -45,7 +45,7 @@ build/disc/data: $(DATA_DIR)/levels.txt
 	  cp $(DATA_DIR)/$$d/*.tex $(DATA_DIR)/$$d/*.spr $(DATA_DIR)/$$d/*.lv2 $(DATA_DIR)/$$d/*.pal build/disc/data/$$d/; done
 	# front end (ui scenes + banks + font), ADPCM music library (.adp), ADPCM sfx/voices
 	mkdir -p build/disc/data/ui build/disc/data/bgm build/disc/data/sfx
-	cp $(DATA_DIR)/ui/*.ui $(DATA_DIR)/ui/*.spr $(DATA_DIR)/ui/*.tex build/disc/data/ui/
+	cp $(DATA_DIR)/ui/*.ui $(DATA_DIR)/ui/*.spr $(DATA_DIR)/ui/*.tex $(DATA_DIR)/ui/*.bin build/disc/data/ui/
 	cp $(BGM) build/disc/data/bgm/
 	cp $(DATA_DIR)/sfx/*.wav build/disc/data/sfx/
 

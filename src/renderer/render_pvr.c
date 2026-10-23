@@ -55,7 +55,9 @@ int r_init(void) {
 int r_tex_load(tex_t *t, const void *data, size_t size) {
     const uint8_t *d = data;
     uint16_t hdr[6];
-    if (size < 16 || memcmp(d, "FPTX", 4) || ntex >= MAXTEX) return -1;
+    int slot = 0;
+    while (slot < ntex && texs[slot].ptr) slot++;                            /* reuse freed slots */
+    if (size < 16 || memcmp(d, "FPTX", 4) || slot >= MAXTEX) return -1;
     memcpy(hdr, d + 4, 12);
     int w = hdr[0], h = hdr[1], fmt = hdr[2], grp = hdr[5];
     size_t bpp = fmt == 1 ? 1 : 2;
@@ -75,19 +77,25 @@ int r_tex_load(tex_t *t, const void *data, size_t size) {
     cxt.depth.comparison = PVR_DEPTHCMP_GEQUAL;
     cxt.gen.culling = PVR_CULLING_NONE;
     cxt.txr.env = PVR_TXRENV_MODULATE;
-    pvr_poly_compile(&texs[ntex].hdr, &cxt);
+    pvr_poly_compile(&texs[slot].hdr, &cxt);
     pvr_poly_cxt_txr(&cxt, PVR_LIST_TR_POLY, txfmt, w, h, p, PVR_FILTER_NONE);
     cxt.depth.comparison = PVR_DEPTHCMP_GEQUAL;
     cxt.gen.culling = PVR_CULLING_NONE;
     cxt.txr.env = PVR_TXRENV_MODULATE;
-    pvr_poly_compile(&texs[ntex].hdr_tr, &cxt);
-    texs[ntex].ptr = p; texs[ntex].w = w; texs[ntex].h = h;
-    t->id = ntex++; t->w = w; t->h = h; t->srcw = hdr[3]; t->srch = hdr[4];
+    pvr_poly_compile(&texs[slot].hdr_tr, &cxt);
+    texs[slot].ptr = p; texs[slot].w = w; texs[slot].h = h;
+    t->id = slot; if (slot == ntex) ntex++; t->w = w; t->h = h; t->srcw = hdr[3]; t->srch = hdr[4];
     return 0;
 }
 
+/* free one texture (front-end screen banks are swapped) */
+void r_tex_free(tex_t *t) {
+    if (t->id < 0 || t->id >= ntex || !texs[t->id].ptr) return;
+    pvr_wait_ready(); pvr_mem_free(texs[t->id].ptr); texs[t->id].ptr = NULL; t->id = -1;
+}
+
 /* drop every texture (level change): VRAM texture memory is reset as a whole */
-void r_reset(void) { pvr_wait_ready(); pvr_mem_reset(); ntex = 0; }
+void r_reset(void) { pvr_wait_ready(); pvr_mem_reset(); for (int i = 0; i < ntex; i++) texs[i].ptr = NULL; ntex = 0; }
 
 int r_pal_load(const void *data, size_t size) {
     const uint8_t *d = data;
