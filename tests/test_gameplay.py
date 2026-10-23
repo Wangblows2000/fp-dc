@@ -221,5 +221,16 @@ last = max((f for f in en if en[f]['fl'] == 40), default=None)   # fl printed in
 check('corpse_explodes_on_ground_at_1287_415', last == 170 and en[last]['x'] + 3 == 1287 and en[last]['y'] + 1 == 415, str(last))
 # a plain jump into an enemy never damages it (RE: no shield, Z = 0): jump into the first Dragonfly's path
 
+# half corkscrew M45 (RE spec_traversal §2; original trace build/orig_traces/cork_dv1.csv): DV1 pair 1 at x 2328..2856.
+# Original: state 45 from f99 (x 2328.1, y 666.9), apex y 566.9 (100 px), plateau, back on the ground at f187-188 (y 666.4),
+# B rises 0.1/frame to 6.085 while right is held at top speed
+r = run(open(os.path.join(HERE, 'orig_extra_cork_dv1.txt')).read(), 260, {'FP_ORIG_MOVES': '1', 'FP_SPAWN_X': '2150', 'FP_SPAWN_Y': '665', 'FP_SPAWN_L': '1'})
+ck = [x for x in r if x['st'] == 15]
+check('cork_rides_state_45', len(ck) > 60, '%d frames' % len(ck))
+if ck:
+    check('cork_rise_100px', abs((ck[0]['y'] - min(x['y'] for x in ck)) - 100) < 2, 'rise %.1f' % (ck[0]['y'] - min(x['y'] for x in ck)))
+    check('cork_speed_to_6', abs(max(x['gsp'] if x['gnd'] else x['vx'] for x in ck) - 6.085) < 0.01)
+    check('cork_ends_after_far_end', ck[-1]['x'] > 2850 and ck[-1]['x'] < 2870, 'end x %.1f' % ck[-1]['x'])
+
 print('%d failure(s)' % fails)
 sys.exit(1 if fails else 0)
