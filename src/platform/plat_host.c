@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include <stdarg.h>
 #include <time.h>
 #include "../fp.h"
@@ -250,6 +251,11 @@ int main(int argc, char **argv) {
         printf("f %d x %.2f y %.2f gsp %.3f vx %.3f vy %.3f gnd %d ang %.3f st %d hp %d cr %d k %d an %d fr %d rot %.2f en %.2f lv %d face %d mode %d sel %d cx %.1f cy %.1f act %d\n",
                cur_frame, p->x, p->y, p->gsp, p->vx, p->vy, p->ground, p->N, p->state, p->hp, p->crystals, G.kills, p->an.anim, p->an.frame,
                p->rot, p->energy, p->lives, p->face, G.mode, G.in_select, G.camx, G.camy, G.lvdir[0] ? G.lvdir[2] - '0' : 0);
+        if (getenv("FP_DBG_ENEMY")) {             /* nearest enemy: A, C, knock-back, angle, flags */
+            int bi = -1; float bd = 1e9f;
+            for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && enemy_type(G.o[i].type)) { float d = fabsf(G.o[i].x - (float)p->x); if (d < bd) { bd = d; bi = i; } }
+            if (bi >= 0) { const obj_t *o = &G.o[bi]; printf("en %d A %.2f C %d X %.2f Y %.2f ang %.0f fl %x x %.0f y %.0f inv %d\n", cur_frame, o->A, o->c, o->kx, o->ky, o->ang, o->fl, o->x, o->y, o->inv); }
+        }
         if (getenv("FP_FE_TRACE")) {
             int idx = 19 + (G.lvdir[0] ? G.lvdir[2] - '0' : 1), cur = 0;
             if (G.mode == MODE_FRONTEND) fe_trace_info(&idx, &cur);

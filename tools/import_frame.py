@@ -44,6 +44,9 @@ ENGINE_TYPES = {
     'gimmickbridge12logs': 35, 'gimmickbridgelog': 36,   # EnemyGansekiJr_835 (RE build/re/spec_ganseki.md)     # LadderTop_428: invisible obstacle at the top of each ladder (RE spec_ladder.md)
 }
 
+# classes whose untrimmed image box matters (spring top edges RV, box-collision platforms/logs, invisible
+# sensors): their images are never cropped. Everything else in the object bank is cropped to its opaque pixels.
+BOX_TYPES = {8, 13, 14, 15, 16, 17, 30, 32, 33, 34, 35, 36}
 # collision mask threshold: Chowdren builds image collision bits from alpha != 0 (RE Image::upload_texture,
 # collide_sprite_sprite); FP_ALPHA_MIN overrides for experiments
 ALPHA_MIN = int(os.environ.get('FP_ALPHA_MIN', '1'))
@@ -171,6 +174,7 @@ def main():
             report.append('  no animation for %s' % key); continue
         bank['anims'].append({'name': key[:15], 'frames': d['frames'], 'speed': max(1, d['max_speed']),
                               'loop': d['loop'], 'back_to': d['back_to']})
+        if ENGINE_TYPES.get(key.rsplit('_', 1)[0]) in BOX_TYPES: bank.setdefault('keep_box', set()).add(key[:15])
     for extra, nm in (('effectsexplosion01_367', 'explosion'),):
         d = first_anim_frames(an.get(extra, {}))
         if d: bank['anims'].append({'name': nm, 'frames': d['frames'], 'speed': d['max_speed'], 'loop': d['loop'], 'back_to': d['back_to']})
@@ -182,6 +186,10 @@ def main():
                             ('ringsparkle_142', 4, '0', 'ringsparkle'), ('effectsheart_444', 4, '0', 'heart'),
                             ('sparkle1_316', 0, '0', 'sparkle1'), ('sparkle5_284', 4, '0', 'sparkle5'),
                             ('crystal_447', 0, '0', 'pausecursor'),
+                            # visible attack shields (ShieldInstaShield_407 anim 4; RE spec_combat.md): whip, uppercut, crouch kick
+                            ('shieldinstashield_407', 4, '0', 'slash'), ('shieldinstashield_407', 4, '16', 'slash_l'),
+                            ('shieldinstashield_407', 4, '1', 'upslash'), ('shieldinstashield_407', 4, '17', 'upslash_l'),
+                            ('shieldinstashield_407', 4, '31', 'ckick'), ('shieldinstashield_407', 4, '15', 'ckick_l'),
                             ('enemygansekijr_835', 0, '0', 'gan_pose'), ('enemygansekijr_835', 0, '16', 'gan_pose_l'),
                             ('enemygansekijr_835', 1, '0', 'gan_walk'), ('enemygansekijr_835', 1, '16', 'gan_walk_l'),
                             ('enemygansekijr_835', 8, '0', 'gan_dead'), ('enemygansekijr_835', 8, '16', 'gan_dead_l'),
@@ -199,22 +207,22 @@ def main():
            ('hud_icon', [311]),                                 # guiicon anim 0 = Lilac head + crystal
            ('hud_clock', an['guitimer_536']['anims'][0]['0']['frames']),
            ('hud_digits', an['guilives_425']['images'][:10]),   # counter digits 0-9 (lives/crystals/timer)
-           ('card_stage', an['levelcardintro3_684']['anims'][0]['0']['frames']),   # "STAGE n" (index n-1)
-           ('card_name', an['levelcardintro2_683']['anims'][0]['0']['frames']),    # stage names
+           ('card_stage', an['levelcardintro3_684']['anims'][0]['0']['frames'][:1]),   # "STAGE 1" (Dragon Valley is stage 1)
+           ('card_name', an['levelcardintro2_683']['anims'][0]['0']['frames'][:1]),    # "Dragon Valley"
            ('card_fade', [129]), ('card_gameover', [27]),
            ('pause', an['guipause_347']['anims'][0]['0']['frames']),               # Paused banner + options
-           ('res_complete', an['levelcardactclear1_864']['anims'][7]['0']['frames']),  # "Stage Complete!" build-in
+           ] + ([('res_complete', an['levelcardactclear1_864']['anims'][7]['0']['frames']),  # "Stage Complete!" build-in
            ('res_results', [955]), ('res_panel', [10860]), ('res_rows', [10837]),
            ('res_bar', [10844, 10660]),
            ('res_digits', an['totalbonus_870']['images'][:10]),
-           ('res_small', an['levelcardbonus3_869']['images'][:10])]
+           ('res_small', an['levelcardbonus3_869']['images'][:10])] if n == 24 else [])   # results: DV4 only
     for nm, frames in HUD:
         bank['anims'].append({'name': nm, 'frames': frames, 'speed': 0, 'loop': -1, 'back_to': 0})
     write_bank2(src, bank, out, report)
     # parallax pieces (first frame image as a texture each)
     par = []
     for o in objs:
-        if o['type'] >= 20:
+        if 20 <= o['type'] < 28:
             e = an.get(o['cls'], {})
             d = first_anim_frames(e)
             img = d['frames'][0] if d and d['frames'] and d['frames'][0] is not None else (e.get('images') or [None])[0]
@@ -284,17 +292,23 @@ def write_bank2(src, bank, out, report):
     # pixel masks). Keeps the 1024x1024 object atlas within one PVR texture.
     # Lilac's skin and hair banks too: her collision is the separate sensor objects, never the sprite box
     whole = bank['name'] in ('lilac2', 'lilachair')
-    crop_ids = {i for a in bank['anims'] if whole or a['name'].startswith(('gan_', 'explosion')) for i in a['frames']}
+    keep = bank.get('keep_box', set())
+    if bank['name'].endswith('_obj'):
+        keep_ids = {i for a in bank['anims'] if a['name'] in keep for i in a['frames']}
+        keep_ids |= {i for a in bank['anims'] if a['name'].startswith(('hud_', 'res_', 'pellet')) for i in a['frames']}   # drawn by top-left; pellet: whole image box (RV)
+        crop_ids = {i for a in bank['anims'] for i in a['frames']} - keep_ids
+    else:
+        crop_ids = {i for a in bank['anims'] if whole or a['name'].startswith(('gan_', 'explosion')) for i in a['frames']}
     for i in crop_ids:
         im, hx, hy = imgs[i]; bb = im.getbbox()
         if bb and (bb[2] - bb[0], bb[3] - bb[1]) != im.size:
             imgs[i] = (im.crop(bb), hx - bb[0], hy - bb[1])
-    size = 64
-    while True:
-        pos = pack([(i, imgs[i][0]) for i in ids], size)
-        if pos: break
-        size *= 2
-        if size > 1024: raise SystemExit('bank %s too large' % bank['name'])
+    size, pos = 64, None
+    while not pos:          # smallest power-of-two atlas: square, then half height (PVR textures may be 2:1)
+        pos = pack([(i, imgs[i][0]) for i in ids], size, size // 2) or pack([(i, imgs[i][0]) for i in ids], size)
+        if not pos:
+            size *= 2
+            if size > 1024: raise SystemExit('bank %s too large' % bank['name'])
     atlas = Image.new('RGBA', (size, size), (0, 0, 0, 0))
     # (atlas height is cropped to content by write_tex's pow2 rounding below)
     for i in ids: atlas.paste(imgs[i][0], pos[i])

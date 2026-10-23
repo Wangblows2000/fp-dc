@@ -198,5 +198,28 @@ for env, name in (({}, 'port'), ({'FP_ORIG_MOVES': '1'}, 'orig')):
     if name == 'port': check('downkick_windup_keeps_momentum', w and min(w) >= w[0] - 0.01 and vx is not None and vx >= 5, 'windup vx %.3f..%.3f kick %s' % (w[0], min(w), vx))
     else: check('downkick_original_vx5', vx is not None and abs(vx - 5) < 0.01, 'kick vx %s' % vx)
 
+# combat (RE spec_combat.md; original trace build/orig_traces/combat_t1.csv, script tests/orig_extra_combat_t1.txt):
+# a standing whip 41 px from the first Turretus: the shield hits on the next frame (A 8 -> 4, C 5, invert flash),
+# hits again 5 frames later when K and C are back to 0 (A 0), then the corpse flies with X 3, Y -3 (+0.25 per
+# frame) spinning 8 deg/frame and explodes when its rotated image touches the ground (orig: frame 172 at 1287,415)
+def run_en(script, frames, env):
+    with tempfile.NamedTemporaryFile('w', suffix='.txt', delete=False) as f:
+        f.write(script); name = f.name
+    out = subprocess.run([BIN, DATA, str(frames), name], capture_output=True, text=True, check=True,
+                         env={**os.environ, 'FP_LEVEL': 'dv1', 'FP_DBG_ENEMY': '1', **env}).stdout
+    os.unlink(name)
+    return {int(t[1]): {t[i]: float(t[i + 1]) for i in range(2, len(t) - 1, 2)} for t in (l.split() for l in out.splitlines()) if t and t[0] == 'en'}
+en = run_en(open(os.path.join(HERE, 'orig_extra_combat_t1.txt')).read(), 200,
+            {'FP_ORIG_MOVES': '1', 'FP_SPAWN_X': '68.715', 'FP_SPAWN_Y': '450', 'FP_SPAWN_L': '1', 'FP_OBJ_PRETICK': '2'})
+hits = [f for f in sorted(en) if f - 1 in en and en[f]['A'] < en[f - 1]['A']]
+check('whip_two_hits_5_frames_apart', len(hits) == 2 and hits[1] - hits[0] == 5 and en[hits[0]]['A'] == 4, str(hits))
+check('hit_flash_3_frames', hits and sum(1 for f in range(hits[0], hits[0] + 5) if en[f]['inv'] == 1) == 3)
+f0 = hits[1] if len(hits) > 1 else None
+check('defeat_flyaway_spin', f0 and en[f0]['Y'] == -2.75 and en[f0]['ang'] == 8 and en[f0 + 10]['x'] - en[f0]['x'] == 30,
+      str(en.get(f0)))
+last = max((f for f in en if int(en[f]['fl']) & 0x40), default=None)   # corpse destroyed in the next frame at (x+3, y+1)
+check('corpse_explodes_on_ground_at_1287_415', last == 170 and en[last]['x'] + 3 == 1287 and en[last]['y'] + 1 == 415, str(last))
+# a plain jump into an enemy never damages it (RE: no shield, Z = 0): jump into the first Dragonfly's path
+
 print('%d failure(s)' % fails)
 sys.exit(1 if fails else 0)

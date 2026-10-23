@@ -41,6 +41,8 @@ void r_tex_free(tex_t *t) {
 
 /* the host image is the logical 426x240 view; the presentation mode only matters on the DC (logged for tests) */
 int r_letterbox_mode = -1;
+static int invert_on;
+void r_set_invert(int on) { invert_on = on; }
 void r_set_letterbox(int on) { if (getenv("FP_TRACE_SND") && r_letterbox_mode != on) printf("letterbox %d\n", on); r_letterbox_mode = on; }
 
 void r_reset(void) {
@@ -92,6 +94,7 @@ void r_sprite(const tex_t *t, int u, int v, int uw, int vh, float x, float y, fl
             uint16_t c = ix ? pal[ix[tv * tw + tu]] : px[tv * tw + tu];
             if (!(c & 0x8000)) continue;
             uint32_t rgb = (((c >> 10) & 31) << 19) | (((c >> 5) & 31) << 11) | ((c & 31) << 3);
+            if (invert_on) rgb ^= 0xffffff;
             fb[sy * SCREEN_W + sx] = blend(fb[sy * SCREEN_W + sx], modulate(rgb, argb), argb >> 24);
         }
     }
@@ -119,6 +122,7 @@ void r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float 
             uint16_t col = ix ? pal[ix[tv * tw + tu]] : pxl[tv * tw + tu];
             if (!(col & 0x8000)) continue;
             uint32_t rgb = (((col >> 10) & 31) << 19) | (((col >> 5) & 31) << 11) | ((col & 31) << 3);
+            if (invert_on) rgb ^= 0xffffff;
             fb[sy * SCREEN_W + sx] = modulate(rgb, argb);
         }
     }

@@ -65,8 +65,9 @@ def load_img(src, idx):
     return im, hx, hy
 
 
-def pack(images, size):
+def pack(images, size, height=None):
     """Simple shelf packer. images: list of (key, PIL image). Returns {key:(x,y)}"""
+    height = height or size
     order = sorted(images, key=lambda kv: (-kv[1].height, kv[0]))
     x = y = shelf = 0
     pos = {}
@@ -74,7 +75,7 @@ def pack(images, size):
         w, h = im.width + 1, im.height + 1  # 1px gutter
         if x + w > size:
             x, y, shelf = 0, y + shelf, 0
-        if y + h > size:
+        if y + h > height:
             return None
         pos[key] = (x, y)
         x += w

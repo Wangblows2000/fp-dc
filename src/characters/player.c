@@ -8,11 +8,7 @@
 #include <string.h>
 #include "../fp.h"
 
-enum { ST_NORMAL, ST_ATTACK, ST_CYCLONE, ST_CHARGE, ST_BOOST, ST_HURT, ST_DEAD,
-       ST_UPPERCUT, ST_DKWIND, ST_DIVEKICK, ST_CROUCHATK, ST_HANG,
-       ST_PUSH,        /* M11: pushing against a wall (events 1752/1753, group 1873-1881) */
-       ST_LADDER,      /* M46: on a ladder (1926-1950, 4043-4047) */
-       ST_LADDERIN };  /* M25: climbing down into a ladder from its top (4058, 1888-1890) */
+/* player states: enum PST in fp.h */
 
 #define HALF_W   7.
 #define BODY_H   30.
@@ -164,16 +160,30 @@ static void slope_force(player_t *p) {
     else if (p->gsp != 0) p->gsp = p->gsp - PHYS_SLOPE * o_sin(n) * 0.38;
 }
 
-int player_contact_safe(const player_t *p) {
-    /* RE 2731: no contact damage with movement Z = 1 (M5 charge/boost, ...), in M20/M21/M26 (attack,
-     * uppercut, cyclone), or while invulnerable (PlayerOthers.E > 0) */
-    return player_invincible(p) || p->state == ST_CHARGE || p->state == ST_BOOST || p->state == ST_ATTACK ||
-           p->state == ST_UPPERCUT || p->state == ST_CYCLONE || p->state == ST_DEAD;
+int player_body_z(const player_t *p) {        /* RE 1680/1686/1693: Z = 1 in M5 (charge, boost) and M19 (kick wind-up) */
+    return p->state == ST_CHARGE || p->state == ST_BOOST || p->state == ST_DKWIND;
 }
+int player_contact_safe(const player_t *p) {
+    /* RE 2731: no contact damage with movement Z = 1, in M20/M21/M26/M44 (attack, uppercut, cyclone), with
+     * R set (already hurt this frame) or while invulnerable (PlayerOthers.E > 0). The kick itself (M0) is not safe. */
+    return player_invincible(p) || player_body_z(p) || p->state == ST_ATTACK || p->state == ST_UPPERCUT ||
+           p->state == ST_CYCLONE || p->state == ST_DEAD || p->hurt_pending;
+}
+int player_char_sensor_small(const player_t *p) {
+    /* RE 2471-2489: anim 1 (15x27) for OTHERS.Y 5,7,8,9,14,20-23,26,42: kick wind-up, attacks, crouch kick, cyclone */
+    return p->state == ST_DKWIND || p->state == ST_ATTACK || p->state == ST_CYCLONE || p->state == ST_CROUCHATK || p->look == 3;
+}
+int player_anim_frame(const player_t *p) { return p->an.frame; }
+int player_anim_is(const player_t *p, const char *name) {
+    for (int a = 0; a < A_COUNT; a++) if (!strcmp(anim_names[a], name)) return cur_anim == a;
+    return 0;
+}
+/* legacy rule for monitors / breakable rocks (their events 2632-2670 / 3243 / 4762 are not ported yet):
+ * any attack state or a jump breaks them (INFERRED) */
 int player_attack_kind(const player_t *p) {
-    if (p->state == ST_ATTACK && p->ground) return 1;
-    if (p->state == ST_CHARGE || p->state == ST_BOOST || p->state == ST_DIVEKICK || p->state == ST_DKWIND) return 2;
-    if (p->state == ST_ATTACK || p->state == ST_UPPERCUT || p->state == ST_CYCLONE) return 2;
+    if (p->state == ST_ATTACK || p->state == ST_UPPERCUT || p->state == ST_CYCLONE || p->state == ST_CROUCHATK ||
+        player_body_z(p) || p->state == ST_DIVEKICK) return 2;
+    if (p->state == ST_NORMAL && !p->ground && p->jumping) return 1;
     return 0;
 }
 void player_hitstop(player_t *p, int k) { p->hitstop = k; }
@@ -702,7 +712,16 @@ void player_update(player_t *p, const input_t *in) {
         if (!p->ground && p->vy > PHYS_MAXFALL) p->vy = PHYS_MAXFALL;
     }
 
-    if (p->hitstop > 0) { p->hitstop--; if (p->hitstop > 0) return; }   /* 1654/1655: frozen while K > 0 (K = 5 -> 4 frames) */
+    /* RE 1654/1655 (hit-stop): the frame after a hit (K = 5) still moves, then K -= 1 and the movement + speed
+     * groups switch off; K counts down to 0 with them off (frames N+2..N+5), movement resumes in N+6. State
+     * events and animations keep running: the frozen frame restores the movement values afterwards. */
+    int hs_frozen = 0;
+    double hs_save[7] = { 0 };
+    if (p->hs_off) {
+        hs_frozen = 1;
+        if (--p->hitstop <= 0) { p->hitstop = 0; p->hs_off = 0; }
+        hs_save[0] = p->x; hs_save[1] = p->y; hs_save[2] = p->gsp; hs_save[3] = p->vx; hs_save[4] = p->vy; hs_save[5] = p->N; hs_save[6] = p->O;
+    }
     if (p->state == ST_DEAD) {
         p->vy += PHYS_GRAV; p->y += p->vy;
         set_anim(p, A_DEFEAT); anim_tick(&p->an, -1); if (hair.b) anim_tick(&hair, -1);
@@ -855,6 +874,8 @@ void player_update(player_t *p, const input_t *in) {
     }
 
     clamp_edges(p, x_start);
+    if (hs_frozen) { p->x = hs_save[0]; p->y = hs_save[1]; p->gsp = hs_save[2]; p->vx = hs_save[3]; p->vy = hs_save[4]; p->N = hs_save[5]; p->O = hs_save[6]; }
+    else if (p->hitstop > 0) { p->hitstop--; p->hs_off = 1; }                       /* 1654 */
     /* the M5 group starts the frame after the entry (1686 runs before the entry events 1760-1895) */
     if ((p->state == ST_CHARGE || p->state == ST_BOOST) && (st0 == ST_CHARGE || st0 == ST_BOOST)) m5_group(p, in);
     else if (p->m5_bounced) { p->m5_bounced = 0; p->energy = fmax(0., p->energy - PHYS_ENERGY_DRAIN); if (p->invuln < 30) p->invuln = 30; }  /* 1637/1639: the group still runs that frame */
@@ -930,24 +951,3 @@ void player_draw(const player_t *p) {
     fx_draw();
 }
 
-int player_attack_box(const player_t *p, float *x0, float *y0, float *x1, float *y1) {
-    switch (p->state) {
-    case ST_ATTACK: {
-        double fx = p->x + p->face * 4;
-        *x0 = p->face > 0 ? fx : fx - 34; *x1 = *x0 + 34;
-        *y0 = p->y - 34; *y1 = p->y - 2;
-        return 1;
-    }
-    case ST_UPPERCUT: case ST_DIVEKICK: {
-        double fx = p->x + p->face * 2;
-        *x0 = fx - 16; *x1 = fx + 16; *y0 = p->y - 40; *y1 = p->y + 2;
-        return 1;
-    }
-    case ST_CYCLONE: case ST_BOOST:
-        *x0 = p->x - 20; *x1 = p->x + 20; *y0 = p->y - 38; *y1 = p->y + 2;
-        return 1;
-    case ST_NORMAL:
-        if (!p->ground && p->jumping) { *x0 = p->x - 14; *x1 = p->x + 14; *y0 = p->y - 30; *y1 = p->y; return 1; }
-    }
-    return 0;
-}
