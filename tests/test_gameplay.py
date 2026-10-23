@@ -173,6 +173,10 @@ r = run('0 400 R\n', 260)
 air = [x for x in r if x['gnd'] == 0]
 steps = [abs(b['rot'] - a['rot']) for a, b in zip(air, air[1:]) if a['rot'] != 0]
 check('air_rotation_eases', steps and max(steps) <= 4.01, 'max step %.2f' % (max(steps) if steps else -1))
+# RV (cyclone traces): the cyclone drains 0.25 energy per frame (100 -> 80.5 over its 79 frames)
+r = run('5 EN 100\n60 70 J\n80 140 J\n', 170)
+cyc = [x['en'] for x in r if x['st'] == 2]
+check('cyclone_energy_drain', cyc and abs(min(cyc) - 80.5) < 0.3, 'min %.2f' % (min(cyc) if cyc else -1))
 
 print('%d failure(s)' % fails)
 sys.exit(1 if fails else 0)

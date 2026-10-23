@@ -5,6 +5,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "../fp.h"
 
 enum { ST_NORMAL, ST_ATTACK, ST_CYCLONE, ST_CHARGE, ST_BOOST, ST_HURT, ST_DEAD,
@@ -23,6 +24,31 @@ static const char *anim_names[A_COUNT] = { "idle", "walk", "run", "fastrun", "ju
 static int anim_r[A_COUNT], anim_l[A_COUNT], hair_r[A_COUNT], hair_l[A_COUNT];
 static int cur_anim = -1;
 static animator_t hair;          /* PlayerSkinSashHair_424: follows the skin's animation id (RV) */
+
+/* ---- overlay effects (RE events 2043, 2834, 2844/2845; RV build/re/fx probes of the original):
+ * cyclone (M26): a RingSparkle every 6 frames at (int X, int Y) + rand(0..40) - 20 on each axis (2043; the
+ *   ShieldInstaShield it also creates is invisible);
+ * charge / boost (M5): a RingSparkle on every other frame at +-8 (2834);
+ * invincibility (PlayerOthers D = 1: boost and its 29-frame tail, invincibility monitor): Sparkle1-4 orbit
+ *   the anchor (int X, int Y - 4): 1 and 2 at radius 20 (+7 deg/frame, opposite), 3 and 4 at radius 10
+ *   (+10 deg/frame); position = anchor + r (sin D, -cos D); anchors follow Lilac every 3 frames (1, 2) and
+ *   6 frames (3, 4); every 6 frames a Sparkle5 is left at each of the four (2844/2845). */
+typedef struct { float x, y; animator_t an; } pfx_t;
+#define NPFX 48
+static pfx_t pfx[NPFX];
+static struct { int on, t; float a1x, a1y, a3x, a3y; double d1, d3; animator_t an; } spk;
+static int A_FX_RING = -1, A_FX_SPK = -1, A_FX_SPK5 = -1;
+static uint32_t fx_seed = 1;
+static int fx_rand(int n) { fx_seed = fx_seed * 0x343fdu + 0x269ec3u; return (int)((((fx_seed >> 16) & 0x7fff) * (uint32_t)n) >> 15); }
+static void pfx_spawn(float x, float y, int anim) {
+    if (anim < 0) return;
+    for (int i = 0; i < NPFX; i++)
+        if (!pfx[i].an.b) { pfx[i].x = x; pfx[i].y = y; anim_set(&pfx[i].an, &G.objs, anim); anim_restart(&pfx[i].an); return; }
+}
+static void pfx_reset(void) {
+    memset(pfx, 0, sizeof pfx); memset(&spk, 0, sizeof spk);
+    A_FX_RING = bank_anim(&G.objs, "ringsparkle"); A_FX_SPK = bank_anim(&G.objs, "sparkle1"); A_FX_SPK5 = bank_anim(&G.objs, "sparkle5");
+}
 
 static void set_anim(player_t *p, int a) {
     int idx = p->face < 0 ? anim_l[a] : anim_r[a];
@@ -61,6 +87,7 @@ void player_reset(player_t *p, double x, double y) {
     p->x = x; p->y = y; p->face = 1; p->hp = MAX_HP;
     mv_reset();
     set_anim(p, A_IDLE);
+    pfx_reset();
 }
 
 int player_invincible(const player_t *p) {
@@ -401,12 +428,58 @@ static void clamp_edges(player_t *p, double x0) {
     if (x0 <= r && p->x > r && !G.clear_t) {   /* RV: during the act-end run-out she leaves the frame */ p->x = r; if (p->ground) p->gsp = 0; else p->vx = 0; }
 }
 
+static void fx_update(player_t *p, int st0) {
+    for (int i = 0; i < NPFX; i++)
+        if (pfx[i].an.b) { anim_tick(&pfx[i].an, -1); if (pfx[i].an.done) pfx[i].an.b = NULL; }
+    int ix = (int)floor(p->x), iy = (int)floor(p->y - ORIG_REF_DY);
+    if (st0 == ST_CYCLONE && p->state_t % 6 == 1) {
+        int rx = fx_rand(41) - 20, ry = fx_rand(41) - 20;
+        pfx_spawn((float)(ix + rx), (float)(iy + ry), A_FX_RING);
+    }
+    int m5 = p->state == ST_CHARGE || p->state == ST_BOOST;
+    if (m5 && !(G.frame & 1)) { int rx = fx_rand(17) - 8, ry = fx_rand(17) - 8; pfx_spawn((float)(ix + rx), (float)(iy + ry), A_FX_RING); }
+    int inv = m5 || p->invinc || (spk.on && p->invuln > 0 && p->state != ST_HURT);
+    if (!inv) { spk.on = 0; return; }
+    if (!spk.on) {
+        spk.on = 1; spk.t = 0; spk.d1 = spk.d3 = 0;
+        spk.a1x = spk.a3x = (float)ix; spk.a1y = spk.a3y = (float)(iy - 4);
+        if (A_FX_SPK >= 0) { anim_set(&spk.an, &G.objs, A_FX_SPK); anim_restart(&spk.an); }
+    } else {
+        spk.t++;
+        if (spk.t % 3 == 2) { spk.a1x = (float)ix; spk.a1y = (float)(iy - 4); }
+        if (spk.t % 6 == 5) { spk.a3x = (float)ix; spk.a3y = (float)(iy - 4); }
+        spk.d1 += 7; spk.d3 += 10;
+        if (spk.an.b) anim_tick(&spk.an, -1);
+    }
+    if (spk.t % 6 == 1)
+        for (int k = 0; k < 4; k++) {
+            double d = (k < 2 ? spk.d1 : spk.d3) + (k & 1) * 180.0, r = k < 2 ? 20 : 10;
+            float ax = k < 2 ? spk.a1x : spk.a3x, ay = k < 2 ? spk.a1y : spk.a3y;
+            pfx_spawn(ax + (float)(r * sin(d / 57.29577951)), ay - (float)(r * cos(d / 57.29577951)), A_FX_SPK5);
+        }
+}
+
+static void fx_draw(void) {
+    for (int i = 0; i < NPFX; i++)
+        if (pfx[i].an.b) frame_draw(&G.objs, anim_frame(&pfx[i].an), floorf(pfx[i].x - G.camx), floorf(pfx[i].y - G.camy), 0, 0xffffffff);
+    if (spk.on && spk.an.b)
+        for (int k = 0; k < 4; k++) {
+            double d = (k < 2 ? spk.d1 : spk.d3) + (k & 1) * 180.0, r = k < 2 ? 20 : 10;
+            float ax = k < 2 ? spk.a1x : spk.a3x, ay = k < 2 ? spk.a1y : spk.a3y;
+            frame_draw(&G.objs, anim_frame(&spk.an), (float)floor(ax + r * sin(d / 57.29577951) - G.camx),
+                       (float)floor(ay - r * cos(d / 57.29577951) - G.camy), 0, 0xffffffff);
+        }
+}
+
 void player_update(player_t *p, const input_t *in) {
     double x_start = p->x;
+    int st0 = p->state;
     p->state_t++;
     if (p->invuln) p->invuln--;
-    /* RV energy meter (GUIEnergy_127 alt A): -3/frame while boosting, else +0.4/frame up to 100 */
+    /* RV energy meter (GUIEnergy_127 alt A): -3/frame while boosting, -0.25/frame in the cyclone, else
+     * +0.4/frame up to 100 (state at the start of the frame) */
     if (p->state == ST_BOOST) p->energy = fmax(0., p->energy - PHYS_ENERGY_DRAIN);
+    else if (p->state == ST_CYCLONE) p->energy = fmax(0., p->energy - PHYS_ENERGY_CYCLONE);
     else if (p->energy_hold > 0) p->energy_hold--;
     else p->energy = fmin(PHYS_ENERGY_MAX, p->energy + PHYS_ENERGY_REFILL);
     /* RE (event 1574, start of the movement block): B, G and N are floored to 4 decimals every frame */
@@ -608,15 +681,17 @@ void player_update(player_t *p, const input_t *in) {
     else set_anim(p, a);
     anim_tick(&p->an, speed);
     if (hair.b) anim_tick(&hair, speed);
+    fx_update(p, st0);
 }
 
 void player_draw(const player_t *p) {
-    if (p->invuln && !p->invinc && (p->invuln & 4) && p->state != ST_HURT) return;   /* invincibility: no blink (INFERRED) */
+    if (p->invuln && !p->invinc && !spk.on && (p->invuln & 4) && p->state != ST_HURT) { fx_draw(); return; }   /* invincibility: no blink (INFERRED) */
     /* the sprite hotspot (= rotation centre) is the movement object's position: p->y - ORIG_REF_DY */
     if (hair.b) frame_draw_rot(&G.hair, anim_frame(&hair), floor(p->x - G.camx), floor(p->y - ORIG_REF_DY - G.camy), p->rot, 0xffffffff);
     const frame_t *f = anim_frame(&p->an);
     double hxp = p->x, hyp = p->y - ORIG_REF_DY;   /* RE 1517: the skin sits at (int X, int Y) */
     frame_draw_rot(&G.lilac, f, floor(hxp - G.camx), floor(hyp - G.camy), p->rot, 0xffffffff);
+    fx_draw();
 }
 
 int player_attack_box(const player_t *p, float *x0, float *y0, float *x1, float *y1) {

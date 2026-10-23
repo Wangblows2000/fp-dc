@@ -35,7 +35,9 @@ static void level_start(void) {
 /* stage music per level dir (RV from the original's play_music events: m_stage1 frame 20,
  * m_stage1b frames 21-22, m_boss frame 23 (boss)); DV4's start track is INFERRED (m_stage1b) */
 static const char *level_music(const char *dir) {
+    /* RE: Frames::loop_play_music_N_<frame index> strings: 20 m_stage1, 21/22 m_stage1b, 23 m_boss */
     if (!strcmp(dir, "dv1")) return "bgm/m_stage1.adp";
+    if (!strcmp(dir, "dv4")) return "bgm/m_boss.adp";
     return "bgm/m_stage1b.adp";
 }
 static int act_of(const char *dir) { return dir[2] - '0'; }
@@ -53,6 +55,7 @@ void game_unload_all(void) {
 /* every level lives in its own data dir (own palettes + Lilac bank; tools/build_level.sh) */
 int game_load_level(const char *dir) {
     game_unload_all();
+    loading_begin();                               /* silent loading screen (src/game/loading.c) */
     snprintf(G.lvdir, sizeof G.lvdir, "%s", dir);
     int bad = 0;
     char nm[48];
@@ -61,7 +64,7 @@ int game_load_level(const char *dir) {
     snprintf(nm, sizeof nm, "%s/lilachair", dir); if (bank_load(&G.hair, nm) < 0) plat_log("no hair bank\n");
     snprintf(nm, sizeof nm, "%s/%s_obj", dir, dir); bad |= bank_load(&G.objs, nm) < 0;
     snprintf(nm, sizeof nm, "%s/%s", dir, dir); bad |= level_load(&G.lvl, nm) < 0;
-    if (bad) { plat_log("level %s: data load failed\n", dir); return -1; }
+    if (bad) { loading_end(); plat_log("level %s: data load failed\n", dir); return -1; }
     int want = 0;
     for (int i = 0; i < G.lvl.nobj; i++)
         if (G.lvl.objs[i].type >= OT_PARALLAX && G.lvl.objs[i].anim != 0xffff && G.lvl.objs[i].anim + 1 > want)
@@ -73,6 +76,8 @@ int game_load_level(const char *dir) {
     G.p.spawn_x = G.p.spawn_y = 0;
     hud_reset();
     level_start();
+    loading_end();
+    G.mus_resume_t = 0;
     music_play(level_music(dir));
     return 0;
 }
@@ -168,10 +173,12 @@ int game_init(void) {
     memset(&G, 0, sizeof G);
     char nm[48];
     for (int i = 0; i < 512; i++) snd_handle[i] = -1;
+    loading_begin();                               /* boot: sound effects (title data follows in fe_enter) */
     for (int i = 0; i < (int)(sizeof SND_IDS / sizeof SND_IDS[0]); i++) {
-        snprintf(nm, sizeof nm, "sfx/s%d.wav", SND_IDS[i]); snd_handle[SND_IDS[i]] = snd_load(nm);
+        snprintf(nm, sizeof nm, "sfx/s%d.wav", SND_IDS[i]); snd_handle[SND_IDS[i]] = snd_load(nm); loading_tick();
     }
-    for (int i = 0; i < (int)(sizeof VOICES / sizeof VOICES[0]); i++) { snprintf(nm, sizeof nm, "sfx/%s.wav", VOICES[i]); voice_handle[i] = snd_load(nm); }
+    for (int i = 0; i < (int)(sizeof VOICES / sizeof VOICES[0]); i++) { snprintf(nm, sizeof nm, "sfx/%s.wav", VOICES[i]); voice_handle[i] = snd_load(nm); loading_tick(); }
+    loading_end();
     /* legacy handles used by gameplay code, now mapped to the original sound IDs */
     G.sfx.jump = snd_handle[8]; G.sfx.attack = snd_handle[21]; G.sfx.boost = snd_handle[53];
     G.sfx.hurt = snd_handle[17]; G.sfx.crystal = snd_handle[27]; G.sfx.explode = snd_handle[81]; G.sfx.hit = snd_handle[25];

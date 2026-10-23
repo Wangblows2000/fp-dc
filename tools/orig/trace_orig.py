@@ -19,7 +19,7 @@ ORDER = 'LRUDJXBS'
 VT = {'mv': 0x20b2910, 'player': 0x20b6f30, 'skin': 0x20b7890}   # vtable+0x10 of the classes
 # optional HUD/gameplay objects dumped when present (vtable+0x10): alterables A-Z + x scale + image id
 XVT = {'en': 0x20aa470, 'life': 0x20aa510, 'others': 0x20aa3d0, 'turr': 0x20d65d0, 'cam': 0x20bbbd0,
-       'hair': 0x20bc5d0}   # hair = PlayerSkinSashHair_424 (Lilac's hair overlay)
+       'hair': 0x20bc5d0, 'sp1': 0x20b68f0, 'sp2': 0x20b9c30, 'sp3': 0x20b9cd0, 'sp4': 0x20b9d70, 'sp5': 0x20b3c70}   # hair = PlayerSkinSashHair_424 (Lilac's hair overlay)
 # instances picked by x position instead of the last one found (probes of one specific enemy)
 XVT_PICK = {'turr': 1233}   # others = PlayerOthers_126 (invulnerability timer E, RE)
 # HUD counters (Counter::set: value double @+0xa0, min int @+0xa8, max int @+0xac)
@@ -173,7 +173,7 @@ class Tracer(gdb.Breakpoint):
         # sk_ang/sk_xs/sk_ys: Active angle @+0xc4, x/y scale @+0xc8/+0xcc (Active::set_angle/set_x_scale)
         hdr = (['frame', 'held', 'px', 'py', 'skin_anim'] + ['mv_' + chr(65 + i) for i in range(26)] +
                ['sk_ang', 'sk_xs', 'sk_ys'] + ['pl_' + chr(65 + i) for i in range(26)] + ['gv%d' % i for i in range(NGV)] +
-               sum([[k + '_' + chr(65 + i) for i in range(26)] + [k + '_xs', k + '_img', k + '_afr', k + '_acc', k + '_aid', k + '_ang', k + '_fl'] for k in XVT], []) +
+               sum([[k + '_' + chr(65 + i) for i in range(26)] + [k + '_xs', k + '_img', k + '_afr', k + '_acc', k + '_aid', k + '_ang', k + '_fl', k + '_x', k + '_y'] for k in XVT], []) +
                sum([[k, k + '_max'] for k in CVT], []) +
                ['sa_' + chr(65 + i) for i in range(26)] + ['sw_%x' % o for o in range(0x10, 0xc4, 4)])
         # sa_*: skin (Lilac display Active) alterables; sw_*: raw u32 words of the skin object (flags/blink search)
@@ -190,10 +190,10 @@ class Tracer(gdb.Breakpoint):
         out = []
         for k in XVT:
             o = self.objs.get(k)
-            if not o: out += ['0'] * 33; continue
+            if not o: out += ['0'] * 35; continue
             try:
-                try: _, _, vals, _ = rd_obj(o)
-                except Exception: vals = (0,) * 26
+                try: ox, oy, vals, _ = rd_obj(o)
+                except Exception: ox, oy, vals = 0, 0, (0,) * 26
                 xs = struct.unpack('<f', bytes(inf.read_memory(o + 0xc8, 4)))[0]
                 img = struct.unpack('<Q', bytes(inf.read_memory(o + 0x110, 8)))[0]
                 afr = struct.unpack('<h', bytes(inf.read_memory(o + 0xb4, 2)))[0]    # Active frame index
@@ -201,9 +201,9 @@ class Tracer(gdb.Breakpoint):
                 aid = struct.unpack('<b', bytes(inf.read_memory(o + 0xb1, 1)))[0]   # Active animation id
                 ang = struct.unpack('<f', bytes(inf.read_memory(o + 0xc4, 4)))[0]   # Active angle
                 fl = struct.unpack('<I', bytes(inf.read_memory(o + 0x18, 4)))[0]    # FrameObject flags (visibility)
-                out += ['%.6g' % v for v in vals] + ['%.6g' % xs, '%x' % img, str(afr), str(acc), str(aid), '%.6g' % ang, '%x' % fl]
+                out += ['%.6g' % v for v in vals] + ['%.6g' % xs, '%x' % img, str(afr), str(acc), str(aid), '%.6g' % ang, '%x' % fl, str(ox), str(oy)]
             except Exception:
-                out += ['0'] * 33
+                out += ['0'] * 35
         for k in CVT:
             o = self.objs.get(k)
             if not o: out += ['', '']; continue
@@ -251,6 +251,8 @@ class Tracer(gdb.Breakpoint):
                 for k, v in (('c_petals', 14.0), ('c_lives', 5.0)):
                     if k in self.objs: inf.write_memory(self.objs[k] + 0xa0, struct.pack('<d', v))
         self.f += 1
+        if str(self.f) in os.environ.get('SHOTS', '').split(','):   # SHOTS=f1,f2: screenshot (last presented frame)
+            os.system('DISPLAY=%s import -window root %s_f%d.png' % (os.environ.get('SHOT_DISPLAY', ':93'), self.outpath[:-4], self.f))
         if self.f % 50 == 0:
             import time
             gdb.write('frame %d t=%.1f\n' % (self.f, time.time())); gdb.flush()
@@ -305,5 +307,65 @@ def _skin_extra(self):
     return ['%.6g' % v for v in sa] + ['%x' % v for v in w]
 Tracer.skin_extra = _skin_extra
 
-Tracer(str(gdb.parse_and_eval('$script').string()), str(gdb.parse_and_eval('$out').string()),
+class CallerBP(gdb.Breakpoint):
+    # TRACE_CREATE=<addr>: log every call of a function (e.g. a create_<class>) with its caller symbol
+    def __init__(self, addr, tracer):
+        super().__init__('*0x%x' % addr, internal=True); self.t = tracer
+        self.wf = open(tracer.outpath[:-4] + '.create', 'a')
+    def stop(self):
+        try:
+            rsp = int(gdb.parse_and_eval('$rsp')) & 0xffffffffffffffff
+            ret = struct.unpack('<Q', bytes(inf.read_memory(rsp, 8)))[0]
+            sym = gdb.execute('info symbol 0x%x' % ret, to_string=True).strip()
+        except Exception as e:
+            sym = 'err %s' % e
+        self.wf.write('f%d %s\n' % (self.t.f, sym)); self.wf.flush()
+        return False
+
+class AddObjBP(gdb.Breakpoint):
+    # TRACE_ADDOBJ=1: log every Frame::add_object (class of the new object, position, caller)
+    def __init__(self, addr, tracer):
+        super().__init__('*0x%x' % addr, internal=True); self.t = tracer
+        self.wf = open(tracer.outpath[:-4] + '.addobj', 'a')
+    def stop(self):
+        try:
+            o = int(gdb.parse_and_eval('$rsi')) & 0xffffffffffffffff
+            vt = struct.unpack('<Q', bytes(inf.read_memory(o, 8)))[0]
+            cls = gdb.execute('info symbol 0x%x' % vt, to_string=True).split(' in section')[0]
+            x, y = struct.unpack('<ii', bytes(inf.read_memory(o + 8, 8)))
+            rsp = int(gdb.parse_and_eval('$rsp')) & 0xffffffffffffffff
+            ret = struct.unpack('<Q', bytes(inf.read_memory(rsp, 8)))[0]
+            sym = gdb.execute('info symbol 0x%x' % ret, to_string=True).split(' in section')[0]
+            self.wf.write('f%d %s @%d,%d from %s\n' % (self.t.f, cls, x, y, sym)); self.wf.flush()
+        except Exception as e:
+            self.wf.write('f%d err %s\n' % (self.t.f, e))
+        return False
+
+class AnimBP(gdb.Breakpoint):
+    # TRACE_FANIM=<vtable+0x10>: log Active::force_animation / set_direction calls on objects of that class
+    def __init__(self, addr, kind, vt, tracer):
+        super().__init__('*0x%x' % addr, internal=True); self.t = tracer; self.kind = kind; self.vt = vt
+        self.wf = open(tracer.outpath[:-4] + '.anim', 'a')
+    def stop(self):
+        try:
+            this = int(gdb.parse_and_eval('$rdi')) & 0xffffffffffffffff
+            if struct.unpack('<Q', bytes(inf.read_memory(this, 8)))[0] != self.vt: return False
+            v = int(gdb.parse_and_eval('$esi')) & 0xffffffff
+            x, y = struct.unpack('<ii', bytes(inf.read_memory(this + 8, 8)))
+            rsp = int(gdb.parse_and_eval('$rsp')) & 0xffffffffffffffff
+            ret = struct.unpack('<Q', bytes(inf.read_memory(rsp, 8)))[0]
+            sym = gdb.execute('info symbol 0x%x' % ret, to_string=True).split(' in section')[0]
+            self.wf.write('f%d %s %d obj %x @%d,%d from %s\n' % (self.t.f, self.kind, v, this, x, y, sym)); self.wf.flush()
+        except Exception as e:
+            self.wf.write('f%d err %s\n' % (self.t.f, e))
+        return False
+
+_tr = Tracer(str(gdb.parse_and_eval('$script').string()), str(gdb.parse_and_eval('$out').string()),
        int(gdb.parse_and_eval('$nframes')), int(gdb.parse_and_eval('$restart')))
+if os.environ.get('TRACE_CREATE'):
+    _cbp = [CallerBP(int(a, 16), _tr) for a in os.environ['TRACE_CREATE'].split(',')]
+if os.environ.get('TRACE_ADDOBJ'):
+    _aobp = [AddObjBP(int(a, 16), _tr) for a in os.environ['TRACE_ADDOBJ'].split(',')]
+if os.environ.get('TRACE_FANIM'):
+    _vt = int(os.environ['TRACE_FANIM'], 16)
+    _abp = [AnimBP(0x20279d0, 'anim', _vt, _tr), AnimBP(0x2028040, 'dir', _vt, _tr)]

@@ -20,6 +20,7 @@ def run(script, frames, wrap=None):
         t = line.split()
         if t and t[0] == 'f': rows.append({t[i]: float(t[i + 1]) for i in range(0, len(t) - 1, 2)})
         if t and t[0] == 'music': music.append((t[1], int(t[2][1:])))
+        if t[:2] == ['snd', 'stopall']: music.append(('sfxstop', int(t[2][1:])))
     return rows, music, p
 
 fails = 0
@@ -33,10 +34,23 @@ def check(name, cond, info=''):
 ROUTE = '40 42 S\n180 182 J\n220 222 S\n260 262 J\n'
 r, m, p = run(ROUTE, 520)
 check('menu_route_reaches_gameplay', r[-1]['mode'] == MODE_PLAY, 'mode %d' % r[-1]['mode'])
-names = [x[0] for x in m]
+names = [x[0] for x in m if x[0] != 'sfxstop']
+# loading screen: the stage starts only after music and every sound channel were stopped (same frame)
+k = [x[0] for x in m].index('bgm/m_stage1.adp')
+check('loading_silences_audio', [x[0] for x in m][k - 2:k] == ['stop', 'sfxstop'] and m[k - 1][1] == m[k][1], str(m))
 # RE: the title stops its music (327) and the title menu starts m_title again (331)
 check('music_title_menu_stage', [n for n in names if n != 'stop'][:4] == ['bgm/m_title.adp', 'bgm/m_title.adp', 'bgm/m_menu1.adp', 'bgm/m_stage1.adp'] and names[1] == 'stop', str(names))
 check('no_duplicate_music_starts', all(a != b for a, b in zip(names, names[1:])))
+# the loading screen image: black, with the crystal in the bottom-right corner
+shot = tempfile.mktemp(suffix='.ppm')
+subprocess.run([BIN, DATA, '300', '-'], env=dict(os.environ, FP_LOADSHOT=shot, FP_LEVEL='dv1'), capture_output=True)
+try:
+    raw = open(shot, 'rb').read(); os.unlink(shot)
+    hdr = raw.split(b'\n', 3); W, H = map(int, hdr[1].split()); px = hdr[3]
+    lit = [(i % W, i // W) for i in range(W * H) if any(px[3 * i:3 * i + 3])]
+    check('loading_screen_crystal_bottom_right', lit and min(x for x, y in lit) > W - 40 and min(y for x, y in lit) > H - 40, '%d lit px' % len(lit))
+except (OSError, ValueError, IndexError) as e:
+    check('loading_screen_crystal_bottom_right', False, str(e))
 # player has no control during the stage card (timer not running): x unchanged while R is held
 r, m, p = run(ROUTE + '320 420 R\n', 420)
 play = [x for x in r if x['mode'] == MODE_PLAY]
@@ -60,7 +74,7 @@ r, m, p = run(cyc, t0 + 20, wrap='valgrind' if os.environ.get('FP_VALGRIND') els
 modes = [x['mode'] for x in r]
 n_play = sum(1 for a, b in zip(modes, modes[1:]) if a != MODE_PLAY and b == MODE_PLAY)
 check('three_title_level_cycles', n_play == 3 and modes[-1] == MODE_FRONTEND and p.returncode == 0, 'entries %d rc %d' % (n_play, p.returncode))
-names = [x[0] for x in m if x[0] != 'stop']
+names = [x[0] for x in m if x[0] not in ('stop', 'sfxstop')]
 check('music_restarts_per_cycle', names.count('bgm/m_stage1.adp') == 3 and names.count('bgm/m_title.adp') >= 3, str(names))
 if os.environ.get('FP_VALGRIND'):
     check('valgrind_no_leaks', 'definitely lost: 0 bytes' in p.stderr or 'no leaks are possible' in p.stderr, p.stderr[-300:])
