@@ -20,13 +20,16 @@ enum { A_IDLE, A_WALK, A_RUN, A_FASTRUN, A_JUMP, A_LOOKUP, A_CROUCH, A_SKID, A_A
 /* names = tools/import_frame.py LILAC (runtime-verified playerskinsash_341 animation numbers) */
 static const char *anim_names[A_COUNT] = { "idle", "walk", "run", "fastrun", "jump", "lookup", "crouch",
     "skid", "attack", "airatk", "uppercut", "dkwind", "divekick", "cyclone", "charge", "boost", "hurt", "defeat", "crouchatk", "spring", "hang" };
-static int anim_r[A_COUNT], anim_l[A_COUNT];
+static int anim_r[A_COUNT], anim_l[A_COUNT], hair_r[A_COUNT], hair_l[A_COUNT];
 static int cur_anim = -1;
+static animator_t hair;          /* PlayerSkinSashHair_424: follows the skin's animation id (RV) */
 
 static void set_anim(player_t *p, int a) {
     int idx = p->face < 0 ? anim_l[a] : anim_r[a];
     cur_anim = a;
     anim_set(&p->an, &G.lilac, idx);
+    int h = p->face < 0 ? hair_l[a] : hair_r[a];
+    if (h >= 0) anim_set(&hair, &G.hair, h); else hair.b = NULL;
 }
 
 void player_reset(player_t *p, double x, double y) {
@@ -40,6 +43,9 @@ void player_reset(player_t *p, double x, double y) {
             anim_l[i] = bank_anim(&G.lilac, nm);
             if (anim_r[i] < 0) { plat_log("lilac anim %s missing\n", anim_names[i]); anim_r[i] = 0; }
             if (anim_l[i] < 0) anim_l[i] = anim_r[i];
+            snprintf(nm, sizeof nm, "h_%s", anim_names[i]); hair_r[i] = G.hair.nanims ? bank_anim(&G.hair, nm) : -1;
+            snprintf(nm, sizeof nm, "h_%s_l", anim_names[i]); hair_l[i] = G.hair.nanims ? bank_anim(&G.hair, nm) : -1;
+            if (hair_l[i] < 0) hair_l[i] = hair_r[i];
         }
     }
     int crystals = p->crystals, lives = p->lives;
@@ -417,7 +423,7 @@ void player_update(player_t *p, const input_t *in) {
 
     if (p->state == ST_DEAD) {
         p->vy += PHYS_GRAV; p->y += p->vy;
-        set_anim(p, A_DEFEAT); anim_tick(&p->an, -1);
+        set_anim(p, A_DEFEAT); anim_tick(&p->an, -1); if (hair.b) anim_tick(&hair, -1);
         if (++p->dead_t > 120) player_reset(p, p->spawn_x, p->spawn_y);
         return;
     }
@@ -430,7 +436,7 @@ void player_update(player_t *p, const input_t *in) {
         p->x = p->hang_x; p->y = p->hang_y + 32 + ORIG_REF_DY; p->vx = 0; if (p->vy > PHYS_MAXFALL) p->vy = PHYS_MAXFALL; p->vy += PHYS_GRAV;
         if (in->pressed & BTN_JUMP) { p->state = ST_NORMAL; p->vx = 0; p->vy = -PHYS_JUMP; p->jumping = 1; snd_play(G.sfx.jump, 200, 128); }   /* INFERRED */
         else if (in->pressed & BTN_DOWN) { p->state = ST_NORMAL; p->vy = 0; p->y += 1; }                                                     /* INFERRED */
-        set_anim(p, A_HANG); anim_tick(&p->an, -1);
+        set_anim(p, A_HANG); anim_tick(&p->an, -1); if (hair.b) anim_tick(&hair, -1);
         return;
     }
     switch (p->state) {
@@ -596,14 +602,16 @@ void player_update(player_t *p, const input_t *in) {
             else { a = A_FASTRUN; speed = 35 + (int)s; }
         } else a = (p->springing && p->vy < 0) ? A_SPRING : A_JUMP;
     }
-    if (restart) { if (cur_anim != a || p->state_t == 1) { set_anim(p, a); anim_restart(&p->an); } }
+    if (restart) { if (cur_anim != a || p->state_t == 1) { set_anim(p, a); anim_restart(&p->an); if (hair.b) anim_restart(&hair); } }
     else set_anim(p, a);
     anim_tick(&p->an, speed);
+    if (hair.b) anim_tick(&hair, speed);
 }
 
 void player_draw(const player_t *p) {
     if (p->invuln && (p->invuln & 4) && p->state != ST_HURT) return;
     /* the sprite hotspot (= rotation centre) is the movement object's position: p->y - ORIG_REF_DY */
+    if (hair.b) frame_draw_rot(&G.hair, anim_frame(&hair), floor(p->x - G.camx), floor(p->y - ORIG_REF_DY - G.camy), p->rot, 0xffffffff);
     const frame_t *f = anim_frame(&p->an);
     double hxp = p->x, hyp = p->y - ORIG_REF_DY;   /* RE 1517: the skin sits at (int X, int Y) */
     frame_draw_rot(&G.lilac, f, floor(hxp - G.camx), floor(hyp - G.camy), p->rot, 0xffffffff);

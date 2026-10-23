@@ -228,7 +228,18 @@ def main():
             dd = la[ai].get(dkey) or la[ai]['0']
             lb['anims'].append({'name': nm + suf, 'frames': dd['frames'], 'speed': dd['max_speed'],
                                 'loop': dd['loop'], 'back_to': dd['back_to']})
+    # Lilac's hair overlay (PlayerSkinSashHair_424, RV hair_cyc_boost probe): same animation id as the skin,
+    # its own frames and speeds, same position and angle, drawn behind the skin
     write_bank2(src, lb, out, report)
+    hb = {'name': 'lilachair', 'anims': []}
+    ha = an['playerskinsashhair_424']['anims']
+    for nm, ai in LILAC:
+        if ai >= len(ha) or not ha[ai]: continue
+        for dkey, suf in (('0', ''), ('16', '_l')):
+            dd = ha[ai].get(dkey) or ha[ai].get('0') or next(iter(ha[ai].values()))
+            hb['anims'].append({'name': 'h_' + nm + suf, 'frames': dd['frames'], 'speed': dd['max_speed'],
+                                'loop': dd['loop'], 'back_to': dd['back_to']})
+    write_bank2(src, hb, out, report)
     write_lv2(os.path.join(out, name + '.lv2'), W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, len(atlases), bank)
     report.append('objects exported: %d (types %s)' % (len(objs), sorted({o['type'] for o in objs})))
     report.append('skipped classes (not implemented / helpers): %s' % sorted(skipped.items(), key=lambda kv: -kv[1])[:40])

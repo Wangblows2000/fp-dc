@@ -168,7 +168,7 @@ typedef struct {
 
 typedef struct {
     level_t lvl;
-    bank_t lilac, objs;
+    bank_t lilac, hair, objs;    /* hair: Lilac's hair overlay (PlayerSkinSashHair_424) */
     tex_t par[12]; int npar;
     player_t p;
     obj_t o[MAX_OBJS];
