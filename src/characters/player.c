@@ -52,6 +52,7 @@ void player_reset(player_t *p, double x, double y) {
     (void)energy; p->energy = 0.; p->energy_init = 1;
     p->spawn_x = sx ? sx : x; p->spawn_y = sy ? sy : y;
     p->x = x; p->y = y; p->face = 1; p->hp = MAX_HP;
+    mv_reset();
     set_anim(p, A_IDLE);
 }
 
@@ -99,25 +100,19 @@ void player_hang(player_t *p, double hx, double hy) {
 void player_hurt(player_t *p, double from_x) { (void)from_x; player_damage(p, 10); }
 
 static double fric_step(double g);
-/* level collision API returns floats */
-static int fprobe(double x, double y0, double dist, int oneway, double *sy, double *ang) {
-    float fs, fa; int r = floor_probe(&G.lvl, (float)x, (float)y0, (float)dist, oneway, &fs, &fa);
-    if (r) { *sy = fs; *ang = fa; }
-    return r;
-}
-/* RV/RE: PlayerSensorBottomBig_334 is 11x11 (hotspot 5,5) placed at (floor X, floor Yref + 13), so it covers
- * pixel rows up to floor(Yref) + 18 = floor(feet) + 4: ground whose surface row is at most that is found */
-#define LAND_REACH 5.0
+
+/* the original's trig (cos taken as 0 at exactly 90/270, sin as 0 at exactly 180; N in degrees) */
+#define DEG 57.29577951
+static double o_cos(double n) { return (n == 270. || n == 90.) ? 0. : cos(n / DEG); }
+static double o_sin(double n) { return n == 180. ? 0. : sin(n / DEG); }
+
 /* RE (events 1644 / 1646): on the ground, with the RAW sensed angle N between 35 and 325 degrees,
  * B -= F sin(N) when |B| >= C (5), and B -= 0.38 F sin(N) when 0 < |B| < C (no force when stopped) */
 static void slope_force(player_t *p) {
-    double a = p->angle, deg = a * 57.29578;
-    while (deg < 0) deg += 360.;
-    while (deg >= 360.) deg -= 360.;
-    if (!(deg > 35. && deg < 325.)) return;
-    double s = fabs(p->gsp);
-    if (s >= PHYS_TOP) p->gsp -= PHYS_SLOPE * sin(a);
-    else if (p->gsp != 0) p->gsp -= PHYS_SLOPE * sin(a) * 0.38;
+    double n = p->N;
+    if (!(n > 35. && n < 325.)) return;
+    if (fabs(p->gsp) >= PHYS_TOP) p->gsp = p->gsp - o_sin(n) * PHYS_SLOPE;
+    else if (p->gsp != 0) p->gsp = p->gsp - PHYS_SLOPE * o_sin(n) * 0.38;
 }
 
 void player_bounce(player_t *p, double vy) { if (!p->ground && p->vy > 0) p->vy = vy; }
@@ -126,7 +121,7 @@ void player_bounce(player_t *p, double vy) { if (!p->ground && p->vy > 0) p->vy 
  * (vertical: vy -10.75, vx kept; diagonal: (+-9, -8.75)); the original's spring state (M40, skin anim 14)
  * lasts until the apex, then the fall animation; normal gravity and air drag apply */
 void player_spring(player_t *p, double vx, double vy, double top) {
-    p->ground = 0; p->y = top; p->vy = -vy; if (vx) { p->vx = vx; p->face = vx > 0 ? 1 : -1; }
+    p->ground = 0; p->N = p->O = 0; p->y = top; p->vy = -vy; if (vx) { p->vx = vx; p->face = vx > 0 ? 1 : -1; }
     p->jumping = 0; p->cyclone_used = 0; p->boost_used = 0; p->springing = 1;
     if (p->state != ST_BOOST) p->state = ST_NORMAL;
     snd_play_orig(5, 230, 128);    /* RV: id 5 at spring contact (spring_yellow_up .snd) */
@@ -139,107 +134,13 @@ void player_spring_side(player_t *p, double gsp) {
     snd_play_orig(5, 230, 128);
 }
 
-/* ---- 360-degree ground collision (Sonic-Worlds-style modes) ----------------
- * angle a: 0 = flat floor, +pi/2 = right wall (running up), +-pi = ceiling.
- * tangent t = (cos a, -sin a), surface normal n = (-sin a, -cos a) (screen coords).
- * Mode picks the axis we probe along ("down" towards the surface). */
-static const int MODE_DOWN[4][2] = { {0, 1}, {1, 0}, {0, -1}, {-1, 0} };   /* floor, rwall, ceiling, lwall */
-static const int MODE_FWD[4][2]  = { {1, 0}, {0, -1}, {-1, 0}, {0, 1} };
-#define SLIP_SPEED 2.5
+/* ---- movement core bridge (src/physics/sensors.c, RE events 1584-1611) --------------------------- */
+static void air_speed_update(player_t *p, const input_t *in, int control, double grav);
+static int is_m5(const player_t *p) { return p->state == ST_BOOST || p->state == ST_CHARGE; }   /* state M5 */
 
-/* Floor mode extends to ~50 deg (not 45): DV1 has long exact-45-degree slopes (orig N = 315),
- * and switching to wall probing right at 45 broke the concave slope->flat transition. */
-#define MODE_EDGE 0.82
-static int mode_of(double a) {
-    if (a > -MODE_EDGE && a <= MODE_EDGE) return 0;
-    if (a > MODE_EDGE && a <= 3.14159 - MODE_EDGE) return 1;
-    if (a < -MODE_EDGE && a >= -(3.14159 - MODE_EDGE)) return 3;
-    return 2;
-}
-
-/* scan from (x,y) along (dx,dy) for the first solid pixel; platforms only floor-down */
-static int scan(int x, int y, int dx, int dy, int maxd, int oneway, int *cx, int *cy) {
-    /* oneway=1 (floor mode): platform pixels are top-only. oneway=0 (wall/ceiling
-     * modes): platform pieces are ridden like solid (curves/quarter-pipes are type 8). */
-    if (px_solid(&G.lvl, x, y) || (!oneway && px_platform(&G.lvl, x, y))) return -1;
-    for (int k = 1; k <= maxd; k++) {
-        int qx = x + dx * k, qy = y + dy * k;
-        if (px_solid(&G.lvl, qx, qy) ||
-            (!oneway && px_platform(&G.lvl, qx, qy)) ||
-            (oneway && dy == 1 && px_platform(&G.lvl, qx, qy) && !px_platform(&G.lvl, qx, qy - 1))) {
-            *cx = qx; *cy = qy; return k;
-        }
-    }
-    return -1;
-}
-
-/* probe the surface below foot point (fx,fy) in mode m; returns contact + angle */
-static int ground_probe(int m, double fx, double fy, double reach_up, double reach_down, double *ox, double *oy, double *oa) {
-    const int *dn = MODE_DOWN[m], *fw = MODE_FWD[m];
-    int best = -1, bx = 0, by = 0;
-    for (int s = -1; s <= 1; s += 2) {
-        int sx = (int)floor(fx + fw[0] * 5 * s - dn[0] * reach_up);
-        int sy = (int)floor(fy + fw[1] * 5 * s - dn[1] * reach_up);
-        int cx, cy, k = scan(sx, sy, dn[0], dn[1], (int)(reach_up + reach_down), m == 0, &cx, &cy);
-        if (k >= 0 && (best < 0 || k < best)) { best = k; bx = cx; by = cy; }
-    }
-    if (best < 0) return 0;
-    /* contact replaces the foot's coordinate along the down axis */
-    *ox = dn[0] ? (float)bx - (dn[0] > 0 ? 0 : -1) : fx;
-    *oy = dn[1] ? (float)by - (dn[1] > 0 ? 0 : -1) : fy;
-    /* angle from surface points behind/ahead along the forward axis */
-    double pts[2][2]; int ok[2];
-    /* note: the original's raw angles are atan(n/14) (14 px sensor spread) but a plain +-7 spread here
-     * broke vertical jumps at the old spawn (X 68.7), so +-6 stays until the sensor layout is traced */
-    for (int s = 0; s < 2; s++) {
-        double d = s ? 6. : -6.;
-        int sx = (int)floor(*ox + fw[0] * d - dn[0] * 12), sy = (int)floor(*oy + fw[1] * d - dn[1] * 12);
-        int cx, cy;
-        ok[s] = scan(sx, sy, dn[0], dn[1], 24, m == 0, &cx, &cy) >= 0;
-        pts[s][0] = ok[s] ? cx : *ox + fw[0] * d; pts[s][1] = ok[s] ? cy : *oy + fw[1] * d;
-    }
-    if (!ok[0] && !ok[1]) { *oa = m == 0 ? 0. : m == 1 ? 1.5708 : m == 2 ? 3.14159 : -1.5708; return 1; }
-    double dxv = pts[1][0] - pts[0][0], dyv = pts[1][1] - pts[0][1];
-    *oa = atan2(-dyv, dxv);
-    return 1;
-}
-
-/* point in body space: along the normal (up from the feet) */
-static void body_pt(const player_t *p, double up, double fwd, double *x, double *y) {
-    double sa = sin(p->angle), ca = cos(p->angle);
-    *x = p->x - sa * up + ca * fwd;
-    *y = p->y - ca * up - sa * fwd;
-}
-
-static int wall_ahead(const player_t *p, double dir) {
-    double x, y;
-    for (int i = 0; i < 2; i++) {
-        body_pt(p, i ? BODY_H - 6 : BODY_H * 0.5, dir * HALF_W, &x, &y);
-        if (solid_at(&G.lvl, x, y)) return 1;
-    }
-    return 0;
-}
-
-/* axis-aligned wall test used in the air */
-static int wall(const player_t *p, double x, double dir) {
-    double wx = x + dir * HALF_W;
-    double top = p->y - BODY_H + 4, mid = p->y - BODY_H * 0.5, low = p->y - (STEP_UP + 2);
-    return solid_at(&G.lvl, wx, top) || solid_at(&G.lvl, wx, mid) || solid_at(&G.lvl, wx, low);
-}
-
-static int probe2(double x, double y0, double dist, int oneway, double *sy, double *ang) {
-    double s1, s2, a1 = 0, a2 = 0;
-    int f1 = fprobe(x - 5, y0, dist, oneway, &s1, &a1);
-    int f2 = fprobe(x + 5, y0, dist, oneway, &s2, &a2);
-    if (!f1 && !f2) return 0;
-    if (f1 && (!f2 || s1 <= s2)) { *sy = s1; *ang = a1; } else { *sy = s2; *ang = a2; }
-    double sc, ac;
-    if (fprobe(x, *sy - 6, 12, oneway, &sc, &ac)) *ang = ac;
-    return 1;
-}
-
-static void land(player_t *p, double sy, double ang) {
-    p->y = sy; p->ground = 1; p->angle = ang; p->angle_s = ang; p->springing = 0;
+/* bookkeeping when the core lands Lilac (events 1591/1592 already set B, G, N) */
+static void on_land(player_t *p) {
+    p->springing = 0;
     if (p->state == ST_BOOST) {
         /* RV (boost_air_downright/downleft): a down-diagonal boost (8, 8) that lands carries on along the
          * ground at a constant 10 for the rest of the boost */
@@ -248,22 +149,32 @@ static void land(player_t *p, double sy, double ang) {
         p->jumping = 0; p->cyclone_used = 0;
         return;
     }
-    /* RE (event 1591): landing with G >= 0 on a sensed angle N between 22 and 338 degrees:
-     * B = B - G * J * sin(N), J = 0.84; otherwise B (the horizontal speed) is kept */
-    {
-        double deg = ang * 57.29578;
-        while (deg < 0) deg += 360.;
-        while (deg >= 360.) deg -= 360.;
-        p->gsp = p->vx;
-        if (p->vy >= 0 && deg > 22. && deg < 338.) p->gsp = p->vx - p->vy * 0.84 * sin(ang);
-    }
     p->jumping = 0; p->cyclone_used = 0; p->boost_used = 0;
     if (p->state == ST_HURT || p->state == ST_CYCLONE) p->state = ST_NORMAL;
 }
 
+/* one pass of the original's movement + sensor collision with the current B, G */
+static int core(player_t *p) {
+    mv_t m = { p->x, p->y - ORIG_REF_DY, p->ground ? p->gsp : p->vx, p->ground ? 0. : p->vy, p->N, p->O, 0, p->ground, 0 };
+    int r = mv_core(&m);
+    p->x = m.X; p->y = m.Y + ORIG_REF_DY; p->N = m.N; p->O = m.O; p->ground = m.L;
+    if (m.L) { p->gsp = m.B; p->vy = 0; }
+    else { p->vx = m.B; p->vy = m.G; }
+    if (r & MV_LANDED) on_land(p);
+    return r;
+}
+
+/* RE (events 1635/1636): moving into a wall the big side sensor touches stops B (not in state M5) */
+static void wall_stop(player_t *p) {
+    if (is_m5(p)) return;
+    double *b = p->ground ? &p->gsp : &p->vx;
+    if (*b > 0 && mv_sensor_right_big()) *b = 0;
+    if (*b < 0 && mv_sensor_left_big()) *b = 0;
+}
+
 static void detach(player_t *p) {
-    p->vx = p->gsp * cos(p->angle); p->vy = -p->gsp * sin(p->angle);
-    p->ground = 0; p->angle = 0;
+    p->vx = p->gsp * o_cos(p->N); p->vy = -p->gsp * o_sin(p->N);
+    p->ground = 0; p->N = 0;
 }
 
 /* RV: original order per logic frame = MOVE with the current speed, THEN update the speed
@@ -276,7 +187,6 @@ static double fric_step(double g) {
 }
 
 static void ground_speed_update(player_t *p, const input_t *in, int control) {
-    double a = p->angle_s;
     int dir = 0;
     if (p->ctrl_lock > 0) { p->ctrl_lock--; control = 0; }   /* RV: side spring locks input 4 frames */
     if (control && (in->held & BTN_RIGHT)) dir = 1;
@@ -312,50 +222,18 @@ static void ground_speed_update(player_t *p, const input_t *in, int control) {
         p->gsp = fric_step(p->gsp);
     }
     if (p->gsp == 0) p->skidding = 0;
-    (void)a; slope_force(p);
+    wall_stop(p);                                  /* RE 1635/1636, before the slope force */
+    slope_force(p);
     if (p->gsp > PHYS_MAXSPD) p->gsp = PHYS_MAXSPD;
     if (p->gsp < -PHYS_MAXSPD) p->gsp = -PHYS_MAXSPD;
 }
 
-/* smoothed angle O eases toward the sensed angle N (RE events 1605-1607; the earlier fit
- * k 0.175 @ |B| 1.3, 0.33 @ 5, 0.40 @ 6.1 is reproduced exactly by max(0.175, |B|/15)) */
-static void smooth_angle(player_t *p) {
-    double d = p->angle - p->angle_s;
-    while (d > 3.14159) d -= 6.28318;
-    while (d < -3.14159) d += 6.28318;
-    /* RE (events 1606/1607): within 45 degrees O moves toward N by k = max(0.175, |B| / D), D = 15;
-     * at 45 degrees or more O snaps to N */
-    double k = fabs(d) < 0.785398 ? fmax(0.175, fabs(p->gsp) / 15.) : 1.;
-    p->angle_s += d * k;
-}
-
 /* upd: 1 = normal speed update, 0 = speed frozen (boost charge / boost: RV, B constant) */
 static void ground_move(player_t *p, const input_t *in, int control, int upd) {
-    /* too slow on a wall or ceiling: fall off */
-    if (mode_of(p->angle) != 0 && fabs(p->gsp) < SLIP_SPEED) { detach(p); return; }
-
-    double dist = fabs(p->gsp);
-    int n = (int)(dist / 4.) + 1;
-    for (int i = 0; i < n && p->gsp != 0; i++) {
-        double dir = p->gsp >= 0 ? 1. : -1.;
-        if (wall_ahead(p, dir)) { p->gsp = 0; break; }
-        double step = p->gsp / n;
-        double ma = mode_of(p->angle) == 0 ? p->angle_s : p->angle;
-        double nx = p->x + cos(ma) * step, ny = p->y - sin(ma) * step;
-        int m = mode_of(p->angle);
-        double ox, oy, oa;
-        double down = 6. + fabs(p->gsp) * 1.5;
-        if (ground_probe(m, nx, ny, STEP_UP, down, &ox, &oy, &oa)) {
-            p->x = ox; p->y = oy; p->angle = oa;
-        } else {
-            p->x = nx; p->y = ny;
-            detach(p);
-            return;
-        }
-    }
-    smooth_angle(p);
-    if (upd) ground_speed_update(p, in, control);
-    if (mode_of(p->angle) == 2 && fabs(p->gsp) < SLIP_SPEED) detach(p);
+    core(p);
+    if (!upd) return;
+    if (p->ground) ground_speed_update(p, in, control);
+    else air_speed_update(p, in, control, PHYS_GRAV);   /* left the ground: air rules apply this frame */
 }
 
 /* RV order: air accel -> gravity -> Sonic-style air drag tested on the NEW vy
@@ -366,58 +244,34 @@ static void air_speed_update(player_t *p, const input_t *in, int control, double
         if ((in->held & BTN_LEFT) && p->vx > -PHYS_TOP) { p->vx = fmax(p->vx - PHYS_AIR_ACC, -PHYS_TOP); p->face = -1; }
     }
     if (grav > 0) {
-        if (p->vy > PHYS_MAXFALL) p->vy = PHYS_MAXFALL;   /* RE 1577: G clamped to H BEFORE gravity (max 15.25) */
         p->vy += grav;
         if (p->vy > -PHYS_DRAG_VY && p->vy < 0 && fabs(p->vx) >= 0.125) p->vx *= PHYS_AIR_DRAG;   /* RE 1648: only |B| >= 0.125 */
     }
 }
 
-/* RV: in the air the original also moves first, then adds acceleration and gravity
- * (jump: y moves -7 on the first air frame, then G = -6.75) */
+/* air frame: move + sensors (core), then speeds in the original's event order: air acceleration,
+ * wall stop (1635/1636), gravity (1647), drag (1648), ceiling (1649: rising into the top-big sensor) */
 static void air_move(player_t *p, const input_t *in, int control, double grav) {
-    int n = (int)(fabs(p->vx) / 4.) + 1;
-    for (int i = 0; i < n; i++) {
-        double nx = p->x + p->vx / n, sy, ang;
-        if (p->vx != 0 && wall(p, nx, p->vx > 0 ? 1. : -1.)) {
-            p->vx = 0;
-            if (p->state == ST_BOOST) p->boost_used = 0;   /* [KB] wall ram restores cyclone */
-            break;
-        }
-        p->x = nx;
-        if (p->vy >= 0 && probe2(p->x, p->y - STEP_UP, STEP_UP, 0, &sy, &ang) && sy <= p->y) { land(p, sy, ang); if (p->state != ST_BOOST) ground_speed_update(p, in, control); return; }
+    core(p);
+    if (p->ground) { if (p->state != ST_BOOST) ground_speed_update(p, in, control); return; }
+    if (control) {
+        if ((in->held & BTN_RIGHT) && p->vx < PHYS_TOP) { p->vx = fmin(p->vx + PHYS_AIR_ACC, PHYS_TOP); p->face = 1; }
+        if ((in->held & BTN_LEFT) && p->vx > -PHYS_TOP) { p->vx = fmax(p->vx - PHYS_AIR_ACC, -PHYS_TOP); p->face = -1; }
     }
-    n = (int)(fabs(p->vy) / 4.) + 1;
-    for (int i = 0; i < n; i++) {
-        double ny = p->y + p->vy / n, sy, ang;
-        if (p->vy < 0) {
-            if (solid_at(&G.lvl, p->x - 4, ny - BODY_H) || solid_at(&G.lvl, p->x + 4, ny - BODY_H)) { p->vy = 0; break; }
-            p->y = ny;
-            /* RV (spring_yellow_upleft f52): the frame the head reaches the ceiling, G becomes 0 at once
-             * and no gravity is added that frame */
-            if (i == n - 1 && (solid_at(&G.lvl, p->x - 4, p->y - BODY_H - 1) || solid_at(&G.lvl, p->x + 4, p->y - BODY_H - 1))) {
-                if (p->vy > -PHYS_DRAG_VY && fabs(p->vx) >= 0.125) p->vx *= PHYS_AIR_DRAG;   /* drag still applies that frame */
-                p->vy = 0; air_speed_update(p, in, control, 0); return;
-            }
-        } else {
-            /* RV (landing snaps in 20+ traces: +2..+3.99 px): on the last step the original lands when the
-             * ground is up to LAND_REACH px below the feet and snaps down to it */
-            double reach = (i == n - 1) ? LAND_REACH : 1.;
-            double lim = (i == n - 1) ? floor(ny) + 4. : ny + 1.;
-            if (probe2(p->x, p->y - 2, (ny - p->y) + 2 + reach, 1, &sy, &ang) && sy <= lim) { land(p, sy, ang); if (p->state != ST_BOOST) ground_speed_update(p, in, control); return; }
-            p->y = ny;
-        }
-    }
-    air_speed_update(p, in, control, grav);
+    wall_stop(p);
+    air_speed_update(p, in, 0, grav);
+    if (p->vy < 0 && mv_sensor_top_big() && !is_m5(p)) p->vy = 0;
 }
 
 /* RV: on the jump frame Lilac first moves along the ground with her current speed, then the
  * velocity becomes B along + 7 perpendicular to the RAW surface angle N (run_jump: N 355.914,
  * B 5.013 -> vx 5.499, vy -6.625; using the smoothed O gives 5.396 / -6.71). No gravity that frame. */
 static void jump(player_t *p) {
-    double a = p->angle;
-    p->vx = p->gsp * cos(a) - PHYS_JUMP * sin(a);
-    p->vy = -p->gsp * sin(a) - PHYS_JUMP * cos(a);
-    p->ground = 0; p->jumping = 1;
+    /* RE (event 3047): G = cos(N) A - B sin(N), B = cos(N) B + A sin(N), A = jump strength -7; N = 0 */
+    double n = p->N, c = o_cos(n), sn = o_sin(n), b = p->gsp;
+    p->vy = c * -PHYS_JUMP - b * sn;
+    p->vx = c * b + -PHYS_JUMP * sn;
+    p->ground = 0; p->jumping = 1; p->N = 0;
     snd_play(G.sfx.jump, 200, 128);
 }
 
@@ -521,9 +375,13 @@ void player_update(player_t *p, const input_t *in) {
         #define R4(v) (floor((double)(v) * 10000.0) / 10000.0)
         if (p->ground) p->gsp = R4(p->gsp); else p->vx = R4(p->vx);
         p->vy = R4(p->vy);
-        double deg = p->angle * 57.29577951308232;
-        p->angle = floor(deg * 10000.0) / 10000.0 / 57.29577951308232;
+        p->N = R4(p->N);
         #undef R4
+        /* RE 1575/1576: B within +-D (15); 1577: G = min(G, H) (15) before this frame's move and gravity */
+        double *b = p->ground ? &p->gsp : &p->vx;
+        if (*b > PHYS_MAXSPD) *b = PHYS_MAXSPD;
+        if (*b < -PHYS_MAXSPD) *b = -PHYS_MAXSPD;
+        if (!p->ground && p->vy > PHYS_MAXFALL) p->vy = PHYS_MAXFALL;
     }
 
     if (p->state == ST_DEAD) {
@@ -670,7 +528,7 @@ void player_update(player_t *p, const input_t *in) {
      *  ground: smoothed angle O; boost: direction of motion (ground: O, +180 facing left);
      *  air: eases back to 0 by 4 degrees per frame; landing snaps to the surface */
     {
-        double deg_s = p->angle_s * 57.29578;
+        double deg_s = p->O;
         if (p->state == ST_BOOST) {
             if (p->ground) p->rot = deg_s + (p->face < 0 ? 180. : 0.);
             else p->rot = atan2(-p->boost_dy, p->boost_dx) * 57.29578;
@@ -714,13 +572,9 @@ void player_update(player_t *p, const input_t *in) {
 
 void player_draw(const player_t *p) {
     if (p->invuln && (p->invuln & 4) && p->state != ST_HURT) return;
-    /* RV: the original's object position (= sprite hotspot, = rotation centre) is the reference point
-     * ~14 px above the feet (ORIG_REF_DY). Our p->x/p->y is the foot contact, so the hotspot goes 14 px
-     * up along the surface normal on the ground (normal = (-sin a, -cos a)) and straight up in the air.
-     * Drawing at the feet sank Lilac 14 px into the floor. */
+    /* the sprite hotspot (= rotation centre) is the movement object's position: p->y - ORIG_REF_DY */
     const frame_t *f = anim_frame(&p->an);
-    double hxp = p->x, hyp = p->y - ORIG_REF_DY;
-    if (p->ground) { hxp = p->x - sin(p->angle_s) * ORIG_REF_DY; hyp = p->y - cos(p->angle_s) * ORIG_REF_DY; }
+    double hxp = p->x, hyp = p->y - ORIG_REF_DY;   /* RE 1517: the skin sits at (int X, int Y) */
     frame_draw_rot(&G.lilac, f, floor(hxp - G.camx), floor(hyp - G.camy), p->rot, 0xffffffff);
 }
 

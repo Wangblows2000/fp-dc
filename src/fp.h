@@ -118,11 +118,24 @@ int  px_platform(const level_t *l, int x, int y);
 /* first exposed surface in column x within (y0, y0+maxdist]; platforms only if oneway */
 int  floor_probe(const level_t *l, float x, float y0, float maxdist, int oneway, float *sy, float *angle);
 int  solid_at(const level_t *l, float x, float y);
+int  px_span_solid(const level_t *l, int x0, int x1, int y);   /* any solid pixel in row y, x0..x1 */
+
+/* Lilac's movement core (src/physics/sensors.c, RE events 1584-1611): the original's movement object */
+typedef struct { double X, Y, B, G, N, O, W; int L, P; } mv_t;
+enum { MV_LANDED = 1, MV_LEFT_GROUND = 2, MV_CEILING = 4 };
+enum { OBJGRP_SOLID, OBJGRP_OBSTACLE, OBJGRP_NOEDGE };   /* QualifierLists +0x218c0, +0x218d8, +0x218f0 */
+void mv_reset(void);
+int  mv_core(mv_t *m);
+void mv_allsensors(mv_t *m);
+int  mv_sensor_left_big(void), mv_sensor_right_big(void), mv_sensor_top_big(void);
+/* objects of a collision group overlapping a sensor mask (row spans x0[j]..x1[j] at (ox, oy + j)) */
+int  objects_sensor_hit(int grp, int ox, int oy, const signed char *x0, const signed char *x1, int h);
 
 /* ---------------------------------------------------------------- game */
 typedef struct {
-    double x, y, vx, vy, gsp, angle;   /* doubles like the original (Clickteam alterables; event 1574 floors to 4 decimals) */
-    double angle_s;             /* smoothed angle (original alt O): movement direction + slope force */
+    double x, y, vx, vy, gsp;   /* doubles like the original (Clickteam alterables; event 1574 floors to 4 decimals);
+                                 * x = movement X, y = movement Y + ORIG_REF_DY */
+    double N, O;                /* raw / smoothed surface angle in DEGREES (original alterables N, O) */
     int ground, face;
     int state, state_t;
     animator_t an;
@@ -226,6 +239,8 @@ void text_draw(float x, float y, const char *s, uint32_t argb, int scale);
 #define PHYS_JUMP_CUT   3.0       /* RV: releasing jump clamps rising speed to -3 */
 #define PHYS_SLOPE      0.203125  /* RV: alt F. gsp -= F*sin(angle) ... */
 #define PHYS_SLOPE_MIN  0.5       /* RV: ... only when |sin(angle)| > 0.5 (steeper than ~30 deg) */
+#define PHYS_LAND_J     0.84      /* RE: movement J, landing speed transfer (events 1591, 1597) */
+#define PHYS_ANGLE_D    15.0      /* RE: movement D, angle smoothing divisor (event 1606) */
 #define PHYS_MAXFALL    15.0      /* RE: movement H = 15; event 1577 clamps G to H before gravity -> 15.25 */
 #define PHYS_BOOST      12.0      /* RV: Dragon Boost speed (B = 12 held constant) */
 #define PHYS_BOOST_T    33         /* RV: boost lasts 33 frames, then speed carries with normal friction */

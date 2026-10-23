@@ -258,3 +258,15 @@ void objects_draw(int front) {
         frame_draw(&G.objs, anim_frame(&o->an), sx, sy, o->flip, 0xffffffff);
     }
 }
+
+/* Collision groups tested by Lilac's sensors (RE: QualifierLists of frame 21, read at runtime):
+ *   OBJGRP_SOLID    (+0x218c0) always solid: monitors, YellowSpringRight, spikes (4 directions), the
+ *                   spiral-tunnel mask, BreakableRock, MinibossBarrier
+ *   OBJGRP_OBSTACLE (+0x218d8) solid while grounded / landed on from above: bridge logs, YellowSpringUp /
+ *                   UpLeft / UpRight, LadderTop, LevelValleyPlatform1, LevelMovingPlatform2/3
+ *   OBJGRP_NOEDGE   (+0x218f0) clears the edge sensors (no angle taken from objects)
+ * Not ported yet: returns no hit, so only the terrain is solid (as before). */
+int objects_sensor_hit(int grp, int ox, int oy, const signed char *x0, const signed char *x1, int h) {
+    (void)grp; (void)ox; (void)oy; (void)x0; (void)x1; (void)h;
+    return 0;
+}
