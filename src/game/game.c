@@ -515,10 +515,20 @@ static void draw_parallax(void) {
 
 static void draw_pieces(int lmin, int lmax) {
     const level_t *l = &G.lvl;
+#ifndef DREAMCAST
+    { static int done; const char *e = getenv("FP_DBG_PIECE"); int qx, qy;
+      if (e && !done && G.frame > 30 && sscanf(e, "%d,%d", &qx, &qy) == 2) { done = 1;
+        for (int i = 0; i < l->npieces; i++) { const piece_t *p = &l->pieces[i];
+            if (qx >= p->x && qx < p->x + p->w && qy >= p->y && qy < p->y + p->h) printf("piece %d x %d y %d w %d h %d layer %d col %d pad %d atlas %d\n", i, p->x, p->y, p->w, p->h, p->layer, p->col, p->pad, p->atlas); } } }
+#endif
     int cx = (int)floorf(G.camx), cy = (int)floorf(G.camy);
     for (int i = 0; i < l->npieces; i++) {
         const piece_t *p = &l->pieces[i];
         if (p->layer < lmin || p->layer > lmax || (p->pad & 1)) continue;   /* bit0: invisible (blend alpha 0) */
+#ifndef DREAMCAST
+        { static const char *hp; static int init; if (!init) { init = 1; hp = getenv("FP_HIDE_PIECE"); }
+          if (hp) { char k[16]; snprintf(k, sizeof k, ",%d,", i); if (strstr(hp, k)) continue; } }
+#endif
         int sx = p->x - cx, sy = p->y - cy;
         if (sx >= SCREEN_W || sy >= SCREEN_H || sx + p->w <= 0 || sy + p->h <= 0) continue;
         r_sprite(&l->atlas[p->atlas], p->u, p->v, p->w, p->h, (float)sx, (float)sy, p->w, p->h, 0, 0xffffffff);
