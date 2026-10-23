@@ -9,7 +9,7 @@
 static int A_EXPLODE = -1;
 /* recovered sequences (tools/import_frame.py) */
 static int A_TURR[6] = { -1, -1, -1, -1, -1, -1 };   /* idle, idle_l, shoot, shoot_l, off, off_l */
-static int A_PELLET = -1, A_EXPLODE2 = -1, A_SPARKLE = -1, A_HEART = -1;
+static int A_PELLET = -1, A_EXPLODE2 = -1, A_SPARKLE = -1, A_HEART = -1, A_CRYSTAL = -1, A_PETAL = -1;
 
 static obj_t *alloc_obj(void) {
     for (int i = 0; i < MAX_OBJS; i++)
@@ -23,6 +23,7 @@ void objects_spawn(void) {
       for (int i = 0; i < 6; i++) A_TURR[i] = bank_anim(&G.objs, tn[i]); }
     A_PELLET = bank_anim(&G.objs, "pellet"); A_EXPLODE2 = bank_anim(&G.objs, "explosion02");
     A_SPARKLE = bank_anim(&G.objs, "ringsparkle"); A_HEART = bank_anim(&G.objs, "heart");
+    A_CRYSTAL = bank_anim(&G.objs, "objectcrystal_3"); A_PETAL = bank_anim(&G.objs, "objectpetal_355");
     memset(G.o, 0, sizeof G.o);
     G.nobjs = 0;
     for (int i = 0; i < G.lvl.nobj; i++) {
@@ -81,6 +82,30 @@ static void pellet_move(obj_t *o) {
     float dx = o->vx / 10.f + o->fx, dy = o->vy / 10.f + o->fy;
     float ix = floorf(dx), iy = floorf(dy);
     o->fx = dx - ix; o->fy = dy - iy; o->x += ix; o->y += iy;
+}
+
+/* RE (events 2632-2670): MonitorCrystals spawns 7 crystals (loop_spawn_crystals, event 1323),
+ * MonitorRings spawns petals (loop_spawn_rings, 6 per loop), Monitor1up an extra life, MonitorInvincibility
+ * sets PlayerOthers D = 1, E = 1800 (30 s) and plays the invincibility music. The thrown items' motion
+ * (their own movement in the original) is INFERRED. */
+static void throw_items(const obj_t *m, int type, int n) {
+    int a = type == OT_CRYSTAL ? A_CRYSTAL : A_PETAL;
+    for (int i = 0; i < n; i++) {
+        obj_t *e = alloc_obj();
+        if (!e) return;
+        float ang = (float)(-150 + 120 * i / (n > 1 ? n - 1 : 1)) * 3.14159265f / 180.f;
+        e->type = OT_ITEM_FLY; e->st = type; e->alive = 1; e->x = m->x; e->y = m->y - 16;
+        e->vx = 3.f * cosf(ang); e->vy = 3.f * sinf(ang) - 1.f;
+        if (a >= 0) anim_set(&e->an, &G.objs, a);
+    }
+}
+static void monitor_reward(const obj_t *o, player_t *p) {
+    switch (o->type) {
+    case OT_MONITOR: throw_items(o, OT_CRYSTAL, 7); break;
+    case OT_MON_RINGS: throw_items(o, OT_PETAL, 6); break;
+    case OT_MON_1UP: p->lives++; music_play("bgm/m_1up.adp"); G.mus_resume_t = 240; break;   /* jingle length INFERRED */
+    case OT_MON_INVINC: p->invuln = 1800; p->invinc = 1; music_play("bgm/m_invincibility.adp"); break;
+    }
 }
 
 /* one-shot effect object (removed when its animation ends) */
@@ -254,11 +279,21 @@ void objects_update(void) {
             if (hit && o->t > 0) { if (--o->hp <= 0) { o->alive = 0; G.kills++; explode(o->x, o->y); } else o->t = -20; player_bounce(p, -4.f); break; }
             if (hurt_touch) player_hurt(p, o->x);
             break;
-        case OT_ROCK: case OT_MONITOR:
+        case OT_ROCK: case OT_MONITOR: case OT_MON_RINGS: case OT_MON_1UP: case OT_MON_INVINC:
             if (hit) {
-                o->alive = 0; explode(o->x, o->y - 8);
-                if (o->type == OT_MONITOR) p->crystals = p->crystals > 10 ? p->crystals - 10 : 1;   /* reward UNVERIFIED */
+                obj_t m = *o;                /* the freed slot is reused by the thrown items */
+                o->alive = 0; explode(m.x, m.y - 8);
+                monitor_reward(&m, p);
                 player_bounce(p, -4.f);
+            }
+            break;
+        case OT_ITEM_FLY:
+            /* crystals / petals thrown out of a monitor: ballistic, settle on the ground, then normal items */
+            o->vy += 0.2f; o->x += o->vx; o->y += o->vy;
+            if (o->vy > 0 && solid_at(&G.lvl, o->x, o->y + 4)) { o->vy = -o->vy * 0.5f; o->vx *= 0.8f; if (o->vy > -0.5f) { o->vy = 0; o->vx = 0; } }
+            if (++o->tm > 120 || (o->vx == 0 && o->vy == 0) ||
+                (o->tm >= 12 && item_in_reach(o, p, o->st == OT_CRYSTAL ? 39 : 31)))   /* collectable mid-flight (INFERRED) */ {
+                o->type = o->st; o->st = 0; o->tm = 0;     /* becomes a normal crystal / petal */
             }
             break;
         case OT_SPIKES:
@@ -330,8 +365,8 @@ void objects_draw(int front) {
  * springs are still handled by their own contact rules (RV), so OBJGRP_OBSTACLE has no members yet. */
 static int in_group(int type, int grp) {
     switch (grp) {
-    case OBJGRP_SOLID: return type == OT_MONITOR || type == OT_ROCK || type == OT_SPIKES || type == OT_SPRING_R;
-    case OBJGRP_NOEDGE: return type == OT_MONITOR || type == OT_SPIKES || type == OT_SPRING || type == OT_SPRING_UL ||
+    case OBJGRP_SOLID: return type == OT_MONITOR || type == OT_MON_RINGS || type == OT_MON_1UP || type == OT_MON_INVINC || type == OT_ROCK || type == OT_SPIKES || type == OT_SPRING_R;
+    case OBJGRP_NOEDGE: return type == OT_MONITOR || type == OT_MON_RINGS || type == OT_MON_1UP || type == OT_MON_INVINC || type == OT_SPIKES || type == OT_SPRING || type == OT_SPRING_UL ||
                                type == OT_SPRING_UR || type == OT_SPRING_R;
     default: return 0;
     }

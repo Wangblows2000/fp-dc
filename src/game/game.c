@@ -347,6 +347,10 @@ void game_update(const input_t *in) {
     }
     objects_update();
     camera_update();
+    /* stage music back after the 1-up jingle / when monitor invincibility ends */
+    if (G.mus_resume_t > 0 && --G.mus_resume_t == 0)
+        music_play(G.p.invinc ? "bgm/m_invincibility.adp" : level_music(G.lvdir));
+    if (G.p.invinc && G.p.invuln == 0) { G.p.invinc = 0; music_play(level_music(G.lvdir)); }
     if (G.clear_t) {                              /* RE 3310 / 3578: fade +4 per frame; at 255 next frame */
         int a = G.clear_t == 1 ? 0 : G.clear_t;     /* fade object created with alpha 0 */
         if (a != 255 && a < 128) a = 2 * (a >> 1) + 2;                       /* RE 2905: +2 while < 128 */
