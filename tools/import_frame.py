@@ -97,7 +97,7 @@ ENS = [('enemydragonfly_942', a, d, nm + ('' if d == '0' else '_l')) for a, nm i
        ('breakable1_1095', 0, '0', 'brk1'), ('breakable2_1096', 0, '0', 'brk2'), ('breakable3_1097', 0, '0', 'brk3'),
        ('bossfireball_1003', 0, '0', 'fireball'),
        ('levellayer016_983', 0, '0', 'loop016'), ('levellayer0loop04_981', 0, '0', 'loop0q'), ('levellayer115_984', 0, '0', 'loop115'), ('levellayer1loop03_982', 0, '0', 'loop1q'),
-       ('levelgeyserplate_994', 0, '0', 'geyser'), ('spiraltunnelmask_889', 0, '0', 'spiralmask'), ('levelballtunnel1_1032', 0, '0', 'balltunnel')]
+       ('levelgeyserplate_994', 0, '0', 'geyser'), ('levelfloatingplatform_1027', 0, '0', 'floatplat'), ('spiraltunnelmask_889', 0, '0', 'spiralmask'), ('levelballtunnel1_1032', 0, '0', 'balltunnel')]
 ENS_WITH = {'enemysporeprojectile_1022': ('enemysporepod',), 'objectkeystone_429': ('enemysporepod', 'enemyturretus'),
             'effectsdebris_427': ('enemysporepod',), 'effectsexplosion06_435': ('minibosswretchnidbase', 'minibosstredd', 'bossserpentinehead'),
             'effectsshade_436': ('enemygansekijr', 'enemydragonfly', 'enemystarflounder', 'enemycacteon'),
@@ -423,7 +423,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
        obj   {u16 type, anim (index in <name>_obj bank or 0xffff); s32 x, y}  (12 B)
        uniq tiles: 32 B each (16 rows of u16, bit x = pixel x)
        solid map u16[tw*th]; platform map u16[tw*th]"""
-    pieces = sorted(pieces, key=lambda p: (p['layer'], p['x']))
+    pieces = sorted(pieces, key=lambda p: p['layer'])   # stable: keeps the frame's instance (z) order inside a layer
     names = [a['name'] for a in bank['anims']]
     d = bytearray(b'FPL2' + struct.pack('<2I4H2HI', W, H, len(pieces), len(objs), natlas, len(table), TW, TH, 0))
     for p in pieces:

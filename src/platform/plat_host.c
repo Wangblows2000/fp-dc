@@ -256,6 +256,11 @@ int main(int argc, char **argv) {
             for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && enemy_type(G.o[i].type)) { float d = fabsf(G.o[i].x - (float)p->x); if (d < bd) { bd = d; bi = i; } }
             if (bi >= 0) { const obj_t *o = &G.o[bi]; printf("en %d A %.2f C %d X %.2f Y %.2f ang %.0f fl %x x %.0f y %.0f inv %d\n", cur_frame, o->A, o->c, o->kx, o->ky, o->ang, o->fl, o->x, o->y, o->inv); }
         }
+        if (getenv("FP_DBG_OBJS") && cur_frame == atoi(getenv("FP_DBG_OBJS"))) {    /* every object on screen */
+            for (int i = 0; i < G.nobjs; i++) { const obj_t *o = &G.o[i];
+                if (o->alive && o->x > G.camx - 32 && o->x < G.camx + SCREEN_W + 32 && o->y > G.camy - 32 && o->y < G.camy + SCREEN_H + 32)
+                    { const frame_t *fr = o->an.b ? anim_frame(&o->an) : NULL; printf("obj %d type %d x %.0f y %.0f anim %s fl %x fr %dx%d h %d,%d uv %d,%d\n", i, o->type, o->x, o->y, o->an.b ? o->an.b->anims[o->an.anim].name : "-", o->fl, fr?fr->w:0, fr?fr->h:0, fr?fr->hx:0, fr?fr->hy:0, fr?fr->u:0, fr?fr->v:0); } }
+        }
         if (getenv("FP_FE_TRACE")) {
             int idx = 19 + (G.lvdir[0] ? G.lvdir[2] - '0' : 1), cur = 0;
             if (G.mode == MODE_FRONTEND) fe_trace_info(&idx, &cur);

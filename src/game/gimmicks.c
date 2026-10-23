@@ -199,3 +199,223 @@ int cards_commit(void) {
     return SV.card_bits[0] != before;
 }
 int cards_taken_now(void) { int n = 0; for (unsigned v = cards_taken_act | SV.card_bits[0]; v; v &= v - 1) n++; return n; }
+
+/* ======================================================================== DV3 (spec_dv3_gimmicks.md) */
+static obj_t *first_type(int t) { for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == t) return &G.o[i]; return NULL; }
+static void ens(obj_t *o, const char *nm) { int a = ens_anim(nm); if (a >= 0) anim_set(&o->an, &G.ens, a); else o->an.b = NULL; }
+#define WATER_Y 2700.0                     /* RE 5314: ML.B = 2700 at DV3 start */
+
+/* ---- waterfall logs (5131-5140, 5215, 5216). Log: fy = A (double Y; 0 = unset), vy = B, st = C (0 emerging behind
+ * the water / 1 falling on the play layer), tm = E x 10, dir = direction 0..31, fl bit 0 = ignored, bit 1 = stopped.
+ * Generator: tm = A (starts 96). Kill zones (WaterfallFront3): boxes x-32..x+31, y+17..y+48. */
+static void wlog_anim(obj_t *o) { char nm[8]; snprintf(nm, sizeof nm, "wlog%d", (o->dir & 31) / 4); ens(o, nm); }
+static obj_t *wlog_new(float x, float y) {
+    obj_t *o = obj_alloc();
+    if (!o) return NULL;
+    o->type = OT_WLOG; o->alive = 1; o->x = x; o->y = y; o->fy = 0; o->vy = 0; o->st = 0; o->tm = 0; o->dir = 0;
+    wlog_anim(o);
+    return o;
+}
+void wlogs_spawn(void) {
+    for (int i = 0; i < G.nobjs; i++) {
+        obj_t *o = &G.o[i];
+        if (!o->alive) continue;
+        if (o->type == OT_WLOG) { o->fy = 0; o->st = 0; o->tm = 0; o->dir = 0; wlog_anim(o); }
+        if (o->type == OT_WLOG_GEN) { o->tm = 96; o->an.b = NULL; }
+        if (o->type == OT_WF_KILL) o->an.b = NULL;
+        if (o->type == OT_FLOATPLAT) ens(o, "floatplat");
+    }
+}
+void wlogs_update(const player_t *p) {
+    for (int i = 0; i < G.nobjs; i++) { obj_t *o = &G.o[i]; if (o->alive && o->type == OT_WLOG && o->fy == 0) { o->fy = o->y; o->vy = 1.5f; } }   /* 5215 */
+    int run = 0;                                                                              /* 5216 */
+    for (int i = 0; i < G.nobjs; i++) { obj_t *g = &G.o[i]; if (g->alive && g->type == OT_WLOG_GEN && g->x >= G.camx - 159 && g->x <= G.camx + 585) run = 1; }
+    if (!run) return;
+    for (int i = 0; i < G.nobjs; i++) {                                                       /* 5131 */
+        obj_t *o = &G.o[i];
+        if (!o->alive || o->type != OT_WLOG) continue;
+        o->y = (float)(int)o->fy; o->fy += o->vy;
+        o->dir = (o->dir + (int)fmax(0.0, 1.5 - o->vy)) & 31; wlog_anim(o);
+        o->fl &= ~1;
+    }
+    for (int i = 0; i < G.nobjs; i++) {
+        obj_t *g = &G.o[i];
+        if (!g->alive || g->type != OT_WLOG_GEN) continue;
+        g->tm++;
+        if (g->tm == 100) { wlog_new(g->x - 64, g->y); g->tm++; }                             /* 5132 */
+        if (g->tm == 200) { wlog_new(g->x + 64, g->y); g->tm++; }                             /* 5133 */
+        if (g->tm >= 300) { wlog_new(g->x, g->y); g->tm = 0; }                                /* 5134 */
+    }
+    int touch_bg = 0;
+    { int ox, oy, h; const signed char *a, *b;                                               /* 5140: BottomBig on level ground */
+      if (mv_sensor_rows(SENS_BOTTOMBIG, &ox, &oy, &a, &b, &h)) for (int j = 0; j < h && !touch_bg; j++) if (b[j] >= a[j] && px_span_solid(&G.lvl, ox + a[j], ox + b[j], oy + j)) touch_bg = 1; }
+    for (int i = 0; i < G.nobjs; i++) {
+        obj_t *o = &G.o[i];
+        if (!o->alive || o->type != OT_WLOG) continue;
+        if (o->st == 0) { o->vy = -0.4f; o->tm += 4; }                                         /* 5135 (E += 0.4) */
+        if (o->st == 0 && o->tm >= 240) o->st = 1;                                             /* 5136 */
+        if (o->st == 1) o->vy = fminf(o->vy + 0.05f, 1.2f);                                    /* 5137 */
+        for (int k = 0; k < G.nobjs; k++) {                                                    /* 5138 */
+            obj_t *z = &G.o[k];
+            if (z->alive && z->type == OT_WF_KILL && o->x - 64 < z->x + 32 && o->x + 64 > z->x - 32 && o->y - 16 < z->y + 49 && o->y + 16 > z->y + 17) { o->alive = 0; break; }
+        }
+        if (!o->alive) continue;
+        if (o->y > WATER_Y && !(o->fl & 2)) { o->fl |= 2; o->vy = 0; }                         /* 5139 */
+        if (o->st == 0 || touch_bg) o->fl |= 1;                                                /* emerging: other layer; 5140 */
+    }
+    (void)p;
+}
+
+/* ---- boulder switch room (5187-5210). Plate: st = pressed. Trapdoor: c = C (0..90), ang. Boulder: fx, fy = A, B;
+ * vx = C, vy = D, ang = E (display), c = H, fl bit 1 active, bit 2 water, bit 4 on ground. */
+static int boulder_latch, boulder_fired;
+void dv3_switch_spawn(void) {
+    boulder_latch = boulder_fired = 0;
+    for (int i = 0; i < G.nobjs; i++) {
+        obj_t *o = &G.o[i];
+        if (!o->alive) continue;
+        if (o->type == OT_WALLPLATE) { ens(o, "wallplate"); o->st = 0; }
+        if (o->type == OT_TRAPDOOR) { ens(o, "trapdoor"); o->c = 0; o->ang = 0; }
+        if (o->type == OT_BOULDER) { ens(o, "boulder"); o->fx = o->x; o->fy = o->y; o->vx = 0; o->vy = 0; o->fl = 0; o->c = 0; }
+        if (o->type == OT_PPLATE) { ens(o, "pplate"); o->st = 0; }
+        if (o->type == OT_DOOR) { ens(o, "door"); o->c = 0; }
+        if (o->type == OT_TRUNK) { ens(o, "trunk"); o->dir = 0; o->fx = 0; o->vx = 0; }
+        if (o->type >= OT_BAM1 && o->type <= OT_BAM4) { static const char *bn[4] = { "bam1", "bam2", "bam3", "bam4" }; ens(o, bn[o->type - OT_BAM1]); o->st = 0; o->tm = 0; o->fx = 0; o->dir = 1; }
+    }
+    snap_register(&boulder_latch, sizeof boulder_latch); snap_register(&boulder_fired, sizeof boulder_fired);
+}
+static int probe(const obj_t *b, int x0, int x1, int y0, int y1) {     /* probe rect relative to (x, y) on the background */
+    for (int y = y0; y <= y1; y++) if (px_span_solid(&G.lvl, (int)b->x + x0, (int)b->x + x1, (int)b->y + y)) return 1;
+    return 0;
+}
+void dv3_switch_update(player_t *p) {
+    obj_t *plate = first_type(OT_WALLPLATE), *door = first_type(OT_TRAPDOOR), *bo = first_type(OT_BOULDER);
+    if (plate && !plate->st && (p->state == ST_PUSH || p->state == ST_CYCLONE) && sensor_on(plate, SENS_LEFTBIG)) {   /* 5187 */
+        plate->st = 1; plate->an.b = NULL;
+    }
+    if (plate && plate->st && !boulder_latch) { boulder_latch = 1; snd_play_orig(49, 220, 128); }   /* 5188 */
+    if (plate && plate->st && door && door->c < 90) { door->c += 5; door->ang -= 5; }          /* 5189 */
+    if (door && door->c >= 90 && bo && !(bo->fl & 4) && !boulder_fired) { boulder_fired = 1; bo->fl |= 2; bo->fx = bo->x; bo->fy = bo->y; }   /* 5191 */
+    if (!bo) return;
+    int ground = probe(bo, -6, 6, 21, 33);                                                     /* 5194 / 5195: bottom-centre probe */
+    if (bo->fl & 2) {                                                                          /* 5198 */
+        bo->x = (float)(int)bo->fx; bo->y = (float)(int)bo->fy; bo->fx += bo->vx; bo->fy += bo->vy;
+        if (bo->c > 0) bo->c--;
+        bo->ang -= bo->vx;                                                                     /* E -= C */
+    }
+    if (!ground) bo->vy = fminf(12.f, bo->vy + 0.3f - 0.2f * ((bo->fl & 4) ? 1 : 0));          /* 5199 (also while waiting) */
+    if ((bo->fl & 2) && ground && bo->vy > 2) { bo->vx = 2; bo->fy -= bo->vy; bo->vy = -0.25f * bo->vy; snd_play_orig(51, 220, 128); }   /* 5200 */
+    if ((bo->fl & 2) && ground && bo->vy >= 0 && bo->vy <= 2) { bo->vy = 0; bo->fy -= 1; }    /* 5201 */
+    if ((bo->fl & 2) && !ground && bo->c <= 0) {                                               /* 5202: hits enemies while airborne */
+        for (int i = 0; i < G.nobjs; i++) {
+            obj_t *e = &G.o[i];
+            if (!e->alive || !enemy_type(e->type) || e->c > 0 || (e->fl & 0x40) || !e->an.b) continue;
+            float x0 = bo->x - 31, y0 = bo->y - 31;
+            if (!obj_rect_hit(e, (int)x0, (int)y0, (int)x0 + 62, (int)y0 + 62)) continue;
+            e->c = 5; e->ky = bo->vy + 4; e->kx = cross_rand(5) - 2; e->A -= fabs(bo->vy) / 5 + 6; e->inv = 1;
+            snd_play_orig(24, 220, 128); bo->c = 4;
+        }
+    }
+    if (bo->fl & 2) {                                                                          /* 5203-5208: bridges */
+        for (int b = 0; b < G.nobjs; b++) {
+            obj_t *br = &G.o[b];
+            if (!br->alive || br->type != OT_BRIDGE) continue;
+            float bx0 = br->x, by0 = br->y, bx1 = br->x + 192, by1 = br->y + 128;
+            int over = 0;
+            for (int i = 0; i < G.nobjs && !over; i++) {
+                obj_t *lg = &G.o[i];
+                if (lg->alive && lg->type == OT_LOG && lg->par == b && fabsf(lg->x + 8 - bo->x) < 39 && fabsf(lg->y + 8 - bo->y) < 39) over = 1;
+            }
+            if (!over || !(bo->x + 31 > bx0 && bo->x - 31 < bx1 && bo->y + 31 > by0 && bo->y - 31 < by1)) continue;
+            snd_play_orig(13, 220, 128);
+            for (int i = 0; i < G.nobjs; i++) {                                                /* 5205 */
+                obj_t *lg = &G.o[i];
+                if (lg->alive && lg->type == OT_LOG && lg->x >= bx0 - 3 && lg->x <= bx1 + 3 && lg->y > by0 && lg->y < by1) { lg->fx = -(float)lg->dir; lg->fy = lg->y; lg->st = 9; lg->par = -1; }
+            }
+            br->alive = 0;                                                                     /* 5206 */
+        }
+    }
+    for (int i = 0; i < G.nobjs; i++) {                                                        /* 5207 / 5208: collapsing logs */
+        obj_t *lg = &G.o[i];
+        if (!lg->alive || lg->type != OT_LOG || lg->st != 9) continue;
+        lg->y = (float)(int)lg->fy; lg->fy += fmaxf(lg->fx, 0.f); lg->fx += 0.3f;
+        if (lg->fx > 0) lg->fl |= 1;
+        if (lg->y > G.lvl.h + 64) lg->alive = 0;
+    }
+    if ((bo->fl & 2) && bo->y > WATER_Y && !(bo->fl & 4)) {                                    /* 5209 */
+        bo->fl |= 4; obj_effect(bo->x, (float)WATER_Y, "explosion02"); snd_play_orig(14, 220, 128); bo->vy = 0; bo->vx *= 0.5f;
+    }
+    if ((bo->fl & 4) && ground) { bo->vx = bo->vy = 0; bo->fl &= ~2; }                        /* 5210 */
+}
+
+/* ---- tree trunk -> PushableBlock2 (5142-5153, 5217-5224). Trunk: fx = A (tilt), vx = B (angular speed), dir 0/16. */
+void trunks_update(player_t *p) {
+    double B = p->ground ? p->gsp : p->vx;
+    int Z = player_body_z(p);
+    for (int i = 0; i < G.nobjs; i++) {
+        obj_t *o = &G.o[i];
+        if (!o->alive || o->type != OT_TRUNK) continue;
+        if (Z && B != 0) o->fl |= 1;                                                           /* 5218 */
+        int hit = 0;
+        if (Z && B < 0 && sensor_on(o, SENS_LEFTBIG)) { o->vx -= 3; p->vx = 3; hit = 1; }       /* 5219 */
+        else if (Z && B > 0 && sensor_on(o, SENS_RIGHTBIG)) { o->vx += 3; p->vx = -3; hit = 1; }   /* 5220 */
+        else if (p->state == ST_CYCLONE && sensor_on(o, SENS_LEFTBIG)) { o->vx -= 3; p->vx = 3; hit = 2; }   /* 5221 */
+        else if (p->state == ST_CYCLONE && sensor_on(o, SENS_RIGHTBIG)) { o->vx += 3; p->vx = -3; hit = 2; } /* 5222 */
+        if (hit) {
+            snd_play_orig(23, 220, 128);
+            double n = p->N, g = hit == 2 ? -3.0 : (-PHYS_JUMP) * (n == 90 || n == 270 ? 0 : fd_cos(n / 57.29577951)) - (n == 180 ? 0 : fd_sin(n / 57.29577951)) * B;
+            p->ground = 0; p->N = 0; p->vy = g; if (hit == 1) p->state = ST_NORMAL;
+        }
+        if (!obj_near_view(o, 200)) continue;                                                  /* 5217: loop_trunk */
+        o->ang = -o->fx; o->fx = fmaxf(-90.f, fminf(90.f, o->fx + o->vx)); o->fl |= 1;          /* 5142 */
+        if (fabsf(o->fx) < 1 && fabsf(o->vx) < 0.2f) { o->fl &= ~1; o->fx = 0; o->vx = 0; }     /* 5144 */
+        if (o->fx > 0 && o->fx <= 15) o->vx = (o->vx - 0.2f) * 0.95f;                          /* 5145 */
+        if (o->fx < 0 && o->fx >= -15) o->vx = (o->vx + 0.2f) * 0.95f;                         /* 5146 */
+        if (o->fx > 15) o->vx += 0.1f;                                                         /* 5147 */
+        if (o->fx < -15) o->vx -= 0.1f;                                                        /* 5148 */
+        if (o->fx < 0 && o->dir == 0) { o->dir = 16; o->x -= 32; ens(o, "trunk_l"); }          /* 5149 */
+        if (o->fx > 0 && o->dir == 16) { o->dir = 0; o->x += 32; ens(o, "trunk"); }            /* 5150 */
+        if (o->fx <= -90 || o->fx >= 90) {                                                     /* 5151: falls into a block */
+            obj_t *b = obj_alloc();
+            if (b) { b->type = OT_PBLOCK2; b->alive = 1; b->x = o->x; b->y = o->y; b->dir = o->dir; ens(b, o->dir == 16 ? "pblock2_l" : "pblock2"); }
+            camera_shake(3); snd_play_orig(51, 220, 128); o->alive = 0;
+        }
+    }
+}
+
+/* ---- bamboo spike traps (5227-5234): bam1 pivot (st = A, tm = B, fx = C swing, dir = D side), bam2 joint (hurts),
+ * bam3 pole, bam4 head; paired by x. Pole image: hotspot (8,52), action point (8,-5): 57 px up the pole. */
+static obj_t *bam_of(int type, float x) { for (int i = 0; i < G.nobjs; i++) { obj_t *o = &G.o[i]; if (o->alive && o->type == type && fabsf(o->x - x) < 4) return o; } return NULL; }
+static void pole_tip(const obj_t *o, float *x, float *y) { double a = o->ang / 57.29577951; *x = o->x + (float)(int)(-57 * fd_sin(a)); *y = o->y + (float)(int)(-57 * fd_cos(a)); }
+void bamboo_update(player_t *p) {
+    for (int i = 0; i < G.nobjs; i++) {
+        obj_t *b1 = &G.o[i];
+        if (!b1->alive || b1->type != OT_BAM1) continue;
+        obj_t *b2 = bam_of(OT_BAM2, b1->x), *b3 = bam_of(OT_BAM3, b1->x), *b4 = bam_of(OT_BAM4, b1->x);
+        float tx, ty; pole_tip(b1, &tx, &ty);                                                  /* 5227 */
+        if (b2) { b2->x = tx; b2->y = ty; }
+        if (b3) { b3->x = tx; b3->y = ty; b3->ang = -b1->ang; }
+        b1->ang = b1->fx * b1->dir;
+        if (b3 && b4) { pole_tip(b3, &tx, &ty); b4->x = tx; b4->y = ty; }
+        if (b1->st == 0 || b1->st == 2) { b1->tm++; if (b1->tm > 50) { b1->tm = 0; b1->st++; } }   /* 5229 / 5230 */
+        if (b1->st == 1) { b1->fx += 5; if (b1->fx >= 70) b1->st = 2; }                        /* 5231 / 5232 */
+        if (b1->st == 3) { b1->fx -= 5; if (b1->fx <= 0) { b1->st = 0; b1->dir = -b1->dir; } }  /* 5233 / 5234 */
+        if (b2 && p->state != ST_HURT && p->state != ST_DEAD && !player_invincible(p) && !p->hurt_pending) {   /* 5228 */
+            int sx0 = (int)floor(p->x) - 7, sy0 = (int)floor(MVY(p)) - 34;
+            if (obj_rect_hit(b2, sx0, sy0, sx0 + 15, sy0 + 46)) player_contact(p, 5);
+        }
+    }
+}
+
+/* ---- pressure plate + door (5182-5186): pressed only while Lilac stands on it */
+static int pplate_latch;
+void pplate_update(player_t *p) {
+    obj_t *pl = first_type(OT_PPLATE), *d = first_type(OT_DOOR);
+    if (!pl) return;
+    int pressed = p->ground && sensor_on(pl, SENS_BOTTOMBIG);                                  /* 4973 */
+    if (pressed && !pplate_latch) { pplate_latch = 1; snd_play_orig(49, 220, 128); }          /* 5183 */
+    if (!d) return;
+    if (pressed && d->c < 128) { d->y -= 8; d->c += 8; }                                       /* 5184 */
+    int under = p->x >= d->x - 15 && p->x <= d->x + 47 && MVY(p) > d->y && MVY(p) <= d->y + 128 + 31;   /* 5185 */
+    if (!pressed && d->c > 0 && !under) { d->y += 2; d->c -= 2; }                              /* 5186 */
+}

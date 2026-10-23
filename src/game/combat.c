@@ -272,11 +272,12 @@ void combat_frame(player_t *p) {
             G.kills++;                   /* test/trace counter only (no counterpart in the original) */
             snd_play_orig(23, 220, 128); o->fl |= F_DEFEATED; o->A = 0; o->ky -= 3; o->st = o->type == OT_DRAGONFLY ? 5 : 3;
         }
+        if ((o->fl & F_DEFEATED) && o->absorbed > 0) { o->absorbed--; obj_drop_crystal(o->x, o->y, o->absorbed); }   /* 2766 */
+        if ((o->fl & F_DEFEATED) && o->type == OT_TD_BODY) continue;                             /* 5282: flag 16, no fly-away */
         if (o->fl & F_DEFEATED) {                                                                /* 2765 fly-away */
             o->x = (float)(int)(o->x + o->kx); o->y = (float)(int)(o->y + o->ky);
             o->ky = fmin(o->ky + 0.25, 15.0);
             o->ang += (float)fmax(8.0, 2.0 * o->kx);
-            if (o->absorbed > 0) { o->absorbed--; obj_effect(o->x, o->y, "objectcrystal_3"); }   /* 2766 (crystal drop: motion INFERRED) */
             if (o->x < 0 || o->x > G.lvl.w || o->y > G.lvl.h || o->y < 0) { o->alive = 0; continue; }   /* 2767 */
             if ((o->type == OT_GANSEKI || o->type == OT_TURRETUS) && o->y > G.camy + 290) { o->alive = 0; continue; }   /* 4389 / 4777 */
             int lands = o->type == OT_GANSEKI || o->type == OT_TURRETUS || o->type == OT_DRAGONFLY || o->type == OT_FLOUNDER ||

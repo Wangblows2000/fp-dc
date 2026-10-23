@@ -10,7 +10,7 @@
 #   0x9fcb7a = right after platform_poll_events() inside GameManager::update (one Frame::update per call).
 #   FrameObject: x @+8, y @+0xc (int), alterables* @+0x20; values A..Z = 26 doubles @alt+0x50.
 #   Active animation index: s8 @+0xb0.
-import gdb, struct, os
+import gdb, os, struct, os
 
 inf = gdb.selected_inferior()
 KEYS = {'L': 0x40000050, 'R': 0x4000004f, 'U': 0x40000052, 'D': 0x40000051,
@@ -20,6 +20,9 @@ VT = {'mv': 0x20b2910, 'player': 0x20b6f30, 'skin': 0x20b7890}   # vtable+0x10 o
 # optional HUD/gameplay objects dumped when present (vtable+0x10): alterables A-Z + x scale + image id
 XVT = {'en': 0x20aa470, 'life': 0x20aa510, 'others': 0x20aa3d0, 'turr': 0x20d65d0, 'cam': 0x20bbbd0,
        'hair': 0x20bc5d0, 'sp1': 0x20b68f0, 'sp2': 0x20b9c30, 'sp3': 0x20b9cd0, 'sp4': 0x20b9d70, 'sp5': 0x20b3c70, 'plat3': 0x20dab50}   # plat3 = LevelMovingPlatform3_948; hair = PlayerSkinSashHair_424 (Lilac's hair overlay)
+# extra objects for one trace: XVT_EXTRA="name=0xvtable+0x10,name2=..." (vtable addresses from build/re/nm.txt + 0x10)
+for _kv in os.environ.get('XVT_EXTRA', '').split(','):
+    if '=' in _kv: XVT[_kv.split('=')[0]] = int(_kv.split('=')[1], 0)
 # instances picked by x position instead of the last one found (probes of one specific enemy)
 XVT_PICK = {'turr': 1233}   # others = PlayerOthers_126 (invulnerability timer E, RE)
 # HUD counters (Counter::set: value double @+0xa0, min int @+0xa8, max int @+0xac)
