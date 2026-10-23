@@ -216,6 +216,9 @@ int game_init(void) {
     printf("save cards %d\n", save_card_total());   /* host tests: card total read back from the save */
 #endif
     r_set_letterbox(SV.letterbox);
+#ifndef FP_HOST_ENV
+    { extern int demo_letterbox; if (demo_letterbox >= 0) r_set_letterbox(demo_letterbox); }   /* demo discs: LETTERBOX n */
+#endif
     loading_begin("boot");                         /* boot: sound effects (title data follows in fe_enter) */
     for (int i = 0; i < (int)(sizeof SND_IDS / sizeof SND_IDS[0]); i++) {
         snprintf(nm, sizeof nm, "sfx/s%d.wav", SND_IDS[i]); snd_handle[SND_IDS[i]] = snd_load(nm); loading_tick();
