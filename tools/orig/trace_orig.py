@@ -19,7 +19,7 @@ ORDER = 'LRUDJXBS'
 VT = {'mv': 0x20b2910, 'player': 0x20b6f30, 'skin': 0x20b7890}   # vtable+0x10 of the classes
 # optional HUD/gameplay objects dumped when present (vtable+0x10): alterables A-Z + x scale + image id
 XVT = {'en': 0x20aa470, 'life': 0x20aa510, 'others': 0x20aa3d0, 'turr': 0x20d65d0, 'cam': 0x20bbbd0,
-       'hair': 0x20bc5d0, 'sp1': 0x20b68f0, 'sp2': 0x20b9c30, 'sp3': 0x20b9cd0, 'sp4': 0x20b9d70, 'sp5': 0x20b3c70}   # hair = PlayerSkinSashHair_424 (Lilac's hair overlay)
+       'hair': 0x20bc5d0, 'sp1': 0x20b68f0, 'sp2': 0x20b9c30, 'sp3': 0x20b9cd0, 'sp4': 0x20b9d70, 'sp5': 0x20b3c70, 'plat3': 0x20dab50}   # plat3 = LevelMovingPlatform3_948; hair = PlayerSkinSashHair_424 (Lilac's hair overlay)
 # instances picked by x position instead of the last one found (probes of one specific enemy)
 XVT_PICK = {'turr': 1233}   # others = PlayerOthers_126 (invulnerability timer E, RE)
 # HUD counters (Counter::set: value double @+0xa0, min int @+0xa8, max int @+0xac)

@@ -68,3 +68,17 @@ int floor_probe(const level_t *l, float fx, float fy0, float maxdist, int oneway
     }
     return 1;
 }
+
+/* RE Frame::test_ladder(x, y) (0xa38400): the first background collider at that pixel is a ladder
+ * (collision flag bit 1). Ladder pieces (backdrop field 0xac = 11) are whole-rectangle colliders that the
+ * movement sensors never see as solid. In the Dragon Valley acts no ladder overlaps a solid piece, so
+ * this is a point-in-ladder-rectangle test (build/re/spec_ladder.md). */
+int level_test_ladder(int x, int y) {
+    const level_t *l = &G.lvl;
+    if (x < 0 || y < 0 || x > l->w || y > l->h) return 0;
+    for (int i = 0; i < l->npieces; i++) {
+        const piece_t *p = &l->pieces[i];
+        if (p->col == COL_LADDER && x >= p->x && x < p->x + p->w && y >= p->y && y < p->y + p->h) return 1;
+    }
+    return 0;
+}

@@ -9,7 +9,10 @@
 #include "../fp.h"
 
 enum { ST_NORMAL, ST_ATTACK, ST_CYCLONE, ST_CHARGE, ST_BOOST, ST_HURT, ST_DEAD,
-       ST_UPPERCUT, ST_DKWIND, ST_DIVEKICK, ST_CROUCHATK, ST_HANG };
+       ST_UPPERCUT, ST_DKWIND, ST_DIVEKICK, ST_CROUCHATK, ST_HANG,
+       ST_PUSH,        /* M11: pushing against a wall (events 1752/1753, group 1873-1881) */
+       ST_LADDER,      /* M46: on a ladder (1926-1950, 4043-4047) */
+       ST_LADDERIN };  /* M25: climbing down into a ladder from its top (4058, 1888-1890) */
 
 #define HALF_W   7.
 #define BODY_H   30.
@@ -17,10 +20,12 @@ enum { ST_NORMAL, ST_ATTACK, ST_CYCLONE, ST_CHARGE, ST_BOOST, ST_HURT, ST_DEAD,
 #define MAX_HP   14      /* RV: petal counter max 14 half-petals = 7 petals (GUIRings_125 Counter max) */
 
 enum { A_IDLE, A_WALK, A_RUN, A_FASTRUN, A_JUMP, A_LOOKUP, A_CROUCH, A_SKID, A_ATTACK, A_AIRATK,
-       A_UPPERCUT, A_DKWIND, A_DIVEKICK, A_CYCLONE, A_CHARGE, A_BOOST, A_HURT, A_DEFEAT, A_CROUCHATK, A_SPRING, A_HANG, A_COUNT };
+       A_UPPERCUT, A_DKWIND, A_DIVEKICK, A_CYCLONE, A_CHARGE, A_BOOST, A_HURT, A_DEFEAT, A_CROUCHATK, A_SPRING, A_HANG,
+       A_PUSH, A_CLIMB, A_CLIMBDOWN, A_CLIMBOVER, A_CATCH, A_COUNT };
 /* names = tools/import_frame.py LILAC (runtime-verified playerskinsash_341 animation numbers) */
 static const char *anim_names[A_COUNT] = { "idle", "walk", "run", "fastrun", "jump", "lookup", "crouch",
-    "skid", "attack", "airatk", "uppercut", "dkwind", "divekick", "cyclone", "charge", "boost", "hurt", "defeat", "crouchatk", "spring", "hang" };
+    "skid", "attack", "airatk", "uppercut", "dkwind", "divekick", "cyclone", "charge", "boost", "hurt", "defeat", "crouchatk", "spring", "hang",
+    "push", "climb", "climbdown", "climbover", "catch" };
 static int anim_r[A_COUNT], anim_l[A_COUNT], hair_r[A_COUNT], hair_l[A_COUNT];
 static int cur_anim = -1;
 static animator_t hair;          /* PlayerSkinSashHair_424: follows the skin's animation id (RV) */
@@ -40,6 +45,7 @@ static struct { int on, t; float a1x, a1y, a3x, a3y; double d1, d3; animator_t a
 static int A_FX_RING = -1, A_FX_SPK = -1, A_FX_SPK5 = -1;
 static uint32_t fx_seed = 1;
 static int fx_rand(int n) { fx_seed = fx_seed * 0x343fdu + 0x269ec3u; return (int)((((fx_seed >> 16) & 0x7fff) * (uint32_t)n) >> 15); }
+int cross_rand(int n) { return fx_rand(n); }    /* the original's single cross_seed LCG is shared by effects and enemies */
 static void pfx_spawn(float x, float y, int anim) {
     if (anim < 0) return;
     for (int i = 0; i < NPFX; i++)
@@ -50,11 +56,17 @@ static void pfx_reset(void) {
     A_FX_RING = bank_anim(&G.objs, "ringsparkle"); A_FX_SPK = bank_anim(&G.objs, "sparkle1"); A_FX_SPK5 = bank_anim(&G.objs, "sparkle5");
 }
 
+/* left-facing animations whose images are exact mirrors are not in the banks (tools/import_frame.py):
+ * the right-facing one is drawn flipped (anim_l = -1 marks that) */
+static int draw_flip, hair_flip;
 static void set_anim(player_t *p, int a) {
-    int idx = p->face < 0 ? anim_l[a] : anim_r[a];
+    int left = p->face < 0;
+    int idx = left && anim_l[a] >= 0 ? anim_l[a] : anim_r[a];
+    draw_flip = left && anim_l[a] < 0;
     cur_anim = a;
     anim_set(&p->an, &G.lilac, idx);
-    int h = p->face < 0 ? hair_l[a] : hair_r[a];
+    int h = left && hair_l[a] >= 0 ? hair_l[a] : hair_r[a];
+    hair_flip = left && hair_l[a] < 0;
     if (h >= 0) anim_set(&hair, &G.hair, h); else hair.b = NULL;
 }
 
@@ -68,10 +80,10 @@ void player_reset(player_t *p, double x, double y) {
             snprintf(nm, sizeof nm, "%s_l", anim_names[i]);
             anim_l[i] = bank_anim(&G.lilac, nm);
             if (anim_r[i] < 0) { plat_log("lilac anim %s missing\n", anim_names[i]); anim_r[i] = 0; }
-            if (anim_l[i] < 0) anim_l[i] = anim_r[i];
+            /* (anim_l < 0: drawn as the mirrored right-facing animation) */
             snprintf(nm, sizeof nm, "h_%s", anim_names[i]); hair_r[i] = G.hair.nanims ? bank_anim(&G.hair, nm) : -1;
             snprintf(nm, sizeof nm, "h_%s_l", anim_names[i]); hair_l[i] = G.hair.nanims ? bank_anim(&G.hair, nm) : -1;
-            if (hair_l[i] < 0) hair_l[i] = hair_r[i];
+            /* (hair_l < 0: mirrored) */
         }
     }
     int crystals = p->crystals, lives = p->lives;
@@ -149,6 +161,20 @@ static void slope_force(player_t *p) {
     else if (p->gsp != 0) p->gsp = p->gsp - PHYS_SLOPE * o_sin(n) * 0.38;
 }
 
+int player_contact_safe(const player_t *p) {
+    /* RE 2731: no contact damage with movement Z = 1 (M5 charge/boost, ...), in M20/M21/M26 (attack,
+     * uppercut, cyclone), or while invulnerable (PlayerOthers.E > 0) */
+    return player_invincible(p) || p->state == ST_CHARGE || p->state == ST_BOOST || p->state == ST_ATTACK ||
+           p->state == ST_UPPERCUT || p->state == ST_CYCLONE || p->state == ST_DEAD;
+}
+int player_attack_kind(const player_t *p) {
+    if (p->state == ST_ATTACK && p->ground) return 1;
+    if (p->state == ST_CHARGE || p->state == ST_BOOST || p->state == ST_DIVEKICK || p->state == ST_DKWIND) return 2;
+    if (p->state == ST_ATTACK || p->state == ST_UPPERCUT || p->state == ST_CYCLONE) return 2;
+    return 0;
+}
+void player_hitstop(player_t *p, int k) { p->hitstop = k; }
+void player_contact(player_t *p, int damage) { if (!p->hurt_pending) p->hurt_pending = damage; }
 void player_bounce(player_t *p, double vy) { if (!p->ground && p->vy > 0) p->vy = vy; }
 
 /* RV (spring_yellow_up / _upleft): on contact the feet snap to the spring top and the speed is set
@@ -530,6 +556,121 @@ static void fx_draw(void) {
         }
 }
 
+/* ---- ladders (RE: build/re/spec_ladder.md; original traces ladder_*) ------------------------------
+ * LadderTop_428 objects sit at the top of every ladder (x = ladder centre, y = top piece y + 23). */
+static int lt_find(double X, double Y, int fast) {
+    for (int i = 0; i < G.nobjs; i++) {
+        const obj_t *o = &G.o[i];
+        if (!o->alive || o->type != OT_LADDERTOP) continue;
+        double lx = floor(o->x), ly = floor(o->y);
+        if (!(ly < Y)) continue;
+        if (fast ? (X - 25 < lx && lx < X) : (X - 15 < lx && lx < X + 15)) return i;
+    }
+    return -1;
+}
+
+/* the grabs run last in the frame (4057 slow, 4058 from the top, 4059/4060 fast); not when hurt or dead */
+static void ladder_grabs(player_t *p, const input_t *in) {
+    if (p->state == ST_HURT || p->state == ST_DEAD) return;
+    double X = p->x, Y = p->y - ORIG_REF_DY, b = p->ground ? p->gsp : p->vx;
+    int up = (in->held & BTN_UP) && !(in->held & BTN_DOWN), down = (in->held & BTN_DOWN) && !(in->held & BTN_UP);
+    int i;
+    if (up && fabs(b) < 4 && (i = lt_find(X, Y, 0)) >= 0 && level_test_ladder((int)X, (int)Y)) {          /* 4057 */
+        if (p->state != ST_LADDER) { p->lad_first = 1; p->lad_o = 0; }
+        p->state = ST_LADDER; p->lad_y = 27; p->x = floor(G.o[i].x);
+    }
+    if (down && fabs(b) < 4 && p->state != ST_LADDER && (i = mv_sensor_obj(X, Y, p->N, SENSOR_BOTTOMBIG, OT_LADDERTOP)) >= 0) {  /* 4058 */
+        if (p->state != ST_LADDERIN) p->lad_first = 1;
+        p->state = ST_LADDERIN; p->lad_y = 28; p->lad_o = 0; p->lad_lt = i;
+        p->x = floor(G.o[i].x); p->y = floor(G.o[i].y) + 8 + ORIG_REF_DY;
+        G.cam.M4 = 1;
+    }
+    if (up && (b >= 4 || b <= -4) && (i = lt_find(X, Y, 1)) >= 0 && level_test_ladder((int)X, (int)Y)) {  /* 4059 / 4060 */
+        if (p->state != ST_LADDER) { p->lad_first = 1; p->lad_o = 0; }
+        p->state = ST_LADDER; p->lad_y = 47; p->x = floor(G.o[i].x); p->face = b > 0 ? 1 : -1;
+    }
+}
+
+/* one frame on the ladder (M46 group, in event order) */
+static void ladder_frame(player_t *p, const input_t *in) {
+    int up_h = !!(in->held & BTN_UP), down_h = !!(in->held & BTN_DOWN);
+    int up = up_h && !down_h, down = down_h && !up_h;
+    if (p->lad_y == 47 && p->an.done) p->lad_y = 27;                   /* 1928: catch animation finished */
+    if (p->lad_first) {
+        /* the frame after a grab still runs the normal movement (T and U are cleared by 1930 later) */
+        p->lad_first = 0;
+        if (p->ground) ground_move(p, in, 1, 1); else air_move(p, in, 1, PHYS_GRAV);
+    } else {
+        player_sync_sensors(p);                                     /* 4040: all sensors at the position */
+        int L = p->ground; p->ground = 0; horiz_accel(p, in, 1, 0); p->ground = L;   /* speed events (S = 1; T = 0: no move) */
+        if (!p->ground) p->vy += PHYS_GRAV;                         /* 1647 */
+        else p->vy = 0;                                             /* 1651 */
+    }
+    double *b = p->ground ? &p->gsp : &p->vx;
+    int busy = p->lad_y == 47 || p->lad_y == 28;
+    if (!busy) {
+        if (*b > 4) *b = 4;
+        if (*b < -4) *b = -4;                                       /* 1933 */
+        if (!(in->held & (BTN_LEFT | BTN_RIGHT))) *b = 0;           /* 1934 */
+    }
+    double X = p->x, Y = p->y - ORIG_REF_DY;
+    int top = mv_z(SENSOR_TOPBIG);
+    int bot = mv_sensor_obj(X, Y, p->N, SENSOR_BOTTOMBIG, OT_LADDERTOP);   /* placed before this frame's Y += G */
+    if (!busy) {
+        if ((!up_h && !down_h) || (up && top)) p->vy = 0;           /* 1935 */
+        if (up && !top && bot < 0) { p->vy = -2; p->lad_y = 27; }   /* 1936 */
+        if (down) { p->vy = 2; p->lad_y = 29; }                     /* 1937 */
+        p->y += p->vy;                                              /* 4043 */
+    }
+    if (bot >= 0 && up_h && !busy) { p->lad_y = 28; p->lad_lt = bot; p->lad_o = 0; }   /* 4044 */
+    if (p->lad_y == 28) p->lad_o++;                                 /* 1946 */
+    if (p->lad_o > 7 && p->lad_y == 28) {                           /* 4045: over the top */
+        p->state = ST_NORMAL; p->vy = 0;
+        p->y = floor(G.o[p->lad_lt].y) - 36 + ORIG_REF_DY;
+        G.cam.H += 24.f; p->lad_y = 0; p->lad_o = 0;
+    }
+    if (!level_test_ladder((int)p->x, (int)(p->y - ORIG_REF_DY))) {  /* 4046: off the ladder */
+        p->state = ST_NORMAL; p->vy = 0; p->lad_y = 40; p->ground = 0; return;
+    }
+    if (p->state == ST_LADDER && !busy && (in->pressed & BTN_JUMP)) {
+        p->state = ST_NORMAL; p->lad_y = 40;
+        if (down_h) p->vy = 0;                                      /* 4047: drop */
+        else { p->vy = -4; p->jumping = 0; }                        /* 1950: jump off, B kept */
+    }
+    p->ground = 0;
+}
+
+/* M25: down into the ladder from its top (the 4058 frame + 8 frames) */
+static void ladderin_frame(player_t *p, const input_t *in) {
+    if (p->lad_first) {
+        /* the frame after 4058 still moves normally (the ground loops lift her out of the LadderTop), then
+         * 4058 fires again with the sensor overlap of the previous position (RV ladder_top_enter: Y 199 ->
+         * 185 -> 199): snap back and restart the count */
+        p->lad_first = 0; if (p->ground) ground_move(p, in, 0, 1); else air_move(p, in, 0, PHYS_GRAV);
+        p->lad_o = -1; p->lad_y = 28;                               /* snap back on the next frame */
+        return;
+    } else if (p->lad_o == -1) {
+        /* RV (ladder_top_enter): the second M25 frame puts her back at LT.y + 8, leaves the ground and the
+         * count restarts (the original's 4058 refires; the overlap that triggers it is not reproduced) */
+        p->y = floor(G.o[p->lad_lt].y) + 8 + ORIG_REF_DY; p->ground = 0; p->vy += PHYS_GRAV;
+        p->lad_o = 0; p->lad_y = 28; return;
+    }
+    else {
+        player_sync_sensors(p);
+        if (p->ground && !mv_z(SENSOR_BOTTOMBIG)) p->ground = 0;   /* 1610 */
+        if (!p->ground) p->vy += PHYS_GRAV; else p->vy = 0;
+    }
+    p->lad_y = 28;                                                  /* 1888 */
+    p->lad_o++;                                                     /* 1889 */
+    if (p->lad_o > 7) { p->state = ST_LADDER; p->lad_y = 27; p->lad_o = 0; G.cam.M4 = 0; }   /* 1890 */
+}
+
+/* M11 pushing (1752/1753 enter; 1875-1881 and 2322 leave). Normal ground physics stay on (S = 1). */
+static int push_wants(const player_t *p, const input_t *in) {
+    if (!p->ground || fabs(p->vy) >= 0.2) return 0;
+    return ((in->held & BTN_RIGHT) && mv_sensor_right_big()) || ((in->held & BTN_LEFT) && mv_sensor_left_big());
+}
+
 void player_update(player_t *p, const input_t *in) {
     double x_start = p->x;
     int st0 = p->state;
@@ -558,6 +699,7 @@ void player_update(player_t *p, const input_t *in) {
         if (!p->ground && p->vy > PHYS_MAXFALL) p->vy = PHYS_MAXFALL;
     }
 
+    if (p->hitstop > 0) { p->hitstop--; if (p->hitstop > 0) return; }   /* 1654/1655: frozen while K > 0 (K = 5 -> 4 frames) */
     if (p->state == ST_DEAD) {
         p->vy += PHYS_GRAV; p->y += p->vy;
         set_anim(p, A_DEFEAT); anim_tick(&p->an, -1); if (hair.b) anim_tick(&hair, -1);
@@ -588,6 +730,7 @@ void player_update(player_t *p, const input_t *in) {
             /* RV: with Down held (no direction) Lilac drops into a crouch once speed falls below 2
              * (down_kick: B 2.05 -> 0, M3 on the frame friction would take it under 2) */
             if (p->ground && (in->held & BTN_DOWN) && !(in->held & (BTN_LEFT | BTN_RIGHT)) && fabs(p->gsp) < PHYS_LOWSPD) p->gsp = 0;
+            if (p->state == ST_NORMAL && push_wants(p, in)) { set_state(p, ST_PUSH); p->face = (in->held & BTN_RIGHT) ? 1 : -1; }   /* 1752/1753 */
         } else {
             int act = air_action_wanted(p, in);
             air_move(p, in, 1, PHYS_GRAV);
@@ -677,6 +820,15 @@ void player_update(player_t *p, const input_t *in) {
         ground_move(p, in, 0, 1);
         if (p->state_t >= PHYS_CROUCHATK_T) p->state = ST_NORMAL;
         break;
+    case ST_PUSH:     /* M11: normal ground physics; jump (1881); attack -> M0 (2322); leave per 1875-1880 */
+        if (in->pressed & BTN_JUMP) { ground_move(p, in, 1, 1); if (p->ground) { jump(p); p->state = ST_NORMAL; } break; }
+        if (in->pressed & BTN_ATTACK) { p->state = ST_NORMAL; ground_move(p, in, 1, 1); break; }
+        ground_move(p, in, 1, 1);
+        if (!p->ground || p->gsp != 0) { p->state = ST_NORMAL; break; }                       /* 1875 / 1876 */
+        if (!(((in->held & BTN_RIGHT) && mv_sensor_right_big()) || ((in->held & BTN_LEFT) && mv_sensor_left_big()))) p->state = ST_NORMAL;   /* 1877-1880 */
+        break;
+    case ST_LADDER: ladder_frame(p, in); break;
+    case ST_LADDERIN: ladderin_frame(p, in); break;
     case ST_CHARGE:   /* RE: M5 (charge, OTHERS.N < 30) and the boost: movement + speed rules here, */
     case ST_BOOST:    /* the M5 group (timer, direction latch, fire, drain, end) after the edge clamp */
         p->m5_bounced = 0;
@@ -693,6 +845,8 @@ void player_update(player_t *p, const input_t *in) {
     /* the M5 group starts the frame after the entry (1686 runs before the entry events 1760-1895) */
     if ((p->state == ST_CHARGE || p->state == ST_BOOST) && (st0 == ST_CHARGE || st0 == ST_BOOST)) m5_group(p, in);
     else if (p->m5_bounced) { p->m5_bounced = 0; p->energy = fmax(0., p->energy - PHYS_ENERGY_DRAIN); if (p->invuln < 30) p->invuln = 30; }  /* 1637/1639: the group still runs that frame */
+    if (p->hurt_pending) { int d = p->hurt_pending; p->hurt_pending = 0; player_damage(p, d); }   /* 2414 (after the movement block) */
+    ladder_grabs(p, in);                           /* 4057-4060 run last */
     if (p->state != ST_DEAD && p->y > G.lvl.h + 64) {
         p->hp = 0; p->state = ST_DEAD; p->dead_t = 40; p->vy = 0;
         snd_play(G.sfx.hurt, 220, 128);
@@ -727,6 +881,13 @@ void player_update(player_t *p, const input_t *in) {
     case ST_CHARGE: a = A_CHARGE; break;
     case ST_BOOST: a = A_BOOST; break;
     case ST_HURT: a = A_HURT; break;
+    case ST_PUSH: a = A_PUSH; break;
+    case ST_LADDERIN: a = A_CLIMBOVER; break;
+    case ST_LADDER:   /* 2456-2467; 2497: climb speed int(|G| * 10) (frozen when still) */
+        if (p->lad_y == 28) a = A_CLIMBOVER;
+        else if (p->lad_y == 47) { a = A_CATCH; restart = 1; }
+        else { a = p->lad_y == 29 ? A_CLIMBDOWN : A_CLIMB; speed = (int)(fabs(p->vy) * 10); }
+        break;
     default:
         if (p->ground) {
             double s = fabs(p->gsp);
@@ -739,7 +900,7 @@ void player_update(player_t *p, const input_t *in) {
             else { a = A_FASTRUN; speed = 35 + (int)s; }
         } else a = (p->springing && p->vy < 0) ? A_SPRING : A_JUMP;
     }
-    if (restart) { if (cur_anim != a || p->state_t == 1) { set_anim(p, a); anim_restart(&p->an); if (hair.b) anim_restart(&hair); } }
+    if (restart) { if (cur_anim != a || (p->state_t == 1 && a != A_CATCH)) { set_anim(p, a); anim_restart(&p->an); if (hair.b) anim_restart(&hair); } }
     else set_anim(p, a);
     anim_tick(&p->an, speed);
     if (hair.b) anim_tick(&hair, speed);
@@ -749,10 +910,10 @@ void player_update(player_t *p, const input_t *in) {
 void player_draw(const player_t *p) {
     if (p->invuln && !p->invinc && !spk.on && (p->invuln & 4) && p->state != ST_HURT) { fx_draw(); return; }   /* invincibility: no blink (INFERRED) */
     /* the sprite hotspot (= rotation centre) is the movement object's position: p->y - ORIG_REF_DY */
-    if (hair.b) frame_draw_rot(&G.hair, anim_frame(&hair), floor(p->x - G.camx), floor(p->y - ORIG_REF_DY - G.camy), p->rot, 0xffffffff);
+    if (hair.b) frame_draw_rot(&G.hair, anim_frame(&hair), floor(p->x - G.camx), floor(p->y - ORIG_REF_DY - G.camy), p->rot, hair_flip, 0xffffffff);
     const frame_t *f = anim_frame(&p->an);
     double hxp = p->x, hyp = p->y - ORIG_REF_DY;   /* RE 1517: the skin sits at (int X, int Y) */
-    frame_draw_rot(&G.lilac, f, floor(hxp - G.camx), floor(hyp - G.camy), p->rot, 0xffffffff);
+    frame_draw_rot(&G.lilac, f, floor(hxp - G.camx), floor(hyp - G.camy), p->rot, draw_flip, 0xffffffff);
     fx_draw();
 }
 

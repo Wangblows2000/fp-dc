@@ -9,6 +9,7 @@
 static int A_EXPLODE = -1;
 /* recovered sequences (tools/import_frame.py) */
 static int A_TURR[6] = { -1, -1, -1, -1, -1, -1 };   /* idle, idle_l, shoot, shoot_l, off, off_l */
+static int A_GAN[10] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };   /* Ganseki: pose, walk, dead, curl, wake; even = right, odd = left */
 static int A_PELLET = -1, A_EXPLODE2 = -1, A_SPARKLE = -1, A_HEART = -1, A_CRYSTAL = -1, A_PETAL = -1;
 
 static obj_t *alloc_obj(void) {
@@ -17,18 +18,23 @@ static obj_t *alloc_obj(void) {
     return NULL;
 }
 
+static int A_LOG = -1;
+static int plat_type(int t) { return t == OT_PLAT_VALLEY || t == OT_PLAT_MOVE2 || t == OT_PLAT_MOVE3; }
 void objects_spawn(void) {
     A_EXPLODE = bank_anim(&G.objs, "explosion");
     { static const char *tn[6] = { "turr_idle", "turr_idle_l", "turr_shoot", "turr_shoot_l", "turr_off", "turr_off_l" };
       for (int i = 0; i < 6; i++) A_TURR[i] = bank_anim(&G.objs, tn[i]); }
     A_PELLET = bank_anim(&G.objs, "pellet"); A_EXPLODE2 = bank_anim(&G.objs, "explosion02");
+    { static const char *gn[10] = { "gan_pose", "gan_pose_l", "gan_walk", "gan_walk_l", "gan_dead", "gan_dead_l", "gan_curl", "gan_curl_l", "gan_wake", "gan_wake_l" };
+      for (int i = 0; i < 10; i++) A_GAN[i] = bank_anim(&G.objs, gn[i]); }
     A_SPARKLE = bank_anim(&G.objs, "ringsparkle"); A_HEART = bank_anim(&G.objs, "heart");
     A_CRYSTAL = bank_anim(&G.objs, "objectcrystal_3"); A_PETAL = bank_anim(&G.objs, "objectpetal_355");
     memset(G.o, 0, sizeof G.o);
     G.nobjs = 0;
+    for (int i = 0; i < G.lvl.nobj; i++) if (G.lvl.objs[i].type == OT_LOG && G.lvl.objs[i].anim != 0xffff) A_LOG = G.lvl.objs[i].anim;
     for (int i = 0; i < G.lvl.nobj; i++) {
         const lvobj_t *lo = &G.lvl.objs[i];
-        if (lo->type == OT_START || lo->type >= OT_PARALLAX) continue;
+        if (lo->type == OT_START || (lo->type >= OT_PARALLAX && lo->type < OT_PARALLAX + 8)) continue;   /* parallax pieces 20-27 are drawn by the level */
         obj_t *o = alloc_obj();
         if (!o) { plat_log("object limit reached\n"); break; }
         o->type = lo->type; o->alive = 1; o->hp = 1;
@@ -37,6 +43,199 @@ void objects_spawn(void) {
         if (lo->anim != 0xffff && lo->anim < G.objs.nanims) anim_set(&o->an, &G.objs, lo->anim);
         else o->an.b = NULL;
         if (o->type == OT_TURRETUS) { o->hp = 2; o->st = 0; o->tm = 0; o->dir = 14; }   /* RE: created with direction 14 */
+        if (plat_type(o->type)) { o->vx = 0; o->vy = 0; o->fx = o->oy; o->fl = 0; }   /* 3565: I = X, J = Y */
+        if (o->type == OT_LOG) { o->alive = 0; continue; }       /* the template log (placed off-screen) */
+        if (o->type == OT_GANSEKI) {                   /* RE create_enemygansekijr_835: anim 0, direction 14 (left set), A = 8, B = 5 */
+            o->hp = 8; o->fy = 0; o->st = 0; o->tm = 0; o->dir = 14; o->flip = 1; o->vy = 0; o->ox = o->oy = 0; o->c = 0; o->fl = 0;
+            if (A_GAN[1] >= 0) anim_set(&o->an, &G.objs, A_GAN[1]);
+        }
+    }
+    /* 3566 / 3567: 12 logs per bridge at (bx + 16k, by + 56), A = k, B = base y */
+    int nb = G.nobjs;
+    for (int b = 0; b < nb; b++) {
+        if (!G.o[b].alive || G.o[b].type != OT_BRIDGE) continue;
+        for (int k = 11; k >= 0; k--) {
+            obj_t *lg = alloc_obj();
+            if (!lg) break;
+            lg->type = OT_LOG; lg->alive = 1; lg->hp = 1; lg->par = b; lg->dir = k;
+            lg->x = lg->ox = G.o[b].x + 16 * k; lg->y = lg->oy = G.o[b].y + 56;
+            if (A_LOG >= 0) anim_set(&lg->an, &G.objs, A_LOG);
+        }
+    }
+}
+
+
+/* ---- platforms and bridges (RE build/re/spec_platforms.md): all before Lilac's movement -------------
+ * Valley1 / Moving2 / Moving3: X fixed, Y = floor(J + G sin E), E += F degrees per frame; dip S (ease to 9
+ * while stood on, decay x0.8 otherwise); one-way flags 0/6 (4737/4738); carry 4061.
+ * Fields: ox, oy = I, J; vx = E; vy = S; fx = last N; fl bit 0/6 one-way, bit 2 stood on.
+ * Bridge logs: dir = A (index), oy = B (base y), fx = C (target), fy = D (current sag). */
+static double p_sin(double n) { return n == 180. ? 0. : sin(n / 57.29577951); }
+static void plat_params(int t, double *F, double *Gm) {
+    if (t == OT_PLAT_MOVE2) { *F = 2; *Gm = 120; } else if (t == OT_PLAT_MOVE3) { *F = 1; *Gm = 100; } else { *F = 1; *Gm = 10; }
+}
+static int box_hits_disc27(float bx, float by, float bw, float bh, int px, int py) {   /* Player_326: 27-px disc at (int X, int Y) */
+    float cx = fmaxf(bx, fminf((float)px, bx + bw - 1)), cy = fmaxf(by, fminf((float)py, by + bh - 1));
+    float dx = cx - px, dy = cy - py;
+    return dx * dx + dy * dy <= 13.5f * 13.5f;
+}
+/* comparison harness: the original's platforms have run n frames before its trace frame 0 */
+void objects_plat_pretick(int n) {
+    for (int i = 0; i < G.nobjs; i++) {
+        obj_t *o = &G.o[i];
+        if (!o->alive || !plat_type(o->type)) continue;
+        double F, Gm; plat_params(o->type, &F, &Gm);
+        o->vx = (float)fmod(o->vx + F * n, 360.);
+        double N = o->oy + Gm * p_sin(o->vx);
+        o->fx = (float)N; o->y = (float)floor(N);
+    }
+}
+void objects_platforms(player_t *p) {
+    double MY = p->y - ORIG_REF_DY;
+    int PX = (int)p->x, PY = (int)MY;
+    for (int i = 0; i < G.nobjs; i++) {
+        obj_t *o = &G.o[i];
+        if (!o->alive || !plat_type(o->type)) continue;
+        double F, Gm; plat_params(o->type, &F, &Gm);
+        o->y -= floorf(o->vy);                                    /* 3270 */
+        if (!(o->fl & 4)) o->vy -= o->vy * 0.2f;                   /* 3271 */
+        o->fl &= ~4;                                              /* 3272 */
+        double L = o->fx;                                         /* 3283: L = N */
+        o->vx = (float)fmod(o->vx + F, 360.);
+        double N = o->oy + Gm * p_sin(o->vx);                     /* 3287 (H = 1) */
+        o->dir = (int)(floor(N) - floor(L));                      /* 3288: P */
+        o->fx = (float)N;
+        o->y = (float)floor(N);                                   /* 2989 */
+    }
+    /* 4061: carry / snap onto a moving platform (G >= 0, BottomBig 1 px lower, flag 6 of last frame off) */
+    if (p->vy >= 0 || p->ground) {
+        for (int t = OT_PLAT_VALLEY; t <= OT_PLAT_MOVE3; t++) {
+            int k = mv_sensor_obj(p->x, MY + 1, p->N, SENSOR_BOTTOMBIG, t);
+            if (k < 0 || (G.o[k].fl & 0x40)) continue;
+            p->y += G.o[k].dir; MY = p->y - ORIG_REF_DY;
+            if (!p->ground) { p->gsp = p->vx; p->ground = 1; }   /* L = 1; B kept (no landing conversion) */
+            p->vy = 0; p->N = 0; p->O = 0;
+            player_sync_sensors(p);
+            PY = (int)MY;
+            break;
+        }
+    }
+    for (int i = 0; i < G.nobjs; i++) {                           /* 4737 / 4738 */
+        obj_t *o = &G.o[i];
+        if (!o->alive || !plat_type(o->type)) continue;
+        o->fl &= ~0x41;
+        if (o->y < PY) o->fl |= 0x41;
+    }
+    /* bridges: 3294-3300 */
+    for (int b = 0; b < G.nobjs; b++) {
+        obj_t *br = &G.o[b];
+        if (!br->alive || br->type != OT_BRIDGE) continue;
+        float bx = floorf(br->x), by = floorf(br->y);
+        int over = box_hits_disc27(bx, by, 192, 128, PX, PY);
+        for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == OT_LOG && G.o[i].par == b) G.o[i].fx = 0;   /* 3294 */
+        if (p->ground && over) {                                  /* 3295-3297 */
+            int dx = PX - (int)bx, idx = abs(dx) >> 4; if (idx > 192) idx = 192;
+            int a2 = 12 - idx;
+            double depth = 16.0 * fmax(0.0, 1.0 - fabs((dx - 96) / 96.0));
+            double C = 0, E = 180, D = idx ? 90.0 / idx : 0, Fv = a2 ? 90.0 / a2 : 0;
+            for (int n = 0; n < a2; n++) {
+                for (int i = 0; i < G.nobjs; i++) { obj_t *lg = &G.o[i]; if (lg->alive && lg->type == OT_LOG && lg->par == b && lg->dir == 11 - n) lg->fx = (float)(depth * p_sin(E)); }
+                E -= Fv;
+            }
+            for (int n = 0; n < idx; n++) {
+                for (int i = 0; i < G.nobjs; i++) { obj_t *lg = &G.o[i]; if (lg->alive && lg->type == OT_LOG && lg->par == b && lg->dir == n) lg->fx = (float)(depth * p_sin(180 - C)); }
+                C += D;
+            }
+        }
+        for (int i = 0; i < G.nobjs; i++) {
+            obj_t *lg = &G.o[i];
+            if (!lg->alive || lg->type != OT_LOG || lg->par != b) continue;
+            lg->fy += (lg->fx - lg->fy) * 0.2f;                   /* 3298 */
+            if (over) lg->y = (float)(int)(lg->oy + lg->fy);      /* 3300 */
+        }
+    }
+    /* 3303 / 3304 / 3307: dip while stood on */
+    for (int i = 0; i < G.nobjs; i++) {
+        obj_t *o = &G.o[i];
+        if (!o->alive || !plat_type(o->type)) continue;
+        if (p->ground && mv_sensor_obj(p->x, MY, p->N, SENSOR_BOTTOMBIG, o->type) == i) o->fl |= 4;
+        if (o->fl & 4) o->vy += (9 - o->vy) * 0.2f;
+        o->y += floorf(o->vy);
+    }
+}
+
+/* ---- Ganseki Jr. (EnemyGansekiJr_835): events 4376-4392 + the shared enemy events 2731, 2740-2767
+ * (build/re/spec_ganseki.md). D = st, F = tm, G = fx, E = vy, C = c, A = hp. 48x48 images, hotspot
+ * (23, 36) facing right / (24, 36) left: feet at Y + 12. */
+enum { GAN_POSE, GAN_WALK, GAN_DEAD, GAN_CURL, GAN_WAKE };
+#define GAN_ARMOURED 0x20
+#define GAN_DEFEATED 0x40
+static int gan_solid(float x, float y) { return px_solid(&G.lvl, (int)floorf(x), (int)floorf(y)); }   /* Frame::test_obstacle (background, not platforms) */
+static void gan_anim(obj_t *o, int k) {             /* force_animation in the current facing; counter kept */
+    int a = A_GAN[2 * k + (o->flip ? 1 : 0)];
+    if (a < 0) return;
+    if (o->an.anim != a || o->an.b != &G.objs) { int acc = o->an.acc; anim_set(&o->an, &G.objs, a); o->an.acc = acc; }
+}
+static void gan_face(obj_t *o, const player_t *p) {  /* direction (int)(atan2 deg / 11.25); 8 / 24 keep the image */
+    double py = p->y - ORIG_REF_DY;
+    double a = atan2(o->y - py, p->x - o->x) * 57.29577951; if (a < 0) a += 360;
+    int d = (int)(a / 11.25) & 31;
+    if (d == 8 || d == 24) return;
+    int left = d > 8 && d < 24;
+    if (left != o->flip) { o->flip = left; int k = o->an.anim; for (int i = 0; i < 10; i++) if (A_GAN[i] == k) { gan_anim(o, i / 2); break; } }
+}
+static int gan_near_view(const obj_t *o) {          /* !is_near_border(-50): the box inside the view grown by 50 */
+    float hx = o->flip ? 24.f : 23.f, x0 = o->x - hx, y0 = o->y - 36;
+    return x0 >= G.camx - 50 && x0 + 48 <= G.camx + SCREEN_W + 50 && y0 >= G.camy - 50 && y0 + 48 <= G.camy + SCREEN_H + 50;
+}
+static void ganseki_events(obj_t *o, player_t *p, int touch, int hit) {
+    int def = (o->fl & GAN_DEFEATED) != 0;
+    int waking = o->an.anim == A_GAN[2 * GAN_WAKE] || o->an.anim == A_GAN[2 * GAN_WAKE + 1];
+    if (!def && o->st == 1 && waking && o->an.done) {                    /* 4381: wake animation finished */
+        o->fx = (float)p->x; gan_face(o, p); gan_anim(o, GAN_WALK); waking = 0;
+    }
+    /* 2731: contact (Lilac's character sensor), damage B = 5 through the hurt event */
+    if (touch && !def && o->c <= 0 && !player_contact_safe(p) && !p->hurt_pending) player_contact(p, 5);
+    /* attacks (2740 ground attack: 4 + |B|/10; body hits with Z = 1: |B|/5 + 3); armoured: deflect, sound 30 */
+    if (hit && !def && o->c <= 0) {
+        int kind = player_attack_kind(p);
+        double b = p->ground ? p->gsp : p->vx;
+        if (o->fl & GAN_ARMOURED) { o->c = 5; snd_play_orig(30, 220, 128); player_hitstop(p, 5); }
+        else if (kind) {
+            double dmg = kind == 1 ? 4.0 + fabs(b) / 10.0 : fabs(b) / 5.0 + 3.0;
+            o->fy -= (float)dmg;                                    /* A (HP) kept as a double in fy offset */
+            if (8.f + o->fy <= 0) o->hp = 0;
+            o->c = 5; snd_play_orig(24, 220, 128); player_hitstop(p, 5);
+            o->ox = (float)(fmax(3.0, fabs(1.5 * b)) * p->face);    /* knock-back X/Y, used after death (2765) */
+            o->oy = (float)(0.5 * (p->ground ? 0. : p->vy));
+        }
+    }
+    if (!def && o->c > 0) o->c--;                                        /* 2762 */
+    if (!def && o->hp <= 0) {                                            /* 2764 + 4387/4388 */
+        snd_play_orig(23, 220, 128); o->fl |= GAN_DEFEATED; o->hp = 0; o->y -= 3; o->st = 3; gan_anim(o, GAN_DEAD); def = 1;
+        G.kills++;
+    }
+    if (def) {                                                           /* 2765 / 2767 / 4389 */
+        o->x = (float)(int)(o->x + o->ox); o->y = (float)(int)(o->y + o->oy);
+        o->oy = fminf(o->oy + 0.25f, 15.f);
+        if (o->y > G.camy + 290 || o->x < 0 || o->x > G.lvl.w || o->y > G.lvl.h + 64) o->alive = 0;
+        return;
+    }
+    int near = gan_near_view(o);
+    if (near) {
+        if (!gan_solid(o->x, o->y + 11)) { o->y = (float)(int)(o->y + o->vy); o->vy = fminf(o->vy + 0.5f, 12.f); }   /* 4376 */
+        if (gan_solid(o->x, o->y + 11)) { for (int k = 0; k < 12 && gan_solid(o->x, o->y + 11); k++) o->y -= 1; o->vy = 0; }   /* 4377 */
+    }
+    if (o->st == 0 && near) { o->tm++; gan_face(o, p); o->fl |= GAN_ARMOURED; }   /* 4379 */
+    if (o->st == 0 && o->tm > 40) { o->st = 1; o->tm = 0; gan_anim(o, GAN_WAKE); anim_restart(&o->an); o->fl &= ~GAN_ARMOURED; waking = 1; }   /* 4380 */
+    if (o->st == 1 && !waking) {
+        float hx = o->flip ? 24.f : 23.f;
+        if (o->x > o->fx + 4 && !gan_solid(o->x - hx, o->y)) o->x -= 1;                 /* 4382 */
+        else if (o->x < o->fx - 4 && !gan_solid(o->x - hx + 48, o->y)) o->x += 1;       /* 4383 */
+        o->tm++;                                                                         /* 4384 */
+        if (gan_solid(o->x, o->y + 13) && (o->tm > 60 || (o->x >= o->fx - 4 && o->x <= o->fx + 4))) {   /* 4385 / 4386 */
+            o->st = 0; gan_anim(o, GAN_CURL); anim_restart(&o->an); o->tm = -10 - cross_rand(40);
+        }
     }
 }
 
@@ -207,7 +406,7 @@ void objects_update(void) {
         o->t++;
         /* sleep far off-screen objects (Fusion-style "inactive if far") */
         if (fabsf(o->x - (G.camx + SCREEN_W / 2)) > SCREEN_W * 1.5f && o->type != OT_EXPLODE &&
-            o->type != OT_TURRETUS && o->type != OT_PELLET) continue;
+            o->type != OT_TURRETUS && o->type != OT_PELLET && !(o->type == OT_GANSEKI && o->st != 0)) continue;
         /* objects created by this frame's events are first moved/tested next frame (RE frame order:
          * update_objects, then events) */
         if (o->type == OT_PELLET && o->born == G.frame) continue;
@@ -274,6 +473,9 @@ void objects_update(void) {
             if (o->x < G.camx - 400 || o->x > G.camx + SCREEN_W + 400 || o->y > G.camy + SCREEN_H + 400) o->alive = 0;
             break;
         }
+        case OT_GANSEKI:
+            ganseki_events(o, p, hurt_touch, hit);
+            break;
         case OT_TURRETUS:
             turretus_events(o, p, bx0, by0, bx1, by1);
             if (hit && o->t > 0) { if (--o->hp <= 0) { o->alive = 0; G.kills++; explode(o->x, o->y); } else o->t = -20; player_bounce(p, -4.f); break; }
@@ -347,7 +549,7 @@ void objects_draw(int front) {
     (void)front;
     for (int i = 0; i < G.nobjs; i++) {
         const obj_t *o = &G.o[i];
-        if (!o->alive || !o->an.b || o->type == OT_HANG) continue;   /* sensors are invisible */
+        if (!o->alive || !o->an.b || o->type == OT_HANG || o->type == OT_LADDERTOP || o->type == OT_BRIDGE) continue;   /* sensors / LadderTop are invisible */
         float sx = floorf(o->x - G.camx), sy = floorf(o->y - G.camy);
         if (sx < -96 || sx > SCREEN_W + 96 || sy < -96 || sy > SCREEN_H + 96) continue;
         frame_draw(&G.objs, anim_frame(&o->an), sx, sy, o->flip, 0xffffffff);
@@ -362,22 +564,33 @@ void objects_draw(int front) {
  *   OBJGRP_NOEDGE   (+0x218f0) clears the edge sensors (no angle taken from objects): monitors, springs,
  *                   bridge logs, ladder tops, spikes, platforms, keystone monitor
  * Ported members: monitors, breakable rock, upward spikes, wall springs (solid); the obstacle group's
- * springs are still handled by their own contact rules (RV), so OBJGRP_OBSTACLE has no members yet. */
+ * springs are still handled by their own contact rules (RV); OBJGRP_OBSTACLE: LadderTop so far. */
 static int in_group(int type, int grp) {
     switch (grp) {
     case OBJGRP_SOLID: return type == OT_MONITOR || type == OT_MON_RINGS || type == OT_MON_1UP || type == OT_MON_INVINC || type == OT_ROCK || type == OT_SPIKES || type == OT_SPRING_R;
-    case OBJGRP_NOEDGE: return type == OT_MONITOR || type == OT_MON_RINGS || type == OT_MON_1UP || type == OT_MON_INVINC || type == OT_SPIKES || type == OT_SPRING || type == OT_SPRING_UL ||
+    case OBJGRP_OBSTACLE: case OBJGRP_OBSTACLE_ALL:
+        return type == OT_LADDERTOP || type == OT_LOG || type == OT_PLAT_VALLEY || type == OT_PLAT_MOVE2 || type == OT_PLAT_MOVE3;
+    case OBJGRP_NOEDGE: return type == OT_LADDERTOP || type == OT_LOG || type == OT_PLAT_VALLEY || type == OT_PLAT_MOVE2 || type == OT_PLAT_MOVE3 || type == OT_MONITOR || type == OT_MON_RINGS || type == OT_MON_1UP || type == OT_MON_INVINC || type == OT_SPIKES || type == OT_SPRING || type == OT_SPRING_UL ||
                                type == OT_SPRING_UR || type == OT_SPRING_R;
     default: return 0;
     }
 }
-int objects_sensor_hit(int grp, int ox, int oy, const signed char *x0, const signed char *x1, int h) {
+static int sensor_hit_any(int grp, int type, int ox, int oy, const signed char *x0, const signed char *x1, int h) {
     for (int i = 0; i < G.nobjs; i++) {
         const obj_t *o = &G.o[i];
-        if (!o->alive || !in_group(o->type, grp) || !o->an.b) continue;
+        if (!o->alive || !o->an.b || (type >= 0 ? o->type != type : !in_group(o->type, grp))) continue;
+        if (grp == OBJGRP_OBSTACLE && (o->fl & 1)) continue;      /* flag 0: one-way platform below Lilac's reference (4738) */
         const frame_t *f = anim_frame(&o->an);
         int bx = (int)floorf(o->x) - (o->flip ? f->w - f->hx : f->hx), by = (int)floorf(o->y) - f->hy;
         if (ox > bx + f->w || ox + 27 < bx || oy >= by + f->h || oy + h <= by) continue;
+        if (o->type == OT_LOG) {                                   /* initialize_active(true): collision box = image rect */
+            for (int j = 0; j < h; j++) {
+                int y = oy + j;
+                if (x1[j] < x0[j] || y < by || y >= by + f->h) continue;
+                if (ox + x1[j] >= bx && ox + x0[j] < bx + f->w) return i;
+            }
+            continue;
+        }
         for (int j = 0; j < h; j++) {
             int y = oy + j;
             if (x1[j] < x0[j] || y < by || y >= by + f->h) continue;
@@ -385,9 +598,15 @@ int objects_sensor_hit(int grp, int ox, int oy, const signed char *x0, const sig
                 int lx = x - bx;
                 if (lx < 0 || lx >= f->w) continue;
                 if (o->flip) lx = f->w - 1 - lx;
-                if (frame_mask_px(o->an.b, f, lx, y - by)) return 1;
+                if (frame_mask_px(o->an.b, f, lx, y - by)) return i;
             }
         }
     }
-    return 0;
+    return -1;
+}
+int objects_sensor_hit(int grp, int ox, int oy, const signed char *x0, const signed char *x1, int h) {
+    return sensor_hit_any(grp, -1, ox, oy, x0, x1, h) >= 0;
+}
+int objects_sensor_hit_type(int type, int ox, int oy, const signed char *x0, const signed char *x1, int h) {
+    return sensor_hit_any(-1, type, ox, oy, x0, x1, h);
 }

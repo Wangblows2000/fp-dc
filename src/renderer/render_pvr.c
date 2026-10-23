@@ -173,17 +173,19 @@ void r_sprite(const tex_t *t, int u, int v, int uw, int vh, float x, float y, fl
 /* rotated sprite: texel (hx,hy) of the rect lands on screen (px,py); angle in degrees CCW
  * (Fusion/Chowdren convention: Active::set_angle rotates around the hotspot) */
 void r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float py, float hx, float hy,
-                  float angle, uint32_t argb) {
+                  float angle, int flip, uint32_t argb) {
     if (t->id < 0 || t->id >= ntex) return;
     if (overlay && !in_tr) {
-        if (ndq < 192) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 1, t, u, v, uw, vh, 0, { px, py, hx, hy, angle }, argb }; }
+        if (ndq < 192) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 1, t, u, v, uw, vh, flip, { px, py, hx, hy, angle }, argb }; }
         return;
     }
+    if (flip) hx = uw - 1 - hx;                    /* the mirrored image's hotspot (texture u reversed below) */
     float r = (uw > vh ? uw : vh) * 1.5f;
     if (px + r < 0 || py + r < 0 || px - r >= SCREEN_W || py - r >= SCREEN_H) return;
     if (cur_hdr != t->id) { pvr_prim(HDR(t->id), sizeof(pvr_poly_hdr_t)); cur_hdr = t->id; }
     float iw = 1.0f / texs[t->id].w, ih = 1.0f / texs[t->id].h;
     float u0 = u * iw, u1 = (u + uw) * iw, v0 = v * ih, v1 = (v + vh) * ih;
+    if (flip) { float tmp = u0; u0 = u1; u1 = tmp; }
     float a = angle * 0.017453293f, c = fcos(a), sn = fsin(a);
     float lx[4] = { -hx, uw - hx, -hx, uw - hx }, ly[4] = { -hy, -hy, vh - hy, vh - hy };
     float tu[4] = { u0, u1, u0, u1 }, tv[4] = { v0, v0, v1, v1 };
@@ -215,7 +217,7 @@ static void replay(void) {
         dcmd_t *c = &dq[i];
         switch (c->kind) {
         case 0: r_sprite(c->t, c->u, c->v, c->uw, c->vh, c->a[0], c->a[1], c->a[2], c->a[3], c->flip, c->argb); break;
-        case 1: r_sprite_rot(c->t, c->u, c->v, c->uw, c->vh, c->a[0], c->a[1], c->a[2], c->a[3], c->a[4], c->argb); break;
+        case 1: r_sprite_rot(c->t, c->u, c->v, c->uw, c->vh, c->a[0], c->a[1], c->a[2], c->a[3], c->a[4], c->flip, c->argb); break;
         case 2:   /* fade: translucent black over the whole display (incl. letterbox) */
             if (cur_hdr != -1) { pvr_prim(&col_hdr_tr, sizeof col_hdr_tr); cur_hdr = -1; }
             quad(0, 0, 640, 480, 0, 0, 0, 0, c->argb);
