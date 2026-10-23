@@ -150,7 +150,7 @@ static void on_land(player_t *p) {
         return;
     }
     p->jumping = 0; p->cyclone_used = 0; p->boost_used = 0;
-    if (p->state == ST_HURT || p->state == ST_CYCLONE) p->state = ST_NORMAL;
+    if (p->state == ST_HURT) p->state = ST_NORMAL;   /* RV: a cyclone (M26) continues after landing */
 }
 
 /* one pass of the original's movement + sensor collision with the current B, G */

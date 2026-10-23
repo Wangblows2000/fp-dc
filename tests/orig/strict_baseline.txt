@@ -23,10 +23,10 @@ cyc_dk_early 151 151 151
 cyc_down 151 151 151
 cyc_then_dk 151 151 151
 cyclone 0 151 0
-dk_kick_cyc_hold 84 151 84
+dk_kick_cyc_hold 151 151 151
 dk_kick_then_cyc 151 151 151
-dk_kick_then_cyc2 84 151 84
-dk_kick_then_cyc3 84 151 84
+dk_kick_then_cyc2 151 151 151
+dk_kick_then_cyc3 151 151 151
 dk_wind_then_cyc 151 151 151
 down_kick 0 151 0
 energy_pickups_fullhp 144 144 144
