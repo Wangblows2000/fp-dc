@@ -46,6 +46,12 @@ int    music_play(const char *name);
 void   music_update(void);
 void   music_stop(void);
 void   music_volume(int pct);
+void   snd_stop_all(void);                         /* stop every sound effect channel */
+/* loading screen (src/game/loading.c): silent, spinning crystal bottom-right */
+void   loading_begin(void);
+void   loading_tick(void);
+void   loading_end(void);
+int    loading_active(void);
 
 /* ---------------------------------------------------------------- renderer */
 typedef struct { int id, w, h, srcw, srch; } tex_t;
@@ -268,6 +274,7 @@ void text_draw(float x, float y, const char *s, uint32_t argb, int scale);
 #define PHYS_BOOST_DIAG 8.0       /* RV: diagonal boost components (8, 8) */
 #define PHYS_BOOST_LAND 10.0      /* RV: ground speed when a down-diagonal boost lands */
 #define PHYS_ENERGY_MAX 100.0     /* RV: GUIEnergy_127 alt A; boost needs a full meter */
+#define PHYS_ENERGY_CYCLONE 0.25 /* RV (cyclone, cyc_down traces): -0.25/frame in the cyclone (M26) */
 #define PHYS_ENERGY_DRAIN 3.0     /* RV: -3/frame during the boost (100 -> 0 over 33 f) */
 #define PHYS_ENERGY_REFILL 0.4    /* RV: +0.4/frame otherwise (250 f = 4.17 s from empty) */
 #define PHYS_ENERGY_CRYSTAL 5.0   /* RV: each crystal pickup adds 5 (petals add none) */

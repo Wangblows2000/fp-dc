@@ -33,7 +33,11 @@ void *plat_load_file(const char *name, size_t *size) {
     fseek(f, 0, SEEK_END); long n = ftell(f); fseek(f, 0, SEEK_SET);
     if (n < 0 || n > 64 * 1024 * 1024) { fclose(f); return NULL; }
     void *d = malloc(n ? n : 1);
-    if (fread(d, 1, n, f) != (size_t)n) { free(d); fclose(f); return NULL; }
+    for (long got = 0; got < n;) {                 /* chunked like the Dreamcast build (loading screen) */
+        long k = n - got > 65536 ? 65536 : n - got;
+        if (fread((char *)d + got, 1, k, f) != (size_t)k) { free(d); fclose(f); return NULL; }
+        got += k; loading_tick();
+    }
     fclose(f);
     *size = (size_t)n;
     return d;
@@ -63,6 +67,7 @@ int  music_play(const char *name) {
     return 0;
 }
 void music_volume(int pct) { (void)pct; }
+void snd_stop_all(void) { if (getenv("FP_TRACE_SND")) printf("snd stopall @%d\n", cur_frame); }
 void music_update(void) {}
 void music_stop(void) { if (host_mus[0] && getenv("FP_TRACE_SND")) printf("music stop @%d\n", cur_frame); host_mus[0] = 0; }
 

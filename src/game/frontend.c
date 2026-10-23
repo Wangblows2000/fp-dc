@@ -51,6 +51,7 @@ static void cursor_to(ui_scene_t *s, ui_obj_t *cur, float sx, float sy) {
 
 static int fe_load(void) {
     if (fe_loaded) return 0;
+    loading_begin();
     int bad = 0;
     bad |= ui_banks_load(&b_title, "title", 1) < 0;
     bad |= ui_banks_load(&b_chsel, "chsel", 1) < 0;
@@ -61,6 +62,7 @@ static int fe_load(void) {
     bad |= ui_load(&s_hub, "title_4", &b_title) < 0;
     bad |= ui_load(&s_chsel, "chsel_7", &b_chsel) < 0;
     bad |= ui_load(&s_stsel, "stsel_12", &b_stsel) < 0;
+    loading_end();
     if (bad) { plat_log("front end data missing\n"); return -1; }
     fe_loaded = 1;
     return 0;

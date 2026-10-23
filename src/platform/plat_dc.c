@@ -31,7 +31,11 @@ void *plat_load_file(const char *name, size_t *size) {
     if (n <= 0 || n > 4 * 1024 * 1024) { plat_log("bad size %s %ld\n", path, n); fclose(f); return NULL; }
     void *d = malloc(n);
     if (!d) { fclose(f); return NULL; }
-    if (fread(d, 1, n, f) != (size_t)n) { free(d); fclose(f); return NULL; }
+    for (long got = 0; got < n;) {   /* 64 KB chunks: the loading screen redraws in between */
+        long k = n - got > 65536 ? 65536 : n - got;
+        if (fread((char *)d + got, 1, k, f) != (size_t)k) { free(d); fclose(f); return NULL; }
+        got += k; loading_tick();
+    }
     fclose(f);
     *size = (size_t)n;
     return d;
@@ -81,6 +85,8 @@ int snd_load(const char *name) {
     sfx[nsfx] = h;
     return nsfx++;
 }
+
+void snd_stop_all(void) { snd_sfx_stop_all(); }
 
 void snd_play(int h, int vol, int pan) {
     if (h >= 0 && h < nsfx) snd_sfx_play(sfx[h], vol, pan);
@@ -143,9 +149,9 @@ int music_play(const char *name) {
     int adpcm = strstr(name, ".adp") != NULL;
     mus = snd_stream_alloc(mus_cb, adpcm ? SND_STREAM_BUFFER_MAX_ADPCM : MUS_CHUNK);
     if (mus == SND_STREAM_INVALID) { fclose(mus_f); mus_f = NULL; mutex_unlock(&mus_lock); return -1; }
-    snd_stream_volume(mus, mus_vol);
     if (adpcm) snd_stream_start_adpcm(mus, 32000, 1);
     else snd_stream_start(mus, 22050, 1);
+    snd_stream_volume(mus, mus_vol);   /* after the start: snd_stream_start_type sets chan->vol = 255 */
     snprintf(mus_name, sizeof mus_name, "%s", name);
     mutex_unlock(&mus_lock);
     if (!mus_thd) { mus_thread_run = 1; mus_thd = thd_create(0, mus_thread, NULL); }
