@@ -212,6 +212,9 @@ int game_init(void) {
     for (int i = 0; i < 512; i++) snd_handle[i] = -1;
     vmuscr_init();
     save_load();                                   /* memory card (VMU) / host FP_SAVE */
+#ifdef FP_HOST_ENV
+    printf("save cards %d\n", save_card_total());   /* host tests: card total read back from the save */
+#endif
     r_set_letterbox(SV.letterbox);
     loading_begin("boot");                         /* boot: sound effects (title data follows in fe_enter) */
     for (int i = 0; i < (int)(sizeof SND_IDS / sizeof SND_IDS[0]); i++) {
@@ -222,10 +225,14 @@ int game_init(void) {
     /* legacy handles used by gameplay code, now mapped to the original sound IDs */
     G.sfx.jump = snd_handle[8]; G.sfx.attack = snd_handle[21]; G.sfx.boost = snd_handle[53];
     G.sfx.hurt = snd_handle[17]; G.sfx.crystal = snd_handle[27]; G.sfx.explode = snd_handle[81]; G.sfx.hit = snd_handle[25];
+    /* host tests (FP_LEVEL) and DC verification demos ("LEVEL <dir>"): start a level directly (no front end) */
+    if (plat_start_level()) {
+        G.mode = MODE_PLAY; int r = game_load_level(plat_start_level()); G.card_t = CARD_DONE;
 #ifdef FP_HOST_ENV
-    /* host tests: FP_LEVEL starts a level directly (no front end) */
-    if (getenv("FP_LEVEL")) { G.mode = MODE_PLAY; int r = game_load_level(getenv("FP_LEVEL")); G.card_t = getenv("FP_CARD") ? 0 : CARD_DONE; return r; }
+        if (getenv("FP_CARD")) G.card_t = 0;
 #endif
+        return r;
+    }
     return fe_enter();
 }
 

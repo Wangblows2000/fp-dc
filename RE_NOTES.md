@@ -272,6 +272,39 @@ Method: `tools/re/member_map.py` (gdb) maps each frame's member offsets to objec
   **Not ported:** crystal absorption and spin.
 - **Push (M11, 1752/1753 enter; 1875-1881, 2322 leave):** ground, |G| < 0.2, held direction into a big side sensor.
 
+## Session 8 additions (specs in build/re/spec_*.md; every item below was checked against an original trace unless marked)
+- **Trig:** Chowdren divides degrees by 57.29577951308232 (not the truncated 57.29577951) and does not reduce large angles;
+  sin(180) and cos(90/270) are exactly 0. Switching every gameplay sin/cos to this fixed the last Tredd/snake drifts.
+- **Movements:** BallMovement moves speed·0.125 px/frame (floor steps, fraction kept); VectorMovement moves speed·cos·0.01,
+  i.e. `int(dist·20)` = 20 % of the remaining distance per frame (the DV2 snake chain).
+- **Tredd (DV3 miniboss, 5241-5260):** gait/turns matched 1100/1100 frames; column E = H at 5249; rock breaks use
+  mask-vs-mask overlap; claws from L-1 at 140/200/280; bombs + blast; death sequence.
+- **Serpentine DV2 encounter (5049-5093):** geysers/arcs/rest/fireballs, segment death; 16-px trigger column. RV snake_t1 271/271.
+- **Serpentine DV4 boss (5461-5578):** boulder rain, arcs, wheel + bounce ball, hit cycle K = 3, retreat, final defeat, cinematic
+  camera and the scripted exit into the results (path A).
+- **Boulder chase (DV4, 5401-5460):** camera mode 3 (minimum bound), stages, ramp jump, BossTunnel2 walls solid until broken,
+  breakables, Lilac shove/crush/respawn.
+- **Results overlay (DV4, spec_cards_results C):** positions from screenshots, timings 72 / 292 / 441 RV; save at D = 150.
+- **Parallax (3541-3543, 5094, 5101-5105):** F += G; sx = fmod(trunc(D·vl + F − vl), A); sy = trunc(E·vt + C) − vt; DV2/DV4
+  switch pieces at view top 1360; water surface strip at y 2700.
+- **Keystones (spec_keystones):** crash and chest-monitor spawns, rise/bob/magnet/homing, pickup effects, MasterLevel O.
+- **Roll state M6 (spec_roll_gimmicks, RV spiral_dv1 / spiralb_dv1 / balltunnel_dv3):** entry 4739-4744 on the tunnel mask
+  (q27: spiral mask in DV1/DV2, LevelBallTunnel1 in DV3); constants O 0.0334, P 0.2, Q 0.035, R 0.25; acceleration and slope
+  force skipped, ground friction kept; group 1851-1864. **Correction:** 1862 is an OR event — (|B| < 2 and OTHERS.N > 30)
+  OR Up pressed → M0; the slow roll stands up by itself (RV). Facing 2421/2422 run again once M ≠ 6 (RV spiralb f94).
+  Skin anim 7 for OTHERS.Y 8 (2438). M1 keeps the ball (Z = 1) in the air until landing (RV).
+  Monitors and BreakableRock are non-solid in M5/M6 (1581) and break when a big side sensor touches them with Z = 1 and
+  OTHERS.K ≤ 0 (4762), each giving K = 5; the rock uses box collision (RV contact one frame earlier than its mask).
+  5181 and 4749 write N on list +0x60b0 (another character's part), not MV.N (RV: no effect on Lilac).
+- **Spiral helix (4748-4755):** top: C += B, B = min(B + 0.1, 12), X = Top.x + 72 sin C, Y = Top.y + 0.3 C (new C), exit at
+  C ≥ 720 or C < 0; bottom: old C, B + 0.05, exit at C ≤ −720 or C > 0. T = U = 0, mask flag 0 on, pad locked; M stays 6.
+  The front overlay shows while 90 < fmod(C, 360) < 270. RV: L = 0 during the ride, G accumulates to 15.25.
+- **Spinning logs (DV2, 4980-4986):** log y = int(ML.C), mask y = int(ML.C + A); standing sinks A 0.5/frame, spins the log
+  (direction += int(A/40)); the mask is ignored at A ≥ 15. Not traced (the teleport is blocked by the camera bounds).
+- **Pushable block (DV2, 2711-2735):** RV pblock_dv2: block and Lilac step 1 px per frame from the frame after the M11 entry;
+  B timer 4 (shows 3); dust every 3 steps; a resting block keeps its Y (no bob, so 1271 lifts only when its bottom row is in
+  the ground); pushed into a wall it keeps D = 1 and Lilac stays put; 1876 leaves M11 only after the 4-frame grace PAV_B.S.
+
 ## Loading pipeline (session 7, measured with src/game/loadprof.c)
 Per load the profiler logs: heap (mallinfo), largest free VRAM, and time in open / read / texture upload / sfx / decode /
 music / object creation / other, plus allocation count and skipped work.

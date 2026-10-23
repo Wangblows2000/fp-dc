@@ -181,6 +181,8 @@ static uint32_t parse_btn(const char *s) {
     return m;
 }
 
+const char *plat_start_level(void) { return getenv("FP_LEVEL"); }
+
 int main(int argc, char **argv) {
     if (argc < 3) { fprintf(stderr, "usage: %s data_dir frames [script] [dump_dir] [every]\n", argv[0]); return 1; }
     data_dir = argv[1];

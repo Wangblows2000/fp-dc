@@ -263,5 +263,16 @@ r = run(open(os.path.join(HERE, 'orig_extra_pblock_dv2.txt')).read(), 330, {'FP_
 check('pushable_block_matches_orig', abs(at(r, 79 - 2)['x'] - 2766.99) < 0.01 and abs(at(r, 100 - 2)['x'] - 2787.99) < 0.01 and
       abs(at(r, 200 - 2)['x'] - 2809.99) < 0.01 and abs(at(r, 325 - 2)['x'] - 2807.99) < 0.01)
 
+# cards (ObjectCodec_430) persist in the save: take DV1's card at (2090, 1085), clear the act (TP near the end), one save
+# write at the act change, and the next boot reads the total back
+import tempfile as _tf
+_sv = os.path.join(_tf.mkdtemp(), 'sv.bin')
+with tempfile.NamedTemporaryFile('w', suffix='.txt', delete=False) as f: f.write('60 TP 2090 1070\n100 TP 14700 990\n105 900 R\n'); _n = f.name
+_p = subprocess.run([BIN, DATA, '900', _n], capture_output=True, text=True, env={**os.environ, 'FP_LEVEL': 'dv1', 'FP_SAVE': _sv, 'FP_TRACE_SND': '1'})
+_writes = [l for l in _p.stdout.splitlines() if l.startswith('save ') and '@' in l]
+_p2 = subprocess.run([BIN, DATA, '2', '-'], capture_output=True, text=True, env={**os.environ, 'FP_LEVEL': 'dv1', 'FP_SAVE': _sv})
+check('card_saved_once_at_act_change', len(_writes) == 1, str(_writes))
+check('card_total_persists_across_boot', 'save cards 1' in _p2.stdout, [l for l in _p2.stdout.splitlines() if 'save cards' in l][:1].__str__())
+
 print('%d failure(s)' % fails)
 sys.exit(1 if fails else 0)

@@ -37,6 +37,8 @@ void   plat_init(void);
 void   plat_poll_input(input_t *in);
 void  *plat_load_file(const char *name, size_t *size); /* malloc'd */
 void   plat_log(const char *fmt, ...);
+int    save_card_total(void);
+const char *plat_start_level(void);   /* level to start directly (host FP_LEVEL, DC demo "LEVEL <dir>" line), or NULL */
 uint64_t plat_time_us(void);
 
 void   snd_init_fp(void);
