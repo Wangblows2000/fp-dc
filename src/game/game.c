@@ -43,7 +43,7 @@ static int act_of(const char *dir) { return dir[2] - '0'; }
 static void bank_free(bank_t *b) { free(b->frames); free(b->anims); free(b->seq); free(b->mbits); free(b->moff); memset(b, 0, sizeof *b); }
 
 void game_unload_all(void) {
-    bank_free(&G.lilac); bank_free(&G.objs);
+    bank_free(&G.lilac); bank_free(&G.hair); bank_free(&G.objs);
     free(G.lvl.pieces); free(G.lvl.objs); free(G.lvl.blob);
     memset(&G.lvl, 0, sizeof G.lvl);
     G.npar = 0; G.nobjs = 0;
@@ -58,6 +58,7 @@ int game_load_level(const char *dir) {
     char nm[48];
     for (int i = 0; i < 4; i++) { snprintf(nm, sizeof nm, "%s/pal%d.pal", dir, i); bad |= pal_load_file(nm) < 0; }
     snprintf(nm, sizeof nm, "%s/lilac2", dir); bad |= bank_load(&G.lilac, nm) < 0;
+    snprintf(nm, sizeof nm, "%s/lilachair", dir); if (bank_load(&G.hair, nm) < 0) plat_log("no hair bank\n");
     snprintf(nm, sizeof nm, "%s/%s_obj", dir, dir); bad |= bank_load(&G.objs, nm) < 0;
     snprintf(nm, sizeof nm, "%s/%s", dir, dir); bad |= level_load(&G.lvl, nm) < 0;
     if (bad) { plat_log("level %s: data load failed\n", dir); return -1; }

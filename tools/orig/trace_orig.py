@@ -18,7 +18,8 @@ KEYS = {'L': 0x40000050, 'R': 0x4000004f, 'U': 0x40000052, 'D': 0x40000051,
 ORDER = 'LRUDJXBS'
 VT = {'mv': 0x20b2910, 'player': 0x20b6f30, 'skin': 0x20b7890}   # vtable+0x10 of the classes
 # optional HUD/gameplay objects dumped when present (vtable+0x10): alterables A-Z + x scale + image id
-XVT = {'en': 0x20aa470, 'life': 0x20aa510, 'others': 0x20aa3d0, 'turr': 0x20d65d0, 'cam': 0x20bbbd0}
+XVT = {'en': 0x20aa470, 'life': 0x20aa510, 'others': 0x20aa3d0, 'turr': 0x20d65d0, 'cam': 0x20bbbd0,
+       'hair': 0x20bc5d0}   # hair = PlayerSkinSashHair_424 (Lilac's hair overlay)
 # instances picked by x position instead of the last one found (probes of one specific enemy)
 XVT_PICK = {'turr': 1233}   # others = PlayerOthers_126 (invulnerability timer E, RE)
 # HUD counters (Counter::set: value double @+0xa0, min int @+0xa8, max int @+0xac)
@@ -172,7 +173,7 @@ class Tracer(gdb.Breakpoint):
         # sk_ang/sk_xs/sk_ys: Active angle @+0xc4, x/y scale @+0xc8/+0xcc (Active::set_angle/set_x_scale)
         hdr = (['frame', 'held', 'px', 'py', 'skin_anim'] + ['mv_' + chr(65 + i) for i in range(26)] +
                ['sk_ang', 'sk_xs', 'sk_ys'] + ['pl_' + chr(65 + i) for i in range(26)] + ['gv%d' % i for i in range(NGV)] +
-               sum([[k + '_' + chr(65 + i) for i in range(26)] + [k + '_xs', k + '_img', k + '_afr', k + '_acc'] for k in XVT], []) +
+               sum([[k + '_' + chr(65 + i) for i in range(26)] + [k + '_xs', k + '_img', k + '_afr', k + '_acc', k + '_aid', k + '_ang', k + '_fl'] for k in XVT], []) +
                sum([[k, k + '_max'] for k in CVT], []) +
                ['sa_' + chr(65 + i) for i in range(26)] + ['sw_%x' % o for o in range(0x10, 0xc4, 4)])
         # sa_*: skin (Lilac display Active) alterables; sw_*: raw u32 words of the skin object (flags/blink search)
@@ -189,7 +190,7 @@ class Tracer(gdb.Breakpoint):
         out = []
         for k in XVT:
             o = self.objs.get(k)
-            if not o: out += ['0'] * 30; continue
+            if not o: out += ['0'] * 33; continue
             try:
                 try: _, _, vals, _ = rd_obj(o)
                 except Exception: vals = (0,) * 26
@@ -197,9 +198,12 @@ class Tracer(gdb.Breakpoint):
                 img = struct.unpack('<Q', bytes(inf.read_memory(o + 0x110, 8)))[0]
                 afr = struct.unpack('<h', bytes(inf.read_memory(o + 0xb4, 2)))[0]    # Active frame index
                 acc = struct.unpack('<i', bytes(inf.read_memory(o + 0xc0, 4)))[0]    # Active animation counter
-                out += ['%.6g' % v for v in vals] + ['%.6g' % xs, '%x' % img, str(afr), str(acc)]
+                aid = struct.unpack('<b', bytes(inf.read_memory(o + 0xb1, 1)))[0]   # Active animation id
+                ang = struct.unpack('<f', bytes(inf.read_memory(o + 0xc4, 4)))[0]   # Active angle
+                fl = struct.unpack('<I', bytes(inf.read_memory(o + 0x18, 4)))[0]    # FrameObject flags (visibility)
+                out += ['%.6g' % v for v in vals] + ['%.6g' % xs, '%x' % img, str(afr), str(acc), str(aid), '%.6g' % ang, '%x' % fl]
             except Exception:
-                out += ['0'] * 30
+                out += ['0'] * 33
         for k in CVT:
             o = self.objs.get(k)
             if not o: out += ['', '']; continue
