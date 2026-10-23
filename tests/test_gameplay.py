@@ -280,5 +280,15 @@ r = run('60 MON 151\n70 73 X\n200 HURT 10\n300 HURT 10\n400 HURT 10\n', 460, {'F
 check('shield_given_after_icon', at(r, 141)['sh'] == 1 and at(r, 140)['sh'] == 0 and at(r, 100)['sh'] == 0)
 check('shield_absorbs_then_breaks', at(r, 250)['sh'] == 1 and at(r, 250)['shc'] == 0 and at(r, 350)['sh'] == 0 and at(r, 350)['hp'] == 14 and at(r, 450)['hp'] < 14)
 
+# water (spec_water, original DV3 traces): entry G x0.2 (1.2) then gravity 0.15 to the cap 2; walk 9E then E = 0.056875;
+# hold jump: -6, swim held at -3, leap out at -6.5, re-entry 1.4 then swim -1.0 (host frames = original - 2)
+cp = lambda x, k: x['gsp'] if x['gnd'] else x['vx']
+r = run('60 TP 1560 2640\n200 260 L\n360 480 J\n', 470, {'FP_LEVEL': 'dv3'})
+check('water_entry_slows_fall', abs(at(r, 83)['vy'] - 1.2) < 1e-6 and abs(at(r, 84)['vy'] - 1.35) < 1e-6 and at(r, 92)['vy'] == 2.0)
+check('water_walk_accel', abs(at(r, 200)['gsp'] + 0.51187) < 1e-3 and abs(at(r, 204)['gsp'] + 2.057) < 1e-3)
+check('water_jump_swim_leap', at(r, 360)['vy'] == -6.0 and at(r, 384)['vy'] == -3.0 and at(r, 404)['vy'] == -6.5 and abs(at(r, 458)['vy'] - 1.4) < 1e-6 and at(r, 459)['vy'] == -1.0)
+r = run('60 TP 1493 2860\n', 3800, {'FP_LEVEL': 'dv3'})
+check('water_drowns_after_62s', at(r, 3600)['air'] == 28 and at(r, 3790)['st'] == 6)
+
 print('%d failure(s)' % fails)
 sys.exit(1 if fails else 0)

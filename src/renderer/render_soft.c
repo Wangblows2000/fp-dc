@@ -147,6 +147,15 @@ void r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float 
     }
 }
 
+void r_tint(float x, float y, float w, float h, uint32_t rgb) {      /* dst *= (1 - rgb) (Chowdren blend 20) */
+    int x0 = (int)floorf(x), y0 = (int)floorf(y), x1 = (int)floorf(x + w), y1 = (int)floorf(y + h);
+    uint32_t kr = 255 - ((rgb >> 16) & 255), kg = 255 - ((rgb >> 8) & 255), kb = 255 - (rgb & 255);
+    for (int sy = y0 < 0 ? 0 : y0; sy < y1 && sy < SCREEN_H; sy++)
+        for (int sx = x0 < 0 ? 0 : x0; sx < x1 && sx < SCREEN_W; sx++) {
+            uint32_t d = fb[sy * SCREEN_W + sx];
+            fb[sy * SCREEN_W + sx] = ((((d >> 16) & 255) * kr / 255) << 16) | ((((d >> 8) & 255) * kg / 255) << 8) | ((d & 255) * kb / 255);
+        }
+}
 void r_rect(float x, float y, float w, float h, uint32_t argb) {
     int x0 = (int)floorf(x), y0 = (int)floorf(y), x1 = (int)floorf(x + w), y1 = (int)floorf(y + h);
     for (int sy = y0 < 0 ? 0 : y0; sy < y1 && sy < SCREEN_H; sy++)

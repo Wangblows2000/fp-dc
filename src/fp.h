@@ -123,6 +123,7 @@ void   r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, floa
 void   r_end(void);
 void   r_tex_free(tex_t *t);           /* free one texture */
 void   r_reset(void);                 /* free all textures (level change) */
+void   r_tint(float x, float y, float w, float h, uint32_t rgb);   /* dst *= (1 - rgb) */
 void   r_set_additive(int on);       /* following sprites drawn additively (Chowdren shader 0x20) */
 void   r_set_invert(int on);         /* following sprites drawn colour-inverted (Chowdren invert shader) */
 void   r_set_letterbox(int on);       /* presentation only: 1 = 16:9 letterboxed (x1.5), 0 = 4:3 fill (x1.5, x2) */
@@ -132,7 +133,7 @@ typedef struct { uint16_t u, v, w, h; int16_t hx, hy; } frame_t;
 typedef struct { char name[16]; uint16_t first, count; uint8_t speed, back_to; int16_t loop; } anim_t;
 
 typedef struct {
-    tex_t tex;
+    tex_t tex, tex2;                   /* tex2: second atlas (<name>_2.tex) for frames with v bit 15 set (large _ens banks) */
     int nframes, nanims;
     frame_t *frames;
     anim_t *anims;
@@ -184,7 +185,7 @@ enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_MON_INVINC = 4, OT_MON
        OT_BOUNCEMODE = 130, OT_CAMTRIGGER = 131, OT_JUMPPAD = 132, OT_MON_KEYSTONE = 133,
        OT_LOOP016 = 134, OT_LOOP0Q = 135, OT_LOOP115 = 136, OT_LOOP1Q = 137, OT_CHUNK = 138,
        OT_WF_BACK = 139, OT_WF_FRONT = 140, OT_WF_FRONT2 = 141, OT_WF_FRONT3 = 142, OT_WF_FRONT4 = 143, OT_BBOULDER = 144, OT_KEYSTONE = 146, OT_SPIRAL_FRONT = 147, OT_FRONTROCK = 148, OT_FRONTTREE = 149, OT_TREEFRONT = 150,
-       OT_MON_WOOD = 151, OT_MON_EARTH = 152, OT_MON_FIRE = 153, OT_MON_METAL = 154, OT_MON_WATER = 155, OT_MONICON = 156 };
+       OT_MON_WOOD = 151, OT_MON_EARTH = 152, OT_MON_FIRE = 153, OT_MON_METAL = 154, OT_MON_WATER = 155, OT_MONICON = 156, OT_BUBBLEPATCH = 157 };
 
 #define MAX_ATLAS 4
 typedef struct {
@@ -263,6 +264,7 @@ typedef struct {
     int push_s;                   /* RE PAV_B.S: push-step grace timer (1876) */
     int shield, shield_c, shield_shown;   /* RE OTHERS.B (1 wood 2 fire 3 metal 4 water 5 earth), OTHERS.C, SENSOR.S */
     int air;                      /* RE OTHERS.J: air counter (water) */
+    int water, y26, cyc_block, drown;   /* RE OTHERS.H; OTHERS.Y = 26 swim code; OTHERS.P < 3 after leaving water; drowned (M10) */
 } player_t;
 
 #define F_NOFLY 0x10000          /* enemy alterable flag 16: no death flight (bosses keep the object) */
@@ -410,6 +412,13 @@ void   layers_refresh(const player_t *p), layers_update(player_t *p);
 void   cork_start_check(player_t *p), cork_move(player_t *p);
 void   tunnel_events(player_t *p), tunnels_reset(void), spiral_front_draw(void);
 void   spinlogs_update(player_t *p), pblocks_update(player_t *p);
+/* water (src/game/water.c, build/re/spec_water.md) */
+typedef struct { double E, C, I, J, CUT, RO, RP; } phys_w_t;
+extern phys_w_t phys_w;
+void   phys_set_water(int h);              /* 1543-1548: the constant tables at the start of the frame */
+void   water_reset(void), water_events(player_t *p), water_draw_tint(void), water_draw_front(void), water_draw_hud(void);
+int    water_on(void);
+double water_c(void);                      /* ML.C (visual surface) */
 /* src/game/shields.c */
 void   shields_reset(void), shields_update(player_t *p), shields_draw(const player_t *p), shield_on_crystal(player_t *p);
 int    shield_absorb(player_t *p), shield_monitor_type(int ot);
@@ -454,19 +463,24 @@ void text_draw(float x, float y, const char *s, uint32_t argb, int scale);
 /* Physics tunables, px/frame at 60 Hz.
  * RV = runtime-verified against the original (PlayerMovementValues_253 alterables,
  * traces in build/orig_traces/, see RUNTIME_MAP.md). Others are still UNVERIFIED. */
-#define PHYS_ACC        0.07375   /* RV: alt E. +E/frame while holding a direction */
+#define PHYS_ACC        (phys_w.E)   /* 0.07375 (RV alt E); 0.056875 under water (1545) */
+#define PHYS_ACC_DRY    0.07375   /* RV: alt E. +E/frame while holding a direction */
 #define PHYS_ACC_LOWMUL 9.0       /* RV: x9 (0.66375) while |gsp| < PHYS_LOWSPD (start burst) */
 #define PHYS_LOWSPD     2.0       /* RV: low-speed threshold for the x9 accel/friction */
 #define PHYS_FRIC_MUL   5.0       /* RV: release friction 5*E (0.36875) at |gsp| >= 2, 9*E below */
 #define PHYS_DEC        0.5       /* RV: skid (input against motion) -0.5/frame */
-#define PHYS_TOP        5.0       /* RV: alt C. Above it, holding keeps speed (no friction) */
+#define PHYS_TOP        (phys_w.C)   /* 5 (RV alt C); 4 under water (1545) */
+#define PHYS_TOP_DRY    5.0       /* RV: alt C. Above it, holding keeps speed (no friction) */
 #define PHYS_MAXSPD     15.0      /* INF: alt D = 15 */
 #define PHYS_AIR_ACC    0.1475    /* RV: 2*E per frame in the air */
 #define PHYS_AIR_DRAG   0.96875   /* RV: vx *= 0.96875 each air frame while -4 < vy < 0 (after gravity) */
 #define PHYS_DRAG_VY    4.0       /* RV: drag window upper bound on rising speed */
-#define PHYS_GRAV       0.25      /* RV: alt I */
-#define PHYS_JUMP       7.0       /* RV: jump sets vy = -7 (apex 102 px from flat ground) */
-#define PHYS_JUMP_CUT   3.0       /* RV: releasing jump clamps rising speed to -3 */
+#define PHYS_GRAV       (phys_w.I)   /* 0.25 (RV alt I); 0.15 under water (1548) */
+#define PHYS_GRAV_DRY   0.25      /* RV: alt I */
+#define PHYS_JUMP       (phys_w.J)   /* 7 (RV); 6 under water (1545) */
+#define PHYS_JUMP_DRY   7.0       /* RV: jump sets vy = -7 (apex 102 px from flat ground) */
+#define PHYS_JUMP_CUT   (phys_w.CUT) /* 3 (RV); 2 under water (1545) */
+#define PHYS_JUMP_CUT_DRY 3.0       /* RV: releasing jump clamps rising speed to -3 */
 #define PHYS_SLOPE      0.203125  /* RV: alt F. gsp -= F*sin(angle) ... */
 #define PHYS_SLOPE_MIN  0.5       /* RV: ... only when |sin(angle)| > 0.5 (steeper than ~30 deg) */
 #define PHYS_LAND_J     0.84      /* RE: movement J, landing speed transfer (events 1591, 1597) */

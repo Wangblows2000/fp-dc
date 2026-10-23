@@ -63,7 +63,7 @@ void objects_spawn(void) {
                 { OT_GEYSER, "geyser" }, { OT_MON_KEYSTONE, "mon_key" }, { OT_SPIRAL_MASK, "spiralmask" }, { OT_BALLTUNNEL, "balltunnel" }, { OT_CARD, "card" },
                 { OT_SPIRAL_FRONT, "spiralfront" }, { OT_SPINLOG, "slog0" }, { OT_SPINLOG_MASK, "slogmask" }, { OT_PBLOCK1, "pblock1" },
                 { OT_FRONTROCK, "frontrock1" }, { OT_MON_WOOD, "mon_wood" }, { OT_MON_EARTH, "mon_earth" }, { OT_MON_FIRE, "mon_fire" },
-                { OT_MON_METAL, "mon_metal" }, { OT_MON_WATER, "mon_water" }, { OT_FRONTTREE, "fronttree" }, { OT_TREEFRONT, "treefront" } };
+                { OT_MON_METAL, "mon_metal" }, { OT_MON_WATER, "mon_water" }, { OT_BUBBLEPATCH, "bpatch" }, { OT_FRONTTREE, "fronttree" }, { OT_TREEFRONT, "treefront" } };
             for (unsigned k = 0; k < sizeof EA / sizeof EA[0]; k++) if (o->type == EA[k].t) {
                 int a = ens_anim(EA[k].a);
                 if (a >= 0) anim_set(&o->an, &G.ens, a); else o->an.b = NULL;
@@ -88,7 +88,7 @@ void objects_spawn(void) {
     cards_spawn_all();
     layers_refresh(&G.p);
     bosses_spawn();
-    wlogs_spawn(); dv3_switch_spawn(); tunnels_reset(); shields_reset();
+    wlogs_spawn(); dv3_switch_spawn(); tunnels_reset(); shields_reset(); water_reset();
     /* 3566 / 3567: 12 logs per bridge at (bx + 16k, by + 56), A = k, B = base y */
     int nb = G.nobjs;
     for (int b = 0; b < nb; b++) {

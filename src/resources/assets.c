@@ -52,7 +52,7 @@ int pal_load_file(const char *name) {
 
 int bank_load(bank_t *b, const char *name) {
     char fn[64]; size_t sz;
-    memset(b, 0, sizeof *b);
+    memset(b, 0, sizeof *b); b->tex2.id = -1;
     if (tex_load_file(&b->tex, name) < 0) return -1;
     snprintf(fn, sizeof fn, "%s.spr", name);
     uint8_t *d = plat_load_file(fn, &sz);
@@ -68,7 +68,10 @@ int bank_load(bank_t *b, const char *name) {
         frame_t *f = &b->frames[i];
         f->u = rd16(p); f->v = rd16(p + 2); f->w = rd16(p + 4); f->h = rd16(p + 6);
         f->hx = (int16_t)rd16(p + 8); f->hy = (int16_t)rd16(p + 10);
-        if (f->u + f->w > b->tex.w || f->v + f->h > b->tex.h) goto bad;
+        if (f->v & 0x8000) {                       /* second atlas */
+            if (b->tex2.id < 0 && b->tex2.w == 0) { char n2[64]; snprintf(n2, sizeof n2, "%s_2", name); if (tex_load_file(&b->tex2, n2) < 0) { b->tex2.id = -1; goto bad; } }
+            if (f->u + f->w > b->tex2.w || (f->v & 0x7fff) + f->h > b->tex2.h) goto bad;
+        } else if (f->u + f->w > b->tex.w || f->v + f->h > b->tex.h) goto bad;
     }
     int total = 0;
     for (int i = 0; i < b->nanims; i++, p += 24) {
@@ -159,13 +162,15 @@ const frame_t *anim_frame(const animator_t *a) {
 /* draw with hotspot at (x,y). flip mirrors (used only for single-direction objects) */
 void frame_draw(const bank_t *b, const frame_t *f, float x, float y, int flip, uint32_t argb) {
     float dx = flip ? x - (f->w - f->hx) : x - f->hx;
-    r_sprite(&b->tex, f->u, f->v, f->w, f->h, dx, y - f->hy, f->w, f->h, flip, argb);
+    if (f->v & 0x8000) r_sprite(&b->tex2, f->u, f->v & 0x7fff, f->w, f->h, dx, y - f->hy, f->w, f->h, flip, argb);
+    else r_sprite(&b->tex, f->u, f->v, f->w, f->h, dx, y - f->hy, f->w, f->h, flip, argb);
 }
 
 /* rotation around the hotspot (the original rotates Actives around their hot spot) */
 void frame_draw_rot(const bank_t *b, const frame_t *f, float x, float y, float angle_deg, int flip, uint32_t argb) {
     if (angle_deg == 0 && !flip && r_get_scale() == 1.f) { frame_draw(b, f, x, y, 0, argb); return; }
-    r_sprite_rot(&b->tex, f->u, f->v, f->w, f->h, x, y, f->hx, f->hy, angle_deg, flip, argb);
+    if (f->v & 0x8000) r_sprite_rot(&b->tex2, f->u, f->v & 0x7fff, f->w, f->h, x, y, f->hx, f->hy, angle_deg, flip, argb);
+    else r_sprite_rot(&b->tex, f->u, f->v, f->w, f->h, x, y, f->hx, f->hy, angle_deg, flip, argb);
 }
 
 /* ------------------------------------------------------------------ FPL2 */
