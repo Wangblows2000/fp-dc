@@ -58,13 +58,13 @@ Alterables at DV1 start: I −16, J 0, K −48, L 16, P 120, Q 64, R 96, X 213 (
 | 1573 | a character constants table (this copy for another character: C 4.5, J 0.5; Lilac's values match the stage-start dump: C 5, D 15, E 0.07375, F 0.203125, H 15, I 0.25, J 0.84) |
 | 1574 | B, G, N **floored to 4 decimals** every frame (start of the block). Needs doubles: in float, -2.9 floors to -2.9001 |
 | 1577 | G = min(G, H) **before** gravity, so falling speed tops out at H + I = 15.25 |
-| 1584-1590 | sensor loops: wall collision, `loop_player01up` (air: Y += G, then up to 10 one-pixel steps out of a ceiling), `loop_player01down` (one-pixel push-out from the floor), edges, landing-angle detection (1590: N from `loop_player01detectangle` + `loop_toolsanglecalculator`; e.g. atan(4/7) = 29.74 deg) |
+| 1584-1611 | movement and sensor collision: see "Sensor collision" below (ported) |
 | 1591 | landing: if V = 1, L = 0, G >= 0 and 22 < N < 338: B = B - G * J * sin(N) |
 | 1592 | landing: W = G, G = 0, L = 1, K = 1 |
-| 1603 | ground angle detection (different span from 1590; e.g. atan(1/14) = 4.0856 deg on the DV1 start slope) |
+| 1603 | ground angle from the angle sensors (see "Sensor collision") |
 | 1605-1607 | angle smoothing: O = fmod(O + (N - O) * max(0.175, abs(B) / D), 360) within 45 deg, else O = N |
-| 1610 | detach (no floor under the sensors): N = floor(N), G = -B sin(N), B = B cos(N), N = O = L = 0 |
-| 1621-1636 | ground acceleration / friction (constants are multiples of E) |
+| 1609 / 1610 | slip off walls/ceilings when slow; detach when the bottom-big sensor is clear: N floored, G = -B sin N, B = B cos N, N = O = L = 0 |
+| 1621-1636 | horizontal acceleration / friction (see "Horizontal speed"); 1635/1636 wall stop |
 | 1644 / 1646 | slope force with N in (35, 325) deg and state != 6: B -= 0.38 F sin(N) if 0 < abs(B) < C, B -= F sin(N) if abs(B) >= C |
 | 1647 | airborne: G += I |
 | 1648 | airborne, -4 < G < 0, abs(B) >= 0.125: B *= 0.96875 (a value read from PlayerActionValuesB) |
@@ -73,7 +73,90 @@ Alterables at DV1 start: I −16, J 0, K −48, L 16, P 120, Q 64, R 96, X 213 (
 | 2015 | down-kick launch: B = 5 (facing), M = 0 |
 | 3047 | jump from the ground (B, G from N; jump 7) |
 
-**Sensors (RV positions relative to the movement object, airborne):** PlayerSensorTopBig_332 (11x11, hotspot 5,5) at (floor X, floor Y - 13); PlayerSensorTop_331 (9x9) at Y - 12; PlayerSensorBottomBig_334 (11x11) at Y + 13; also left/right/slope/main sensors (`loop_player01detectsensor*`). Ground contact is pixel overlap of these boxes with backgrounds or the **obstacle group** (QualifierList +0x218d8: bridge logs, the three yellow spring classes, ladder tops, LevelValleyPlatform1, LevelMovingPlatform2/3). So the landing reach is floor(feet) + 4. The angle routines (1590, 1603) and the push-out loops are **not ported yet**; they explain most remaining comparison differences (landing angle 29.74 vs our 36.87; start slope 4.0856 vs ~0.6; teleports into rock).
+## Sensor collision (events 1400-1520, 1584-1611; port: src/physics/sensors.c)
+The movement object's X, Y is the reference point (14 px above the feet on flat ground). 15 invisible
+sensor objects are placed around it, tested for pixel overlap, and their alterable Z holds the result.
+
+**Shapes** (Image data of the sensor classes, read from the running original; extracted images match):
+discs of radius n/2 - 1/4 (9x9: d^2 <= 18, 11x11: <= 27, 27x27: <= 175), a 3x3 box, and the edge bar
+with 8 direction images (dir 0: 3x25 hot 1,1; dir 4: 18x18 diagonal x - y in [-2, 1], hot 1,1; dir 8:
+25x3 hot 2,1; dir 12: 18x17 x + y in [16, 19], hot 1,16; dir 16: 3x25 hot 1,24; dir 20: 17x18
+x - y in [-2, 1] minus (0,0), hot 16,17; dir 24: 25x3 hot 24,2; dir 28: 18x18 x + y in [16, 19]
+minus (0,17), hot 17,1). Collision masks are alpha != 0 (Image::upload_texture, collide_sprite_sprite;
+the terrain art has no partial alpha, so the old >= 128 threshold gave the same map).
+
+| Sensor | Shape | A (along) | B (normal) |
+|---|---|---|---|
+| Player_326 (main) | 27 disc | at (int X, int Y) | |
+| Left / LeftBig, Right / RightBig | 9 / 11 disc | -12 / -13, 12 / 13 | -2 |
+| Top / TopBig, Bottom / BottomBig | 9 / 11 disc | 0 | -12 / -13, 12 / 13 |
+| Slopes, Platform | 11 disc | 0 | 24, -5 |
+| LeftAngle / RightAngle | 3x3 | -7 / 7 | 0 + scan (alterable Y) |
+| LeftEdge / RightEdge | bar, direction (int)(N / 11.25) | -8 / 8 | 12 |
+
+**Placement:** x = floor((sin N * B + A * cos N) + X), y = floor((B * cos N + Y) - sin N * A), clamped to
+the camera bounds C..E, D..F. The original's trig takes cos = 0 at exactly 90/270 and sin = 0 at exactly
+180, and converts with 57.29577951. Edge direction: Active::set_direction with 8 images; directions 4k+1
+use 4k, 4k+3 use 4k+4, 4k+2 keep turning toward the last exact direction (Active +0xd1).
+
+**Test (Z = 1):** overlaps the background; or the always-solid group (QualifierList +0x218c0: monitors,
+YellowSpringRight, spikes, spiral-tunnel mask, BreakableRock, MinibossBarrier); or, while grounded
+(L = 1), the obstacle group (+0x218d8: bridge logs, YellowSpringUp/UpLeft/UpRight, LadderTop,
+LevelValleyPlatform1, LevelMovingPlatform2/3). In the air with G >= 0 the bottom sensors also stand on an
+obstacle when the platform sensor is not inside one. Edge sensors are cleared again by group +0x218f0
+(monitors, springs, bridges, ladder tops, spikes, platforms).
+
+**Per frame, in event order:**
+1. 1574-1577: B, G, N floored to 4 decimals; B within +-D (15); G = min(G, H) (15).
+2. 1584: X += cos N * B, Y -= B * sin N; wall loop (int)(|B| + 1) times: place Left/LeftBig and Right/RightBig;
+   Right touching: X -= cos N, Y += sin N; Left touching: X += cos N, Y -= sin N; stop when neither touches.
+3. Air only (L = 0): 1585 Y += G, then the up loop (10x: Top touching and G <= 0: Y += 1; stop when Top is
+   clear); 1586 wall loop 20x; 1587 down loop (10x: Bottom touching and G >= 0: Y -= 1; stop when clear).
+4. Landing 1588-1592 (L = 0, G >= 0, BottomBig touching): N = O = 0; edges; if both edges touch, N = O =
+   the measured angle; if 22 < N < 338, B = B - G * J * sin N (J = 0.84); W = G, G = 0, L = K = 1.
+5. Ceiling 1593-1600: rising faster than 1.75 into TopBig: P = 1, N = O = 180, all sensors; BottomBig
+   touching: P = 2, edges; both edges: N = O = angle; N < 170 or N > 190: B -= G * J * sin N / 0.35, then
+   W = G, G = 0, L = K = M = 1 (runs on the ceiling); otherwise N = O = 0.
+6. Ground (L = 1), 1601: slopes-down loop (15x: main clear and Slopes touching: X += sin N, Y += cos N;
+   main touching: one more step down and stop), slopes-up loop (15x: main touching: X -= sin N,
+   Y -= cos N). 1602 edges; 1603 both edges: N = angle (O untouched).
+7. 1605-1608 (L = 1, both edges): if |N + 360 - O| < |N - O|, N += 360; d = N - O: |d| < 45: O = fmod(O + d k,
+   360), k = max(0.175, |B| / D); |N - O| >= 45: O = fmod(N, 360); N = fmod(N, 360).
+8. 1609: 75 <= N <= 285 and |B| < 0.4 (+ 2|cos N| when cos N <= 0): leave the ground. 1610: BottomBig not
+   touching (its last test, i.e. the previous frame's step 9 on the ground): leave the ground. Leaving:
+   n = floor(N), G = -B sin n, B = B cos n, N = O = L = 0.
+9. 1611: all sensors placed and tested (their Z values feed the speed events of this frame and step 8 of
+   the next).
+
+**Angle measurement** (loop_player01detectangle, 20 steps): both angle sensors' scan Y reset to 0; each
+step places and tests them and adds 1 to the scan of a sensor that does not touch. A = Lx - Rx,
+B = Ly - Ry (integer positions), then loop_toolsanglecalculator: C = -atan(B/A) in degrees (0 if A = 0),
++180 if negative, +180 if B < 0; C = 0 becomes 180 if A > 0 or 90 if B > 0; C = 180 becomes 270 if B < 0.
+Example: the DV1 start slope gives atan(1/14) = 4.0856 degrees.
+
+**Speed events using sensors:** 1635/1636 B > 0 with RightBig touching (B < 0 with LeftBig) and not in M5:
+B = 0. 1649: in the air, G < 0, TopBig touching, not M5: G = 0. 1637-1640/1650: boost wall/ceiling bounce
+(M5, not ported). 1752-1755: pushing state M11 against a wall (not ported).
+
+## Horizontal speed (events 1621-1634; M0 group)
+E = 0.07375, C = 5. Ground with no input toward the motion side: B >= 0 -> max(0, B - 5E), then if |B| < 2
+max(0, B - 4E) (mirror for B <= 0). Holding a direction with B below C: B += E, and if |B| < 2 and N is not
+within 80..280: B = min(2, B + 8E). In the air, additionally B += E (below C) and B = min(2, B + 4E) (below
+2). The input rules are off in states M2-M6; all of them need the movement flag S = 1 (the skid, M4, sets
+S = 0). OTHERS.O is a signed input lock (1627/1628 count it to 0).
+
+## Controller (PlayerInput_21, frame member +0x470)
+Alterables: A up, B down, C left, D right, E jump, F attack, N special held; G..K up/down/left/right/jump
+pressed, L attack pressed, O special pressed (RV with WHO on events 1742/1574).
+
+## States and their event groups
+Each movement state M switches on its own event group (events 1681-1721: flag per M value; e.g. M0
+0x21a61, M2 0x21a40, M3 0x21a55, M4 0x21a58, M5 0x21a3c). Transitions happen in event order inside a
+frame, and a group switched on by an earlier event only runs from the next frame. Examples: 1742 (M0,
+grounded, B = 0, Up, no direction) -> M2 look up and switches the M0 group off, so 1766 (M0: Up + attack
+-> M21 uppercut) cannot fire on that frame; 1818 (M2 group: attack pressed with Up) -> M21. 1743: |B| < 2,
+Down, no direction -> M3, B = 0. 1744-1747: input against B (|B| >= PAV_A.H) -> M4 skid, S = 0. 3047/1750:
+jump from the ground: G = cos N * A - B sin N, B = cos N * B + A sin N (A = -7), N = 0, L = 0.
 
 ## Handlebar (gimmickhangingidlesensor_674; events 4057-4066)
 4065: the top-big sensor overlaps the hang group (QualifierList +0x22040), G > 0, M != 9, controller B = 0 (Down not held): M = 41, X = sensor x, Y = sensor y + 32. 4062/4065 rewrite the position every frame; B becomes 0 the next frame while G keeps gaining gravity. Hang sensor image 50x15, hotspot (25, 0). Release and moving along the bar are in 4057-4064/4066 (with `Frame::test_ladder`): not read yet.

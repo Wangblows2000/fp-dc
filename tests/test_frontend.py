@@ -33,8 +33,9 @@ def check(name, cond, info=''):
 ROUTE = '40 42 S\n180 182 J\n220 222 S\n260 262 J\n'
 r, m, p = run(ROUTE, 520)
 check('menu_route_reaches_gameplay', r[-1]['mode'] == MODE_PLAY, 'mode %d' % r[-1]['mode'])
-names = [x[0] for x in m if x[0] != 'stop']
-check('music_title_menu_stage', names[:3] == ['bgm/m_title.adp', 'bgm/m_menu1.adp', 'bgm/m_stage1.adp'], str(names))
+names = [x[0] for x in m]
+# RE: the title stops its music (327) and the title menu starts m_title again (331)
+check('music_title_menu_stage', [n for n in names if n != 'stop'][:4] == ['bgm/m_title.adp', 'bgm/m_title.adp', 'bgm/m_menu1.adp', 'bgm/m_stage1.adp'] and names[1] == 'stop', str(names))
 check('no_duplicate_music_starts', all(a != b for a, b in zip(names, names[1:])))
 # player has no control during the stage card (timer not running): x unchanged while R is held
 r, m, p = run(ROUTE + '320 420 R\n', 420)

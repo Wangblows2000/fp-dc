@@ -139,8 +139,9 @@ static void title_start(void) {
 }
 
 static void title_leave(void) {
-    snd_play_orig(SND_START, 255, 128);
-    music_stop();
+    music_stop();                                      /* RE 327: the title stops the music channel */
+    music_volume(fe_music_volume);
+    music_play("bgm/m_title.adp");                     /* RE 331 (title menu frame start): m_title again */
     set_state(FE_MENU); hub_prepare(); cam_x = cam_tx = 43; cam_y = cam_ty = 0;
 }
 
