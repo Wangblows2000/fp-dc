@@ -163,3 +163,20 @@ jump from the ground: G = cos N * A - B sin N, B = cos N * B + A sin N (A = -7),
 
 ## Results screen (DV4 / frame 24; located, not ported)
 Lists: LevelCardActClear1 +0x8bf0, LevelCardActClear2 +0x8c30, LevelCardBonus1-3 +0x8cb0/+0x8cf0/+0x8d30, TotalBonus +0x8d70, BossSerpentineHead +0x9070. Sequence events 4560-4589 + `loop_tally_19` + 5389/5395, driven by a controller timer (B, counts to 200): 140 HUD shifts up (`loop_gui_shiftup_14`), 150 music strings (`play_music`, `stop_music`) and counters, 180 clear-card animation, tally sub-states (A = 1, 2) with their own timers (120, 100), character voice lines (e.g. Milla's `yay` / `thatwasfun`), then (+150) records.dat save, Steam upload and the frame change. Loops are started by name through a hash table, so call graphs miss them: find them by string (`str_*` symbols) or by object-list offsets as above.
+
+## Title screen (frame index 2 = on_frame_3, events 307-330; port: src/game/frontend.c)
+- Starfield: Speed counter 5; up to 81 stars; A = ((r·5)>>9) − 20, B = ((r·240)>>15) − 220, C = 256; screen = planet + A·256/C; direction = int(C/8).
+- 250 TitleStars: x1 = int(213 − 213·cos(i⁸) + i), x = 107 + ((x1 + 213) mod 426); y = (int(sin(i² − i)·120 + 120) + 120) mod 240; frame = i mod 21; removed when near the border.
+- Moon: A from 180, −0.08 per frame; x = px + 48·sin A; y = py − 10 + 48·cos(A + 30). Planet starts at (163, 184): x −1 when timer % 40 = 20, y +1 when timer % 39 = 30.
+- Fade-in: A +1 per frame, alpha = clamp((128 − 4A)·2). Press Start pulse: D +4 per frame, alpha = clamp((128 − (128·cos D + 64))·2).
+- On press (jump / attack / start): sound 100, flash (direction 1, 10 loops), black fade, music to 60 %, shake Z = 5 (−0.4 per frame; X = X0 + cos(200Z)·Z, Y = Y0 + sin(200Z)·Z·0.5). After the flash: fade A −2 per frame, music −1 per frame; at A ≤ −100 the music stops (327) and the next frame starts. 32 s idle (325) does the same. The title menu frame restarts m_title (331).
+
+## Items and monitors (events 2543, 1288-1291, 2527-2531, 2632-2670)
+See RUNTIME_MAP "Monitors and items". The energy refill starts 41 frames after the stage start (RV). The cyclone drains 0.25 per frame and the boost 3 per frame; both use the state at the start of the frame (RV cyclone / cyc_down / cyc_then_dk traces).
+
+## Move overlays (events 2043, 2834, 2844, 2845)
+- 2043 (cyclone group, every 6 frames): ShieldInstaShield_407 at the player, direction 8, A = 2, **set invisible**; RingSparkle_142 at the player + rand(41) − 20 on x and y (cross_seed LCG 0x343fd / 0x269ec3).
+- 2834: M = 5 and the global frame counter even → RingSparkle at ±8 (rand(17) − 8).
+- 2844: Others D = 1 and flag bit → creates Sparkle1-4 at the player with C (radius) / D (angle) = 20/0, 20/180, 10/0, 10/180. Their own loops (RV): D +7 or +10 per frame, position anchor + C·(sin D, −cos D).
+- 2845: Others D = 1 and the global counter % 6 = 0 → a Sparkle5_284 at each of Sparkle1-4.
+- Lilac's hair whirl during the cyclone is the hair overlay's animation 18, not a separate object.

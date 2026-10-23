@@ -32,8 +32,8 @@ static void level_start(void) {
     camera_update();
 }
 
-/* stage music per level dir (RV from the original's play_music events: m_stage1 frame 20,
- * m_stage1b frames 21-22, m_boss frame 23 (boss)); DV4's start track is INFERRED (m_stage1b) */
+/* stage music per level dir (RE/RV: the original's play_music loops: m_stage1 frame index 20,
+ * m_stage1b 21-22, m_boss 23 = DV4) */
 static const char *level_music(const char *dir) {
     /* RE: Frames::loop_play_music_N_<frame index> strings: 20 m_stage1, 21/22 m_stage1b, 23 m_boss */
     if (!strcmp(dir, "dv1")) return "bgm/m_stage1.adp";

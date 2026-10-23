@@ -133,3 +133,22 @@ Labels: original-trace, host-test, emulator. Nothing hardware-validated.
 | snd_moves | B @f150 (2.000 vs 0.000) | suspected: landing one frame different after a cyclone |
 | turretus_jumpinto | B @f60 (0.000 vs 0.664) | suspected: landing/collision after the teleport below the rock (sensor system) |
 | turretus_landon | X @f50 (1200.681 vs 1233.000) | verified: the original pushes Lilac up out of the rock she is teleported into (loop_player01up/down push-out not ported) |
+
+## 2026-10-23 Session 5: sensors, title, items, monitors, loading screen, move overlays
+Labels: original-trace, host-test, emulator. Nothing hardware-validated. No audio device in the emulator VM, so audio was checked only through the host music/SFX trace, not by ear.
+
+- **Comparisons (original-trace vs host-test):** **69/70** (boost_upright fails: a Ganseki Jr. enemy hits Lilac in the original; that enemy isn't ported), **16/16 baseline** (re-recorded), strict **10033 / 10471 exact frames (95.8%)**, up from 24.1%. Sensor collision (events 1584-1611) and horizontal speed (1621-1634) are ported.
+- **Host tests:** gameplay **39/39** (new: cyclone_energy_drain), front end **11/11** (new: loading_silences_audio, loading_screen_crystal_bottom_right).
+- **Host checks (scripted):**
+  - Monitors in DV1: crystal monitor (4824, 432) throws 7 crystals and 3 are collected by walking through.
+  - The invincibility monitor (6224, 856) starts m_invincibility; stage music resumes after 1800 frames.
+  - The 1-up monitor (7952, 912) plays m_1up and resumes after 240 frames (INFERRED length).
+- **Bugs found:**
+  - The monitor slot was freed before the reward, so thrown items spawned at x = 0.
+  - The DC stream volume was set before `snd_stream_start`, which resets it to 255.
+- **Audio overlap root cause:** blocking loads starve the stream refill thread while the AICA loops its ring buffer. The fix is no stream during loads, plus the silent loading screen.
+- **Emulator (Flycast, build/fpdc.cdi):**
+  - The title animation runs and Press Start leads to the menu.
+  - The loading screen shows the crystal bottom-right in two successive shots with different frames.
+  - DV1, DV2, DV3 and DV4 load from the developer select and play. Crystals were collected in DV3 (counter 198), and pause works.
+  - Act transitions DV1→DV4 were checked on the host only, not played through in the emulator.
