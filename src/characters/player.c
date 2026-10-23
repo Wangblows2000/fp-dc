@@ -162,8 +162,9 @@ static void slope_force(player_t *p) {
     if (fabs(p->gsp) >= PHYS_TOP) p->gsp = p->gsp - o_sin(n) * PHYS_SLOPE;
 }
 
-int player_body_z(const player_t *p) {        /* RE 1680/1686/1693: Z = 1 in M5 (charge, boost) and M19 (kick wind-up) */
-    return p->state == ST_CHARGE || p->state == ST_BOOST || p->state == ST_DKWIND;
+int player_body_z(const player_t *p) {        /* RE 1680/1686/1693: Z = 1 in M5 (charge, boost) and M19 (kick wind-up); 1687 M6 (roll); 1786 M1 with OTHERS.Y = 8 */
+    return p->state == ST_CHARGE || p->state == ST_BOOST || p->state == ST_DKWIND || p->state == ST_ROLL ||
+           (p->state == ST_NORMAL && p->roll_ball && !p->ground);
 }
 int player_contact_safe(const player_t *p) {
     /* RE 2731: no contact damage with movement Z = 1, in M20/M21/M26/M44 (attack, uppercut, cyclone), with
@@ -173,7 +174,8 @@ int player_contact_safe(const player_t *p) {
 }
 int player_char_sensor_small(const player_t *p) {
     /* RE 2471-2489: anim 1 (15x27) for OTHERS.Y 5,7,8,9,14,20-23,26,42: kick wind-up, attacks, crouch kick, cyclone */
-    return p->state == ST_DKWIND || p->state == ST_ATTACK || p->state == ST_CYCLONE || p->state == ST_CROUCHATK || p->look == 3;
+    return p->state == ST_DKWIND || p->state == ST_ATTACK || p->state == ST_CYCLONE || p->state == ST_CROUCHATK || p->look == 3 ||
+           p->state == ST_ROLL || (p->state == ST_NORMAL && p->roll_ball);
 }
 int player_anim_frame(const player_t *p) { return p->an.frame; }
 int player_anim_is(const player_t *p, const char *name) {
@@ -228,7 +230,7 @@ static void on_land(player_t *p) {
 
 /* one pass of the original's movement + sensor collision with the current B, G */
 static int core(player_t *p) {
-    mv_t m = { p->x, p->y - ORIG_REF_DY, p->ground ? p->gsp : p->vx, p->ground ? 0. : p->vy, p->N, p->O, 0, p->ground, 0, 0 };
+    mv_t m = { p->x, p->y - ORIG_REF_DY, p->ground ? p->gsp : p->vx, p->ground ? 0. : p->vy, p->N, p->O, 0, p->ground, 0, 0, 0 };
     int r = mv_core(&m);
     p->x = m.X; p->y = m.Y + ORIG_REF_DY; p->N = m.N; p->O = m.O; p->ground = m.L;
     if (m.L) { p->gsp = m.B; p->vy = 0; }
@@ -238,7 +240,7 @@ static int core(player_t *p) {
 }
 
 int player_core_nov(player_t *p) {            /* M45: MV.U = 0 */
-    mv_t m = { p->x, p->y - ORIG_REF_DY, p->ground ? p->gsp : p->vx, p->ground ? 0. : p->vy, p->N, p->O, 0, p->ground, 0, 1 };
+    mv_t m = { p->x, p->y - ORIG_REF_DY, p->ground ? p->gsp : p->vx, p->ground ? 0. : p->vy, p->N, p->O, 0, p->ground, 0, 1, 0 };
     int r = mv_core(&m);
     p->x = m.X; p->y = m.Y + ORIG_REF_DY; p->N = m.N; p->O = m.O; p->ground = m.L;
     if (m.L) { p->gsp = m.B; p->vy = 0; } else { p->vx = m.B; p->vy = m.G; }
@@ -247,7 +249,7 @@ int player_core_nov(player_t *p) {            /* M45: MV.U = 0 */
 
 /* sensor state for a position set from outside (spawn, debug): as if 1611 had run there */
 void player_sync_sensors(player_t *p) {
-    mv_t m = { p->x, p->y - ORIG_REF_DY, p->ground ? p->gsp : p->vx, p->ground ? 0. : p->vy, p->N, p->O, 0, p->ground, 0, 0 };
+    mv_t m = { p->x, p->y - ORIG_REF_DY, p->ground ? p->gsp : p->vx, p->ground ? 0. : p->vy, p->N, p->O, 0, p->ground, 0, 0, 0 };
     mv_allsensors(&m);
 }
 
@@ -695,11 +697,70 @@ static int push_wants(const player_t *p, const input_t *in) {
     return ((in->held & BTN_RIGHT) && mv_sensor_right_big()) || ((in->held & BTN_LEFT) && mv_sensor_left_big());
 }
 
+/* ---- roll, state M6 (build/re/spec_roll_gimmicks.md §1). Lilac's table 1543: O 0.0334 friction, P 0.2 brake,
+ * Q 0.035 uphill, R 0.25 downhill (water values 1545/1546 not used: the port has no water physics yet). */
+#define ROLL_O 0.0334
+#define ROLL_P 0.2
+#define ROLL_Q 0.035
+#define ROLL_R 0.25
+/* movement block + speed events of one M6 frame: acceleration (1625-1630) and slope force (1644-1646) skipped,
+ * ground friction (1621-1624), air acceleration (1631-1634), wall stop, gravity and drag apply; the helix runs it
+ * with T = U = 0 */
+static void roll_move(player_t *p, const input_t *in) {
+    mv_t m = { p->x, p->y - ORIG_REF_DY, p->ground ? p->gsp : p->vx, p->ground ? 0. : p->vy, p->N, p->O, 0, p->ground, 0, p->helix, p->helix };
+    int r = mv_core(&m);
+    p->x = m.X; p->y = m.Y + ORIG_REF_DY; p->N = m.N; p->O = m.O; p->ground = m.L;
+    if (m.L) { p->gsp = m.B; p->vy = 0; } else { p->vx = m.B; p->vy = m.G; }
+    if (r & MV_LANDED) { p->springing = 0; p->jumping = 0; p->cyclone_used = 0; p->boost_used = 0; }
+    horiz_accel(p, in, 1, 1);
+    wall_stop(p);
+    if (!p->ground) {
+        air_speed_update(p, in, 0, PHYS_GRAV);
+        if (p->vy < 0 && mv_sensor_top_big()) p->vy = 0;
+    }
+}
+/* the M6 group, 1851-1864 (after the edge clamp; on while M = 6 at 1687) */
+static void roll_group(player_t *p, const input_t *in) {
+    double *b = p->ground ? &p->gsp : &p->vx, N = p->N;
+    int L = p->ground, r = (in->held & BTN_RIGHT) != 0, l = (in->held & BTN_LEFT) != 0;
+    p->boost_n++;                                                         /* 1851 (OTHERS.Y = 8) */
+    if (*b < 0 && r) *b = fmin(*b + ROLL_P, 0.);                          /* 1852 */
+    if (*b < 0 && !r) *b = fmin(*b + ROLL_O, 0.);                         /* 1853 */
+    if (*b > 0 && l) *b = fmax(*b - ROLL_P, 0.);                          /* 1854 */
+    if (*b > 0 && !l) *b = fmax(*b - ROLL_O, 0.);                         /* 1855 */
+    if (L && *b > 0 && N < 180) *b -= ROLL_Q * o_sin(N);                  /* 1856 */
+    if (L && *b < 0 && N > 180) *b -= ROLL_Q * o_sin(N);                  /* 1857 */
+    if (L && *b < 0 && N < 180) *b -= ROLL_R * o_sin(N);                  /* 1858 */
+    if (L && *b > 0 && N > 180) *b -= ROLL_R * o_sin(N);                  /* 1859 */
+    if (!L) { p->state = ST_NORMAL; p->jumping = 0; p->roll_ball = 1; }  /* 1860: M = 1 (PAV_A.C = 0) */
+    if (L && (in->pressed & BTN_JUMP) && p->tun_lock != 1) {             /* 1861 (as 3047) */
+        double c = o_cos(N), sn = o_sin(N), B = p->gsp;
+        p->vy = c * -PHYS_JUMP - B * sn;
+        p->vx = c * B + -PHYS_JUMP * sn;
+        p->ground = 0; p->N = 0; p->state = ST_NORMAL; p->jumping = 1; p->roll_ball = 1;
+        snd_play(G.sfx.jump, 200, 128);
+        b = &p->vx;
+    }
+    /* 1862: (|B| < 2 and OTHERS.N > 30) OR Up pressed -> M0 (an OR event; RV spiral_dv1 / spiralb: the slow roll
+     * stands up after 30 roll frames without input) */
+    if ((fabs(*b) < 2 && p->boost_n > 30) || (in->pressed & BTN_UP)) { p->state = ST_NORMAL; p->boost_n = 0; p->roll_ball = 0; }
+    if (L && fabs(*b) < 2 && p->boost_n > 30 && (in->held & BTN_DOWN) && !l && !r) { *b = 0; p->state = ST_NORMAL; p->roll_ball = 0; }   /* 1863: M3 */
+    if ((in->held & BTN_SPECIAL) && p->energy >= PHYS_ENERGY_MAX && p->tun_lock != 1) {                  /* 1864 */
+        p->state = ST_CHARGE; p->state_t = 0; p->boost_n = 0; p->roll_ball = 0;
+        snd_play_orig(9, 230, 128);
+    }
+    if (p->state != ST_ROLL) { if (r) p->face = 1; if (l) p->face = -1; }   /* 2421/2422 run again once M != 6 */
+}
+
 void player_update(player_t *p, const input_t *in) {
+    static const input_t no_input;
+    if (p->in_lock) in = &no_input;                                       /* CTRL.M (110-116 skip the pad) */
     if (p->scripted) { p->held = 0; anim_tick(&p->an, -1); return; }     /* loop_stop_player_13: moved by the DV4 exit script */
     double x_start = p->x;
     int st0 = p->state;
     p->state_t++;
+    objects_mon_ghost = p->state == ST_ROLL || p->state == ST_CHARGE || p->state == ST_BOOST;   /* 1581 (5 <= M <= 6) */
+    if (p->ground) p->roll_ball = 0;
     if (p->invuln) p->invuln--;
     /* RV energy meter (GUIEnergy_127 alt A): -3/frame while boosting, -0.25/frame in the cyclone, else
      * +0.4/frame up to 100 (state at the start of the frame) */
@@ -868,11 +929,12 @@ void player_update(player_t *p, const input_t *in) {
         if (in->pressed & BTN_JUMP) { ground_move(p, in, 1, 1); if (p->ground) { jump(p); p->state = ST_NORMAL; } break; }
         if (in->pressed & BTN_ATTACK) { p->state = ST_NORMAL; ground_move(p, in, 1, 1); break; }
         ground_move(p, in, 1, 1);
-        if (!p->ground || p->gsp != 0) { p->state = ST_NORMAL; break; }                       /* 1875 / 1876 */
+        if (!p->ground || (p->gsp != 0 && p->push_s <= 0)) { p->state = ST_NORMAL; break; }   /* 1875 / 1876 (PAV_B.S grace) */
         if (!(((in->held & BTN_RIGHT) && mv_sensor_right_big()) || ((in->held & BTN_LEFT) && mv_sensor_left_big()))) p->state = ST_NORMAL;   /* 1877-1880 */
         break;
     case ST_LADDER: ladder_frame(p, in); break;
     case ST_CORK: cork_move(p); break;                /* M45 (gimmicks.c) */
+    case ST_ROLL: roll_move(p, in); break;            /* M6 */
     case ST_LADDERIN: ladderin_frame(p, in); break;
     case ST_CHARGE:   /* RE: M5 (charge, OTHERS.N < 30) and the boost: movement + speed rules here, */
     case ST_BOOST:    /* the M5 group (timer, direction latch, fire, drain, end) after the edge clamp */
@@ -892,6 +954,7 @@ void player_update(player_t *p, const input_t *in) {
     /* the M5 group starts the frame after the entry (1686 runs before the entry events 1760-1895) */
     if ((p->state == ST_CHARGE || p->state == ST_BOOST) && (st0 == ST_CHARGE || st0 == ST_BOOST)) m5_group(p, in);
     else if (p->m5_bounced) { p->m5_bounced = 0; p->energy = fmax(0., p->energy - PHYS_ENERGY_DRAIN); if (p->invuln < 30) p->invuln = 30; }  /* 1637/1639: the group still runs that frame */
+    if (p->state == ST_ROLL) roll_group(p, in);   /* 1687: M6 group (after 1641-1651) */
     if (p->hurt_pending) { int d = p->hurt_pending; p->hurt_pending = 0; player_damage(p, d); }   /* 2414 (after the movement block) */
     ladder_grabs(p, in);                           /* 4057-4060 run last */
     if (p->state != ST_DEAD && p->y > G.lvl.h + 64) {
@@ -926,6 +989,7 @@ void player_update(player_t *p, const input_t *in) {
     case ST_CYCLONE: a = A_CYCLONE; break;
     case ST_CROUCHATK: a = A_CROUCHATK; restart = 1; break;
     case ST_CHARGE: a = A_CHARGE; break;
+    case ST_ROLL: a = A_CHARGE; speed = (int)(fabs(p->ground ? p->gsp : p->vx) * 5 + 25); break;   /* 2493: OTHERS.Y 8 */
     case ST_BOOST: a = A_BOOST; break;
     case ST_HURT: a = A_HURT; break;
     case ST_PUSH: a = A_PUSH; break;
@@ -946,7 +1010,8 @@ void player_update(player_t *p, const input_t *in) {
             else if (s < PHYS_TOP) { a = A_WALK; speed = 30; }          /* RV band; speed fitted */
             else if (s < 9.5) { a = A_RUN; speed = 35 + (int)s; }      /* RV band; speed fitted */
             else { a = A_FASTRUN; speed = 35 + (int)s; }
-        } else a = (p->springing && p->vy < 0) ? A_SPRING : A_JUMP;
+        } else if (p->roll_ball) { a = A_CHARGE; speed = (int)(fabs(p->vx) * 5 + 25); }   /* M1 keeps OTHERS.Y = 8 (INFERRED: until landing) */
+        else a = (p->springing && p->vy < 0) ? A_SPRING : A_JUMP;
     }
     if (restart) { if (cur_anim != a || (p->state_t == 1 && a != A_CATCH)) { set_anim(p, a); anim_restart(&p->an); if (hair.b) anim_restart(&hair); } }
     else set_anim(p, a);
