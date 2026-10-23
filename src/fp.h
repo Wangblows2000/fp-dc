@@ -145,7 +145,7 @@ typedef struct {
     int hp, invuln, crystals, lives;   /* hp in half-petals; crystals count DOWN from 200 (RV HUD) */
     int jumping, cyclone_used, boost_used, cyclone_ground_start, hurt_land_t;
     float energy, energy_drain;  /* RV energy meter 0..100 (boost needs 100) */
-    int energy_init;
+    int energy_init, energy_hold;
     int springing, skidding, ctrl_lock;
     int look, look_prev;           /* 2 = looking up (M2), 3 = crouching (M3) this / last frame */
     uint32_t held;                 /* this frame's held buttons (object events that test input) */
