@@ -46,7 +46,35 @@ int    music_play(const char *name);
 void   music_update(void);
 void   music_stop(void);
 void   music_volume(int pct);
-void   snd_stop_all(void);                         /* stop every sound effect channel */
+void   music_pause(void);                          /* pause the stream in place (pause menu) */
+void   music_resume(void);
+void   snd_stop_all(void);
+/* VMU / memory card (platform): LCD bitmap 48x32 1bpp (192 bytes, first byte top-left, MSB left);
+ * saves: one small file on the first memory card that has it / has room. Return 0 / bytes read, <0 error */
+int    plat_vmu_lcd(const uint8_t bitmap[192]);
+int    plat_save_write(const void *data, size_t size);
+int    plat_save_read(void *data, size_t max);
+/* src/game/save.c: options, 8 files, Time Attack records (memory card) */
+#define SAVE_FILES 8
+#define SAVE_STAGES 16
+#define SAVE_CHARS 4
+typedef struct { uint8_t used, character, difficulty, mode, stage, lives, petals; uint16_t crystals, deaths; uint32_t time; } save_file_t;
+typedef struct { uint32_t time; uint16_t crystals; } save_rec_t;   /* time in frames, 0 = no record */
+typedef struct {
+    uint8_t difficulty, music_volume, sfx_volume, sensitivity, unlocked;
+    save_file_t file[SAVE_FILES];
+    save_rec_t rec[SAVE_STAGES][SAVE_CHARS];
+} save_t;
+extern save_t SV;
+void   save_defaults(void);
+int    save_load(void);
+int    save_store(void);
+size_t save_payload_size(void);
+/* src/game/vmu.c */
+void   vmuscr_init(void);
+void   vmuscr_crystal(void);
+void   vmuscr_life(int character, int lives);
+const uint8_t *vmuscr_current(void);                         /* stop every sound effect channel */
 /* loading screen (src/game/loading.c): silent, spinning crystal bottom-right */
 void   loading_begin(void);
 void   loading_tick(void);
@@ -66,6 +94,7 @@ void   r_rect(float x, float y, float w, float h, uint32_t argb);
 void   r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float py, float hx, float hy,
                     float angle_deg, uint32_t argb);
 void   r_end(void);
+void   r_tex_free(tex_t *t);           /* free one texture */
 void   r_reset(void);                 /* free all textures (level change) */
 
 /* ---------------------------------------------------------------- resources */
@@ -78,6 +107,7 @@ typedef struct {
     frame_t *frames;
     anim_t *anims;
     uint16_t *seq;
+    int16_t *act;                      /* optional action points (ax, ay per frame, relative to the image) */
     uint8_t *mbits; uint32_t *moff;   /* collision masks (alpha != 0), rows of (w + 7) / 8 bytes; NULL if absent */
 } bank_t;
 int frame_mask_px(const bank_t *b, const frame_t *f, int x, int y);   /* 1 = solid pixel of the frame image */
@@ -189,6 +219,10 @@ typedef struct {
     char lvdir[8];              /* current level data dir under the data root ("dv1") */
     int debug_select, in_select, sel, sel_top, sel_msg_t;
     int mode, card_t, pause_sel, time_attack, res_t, res_time;
+    int pause_a, pause_wipe_f, frame_draw_t; float pause_wipe_x;   /* pause menu (GUIPause.A, wipe) */
+    int act_lives, act_crystals;  /* RE 4311/4312: lives / crystals at act start (restart restores them) */
+    int character, file_slot, file_mode, deaths;   /* file being played (-1 none), 0 Adventure / 1 Classic */
+    int character_pad;              /* 0 Lilac, 1 Carol, 2 Carol (bike), 3 Milla (life icon order); only Lilac is playable */
     struct { int jump, crystal, hit, explode, attack, hurt, boost; } sfx;
     uint32_t prof_update_us, prof_draw_us;
 } game_t;
@@ -201,6 +235,18 @@ void game_unload_all(void);
 void game_start_adventure(const char *dir, int time_attack);
 void game_dev_select(void);
 int  fe_enter(void);
+int  fe_enter_from_stage(int time_attack);
+/* hub (frame index 3: title menu / file select / mode select / options), src/game/fe_hub.c */
+enum { HUB_EXIT_TIME_ATTACK = 1, HUB_EXIT_QUIT, HUB_EXIT_NEW_ADVENTURE, HUB_EXIT_NEW_CLASSIC, HUB_EXIT_CONTINUE };
+struct ui_scene_s;
+void hub_bind(struct ui_scene_s *s);
+void hub_enter(void);
+int  hub_update(const input_t *in);
+void hub_draw(void);
+int  hub_selected_file(void);
+int  hub_cursor(void);
+int  hub_on_title(void);
+int  hub_lives_for_difficulty(int d);   /* pause QUIT: Time Attack -> stage select, otherwise the title */
 void fe_update(const input_t *in);
 void fe_draw(void);
 void hud_reset(void);

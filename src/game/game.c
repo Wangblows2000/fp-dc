@@ -28,6 +28,8 @@ static void level_start(void) {
     player_reset(&G.p, G.p.spawn_x, G.p.spawn_y);
     objects_spawn();
     G.clear_t = 0; G.act_in = 0; G.act_fade = 0; G.frame = 0; G.card_t = 0; G.paused = 0;
+    G.pause_a = 0; G.pause_wipe_f = 0;
+    G.act_lives = G.p.lives; G.act_crystals = G.p.crystals;   /* RE 4311/4312 (act-carry values are applied after this; see next_act) */
     camera_reset();
     camera_update();
 }
@@ -42,7 +44,7 @@ static const char *level_music(const char *dir) {
 }
 static int act_of(const char *dir) { return dir[2] - '0'; }
 
-static void bank_free(bank_t *b) { free(b->frames); free(b->anims); free(b->seq); free(b->mbits); free(b->moff); memset(b, 0, sizeof *b); }
+static void bank_free(bank_t *b) { free(b->act); free(b->frames); free(b->anims); free(b->seq); free(b->mbits); free(b->moff); memset(b, 0, sizeof *b); }
 
 void game_unload_all(void) {
     bank_free(&G.lilac); bank_free(&G.hair); bank_free(&G.objs);
@@ -156,14 +158,18 @@ static void sel_draw(void) {
 }
 
 /* ---- sounds: original Assets.dat sound IDs (Media::play_id, RUNTIME_MAP "Sound IDs") */
-static const int SND_IDS[] = { 4, 5, 8, 9, 17, 21, 25, 26, 27, 28, 37, 53, 56, 63, 64, 81, 100, 174, 176, 288, 396, 405 };
+static const int SND_IDS[] = { 4, 5, 8, 9, 17, 21, 25, 26, 27, 28, 37, 53, 56, 63, 64, 81, 100, 174, 176, 220, 288, 396, 405 };
 static int snd_handle[512];
 static const char *VOICES[] = { "lilac_attack0", "lilac_attack1", "lilac_attack2", "lilac_attack3", "lilac_uppercut0",
     "lilac_uppercut1", "lilac_uppercut2", "lilac_uppercut3", "lilac_cyclone1", "lilac_cyclone2", "lilac_hurt0",
     "lilac_hurt1", "lilac_hurt2", "lilac_hurt3", "lilac_die" };
 static int voice_handle[16];
 
-void snd_play_orig(int id, int vol, int pan) { if (id >= 0 && id < 512 && snd_handle[id] >= 0) snd_play(snd_handle[id], vol, pan); }
+void snd_play_orig(int id, int vol, int pan) {
+#ifdef FP_HOST_ENV
+    if (getenv("FP_TRACE_SID")) printf("sid %d\n", id);   /* original sound id, belongs to the next 'f' row */
+#endif
+    if (id >= 0 && id < 512 && snd_handle[id] >= 0) snd_play(snd_handle[id], vol, pan); }
 void voice_play(const char *name) {
     for (int i = 0; i < (int)(sizeof VOICES / sizeof VOICES[0]); i++)
         if (!strcmp(VOICES[i], name)) { if (voice_handle[i] >= 0) snd_play(voice_handle[i], 255, 128); return; }
@@ -173,6 +179,8 @@ int game_init(void) {
     memset(&G, 0, sizeof G);
     char nm[48];
     for (int i = 0; i < 512; i++) snd_handle[i] = -1;
+    vmuscr_init();
+    save_load();                                   /* memory card (VMU) / host FP_SAVE */
     loading_begin();                               /* boot: sound effects (title data follows in fe_enter) */
     for (int i = 0; i < (int)(sizeof SND_IDS / sizeof SND_IDS[0]); i++) {
         snprintf(nm, sizeof nm, "sfx/s%d.wav", SND_IDS[i]); snd_handle[SND_IDS[i]] = snd_load(nm); loading_tick();
@@ -293,7 +301,14 @@ static void next_act(void) {
     int a = act_of(d);
     /* DV4 ends with the Serpentine boss and then the results (events 5385 / 4560-4589); the boss is not
      * ported, so the end of DV4 goes straight to the results. Time Attack plays every act as well. */
-    if (a >= 4) { G.mode = MODE_RESULTS; G.res_t = 0; G.res_time = G.frame; music_play("bgm/m_clear.adp"); return; }
+    if (a >= 4) {
+        G.mode = MODE_RESULTS; G.res_t = 0; G.res_time = G.frame; music_play("bgm/m_clear.adp");
+        if (G.time_attack) {                          /* Time Attack record (stage list order: 0 Shang Mu Academy, 1 Dragon Valley) */
+            save_rec_t *r = &SV.rec[1][G.character < SAVE_CHARS ? G.character : 0];
+            if (!r->time || (uint32_t)G.frame < r->time) { r->time = (uint32_t)G.frame; r->crystals = (uint16_t)(CRYSTALS_PER_LIFE - G.p.crystals); save_store(); }
+        }
+        return;
+    }
     d[2] = (char)('0' + a + 1);
     /* RV (DV1 -> DV2 traces): petals, lives, crystals, energy and the timer carry over (globals) */
     int frame = G.frame, hp = G.p.hp; double energy = G.p.energy;
@@ -308,20 +323,69 @@ static void next_act(void) {
     camera_reset(); camera_update();
 }
 
+/* ---- pause menu (RE, DV1 = handle_frame_21: open 4878, close 4879, timer 2928, art 4296/4299/4300, cursor
+ * 4297/4298/4301/4302, confirm 4303, wipe 3551, restart 4881 -> loop_restart_20 (event 1276), quit 4305 ->
+ * loop_return_0; layout 4477). GUIPause.A = G.pause_a: 5 on opening, counts down to 3 (menu live) and from
+ * 2 to 0 after closing; the cursor row (Crystal_447.A) is kept between pauses. */
+static int pause_frame(void) { return G.p.lives <= 1 ? 4 : 3; }   /* RE 4299/4300: RESTART greyed out */
+
+/* RE 4878: start edge, pause group active (after the title card, not during the act-end sequence),
+ * menu closed (A == 0), player not dying */
+static int pause_try_open(const input_t *in) {
+    if (!(in->pressed & BTN_START) || G.pause_a != 0) return 0;
+    if (G.card_t < CARD_DONE || G.clear_t || G.act_in || G.p.state == 6 /* ST_DEAD */ || G.p.hp <= 0) return 0;
+    G.paused = 1; G.pause_a = 5;
+    music_pause(); snd_stop_all();                 /* Media::pause_samples: every channel, BGM (31) included */
+    snd_play_orig(63, 230, 128);                   /* played after pausing, so it is heard */
+    G.pause_a--;                                   /* RE 2928 runs in the same frame: 5 -> 4 */
+    return 1;
+}
+
 static void pause_update(const input_t *in) {
     uint32_t p = in->pressed;
-    if (p & BTN_UP) { G.pause_sel = (G.pause_sel + 2) % 3; snd_play_orig(64, 220, 128); }
-    if (p & BTN_DOWN) { G.pause_sel = (G.pause_sel + 1) % 3; snd_play_orig(64, 220, 128); }
-    if (p & BTN_START) { G.paused = 0; return; }
-    if (p & BTN_JUMP) {
-        snd_play_orig(63, 230, 128);
-        if (G.pause_sel == 0) G.paused = 0;
-        else if (G.pause_sel == 1) { int f = G.frame; game_load_level(G.lvdir); G.frame = f; }   /* RESTART act */
-        else fe_enter();                                                                         /* QUIT to title */
+    int jump = p & BTN_JUMP, start = p & BTN_START;
+    if (G.pause_wipe_f) {                          /* RE 3551: wipe from the left, 32 px/frame; action 50 frames after confirm */
+        G.pause_wipe_x = G.pause_wipe_x + 32 > 0 ? 0 : G.pause_wipe_x + 32;
+        if (++G.pause_wipe_f > 50) {
+            G.pause_wipe_f = 0; G.pause_a = 0; G.paused = 0;
+            if (G.pause_sel == 3) {                /* RESTART: loop_restart_20 / event 1276 */
+                int lives = G.act_lives - 1 < 1 ? 1 : G.act_lives - 1;
+                int crystals = G.act_crystals, frame = G.frame;
+                music_stop(); snd_stop_all();
+                G.pause_sel = 1;
+                game_load_level(G.lvdir);
+                G.p.lives = lives; G.p.crystals = crystals; G.frame = frame;
+                G.act_lives = lives;
+            } else {                                /* QUIT: loop_return_0 -> frame 7 dispatcher; RV: Time Attack -> stage select */
+                G.pause_sel = 2;
+                music_stop();
+                fe_enter_from_stage(G.time_attack);
+            }
+        }
+        return;
+    }
+    /* RE 4879: close on start, or confirm on RESUME (silent) */
+    if (G.pause_a == 3 && (start || (jump && G.pause_sel == 0))) {
+        G.pause_a = 2 - 1;                          /* 2928 in the same frame */
+        G.paused = 0;
+        music_resume();                             /* Media::resume_samples */
+        return;
+    }
+    if (G.pause_a > 0 && G.pause_a != 3) G.pause_a--;   /* RE 2928 */
+    if (G.pause_a != 3) return;
+    int fr = pause_frame();
+    if ((p & BTN_DOWN) && G.pause_sel < 2) { G.pause_sel++; snd_play_orig(64, 220, 128); if (G.pause_sel == 1 && fr == 4) G.pause_sel = 2; }
+    if ((p & BTN_UP) && G.pause_sel > 0 && G.pause_sel <= 2) { G.pause_sel--; snd_play_orig(64, 220, 128); if (G.pause_sel == 1 && fr == 4) G.pause_sel = 0; }
+    if (jump && G.pause_sel >= 1 && G.pause_sel <= 2) {   /* RE 4303 */
+        snd_play_orig(56, 230, 128);
+        G.pause_sel += 2;                           /* 3 = restart, 4 = quit */
+        G.pause_wipe_x = -(SCREEN_W + 120); G.pause_wipe_f = 1;
     }
 }
 
 void game_update(const input_t *in) {
+    /* VMU screen: the character's life icon and lives in a stage, the crystal everywhere else */
+    if (G.mode == MODE_PLAY && !G.in_select) vmuscr_life(G.character, G.p.lives); else vmuscr_crystal();
     if (G.mode == MODE_FRONTEND) { fe_update(in); return; }
     if (G.in_select) { sel_update(in); return; }
     if (G.mode == MODE_RESULTS) {
@@ -337,8 +401,10 @@ void game_update(const input_t *in) {
         camera_update();
         return;
     }
+    G.frame_draw_t++;
     if (G.paused) { pause_update(in); return; }
-    if (in->pressed & BTN_START) { G.paused = 1; G.pause_sel = 0; return; }
+    if (G.pause_a > 0) G.pause_a--;                  /* RE 2928: closing lockout 1 -> 0 */
+    if (pause_try_open(in)) return;                  /* (the original pauses after this frame's gameplay events) */
     G.frame++;
     input_t none = {0};
     const input_t *pin = (G.clear_t || G.act_in) ? &none : in;   /* act end / walk-in: no control (RE) */
@@ -425,13 +491,13 @@ void text_draw(float x, float y, const char *s, uint32_t argb, int scale) {
 
 /* ---- HUD: original GUI images (object bank anims hud_*), layout measured in the original at its
  * native 426x240 by template matching a screenshot (RUNTIME_MAP "HUD"). All coordinates = image top-left. */
-#define NHUD 15
+#define NHUD 16
 static int hud_anim[NHUD] = { -2 };
 void hud_reset(void) { hud_anim[0] = -2; }
 static void hud_init(void) {
     if (hud_anim[0] == -2) {
         static const char *nm[NHUD] = { "hud_frame", "hud_fill", "hud_petals", "hud_icon", "hud_clock", "hud_digits",
-            "card_stage", "card_name", "pause", "res_complete", "res_results", "res_panel", "res_rows", "res_digits", "res_small" };
+            "card_stage", "card_name", "pause", "res_complete", "res_results", "res_panel", "res_rows", "res_digits", "res_small", "pausecursor" };
         for (int i = 0; i < NHUD; i++) hud_anim[i] = bank_anim(&G.objs, nm[i]);
     }
 }
@@ -512,10 +578,26 @@ static void card_draw(void) {
 
 static void pause_draw(void) {
     if (!G.paused) return;
-    hud_img_hot(8, 1, 213, 101);                  /* RV image 6685: Paused + RESUME/RESTART/QUIT */
-    /* selection marker: original crystal cursor not in the level bank; the item icons stay as drawn
-     * (cursor placement INFERRED): small red petal left of the selected row */
-    hud_img(2, 1, 150, 136 + G.pause_sel * 23, -1);
+    /* RE 4477: GUIPause at (0.5 G - (105 - 53 J), 101) = (214, 101) at 426 px (RV); Crystal at its action point,
+     * y + 24 per row (RV: (166, 141 + 24 row)) */
+    hud_img_hot(8, pause_frame(), 214, 101);
+    if (G.pause_sel <= 2) {
+        hud_init();
+        if (hud_anim[15] >= 0) {
+            const anim_t *an = &G.objs.anims[hud_anim[15]];
+            int k = (G.frame_draw_t / 6) % an->count;      /* Crystal_447 spins (speed 18) */
+            frame_draw(&G.objs, &G.objs.frames[G.objs.seq[an->first + k]], 166, 141 + 24 * G.pause_sel, 0, 0xffffffff);
+        }
+    }
+    if (G.pause_wipe_f) {                          /* levelcardfade2 (near black) + fadeedge_77 diagonal edge */
+        float x = G.pause_wipe_x;
+        if (x + SCREEN_W > 0) r_rect(0, 0, x + SCREEN_W, SCREEN_H, 0xff080000);
+        for (int y = 0; y < SCREEN_H; y += 2) {
+            float w = 120.f * (1.f - (float)y / SCREEN_H);
+            float x0 = x + SCREEN_W; if (x0 < 0) { w += x0; x0 = 0; }
+            if (w > 0) r_rect(x0, (float)y, w, 2, 0xff080000);
+        }
+    }
 }
 
 /* results: original images (Stage Complete! build-in, Results banner, panel, rows, bonus digits);
