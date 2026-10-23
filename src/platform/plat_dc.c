@@ -6,6 +6,9 @@
 #include <string.h>
 #include <dc/sound/stream.h>
 #include <dc/sound/sfxmgr.h>
+#include <dc/vmu_pkg.h>
+#include <dc/vmufs.h>
+#include <dc/maple/vmu.h>
 #include "../fp.h"
 
 #ifndef FP_DATA_ROOT
@@ -100,6 +103,7 @@ static snd_stream_hnd_t mus = SND_STREAM_INVALID;
 static FILE *mus_f;
 static char mus_name[64];
 static int mus_vol = 255;
+static int mus_paused;           /* pause menu: stream stopped in place, not polled */
 static uint8_t mus_buf[MUS_CHUNK * 2] __attribute__((aligned(32)));
 
 static void *mus_cb(snd_stream_hnd_t hnd, int smp_req, int *smp_recv) {
@@ -125,7 +129,7 @@ static void *mus_thread(void *arg) {
     (void)arg;
     while (mus_thread_run) {
         mutex_lock(&mus_lock);
-        if (mus != SND_STREAM_INVALID) snd_stream_poll(mus);
+        if (mus != SND_STREAM_INVALID && !mus_paused) snd_stream_poll(mus);
         mutex_unlock(&mus_lock);
         thd_sleep(10);
     }
@@ -134,6 +138,7 @@ static void *mus_thread(void *arg) {
 
 static void music_stop_locked(void) {
     if (mus != SND_STREAM_INVALID) { snd_stream_stop(mus); snd_stream_destroy(mus); mus = SND_STREAM_INVALID; }
+    mus_paused = 0;
     if (mus_f) { fclose(mus_f); mus_f = NULL; }
     mus_name[0] = 0;
 }
@@ -165,12 +170,102 @@ void music_volume(int pct) {
     mutex_unlock(&mus_lock);
 }
 
+/* pause menu: stop the AICA channels but keep the file and its position; resume restarts the stream
+ * there (the prefetched ring buffer, up to 32 KB = about 1 s, is skipped) */
+void music_pause(void) {
+    mutex_lock(&mus_lock);
+    if (mus != SND_STREAM_INVALID && !mus_paused) { snd_stream_stop(mus); mus_paused = 1; }
+    mutex_unlock(&mus_lock);
+}
+void music_resume(void) {
+    mutex_lock(&mus_lock);
+    if (mus != SND_STREAM_INVALID && mus_paused) {
+        mus_paused = 0;
+        if (strstr(mus_name, ".adp")) snd_stream_start_adpcm(mus, 32000, 1); else snd_stream_start(mus, 22050, 1);
+        snd_stream_volume(mus, mus_vol);
+    }
+    mutex_unlock(&mus_lock);
+}
+
 void music_update(void) { /* handled by mus_thread */ }
 
 void music_stop(void) {
     mutex_lock(&mus_lock);
     music_stop_locked();
     mutex_unlock(&mus_lock);
+}
+
+/* ------------------------------------------------------------- VMU */
+/* LCD: the same bitmap on every VMU that has a screen (two slots per controller) */
+int plat_vmu_lcd(const uint8_t bitmap[192]) {
+    static uint32_t bm[48];                       /* vmu_draw_lcd_rotated wants 4-byte alignment */
+    memcpy(bm, bitmap, 192);
+    int ok = -1;
+    for (int i = 0; ; i++) {
+        maple_device_t *d = maple_enum_type(i, MAPLE_FUNC_LCD);
+        if (!d) break;
+        if (vmu_draw_lcd_rotated(d, bm) == MAPLE_EOK) ok = 0;
+    }
+    return ok;
+}
+
+/* Save file: one VMU file "FPDC.SAV" (vmu_pkg header + 3-frame 16-colour crystal icon + payload).
+ * Read from the first memory card that has it; write to that card, else the first with room. */
+#define SAVE_NAME "FPDC.SAV"
+static maple_device_t *save_card(int need_blocks) {
+    maple_device_t *first_free = NULL;
+    for (int i = 0; ; i++) {
+        maple_device_t *d = maple_enum_type(i, MAPLE_FUNC_MEMCARD);
+        if (!d) break;
+        void *buf = NULL; int sz = 0;
+        if (vmufs_read(d, SAVE_NAME, &buf, &sz) == 0) { free(buf); return d; }
+        if (!first_free && need_blocks > 0 && vmufs_free_blocks(d) >= need_blocks) first_free = d;
+    }
+    return first_free;
+}
+
+int plat_save_read(void *data, size_t max) {
+    maple_device_t *d = save_card(0);
+    if (!d) return -1;
+    void *buf = NULL; int sz = 0;
+    if (vmufs_read(d, SAVE_NAME, &buf, &sz) < 0) return -1;
+    vmu_pkg_t pkg;
+    int n = -1;
+    if (vmu_pkg_parse(buf, sz, &pkg) == 0 && pkg.data_len >= 0) {
+        n = pkg.data_len < (int)max ? pkg.data_len : (int)max;
+        memcpy(data, pkg.data, n);
+    }
+    free(buf);
+    return n;
+}
+
+int plat_save_write(const void *data, size_t size) {
+    size_t isz; uint8_t *icon = plat_load_file("ui/vmu_icon.bin", &isz);   /* 'FVI1' n, speed, pal[16], n*512 */
+    vmu_pkg_t pkg;
+    memset(&pkg, 0, sizeof pkg);
+    strcpy(pkg.desc_short, "FREEDOM PLANET");
+    strcpy(pkg.desc_long, "Freedom Planet DC save data");
+    strcpy(pkg.app_id, "FPDC");
+    if (icon && isz >= 8 + 32 && !memcmp(icon, "FVI1", 4)) {
+        int n = icon[4] | icon[5] << 8;
+        if (isz >= (size_t)(8 + 32 + n * 512)) {
+            pkg.icon_cnt = n; pkg.icon_anim_speed = icon[6] | icon[7] << 8;
+            memcpy(pkg.icon_pal, icon + 8, 32);
+            pkg.icon_data = icon + 8 + 32;
+        }
+    }
+    pkg.eyecatch_type = VMUPKG_EC_NONE;
+    pkg.data_len = (int)size; pkg.data = data;
+    uint8_t *out = NULL; int osz = 0;
+    int r = -1;
+    if (vmu_pkg_build(&pkg, &out, &osz) == 0) {
+        maple_device_t *d = save_card((osz + 511) / 512);
+        if (d && vmufs_write(d, SAVE_NAME, out, osz, VMUFS_OVERWRITE) == 0) r = 0;
+        free(out);
+    }
+    free(icon);
+    if (r < 0) plat_log("save: no memory card with %d free blocks\n", (osz + 511) / 512);
+    return r;
 }
 
 /* QUIT on the title menu: return to the Dreamcast BIOS menu (the console equivalent of quitting) */
