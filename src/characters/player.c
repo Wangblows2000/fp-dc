@@ -56,6 +56,7 @@ void player_reset(player_t *p, double x, double y) {
     /* RV (GUIEnergy_127 at stage start, hud_dv1.png): the meter starts EMPTY on every stage/act start and
      * refills at 0.4/frame; the earlier "persists" reading came from a stale object */
     (void)energy; p->energy = 0.; p->energy_init = 1;
+    p->energy_hold = 41;   /* RV (build/re/crystal_watch): the refill starts 42 frames after the stage starts (intro lock) */
     p->spawn_x = sx ? sx : x; p->spawn_y = sy ? sy : y;
     p->x = x; p->y = y; p->face = 1; p->hp = MAX_HP;
     mv_reset();
@@ -406,6 +407,7 @@ void player_update(player_t *p, const input_t *in) {
     if (p->invuln) p->invuln--;
     /* RV energy meter (GUIEnergy_127 alt A): -3/frame while boosting, else +0.4/frame up to 100 */
     if (p->state == ST_BOOST) p->energy = fmax(0., p->energy - PHYS_ENERGY_DRAIN);
+    else if (p->energy_hold > 0) p->energy_hold--;
     else p->energy = fmin(PHYS_ENERGY_MAX, p->energy + PHYS_ENERGY_REFILL);
     /* RE (event 1574, start of the movement block): B, G and N are floored to 4 decimals every frame */
     {

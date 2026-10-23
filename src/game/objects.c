@@ -9,7 +9,7 @@
 static int A_EXPLODE = -1;
 /* recovered sequences (tools/import_frame.py) */
 static int A_TURR[6] = { -1, -1, -1, -1, -1, -1 };   /* idle, idle_l, shoot, shoot_l, off, off_l */
-static int A_PELLET = -1, A_EXPLODE2 = -1;
+static int A_PELLET = -1, A_EXPLODE2 = -1, A_SPARKLE = -1, A_HEART = -1;
 
 static obj_t *alloc_obj(void) {
     for (int i = 0; i < MAX_OBJS; i++)
@@ -22,6 +22,7 @@ void objects_spawn(void) {
     { static const char *tn[6] = { "turr_idle", "turr_idle_l", "turr_shoot", "turr_shoot_l", "turr_off", "turr_off_l" };
       for (int i = 0; i < 6; i++) A_TURR[i] = bank_anim(&G.objs, tn[i]); }
     A_PELLET = bank_anim(&G.objs, "pellet"); A_EXPLODE2 = bank_anim(&G.objs, "explosion02");
+    A_SPARKLE = bank_anim(&G.objs, "ringsparkle"); A_HEART = bank_anim(&G.objs, "heart");
     memset(G.o, 0, sizeof G.o);
     G.nobjs = 0;
     for (int i = 0; i < G.lvl.nobj; i++) {
@@ -80,6 +81,21 @@ static void pellet_move(obj_t *o) {
     float dx = o->vx / 10.f + o->fx, dy = o->vy / 10.f + o->fy;
     float ix = floorf(dx), iy = floorf(dy);
     o->fx = dx - ix; o->fy = dy - iy; o->x += ix; o->y += iy;
+}
+
+/* one-shot effect object (removed when its animation ends) */
+static void spawn_effect(float x, float y, int anim) {
+    if (anim < 0) return;
+    obj_t *e = alloc_obj();
+    if (!e) return;
+    e->type = OT_EXPLODE; e->alive = 1; e->x = x; e->y = y;
+    anim_set(&e->an, &G.objs, anim);
+}
+
+/* item reach (RE 1288/1289/2543): item position within X +-19 and Y - up .. Y + 19 of (int X, int Y) */
+static int item_in_reach(const obj_t *o, const player_t *p, int up) {
+    int ix = (int)floor(p->x), iy = (int)floor(p->y - ORIG_REF_DY), cx = (int)floorf(o->x), cy = (int)floorf(o->y);
+    return cx >= ix - 19 && cx <= ix + 19 && cy >= iy - up && cy <= iy + 19;
 }
 
 static void explode2(float x, float y) {
@@ -174,24 +190,43 @@ void objects_update(void) {
         anim_tick(&o->an, -1);
         float bx0, by0, bx1, by1;
         obj_box(o, &bx0, &by0, &bx1, &by1);
-        int touch = !dead && overlap(px0, py0, px1, py1, bx0, by0, bx1, by1);
         /* enemies and hazards hit Lilac's PlayerCharacterSensor_375 (RE: 15x46, hotspot 7,34 at (int X,
          * int Y), i.e. 48..2 px above the feet; RV turretus_jumpinto: passing 2 px above a Turretus is safe) */
         int hurt_touch = !dead && overlap(sx0, sy0, sx1, sy1, bx0, by0, bx1, by1) && obj_rect_hit(o, (int)sx0, (int)sy0, (int)sx1, (int)sy1);
         int hit = !dead && atk && overlap(ax0, ay0, ax1, ay1, bx0, by0, bx1, by1);
         switch (o->type) {
         case OT_CRYSTAL:
-            /* RV: crystal pickup = +5 energy and the HUD crystal counter goes DOWN by 1 (from 200);
-             * extra life at 0 is INFERRED (not traced) */
-            if (touch) {
+            /* RE (events 2543 + loop_collect_item 1289/1291): not while hurt (M8) or defeated; the crystal's
+             * position is within X +-19 and Y - 39 .. Y + 19 of Lilac's (int X, int Y): energy + 5 (max 100),
+             * the crystal counter - 1 (RV: counts down from 200), a RingSparkle at the crystal, sound 27 (RV) */
+            if (!dead && p->state != 5 /* ST_HURT */ && item_in_reach(o, p, 39)) {
                 o->alive = 0; p->energy = fminf(PHYS_ENERGY_MAX, p->energy + PHYS_ENERGY_CRYSTAL);
-                if (--p->crystals <= 0) { p->crystals = CRYSTALS_PER_LIFE; p->lives++; }
-                snd_play(G.sfx.crystal, 160, 128);
+                if (--p->crystals <= 0) { p->crystals = CRYSTALS_PER_LIFE; p->lives++; }   /* extra life INFERRED */
+                snd_play_orig(27, 200, 128);
+                spawn_effect(o->x, o->y, A_SPARKLE);
             }
             break;
         case OT_PETAL:
-            /* RV: a red life petal restores 1 half-petal (max 14); no energy, no effect at full health */
-            if (touch) { o->alive = 0; if (p->hp < 14) p->hp++; snd_play(G.sfx.crystal, 220, 128); }
+            /* RE (1288): within X +-19, Y - 31 .. Y + 19: sound 37 and the petal flies off (state A = 3) to
+             * the HUD petal counter (2527); touching the counter (2530/2531) gives +1 half-petal (+2 on
+             * Casual), sound 4 and two hearts. Flight speeds INFERRED (RV: collected 29 frames after the
+             * touch in build/re/crystal_watch). RV: no pickup at full health. */
+            if (o->st == 0) {
+                if (!dead && p->state != 5 && p->hp < 14 && item_in_reach(o, p, 31)) {
+                    o->st = 3; o->vx = -1; o->vy = -1; snd_play_orig(37, 200, 128);
+                }
+            } else {
+                float hx = G.camx + 16, hy = G.camy + 24;         /* HUD petal counter (RUNTIME_MAP "HUD") */
+                o->vx -= 0.5f; o->vy -= 0.5f;
+                o->x = fmaxf(o->x + o->vx, hx); o->y = fmaxf(o->y + o->vy, hy);
+                if (o->x <= hx + 1 && o->y <= hy + 1) {
+                    o->alive = 0;
+                    extern int fe_difficulty;
+                    p->hp += fe_difficulty >= 3 ? 2 : 1; if (p->hp > 14) p->hp = 14;
+                    snd_play_orig(4, 220, 128);
+                    spawn_effect(hx, hy, A_HEART); spawn_effect(hx + 8, hy - 4, A_HEART);
+                }
+            }
             break;
         case OT_DRAGONFLY:
             /* hover patrol (reconstructed) */

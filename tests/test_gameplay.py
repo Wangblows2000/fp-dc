@@ -124,7 +124,7 @@ check('max_fall_15_25', abs(max(x['vy'] for x in r) - 15.25) < 1e-6, 'max vy %.3
 r = run('5 TP 14600 980\n7 HP 5\n10 400 R\n', 300)
 trig = next((x for x in r if x['x'] > 14766), None)
 new = next((x for x in r if x.get('act') == 2), None)
-check('act_change_dv1_dv2', trig and new and new['mode'] == 1 and abs(new['x'] + 29) < 0.01 and new['hp'] == 5 and new['en'] > 40
+check('act_change_dv1_dv2', trig and new and new['mode'] == 1 and abs(new['x'] + 29) < 0.01 and new['hp'] == 5 and new['en'] > 20
       and 50 <= new['f'] - trig['f'] <= 58, new and 'after %d f, x %.1f hp %d en %.1f' % (new['f'] - trig['f'], new['x'], new['hp'], new['en']))
 walk = [x for x in r if x.get('act') == 2][:33]
 check('act_walk_in_b3', walk and all(abs(x['gsp'] - 3) < 1e-9 or abs(x['vx'] - 3) < 1e-9 for x in walk[1:32]), 'walk-in frames %d' % len(walk))
