@@ -459,7 +459,7 @@ static int ground_actions(player_t *p, const input_t *in) {
         return 0;
     if (in->pressed & BTN_ATTACK) {
         if (in->held & BTN_UP) {                                             /* RE 1766/1818: M21 anim 28 */
-            set_state(p, ST_UPPERCUT); p->gsp = 0;
+            set_state(p, ST_UPPERCUT); if (G.orig_moves) p->gsp = 0;
             if (in->pressed & BTN_JUMP) { jump(p); p->jumping = 0; }        /* RV: high uppercut */
         }
         else set_state(p, ST_ATTACK);                                        /* RV: M20 anim 26 */
@@ -493,7 +493,7 @@ static int air_action_wanted(const player_t *p, const input_t *in) {
 static void air_action_apply(player_t *p, const input_t *in, int act) {
     if (p->ground) return;                 /* landed this frame: the action is dropped */
     switch (act) {
-    case ACT_DKWIND: set_state(p, ST_DKWIND); snd_play_orig(405, 220, 128); break;   /* RV: M19 anim 7, sound 405 */
+    case ACT_DKWIND: set_state(p, ST_DKWIND); p->mom_vx = p->vx; snd_play_orig(405, 220, 128); break;   /* RV: M19 anim 7, sound 405 */
     case ACT_AIRATK: set_state(p, ST_ATTACK); break;                                  /* RV: M20 anim 25 */
     case ACT_CHARGE: start_charge(p, 0); break;
     case ACT_CYCLONE: start_air_cyclone(p, in); break;
@@ -756,11 +756,18 @@ void player_update(player_t *p, const input_t *in) {
         if (p->state_t <= PHYS_UPPER_WIND) {
             if (p->ground) {
                 if (in->pressed & BTN_JUMP) { jump(p); p->jumping = 0; }
-                else ground_move(p, in, 0, 1);
+                else if (G.orig_moves) ground_move(p, in, 0, 1);
+                else {                              /* port change: slide through the wind-up instead of braking */
+                    ground_move(p, in, 0, 0);
+                    if (p->ground) p->gsp *= MOM_UPPER_SLIDE;
+                }
             } else air_move(p, in, 0, PHYS_GRAV);
             if (p->state_t == PHYS_UPPER_WIND) {
+                /* port change (momentum): the horizontal speed in the facing direction carries into the launch */
+                double cur = p->ground ? p->gsp * o_cos(p->N) : p->vx;
                 if (p->ground) detach(p);
                 p->ground = 0; p->vx = PHYS_UPPER_VX * p->face; p->vy = -PHYS_UPPER_VY;
+                if (!G.orig_moves && cur * p->face * MOM_UPPER_KEEP > PHYS_UPPER_VX) p->vx = cur * MOM_UPPER_KEEP;
             }
         } else {
             air_move(p, in, 0, PHYS_GRAV);
@@ -771,9 +778,12 @@ void player_update(player_t *p, const input_t *in) {
     case ST_DKWIND:   /* RV: 15 f windup at gravity 0.125 (jump ignored), then vx = 5*face, vy += 5 */
         air_move(p, in, 0, PHYS_DK_WIND_GRAV);
         if (p->ground) { p->state = ST_NORMAL; break; }
+        if (!G.orig_moves && p->mom_vx * p->vx > 0 && fabs(p->vx) < fabs(p->mom_vx)) p->vx = p->mom_vx;   /* port change: no drag in the wind-up */
         /* RV: kick vy = windup vy + 5 (down_kick -1.25 -> 3.875, cyc_dk_early -0.075 -> 4.925, dk_wind 1.375 -> 6.375) */
         if (p->state_t >= PHYS_DK_WIND_T) {
+            double v0 = p->vx;
             set_state(p, ST_DIVEKICK); p->vx = PHYS_DK_VX * p->face; p->vy += PHYS_DK_VY_ADD;
+            if (!G.orig_moves && v0 * p->face > PHYS_DK_VX) p->vx = v0;     /* port change: a faster dive keeps its speed */
             snd_play_orig(176, 220, 128); snd_play_orig(396, 220, 128);   /* RV: kick launch = 176 + 396 */
         }
         break;
@@ -812,7 +822,7 @@ void player_update(player_t *p, const input_t *in) {
              * differently under the 4-decimal floor (event 1574): trace "cyclone" drifted from f118. */
             air_move(p, in, 1, PHYS_GRAV);
             if (!p->ground && !(in->held & BTN_DOWN)) p->vy -= PHYS_CYCLONE_GRAV_SUB;
-            if (dk && !p->ground) { set_state(p, ST_DKWIND); snd_play_orig(405, 220, 128); break; }
+            if (dk && !p->ground) { set_state(p, ST_DKWIND); p->mom_vx = p->vx; snd_play_orig(405, 220, 128); break; }
         }
         if (p->state == ST_CYCLONE && p->state_t >= PHYS_CYCLONE_T) p->state = ST_NORMAL;
         break;

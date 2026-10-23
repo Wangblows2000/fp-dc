@@ -7,13 +7,19 @@
 
 #define MAXTEX 64
 #ifdef FP_VIEW_320
-#define SCALE 2.0f
-#define OFF_X 0.0f
-#define OFF_Y 0.0f
+static float SX = 2.0f, SY = 2.0f, OFF_X = 0.0f, OFF_Y = 0.0f;
+static int letterbox = 0;
+void r_set_letterbox(int on) { (void)on; }
 #else
-#define SCALE 1.5f                 /* 426x240 -> 639x360, letterboxed (D-012) */
-#define OFF_X 0.5f
-#define OFF_Y 60.0f
+/* Presentation (SV.letterbox, Options > SCREEN SIZE). The logical view stays 426x240 either way:
+ *  on : x1.5 both ways -> 639x360, centred, opaque bars 60 px top and bottom (16:9 picture on a 4:3 frame);
+ *  off: x1.5 across, x2 down -> 639x480 (fills the 4:3 frame; integer vertical scale). D-025. */
+static float SX = 1.5f, SY = 1.5f, OFF_X = 0.5f, OFF_Y = 60.0f;
+static int letterbox = 1;
+void r_set_letterbox(int on) {
+    letterbox = on ? 1 : 0;
+    SY = on ? 1.5f : 2.0f; OFF_Y = on ? 60.0f : 0.0f;
+}
 #endif
 
 static struct { pvr_ptr_t ptr; pvr_poly_hdr_t hdr, hdr_tr; int w, h; } texs[MAXTEX];
@@ -123,12 +129,21 @@ void r_begin(void) {
 }
 
 static void replay(void);
+static void bars(void) {          /* letterbox: opaque black over anything drawn outside the 426x240 view */
+    if (!letterbox) return;
+    if (cur_hdr != -1) { pvr_prim(in_tr ? &col_hdr_tr : &col_hdr, sizeof col_hdr); cur_hdr = -1; }
+    zc += 1.0f;                    /* above every sprite of this list */
+    quad(0, 0, 640, OFF_Y, 0, 0, 0, 0, 0xff000000);
+    quad(0, OFF_Y + 240 * SY, 640, 480, 0, 0, 0, 0, 0xff000000);
+}
 void r_end(void) {
+    bars();
     pvr_list_finish();
     if (ndq) {
         pvr_list_begin(PVR_LIST_TR_POLY);
         in_tr = 1; cur_hdr = -2;
         replay();
+        bars();
         pvr_list_finish();
     }
     pvr_scene_finish();
@@ -167,7 +182,7 @@ void r_sprite(const tex_t *t, int u, int v, int uw, int vh, float x, float y, fl
     float iw = 1.0f / texs[t->id].w, ih = 1.0f / texs[t->id].h;
     float u0 = u * iw, u1 = (u + uw) * iw, v0 = v * ih, v1 = (v + vh) * ih;
     if (flip) { float tmp = u0; u0 = u1; u1 = tmp; }
-    quad(x * SCALE + OFF_X, y * SCALE + OFF_Y, (x + w) * SCALE + OFF_X, (y + h) * SCALE + OFF_Y, u0, v0, u1, v1, argb);
+    quad(x * SX + OFF_X, y * SY + OFF_Y, (x + w) * SX + OFF_X, (y + h) * SY + OFF_Y, u0, v0, u1, v1, argb);
 }
 
 /* rotated sprite: texel (hx,hy) of the rect lands on screen (px,py); angle in degrees CCW
@@ -194,8 +209,8 @@ void r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float 
     vt.z = zc; vt.argb = argb; vt.oargb = 0;
     for (int i = 0; i < 4; i++) {
         vt.flags = i == 3 ? PVR_CMD_VERTEX_EOL : PVR_CMD_VERTEX;
-        vt.x = (px + lx[i] * c + ly[i] * sn) * SCALE + OFF_X;     /* screen y points down: CCW = (c, -s; s, c) */
-        vt.y = (py - lx[i] * sn + ly[i] * c) * SCALE + OFF_Y;
+        vt.x = (px + lx[i] * c + ly[i] * sn) * SX + OFF_X;     /* screen y points down: CCW = (c, -s; s, c) */
+        vt.y = (py - lx[i] * sn + ly[i] * c) * SY + OFF_Y;
         vt.u = tu[i]; vt.v = tv[i];
         pvr_prim(&vt, sizeof vt);
     }
@@ -209,7 +224,7 @@ void r_rect(float x, float y, float w, float h, uint32_t argb) {
         return;
     }
     if (cur_hdr != -1) { pvr_prim(in_tr ? &col_hdr_tr : &col_hdr, sizeof col_hdr); cur_hdr = -1; }
-    quad(x * SCALE + OFF_X, y * SCALE + OFF_Y, (x + w) * SCALE + OFF_X, (y + h) * SCALE + OFF_Y, 0, 0, 0, 0, argb | 0xff000000);
+    quad(x * SX + OFF_X, y * SY + OFF_Y, (x + w) * SX + OFF_X, (y + h) * SY + OFF_Y, 0, 0, 0, 0, argb | 0xff000000);
 }
 
 static void replay(void) {

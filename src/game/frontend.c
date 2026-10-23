@@ -22,6 +22,7 @@ int fe_mode;                     /* original global 0: 0 Time Attack, 1 Classic,
 /* settings (RE 602 / records.dat; RV defaults: Difficulty NORMAL, Music Volume 100%) */
 int fe_difficulty = 1;           /* global 12: 0 HARD, 1 NORMAL, 2 EASY, 3 CASUAL */
 int fe_music_volume = 100;       /* global 25 */
+int fe_letterbox = 1;            /* port: Options > SCREEN SIZE (SV.letterbox) */
 int fe_sensitivity = 70;
 
 #define SND_START   100   /* "Press Start" */
@@ -51,6 +52,7 @@ static int fe_load(void) {
     hub_bind(&s_hub);
     fe_difficulty = SV.difficulty <= 3 ? SV.difficulty : 1;
     fe_music_volume = SV.music_volume <= 100 ? SV.music_volume : 100;
+    fe_letterbox = SV.letterbox ? 1 : 0;
     fe_loaded = 1; scr_loaded = -1;
     return 0;
 }

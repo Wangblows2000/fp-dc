@@ -77,13 +77,41 @@ check('time_attack_shang_mu_not_startable', seq.count(63) >= 2 and 56 in seq, st
 # options: OPTIONS (up from START GAME in the console layout), music volume left = -10 (90 %), OKAY saves
 with tempfile.TemporaryDirectory() as d:
     sv = os.path.join(d, 'save.bin')
-    r, m, sids, p = run('40 42 S\n200 201 U\n230 231 J\n280 281 D\n300 301 L\n330 331 D\n360 361 J\n', 420, {'FP_SAVE': sv})
+    # rows (console layout + port's SCREEN SIZE): difficulty, screen size, music, OKAY
+    r, m, sids, p = run('40 42 S\n200 201 U\n230 231 J\n280 281 D\n290 291 D\n300 301 L\n330 331 D\n360 361 J\n', 420, {'FP_SAVE': sv})
     data = open(sv, 'rb').read() if os.path.exists(sv) else b''
     check('options_saved', len(data) > 8 and data[:3] == b'FPS' and data[5] == 90, 'len %d music %s' % (len(data), data[5] if len(data) > 5 else None))
     check('save_payload_small', 0 < len(data) <= 1024, '%d bytes' % len(data))
     # reload: the next boot reads the saved volume back (the options screen shows 90)
     r2, m2, s2, p2 = run('', 5, {'FP_SAVE': sv})
     check('save_reload_ok', p2.returncode == 0)
+    check('save_v2_letterbox_default_on', len(data) > 8 and data[3] == 2 and 'letterbox 1' in p2.stdout, 'ver %s' % (data[3] if len(data) > 3 else None))
+    # SCREEN SIZE: right toggles 16:9 letterbox off at once; OKAY saves it; the next boot applies it
+    r, m, sids, p = run('40 42 S\n200 201 U\n230 231 J\n280 281 D\n300 301 R\n330 331 D\n340 341 D\n360 361 J\n', 420, {'FP_SAVE': sv})
+    check('letterbox_toggle_applies', 'letterbox 0' in p.stdout and (301, 64) in sids or 'letterbox 0' in p.stdout, str(sids[-4:]))
+    r2, m2, s2, p2 = run('', 5, {'FP_SAVE': sv})
+    check('letterbox_off_persists', 'letterbox 0' in p2.stdout and 'letterbox 1' not in p2.stdout)
+    r, m, sids, p = run('40 42 S\n200 201 U\n230 231 J\n280 281 D\n300 301 J\n330 331 D\n340 341 D\n360 361 J\n', 420, {'FP_SAVE': sv})
+    r2, m2, s2, p2 = run('', 5, {'FP_SAVE': sv})
+    check('letterbox_on_again_persists', 'letterbox 1' in p2.stdout and 'letterbox 0' not in p2.stdout)
+    # a session-6 (v1) save still loads: options and files kept, letterbox defaults on, no cards
+    import struct
+    def crc16(b):
+        c = 0xffff
+        for x in b:
+            c ^= x << 8
+            for _ in range(8): c = ((c << 1) ^ 0x1021) & 0xffff if c & 0x8000 else (c << 1) & 0xffff
+        return c
+    files = bytes([1, 0, 1, 1, 0, 5]) + struct.pack('<H', 123) + bytes([14]) + struct.pack('<IH', 1000, 2)
+    v1 = b'FPS\x01' + bytes([1, 70, 100, 70, 0]) + files + bytes(len(files) * 7) + bytes(6 * 16 * 4)
+    v1 += struct.pack('<H', crc16(v1))
+    sv1 = os.path.join(d, 'v1.bin'); open(sv1, 'wb').write(v1)
+    r2, m2, s2, p2 = run('', 5, {'FP_SAVE': sv1})
+    check('save_v1_loads_letterbox_default', 'letterbox 1' in p2.stdout, p2.stdout[-200:])
+    # v1 file + options OKAY: rewritten as v2 with the v1 music volume (70) kept
+    r, m, sids, p = run('40 42 S\n200 201 U\n230 231 J\n280 281 U\n300 301 J\n', 380, {'FP_SAVE': sv1})
+    data = open(sv1, 'rb').read()
+    check('save_v1_upgraded_to_v2', data[3] == 2 and data[5] == 70 and data[4 + 5] == 1, 'ver %d music %d file0 used %d' % (data[3], data[5], data[9]))
 
 # pause (DV1 direct): open with start after the card, cursor clamps at QUIT, start closes; restart/quit wipe
 r, m, sids, p = run('200 201 S\n210 211 D\n220 221 D\n230 231 D\n240 241 S\n', 260, {'FP_LEVEL': 'dv1'})

@@ -15,7 +15,7 @@
 #include "ui.h"
 
 void fe_text(float x, float y, const char *s);
-extern int fe_difficulty, fe_music_volume;
+extern int fe_difficulty, fe_music_volume, fe_letterbox;
 
 #define CONSOLE 1                      /* global 32 */
 #define CANVAS_W 1440
@@ -94,8 +94,9 @@ void hub_enter(void) {
     if (CONSOLE) {                                   /* RE 606 */
         for (int i = 0; i < 4; i++) if (mo[i]) mo[i]->dy = 12;
         if (mo[4]) mo[4]->vis = 0;
-        ui_obj_t *h2[] = { oscr, octrl, osens, oact, oscrv, osensv, oact2 };
-        for (int i = 0; i < 7; i++) if (h2[i]) h2[i]->vis = 0;
+        ui_obj_t *h2[] = { octrl, osens, oact, oscrv, osensv, oact2 };
+        for (int i = 0; i < 6; i++) if (h2[i]) h2[i]->vis = 0;
+        if (oscr) oscr->dy = 4;                     /* port: SCREEN SIZE row between difficulty (88) and music (128) */
         if (odiff3) odiff3->dy = 16;
         if (odiff4) odiff4->dy = 16;
         if (ookay) ookay->dy = -32;
@@ -259,14 +260,14 @@ static void options_events(const input_t *in) {
         if (H.sdx >= 735) { H.opt_rows = 1; H.opt_in = 0; }
     }
     if (H.opt_rows) {
-        int c0 = H.cur;
+
         if ((p & BTN_UP) && !H.moved && H.cur == 0) { H.cur = 5; snd_play_orig(64, 220, 128); H.moved = 1; }        /* 466 */
         if ((p & BTN_UP) && !H.moved && H.cur > 0) { H.cur--; snd_play_orig(64, 220, 128); H.moved = 1; }           /* 467 */
         if ((p & BTN_DOWN) && !H.moved && H.cur < 5) { H.cur++; snd_play_orig(64, 220, 128); H.moved = 1; }         /* 468 */
         if ((p & BTN_DOWN) && !H.moved && H.cur == 5) { H.cur = 0; snd_play_orig(64, 220, 128); H.moved = 1; }      /* 469 */
-        if (H.moved && CONSOLE) {                                        /* 471-477: rows 1, 3, 4 skipped */
-            int down = H.cur > c0 || (c0 == 5 && H.cur == 0);
-            if (H.cur == 1) H.cur = down ? 2 : 0;                        /* 472 / 473 */
+        if (H.moved && CONSOLE) {                                        /* 471-477: rows 3, 4 skipped */
+            /* port: row 1 (the original's SCREEN SIZE, hidden in its console layout) is kept for the
+             * 16:9 letterbox setting (D-025), so 472/473 no longer skip it */
             if (H.cur == 3) H.cur = 5;                                   /* 476 */
             if (H.cur == 4) H.cur = 2;                                   /* 477 */
         }
@@ -280,11 +281,14 @@ static void options_events(const input_t *in) {
         if ((H.cur == 2 && (p & BTN_RIGHT)) || (H.confirm && H.cur == 2)) {                                          /* 494 */
             H.confirm = 0; fe_music_volume = (fe_music_volume + 10) % 110; music_volume(fe_music_volume); snd_play_orig(64, 220, 128);
         }
+        if (H.cur == 1 && ((p & (BTN_LEFT | BTN_RIGHT)) || H.confirm)) {   /* port: SCREEN SIZE = 16:9 letterbox on/off */
+            H.confirm = 0; fe_letterbox = !fe_letterbox; r_set_letterbox(fe_letterbox); snd_play_orig(64, 220, 128);
+        }
         if ((H.confirm || back) && H.cur == 5) {                         /* 501 OKAY: save */
             H.confirm = 0; H.cur = 3; snd_play_orig(63, 230, 128); H.opt_rows = 0; H.opt_out = 1;
-            SV.difficulty = (uint8_t)fe_difficulty; SV.music_volume = (uint8_t)fe_music_volume; save_store();
+            SV.difficulty = (uint8_t)fe_difficulty; SV.music_volume = (uint8_t)fe_music_volume; SV.letterbox = (uint8_t)fe_letterbox; save_store();
         } else if (back && H.cur < 5) { H.cur = 5; snd_play_orig(64, 220, 128); H.moved = 1; }                       /* 502 */
-        if (H.confirm && H.cur != 0 && H.cur != 2 && H.cur != 5) H.confirm = 0;
+        if (H.confirm && H.cur != 0 && H.cur != 1 && H.cur != 2 && H.cur != 5) H.confirm = 0;
     }
     if (H.opt_out) {                                                     /* 503/504 */
         H.sdx = H.sdx - 30 < 256 ? 256 : H.sdx - 30;
@@ -337,6 +341,32 @@ static void counter_br(ui_obj_t *o, int value, float cx, float cy, int mindigits
         x -= f->w;
         frame_draw(o->an.b, f, x + f->hx, y - f->h + f->hy, 0, 0xffffffff);
     }
+}
+
+/* port: SCREEN SIZE value "16:9" / "4:3" in the music-volume digits, right-aligned like the volume value;
+ * the colon (not in the digit set) is two 2x2 dots in the digits' yellow with their dark edge */
+static void ratio_value(ui_obj_t *o, float rx, float y, int wide, float cx, float cy) {
+    if (!o) return;
+    const char *s = wide ? "16:9" : "4:3";
+    int vis = o->vis; o->vis = 1;
+    float x = rx - cx;
+    for (int i = (int)strlen(s) - 1; i >= 0; i--) {
+        if (s[i] == ':') {
+            x -= 5;
+            for (int k = 0; k < 2; k++) {
+                float dy = y - cy - (k ? 5 : 11);
+                r_rect(x + 1, dy, 4, 4, 0xff281800);
+                r_rect(x + 1, dy, 3, 3, 0xfff8f800);
+            }
+            continue;
+        }
+        ui_obj_frame(o, s[i] - '0');
+        const frame_t *f = anim_frame(&o->an);
+        if (!f) break;
+        x -= f->w;
+        frame_draw(o->an.b, f, x + f->hx, y - cy - f->h + f->hy, 0, 0xffffffff);
+    }
+    o->vis = vis;
 }
 
 static void wrap_text(float x, float y, const char *m) {   /* TextBlitter box: 26 columns (RV), 20 px lines */
@@ -396,6 +426,7 @@ void hub_draw(void) {
     }
     /* option values (RE 494 / console layout: difficulty + music) */
     if (mv) { mv->vis = 1; counter_br(mv, fe_music_volume, cx, cy, 1); mv->vis = 0; }
+    if (mv && oscr && oscr->vis) ratio_value(mv, mv->x + mv->dx + mv->shx, oscr->y + oscr->dy + oscr->shy + 8, fe_letterbox, cx, cy);
     if (cur && H.cursor_vis && !H.leave) {
         cur->vis = 1; cur->dx = H.cux - cur->x; cur->dy = H.cuy - cur->y;
         ui_draw_obj(S, cur, cx, cy, 0xffffffff); cur->vis = 0;

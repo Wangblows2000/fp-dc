@@ -18,12 +18,14 @@ import json, os, struct, sys
 from PIL import Image
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from convert import write_tex, pack
+import title_credit
 
 MAX_ENT = 40
 ACT = {}
 
 def load_img(src, i):
     im = Image.open(os.path.join(src, 'img_%d.png' % i)).convert('RGBA')
+    if i == title_credit.IMAGE_ID: im = title_credit.patch(im)      # port credit (intentional change)
     m = [int(v, 0) for v in open(os.path.join(src, 'img_%d_meta.txt' % i)).read().split()]
     hx, hy = [v - 65536 if v > 32767 else v for v in m[:2]]
     ax, ay = ([v - 65536 if v > 32767 else v for v in m[2:4]] if len(m) >= 4 else (hx, hy))

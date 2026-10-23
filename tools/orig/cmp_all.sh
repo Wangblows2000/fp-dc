@@ -18,7 +18,7 @@ r=next(csv.DictReader(open('build/orig_traces/$s.csv')))
 pt = 5 * int(r['turr_afr']) + int(r['turr_acc']) // 20 if r.get('turr_acc') not in (None, '', '0') or r.get('turr_afr') not in (None, '', '0') else 0
 print(r['mv_X'], r.get('en_A') or 100, r.get('c_petals') or 14, pt, r['mv_Y'], r['mv_L'], r['mv_N'], int(float(r.get('plat3_E') or 0)))")
   [ "$EN" = "0" ] && EN=100
-  FP_LEVEL=dv1 FP_SPAWN_X=$X FP_SPAWN_Y=$Y FP_SPAWN_L=$L FP_SPAWN_N=$N FP_ENERGY=$EN FP_HP=$HP FP_OBJ_PRETICK=$PT FP_PLAT_PRETICK=$((PE ? PE + ${PLAT_ADJ:-1} : 0)) FP_CSV=build/fpdc_traces/$s.csv ./host/fpdc_host converted2 $((FR+5)) tests/orig/$s.txt > /dev/null 2>&1
+  FP_ORIG_MOVES=1 FP_LEVEL=dv1 FP_SPAWN_X=$X FP_SPAWN_Y=$Y FP_SPAWN_L=$L FP_SPAWN_N=$N FP_ENERGY=$EN FP_HP=$HP FP_OBJ_PRETICK=$PT FP_PLAT_PRETICK=$((PE ? PE + ${PLAT_ADJ:-1} : 0)) FP_CSV=build/fpdc_traces/$s.csv ./host/fpdc_host converted2 $((FR+5)) tests/orig/$s.txt > /dev/null 2>&1
   SKIP=$(awk '$2=="TP" && $1>=40 {printf "%d-%d,", $1-3, $1+3}' tests/orig/$s.txt)
   if python3 tools/orig/compare.py build/orig_traces/$s.csv build/fpdc_traces/$s.csv --from 50 --to $FR ${SKIP:+--skip $SKIP} --strict-out build/strict_now.txt ${Q:+--quiet}; then pass=$((pass+1)); else fail=$((fail+1)); fi
 done
