@@ -75,6 +75,8 @@ static void fe_unload(void) {
 }
 
 static void set_state(int s) { fe_state = s; fe_t = 0; fe_sel = 0; }
+static void title_start(void);
+static void hub_prepare(void);
 
 int fe_enter(void) {
     game_unload_all();
@@ -82,10 +84,166 @@ int fe_enter(void) {
     G.mode = MODE_FRONTEND;
     set_state(FE_PRESS);
     cam_x = cam_tx = 107; cam_y = cam_ty = 0;
+    title_start();
     fe_lt_t = fe_rt_t = -1000;
     music_volume(fe_music_volume);
     music_play("bgm/m_title.adp");          /* RV: m_title starts in on_frame_3_start_events */
     return 0;
+}
+
+
+/* ---- Press Start / title (frame index 2 = on_frame_3; RE events 307-330, docs/RE_NOTES.md "Title screen").
+ * Objects: PlanetAvalice (centre of the star field), Moon (orbits the planet), Stars (3D star field,
+ * created one per frame while fewer than 81), TitleStar (250 twinkling stars placed by formula at load;
+ * those touching the view border are removed), PressStart (pulses, flashes when pressed), Fade (white
+ * fade-in over 32 frames; black fade-out after the press), PressStart shake (Z = 5, -0.4 per frame). */
+#define TS_MAX 250
+#define ST_MAX 96
+static struct { int x, y, frame, alive; animator_t an; } tstar[TS_MAX];
+static struct { double a, b, c; int x, y, alive; } star[ST_MAX];
+static int nstar, ttimer, tfade_in, tactive, tleaving, tfade_dir, tpress_dir;
+static double tfadeA, tmoonA, tpressD, tshakeZ, tshake_x0, tshake_y0;
+static int tplanet_x, tplanet_y, tmoon_x, tmoon_y, tfade_alpha, tpress_alpha, tmusic;
+static unsigned tseed;
+static unsigned t_rand(void) { tseed = tseed * 0x343fd + 0x269ec3; return (tseed >> 16) & 0x7fff; }
+#define TDEG 57.29577951
+static double t_cos(double n) { return (n == 270. || n == 90.) ? 0. : cos(n / TDEG); }
+static double t_sin(double n) { return n == 180. ? 0. : sin(n / TDEG); }
+static int clamp255(int v) { return v < 0 ? 0 : v > 255 ? 255 : v; }
+
+static void title_start(void) {
+    ui_obj_t *pl = ui_find(&s_press, "planetavalice", 0), *ts = ui_find(&s_press, "titlestar", 0);
+    ttimer = 0; tfade_in = 1; tactive = 0; tleaving = 0; tfade_dir = 1; tfadeA = 0; tfade_alpha = 255;
+    tmoonA = 180; tpressD = 0; tpress_dir = 0; tpress_alpha = 255; tshakeZ = 0; tmusic = 100;
+    nstar = 0; memset(star, 0, sizeof star); tseed = 0;                 /* initial RNG seed INFERRED */
+    tplanet_x = 107 + 0x38; tplanet_y = pl ? pl->y : 184;            /* RE 330: display left + 56 */
+    /* RE 307 (x250): A = i; x = (G/2 - cos(i^8) G/2) + i, then wrapped into the view (G = 426);
+     * y = sin(i*i - i) * 120 + 120, then (y + 120) mod 240; frame i mod 21 */
+    const frame_t *f0 = NULL;
+    if (ts && ui_obj_select(&s_press, ts, 0, 0) == 0) f0 = anim_frame(&ts->an);
+    for (int i = 0; i < TS_MAX; i++) {
+        double d = i, d4 = d * d * d * d, d8 = d4 * d4;
+        int x1 = (int)((213. - t_cos(d8) * 213.) + d);
+        int x = 107 + (int)fmod(x1 + 213., 426.);
+        double e = d * d - d;
+        int y1 = e == 180. ? 120 : (int)(t_sin(e) * 120. + 120.);
+        int y = (y1 + 120) % 240;
+        tstar[i].x = x; tstar[i].y = y; tstar[i].frame = i % 21; tstar[i].alive = 1;
+        if (ts) { tstar[i].an = ts->an; tstar[i].an.frame = i % 21; tstar[i].an.acc = 0; }
+        /* RE 309: removed while near the border (box not inside the view shrunk by 1 px) */
+        if (f0) {
+            int bx0 = x - f0->hx, by0 = y - f0->hy;
+            if (bx0 < 107 + 1 || by0 < 1 || bx0 + f0->w > 107 + 426 - 1 || by0 + f0->h > 240 - 1) tstar[i].alive = 0;
+        }
+    }
+}
+
+static void title_leave(void) {
+    snd_play_orig(SND_START, 255, 128);
+    music_stop();
+    set_state(FE_MENU); hub_prepare(); cam_x = cam_tx = 43; cam_y = cam_ty = 0;
+}
+
+static void title_update(uint32_t p) {
+    ui_obj_t *ps = ui_find(&s_press, "pressstart", 0);
+    /* 315-318: star field */
+    for (int i = 0; i < nstar; i++) if (star[i].alive && star[i].c > 0) star[i].c -= 5;   /* Speed counter = 5 */
+    for (int i = 0; i < nstar; i++) if (star[i].alive) {
+        double ox = star[i].c != 0 ? (star[i].a * 256.) / star[i].c : 0., oy = star[i].c != 0 ? (star[i].b * 256.) / star[i].c : 0.;
+        star[i].x = (int)(tplanet_x + ox); star[i].y = (int)(tplanet_y + oy);
+    }
+    tmoonA -= 0.08;
+    tmoon_x = (int)(t_sin(tmoonA) * 48. + tplanet_x);
+    tmoon_y = (int)(t_cos(tmoonA + 30.) * 48. + (tplanet_y - 10));
+    int count = 0;
+    for (int i = 0; i < nstar; i++) count += star[i].alive;
+    if (count < 81) {
+        int k = 0;
+        while (k < ST_MAX && star[k].alive) k++;
+        if (k < ST_MAX) {
+            unsigned r1 = t_rand(), r2 = t_rand();
+            star[k].alive = 1; star[k].c = 256; star[k].x = 136; star[k].y = -9;
+            star[k].a = (double)(int)(((r1 * 5) >> 9) - 20);
+            star[k].b = (double)(int)(((r2 * 240) >> 15) - 220);
+            if (k >= nstar) nstar = k + 1;
+        }
+    }
+    for (int i = 0; i < nstar; i++) if (star[i].alive && star[i].c <= 0) star[i].alive = 0;
+    /* 310-312: timer; the planet drifts 1 px left every 40 frames and 1 px down every 39 */
+    ttimer++;
+    if (ttimer % 40 == 20) tplanet_x--;
+    if (ttimer % 39 == 30) tplanet_y++;
+    /* 313/314: white fade-in, then Press Start becomes active */
+    if (tfade_in) {
+        tfadeA += 1; double v = tfadeA * 4;
+        tfade_alpha = v > 128 ? 0 : clamp255((128 - (int)v) * 2);
+        if (tfadeA >= 32) { tactive = 1; tfade_in = 0; }
+    }
+    /* 319/321: pulse (direction 0) */
+    if (tactive && tpress_dir == 0) {
+        tpressD += 4;
+        tpress_alpha = (tpressD == 90. || tpressD == 270.) ? 128 : clamp255((128 - (int)(t_cos(tpressD) * 128. + 64.)) * 2);
+        if (tpressD >= 360) tpressD -= 360;
+    }
+    /* 322: Start / jump / attack pressed: sound 100, flash (direction 1), black fade, music at 60%, shake */
+    if (tactive && tpress_dir == 0 && (p & (BTN_START | BTN_JUMP | BTN_ATTACK))) {
+        snd_play_orig(SND_START, 255, 128);
+        tpress_alpha = 255; tpress_dir = 1; if (ps) ui_obj_select(&s_press, ps, 0, 1);
+        tfade_dir = 0; tmusic = 60; music_volume(tmusic * fe_music_volume / 100);
+        tshakeZ = 5; if (ps) { tshake_x0 = ps->x; tshake_y0 = ps->y; }
+    }
+    /* 324: flash finished -> direction 2, leaving. 325: 32 s without input does the same */
+    if (tactive && tpress_dir == 1 && ps && ps->an.done) { tpress_dir = 2; ui_obj_select(&s_press, ps, 0, 2); tactive = 0; tleaving = 1; }
+    if (tactive && fe_t >= 32 * FPS) { tactive = 0; tleaving = 1; tfade_dir = 0; tpress_dir = 2; if (ps) { ui_obj_select(&s_press, ps, 0, 2); ps->vis = 0; } }
+    /* 326/327: fade to black over the music fade; next frame (title menu) at A <= -100 */
+    if (tleaving && tpress_dir == 2) {
+        tfadeA -= 2; double v = tfadeA * 4;
+        tfade_alpha = v < 0 ? 255 : clamp255((128 - (int)v) * 2);
+        if (tmusic > 0) { tmusic--; music_volume(tmusic * fe_music_volume / 100); }
+        if (tfadeA <= -100) { title_leave(); return; }
+    }
+    /* 328/329: shake after the press */
+    if (ps && tshakeZ > 0) {
+        ps->dx = (float)(t_cos(200 * tshakeZ) * tshakeZ + tshake_x0) - ps->x;
+        ps->dy = (float)(t_sin(200 * tshakeZ) * tshakeZ * 0.5 + tshake_y0) - ps->y;
+        tshakeZ -= 0.4;
+        if (tshakeZ <= 0) { ps->dx = ps->dy = 0; }
+    }
+    for (int i = 0; i < TS_MAX; i++) if (tstar[i].alive && tstar[i].an.b) anim_tick(&tstar[i].an, -1);
+    if (ps) anim_tick(&ps->an, -1);
+}
+
+static void title_draw(void) {
+    ui_obj_t *o;
+    if ((o = ui_find(&s_press, "shockwave", 0))) o->vis = 0;
+    if ((o = ui_find(&s_press, "pressstart2", 0))) o->vis = 0;
+    if ((o = ui_find(&s_press, "stars", 0))) o->vis = 0;
+    if ((o = ui_find(&s_press, "titlestar", 0))) o->vis = 0;
+    if ((o = ui_find(&s_press, "fade", 0))) o->vis = 0;
+    ui_obj_t *ps = ui_find(&s_press, "pressstart", 0), *pl = ui_find(&s_press, "planetavalice", 0), *mo = ui_find(&s_press, "moon", 0);
+    if (ps) ps->vis = 0;
+    if (pl) { pl->dx = (float)(tplanet_x - pl->x); pl->dy = (float)(tplanet_y - pl->y); }
+    if (mo) { mo->dx = (float)(tmoon_x - mo->x); mo->dy = (float)(tmoon_y - mo->y); }
+    /* moved to the back (RE 307/317 move_back): title stars, then the star field */
+    ui_obj_t *ts = ui_find(&s_press, "titlestar", 0), *st = ui_find(&s_press, "stars", 0);
+    if (ts) for (int i = 0; i < TS_MAX; i++) if (tstar[i].alive && tstar[i].an.b) {
+        const frame_t *f = anim_frame(&tstar[i].an);
+        frame_draw(tstar[i].an.b, f, tstar[i].x - cam_x, tstar[i].y - cam_y, 0, 0xffffffff);
+    }
+    if (st) for (int i = 0; i < nstar; i++) if (star[i].alive) {
+        int d = (int)(0.125 * star[i].c) & 31;
+        d &= ~1;                                    /* 16 direction images (even); odd ones INFERRED */
+        if (ui_obj_select(&s_press, st, 0, d) < 0) continue;
+        const frame_t *f = anim_frame(&st->an);
+        if (f) frame_draw(st->an.b, f, star[i].x - cam_x, star[i].y - cam_y, 0, 0xffffffff);
+    }
+    ui_draw(&s_press, cam_x, cam_y, 0, 1);
+    if (ps && tactive + tleaving + (tpress_dir == 0) > 0 && !tfade_in) {
+        ps->vis = 1; ui_draw_obj(&s_press, ps, cam_x, cam_y, ((uint32_t)tpress_alpha << 24) | 0xffffff); ps->vis = 0;
+    }
+    ui_draw(&s_press, cam_x, cam_y, 2, 2);
+    if (tfade_alpha > 0)
+        r_rect(0, 0, SCREEN_W, SCREEN_H, ((uint32_t)tfade_alpha << 24) | (tfade_dir ? 0xf8fcf8 : 0x080000));
 }
 
 /* ---- per-panel object handles */
@@ -146,11 +304,7 @@ void fe_update(const input_t *in) {
     int ok = p & (BTN_JUMP | BTN_START), back = p & BTN_SPECIAL;
     switch (fe_state) {
     case FE_PRESS:
-        ui_tick(&s_press);
-        if (p & (BTN_START | BTN_JUMP)) {
-            snd_play_orig(SND_START, 255, 128);
-            set_state(FE_MENU); hub_prepare(); cam_x = cam_tx = 43; cam_y = cam_ty = 0;
-        }
+        title_update(p);
         break;
     case FE_MENU:
         ui_tick(&s_hub);
@@ -243,12 +397,9 @@ static void tiles(const ui_scene_t *s, ui_obj_t *tile, int t, int out) {
 void fe_draw(void) {
     r_begin();
     switch (fe_state) {
-    case FE_PRESS: {
-        ui_obj_t *o = ui_find(&s_press, "shockwave", 0); if (o) o->vis = 0;
-        o = ui_find(&s_press, "pressstart2", 0); if (o) o->vis = 0;
-        ui_draw(&s_press, cam_x, cam_y, 0, 2);
+    case FE_PRESS:
+        title_draw();
         break;
-    }
     case FE_MENU: case FE_FILE: case FE_OPTIONS: {
         ui_obj_t *cur = ui_find(&s_hub, "crystalcursor", 0);
         /* file panel values */

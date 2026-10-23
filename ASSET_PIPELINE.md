@@ -50,7 +50,7 @@ Object codes: 1 player start, 2 crystal, 3 hornet, 4 checkpoint, 5 goal.
 ## Front end, audio (2026-10-22, D-013/D-014; outputs gitignored)
 ```sh
 G="/mnt/user-data/uploads/Freedom Planet/game"          # read-only copy of the user's install
-python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui title 3 4   # press start + hub
+python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui title 3 4 3+titlestar_53   # press start (+ runtime title stars) + hub
 python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui chsel 7      # character select
 python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui stsel 12     # Time Attack stage select
 python3 tools/import_font.py "$G/Data/font.bmp" converted2/ui                             # 8x20 original font

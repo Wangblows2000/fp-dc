@@ -29,7 +29,13 @@ def load_img(src, i):
 
 def main():
     frames_dir, src, out, name = sys.argv[1:5]
-    frame_nos = [int(v) for v in sys.argv[5:]]
+    # "<frame>+<class_id>" adds a runtime-created class (not placed in the frame) to that frame's scene,
+    # off-screen at (-1000, -1000), e.g. 3+titlestar_53 (event 307 creates 250 of them)
+    frame_nos = [int(v) for v in sys.argv[5:] if '+' not in v]
+    extra = {}
+    for v in sys.argv[5:]:
+        if '+' in v:
+            f, k = v.split('+', 1); extra.setdefault(int(f), []).append(k)
     an = json.load(open(os.path.join(frames_dir, 'anims.json')))
     os.makedirs(out, exist_ok=True)
     scenes, groups = [], []          # groups: (key, frames, speed, loop, back_to)
@@ -37,6 +43,9 @@ def main():
     for fno in frame_nos:
         fr = json.load(open(os.path.join(frames_dir, 'frame_%d.json' % fno)))
         objs = []
+        for k in extra.get(fno, []):
+            c, i = k.rsplit('_', 1)
+            fr['objects'].append({'cls': c, 'id': int(i), 'x': -1000, 'y': -1000, 'layer': 0, 'kind': 'obj'})
         for o in fr['objects']:
             key = '%s_%d' % (o['cls'], o['id'])
             e = an.get(key, {})

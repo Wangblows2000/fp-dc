@@ -56,6 +56,15 @@ static uint32_t modulate(uint32_t c, uint32_t m) {
     return (r << 16) | (g << 8) | b;
 }
 
+/* alpha blend (a = 255: opaque), as the PVR's translucent list does with the vertex alpha */
+static uint32_t blend(uint32_t dst, uint32_t src, uint32_t a) {
+    if (a >= 255) return src;
+    uint32_t r = (((src >> 16) & 255) * a + ((dst >> 16) & 255) * (255 - a)) / 255;
+    uint32_t g = (((src >> 8) & 255) * a + ((dst >> 8) & 255) * (255 - a)) / 255;
+    uint32_t b = ((src & 255) * a + (dst & 255) * (255 - a)) / 255;
+    return (r << 16) | (g << 8) | b;
+}
+
 void r_sprite(const tex_t *t, int u, int v, int uw, int vh, float x, float y, float w, float h, int flip, uint32_t argb) {
     if (t->id < 0 || t->id >= ntex || w <= 0 || h <= 0) return;
     int x0 = (int)floorf(x), y0 = (int)floorf(y), x1 = (int)floorf(x + w), y1 = (int)floorf(y + h);
@@ -72,7 +81,7 @@ void r_sprite(const tex_t *t, int u, int v, int uw, int vh, float x, float y, fl
             uint16_t c = ix ? pal[ix[tv * tw + tu]] : px[tv * tw + tu];
             if (!(c & 0x8000)) continue;
             uint32_t rgb = (((c >> 10) & 31) << 19) | (((c >> 5) & 31) << 11) | ((c & 31) << 3);
-            fb[sy * SCREEN_W + sx] = modulate(rgb, argb);
+            fb[sy * SCREEN_W + sx] = blend(fb[sy * SCREEN_W + sx], modulate(rgb, argb), argb >> 24);
         }
     }
 }
@@ -107,7 +116,7 @@ void r_rect(float x, float y, float w, float h, uint32_t argb) {
     int x0 = (int)floorf(x), y0 = (int)floorf(y), x1 = (int)floorf(x + w), y1 = (int)floorf(y + h);
     for (int sy = y0 < 0 ? 0 : y0; sy < y1 && sy < SCREEN_H; sy++)
         for (int sx = x0 < 0 ? 0 : x0; sx < x1 && sx < SCREEN_W; sx++)
-            fb[sy * SCREEN_W + sx] = argb & 0xffffff;
+            fb[sy * SCREEN_W + sx] = blend(fb[sy * SCREEN_W + sx], argb & 0xffffff, argb >> 24);
 }
 
 void r_fade(float alpha) {
