@@ -326,9 +326,9 @@ void text_draw(float x, float y, const char *s, uint32_t argb, int scale);
 #define PHYS_DK_WIND_GRAV 0.125   /* RV: gravity during the windup */
 #define PHYS_DK_VX      5.0       /* RV: kick vx = 5*facing */
 #define PHYS_CYCLONE_VY 3.0       /* RV: Dragon Cyclone sets vy = -3 */
-#define PHYS_CYCLONE_GRAV 0.1     /* RV: gravity during the cyclone (held or not) */
+#define PHYS_CYCLONE_GRAV_SUB 0.15 /* RE event 2041: taken off G after the normal gravity while in the cyclone without Down */
 #define PHYS_CYCLONE_T  79         /* RV: cyclone state lasts 79 frames (4 traces, ground and air); landing keeps it */
-#define PHYS_GCYC_JUMP  4.9       /* RV: jump out of a grounded cyclone: vy -4.9 */
+#define PHYS_GCYC_JUMP_MUL 0.7    /* RE event 2045: grounded-cyclone jump scales the perpendicular part of the jump by 0.7 */
 #define PHYS_DK_VY_ADD  5.0       /* RV: down-kick adds +5 to vy (after the windup frame's gravity) */
 #define PHYS_CROUCHATK_T 18        /* RV: crouch kick (anim 30) length */
 #define PHYS_BOOST_DIAG 8.0       /* RV: diagonal boost components (8, 8) */

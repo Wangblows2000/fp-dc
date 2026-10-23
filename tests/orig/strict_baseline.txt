@@ -22,7 +22,7 @@ cyc_dk_cyc 151 151 151
 cyc_dk_early 151 151 151
 cyc_down 151 151 151
 cyc_then_dk 151 151 151
-cyclone 104 151 104
+cyclone 151 151 151
 dk_kick_cyc_hold 151 151 151
 dk_kick_then_cyc 151 151 151
 dk_kick_then_cyc2 151 151 151
@@ -36,7 +36,7 @@ gc_down_special 150 151 60
 gc_run_down_attack 151 151 151
 gc_run_down_jump 151 151 151
 gcyc_attack_again 151 151 151
-gcyc_jump 90 151 90
+gcyc_jump 151 151 151
 gcyc_release 151 151 151
 gcyc_release_down 151 151 151
 gcyc_slope 151 151 151
