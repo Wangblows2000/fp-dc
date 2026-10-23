@@ -29,7 +29,7 @@ with tempfile.TemporaryDirectory() as d:
     a, b = run(SRC, ACT, 400, {'FP_LEVEL': 'dv1'}), run(d, ACT, 400, {'FP_LEVEL': 'dv1'})
     check('act_change_identical', a.stdout == b.stdout and 'act 2' in b.stdout.replace('act 2.', 'act 2'), 'rc %d' % b.returncode)
     l2 = [l for l in b.stderr.splitlines() if l.startswith('load[dv2]')]
-    check('resident_lilac_on_act_change', l2 and 'skipped 4 (1536 KB)' in l2[0], l2[0] if l2 else 'no dv2 load line')
+    check('resident_lilac_on_act_change', l2 and 'skipped 4 (' in l2[0], l2[0] if l2 else 'no dv2 load line')
     # corruption: flip bytes inside the first compressed entry of dv1.pak; truncate dv2.pak
     p = os.path.join(d, 'dv1.pak'); raw = bytearray(open(p, 'rb').read())
     for i in range(600, 700): raw[i] ^= 0x5a

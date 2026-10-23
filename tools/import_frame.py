@@ -25,7 +25,7 @@ Outputs:
   <name>_report.txt
 """
 import json, os, struct, sys, hashlib
-from PIL import Image
+from PIL import Image, ImageChops, ImageOps
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from convert import write_tex, pack, argb1555
 
@@ -38,6 +38,10 @@ ENGINE_TYPES = {
     'monitorinvincibility': 4, 'levelparallaxpiece0': 20, 'levelparallaxpiece1': 21,
     'levelparallaxpiece2': 22, 'levelparallaxpiece3': 23, 'levelparallaxpiece4': 24,
     'levelparallaxpiece5': 25, 'levelparallaxpiece6': 26, 'levelparallaxpiece7': 27,
+    'laddertop': 30,
+    'enemygansekijr': 31,
+    'levelvalleyplatform1': 32, 'levelmovingplatform2': 33, 'levelmovingplatform3': 34,   # RE spec_platforms.md
+    'gimmickbridge12logs': 35, 'gimmickbridgelog': 36,   # EnemyGansekiJr_835 (RE build/re/spec_ganseki.md)     # LadderTop_428: invisible obstacle at the top of each ladder (RE spec_ladder.md)
 }
 
 # collision mask threshold: Chowdren builds image collision bits from alpha != 0 (RE Image::upload_texture,
@@ -159,7 +163,7 @@ def main():
     report.append('collision: %dx%d tiles, %d unique 16x16 patterns (%d bytes), layers %s' % (TW, TH, len(table), len(table) * 32, sorted(col_layers)))
 
     # ---- active-object sprite bank (first anim, right-facing) for implemented classes
-    bank_classes = sorted({o['cls'] for o in objs if o['type'] < 20 and o['type'] != 1})
+    bank_classes = sorted({o['cls'] for o in objs if (o['type'] < 20 or o['type'] >= 30) and o['type'] not in (1, 31, 35)})   # 20-27 parallax pieces; Ganseki uses its gan_* anims; the bridge box is invisible
     bank = {'name': name + '_obj', 'anims': []}
     for key in bank_classes:
         d = first_anim_frames(an.get(key, {}))
@@ -177,7 +181,12 @@ def main():
                             ('enemypellet_934', 0, '0', 'pellet'), ('effectsexplosion02_368', 4, '0', 'explosion02'),
                             ('ringsparkle_142', 4, '0', 'ringsparkle'), ('effectsheart_444', 4, '0', 'heart'),
                             ('sparkle1_316', 0, '0', 'sparkle1'), ('sparkle5_284', 4, '0', 'sparkle5'),
-                            ('crystal_447', 0, '0', 'pausecursor')):
+                            ('crystal_447', 0, '0', 'pausecursor'),
+                            ('enemygansekijr_835', 0, '0', 'gan_pose'), ('enemygansekijr_835', 0, '16', 'gan_pose_l'),
+                            ('enemygansekijr_835', 1, '0', 'gan_walk'), ('enemygansekijr_835', 1, '16', 'gan_walk_l'),
+                            ('enemygansekijr_835', 8, '0', 'gan_dead'), ('enemygansekijr_835', 8, '16', 'gan_dead_l'),
+                            ('enemygansekijr_835', 10, '0', 'gan_curl'), ('enemygansekijr_835', 10, '16', 'gan_curl_l'),
+                            ('enemygansekijr_835', 11, '0', 'gan_wake'), ('enemygansekijr_835', 11, '16', 'gan_wake_l')):
         try:
             d = an[cls]['anims'][ai][dk]
         except (KeyError, IndexError, TypeError):
@@ -223,11 +232,22 @@ def main():
     LILAC = [('idle', 0), ('walk', 1), ('run', 2), ('fastrun', 23), ('jump', 24), ('lookup', 11),
              ('crouch', 10), ('skid', 16), ('attack', 26), ('airatk', 25), ('uppercut', 28),
              ('dkwind', 7), ('divekick', 19), ('cyclone', 18), ('charge', 7), ('boost', 13),
-             ('hurt', 8), ('defeat', 38), ('crouchatk', 30), ('spring', 14), ('hang', 15)]
+             ('hurt', 8), ('defeat', 38), ('crouchatk', 30), ('spring', 14), ('hang', 15),
+             ('push', 12), ('climb', 9), ('climbdown', 35), ('climbover', 36), ('catch', 33)]   # RV push_wall / ladder_* traces, RE events 2456-2467
     la = an['playerskinsash_341']['anims']
     lb = {'name': 'lilac2', 'anims': []}
+    def mirrored(d0, d16):
+        """direction-16 frames that are exact mirrors of direction 0 (with hotspot w - 1 - hx) are left out:
+        the port draws the right-facing animation flipped (halves Lilac's VRAM)"""
+        if not d16 or len(d0['frames']) != len(d16['frames']): return False
+        for i0, i1 in zip(d0['frames'], d16['frames']):
+            a0, hx0, hy0 = load_img(src, i0); a1, hx1, hy1 = load_img(src, i1)
+            if a0.size != a1.size or hy0 != hy1 or hx1 != a0.width - 1 - hx0: return False
+            if ImageChops.difference(ImageOps.mirror(a0), a1).getbbox() is not None: return False
+        return True
     for nm, ai in LILAC:
         for dkey, suf in (('0', ''), ('16', '_l')):
+            if dkey == '16' and (not la[ai].get('16') or mirrored(la[ai]['0'], la[ai]['16'])): continue
             dd = la[ai].get(dkey) or la[ai]['0']
             lb['anims'].append({'name': nm + suf, 'frames': dd['frames'], 'speed': dd['max_speed'],
                                 'loop': dd['loop'], 'back_to': dd['back_to']})
@@ -239,7 +259,9 @@ def main():
     for nm, ai in LILAC:
         if ai >= len(ha) or not ha[ai]: continue
         for dkey, suf in (('0', ''), ('16', '_l')):
-            dd = ha[ai].get(dkey) or ha[ai].get('0') or next(iter(ha[ai].values()))
+            h0 = ha[ai].get('0') or next(iter(ha[ai].values()))
+            if dkey == '16' and (not ha[ai].get('16') or mirrored(h0, ha[ai]['16'])): continue
+            dd = ha[ai].get(dkey) or h0
             hb['anims'].append({'name': 'h_' + nm + suf, 'frames': dd['frames'], 'speed': dd['max_speed'],
                                 'loop': dd['loop'], 'back_to': dd['back_to']})
     write_bank2(src, hb, out, report)
@@ -257,6 +279,16 @@ def write_bank2(src, bank, out, report):
         for i in a['frames']:
             if i not in ids: ids.append(i)
     imgs = {i: load_img(src, i) for i in ids}
+    # images of these animations are cropped to their opaque pixels (hotspot shifted to match): drawing
+    # is unchanged, and nothing uses their untrimmed box (explosions: effects; Ganseki: hotspot rules +
+    # pixel masks). Keeps the 1024x1024 object atlas within one PVR texture.
+    # Lilac's skin and hair banks too: her collision is the separate sensor objects, never the sprite box
+    whole = bank['name'] in ('lilac2', 'lilachair')
+    crop_ids = {i for a in bank['anims'] if whole or a['name'].startswith(('gan_', 'explosion')) for i in a['frames']}
+    for i in crop_ids:
+        im, hx, hy = imgs[i]; bb = im.getbbox()
+        if bb and (bb[2] - bb[0], bb[3] - bb[1]) != im.size:
+            imgs[i] = (im.crop(bb), hx - bb[0], hy - bb[1])
     size = 64
     while True:
         pos = pack([(i, imgs[i][0]) for i in ids], size)
@@ -305,7 +337,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         k, u, v = where[p['img']]
         d += struct.pack('<2i4H4B', p['x'] - hx, p['y'] - hy, u, v, im.width, im.height, k, p['layer'], p['col'], 1 if p['invisible'] else 0)
     for o in objs:
-        a = names.index(o['cls'][:15]) if o['cls'][:15] in names else o.get('par_index', 0xffff)
+        a = names.index(o['cls'][:15]) if o['cls'][:15] in names else (o.get('par_index', 0xffff) if 20 <= o['type'] < 28 else 0xffff)
         d += struct.pack('<2H2i', o['type'], a, o['x'], o['y'])
     for t in table: d += t
     d += struct.pack('<%dH' % len(smap), *smap)

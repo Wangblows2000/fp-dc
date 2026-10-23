@@ -21,6 +21,26 @@ int tex_load_file(tex_t *t, const char *name) {
     return r;
 }
 
+/* like tex_load_file, but a texture whose texels are all 0 (fully transparent) is not uploaded */
+int tex_load_file_skip_empty(tex_t *t, const char *name) {
+    size_t sz; char fn[64];
+    snprintf(fn, sizeof fn, "%s.tex", name);
+    uint8_t *d = plat_load_file(fn, &sz);
+    if (!d) return -1;
+    int empty = sz > 16;
+    for (size_t i = 16; i < sz && empty; i++) if (d[i]) empty = 0;
+    int r = 0;
+    if (empty) { memset(t, 0, sizeof *t); t->id = -1; LP.nskip++; LP.skip_bytes += sz; }
+    else {
+        uint64_t tu = plat_time_us();
+        r = r_tex_load(t, d, sz);
+        LP.upload_us += plat_time_us() - tu; LP.ntex++; LP.tex_bytes += sz;
+        if (r < 0) plat_log("tex %s: invalid\n", fn);
+    }
+    free(d);
+    return r;
+}
+
 int pal_load_file(const char *name) {
     size_t sz;
     void *d = plat_load_file(name, &sz);
@@ -143,9 +163,9 @@ void frame_draw(const bank_t *b, const frame_t *f, float x, float y, int flip, u
 }
 
 /* rotation around the hotspot (the original rotates Actives around their hot spot) */
-void frame_draw_rot(const bank_t *b, const frame_t *f, float x, float y, float angle_deg, uint32_t argb) {
-    if (angle_deg == 0) { frame_draw(b, f, x, y, 0, argb); return; }
-    r_sprite_rot(&b->tex, f->u, f->v, f->w, f->h, x, y, f->hx, f->hy, angle_deg, argb);
+void frame_draw_rot(const bank_t *b, const frame_t *f, float x, float y, float angle_deg, int flip, uint32_t argb) {
+    if (angle_deg == 0 && !flip) { frame_draw(b, f, x, y, 0, argb); return; }
+    r_sprite_rot(&b->tex, f->u, f->v, f->w, f->h, x, y, f->hx, f->hy, angle_deg, flip, argb);
 }
 
 /* ------------------------------------------------------------------ FPL2 */

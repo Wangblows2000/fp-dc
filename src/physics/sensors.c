@@ -121,16 +121,38 @@ static int mask_hits_objs(int grp, const smask_t *k, int px, int py) {
     return objects_sensor_hit(grp, px - k->hx, py - k->hy, k->x0, k->x1, k->h);
 }
 
+/* one sensor placed at (X, Y, N) tested against the objects of one type (e.g. S_BOTTOMBIG vs LadderTop,
+ * events 4044 / 4058): index of the first overlapping object, or -1 */
+int mv_sensor_obj(double X, double Y, double N, int sensor, int objtype) {
+    mv_t m; memset(&m, 0, sizeof m); m.X = X; m.Y = Y; m.N = N;
+    sens_t keep = S[sensor];
+    place(&m, sensor);
+    const smask_t *k = &MK[S[sensor].mask];
+    int r = objects_sensor_hit_type(objtype, S[sensor].x - k->hx, S[sensor].y - k->hy, k->x0, k->x1, k->h);
+    S[sensor] = keep;
+    return r;
+}
+
 /* overlap test of one sensor (e.g. events 1425-1431): background, then the always-solid group
  * (QualifierList +0x218c0: monitors, wall spring, spikes, breakable rock, ...), then the obstacle group
- * (+0x218d8: bridge logs, springs, ladder tops, platforms) only while grounded (L = 1). Bottom sensors in
- * the air (L = 0, G >= 0) also stand on obstacles when the platform sensor is not inside one: obstacle
- * objects are not ported yet, so that case is not reached. */
+ * (+0x218d8: bridge logs, springs, ladder tops, platforms; platforms flagged 0 (4738: Lilac's reference
+ * point below their top) are skipped) while grounded (L = 1). In the air (L = 0) only the bottom sensors
+ * count obstacles, when G >= 0 and the platform sensor touches no obstacle at all (1427/1431). */
+/* PlayerSensorPlatform_336 (RE 2954, 1423): 11-px disc at A = 0, B = -5 */
+static int platform_sensor_clear(const mv_t *m) {
+    double c = o_cos(m->N), s = o_sin(m->N), A = 0, B = -5;
+    int x = clampi(floor(s * B + A * c + m->X), 0, G.lvl.w), y = clampi(floor((B * c + m->Y) - s * A), 0, G.lvl.h);
+    const smask_t *k = &MK[M_C11];
+    return !mask_hits_objs(OBJGRP_OBSTACLE_ALL, k, x, y);
+}
 static void test(const mv_t *m, int i) {
     const smask_t *k = &MK[S[i].mask];
     if (mask_hits_bg(k, S[i].x, S[i].y)) S[i].z = 1;
     if (!S[i].z && mask_hits_objs(OBJGRP_SOLID, k, S[i].x, S[i].y)) S[i].z = 1;
-    if (!S[i].z && m->L == 1 && mask_hits_objs(OBJGRP_OBSTACLE, k, S[i].x, S[i].y)) S[i].z = 1;
+    if (S[i].z) return;
+    if (m->L == 1) { if (mask_hits_objs(OBJGRP_OBSTACLE, k, S[i].x, S[i].y)) S[i].z = 1; }   /* 1426/1430 & co. */
+    else if ((i == S_BOTTOM || i == S_BOTTOMBIG) && m->G >= 0 &&                            /* 1427/1431 */
+             mask_hits_objs(OBJGRP_OBSTACLE, k, S[i].x, S[i].y) && platform_sensor_clear(m)) S[i].z = 1;
 }
 
 /* ---- loops (loop_player01*) */

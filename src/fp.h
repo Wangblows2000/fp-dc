@@ -105,7 +105,7 @@ void   r_sprite(const tex_t *t, int u, int v, int uw, int vh,
                 float x, float y, float w, float h, int flip, uint32_t argb);
 void   r_rect(float x, float y, float w, float h, uint32_t argb);
 void   r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float py, float hx, float hy,
-                    float angle_deg, uint32_t argb);
+                    float angle_deg, int flip, uint32_t argb);   /* flip: mirrored image, hotspot uw - 1 - hx */
 void   r_end(void);
 void   r_tex_free(tex_t *t);           /* free one texture */
 void   r_reset(void);                 /* free all textures (level change) */
@@ -136,7 +136,7 @@ void anim_restart(animator_t *a);
 void anim_tick(animator_t *a, int speed_override);       /* <0: use table speed */
 const frame_t *anim_frame(const animator_t *a);
 void frame_draw(const bank_t *b, const frame_t *f, float x, float y, int flip, uint32_t argb);
-void frame_draw_rot(const bank_t *b, const frame_t *f, float x, float y, float angle_deg, uint32_t argb);
+void frame_draw_rot(const bank_t *b, const frame_t *f, float x, float y, float angle_deg, int flip, uint32_t argb);   /* flip: mirrored image (hotspot w - 1 - hx) */
 int  tex_load_file(tex_t *t, const char *name);
 int  pal_load_file(const char *name);
 
@@ -149,7 +149,8 @@ typedef struct { uint16_t type, anim; int32_t x, y; } lvobj_t;
 enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_MON_INVINC = 4, OT_MON_RINGS = 18, OT_MON_1UP = 19, OT_PETAL = 6, OT_SPIKES = 7,
        OT_SPRING = 8, OT_SIGN = 9, OT_TURRETUS = 10, OT_ROCK = 11, OT_MONITOR = 12,
        OT_SPRING_UL = 13, OT_SPRING_UR = 14, OT_SPRING_R = 15, OT_SPRING_L = 16, OT_HANG = 17,
-       OT_PARALLAX = 20, OT_EXPLODE = 100, OT_PELLET = 101, OT_ITEM_FLY = 102 };
+       OT_PARALLAX = 20, OT_LADDERTOP = 30, OT_GANSEKI = 31,
+       OT_PLAT_VALLEY = 32, OT_PLAT_MOVE2 = 33, OT_PLAT_MOVE3 = 34, OT_BRIDGE = 35, OT_LOG = 36, OT_EXPLODE = 100, OT_PELLET = 101, OT_ITEM_FLY = 102 };
 
 #define MAX_ATLAS 4
 typedef struct {
@@ -174,7 +175,7 @@ int  px_span_solid(const level_t *l, int x0, int x1, int y);   /* any solid pixe
 /* Lilac's movement core (src/physics/sensors.c, RE events 1584-1611): the original's movement object */
 typedef struct { double X, Y, B, G, N, O, W; int L, P; } mv_t;
 enum { MV_LANDED = 1, MV_LEFT_GROUND = 2, MV_CEILING = 4 };
-enum { OBJGRP_SOLID, OBJGRP_OBSTACLE, OBJGRP_NOEDGE };   /* QualifierLists +0x218c0, +0x218d8, +0x218f0 */
+enum { OBJGRP_SOLID, OBJGRP_OBSTACLE, OBJGRP_NOEDGE, OBJGRP_OBSTACLE_ALL };   /* QualifierLists +0x218c0, +0x218d8 (minus flag-0 platforms), +0x218f0; +0x218d8 with every instance */
 void mv_reset(void);
 int  mv_core(mv_t *m);
 void mv_allsensors(mv_t *m);
@@ -182,6 +183,12 @@ void mv_allsensors(mv_t *m);
 int  mv_sensor_left_big(void), mv_sensor_right_big(void), mv_sensor_top_big(void);
 /* objects of a collision group overlapping a sensor mask (row spans x0[j]..x1[j] at (ox, oy + j)) */
 int  objects_sensor_hit(int grp, int ox, int oy, const signed char *x0, const signed char *x1, int h);
+int  objects_sensor_hit_type(int type, int ox, int oy, const signed char *x0, const signed char *x1, int h);  /* index of the first hit object, -1 */
+int  level_test_ladder(int x, int y);
+int  tex_load_file_skip_empty(tex_t *t, const char *name);        /* RE Frame::test_ladder: point inside a ladder backdrop */
+int  mv_z(int sensor);                         /* last test result (Z) of a sensor */
+int  mv_sensor_obj(double X, double Y, double N, int sensor, int objtype);   /* sensor placed at (X, Y, N) overlaps an object of that type: index or -1 */
+enum { SENSOR_TOPBIG = 6, SENSOR_BOTTOMBIG = 8 };
 
 /* ---------------------------------------------------------------- game */
 typedef struct {
@@ -202,7 +209,10 @@ typedef struct {
     double hang_x, hang_y;         /* grabbed hang sensor position (state M41) */                 /* launched by a spring, until landing (spring anim while rising) */
     float rot;                   /* sprite angle, degrees CCW (original Active angle @+0xc4) */
     double boost_vx, boost_vy;    /* (unused since the RE boost; kept for the save layout of player_t) */
-    int boost_n, boost_q, m5_bounced;         /* RE: OTHERS.N charge/boost timer (fires at 30), OTHERS.Q latched vertical direction (-1 up, 0, +1 down) */
+    int boost_n, boost_q, m5_bounced;
+    int lad_y, lad_o, lad_lt, lad_first;
+    int hitstop;                  /* RE PlayerOthers.K */
+    int hurt_pending;             /* RE movement R = 1 + GUILifeBaseMeter.B: contact damage applied by 2414 the next frame */   /* RE ladder: OTHERS.Y selector (27 climb, 29 down, 28 climb-over, 47 catch), SKIN.O counter, LadderTop, first frame after a grab */         /* RE: OTHERS.N charge/boost timer (fires at 30), OTHERS.Q latched vertical direction (-1 up, 0, +1 down) */
     float spawn_x, spawn_y;
     int dead_t;
 } player_t;
@@ -212,6 +222,7 @@ typedef struct {
     int st, tm, dir, born;       /* recovered enemy state (Turretus D, E; direction); frame created */
     float x, y, ox, oy, vx, vy, fx, fy;
     int t, flip, par;
+    int c, fl;                   /* recovered enemy hit timer C (5 after a hit) and alterable flags (bit 5 armoured, bit 6 defeated) */
     animator_t an;
 } obj_t;
 
@@ -226,7 +237,7 @@ typedef struct {
     int nobjs;
     float camx, camy;
     /* MasterCamera_408 alterables (RE, loop_camera_mode0_13 + events 2873-2886, 3539) */
-    struct { float A, B, W, G, H, S, T, N, O; int V; } cam;
+    struct { float A, B, W, G, H, S, T, N, O; int V, M4; } cam;   /* M4: CAM.M = 4 while entering a ladder from the top (not modelled further) */
     int frame, clear_t, paused, kills;
     int act_in, act_fade, act_carry;
     int mus_resume_t;           /* frames until the stage music resumes after a jingle */   /* act change (RE 4135/5045, 3310/3311/3578, 4526/5047) */
@@ -277,6 +288,13 @@ void player_update(player_t *p, const input_t *in);
 void player_draw(const player_t *p);
 int  player_attack_box(const player_t *p, float *x0, float *y0, float *x1, float *y1);
 int  player_invincible(const player_t *p);
+int  player_contact_safe(const player_t *p);   /* RE 2731: movement Z = 1 (boost...), attacking states, R set, E > 0 */
+int  player_attack_kind(const player_t *p);    /* 1 ground attack (insta-shield), 2 body hit (Z = 1), 0 none */
+void player_hitstop(player_t *p, int k);
+void player_contact(player_t *p, int damage);  /* RE 2731: R = 1, damage queued for the next frame's 2414 */       /* RE PlayerOthers.K: Lilac frozen K - 1 frames (1654/1655) */
+int  cross_rand(int n);                        /* RE cross_seed LCG: ((seed >> 16) & 0x7fff) * n >> 15 */
+void objects_platforms(player_t *p);
+void objects_plat_pretick(int n);         /* RE 3270-3307, 4061, 4737/4738: platforms and bridges, before Lilac's movement */
 void player_hurt(player_t *p, double from_x);
 void player_damage(player_t *p, int amount);
 void player_sync_sensors(player_t *p);

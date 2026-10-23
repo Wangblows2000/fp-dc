@@ -192,6 +192,7 @@ int main(int argc, char **argv) {
         if (sscanf(getenv("FP_COLPROBE"), "%d,%d,%d", &cx, &y0, &y1) == 3)
             for (int y = y0; y <= y1; y++) printf("col %d %d %d\n", cx, y, solid_at(&G.lvl, (float)cx, (float)y));
     }
+    if (getenv("FP_PLAT_PRETICK")) objects_plat_pretick(atoi(getenv("FP_PLAT_PRETICK")));
     if (getenv("FP_OBJ_PRETICK")) {
         objects_pretick(atoi(getenv("FP_OBJ_PRETICK")));
     }

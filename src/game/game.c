@@ -100,11 +100,13 @@ int game_load_level(const char *dir) {
     if (bad) { loading_end(); lp_end(); plat_log("level %s: data load failed\n", dir); return -1; }
     int want = 0;
     for (int i = 0; i < G.lvl.nobj; i++)
-        if (G.lvl.objs[i].type >= OT_PARALLAX && G.lvl.objs[i].anim != 0xffff && G.lvl.objs[i].anim + 1 > want)
+        if (G.lvl.objs[i].type >= OT_PARALLAX && G.lvl.objs[i].type < OT_PARALLAX + 8 && G.lvl.objs[i].anim != 0xffff && G.lvl.objs[i].anim + 1 > want)
             want = G.lvl.objs[i].anim + 1;
     for (G.npar = 0; G.npar < want && G.npar < 12; G.npar++) {
         snprintf(nm, sizeof nm, "%s/%s_par%d", dir, dir, G.npar);
-        if (tex_load_file(&G.par[G.npar], nm) < 0) break;
+        /* a layer image with no visible pixel (DV1 par2 / par4) is not uploaded: 192 KB of VRAM, which the
+         * full DV1 set needs (tex_load_file_skip_empty leaves the slot empty: id -1, nothing drawn) */
+        if (tex_load_file_skip_empty(&G.par[G.npar], nm) < 0) break;
     }
     G.p.spawn_x = G.p.spawn_y = 0;
     hud_reset();
@@ -290,6 +292,10 @@ void camera_update(void) {
         if (Y < G.cam.B + CAM_K && D + CAM_HY < G.cam.B) G.cam.B = Y - CAM_K;
         if (CAM_L + G.cam.B < Y && G.cam.B < F - CAM_HY) G.cam.B = Y - CAM_L;
     }
+    if (p->state == 13) {                                /* M46 (ST_LADDER): 1931/1932 CAM.B toward Y, 4 px per frame */
+        if (G.cam.B > Y) G.cam.B = fmaxf(G.cam.B - 4.f, Y);
+        else if (G.cam.B < Y) G.cam.B = fminf(G.cam.B + 4.f, Y);
+    }
     /* look up / crouch holds */
     G.cam.N = (M == 2 && L && Bsp == 0) ? G.cam.N + 1 : 0;
     if (G.cam.N < CAM_P && G.cam.O < CAM_P && G.cam.H < 0) G.cam.H = fminf(G.cam.H + 2.f, 0.f);
@@ -434,6 +440,7 @@ void game_update(const input_t *in) {
     if (G.card_t < CARD_DONE) {                   /* intro card: no control, timer not running */
         G.card_t++;
         input_t none = {0};
+        objects_platforms(&G.p);
         player_update(&G.p, &none);
         camera_update();
         return;
@@ -445,6 +452,7 @@ void game_update(const input_t *in) {
     G.frame++;
     input_t none = {0};
     const input_t *pin = (G.clear_t || G.act_in) ? &none : in;   /* act end / walk-in: no control (RE) */
+    objects_platforms(&G.p);                      /* RE: platform/bridge events run before Lilac's movement */
     player_update(&G.p, pin);
     if (G.act_in) {                               /* RE 4526: B = 3 every frame for 32 frames */
         if (G.p.ground) G.p.gsp = 3; else G.p.vx = 3;

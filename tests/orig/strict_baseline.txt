@@ -17,7 +17,7 @@ boost_repeat 150 151 40
 boost_run 151 151 151
 boost_tap 151 151 151
 boost_upleft 151 151 151
-boost_upright 148 151 148
+boost_upright 151 151 151
 crouch 151 151 151
 cyc_dk_cyc 151 151 151
 cyc_dk_early 151 151 151
@@ -49,13 +49,13 @@ hurt_then_petal 144 144 144
 hurt_turretus 144 144 144
 jump_hold 151 151 151
 jump_tap 151 151 151
-ladder_down_jump 0 151 0
-ladder_fast_grab 0 151 0
-ladder_grab_climb 0 151 0
-ladder_top_enter 0 151 0
+ladder_down_jump 151 151 151
+ladder_fast_grab 91 151 91
+ladder_grab_climb 151 151 151
+ladder_top_enter 151 151 151
 petal2_after_boost 136 137 40
 petal_after_boost 143 144 40
-push_wall 138 151 0
+push_wall 151 151 151
 rot_run_left 151 151 151
 rot_run_right 151 151 151
 run_jump 151 151 151
