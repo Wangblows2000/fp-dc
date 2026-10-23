@@ -135,6 +135,11 @@ int main(int argc, char **argv) {
         G.p.spawn_x = (float)atof(sx);
         if (floor_probe(&G.lvl, G.p.spawn_x, G.p.spawn_y - 64, 200, 1, &y, &a)) G.p.spawn_y = y;
         player_reset(&G.p, G.p.spawn_x, G.p.spawn_y);
+        /* FP_SPAWN_Y / _L / _N: the trace's frame-0 movement Y (reference point), L and N */
+        if (getenv("FP_SPAWN_Y")) G.p.y = atof(getenv("FP_SPAWN_Y")) + ORIG_REF_DY;
+        if (getenv("FP_SPAWN_L")) G.p.ground = atoi(getenv("FP_SPAWN_L"));
+        if (getenv("FP_SPAWN_N")) G.p.N = G.p.O = atof(getenv("FP_SPAWN_N"));
+        player_sync_sensors(&G.p);
         camera_reset(); camera_update();
     }
     if (getenv("FP_COLPROBE")) {            /* "x,y0,y1": print the solid column (collision debugging) */

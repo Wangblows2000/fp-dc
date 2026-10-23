@@ -164,6 +164,12 @@ static int core(player_t *p) {
     return r;
 }
 
+/* sensor state for a position set from outside (spawn, debug): as if 1611 had run there */
+void player_sync_sensors(player_t *p) {
+    mv_t m = { p->x, p->y - ORIG_REF_DY, p->ground ? p->gsp : p->vx, p->ground ? 0. : p->vy, p->N, p->O, 0, p->ground, 0 };
+    mv_allsensors(&m);
+}
+
 /* RE (events 1635/1636): moving into a wall the big side sensor touches stops B (not in state M5) */
 static void wall_stop(player_t *p) {
     if (is_m5(p)) return;

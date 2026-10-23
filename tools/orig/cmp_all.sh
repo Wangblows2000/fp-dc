@@ -12,13 +12,13 @@ for s in ${@:-$(ls tests/orig/*.txt | xargs -n1 basename | sed 's/.txt$//')}; do
   [ -f build/orig_traces/$s.csv ] || { echo "SKIP $s (no original trace)"; continue; }
   # start state from the original trace's frame 0: X, energy, petals, and the enemies' animation phase
   # (ticks of Turretus idle at speed 20 = 5 * frame + counter / 20; 0 for traces recorded without it)
-  read X EN HP PT < <(python3 -c "
+  read X EN HP PT Y L N < <(python3 -c "
 import csv,sys
 r=next(csv.DictReader(open('build/orig_traces/$s.csv')))
 pt = 5 * int(r['turr_afr']) + int(r['turr_acc']) // 20 if r.get('turr_acc') not in (None, '', '0') or r.get('turr_afr') not in (None, '', '0') else 0
-print(r['mv_X'], r.get('en_A') or 100, r.get('c_petals') or 14, pt)")
+print(r['mv_X'], r.get('en_A') or 100, r.get('c_petals') or 14, pt, r['mv_Y'], r['mv_L'], r['mv_N'])")
   [ "$EN" = "0" ] && EN=100
-  FP_LEVEL=dv1 FP_SPAWN_X=$X FP_ENERGY=$EN FP_HP=$HP FP_OBJ_PRETICK=$PT FP_CSV=build/fpdc_traces/$s.csv ./host/fpdc_host converted2 $((FR+5)) tests/orig/$s.txt > /dev/null 2>&1
+  FP_LEVEL=dv1 FP_SPAWN_X=$X FP_SPAWN_Y=$Y FP_SPAWN_L=$L FP_SPAWN_N=$N FP_ENERGY=$EN FP_HP=$HP FP_OBJ_PRETICK=$PT FP_CSV=build/fpdc_traces/$s.csv ./host/fpdc_host converted2 $((FR+5)) tests/orig/$s.txt > /dev/null 2>&1
   SKIP=$(awk '$2=="TP" && $1>=40 {printf "%d-%d,", $1-3, $1+3}' tests/orig/$s.txt)
   if python3 tools/orig/compare.py build/orig_traces/$s.csv build/fpdc_traces/$s.csv --from 50 --to $FR ${SKIP:+--skip $SKIP} --strict-out build/strict_now.txt ${Q:+--quiet}; then pass=$((pass+1)); else fail=$((fail+1)); fi
 done
