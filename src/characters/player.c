@@ -144,8 +144,8 @@ static void on_land(player_t *p) {
     if (p->state == ST_BOOST) {
         /* RV (boost_air_downright/downleft): a down-diagonal boost (8, 8) that lands carries on along the
          * ground at a constant 10 for the rest of the boost */
-        p->gsp = (p->boost_dx > 0 ? 1. : -1.) * PHYS_BOOST_LAND; p->boost_dy = 0;
-        p->boost_dx = p->boost_dx > 0 ? PHYS_BOOST_LAND / PHYS_BOOST : -PHYS_BOOST_LAND / PHYS_BOOST;
+        p->gsp = (p->boost_vx > 0 ? 1. : -1.) * PHYS_BOOST_LAND; p->boost_vy = 0;
+        p->boost_vx = p->gsp;
         p->jumping = 0; p->cyclone_used = 0;
         return;
     }
@@ -295,15 +295,15 @@ static void start_boost(player_t *p, const input_t *in) {
     if (p->ground && dy > 0) dy = 0;                  /* down-diagonal on the ground = along the ground */
     /* RV (boost_* traces): straight = 12, diagonals = (+-8, +-8) (not 12/sqrt2); straight up/down input
      * gives the diagonal on the facing side, which the dx default above already does */
-    if (dy != 0) { p->boost_dx = dx * PHYS_BOOST_DIAG / PHYS_BOOST; p->boost_dy = dy * PHYS_BOOST_DIAG / PHYS_BOOST; }
-    else { p->boost_dx = dx; p->boost_dy = 0; }
+    if (dy != 0) { p->boost_vx = dx * PHYS_BOOST_DIAG; p->boost_vy = dy * PHYS_BOOST_DIAG; }
+    else { p->boost_vx = dx * PHYS_BOOST; p->boost_vy = 0; }
     p->face = dx > 0 ? 1 : -1;
     p->state = ST_BOOST; p->state_t = 0; p->boost_used = 1;
 
     if (dy < 0 && p->ground) detach(p);
     /* RV (boost_* traces): B and G already hold the boost speed on the fire frame (before any move) */
-    if (p->ground) p->gsp = p->boost_dx * PHYS_BOOST;
-    else { p->vx = p->boost_dx * PHYS_BOOST; p->vy = p->boost_dy * PHYS_BOOST; }
+    if (p->ground) p->gsp = p->boost_vx;
+    else { p->vx = p->boost_vx; p->vy = p->boost_vy; }
     snd_play_orig(53, 230, 128);                  /* RV: boost fire = 53 */
 }
 
@@ -515,13 +515,13 @@ void player_update(player_t *p, const input_t *in) {
         break;
     case ST_BOOST: {  /* RV: speed 12 held constant for 33 f, then normal physics carry the speed */
         double ox = p->x, oy = p->y;
-        if (p->ground && p->boost_dy >= 0) {
+        if (p->ground && p->boost_vy >= 0) {
             /* RV: B set to 12 when fired; afterwards only the slope force changes it (12 -> 12.82 down a 45 deg slope) */
-            if (p->state_t == 1) p->gsp = p->boost_dx * PHYS_BOOST;   /* (landed boosts keep their 10) */
+            if (p->state_t == 1) p->gsp = p->boost_vx;   /* (landed boosts keep their 10) */
             ground_move(p, in, 0, 0);
             if (p->ground) slope_force(p);
         }
-        else { p->vx = p->boost_dx * PHYS_BOOST; p->vy = p->boost_dy * PHYS_BOOST; air_move(p, in, 0, 0); }
+        else { p->vx = p->boost_vx; p->vy = p->boost_vy; air_move(p, in, 0, 0); }
         if (p->state == ST_BOOST && (p->state_t >= PHYS_BOOST_T || (p->x == ox && p->y == oy))) {
             p->state = ST_NORMAL;
             p->invuln = 30;   /* [KB] brief invincibility after the boost (duration UNVERIFIED) */
@@ -548,7 +548,7 @@ void player_update(player_t *p, const input_t *in) {
         double deg_s = p->O;
         if (p->state == ST_BOOST) {
             if (p->ground) p->rot = deg_s + (p->face < 0 ? 180. : 0.);
-            else p->rot = atan2(-p->boost_dy, p->boost_dx) * 57.29578;
+            else p->rot = atan2(-p->boost_vy, p->boost_vx) * 57.29578;
         } else if (p->ground) p->rot = deg_s;
         else {
             double r = fmod(p->rot, 360.); if (r < 0) r += 360.;
