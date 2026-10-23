@@ -180,7 +180,7 @@ enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_MON_INVINC = 4, OT_MON
        OT_GBOULDER = 123, OT_BTUNNEL = 124, OT_BTUNNEL2 = 125, OT_BTUNNEL3 = 126, OT_BRK1 = 127, OT_BRK2 = 128, OT_BRK3 = 129,
        OT_BOUNCEMODE = 130, OT_CAMTRIGGER = 131, OT_JUMPPAD = 132, OT_MON_KEYSTONE = 133,
        OT_LOOP016 = 134, OT_LOOP0Q = 135, OT_LOOP115 = 136, OT_LOOP1Q = 137, OT_CHUNK = 138,
-       OT_WF_BACK = 139, OT_WF_FRONT = 140, OT_WF_FRONT2 = 141, OT_WF_FRONT3 = 142, OT_WF_FRONT4 = 143, OT_BBOULDER = 144, OT_KEYSTONE = 146 };
+       OT_WF_BACK = 139, OT_WF_FRONT = 140, OT_WF_FRONT2 = 141, OT_WF_FRONT3 = 142, OT_WF_FRONT4 = 143, OT_BBOULDER = 144, OT_KEYSTONE = 146, OT_SPIRAL_FRONT = 147 };
 
 #define MAX_ATLAS 4
 typedef struct {
@@ -203,7 +203,7 @@ int  solid_at(const level_t *l, float x, float y);
 int  px_span_solid(const level_t *l, int x0, int x1, int y);   /* any solid pixel in row y, x0..x1 */
 
 /* Lilac's movement core (src/physics/sensors.c, RE events 1584-1611): the original's movement object */
-typedef struct { double X, Y, B, G, N, O, W; int L, P, nov; } mv_t;   /* nov: MV.U = 0 (no vertical move / up-down loops; M45) */
+typedef struct { double X, Y, B, G, N, O, W; int L, P, nov, noh; } mv_t;   /* nov: MV.U = 0 (no vertical move / up-down loops; M45); noh: MV.T = 0 (no horizontal move / wall loops; helix) */
 enum { MV_LANDED = 1, MV_LEFT_GROUND = 2, MV_CEILING = 4 };
 enum { OBJGRP_SOLID, OBJGRP_OBSTACLE, OBJGRP_NOEDGE, OBJGRP_OBSTACLE_ALL };   /* QualifierLists +0x218c0, +0x218d8 (minus flag-0 platforms), +0x218f0; +0x218d8 with every instance */
 void mv_reset(void);
@@ -252,6 +252,11 @@ typedef struct {
     float spawn_x, spawn_y;
     int dead_t;
     int scripted;                 /* DV4 exit (loop_stop_player_13): player block off, moved by the boss script */
+    int tun_lock;                 /* RE PAV_A.Y: inside a roll tunnel (no roll jump / boost) */
+    int in_lock;                  /* RE CTRL.M: pad not read (spiral helix) */
+    int helix;                    /* RE MV.T = MV.U = 0 (spiral helix ride) */
+    int roll_ball;                /* OTHERS.Y = 8 kept in M1 after leaving the roll (ball, Z = 1; until landing: INFERRED) */
+    int push_s;                   /* RE PAV_B.S: push-step grace timer (1876) */
 } player_t;
 
 #define F_NOFLY 0x10000          /* enemy alterable flag 16: no death flight (bosses keep the object) */
@@ -348,7 +353,8 @@ enum { ST_NORMAL, ST_ATTACK, ST_CYCLONE, ST_CHARGE, ST_BOOST, ST_HURT, ST_DEAD,
        ST_PUSH,        /* M11: pushing against a wall (events 1752/1753, group 1873-1881) */
        ST_LADDER,      /* M46: on a ladder (1926-1950, 4043-4047) */
        ST_LADDERIN,    /* M25: climbing down into a ladder from its top (4058, 1888-1890) */
-       ST_CORK };      /* M45: half corkscrew ride (4715-4724, 4756/4757) */
+       ST_CORK,        /* M45: half corkscrew ride (4715-4724, 4756/4757) */
+       ST_ROLL };      /* M6: roll (tunnel gimmicks 4739-4755, group 1851-1864) */
 /* src/game/combat.c (build/re/spec_combat.md) */
 void combat_frame(player_t *p);
 void combat_draw_shields(int behind);
@@ -396,6 +402,9 @@ void   enemies_absorb_crystals(void);
 void   spikes_update(obj_t *o, player_t *p), rspring_update(obj_t *o, player_t *p);
 void   layers_refresh(const player_t *p), layers_update(player_t *p);
 void   cork_start_check(player_t *p), cork_move(player_t *p);
+void   tunnel_events(player_t *p), tunnels_reset(void), spiral_front_draw(void);
+void   spinlogs_update(player_t *p), pblocks_update(player_t *p);
+extern int objects_mon_ghost;           /* RE 1581: monitors non-solid for the sensors (M5 / M6) */
 int    player_core_nov(player_t *p);      /* one movement pass with MV.U = 0 */
 void   cards_spawn_all(void), card_update(obj_t *o, player_t *p);
 int    cards_commit(void), cards_taken_now(void), card_recorded(int id);

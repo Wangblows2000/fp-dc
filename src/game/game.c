@@ -193,7 +193,7 @@ static const int SND_IDS[] = { 4, 5, 8, 9, 17, 21, 25, 26, 27, 28, 37, 53, 56, 6
 static int snd_handle[512];
 static const char *VOICES[] = { "lilac_attack0", "lilac_attack1", "lilac_attack2", "lilac_attack3", "lilac_uppercut0",
     "lilac_uppercut1", "lilac_uppercut2", "lilac_uppercut3", "lilac_cyclone1", "lilac_cyclone2", "lilac_hurt0",
-    "lilac_hurt1", "lilac_hurt2", "lilac_hurt3", "lilac_die" };
+    "lilac_hurt1", "lilac_hurt2", "lilac_hurt3", "lilac_die", "lilac_cantmoveit" };
 static int voice_handle[16];
 
 void snd_play_orig(int id, int vol, int pan) {
@@ -499,6 +499,9 @@ void game_update(const input_t *in) {
         G.card_t = CARD_DONE;
         return;
     }
+    pblocks_update(&G.p);                         /* RE 2711-2735 (after the state groups) */
+    spinlogs_update(&G.p);                        /* RE 4980-4986 (DV2) */
+    tunnel_events(&G.p);                          /* RE 4739-4755 (end of the frame) */
     cork_start_check(&G.p);                       /* RE 4756/4757 (end of the frame) */
     camera_update();
     /* stage music back after the 1-up jingle / when monitor invincibility ends */
@@ -684,6 +687,7 @@ void game_draw(void) {
     draw_pieces(2, 2);
     objects_draw(1);
     player_draw(&G.p);
+    spiral_front_draw();
     draw_pieces(3, 3);
     objects_draw(2);
     draw_pieces(4, 7);

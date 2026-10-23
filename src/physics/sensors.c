@@ -268,14 +268,16 @@ static void leave_ground(mv_t *m) {
 int mv_core(mv_t *m) {
     int r = 0, n;
     /* 1584: move along N by B, then push out of walls (int)(|B| + 1) times */
-    m->X = o_cos(m->N) * m->B + m->X;
-    m->Y = m->Y - m->B * o_sin(m->N);
-    n = (int)(fabs(m->B) + 1);
-    for (int i = 0; i < n; i++) if (!wall_iter(m)) break;
+    if (!m->noh) {                                          /* (needs T = 1) */
+        m->X = o_cos(m->N) * m->B + m->X;
+        m->Y = m->Y - m->B * o_sin(m->N);
+        n = (int)(fabs(m->B) + 1);
+        for (int i = 0; i < n; i++) if (!wall_iter(m)) break;
+    }
     if (m->L == 0 && !m->nov) {
         m->Y += m->G;                                       /* 1585: fall/rise, ceiling push-out (needs U = 1) */
         for (int i = 0; i < 10; i++) if (!up_iter(m)) break;
-        for (int i = 0; i < 20; i++) if (!wall_iter(m)) break;   /* 1586 */
+        if (!m->noh) for (int i = 0; i < 20; i++) if (!wall_iter(m)) break;   /* 1586 (T) */
         for (int i = 0; i < 10; i++) if (!down_iter(m)) break;   /* 1587 */
     }
     /* 1588-1592: landing */

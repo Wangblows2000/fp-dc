@@ -483,3 +483,218 @@ void keystone_update(obj_t *k, player_t *p) {
         snd_play_orig(48, 220, 128); k->alive = 0;
     }
 }
+
+/* ==== roll tunnels, spiral helix, spinning logs, pushable block (build/re/spec_roll_gimmicks.md) ==== */
+static double r_sin(double deg) { return deg == 180. ? 0. : fd_sin(deg / 57.29577951308232); }
+static int sbb_rows(int s, int *ox, int *oy, const signed char **a, const signed char **b, int *h) { return mv_sensor_rows(s, ox, oy, a, b, h); }
+static int sens_on_obj(int s, const obj_t *o) {
+    int ox, oy, h; const signed char *a, *b;
+    if (!sbb_rows(s, &ox, &oy, &a, &b, &h)) return 0;
+    return obj_rows_hit(o, ox, oy, a, b, h);
+}
+static int sbb_on_type(int type) {                       /* S_BB overlaps any instance (flag 0 not tested) */
+    for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == type && sens_on_obj(SENS_BOTTOMBIG, &G.o[i])) return i;
+    return -1;
+}
+static int q27_type(void) {                              /* QualifierList +0x22210: spiral mask (DV1/DV2), ball tunnel (DV3) */
+    if (!strcmp(G.lvdir, "dv1") || !strcmp(G.lvdir, "dv2")) return OT_SPIRAL_MASK;
+    if (!strcmp(G.lvdir, "dv3")) return OT_BALLTUNNEL;
+    return -1;
+}
+static struct { int g40, g41, g42, g43, g44, push_prev11, skinL; } TN;
+void tunnels_reset(void) { memset(&TN, 0, sizeof TN); snap_register(&TN, sizeof TN); }
+
+static void roll_enter(player_t *p) { p->state = ST_ROLL; p->state_t = 0; p->tun_lock = 1; snd_play_orig(7, 220, 128); }
+static void q27_flag0(int on) {
+    int t = q27_type();
+    for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == t) { if (on) G.o[i].fl |= 1; else G.o[i].fl &= ~1; }
+}
+static void set_B(player_t *p, double B) { if (p->ground) p->gsp = B; else p->vx = B; }
+static double get_B(const player_t *p) { return p->ground ? p->gsp : p->vx; }
+
+/* end of the frame: 4739-4755 (DV1-DV3) */
+void tunnel_events(player_t *p) {
+    int t = q27_type();
+    if (t < 0) return;
+    int on = sbb_on_type(t) >= 0, L = p->ground;
+    int r = (p->held & BTN_RIGHT) != 0, l = (p->held & BTN_LEFT) != 0;
+    if (p->state != ST_DEAD) {
+        if (on && L && p->state != ST_ROLL) roll_enter(p);                                       /* 4739 */
+        int c;
+        c = on && L && get_B(p) == 0;                                                            /* 4740 */
+        if (c && !TN.g40) { roll_enter(p); set_B(p, -10 * r_sin(p->N)); } TN.g40 = c;
+        c = on && L && get_B(p) == 0 && r;                                                       /* 4741 (T, U untouched) */
+        if (c && !TN.g41) { p->state = ST_ROLL; p->tun_lock = 1; set_B(p, -10 * r_sin(p->N)); snd_play_orig(7, 220, 128); } TN.g41 = c;
+        c = on && L && get_B(p) == 0 && l;                                                       /* 4742 */
+        if (c && !TN.g42) { p->state = ST_ROLL; p->tun_lock = 1; set_B(p, -10 * r_sin(p->N)); snd_play_orig(7, 220, 128); } TN.g42 = c;
+        c = on && L && get_B(p) == 0 && p->face > 0;                                            /* 4743 */
+        if (c && !TN.g43) { roll_enter(p); set_B(p, 3.5); } TN.g43 = c;
+        c = on && L && get_B(p) == 0 && p->face < 0;                                            /* 4744 */
+        if (c && !TN.g44) { roll_enter(p); set_B(p, -3.5); } TN.g44 = c;
+    }
+    if (p->tun_lock == 1 && !on) p->tun_lock = 0;                                                /* 4745 */
+    int mi = sbb_on_type(OT_SPIRAL_MASK);                                                        /* 4746 / 4747: flag 0 off, no M test */
+    if (mi >= 0 && !(G.o[mi].fl & 1)) { double B = get_B(p); if (B > 0) set_B(p, fmax(B, 3.)); else if (B < 0) set_B(p, fmin(B, -3.)); }
+    /* 5181 (DV3) sets N = 10 on list +0x60b0 (another character's part, empty for Lilac), not MV.N: no effect */
+    if (t != OT_SPIRAL_MASK) return;
+
+    obj_t *top = first_type(OT_SPIRAL_TOP), *bot = first_type(OT_SPIRAL_BOTTOM), *fr = first_type(OT_SPIRAL_FRONT);
+    double X = p->x, B = get_B(p);
+    if (top) {                                                                                   /* 4748-4751 */
+        double *A = &top->av[0], *TB = &top->av[1], *C = &top->av[2];
+        if (*A == 0 && B >= 0 && p->state != ST_DEAD && X >= top->x && disc_on_box(p, top->x - 16, top->y - 46, top->x + 16, top->y + 18)) {
+            *A = 1; *TB = B; p->state = ST_ROLL;
+        }
+        if (*A == 1) {
+            *C += *TB; *TB = fmin(*TB + 0.1, 12.);
+            if (fr) fr->hidden = 1;
+            p->helix = 1;
+            p->x = top->x + 72 * r_sin(*C); p->y = top->y + 0.3 * *C + ORIG_REF_DY;
+            q27_flag0(1); p->in_lock = 1; p->state = ST_ROLL; set_B(p, *TB);
+            player_sync_sensors(p);
+            double m = fmod(*C, 360.);
+            if (m > 90 && m < 270 && fr) fr->hidden = 0;                                         /* 4750 */
+            if (*C >= 720 || *C < 0) { *A = 0; p->helix = 0; q27_flag0(0); p->in_lock = 0; }    /* 4751 */
+        }
+    }
+    if (bot) {                                                                                   /* 4752-4755 */
+        double *A = &bot->av[0], *BB = &bot->av[1], *C = &bot->av[2];
+        B = get_B(p); X = p->x;
+        if (*A == 0 && B <= 0 && p->state != ST_DEAD && X <= bot->x && !(top && top->av[0] == 1) &&
+            disc_on_box(p, bot->x - 16, bot->y - 16, bot->x + 16, bot->y + 16)) {
+            *A = 1; *BB = B; p->state = ST_ROLL;
+        }
+        if (*A == 1) {
+            if (fr) fr->hidden = 1;
+            p->helix = 1;
+            p->x = bot->x + 72 * r_sin(*C); p->y = bot->y + 0.3 * *C + ORIG_REF_DY;            /* old C */
+            q27_flag0(1);
+            *C += *BB; *BB = fmin(*BB + 0.05, 12.);
+            p->in_lock = 1; set_B(p, *BB); p->state = ST_ROLL;
+            player_sync_sensors(p);
+            double m = fmod(fabs(*C), 360.);
+            if (m > 90 && m < 270 && fr) fr->hidden = 0;                                         /* 4754 */
+            if (*C <= -720 || *C > 0) { *A = 0; p->helix = 0; q27_flag0(0); p->in_lock = 0; }   /* 4755 */
+        }
+    }
+}
+/* SpiralTunnelFront: drawn in front of Lilac while visible (4750 / 4754 move it to the front of its layer) */
+void spiral_front_draw(void) {
+    for (int i = 0; i < G.nobjs; i++) {
+        const obj_t *o = &G.o[i];
+        if (!o->alive || o->type != OT_SPIRAL_FRONT || o->hidden || !o->an.b) continue;
+        frame_draw(o->an.b, anim_frame(&o->an), floorf(o->x - G.camx), floorf(o->y - G.camy), 0, 0xffffffff);
+    }
+}
+
+/* ---- spinning logs (DV2, 4980-4986). Log: av[0] = A (spin), dir = direction 0..31; mask: av[0] = A (sink).
+ * ML.C = ML.B + 3 cos(1.5 t), ML.B = 2700 (5109 / 4270; t = the global counter, offset INFERRED 0) */
+void spinlogs_update(player_t *p) {
+    if (strcmp(G.lvdir, "dv2")) return;
+    double MLC = 2700 + 3 * c_cos(fmod(1.5 * G.frame, 360.));
+    int L = p->ground, on_mask = 0;
+    for (int i = 0; i < G.nobjs; i++) {                                                  /* 4980 */
+        obj_t *o = &G.o[i];
+        if (!o->alive || o->type != OT_SPINLOG || !(o->av[0] > 0)) continue;
+        o->dir = ((int)(o->dir + o->av[0] / 40) % 32 + 32) % 32;                           /* wrap mod 32 (INFERRED, U5) */
+        o->av[0] -= 1;
+    }
+    for (int i = 0; i < G.nobjs; i++) {                                                  /* 4981 */
+        obj_t *o = &G.o[i];
+        if (!o->alive) continue;
+        if (o->type == OT_SPINLOG) o->y = (float)(int)MLC;
+        if (o->type == OT_SPINLOG_MASK) { o->y = (float)(int)(MLC + o->av[0]); o->fl &= ~1; }
+    }
+    for (int i = 0; i < G.nobjs; i++) {
+        obj_t *o = &G.o[i];
+        if (!o->alive) continue;
+        if (o->type == OT_SPINLOG && L && sens_on_obj(SENS_BOTTOMBIG, o)) o->av[0] = fmin(fmax(o->av[0] + 4, 30.), 320.);   /* 4983 */
+        if (o->type == OT_SPINLOG_MASK && sens_on_obj(SENS_BOTTOMBIG, o)) { on_mask = 1; if (L) o->av[0] = fmin(o->av[0] + 0.5, 20.); }   /* 4984 */
+    }
+    for (int i = 0; i < G.nobjs; i++) {
+        obj_t *o = &G.o[i];
+        if (!o->alive) continue;
+        if (o->type == OT_SPINLOG_MASK) {
+            if (!on_mask) o->av[0] = fmax(o->av[0] - 1, 0.);                                /* 4985 */
+            if (o->av[0] >= 15) o->fl |= 1;                                                 /* 4986: ignored by the sensors */
+        }
+        if (o->type == OT_SPINLOG) {                                                        /* direction image: nearest of the 8 (INFERRED) */
+            static const char *nm[8] = { "slog0", "slog1", "slog2", "slog3", "slog4", "slog5", "slog6", "slog7" };
+            int k = ((o->dir + 2) / 4) % 8, a = ens_anim(nm[k]);
+            if (a >= 0 && o->an.anim != a) anim_set(&o->an, &G.ens, a);
+        }
+    }
+}
+
+/* ---- pushable block (PushableBlock1_493, 2711-2735). D = o->dir, flags o->fl: 0x08 active, 0x10 resting;
+ * av: 1 = B (push-sound timer), 4 = E (dust), 5 = F (fall speed), 7 = H (crush cooldown). Box X-21..X+27, Y-41..Y+7. */
+static int obst(int x, int y) { return solid_at(&G.lvl, (float)x, (float)y); }
+static void pb_box(const obj_t *b, int *x1, int *y1, int *x2, int *y2) { *x1 = (int)b->x - 21; *y1 = (int)b->y - 41; *x2 = (int)b->x + 27; *y2 = (int)b->y + 7; }
+void pblocks_update(player_t *p) {
+    int any = 0;
+    p->push_s = p->push_s > 0 ? p->push_s - 1 : 0;                                          /* 2711 */
+    for (int i = 0; i < G.nobjs; i++) {
+        obj_t *b = &G.o[i];
+        if (!b->alive || b->type != OT_PBLOCK1) continue;
+        any = 1;
+        if (b->dir == 0) b->fl &= ~0x10;                                                     /* 2712 */
+        if (b->fl & 0x08) {                                                                  /* 2713: 1269-1271 */
+            int x1, y1, x2, y2; pb_box(b, &x1, &y1, &x2, &y2);
+            if (obst(x2 - 1, y2 - 2) || obst(x2 - 1, y1)) { b->x -= 1; pb_box(b, &x1, &y1, &x2, &y2); }
+            if (obst(x1, y2 - 2) || obst(x1, y1)) { b->x += 1; pb_box(b, &x1, &y1, &x2, &y2); }
+            int mx = (x1 + x2) / 2;
+            /* 1271 (partly read, U7/U11): RV pblock_dv2 shows a resting block keeps its Y (no bob): lifted only when
+             * its bottom row is inside the ground, resting (flag 4) when the row below is solid */
+            if (obst(x1, y2 - 1) || obst(x2 - 1, y2 - 1) || obst(mx - 1, y2 - 1) || obst(mx, y2 - 1)) { b->y -= 1; b->fl |= 0x10; }
+            else if (obst(x1, y2) || obst(x2 - 1, y2) || obst(mx - 1, y2) || obst(mx, y2)) b->fl |= 0x10;
+        }
+    }
+    if (!any) return;
+    int M11 = p->state == ST_PUSH && p->state_t >= 1;      /* the push events run from the frame after the M11 entry (RV pblock_dv2) */
+    if (M11) TN.skinL++;                                                                        /* 2714 */
+    if (!M11 && TN.push_prev11) { TN.skinL = 0; for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == OT_PBLOCK1) G.o[i].dir = 0; }   /* 2715 */
+    TN.push_prev11 = M11;
+    for (int side = 1; side >= -1; side -= 2) {                                             /* 2716/2717, 2718/2719 */
+        if (M11 && p->face == side)
+            for (int i = 0; i < G.nobjs; i++) {
+                obj_t *b = &G.o[i];
+                if (!b->alive || b->type != OT_PBLOCK1 || !(b->fl & 0x10)) continue;
+                int x1, y1, x2, y2; pb_box(b, &x1, &y1, &x2, &y2);
+                if (!box_sensor(side > 0 ? SENS_RIGHTBIG : SENS_LEFTBIG, (float)x1, (float)y1, (float)x2, (float)y2)) continue;
+                int ex = side > 0 ? x2 : x1 - 1;
+                if (!obst(ex, y2 - 2) && !obst(ex, y1)) b->dir = side;
+            }
+        int moved = 0;
+        for (int i = 0; i < G.nobjs; i++) {
+            obj_t *b = &G.o[i];
+            if (!b->alive || b->type != OT_PBLOCK1 || b->dir != side || !(b->fl & 0x10)) continue;
+            b->x += side; b->av[1] = 4; moved = 1;
+        }
+        if (moved) { p->x += side; TN.skinL = 0; player_sync_sensors(p); set_B(p, 0); p->push_s = 4; }
+    }
+    if (TN.skinL == 40) { TN.skinL = 41; voice_play("lilac_cantmoveit"); }                        /* 2720 (voice choice INFERRED) */
+    for (int i = 0; i < G.nobjs; i++) {
+        obj_t *b = &G.o[i];
+        if (!b->alive || b->type != OT_PBLOCK1) continue;
+        int x1, y1, x2, y2; pb_box(b, &x1, &y1, &x2, &y2);
+        if (b->dir && (b->fl & 0x10)) b->av[4] += 1;                                         /* 2721 */
+        if (b->av[4] > 2 && (b->fl & 0x10)) { obj_effect((float)(x1 + rand() % (x2 - x1)), (float)y2, "dust"); b->av[4] = 0; }   /* 2722 */
+        if (b->dir && (b->fl & 0x10) && b->av[1] < 2) snd_play_orig(43, 160, 128);           /* 2723 (play while not playing: INFERRED from B) */
+        if (b->av[1] > 1) b->av[1] -= 1;                                                     /* 2724 */
+        else if (b->av[1] == 1) b->av[1] = 0;                                                /* 2725 */
+        if ((b->fl & 0x08) && !(b->fl & 0x10)) { b->y = (float)(int)(b->y + b->av[5]); b->av[5] += 0.25; }   /* 2726 */
+        if ((b->fl & 0x08) && (b->fl & 0x10)) b->av[5] = 0;                                  /* 2727 */
+        if (!(b->fl & 0x08) && b->x > G.camx && b->x < G.camx + 426 && b->y > G.camy && b->y < G.camy + 240) b->fl |= 0x08;   /* 2728 */
+        else if ((b->fl & 0x08) && (b->x <= G.camx || b->x >= G.camx + 426 || b->y <= G.camy)) b->fl &= ~0x08;   /* 2729 */
+        if ((b->fl & 0x08) && b->y > G.lvl.h + 32) { b->alive = 0; continue; }               /* 2730 */
+        if (b->av[7] <= 0 && !(b->fl & 0x10))                                                /* 2734: crush */
+            for (int k = 0; k < G.nobjs; k++) {
+                obj_t *e = &G.o[k];
+                if (!e->alive || !enemy_type(e->type) || e->c > 0 || !obj_obj_hit(b, e)) continue;
+                e->c = 5; e->kx = rand() % 5 - 2; e->ky = 4 + b->av[5]; e->A -= fabs(b->av[5] / 5) + 4;
+                snd_play_orig(24, 220, 128); b->av[7] = 4;
+                break;
+            }
+        if (b->av[7] > 0) b->av[7] -= 1;                                                     /* 2735 */
+    }
+}

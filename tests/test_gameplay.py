@@ -238,5 +238,30 @@ if ck:
     check('cork_speed_to_6', abs(max(x['gsp'] if x['gnd'] else x['vx'] for x in ck) - 6.085) < 0.01)
     check('cork_ends_after_far_end', ck[-1]['x'] > 2850 and ck[-1]['x'] < 2870, 'end x %.1f' % ck[-1]['x'])
 
+# roll M6 + spiral tunnel (spec_roll_gimmicks; original traces build/orig_traces/extra_spiral*_dv1.csv). The host's
+# TP lands 4 frames before the original's, so host frame f = original frame f + 4.
+def at(rows, f): return next(x for x in rows if x['f'] == f)
+r = run(open(os.path.join(HERE, 'orig_extra_spiralb_dv1.txt')).read(), 380, {'FP_LEVEL': 'dv1'})
+# original: bottom entry, the climb slows (B -0.15 per 4 frames ...) and reverses, Lilac drops out of the bottom at f318
+# (X 8233.38, B 3.94066 -> floor 3), rocks break with OTHERS.K = 5, the slow roll stands up at f372 (M0, X 8356.01)
+o = [(150 - 4, 8164.78, -3.33033), (246 - 4, 8271.4, 1.46967), (322 - 4, 8246.38, 3.0), (358 - 4, 8328.72, 3.0)]
+check('spiral_bottom_ride_matches_orig', all(abs(at(r, f)['x'] - X) < 0.01 and abs((at(r, f)['gsp'] if at(r, f)['gnd'] else at(r, f)['vx']) - B) < 0.001 for f, X, B in o),
+      str([(at(r, f)['x'], at(r, f)['gsp'], at(r, f)['vx']) for f, X, B in o]))
+check('roll_stands_up_when_slow', at(r, 376 - 4)['st'] == 0 and abs(at(r, 376 - 4)['x'] - 8357.02) < 0.01)
+r = run(open(os.path.join(HERE, 'orig_extra_spiral_dv1.txt')).read(), 380, {'FP_LEVEL': 'dv1'})
+ride = [x for x in r if x['st'] == 16 and x['gnd'] == 0 and 8150 < x['x'] < 8300 and x['y'] < 640]
+check('spiral_top_ride', len(ride) > 80 and max(x['vx'] for x in ride) == 12.0, '%d frames' % len(ride))
+check('spiral_exit_breaks_rocks_keeps_speed', any(x['x'] > 8500 and (x['gsp'] if x['gnd'] else x['vx']) > 10.8 for x in r))
+# DV3 ball tunnel (original trace extra_balltunnel_dv3: host f = orig f - 2): enters M6 at f87, stands up at f150, pushes at 943
+r = run(open(os.path.join(HERE, 'orig_extra_balltunnel_dv3.txt')).read(), 320, {'FP_LEVEL': 'dv3'})
+o = [(96 - 2, 784.087, 2.3318), (126 - 2, 841.516, 1.95702), (146 - 2, 875.012, 1.3237), (166 - 2, 919.731, 3.10555)]
+check('ball_tunnel_matches_orig', all(abs(at(r, f)['x'] - X) < 0.01 and abs(at(r, f)['gsp'] - B) < 0.001 for f, X, B in o),
+      str([(at(r, f)['x'], at(r, f)['gsp']) for f, X, B in o]))
+# DV2 pushable block (original trace extra_pblock_dv2: host f = orig f - 2): block and Lilac step 1 px per frame from
+# the frame after the push starts, the block stops at x 2846 (wall), Lilac at 2809.99; released: block 2845, Lilac 2807.99
+r = run(open(os.path.join(HERE, 'orig_extra_pblock_dv2.txt')).read(), 330, {'FP_LEVEL': 'dv2'})
+check('pushable_block_matches_orig', abs(at(r, 79 - 2)['x'] - 2766.99) < 0.01 and abs(at(r, 100 - 2)['x'] - 2787.99) < 0.01 and
+      abs(at(r, 200 - 2)['x'] - 2809.99) < 0.01 and abs(at(r, 325 - 2)['x'] - 2807.99) < 0.01)
+
 print('%d failure(s)' % fails)
 sys.exit(1 if fails else 0)

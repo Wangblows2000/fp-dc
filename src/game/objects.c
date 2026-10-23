@@ -60,12 +60,16 @@ void objects_spawn(void) {
             static const struct { int t; const char *a; } EA[] = {
                 { OT_SPIKES_L, "spk_left" }, { OT_SPIKES_R, "spk_right" }, { OT_SPIKES_D, "spk_down" }, { OT_RSPRING_UL, "rspring_ul" },
                 { OT_LOOP016, "loop016" }, { OT_LOOP0Q, "loop0q" }, { OT_LOOP115, "loop115" }, { OT_LOOP1Q, "loop1q" },
-                { OT_GEYSER, "geyser" }, { OT_MON_KEYSTONE, "mon_key" }, { OT_SPIRAL_MASK, "spiralmask" }, { OT_BALLTUNNEL, "balltunnel" }, { OT_CARD, "card" } };
+                { OT_GEYSER, "geyser" }, { OT_MON_KEYSTONE, "mon_key" }, { OT_SPIRAL_MASK, "spiralmask" }, { OT_BALLTUNNEL, "balltunnel" }, { OT_CARD, "card" },
+                { OT_SPIRAL_FRONT, "spiralfront" }, { OT_SPINLOG, "slog0" }, { OT_SPINLOG_MASK, "slogmask" }, { OT_PBLOCK1, "pblock1" } };
             for (unsigned k = 0; k < sizeof EA / sizeof EA[0]; k++) if (o->type == EA[k].t) {
                 int a = ens_anim(EA[k].a);
                 if (a >= 0) anim_set(&o->an, &G.ens, a); else o->an.b = NULL;
             }
             if (o->type == OT_LAYER_0 || o->type == OT_LAYER_1 || o->type == OT_LAYER_SW || o->type == OT_CORK_L || o->type == OT_CORK_R) o->an.b = NULL;
+            if (o->type == OT_SPIRAL_TOP || o->type == OT_SPIRAL_BOTTOM) { o->an.b = NULL; memset(o->av, 0, sizeof o->av); }   /* A, B, C = 0 */
+            if (o->type == OT_SPIRAL_FRONT || o->type == OT_SPINLOG_MASK) o->hidden = 1;                       /* invisible at start */
+            if (o->type == OT_SPINLOG || o->type == OT_SPINLOG_MASK || o->type == OT_PBLOCK1) { memset(o->av, 0, sizeof o->av); o->dir = 0; o->fl = 0; }
             if ((o->type >= OT_LOOP016 && o->type <= OT_LOOP1Q) || o->type == OT_LAYER_SW) {
                 if (o->x < 0) o->alive = 0;                                                    /* off-map templates */
                 for (int k = 0; k + G.o < o && o->alive; k++)                                  /* layer-3 copies at the same spot */
@@ -82,7 +86,7 @@ void objects_spawn(void) {
     cards_spawn_all();
     layers_refresh(&G.p);
     bosses_spawn();
-    wlogs_spawn(); dv3_switch_spawn();
+    wlogs_spawn(); dv3_switch_spawn(); tunnels_reset();
     /* 3566 / 3567: 12 logs per bridge at (bx + 16k, by + 56), A = k, B = base y */
     int nb = G.nobjs;
     for (int b = 0; b < nb; b++) {
@@ -511,6 +515,23 @@ static int monitor_hit(const player_t *p, float bx0, float by0, float bx1, float
     if (!player_attack_kind(p)) return 0;
     return overlap(p->x - 16, p->y - 40, p->x + 16, p->y + 2, bx0, by0, bx1, by1);
 }
+/* RE 4762 (breakable rock) / 1484-1486 (monitors in M5/M6): movement Z = 1, OTHERS.K <= 0 and a big side sensor
+ * overlapping the object's mask (the sensors stop Lilac before her body reaches it) */
+static int side_sensor_break(const player_t *p, const obj_t *o) {
+    if (!player_body_z(p) || p->hitstop > 0) return 0;
+    for (int s = SENS_LEFTBIG; s <= SENS_RIGHTBIG; s += 2) {
+        int ox, oy, h; const signed char *a, *b;
+        if (!mv_sensor_rows(s, &ox, &oy, &a, &b, &h)) continue;
+        if (o->type == OT_ROCK && o->an.b) {                       /* box collision (RV spiralb: contact one frame before the mask) */
+            const frame_t *f = anim_frame(&o->an);
+            int bx = (int)floorf(o->x) - f->hx, by = (int)floorf(o->y) - f->hy;
+            for (int j = 0; j < h; j++) if (b[j] >= a[j] && oy + j >= by && oy + j < by + f->h && ox + b[j] >= bx && ox + a[j] < bx + f->w) return 1;
+            continue;
+        }
+        if (obj_rows_hit(o, ox, oy, a, b, h)) return 1;
+    }
+    return 0;
+}
 
 void objects_update(void) {
     player_t *p = &G.p;
@@ -615,7 +636,8 @@ void objects_update(void) {
             turretus_events(o, p, bx0, by0, bx1, by1);
             break;
         case OT_ROCK: case OT_MONITOR: case OT_MON_RINGS: case OT_MON_1UP: case OT_MON_INVINC: case OT_MON_KEYSTONE:
-            if (!dead && monitor_hit(p, bx0, by0, bx1, by1)) {
+            if (!dead && (monitor_hit(p, bx0, by0, bx1, by1) || side_sensor_break(p, o))) {
+                if (side_sensor_break(p, o)) player_hitstop(p, 5);          /* RV spiral_dv1: OTHERS.K = 5 per rock */
                 obj_t m = *o;                /* the freed slot is reused by the thrown items */
                 o->alive = 0; explode(m.x, m.y - 8);
                 monitor_reward(&m, p);
@@ -684,7 +706,7 @@ void objects_draw(int pass) {
         if ((pass == 0 && o->layer > 1) || (pass == 1 && o->layer != 2) || (pass == 2 && o->layer < 3)) continue;
         float sx = floorf(o->x - G.camx), sy = floorf(o->y - G.camy);
         if (sx < -96 || sx > SCREEN_W + 96 || sy < -96 || sy > SCREEN_H + 96) continue;
-        if (o->type == OT_SHIELD || o->type == OT_GEYSER || o->type == OT_SPIRAL_MASK || o->type == OT_BALLTUNNEL || o->type == OT_WR_WEAK || o->type == OT_FLOATPLAT || o->type == OT_TD_PUSH || o->type == OT_TD_PUSH2) continue;   /* invisible */
+        if (o->type == OT_SHIELD || o->type == OT_GEYSER || o->type == OT_SPIRAL_MASK || o->type == OT_BALLTUNNEL || o->type == OT_WR_WEAK || o->type == OT_FLOATPLAT || o->type == OT_TD_PUSH || o->type == OT_TD_PUSH2 || o->type == OT_SPIRAL_FRONT) continue;   /* invisible (the spiral front: spiral_front_draw) */
         if (boss_hidden(o)) continue;
         if (o->type == OT_WLOG && o->st == 0) continue;                                    /* emerging behind the waterfall (layer 0) */
         uint32_t col = (o->type == OT_CARD && (o->fl & 2)) ? 0x80ffffff : 0xffffffff;     /* 2573: already collected */
@@ -711,6 +733,7 @@ void objects_draw(int pass) {
  *                   bridge logs, ladder tops, spikes, platforms, keystone monitor
  * Ported members: monitors, breakable rock, upward spikes, wall springs (solid); the obstacle group's
  * springs are still handled by their own contact rules (RV); OBJGRP_OBSTACLE: LadderTop so far. */
+int objects_mon_ghost;
 int obj_in_group(int type, int grp);
 static int in_group(int type, int grp) { return obj_in_group(type, grp); }
 int obj_in_group(int type, int grp) {
@@ -718,11 +741,11 @@ int obj_in_group(int type, int grp) {
     case OBJGRP_SOLID: return type == OT_MONITOR || type == OT_MON_RINGS || type == OT_MON_1UP || type == OT_MON_INVINC || type == OT_ROCK || type == OT_SPIKES || type == OT_SPRING_R ||
                               type == OT_SPIKES_L || type == OT_SPIKES_R || type == OT_SPIKES_D || (type >= OT_LOOP016 && type <= OT_LOOP1Q) ||
                               type == OT_SPIRAL_MASK || type == OT_BALLTUNNEL || type == OT_WR_BARRIER || type == OT_BROCK2 || type == OT_MON_KEYSTONE ||
-                              type == OT_TRUNK || type == OT_PBLOCK2 || type == OT_DOOR || type == OT_BTUNNEL2;
+                              type == OT_TRUNK || type == OT_PBLOCK2 || type == OT_DOOR || type == OT_BTUNNEL2 || type == OT_PBLOCK1;
     case OBJGRP_OBSTACLE: case OBJGRP_OBSTACLE_ALL:
-        return type == OT_LADDERTOP || type == OT_LOG || type == OT_PLAT_VALLEY || type == OT_PLAT_MOVE2 || type == OT_PLAT_MOVE3 || type == OT_GEYSER || type == OT_RSPRING_UL || type == OT_FLOATPLAT || type == OT_WLOG;
+        return type == OT_LADDERTOP || type == OT_LOG || type == OT_PLAT_VALLEY || type == OT_PLAT_MOVE2 || type == OT_PLAT_MOVE3 || type == OT_GEYSER || type == OT_RSPRING_UL || type == OT_FLOATPLAT || type == OT_WLOG || type == OT_SPINLOG_MASK;
     case OBJGRP_NOEDGE: return type == OT_LADDERTOP || type == OT_LOG || type == OT_PLAT_VALLEY || type == OT_PLAT_MOVE2 || type == OT_PLAT_MOVE3 || type == OT_MONITOR || type == OT_MON_RINGS || type == OT_MON_1UP || type == OT_MON_INVINC || type == OT_SPIKES || type == OT_SPRING || type == OT_SPRING_UL ||
-                               type == OT_SPRING_UR || type == OT_SPRING_R || type == OT_GEYSER || type == OT_RSPRING_UL || type == OT_SPIKES_L || type == OT_SPIKES_R || type == OT_SPIKES_D || type == OT_MON_KEYSTONE || type == OT_FLOATPLAT || type == OT_PBLOCK2;
+                               type == OT_SPRING_UR || type == OT_SPRING_R || type == OT_GEYSER || type == OT_RSPRING_UL || type == OT_SPIKES_L || type == OT_SPIKES_R || type == OT_SPIKES_D || type == OT_MON_KEYSTONE || type == OT_FLOATPLAT || type == OT_PBLOCK2 || type == OT_PBLOCK1;
     default: return 0;
     }
 }
@@ -731,10 +754,12 @@ static int sensor_hit_any(int grp, int type, int ox, int oy, const signed char *
         const obj_t *o = &G.o[i];
         if (!o->alive || !o->an.b || (type >= 0 ? o->type != type : !in_group(o->type, grp))) continue;
         if ((grp == OBJGRP_OBSTACLE || grp == OBJGRP_SOLID) && (o->fl & 1)) continue;   /* flag 0: ignored (4738 platforms; loop layers 3025/3026) */
+        if (grp == OBJGRP_SOLID && objects_mon_ghost && (o->type == OT_MONITOR || o->type == OT_MON_RINGS || o->type == OT_MON_1UP ||
+                                                          o->type == OT_MON_INVINC || o->type == OT_MON_KEYSTONE || o->type == OT_ROCK)) continue;   /* 1581 (RV spiral_dv1: rocks too) */
         const frame_t *f = anim_frame(&o->an);
         int bx = (int)floorf(o->x) - (o->flip ? f->w - f->hx : f->hx), by = (int)floorf(o->y) - f->hy;
         if (ox > bx + f->w || ox + 27 < bx || oy >= by + f->h || oy + h <= by) continue;
-        if (o->type == OT_LOG || o->type == OT_WLOG || o->type == OT_PBLOCK2) {   /* initialize_active(true): collision box = image rect */
+        if (o->type == OT_LOG || o->type == OT_WLOG || o->type == OT_PBLOCK2 || o->type == OT_PBLOCK1 || o->type == OT_ROCK) {   /* initialize_active(true): collision box = image rect (rock: RV spiralb timing) */
             for (int j = 0; j < h; j++) {
                 int y = oy + j;
                 if (x1[j] < x0[j] || y < by || y >= by + f->h) continue;
