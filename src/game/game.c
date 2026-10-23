@@ -46,27 +46,58 @@ static int act_of(const char *dir) { return dir[2] - '0'; }
 
 static void bank_free(bank_t *b) { free(b->act); free(b->frames); free(b->anims); free(b->seq); free(b->mbits); free(b->moff); memset(b, 0, sizeof *b); }
 
-void game_unload_all(void) {
-    bank_free(&G.lilac); bank_free(&G.hair); bank_free(&G.objs);
+/* Lilac's banks stay resident across a level change when the next level's pack holds byte-identical
+ * files (CRC-32 in the pack index): all four Dragon Valley acts share them (1.5 MB of textures). They
+ * are loaded first after a full VRAM reset, so freeing everything else leaves VRAM contiguous. */
+static uint32_t chr_crc[4];      /* lilac2.tex, lilac2.spr, lilachair.tex, lilachair.spr of the resident banks */
+static int chr_resident;
+
+/* only textures that were actually created (a zeroed tex_t has id 0 = somebody else's slot) */
+static void tex_drop(tex_t *t) { if (t->w > 0) r_tex_free(t); memset(t, 0, sizeof *t); t->id = -1; }
+
+static void level_free(void) {   /* everything of the level except Lilac's banks */
+    tex_drop(&G.objs.tex); bank_free(&G.objs);
+    for (int i = 0; i < G.lvl.natlas && i < MAX_ATLAS; i++) tex_drop(&G.lvl.atlas[i]);
+    for (int i = 0; i < G.npar; i++) tex_drop(&G.par[i]);
     free(G.lvl.pieces); free(G.lvl.objs); free(G.lvl.blob);
     memset(&G.lvl, 0, sizeof G.lvl);
     G.npar = 0; G.nobjs = 0;
+}
+
+void game_unload_all(void) {
+    level_free();
+    bank_free(&G.lilac); bank_free(&G.hair);
+    chr_resident = 0;
     r_reset();
+}
+
+static int chr_crcs(const char *dir, uint32_t c[4]) {
+    static const char *f[4] = { "lilac2.tex", "lilac2.spr", "lilachair.tex", "lilachair.spr" };
+    char nm[48];
+    for (int i = 0; i < 4; i++) { snprintf(nm, sizeof nm, "%s/%s", dir, f[i]); if (pack_entry_crc(nm, &c[i]) < 0) return -1; }
+    return 0;
 }
 
 /* every level lives in its own data dir (own palettes + Lilac bank; tools/build_level.sh) */
 int game_load_level(const char *dir) {
-    game_unload_all();
-    loading_begin();                               /* silent loading screen (src/game/loading.c) */
+    uint32_t want_crc[4];
+    lp_begin(dir);
+    int keep = chr_resident && chr_crcs(dir, want_crc) == 0 && !memcmp(want_crc, chr_crc, sizeof chr_crc);
+    if (keep) level_free(); else game_unload_all();
+    loading_begin(dir);                            /* silent loading screen (src/game/loading.c) */
     snprintf(G.lvdir, sizeof G.lvdir, "%s", dir);
     int bad = 0;
     char nm[48];
     for (int i = 0; i < 4; i++) { snprintf(nm, sizeof nm, "%s/pal%d.pal", dir, i); bad |= pal_load_file(nm) < 0; }
-    snprintf(nm, sizeof nm, "%s/lilac2", dir); bad |= bank_load(&G.lilac, nm) < 0;
-    snprintf(nm, sizeof nm, "%s/lilachair", dir); if (bank_load(&G.hair, nm) < 0) plat_log("no hair bank\n");
+    if (keep) { LP.nskip += 4; LP.skip_bytes += (uint64_t)G.lilac.tex.w * G.lilac.tex.h + (uint64_t)G.hair.tex.w * G.hair.tex.h; }
+    else {
+        snprintf(nm, sizeof nm, "%s/lilac2", dir); bad |= bank_load(&G.lilac, nm) < 0;
+        snprintf(nm, sizeof nm, "%s/lilachair", dir); if (bank_load(&G.hair, nm) < 0) plat_log("no hair bank\n");
+        chr_resident = !bad && chr_crcs(dir, chr_crc) == 0;   /* only packed data can be matched later */
+    }
     snprintf(nm, sizeof nm, "%s/%s_obj", dir, dir); bad |= bank_load(&G.objs, nm) < 0;
     snprintf(nm, sizeof nm, "%s/%s", dir, dir); bad |= level_load(&G.lvl, nm) < 0;
-    if (bad) { loading_end(); plat_log("level %s: data load failed\n", dir); return -1; }
+    if (bad) { loading_end(); lp_end(); plat_log("level %s: data load failed\n", dir); return -1; }
     int want = 0;
     for (int i = 0; i < G.lvl.nobj; i++)
         if (G.lvl.objs[i].type >= OT_PARALLAX && G.lvl.objs[i].anim != 0xffff && G.lvl.objs[i].anim + 1 > want)
@@ -77,10 +108,11 @@ int game_load_level(const char *dir) {
     }
     G.p.spawn_x = G.p.spawn_y = 0;
     hud_reset();
-    level_start();
+    { uint64_t to = plat_time_us(); level_start(); LP.obj_us += plat_time_us() - to; }
     loading_end();
     G.mus_resume_t = 0;
-    music_play(level_music(dir));
+    { uint64_t tm = plat_time_us(); music_play(level_music(dir)); LP.music_us += plat_time_us() - tm; }
+    lp_end();
     return 0;
 }
 
@@ -181,12 +213,12 @@ int game_init(void) {
     for (int i = 0; i < 512; i++) snd_handle[i] = -1;
     vmuscr_init();
     save_load();                                   /* memory card (VMU) / host FP_SAVE */
-    loading_begin();                               /* boot: sound effects (title data follows in fe_enter) */
+    loading_begin("boot");                         /* boot: sound effects (title data follows in fe_enter) */
     for (int i = 0; i < (int)(sizeof SND_IDS / sizeof SND_IDS[0]); i++) {
         snprintf(nm, sizeof nm, "sfx/s%d.wav", SND_IDS[i]); snd_handle[SND_IDS[i]] = snd_load(nm); loading_tick();
     }
     for (int i = 0; i < (int)(sizeof VOICES / sizeof VOICES[0]); i++) { snprintf(nm, sizeof nm, "sfx/%s.wav", VOICES[i]); voice_handle[i] = snd_load(nm); loading_tick(); }
-    loading_end();
+    loading_end(); lp_end();
     /* legacy handles used by gameplay code, now mapped to the original sound IDs */
     G.sfx.jump = snd_handle[8]; G.sfx.attack = snd_handle[21]; G.sfx.boost = snd_handle[53];
     G.sfx.hurt = snd_handle[17]; G.sfx.crystal = snd_handle[27]; G.sfx.explode = snd_handle[81]; G.sfx.hit = snd_handle[25];
@@ -394,6 +426,11 @@ void game_update(const input_t *in) {
         if (G.res_t > 120 && (in->pressed & (BTN_JUMP | BTN_START))) { snd_play_orig(63, 230, 128); fe_enter(); }
         return;
     }
+#ifdef FP_DEBUG_ACTJUMP
+    /* test builds only (make FP_DEBUG_ACTJUMP=1): Y teleports Lilac near the act's right edge, so the
+     * act change (and the resident-Lilac level load) can be exercised in the emulator */
+    if ((in->pressed & BTN_GUARD) && !strcmp(G.lvdir, "dv1")) { G.p.x = 14600; G.p.y = 980; }   /* host test spot */
+#endif
     if (G.card_t < CARD_DONE) {                   /* intro card: no control, timer not running */
         G.card_t++;
         input_t none = {0};

@@ -6,7 +6,7 @@
 TARGET = fpdc.elf
 OBJS = src/platform/plat_dc.o src/renderer/render_pvr.o src/resources/assets.o \
        src/physics/level.o src/physics/sensors.o src/characters/player.o src/game/objects.o src/game/game.o \
-       src/game/ui.o src/game/frontend.o src/game/loading.o src/game/vmu.o src/game/fe_hub.o src/game/save.o
+       src/game/ui.o src/game/frontend.o src/game/loading.o src/game/vmu.o src/game/fe_hub.o src/game/save.o src/game/loadprof.o src/resources/pack.o
 
 FP_GAME ?= /mnt/user-data/uploads/Freedom Planet
 # BGM: music tracks put on the disc (default: the whole ADPCM library). Lean disc with only the
@@ -28,6 +28,9 @@ KOS_CFLAGS += -MMD -MP
 ifdef FP_DEBUG_SELECT
 KOS_CFLAGS += -DFP_DEBUG_SELECT
 endif
+ifdef FP_DEBUG_ACTJUMP
+KOS_CFLAGS += -DFP_DEBUG_ACTJUMP
+endif
 endif
 
 -include $(OBJS:.o=.d)
@@ -45,7 +48,7 @@ data: extracted/assets
 DATA_DIR ?= converted2
 build/disc/data: $(DATA_DIR)/levels.txt
 	rm -rf build/disc && mkdir -p build/disc/data
-	cp $(DATA_DIR)/*.wav $(DATA_DIR)/*.pcm $(DATA_DIR)/levels.txt build/disc/data/
+	cp $(DATA_DIR)/levels.txt build/disc/data/      # (the old root sfx_*.wav / stage1.pcm are unused: not on the disc)
 	for d in $$(cat $(DATA_DIR)/levels.txt); do mkdir -p build/disc/data/$$d; \
 	  cp $(DATA_DIR)/$$d/*.tex $(DATA_DIR)/$$d/*.spr $(DATA_DIR)/$$d/*.lv2 $(DATA_DIR)/$$d/*.pal build/disc/data/$$d/; done
 	# front end (ui scenes + banks + font), ADPCM music library (.adp), ADPCM sfx/voices
@@ -53,6 +56,9 @@ build/disc/data: $(DATA_DIR)/levels.txt
 	cp $(DATA_DIR)/ui/*.ui $(DATA_DIR)/ui/*.spr $(DATA_DIR)/ui/*.tex $(DATA_DIR)/ui/*.bin build/disc/data/ui/
 	cp $(BGM) build/disc/data/bgm/
 	cp $(DATA_DIR)/sfx/*.wav build/disc/data/sfx/
+	python3 tools/twiddle_disc.py build/disc/data
+	python3 tools/pack_disc.py build/disc/data
+	python3 tools/pad_disc.py build/disc/data
 
 cdi: $(TARGET)
 	rm -rf build/disc

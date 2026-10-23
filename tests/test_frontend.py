@@ -6,7 +6,7 @@ cursor clamp, QUIT wipe); developer select; repeated cycles; loading screen; VMU
 import os, subprocess, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 BIN = os.path.join(HERE, '..', 'host', 'fpdc_host')
-DATA = os.path.join(HERE, '..', 'converted2')
+DATA = os.environ.get('FP_TEST_DATA') or os.path.join(HERE, '..', 'converted2')
 MODE_FRONTEND, MODE_PLAY, MODE_RESULTS, MODE_SELECT = 0, 1, 2, 3
 
 def run(script, frames, env_extra=None, wrap=None):

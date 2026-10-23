@@ -20,6 +20,7 @@ static uint64_t t_start, t_last;
 
 static void loading_draw(void) {
     t_last = plat_time_us();
+    uint64_t td = t_last;
     vmuscr_crystal();
     r_begin();
     r_rect(0, 0, SCREEN_W, SCREEN_H, 0xff000000);
@@ -32,6 +33,7 @@ static void loading_draw(void) {
         frame_draw(&lb, f, SCREEN_W - 20, SCREEN_H - 18, 0, 0xffffffff);
     }
     r_end();
+    LP.draw_us += plat_time_us() - td; LP.ndraw++;
 #ifdef FP_HOST_ENV
     {   /* host tests: FP_LOADSHOT=<file.ppm> keeps the last loading-screen image */
         extern void soft_dump(const char *path);
@@ -41,7 +43,8 @@ static void loading_draw(void) {
 }
 
 /* called after the previous scene's textures were dropped (r_reset) */
-void loading_begin(void) {
+void loading_begin(const char *label) {
+    if (!LP.on) lp_begin(label);   /* a level load starts its profile earlier (pack index check) */
     music_stop();
     snd_stop_all();
     have_bank = bank_load(&lb, "ui/loading") == 0;
@@ -58,8 +61,12 @@ void loading_tick(void) {
 void loading_end(void) {
     if (!active) return;
     active = 0;
-    if (have_bank) { free(lb.frames); free(lb.anims); free(lb.seq); free(lb.mbits); free(lb.moff); }
-    memset(&lb, 0, sizeof lb); have_bank = 0;   /* its texture goes with the next r_reset */
+    pack_release();                 /* the compressed pack is not needed after the load */
+    if (have_bank) {
+        r_tex_free(&lb.tex);                     /* level changes keep VRAM (Lilac stays resident): free it now */
+        free(lb.frames); free(lb.anims); free(lb.seq); free(lb.act); free(lb.mbits); free(lb.moff);
+    }
+    memset(&lb, 0, sizeof lb); have_bank = 0;
 }
 
 int loading_active(void) { return active; }

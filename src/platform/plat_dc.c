@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <malloc.h>
 #include <dc/sound/stream.h>
 #include <dc/sound/sfxmgr.h>
 #include <dc/vmu_pkg.h>
@@ -25,21 +26,39 @@ void plat_log(const char *fmt, ...) {
 
 uint64_t plat_time_us(void) { return timer_us_gettime64(); }
 
+/* Whole-file read through the KOS VFS into a 32-byte aligned buffer. fs_iso9660 only takes its
+ * multi-sector DMA path (cdrom_stream / cdrom_read_sectors_ex) when the destination is 32-byte
+ * aligned and the file position is on a sector boundary; with newlib malloc (8-byte aligned) +
+ * stdio every 2 KB sector was a separate drive command through the sector cache (measured in
+ * Flycast: 120-160 KB/s, DV1 load 41 s). 64 KB chunks keep both conditions and let the loading
+ * screen redraw between them. The buffer is free()-able (newlib memalign). */
+void *plat_alloc_aligned(size_t n) { return memalign(32, (n + 31) & ~(size_t)31); }
+
 void *plat_load_file(const char *name, size_t *size) {
+    int found;
+    void *d = pack_load(name, size, &found);
+    if (d || found) return d;
+    return plat_read_raw(name, size);
+}
+
+void *plat_read_raw(const char *name, size_t *size) {
     char path[128];
     snprintf(path, sizeof path, FP_DATA_ROOT "/%s", name);
-    FILE *f = fopen(path, "rb");
-    if (!f) { plat_log("missing file %s\n", path); return NULL; }
-    fseek(f, 0, SEEK_END); long n = ftell(f); fseek(f, 0, SEEK_SET);
-    if (n <= 0 || n > 4 * 1024 * 1024) { plat_log("bad size %s %ld\n", path, n); fclose(f); return NULL; }
-    void *d = malloc(n);
-    if (!d) { fclose(f); return NULL; }
-    for (long got = 0; got < n;) {   /* 64 KB chunks: the loading screen redraws in between */
-        long k = n - got > 65536 ? 65536 : n - got;
-        if (fread((char *)d + got, 1, k, f) != (size_t)k) { free(d); fclose(f); return NULL; }
-        got += k; loading_tick();
+    uint64_t t0 = plat_time_us();
+    file_t f = fs_open(path, O_RDONLY);
+    if (f < 0) { plat_log("missing file %s\n", path); return NULL; }
+    ssize_t n = (ssize_t)fs_total(f);
+    uint64_t t1 = plat_time_us(); LP.open_us += t1 - t0; LP.nfiles++;
+    if (n <= 0 || n > 8 * 1024 * 1024) { plat_log("bad size %s %ld\n", path, (long)n); fs_close(f); return NULL; }
+    void *d = plat_alloc_aligned((size_t)n);
+    if (!d) { plat_log("out of memory reading %s (%ld)\n", path, (long)n); fs_close(f); return NULL; }
+    for (ssize_t got = 0; got < n;) {
+        ssize_t k = n - got > 65536 ? 65536 : n - got;
+        if (fs_read(f, (char *)d + got, (size_t)k) != k) { plat_log("read error %s\n", path); free(d); fs_close(f); return NULL; }
+        got += k; uint64_t tr = plat_time_us(); LP.read_us += tr - t1; loading_tick(); t1 = plat_time_us();
     }
-    fclose(f);
+    fs_close(f);
+    LP.bytes += (uint64_t)n; LP.nalloc++; LP.alloc_bytes += (uint64_t)n;
     *size = (size_t)n;
     return d;
 }
@@ -83,7 +102,14 @@ int snd_load(const char *name) {
     char path[128];
     if (nsfx >= MAX_SFX) return -1;
     snprintf(path, sizeof path, FP_DATA_ROOT "/%s", name);
-    sfxhnd_t h = snd_sfx_load(path);
+    /* whole file through the aligned reader, then KOS parses it from memory (snd_sfx_load reads the
+     * 44-byte header and then the data from a non-sector-aligned position: one drive command per sector) */
+    size_t wsz; char *w = plat_load_file(name, &wsz);
+    if (!w) return -1;
+    uint64_t ts = plat_time_us();
+    sfxhnd_t h = snd_sfx_load_buf(w);
+    LP.snd_us += plat_time_us() - ts; LP.nsnd++;
+    free(w);
     if (h == SFXHND_INVALID) { plat_log("sfx load failed %s\n", path); return -1; }
     sfx[nsfx] = h;
     return nsfx++;
@@ -100,7 +126,7 @@ void snd_play(int h, int vol, int pan) {
  * (the original's ChowdrenAudio has no loop points). Streaming runs on its own thread. */
 #define MUS_CHUNK 16384
 static snd_stream_hnd_t mus = SND_STREAM_INVALID;
-static FILE *mus_f;
+static file_t mus_f = -1;      /* KOS VFS: aligned sector reads take the DMA path (see plat_load_file) */
 static char mus_name[64];
 static int mus_vol = 255;
 static int mus_paused;           /* pause menu: stream stopped in place, not polled */
@@ -112,8 +138,8 @@ static void *mus_cb(snd_stream_hnd_t hnd, int smp_req, int *smp_recv) {
     int want = smp_req > (int)sizeof mus_buf ? (int)sizeof mus_buf : smp_req;
     int got = 0, rewinds = 0;
     while (got < want && rewinds < 2) {
-        size_t n = fread(mus_buf + got, 1, want - got, mus_f);
-        if (n == 0) { fseek(mus_f, 0, SEEK_SET); rewinds++; continue; }   /* whole-file loop */
+        ssize_t n = fs_read(mus_f, mus_buf + got, (size_t)(want - got));
+        if (n <= 0) { fs_seek(mus_f, 0, SEEK_SET); rewinds++; continue; }   /* whole-file loop */
         got += (int)n;
     }
     *smp_recv = got & ~3;
@@ -139,7 +165,7 @@ static void *mus_thread(void *arg) {
 static void music_stop_locked(void) {
     if (mus != SND_STREAM_INVALID) { snd_stream_stop(mus); snd_stream_destroy(mus); mus = SND_STREAM_INVALID; }
     mus_paused = 0;
-    if (mus_f) { fclose(mus_f); mus_f = NULL; }
+    if (mus_f >= 0) { fs_close(mus_f); mus_f = -1; }
     mus_name[0] = 0;
 }
 
@@ -149,11 +175,11 @@ int music_play(const char *name) {
     if (mus != SND_STREAM_INVALID && !strcmp(mus_name, name)) { mutex_unlock(&mus_lock); return 0; }  /* no restart / no duplicate */
     music_stop_locked();
     snprintf(path, sizeof path, FP_DATA_ROOT "/%s", name);
-    mus_f = fopen(path, "rb");
-    if (!mus_f) { mutex_unlock(&mus_lock); plat_log("music missing %s\n", path); return -1; }
+    mus_f = fs_open(path, O_RDONLY);
+    if (mus_f < 0) { mutex_unlock(&mus_lock); plat_log("music missing %s\n", path); return -1; }
     int adpcm = strstr(name, ".adp") != NULL;
     mus = snd_stream_alloc(mus_cb, adpcm ? SND_STREAM_BUFFER_MAX_ADPCM : MUS_CHUNK);
-    if (mus == SND_STREAM_INVALID) { fclose(mus_f); mus_f = NULL; mutex_unlock(&mus_lock); return -1; }
+    if (mus == SND_STREAM_INVALID) { fs_close(mus_f); mus_f = -1; mutex_unlock(&mus_lock); return -1; }
     if (adpcm) snd_stream_start_adpcm(mus, 32000, 1);
     else snd_stream_start(mus, 22050, 1);
     snd_stream_volume(mus, mus_vol);   /* after the start: snd_stream_start_type sets chan->vol = 255 */

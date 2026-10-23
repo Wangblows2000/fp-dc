@@ -76,9 +76,22 @@ void   vmuscr_crystal(void);
 void   vmuscr_life(int character, int lives);
 const uint8_t *vmuscr_current(void);                         /* stop every sound effect channel */
 /* loading screen (src/game/loading.c): silent, spinning crystal bottom-right */
-void   loading_begin(void);
+void   loading_begin(const char *label);   /* label: load profiler (loadprof.c) */
 void   loading_tick(void);
 void   loading_end(void);
+/* load profiler (src/game/loadprof.c) */
+typedef struct { int on; uint64_t open_us, read_us, upload_us, snd_us, music_us, obj_us, draw_us, decode_us;
+                 uint64_t bytes, tex_bytes, alloc_bytes, skip_bytes; uint32_t nfiles, ntex, nsnd, ndraw, nalloc, nskip, npacked; } loadprof_t;
+extern loadprof_t LP;
+void     lp_begin(const char *label);
+uint32_t lp_end(void);           /* logs one line, returns total ms */
+/* disc packs (src/resources/pack.c) */
+void *plat_read_raw(const char *name, size_t *size);   /* one loose file, whole (aligned on the DC) */
+void *plat_alloc_aligned(size_t n);                    /* free()-able */
+void *pack_load(const char *name, size_t *size, int *found);
+void  pack_release(void);
+int   pack_entry_crc(const char *name, uint32_t *crc);
+int   lz4_decode(const uint8_t *src, size_t src_len, uint8_t *dst, size_t dst_len);
 int    loading_active(void);
 
 /* ---------------------------------------------------------------- renderer */
