@@ -17,11 +17,11 @@
 
 enum { A_IDLE, A_WALK, A_RUN, A_FASTRUN, A_JUMP, A_LOOKUP, A_CROUCH, A_SKID, A_ATTACK, A_AIRATK,
        A_UPPERCUT, A_DKWIND, A_DIVEKICK, A_CYCLONE, A_CHARGE, A_BOOST, A_HURT, A_DEFEAT, A_CROUCHATK, A_SPRING, A_HANG,
-       A_PUSH, A_CLIMB, A_CLIMBDOWN, A_CLIMBOVER, A_CATCH, A_COUNT };
+       A_PUSH, A_CLIMB, A_CLIMBDOWN, A_CLIMBOVER, A_CATCH, A_CORK, A_CORK2, A_COUNT };
 /* names = tools/import_frame.py LILAC (runtime-verified playerskinsash_341 animation numbers) */
 static const char *anim_names[A_COUNT] = { "idle", "walk", "run", "fastrun", "jump", "lookup", "crouch",
     "skid", "attack", "airatk", "uppercut", "dkwind", "divekick", "cyclone", "charge", "boost", "hurt", "defeat", "crouchatk", "spring", "hang",
-    "push", "climb", "climbdown", "climbover", "catch" };
+    "push", "climb", "climbdown", "climbover", "catch", "cork", "cork2" };
 static int anim_r[A_COUNT], anim_l[A_COUNT], hair_r[A_COUNT], hair_l[A_COUNT];
 static int cur_anim = -1;
 static animator_t hair;          /* PlayerSkinSashHair_424: follows the skin's animation id (RV) */
@@ -157,8 +157,9 @@ static double o_sin(double n) { return n == 180. ? 0. : fd_sin(n / DEG); }
 static void slope_force(player_t *p) {
     double n = p->N;
     if (!(n > 35. && n < 325.)) return;
+    /* two separate events, in this order (RV cork_dv1 f77: crossing the top speed takes both in one frame) */
+    if (fabs(p->gsp) < PHYS_TOP && p->gsp != 0) p->gsp = p->gsp - PHYS_SLOPE * o_sin(n) * 0.38;
     if (fabs(p->gsp) >= PHYS_TOP) p->gsp = p->gsp - o_sin(n) * PHYS_SLOPE;
-    else if (p->gsp != 0) p->gsp = p->gsp - PHYS_SLOPE * o_sin(n) * 0.38;
 }
 
 int player_body_z(const player_t *p) {        /* RE 1680/1686/1693: Z = 1 in M5 (charge, boost) and M19 (kick wind-up) */
@@ -227,7 +228,7 @@ static void on_land(player_t *p) {
 
 /* one pass of the original's movement + sensor collision with the current B, G */
 static int core(player_t *p) {
-    mv_t m = { p->x, p->y - ORIG_REF_DY, p->ground ? p->gsp : p->vx, p->ground ? 0. : p->vy, p->N, p->O, 0, p->ground, 0 };
+    mv_t m = { p->x, p->y - ORIG_REF_DY, p->ground ? p->gsp : p->vx, p->ground ? 0. : p->vy, p->N, p->O, 0, p->ground, 0, 0 };
     int r = mv_core(&m);
     p->x = m.X; p->y = m.Y + ORIG_REF_DY; p->N = m.N; p->O = m.O; p->ground = m.L;
     if (m.L) { p->gsp = m.B; p->vy = 0; }
@@ -236,9 +237,17 @@ static int core(player_t *p) {
     return r;
 }
 
+int player_core_nov(player_t *p) {            /* M45: MV.U = 0 */
+    mv_t m = { p->x, p->y - ORIG_REF_DY, p->ground ? p->gsp : p->vx, p->ground ? 0. : p->vy, p->N, p->O, 0, p->ground, 0, 1 };
+    int r = mv_core(&m);
+    p->x = m.X; p->y = m.Y + ORIG_REF_DY; p->N = m.N; p->O = m.O; p->ground = m.L;
+    if (m.L) { p->gsp = m.B; p->vy = 0; } else { p->vx = m.B; p->vy = m.G; }
+    return r;
+}
+
 /* sensor state for a position set from outside (spawn, debug): as if 1611 had run there */
 void player_sync_sensors(player_t *p) {
-    mv_t m = { p->x, p->y - ORIG_REF_DY, p->ground ? p->gsp : p->vx, p->ground ? 0. : p->vy, p->N, p->O, 0, p->ground, 0 };
+    mv_t m = { p->x, p->y - ORIG_REF_DY, p->ground ? p->gsp : p->vx, p->ground ? 0. : p->vy, p->N, p->O, 0, p->ground, 0, 0 };
     mv_allsensors(&m);
 }
 
@@ -861,6 +870,7 @@ void player_update(player_t *p, const input_t *in) {
         if (!(((in->held & BTN_RIGHT) && mv_sensor_right_big()) || ((in->held & BTN_LEFT) && mv_sensor_left_big()))) p->state = ST_NORMAL;   /* 1877-1880 */
         break;
     case ST_LADDER: ladder_frame(p, in); break;
+    case ST_CORK: cork_move(p); break;                /* M45 (gimmicks.c) */
     case ST_LADDERIN: ladderin_frame(p, in); break;
     case ST_CHARGE:   /* RE: M5 (charge, OTHERS.N < 30) and the boost: movement + speed rules here, */
     case ST_BOOST:    /* the M5 group (timer, direction latch, fire, drain, end) after the edge clamp */
@@ -917,6 +927,7 @@ void player_update(player_t *p, const input_t *in) {
     case ST_BOOST: a = A_BOOST; break;
     case ST_HURT: a = A_HURT; break;
     case ST_PUSH: a = A_PUSH; break;
+    case ST_CORK: a = (p->cork_e > 0.25 && p->cork_e < 1.5) ? A_CORK2 : A_CORK; break;   /* 4715/4716: OTHERS.Y 46 / 45 */
     case ST_LADDERIN: a = A_CLIMBOVER; break;
     case ST_LADDER:   /* 2456-2467; 2497: climb speed int(|G| * 10) (frozen when still) */
         if (p->lad_y == 28) a = A_CLIMBOVER;

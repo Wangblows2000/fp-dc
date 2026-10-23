@@ -345,6 +345,7 @@ void camera_update(void) {
 static void next_act(void) {
     char d[8]; snprintf(d, sizeof d, "%s", G.lvdir);
     int a = act_of(d);
+    if (cards_commit()) save_store();             /* cards collected this act: one VMU write at the act change, never mid-stage */
     /* DV4 ends with the Serpentine boss and then the results (events 5385 / 4560-4589); the boss is not
      * ported, so the end of DV4 goes straight to the results. Time Attack plays every act as well. */
     if (a >= 4) {
@@ -462,6 +463,7 @@ void game_update(const input_t *in) {
     const input_t *pin = (G.clear_t || G.act_in) ? &none : in;   /* act end / walk-in: no control (RE) */
     objects_platforms(&G.p);                      /* RE: platform/bridge events run before Lilac's movement */
     player_update(&G.p, pin);
+    layers_update(&G.p);                          /* RE 1613-1616 + 3031/3032: loop collision layer */
     if (G.act_in) {                               /* RE 4526: B = 3 every frame for 32 frames */
         if (G.p.ground) G.p.gsp = 3; else G.p.vx = 3;
         G.act_fade = G.act_fade - 8 < 0 ? 0 : G.act_fade - 8;
@@ -472,6 +474,7 @@ void game_update(const input_t *in) {
         if (G.p.ground && G.p.gsp < 2) G.p.gsp = 2;
     }
     objects_update();
+    cork_start_check(&G.p);                       /* RE 4756/4757 (end of the frame) */
     camera_update();
     /* stage music back after the 1-up jingle / when monitor invincibility ends */
     if (G.mus_resume_t > 0 && --G.mus_resume_t == 0)

@@ -20,7 +20,7 @@ static obj_t *alloc_obj(void) {
 obj_t *obj_alloc(void) { return alloc_obj(); }
 
 static int A_LOG = -1;
-static int plat_type(int t) { return t == OT_PLAT_VALLEY || t == OT_PLAT_MOVE2 || t == OT_PLAT_MOVE3; }
+static int plat_type(int t) { return t == OT_PLAT_VALLEY || t == OT_PLAT_MOVE2 || t == OT_PLAT_MOVE3 || t == OT_GEYSER; }
 void objects_spawn(void) {
     A_EXPLODE = bank_anim(&G.objs, "explosion");
     { static const char *tn[6] = { "turr_idle", "turr_idle_l", "turr_shoot", "turr_shoot_l", "turr_off", "turr_off_l" };
@@ -49,6 +49,22 @@ void objects_spawn(void) {
         if (o->type == OT_CACTEON) cacteon_spawn(o);
         if (o->type == OT_SPOREPOD) sporepod_spawn(o);
         if (o->type == OT_LIMITER) { o->an.b = NULL; if (o->x < 0) o->alive = 0; }      /* invisible ceiling marker; off-map template */
+        {   /* session-8 classes: sprite from the _ens bank by name, invisible ones without a sprite */
+            static const struct { int t; const char *a; } EA[] = {
+                { OT_SPIKES_L, "spk_left" }, { OT_SPIKES_R, "spk_right" }, { OT_SPIKES_D, "spk_down" }, { OT_RSPRING_UL, "rspring_ul" },
+                { OT_LOOP016, "loop016" }, { OT_LOOP0Q, "loop0q" }, { OT_LOOP115, "loop115" }, { OT_LOOP1Q, "loop1q" },
+                { OT_GEYSER, "geyser" }, { OT_SPIRAL_MASK, "spiralmask" }, { OT_BALLTUNNEL, "balltunnel" }, { OT_CARD, "card" } };
+            for (unsigned k = 0; k < sizeof EA / sizeof EA[0]; k++) if (o->type == EA[k].t) {
+                int a = ens_anim(EA[k].a);
+                if (a >= 0) anim_set(&o->an, &G.ens, a); else o->an.b = NULL;
+            }
+            if (o->type == OT_LAYER_0 || o->type == OT_LAYER_1 || o->type == OT_LAYER_SW || o->type == OT_CORK_L || o->type == OT_CORK_R) o->an.b = NULL;
+            if ((o->type >= OT_LOOP016 && o->type <= OT_LOOP1Q) || o->type == OT_LAYER_SW) {
+                if (o->x < 0) o->alive = 0;                                                    /* off-map templates */
+                for (int k = 0; k + G.o < o && o->alive; k++)                                  /* layer-3 copies at the same spot */
+                    if (G.o[k].alive && G.o[k].type == o->type && G.o[k].x == o->x && G.o[k].y == o->y) o->alive = 0;
+            }
+        }
         if (plat_type(o->type)) { o->vx = 0; o->vy = 0; o->fx = o->oy; o->fl = 0; }   /* 3565: I = X, J = Y */
         if (o->type == OT_LOG) { o->alive = 0; continue; }       /* the template log (placed off-screen) */
         if (o->type == OT_GANSEKI) {                   /* RE create_enemygansekijr_835: anim 0, direction 14 (left set), A = 8, B = 5 */
@@ -56,6 +72,8 @@ void objects_spawn(void) {
             if (A_GAN[1] >= 0) anim_set(&o->an, &G.objs, A_GAN[1]);
         }
     }
+    cards_spawn_all();
+    layers_refresh(&G.p);
     /* 3566 / 3567: 12 logs per bridge at (bx + 16k, by + 56), A = k, B = base y */
     int nb = G.nobjs;
     for (int b = 0; b < nb; b++) {
@@ -78,7 +96,8 @@ void objects_spawn(void) {
  * Bridge logs: dir = A (index), oy = B (base y), fx = C (target), fy = D (current sag). */
 static double p_sin(double n) { return n == 180. ? 0. : fd_sin(n / 57.29577951); }
 static void plat_params(int t, double *F, double *Gm) {
-    if (t == OT_PLAT_MOVE2) { *F = 2; *Gm = 120; } else if (t == OT_PLAT_MOVE3) { *F = 1; *Gm = 100; } else { *F = 1; *Gm = 10; }
+    if (t == OT_GEYSER) { *F = 2; *Gm = 240; }                    /* RE create_levelgeyserplate_994: F = 2, G = 240, H = 1 */
+    else if (t == OT_PLAT_MOVE2) { *F = 2; *Gm = 120; } else if (t == OT_PLAT_MOVE3) { *F = 1; *Gm = 100; } else { *F = 1; *Gm = 10; }
 }
 static int box_hits_disc27(float bx, float by, float bw, float bh, int px, int py) {   /* Player_326: 27-px disc at (int X, int Y) */
     float cx = fmaxf(bx, fminf((float)px, bx + bw - 1)), cy = fmaxf(by, fminf((float)py, by + bh - 1));
@@ -108,6 +127,7 @@ void objects_platforms(player_t *p) {
         o->fl &= ~4;                                              /* 3272 */
         double L = o->fx;                                         /* 3283: L = N */
         o->vx = (float)fmod(o->vx + F, 360.);
+        if (o->type == OT_GEYSER && fmod(o->vx, 360.) > 240) { o->vx = (float)fmod(o->vx + 2, 360.); o->fl |= 0x40; }   /* 4969: fast phase, no carry */
         double N = o->oy + Gm * p_sin(o->vx);                     /* 3287 (H = 1) */
         o->dir = (int)(floor(N) - floor(L));                      /* 3288: P */
         o->fx = (float)N;
@@ -159,6 +179,17 @@ void objects_platforms(player_t *p) {
             lg->fy += (lg->fx - lg->fy) * 0.2f;                   /* 3298 */
             if (over) lg->y = (float)(int)(lg->oy + lg->fy);      /* 3300 */
         }
+    }
+    /* 4968: a geyser in its launch window (180 < E < 240) throws Lilac up: M = 40, L = 0, G = (E - 180) 0.1 - 14 */
+    for (int i = 0; i < G.nobjs; i++) {
+        obj_t *o = &G.o[i];
+        if (!o->alive || o->type != OT_GEYSER || !o->an.b || p->state == ST_DEAD) continue;
+        double E = fmod(o->vx, 360.);
+        if (!(E > 180 && E < 240)) continue;
+        const frame_t *f = anim_frame(&o->an);
+        if (!box_hits_disc27(floorf(o->x) - f->hx, floorf(o->y) - f->hy, f->w, f->h, (int)p->x, (int)(p->y - ORIG_REF_DY))) continue;
+        if (p->ground) { p->vx = p->gsp; p->ground = 0; }
+        p->vy = (E - 180) * 0.1 - 14; p->springing = 1; if (p->state != ST_BOOST) p->state = ST_NORMAL;
     }
     /* 3303 / 3304 / 3307: dip while stood on */
     for (int i = 0; i < G.nobjs; i++) {
@@ -431,7 +462,6 @@ static int monitor_hit(const player_t *p, float bx0, float by0, float bx1, float
 void objects_update(void) {
     player_t *p = &G.p;
     float px0 = p->x - 7, px1 = p->x + 7, py0 = p->y - 30, py1 = p->y;
-    float sx0 = floorf(p->x) - 7, sx1 = floorf(p->x) + 8, sy0 = floorf(p->y - ORIG_REF_DY) - 34, sy1 = floorf(p->y - ORIG_REF_DY) + 12;
     int dead = p->hp <= 0;
     static uint8_t act[MAX_OBJS];
 
@@ -461,8 +491,6 @@ void objects_update(void) {
         if (!o->alive || !act[i]) continue;
         float bx0, by0, bx1, by1;
         obj_box(o, &bx0, &by0, &bx1, &by1);
-        /* hazards hit Lilac's PlayerCharacterSensor_375 (RE: 15x46, hotspot 7,34 at (int X, int Y)) */
-        int hurt_touch = !dead && overlap(sx0, sy0, sx1, sy1, bx0, by0, bx1, by1) && obj_rect_hit(o, (int)sx0, (int)sy0, (int)sx1, (int)sy1);
         int defeated = enemy_type(o->type) && (o->fl & 0x40);
         switch (o->type) {
         case OT_CRYSTAL:
@@ -503,6 +531,9 @@ void objects_update(void) {
         case OT_CACTEON: cacteon_update(o, p); break;
         case OT_SPOREPOD: sporepod_update(o, p); break;
         case OT_SPORE: spore_update(o, p); break;
+        case OT_SPIKES_L: case OT_SPIKES_R: case OT_SPIKES_D: spikes_update(o, p); break;
+        case OT_RSPRING_UL: rspring_update(o, p); break;
+        case OT_CARD: card_update(o, p); break;
         case OT_PELLET: {
             /* RE col_4_20: the pellet hits Lilac's sensor (PlayerCharacterSensor_375, 15x46, hotspot 7,34 at
              * her reference point) unless she is invulnerable; it is destroyed with effectsexplosion02 */
@@ -540,9 +571,7 @@ void objects_update(void) {
                 o->type = o->st; o->st = 0; o->tm = 0;     /* becomes a normal crystal / petal */
             }
             break;
-        case OT_SPIKES:
-            if (hurt_touch) { player_hurt(p, p->x - p->face); }
-            break;
+        case OT_SPIKES: spikes_update(o, p); break;        /* RE 3259 (was a contact hurt) */
         case OT_SPRING: {
             /* RV (spring_yellow_up): fires on the frame the feet reach the spring's top edge (untrimmed
              * box) and puts them at top + 0.25 */
@@ -594,10 +623,11 @@ void objects_draw(int front) {
         if (!o->alive || !o->an.b || o->type == OT_HANG || o->type == OT_LADDERTOP || o->type == OT_BRIDGE) continue;   /* sensors / LadderTop are invisible */
         float sx = floorf(o->x - G.camx), sy = floorf(o->y - G.camy);
         if (sx < -96 || sx > SCREEN_W + 96 || sy < -96 || sy > SCREEN_H + 96) continue;
-        if (o->type == OT_SHIELD) continue;
+        if (o->type == OT_SHIELD || o->type == OT_GEYSER || o->type == OT_SPIRAL_MASK || o->type == OT_BALLTUNNEL || o->type == OT_WR_WEAK) continue;   /* invisible */
+        uint32_t col = (o->type == OT_CARD && (o->fl & 2)) ? 0x80ffffff : 0xffffffff;     /* 2573: already collected */
         if (o->inv) r_set_invert(1);
-        if (o->ang != 0) frame_draw_rot(o->an.b, anim_frame(&o->an), sx, sy, o->ang, o->flip, 0xffffffff);
-        else frame_draw(o->an.b, anim_frame(&o->an), sx, sy, o->flip, 0xffffffff);
+        if (o->ang != 0) frame_draw_rot(o->an.b, anim_frame(&o->an), sx, sy, o->ang, o->flip, col);
+        else frame_draw(o->an.b, anim_frame(&o->an), sx, sy, o->flip, col);
         if (o->inv) r_set_invert(0);
     }
     combat_draw_shields(1);           /* visible slash shields, behind Lilac */
@@ -616,11 +646,13 @@ int obj_in_group(int type, int grp);
 static int in_group(int type, int grp) { return obj_in_group(type, grp); }
 int obj_in_group(int type, int grp) {
     switch (grp) {
-    case OBJGRP_SOLID: return type == OT_MONITOR || type == OT_MON_RINGS || type == OT_MON_1UP || type == OT_MON_INVINC || type == OT_ROCK || type == OT_SPIKES || type == OT_SPRING_R;
+    case OBJGRP_SOLID: return type == OT_MONITOR || type == OT_MON_RINGS || type == OT_MON_1UP || type == OT_MON_INVINC || type == OT_ROCK || type == OT_SPIKES || type == OT_SPRING_R ||
+                              type == OT_SPIKES_L || type == OT_SPIKES_R || type == OT_SPIKES_D || (type >= OT_LOOP016 && type <= OT_LOOP1Q) ||
+                              type == OT_SPIRAL_MASK || type == OT_BALLTUNNEL || type == OT_WR_BARRIER || type == OT_BROCK2 || type == OT_MON_KEYSTONE;
     case OBJGRP_OBSTACLE: case OBJGRP_OBSTACLE_ALL:
-        return type == OT_LADDERTOP || type == OT_LOG || type == OT_PLAT_VALLEY || type == OT_PLAT_MOVE2 || type == OT_PLAT_MOVE3;
+        return type == OT_LADDERTOP || type == OT_LOG || type == OT_PLAT_VALLEY || type == OT_PLAT_MOVE2 || type == OT_PLAT_MOVE3 || type == OT_GEYSER || type == OT_RSPRING_UL;
     case OBJGRP_NOEDGE: return type == OT_LADDERTOP || type == OT_LOG || type == OT_PLAT_VALLEY || type == OT_PLAT_MOVE2 || type == OT_PLAT_MOVE3 || type == OT_MONITOR || type == OT_MON_RINGS || type == OT_MON_1UP || type == OT_MON_INVINC || type == OT_SPIKES || type == OT_SPRING || type == OT_SPRING_UL ||
-                               type == OT_SPRING_UR || type == OT_SPRING_R;
+                               type == OT_SPRING_UR || type == OT_SPRING_R || type == OT_GEYSER || type == OT_RSPRING_UL || type == OT_SPIKES_L || type == OT_SPIKES_R || type == OT_SPIKES_D || type == OT_MON_KEYSTONE;
     default: return 0;
     }
 }
@@ -628,7 +660,7 @@ static int sensor_hit_any(int grp, int type, int ox, int oy, const signed char *
     for (int i = 0; i < G.nobjs; i++) {
         const obj_t *o = &G.o[i];
         if (!o->alive || !o->an.b || (type >= 0 ? o->type != type : !in_group(o->type, grp))) continue;
-        if (grp == OBJGRP_OBSTACLE && (o->fl & 1)) continue;      /* flag 0: one-way platform below Lilac's reference (4738) */
+        if ((grp == OBJGRP_OBSTACLE || grp == OBJGRP_SOLID) && (o->fl & 1)) continue;   /* flag 0: ignored (4738 platforms; loop layers 3025/3026) */
         const frame_t *f = anim_frame(&o->an);
         int bx = (int)floorf(o->x) - (o->flip ? f->w - f->hx : f->hx), by = (int)floorf(o->y) - f->hy;
         if (ox > bx + f->w || ox + 27 < bx || oy >= by + f->h || oy + h <= by) continue;
