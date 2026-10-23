@@ -126,6 +126,26 @@ static void obj_box(const obj_t *o, float *x0, float *y0, float *x1, float *y1) 
     *x1 = *x0 + f->w - 2 * m; *y1 = *y0 + f->h - 2 * m;
 }
 
+/* pixel test of the integer rect [rx0, rx1) x [ry0, ry1) against the object's current image mask
+ * (Chowdren sprite collision: alpha != 0); objects without a sprite use their box */
+static int obj_rect_hit(const obj_t *o, int rx0, int ry0, int rx1, int ry1) {
+    if (!o->an.b) {
+        float x0, y0, x1, y1; obj_box(o, &x0, &y0, &x1, &y1);
+        return rx0 < x1 && x0 < rx1 && ry0 < y1 && y0 < ry1;
+    }
+    const frame_t *f = anim_frame(&o->an);
+    int ox = (int)floorf(o->x) - (o->flip ? f->w - f->hx : f->hx), oy = (int)floorf(o->y) - f->hy;
+    int x0 = rx0 > ox ? rx0 : ox, x1 = rx1 < ox + f->w ? rx1 : ox + f->w;
+    int y0 = ry0 > oy ? ry0 : oy, y1 = ry1 < oy + f->h ? ry1 : oy + f->h;
+    for (int y = y0; y < y1; y++)
+        for (int x = x0; x < x1; x++) {
+            int lx = x - ox;
+            if (o->flip) lx = f->w - 1 - lx;
+            if (frame_mask_px(o->an.b, f, lx, y - oy)) return 1;
+        }
+    return 0;
+}
+
 /* comparison harness: objects of the original trace have been animated n ticks before its frame 0 */
 void objects_pretick(int n) {
     for (int k = 0; k < n; k++)
@@ -135,6 +155,7 @@ void objects_pretick(int n) {
 void objects_update(void) {
     player_t *p = &G.p;
     float px0 = p->x - 7, px1 = p->x + 7, py0 = p->y - 30, py1 = p->y;
+    float sx0 = floorf(p->x) - 7, sx1 = floorf(p->x) + 8, sy0 = floorf(p->y - ORIG_REF_DY) - 34, sy1 = floorf(p->y - ORIG_REF_DY) + 12;
     float ax0, ay0, ax1, ay1;
     int atk = player_attack_box(p, &ax0, &ay0, &ax1, &ay1);
     int dead = p->hp <= 0;
@@ -154,6 +175,9 @@ void objects_update(void) {
         float bx0, by0, bx1, by1;
         obj_box(o, &bx0, &by0, &bx1, &by1);
         int touch = !dead && overlap(px0, py0, px1, py1, bx0, by0, bx1, by1);
+        /* enemies and hazards hit Lilac's PlayerCharacterSensor_375 (RE: 15x46, hotspot 7,34 at (int X,
+         * int Y), i.e. 48..2 px above the feet; RV turretus_jumpinto: passing 2 px above a Turretus is safe) */
+        int hurt_touch = !dead && overlap(sx0, sy0, sx1, sy1, bx0, by0, bx1, by1) && obj_rect_hit(o, (int)sx0, (int)sy0, (int)sx1, (int)sy1);
         int hit = !dead && atk && overlap(ax0, ay0, ax1, ay1, bx0, by0, bx1, by1);
         switch (o->type) {
         case OT_CRYSTAL:
@@ -175,13 +199,14 @@ void objects_update(void) {
             o->y = o->oy + sinf(o->t * 0.06f) * 6.f;
             o->flip = cosf(o->t * 0.015f) > 0;  /* art faces left; mirror when moving right */
             if (hit) { o->alive = 0; G.kills++; explode(o->x, o->y); player_bounce(p, -4.f); break; }
-            if (touch) player_hurt(p, o->x);
+            if (hurt_touch) player_hurt(p, o->x);
             break;
         case OT_PELLET: {
             /* RE col_4_20: the pellet hits Lilac's sensor (PlayerCharacterSensor_375, 15x46, hotspot 7,34 at
              * her reference point) unless she is invulnerable; it is destroyed with effectsexplosion02 */
-            float sx0 = p->x - 7, sx1 = p->x + 8, sy0 = p->y - 48, sy1 = p->y - 2;
-            if (!dead && !player_invincible(p) && overlap(sx0, sy0, sx1, sy1, bx0, by0, bx1, by1)) {
+            /* (RV: the hit frames of hurt_turretus & co. are matched with the unfloored X and the pellet's whole
+             * image box; the original tests the masks, not reproduced yet) */
+            if (!dead && !player_invincible(p) && overlap(p->x - 7, p->y - 48, p->x + 8, p->y - 2, bx0, by0, bx1, by1)) {
                 player_damage(p, PELLET_DAMAGE); o->alive = 0; explode2(o->x, o->y); break;
             }
             /* INFERRED: removed on solid ground or well outside the view (destroy events not yet recovered) */
@@ -192,7 +217,7 @@ void objects_update(void) {
         case OT_TURRETUS:
             turretus_events(o, p, bx0, by0, bx1, by1);
             if (hit && o->t > 0) { if (--o->hp <= 0) { o->alive = 0; G.kills++; explode(o->x, o->y); } else o->t = -20; player_bounce(p, -4.f); break; }
-            if (touch) player_hurt(p, o->x);
+            if (hurt_touch) player_hurt(p, o->x);
             break;
         case OT_ROCK: case OT_MONITOR:
             if (hit) {
@@ -202,7 +227,7 @@ void objects_update(void) {
             }
             break;
         case OT_SPIKES:
-            if (touch) { player_hurt(p, p->x - p->face); }
+            if (hurt_touch) { player_hurt(p, p->x - p->face); }
             break;
         case OT_SPRING: {
             /* RV (spring_yellow_up): fires on the frame the feet reach the spring's top edge (untrimmed

@@ -72,7 +72,9 @@ typedef struct {
     frame_t *frames;
     anim_t *anims;
     uint16_t *seq;
+    uint8_t *mbits; uint32_t *moff;   /* collision masks (alpha != 0), rows of (w + 7) / 8 bytes; NULL if absent */
 } bank_t;
+int frame_mask_px(const bank_t *b, const frame_t *f, int x, int y);   /* 1 = solid pixel of the frame image */
 
 /* Fusion-style animation player: each tick acc += speed; a frame advances per 100.
  * loop -1 = forever; loop N = play N times then hold; wrap goes to back_to. */

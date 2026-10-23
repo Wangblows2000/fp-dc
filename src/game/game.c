@@ -40,7 +40,7 @@ static const char *level_music(const char *dir) {
 }
 static int act_of(const char *dir) { return dir[2] - '0'; }
 
-static void bank_free(bank_t *b) { free(b->frames); free(b->anims); free(b->seq); memset(b, 0, sizeof *b); }
+static void bank_free(bank_t *b) { free(b->frames); free(b->anims); free(b->seq); free(b->mbits); free(b->moff); memset(b, 0, sizeof *b); }
 
 void game_unload_all(void) {
     bank_free(&G.lilac); bank_free(&G.objs);
