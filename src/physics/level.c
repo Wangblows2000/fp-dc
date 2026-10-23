@@ -18,6 +18,29 @@ static inline int bit(const level_t *l, const uint16_t *map, int x, int y) {
 
 int px_solid(const level_t *l, int x, int y) { return bit(l, l->smap, x, y); }
 int px_platform(const level_t *l, int x, int y) { return bit(l, l->pmap, x, y); }
+
+/* any solid pixel in row y between x0 and x1 (inclusive), with bit()'s edge-column rule */
+int px_span_solid(const level_t *l, int x0, int x1, int y) {
+    if (y < 0 || y >= l->h) return 0;
+    if (x0 < 0) x0 = 0;
+    if (x1 < 0) x1 = 0;
+    if (x0 >= l->w) x0 = l->w - 1;
+    if (x1 >= l->w) x1 = l->w - 1;
+    const uint16_t *row = l->smap + (y >> 4) * l->tw;
+    for (int x = x0; x <= x1; ) {
+        int tx = x >> 4, xe = (tx << 4) + 15;
+        if (xe > x1) xe = x1;
+        int t = row[tx];
+        if (t == 1) return 1;
+        if (t) {
+            unsigned bits = l->tiles[t * 16 + (y & 15)];
+            unsigned m = ((2u << (xe & 15)) - 1) & ~((1u << (x & 15)) - 1);
+            if (bits & m) return 1;
+        }
+        x = xe + 1;
+    }
+    return 0;
+}
 int solid_at(const level_t *l, float x, float y) { return px_solid(l, (int)floorf(x), (int)floorf(y)); }
 
 static int surface(const level_t *l, int x, int y0, int maxdist, int oneway, int *sy) {

@@ -5,7 +5,7 @@
 #   make host test  -> host build + gameplay regression tests
 TARGET = fpdc.elf
 OBJS = src/platform/plat_dc.o src/renderer/render_pvr.o src/resources/assets.o \
-       src/physics/level.o src/characters/player.o src/game/objects.o src/game/game.o \
+       src/physics/level.o src/physics/sensors.o src/characters/player.o src/game/objects.o src/game/game.o \
        src/game/ui.o src/game/frontend.o
 
 FP_GAME ?= /mnt/user-data/uploads/Freedom Planet

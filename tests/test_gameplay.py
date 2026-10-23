@@ -121,7 +121,7 @@ check('max_fall_15_25', abs(max(x['vy'] for x in r) - 15.25) < 1e-6, 'max vy %.3
 
 # RE act change (events 4135/5045 trigger at X > width - 50; fade 3310/2905; next frame 3578; walk-in
 # 4526/5047): DV1 -> DV2 without results, petals/energy/timer carried, Lilac enters at start - 50 = -29
-r = run('5 TP 14600 300\n7 HP 5\n10 400 R\n', 300)
+r = run('5 TP 14600 980\n7 HP 5\n10 400 R\n', 300)
 trig = next((x for x in r if x['x'] > 14766), None)
 new = next((x for x in r if x.get('act') == 2), None)
 check('act_change_dv1_dv2', trig and new and new['mode'] == 1 and abs(new['x'] + 29) < 0.01 and new['hp'] == 5 and new['en'] > 40
@@ -167,7 +167,7 @@ b2 = [x for x in r2 if x['st'] == ST_BOOST and x['gnd'] == 0]
 check('boost_left_orientation', b2 and all(abs(x['rot'] - 180) < 0.5 and x['face'] == -1 for x in b2), 'rot %s' % (b2[0]['rot'] if b2 else None))
 # E slope rotation: ground angle follows the surface, air eases back to 0 by 4 deg/frame
 r = run('0 400 R\n', 140)
-slope = [x for x in r if x['gnd'] == 1 and x['ang'] < -0.6]
+slope = [x for x in r if x['gnd'] == 1 and 200 < x['ang'] < 326]   # N in degrees (down-slope steeper than ~34 deg)
 check('slope_rotation', slope and all(abs(((x['rot'] + 180) % 360) - 180) > 20 for x in slope), '%d slope frames' % len(slope))
 r = run('0 400 R\n', 260)
 air = [x for x in r if x['gnd'] == 0]

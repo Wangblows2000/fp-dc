@@ -1,0 +1,1 @@
+air_attack attack_ground attack_up boost_run crouch cyclone down_kick jump_hold jump_tap run_jump run_release run_right skid special_hold special_tap uppercut_high

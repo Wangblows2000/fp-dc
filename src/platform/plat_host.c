@@ -78,7 +78,7 @@ static void apply_dbg(int f) {
     for (int i = 0; i < ndbg; i++) {
         if (dbg[i].f != f) continue;
         player_t *p = &G.p;
-        if (dbg[i].k == 'T') { p->x = dbg[i].a; p->y = dbg[i].b + ORIG_REF_DY; p->ground = 0; p->vx = p->vy = p->gsp = 0; p->angle = p->angle_s = 0; }
+        if (dbg[i].k == 'T') { p->x = dbg[i].a; p->y = dbg[i].b + ORIG_REF_DY; p->ground = 0; p->vx = p->vy = p->gsp = 0; p->N = p->O = 0; }
         if (dbg[i].k == 'E') p->energy = dbg[i].a;
         if (dbg[i].k == 'D' && !player_invincible(p)) player_hurt(p, p->x + dbg[i].a);   /* test hit from dx */
         if (dbg[i].k == 'H') p->hp = (int)dbg[i].a;
@@ -152,7 +152,7 @@ int main(int argc, char **argv) {
         game_update(&in);
         const player_t *p = &G.p;
         printf("f %d x %.2f y %.2f gsp %.3f vx %.3f vy %.3f gnd %d ang %.3f st %d hp %d cr %d k %d an %d fr %d rot %.2f en %.2f lv %d face %d mode %d sel %d cx %.1f cy %.1f act %d\n",
-               cur_frame, p->x, p->y, p->gsp, p->vx, p->vy, p->ground, p->angle, p->state, p->hp, p->crystals, G.kills, p->an.anim, p->an.frame,
+               cur_frame, p->x, p->y, p->gsp, p->vx, p->vy, p->ground, p->N, p->state, p->hp, p->crystals, G.kills, p->an.anim, p->an.frame,
                p->rot, p->energy, p->lives, p->face, G.mode, G.in_select, G.camx, G.camy, G.lvdir[0] ? G.lvdir[2] - '0' : 0);
         if (csv) {
             char h[16]; int k = 0;

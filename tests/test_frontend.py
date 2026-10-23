@@ -38,7 +38,8 @@ check('no_duplicate_music_starts', all(a != b for a, b in zip(names, names[1:]))
 # player has no control during the stage card (timer not running): x unchanged while R is held
 r, m, p = run(ROUTE + '200 300 R\n', 300)
 play = [x for x in r if x['mode'] == MODE_PLAY]
-check('card_blocks_control', len(play) > 10 and play[0]['x'] == play[min(len(play) - 1, 60)]['x'])
+# (play[0] is the spawn frame before the sensors settle Lilac on the start slope)
+check('card_blocks_control', len(play) > 10 and play[1]['x'] == play[min(len(play) - 1, 60)]['x'])
 # developer select: L+R within 2 s on the title screen
 r, m, p = run('30 32 l\n60 62 r\n', 90)
 check('dev_select_from_title', r[-1]['mode'] == MODE_SELECT)
