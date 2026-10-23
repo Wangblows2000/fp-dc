@@ -175,11 +175,9 @@ static int is_m5(const player_t *p) { return p->state == ST_BOOST || p->state ==
 /* bookkeeping when the core lands Lilac (events 1591/1592 already set B, G, N) */
 static void on_land(player_t *p) {
     p->springing = 0;
-    if (p->state == ST_BOOST) {
-        /* RV (boost_air_downright/downleft): a down-diagonal boost (8, 8) that lands carries on along the
-         * ground at a constant 10 for the rest of the boost */
-        p->gsp = (p->boost_vx > 0 ? 1. : -1.) * PHYS_BOOST_LAND; p->boost_vy = 0;
-        p->boost_vx = p->gsp;
+    if (p->state == ST_BOOST || p->state == ST_CHARGE) {
+        /* RE: a down-diagonal boost lands through the normal landing (1588-1592); the M5 group's 2010/2011
+         * then keep |B| >= 10 toward the facing */
         p->jumping = 0; p->cyclone_used = 0;
         return;
     }
@@ -328,26 +326,83 @@ static void jump(player_t *p) {
     snd_play(G.sfx.jump, 200, 128);
 }
 
-static void start_boost(player_t *p, const input_t *in) {
-    /* [KB] six directions: left/right and the four diagonals (no straight up/down) */
-    double dx = (in->held & BTN_LEFT) ? -1. : (in->held & BTN_RIGHT) ? 1. : (float)p->face;
-    double dy = (in->held & BTN_UP) ? -1. : (in->held & BTN_DOWN) ? 1. : 0.;
-    if (p->ground && dy > 0) dy = 0;                  /* down-diagonal on the ground = along the ground */
-    /* RV (boost_* traces): straight = 12, diagonals = (+-8, +-8) (not 12/sqrt2); straight up/down input
-     * gives the diagonal on the facing side, which the dx default above already does */
-    if (dy != 0) { p->boost_vx = dx * PHYS_BOOST_DIAG; p->boost_vy = dy * PHYS_BOOST_DIAG; }
-    else { p->boost_vx = dx * PHYS_BOOST; p->boost_vy = 0; }
-    p->face = dx > 0 ? 1 : -1;
-    p->state = ST_BOOST; p->state_t = 0; p->boost_used = 1;
+static void set_state(player_t *p, int s) { p->state = s; p->state_t = 0; }
 
-    if (dy < 0 && p->ground) detach(p);
-    /* RV (boost_* traces): B and G already hold the boost speed on the fire frame (before any move) */
-    if (p->ground) p->gsp = p->boost_vx;
-    else { p->vx = p->boost_vx; p->vy = p->boost_vy; }
-    snd_play_orig(53, 230, 128);                  /* RV: boost fire = 53 */
+/* ---- Dragon Boost (state M5), from the original's events (build/re/spec_boost.md) ----------------
+ * Entry (1760 M0 / 1788 M1 / 1822 M2 / 1837 M3 / 1895 M40 / 2048 cyclone): special held (cyclone: pressed)
+ * with a full meter; OTHERS.N = 0, sound 9; OTHERS.Q is reset except from M0 (1760). The entry frame keeps
+ * the old state's rules; the M5 group runs from the next frame. */
+static void start_charge(player_t *p, int from_m0) {
+    set_state(p, ST_CHARGE);
+    p->boost_n = 0;
+    if (!from_m0) p->boost_q = 0;
+    snd_play_orig(9, 230, 128);
 }
 
-static void set_state(player_t *p, int s) { p->state = s; p->state_t = 0; }
+/* movement + speed rules of one M5 frame (1584-1611, 1621-1651); the M5 group follows after the edge clamp */
+static void m5_move(player_t *p) {
+    int fired = p->boost_n >= 30;
+    core(p);
+    double *b = p->ground ? &p->gsp : &p->vx;
+    if (fired) {
+        /* 1637-1640: into a wall the big side sensor touches */
+        int hit = (*b > 0 && mv_sensor_right_big()) || (*b < 0 && mv_sensor_left_big());
+        if (hit && p->boost_q == 0) {             /* straight boost: bounce off and end (M = 1) */
+            double n = p->N, nb = 0.0 - *b * 0.5;
+            double g = -PHYS_JUMP * o_cos(n) - nb * o_sin(n);
+            p->ground = 0; p->vx = nb; p->vy = g; p->N = 0; p->jumping = 0;
+            p->energy = fmin(p->energy, 80.);
+            p->state = ST_NORMAL; p->m5_bounced = 1;
+            snd_play_orig(31, 230, 128);
+            return;
+        }
+        if (hit) { *b = -*b; p->face = -p->face; snd_play_orig(31, 230, 128); }   /* diagonal: reflect, continue */
+    }
+    if (p->ground) slope_force(p);                 /* 1644/1646 apply in M5 */
+    else {
+        if (!fired) p->vy += PHYS_GRAV;            /* 1647 (I = 0 once fired, 2007); G is reset by 1992 below */
+        if (fired && p->vy < 0 && mv_sensor_top_big()) { p->vy = -p->vy; snd_play_orig(31, 230, 128); }   /* 1650 */
+    }
+}
+
+/* the M5 group (1992-2012), after the level-edge clamp (1641/1642) */
+static void m5_group(player_t *p, const input_t *in) {
+    if (!p->ground) p->N = p->O = 0;               /* 1996 (before the fire events: an up-boost from the ground
+                                                    * keeps N for its first move) */
+    if (p->boost_n < 30) {                         /* charge: 1992 (+1), 1993, 1998-2001 */
+        p->boost_n++;
+        if (!p->ground) { p->vy = 0; if (p->boost_n < 30) p->vx = 0; }
+        if (p->boost_n < 30) {
+            if (in->held & BTN_LEFT) { p->face = -1; p->boost_q = 0; }
+            if (in->held & BTN_RIGHT) { p->face = 1; p->boost_q = 0; }
+            if (in->held & BTN_DOWN) p->boost_q = 1;
+            if (in->held & BTN_UP) p->boost_q = -1;
+        }
+    }
+    if (p->boost_n == 30) {                        /* fire: 2002-2006 */
+        snd_play_orig(53, 230, 128);
+        double *b = p->ground ? &p->gsp : &p->vx;
+        int L = p->ground;
+        if (p->boost_q == 0) *b = p->face > 0 ? fmax(*b, PHYS_BOOST) : fmin(*b, -PHYS_BOOST);
+        else {
+            double s = (PHYS_BOOST_DIAG + 4 * L) * p->face;
+            if (p->boost_q < 0) { p->ground = 0; p->vx = s; p->vy = -PHYS_BOOST_DIAG; }   /* 2005: L = 0, N kept */
+            else if (p->ground) p->gsp = s;          /* G = +8 is cleared by 1651 on the ground */
+            else { p->vx = s; p->vy = PHYS_BOOST_DIAG; }
+        }
+        p->boost_n = 31;
+        p->state = ST_BOOST;
+    }
+    if (p->boost_n >= 30) {
+        p->energy = fmax(0., p->energy - PHYS_ENERGY_DRAIN);                     /* 2007 */
+        if (!p->ground && p->vy == -PHYS_BOOST_DIAG) p->vx = fmax(-PHYS_BOOST_DIAG, fmin(PHYS_BOOST_DIAG, p->vx));   /* 2008 */
+        if (p->ground) p->gsp = p->face > 0 ? fmax(p->gsp, PHYS_BOOST_LAND) : fmin(p->gsp, -PHYS_BOOST_LAND);   /* 2010/2011 */
+        if (p->energy <= 0) {                                                    /* 2012 */
+            p->energy = 0; p->state = ST_NORMAL; p->boost_n = 0;
+        }
+    }
+    if (p->invuln < 30) p->invuln = 30;            /* 1997: E = max(E, 30) on every M5 frame */
+}
 
 /* RV (cyclone, cyc_down, dk_kick_then_cyc*): aerial cyclone sets vy = -3, or 0 when Down is held;
  * one per airtime (cyc_dk_cyc refused a second one); vx is kept (kick: 5) */
@@ -388,7 +443,7 @@ static int ground_actions(player_t *p, const input_t *in) {
         /* RV: charging needs a FULL energy meter; holding special waits for it (boost_hold_long) */
         /* RV (boost_upleft): the press frame still moves and takes the normal speed rules (L + special
          * from a standstill: B = -9E), then the charge (M5) freezes B and keeps moving with it */
-        if (p->energy >= PHYS_ENERGY_MAX) { ground_move(p, in, 1, 1); set_state(p, ST_CHARGE); snd_play_orig(9, 230, 128); return 1; }   /* RV: 9 */
+        if (p->energy >= PHYS_ENERGY_MAX) { ground_move(p, in, 1, 1); start_charge(p, 1); return 1; }   /* RE 1760/1822/1837: sound 9 */
     }
     if (in->pressed & BTN_JUMP) {
         /* RE order: move + sensors (1584-1611), speed rules (1621-1646), then the jump (3047) */
@@ -414,18 +469,22 @@ static void air_action_apply(player_t *p, const input_t *in, int act) {
     switch (act) {
     case ACT_DKWIND: set_state(p, ST_DKWIND); snd_play_orig(405, 220, 128); break;   /* RV: M19 anim 7, sound 405 */
     case ACT_AIRATK: set_state(p, ST_ATTACK); break;                                  /* RV: M20 anim 25 */
-    case ACT_CHARGE: set_state(p, ST_CHARGE); snd_play_orig(9, 230, 128); break;
+    case ACT_CHARGE: start_charge(p, 0); break;
     case ACT_CYCLONE: start_air_cyclone(p, in); break;
     }
 }
 
-/* RV: the original keeps Lilac inside X >= 16 (and <= width-16) once she moves (speed -> 0) */
+/* RE (events 1641-1643, speed group, after the movement): moving left (B < 0) with X <= CAM.C + 16 ->
+ * X = CAM.C + 16, B = 0; moving right (B > 0) with X >= CAM.E - 16 -> X = CAM.E - 16, B = 0, or during the
+ * act-end run-out (CAM.U = 2) the limit is CAM.E + 32. Standing still beyond the line (spawn at X 0) is not
+ * moved. The camera bounds C / E are the frame edges in the Dragon Valley acts. */
 #define EDGE_X 16.
 static void clamp_edges(player_t *p, double x0) {
-    /* only stops crossing the line; standing beyond it (spawn at X 0) is left alone, as in the original */
-    if (x0 >= EDGE_X && p->x < EDGE_X) { p->x = EDGE_X; if (p->ground) p->gsp = 0; else p->vx = 0; }
-    double r = G.lvl.w - EDGE_X;
-    if (x0 <= r && p->x > r && !G.clear_t) {   /* RV: during the act-end run-out she leaves the frame */ p->x = r; if (p->ground) p->gsp = 0; else p->vx = 0; }
+    (void)x0;
+    double *b = p->ground ? &p->gsp : &p->vx;
+    if (*b < 0 && p->x <= EDGE_X) { *b = 0; p->x = EDGE_X; }
+    double r = G.clear_t ? G.lvl.w + 32. : G.lvl.w - EDGE_X;
+    if (*b > 0 && p->x >= r) { p->x = r; *b = 0; }
 }
 
 static void fx_update(player_t *p, int st0) {
@@ -478,9 +537,12 @@ void player_update(player_t *p, const input_t *in) {
     if (p->invuln) p->invuln--;
     /* RV energy meter (GUIEnergy_127 alt A): -3/frame while boosting, -0.25/frame in the cyclone, else
      * +0.4/frame up to 100 (state at the start of the frame) */
-    if (p->state == ST_BOOST) p->energy = fmax(0., p->energy - PHYS_ENERGY_DRAIN);
+    /* the stage-start delay counts frames from the start in every state (original boost_cycle trace: the
+     * refill resumes the frame after a boost ends) */
+    int held = p->energy_hold > 0; if (held) p->energy_hold--;
+    if (p->state == ST_BOOST || p->state == ST_CHARGE) {}    /* M5: drained by the group (2007), no refill */
     else if (p->state == ST_CYCLONE) p->energy = fmax(0., p->energy - PHYS_ENERGY_CYCLONE);
-    else if (p->energy_hold > 0) p->energy_hold--;
+    else if (held) {}
     else p->energy = fmin(PHYS_ENERGY_MAX, p->energy + PHYS_ENERGY_REFILL);
     /* RE (event 1574, start of the movement block): B, G and N are floored to 4 decimals every frame */
     {
@@ -615,30 +677,11 @@ void player_update(player_t *p, const input_t *in) {
         ground_move(p, in, 0, 1);
         if (p->state_t >= PHYS_CROUCHATK_T) p->state = ST_NORMAL;
         break;
-    case ST_CHARGE:   /* RV (ground): speed frozen for 30 f, then auto-fire. Release first = cancel */
-        if (!(in->held & BTN_SPECIAL)) { p->state = ST_NORMAL; break; }
-        if (p->ground) ground_move(p, in, 0, 0);
-        else {                                         /* RV (boost_air_*): air charge hovers, B = G = 0, */
-            if (p->state_t == 1) air_move(p, in, 0, 0); /* after one last move with the old speed */
-            p->vx = 0; p->vy = 0;
-        }
-        if (p->state_t >= PHYS_CHARGE_T) start_boost(p, in);
+    case ST_CHARGE:   /* RE: M5 (charge, OTHERS.N < 30) and the boost: movement + speed rules here, */
+    case ST_BOOST:    /* the M5 group (timer, direction latch, fire, drain, end) after the edge clamp */
+        p->m5_bounced = 0;
+        m5_move(p);
         break;
-    case ST_BOOST: {  /* RV: speed 12 held constant for 33 f, then normal physics carry the speed */
-        double ox = p->x, oy = p->y;
-        if (p->ground && p->boost_vy >= 0) {
-            /* RV: B set to 12 when fired; afterwards only the slope force changes it (12 -> 12.82 down a 45 deg slope) */
-            if (p->state_t == 1) p->gsp = p->boost_vx;   /* (landed boosts keep their 10) */
-            ground_move(p, in, 0, 0);
-            if (p->ground) slope_force(p);
-        }
-        else { p->vx = p->boost_vx; p->vy = p->boost_vy; air_move(p, in, 0, 0); }
-        if (p->state == ST_BOOST && (p->state_t >= PHYS_BOOST_T || (p->x == ox && p->y == oy))) {
-            p->state = ST_NORMAL;
-            if (p->invuln < 30) p->invuln = 30;   /* [KB] brief invincibility after the boost (duration UNVERIFIED) */
-        }
-        break;
-    }
     case ST_HURT:     /* RV (hurt_turretus): knockback (-2.2*away, -4.2), gravity 0.5 + air drag; after
                        * landing M8 stays ~5 frames with ground friction */
         if (p->ground) { ground_move(p, in, 0, 1); if (p->state_t >= p->hurt_land_t + 5) p->state = ST_NORMAL; }
@@ -647,6 +690,9 @@ void player_update(player_t *p, const input_t *in) {
     }
 
     clamp_edges(p, x_start);
+    /* the M5 group starts the frame after the entry (1686 runs before the entry events 1760-1895) */
+    if ((p->state == ST_CHARGE || p->state == ST_BOOST) && (st0 == ST_CHARGE || st0 == ST_BOOST)) m5_group(p, in);
+    else if (p->m5_bounced) { p->m5_bounced = 0; p->energy = fmax(0., p->energy - PHYS_ENERGY_DRAIN); if (p->invuln < 30) p->invuln = 30; }  /* 1637/1639: the group still runs that frame */
     if (p->state != ST_DEAD && p->y > G.lvl.h + 64) {
         p->hp = 0; p->state = ST_DEAD; p->dead_t = 40; p->vy = 0;
         snd_play(G.sfx.hurt, 220, 128);
@@ -659,7 +705,7 @@ void player_update(player_t *p, const input_t *in) {
         double deg_s = p->O;
         if (p->state == ST_BOOST) {
             if (p->ground) p->rot = deg_s + (p->face < 0 ? 180. : 0.);
-            else p->rot = atan2(-p->boost_vy, p->boost_vx) * 57.29578;
+            else p->rot = atan2(-p->vy, p->vx) * 57.29578;
         } else if (p->ground) p->rot = deg_s;
         else {
             double r = fmod(p->rot, 360.); if (r < 0) r += 360.;

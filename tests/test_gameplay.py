@@ -71,8 +71,9 @@ check('dragon_boost', 30 <= len(b) <= 36 and max(abs(x['gsp']) for x in b) >= 11
 r = run('10 300 B\n', 320)
 first = next((i for i, x in enumerate(r) if x['st'] == 3), None)
 check('energy_starts_empty', r[0]['en'] < 1 and first is not None and first >= 240, 'en0 %.1f charge at %s' % (r[0]['en'], first))
-r = run('5 EN 100\n10 14 B\n', 60)
-check('boost_tap_nothing', all(x['st'] != 4 for x in r) and abs(r[-1]['gsp']) < 0.01)
+# RE (no release cancel in the M5 events) + original trace boost_tap: a 4-frame tap still charges and fires
+r = run('5 EN 100\n10 14 B\n', 80)
+check('boost_tap_fires', any(x['st'] == 4 for x in r) and max(abs(x['gsp']) for x in r) >= 11.9)
 r = run('10 12 X\n', 90)
 check('attack_and_recover', any(x['st'] == 1 for x in r) and r[-1]['st'] == 0)
 r = run('10 20 J\n30 45 J\n', 140)
@@ -156,7 +157,7 @@ check('one_cyclone_per_airtime', sum(1 for a, b in zip(r, r[1:]) if b['st'] == S
 # C boost needs a full meter; drains to 0 over the boost, refills 0.4/frame (250 frames)
 r = run('10 EN 100\n20 600 B\n', 600)
 starts = [k for k, (a, b) in enumerate(zip(r, r[1:])) if b['st'] == ST_CHARGE and a['st'] != ST_CHARGE]
-check('boost_energy_cycle', len(starts) == 2 and 278 <= starts[1] - starts[0] <= 320, 'charges at %s' % starts)
+check('boost_energy_cycle', len(starts) == 2 and 290 <= starts[1] - starts[0] <= 315, 'charges at %s' % starts)   # original: 301 (boost_cycle)
 r = run('10 EN 60\n20 100 B\n', 100)
 check('boost_needs_full_meter', not any(x['st'] in (ST_CHARGE, ST_BOOST) for x in r))
 # D left boost: sprite angle 180 (direction of motion), right boost 0
