@@ -70,7 +70,7 @@ void objects_spawn(void) {
  * while stood on, decay x0.8 otherwise); one-way flags 0/6 (4737/4738); carry 4061.
  * Fields: ox, oy = I, J; vx = E; vy = S; fx = last N; fl bit 0/6 one-way, bit 2 stood on.
  * Bridge logs: dir = A (index), oy = B (base y), fx = C (target), fy = D (current sag). */
-static double p_sin(double n) { return n == 180. ? 0. : sin(n / 57.29577951); }
+static double p_sin(double n) { return n == 180. ? 0. : fd_sin(n / 57.29577951); }
 static void plat_params(int t, double *F, double *Gm) {
     if (t == OT_PLAT_MOVE2) { *F = 2; *Gm = 120; } else if (t == OT_PLAT_MOVE3) { *F = 1; *Gm = 100; } else { *F = 1; *Gm = 10; }
 }
@@ -178,7 +178,7 @@ static void gan_anim(obj_t *o, int k) {             /* force_animation in the cu
 }
 static void gan_face(obj_t *o, const player_t *p) {  /* direction (int)(atan2 deg / 11.25); 8 / 24 keep the image */
     double py = p->y - ORIG_REF_DY;
-    double a = atan2(o->y - py, p->x - o->x) * 57.29577951; if (a < 0) a += 360;
+    double a = fd_atan2(o->y - py, p->x - o->x) * 57.29577951; if (a < 0) a += 360;
     int d = (int)(a / 11.25) & 31;
     if (d == 8 || d == 24) return;
     int left = d > 8 && d < 24;
@@ -268,7 +268,7 @@ static void spawn_pellet(float x, float y, int dir) {
     if (!e) return;
     e->type = OT_PELLET; e->alive = 1; e->x = floorf(x); e->y = floorf(y); e->fx = e->fy = 0; e->born = G.frame;
     float a = (float)(dir & 31) * 11.25f * 3.14159265f / 180.f;   /* PinballMovement::set_direction */
-    e->vx = PELLET_SPEED * cosf(a); e->vy = -PELLET_SPEED * sinf(a);
+    e->vx = PELLET_SPEED * (float)fd_cos(a); e->vy = -PELLET_SPEED * (float)fd_sin(a);
     if (A_PELLET >= 0) anim_set(&e->an, &G.objs, A_PELLET);
 }
 
@@ -294,7 +294,7 @@ static void throw_items(const obj_t *m, int type, int n) {
         if (!e) return;
         float ang = (float)(-150 + 120 * i / (n > 1 ? n - 1 : 1)) * 3.14159265f / 180.f;
         e->type = OT_ITEM_FLY; e->st = type; e->alive = 1; e->x = m->x; e->y = m->y - 16;
-        e->vx = 3.f * cosf(ang); e->vy = 3.f * sinf(ang) - 1.f;
+        e->vx = 3.f * (float)fd_cos(ang); e->vy = 3.f * (float)fd_sin(ang) - 1.f;
         if (a >= 0) anim_set(&e->an, &G.objs, a);
     }
 }
@@ -454,9 +454,9 @@ void objects_update(void) {
             break;
         case OT_DRAGONFLY:
             /* hover patrol (reconstructed) */
-            o->x = o->ox + sinf(o->t * 0.015f) * 40.f;
-            o->y = o->oy + sinf(o->t * 0.06f) * 6.f;
-            o->flip = cosf(o->t * 0.015f) > 0;  /* art faces left; mirror when moving right */
+            o->x = o->ox + (float)fd_sin(o->t * 0.015f) * 40.f;
+            o->y = o->oy + (float)fd_sin(o->t * 0.06f) * 6.f;
+            o->flip = (float)fd_cos(o->t * 0.015f) > 0;  /* art faces left; mirror when moving right */
             if (hit) { o->alive = 0; G.kills++; explode(o->x, o->y); player_bounce(p, -4.f); break; }
             if (hurt_touch) player_hurt(p, o->x);
             break;

@@ -93,8 +93,8 @@ void mv_reset(void) {
 /* the original's trig: cos is taken as 0 at exactly 90/270 and sin as 0 at exactly 180; degrees are
  * converted with the constant 57.29577951 */
 #define DEG 57.29577951
-static double o_cos(double n) { return (n == 270. || n == 90.) ? 0. : cos(n / DEG); }
-static double o_sin(double n) { return n == 180. ? 0. : sin(n / DEG); }
+static double o_cos(double n) { return (n == 270. || n == 90.) ? 0. : fd_cos(n / DEG); }
+static double o_sin(double n) { return n == 180. ? 0. : fd_sin(n / DEG); }
 
 static int clampi(double v, double lo, double hi) { if (v < lo) v = lo; if (v > hi) v = hi; return (int)v; }
 
@@ -205,7 +205,7 @@ static void angles_place_test(mv_t *m) {
 static double angle_calc(double A, double B) {
     double v = 0, C;
     if (A == 0) C = 0;
-    else { v = 0.0 - atan(B / A) * DEG; C = v; if (v < 0) { v += 180; C = v; } }
+    else { v = 0.0 - fd_atan(B / A) * DEG; C = v; if (v < 0) { v += 180; C = v; } }
     if (B < 0) { v += 180; C = v; }
     if (v == 0) {
         if (0 < A) { C = 180; if (B < 0) C = 270; return C; }

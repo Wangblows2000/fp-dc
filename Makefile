@@ -6,7 +6,7 @@
 TARGET = fpdc.elf
 OBJS = src/platform/plat_dc.o src/renderer/render_pvr.o src/resources/assets.o \
        src/physics/level.o src/physics/sensors.o src/characters/player.o src/game/objects.o src/game/game.o \
-       src/game/ui.o src/game/frontend.o src/game/loading.o src/game/vmu.o src/game/fe_hub.o src/game/save.o src/game/loadprof.o src/resources/pack.o src/game/snap.o
+       src/game/ui.o src/game/frontend.o src/game/loading.o src/game/vmu.o src/game/fe_hub.o src/game/save.o src/game/loadprof.o src/resources/pack.o src/game/snap.o src/physics/fmath.o
 
 FP_GAME ?= /mnt/user-data/uploads/Freedom Planet
 # BGM: music tracks put on the disc (default: the whole ADPCM library). Lean disc with only the
@@ -58,6 +58,7 @@ build/disc/data: $(DATA_DIR)/levels.txt
 	cp $(DATA_DIR)/sfx/*.wav build/disc/data/sfx/
 	python3 tools/twiddle_disc.py build/disc/data
 	python3 tools/pack_disc.py build/disc/data
+	if [ -n "$(DEMO)" ]; then cp "$(DEMO)" build/disc/data/demo.txt; fi   # verification builds: scripted input (plat_dc demo_load)
 	python3 tools/pad_disc.py build/disc/data
 
 cdi: $(TARGET)
