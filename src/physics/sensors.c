@@ -78,6 +78,13 @@ static const struct { double a, b; int mask; } SDEF[S_COUNT] = {
 static int edge_last_exact = -1;          /* Active +0xd1: last direction that had its own image */
 
 int mv_z(int s) { return S[s].z; }
+/* current placement of a sensor (as of the last movement pass): mask origin + row spans */
+int mv_sensor_rows(int s, int *ox, int *oy, const signed char **x0, const signed char **x1, int *h) {
+    if (s < 0 || s >= S_COUNT) return 0;
+    const smask_t *k = &MK[S[s].mask];
+    *ox = S[s].x - k->hx; *oy = S[s].y - k->hy; *x0 = k->x0; *x1 = k->x1; *h = k->h;
+    return 1;
+}
 int mv_sensor_left_big(void) { return S[S_LEFTBIG].z; }
 int mv_sensor_right_big(void) { return S[S_RIGHTBIG].z; }
 int mv_sensor_top_big(void) { return S[S_TOPBIG].z; }

@@ -64,7 +64,7 @@ int floor_probe(const level_t *l, float fx, float fy0, float maxdist, int oneway
         if (!okl) sl = s;
         if (!okr) sr = s;
         float dx = (okl ? 6.f : 0.f) + (okr ? 6.f : 0.f);
-        *angle = dx > 0 ? atan2f((float)(sl - sr), dx) : 0.f;
+        *angle = dx > 0 ? (float)fd_atan2((float)(sl - sr), dx) : 0.f;
     }
     return 1;
 }

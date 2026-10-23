@@ -17,6 +17,7 @@ static obj_t *alloc_obj(void) {
         if (!G.o[i].alive) { if (i >= G.nobjs) G.nobjs = i + 1; memset(&G.o[i], 0, sizeof G.o[i]); return &G.o[i]; }
     return NULL;
 }
+obj_t *obj_alloc(void) { return alloc_obj(); }
 
 static int A_LOG = -1;
 static int plat_type(int t) { return t == OT_PLAT_VALLEY || t == OT_PLAT_MOVE2 || t == OT_PLAT_MOVE3; }
@@ -42,11 +43,12 @@ void objects_spawn(void) {
         o->t = i * 13;
         if (lo->anim != 0xffff && lo->anim < G.objs.nanims) anim_set(&o->an, &G.objs, lo->anim);
         else o->an.b = NULL;
-        if (o->type == OT_TURRETUS) { o->hp = 2; o->st = 0; o->tm = 0; o->dir = 14; }   /* RE: created with direction 14 */
+        if (o->type == OT_TURRETUS) { o->A = 8; o->st = 0; o->tm = 0; o->dir = 14; }   /* RE: created with A = 8, direction 14 */
+        if (o->type == OT_DRAGONFLY) { o->A = 4; }                                      /* RE create_enemydragonfly_942: A = 4 */
         if (plat_type(o->type)) { o->vx = 0; o->vy = 0; o->fx = o->oy; o->fl = 0; }   /* 3565: I = X, J = Y */
         if (o->type == OT_LOG) { o->alive = 0; continue; }       /* the template log (placed off-screen) */
         if (o->type == OT_GANSEKI) {                   /* RE create_enemygansekijr_835: anim 0, direction 14 (left set), A = 8, B = 5 */
-            o->hp = 8; o->fy = 0; o->st = 0; o->tm = 0; o->dir = 14; o->flip = 1; o->vy = 0; o->ox = o->oy = 0; o->c = 0; o->fl = 0;
+            o->hp = 8; o->A = 8; o->fy = 0; o->st = 0; o->tm = 0; o->dir = 14; o->flip = 1; o->vy = 0; o->ox = o->oy = 0; o->c = 0; o->fl = 0;
             if (A_GAN[1] >= 0) anim_set(&o->an, &G.objs, A_GAN[1]);
         }
     }
@@ -188,39 +190,14 @@ static int gan_near_view(const obj_t *o) {          /* !is_near_border(-50): the
     float hx = o->flip ? 24.f : 23.f, x0 = o->x - hx, y0 = o->y - 36;
     return x0 >= G.camx - 50 && x0 + 48 <= G.camx + SCREEN_W + 50 && y0 >= G.camy - 50 && y0 + 48 <= G.camy + SCREEN_H + 50;
 }
-static void ganseki_events(obj_t *o, player_t *p, int touch, int hit) {
+static void ganseki_events(obj_t *o, player_t *p) {
     int def = (o->fl & GAN_DEFEATED) != 0;
     int waking = o->an.anim == A_GAN[2 * GAN_WAKE] || o->an.anim == A_GAN[2 * GAN_WAKE + 1];
     if (!def && o->st == 1 && waking && o->an.done) {                    /* 4381: wake animation finished */
         o->fx = (float)p->x; gan_face(o, p); gan_anim(o, GAN_WALK); waking = 0;
     }
-    /* 2731: contact (Lilac's character sensor), damage B = 5 through the hurt event */
-    if (touch && !def && o->c <= 0 && !player_contact_safe(p) && !p->hurt_pending) player_contact(p, 5);
-    /* attacks (2740 ground attack: 4 + |B|/10; body hits with Z = 1: |B|/5 + 3); armoured: deflect, sound 30 */
-    if (hit && !def && o->c <= 0) {
-        int kind = player_attack_kind(p);
-        double b = p->ground ? p->gsp : p->vx;
-        if (o->fl & GAN_ARMOURED) { o->c = 5; snd_play_orig(30, 220, 128); player_hitstop(p, 5); }
-        else if (kind) {
-            double dmg = kind == 1 ? 4.0 + fabs(b) / 10.0 : fabs(b) / 5.0 + 3.0;
-            o->fy -= (float)dmg;                                    /* A (HP) kept as a double in fy offset */
-            if (8.f + o->fy <= 0) o->hp = 0;
-            o->c = 5; snd_play_orig(24, 220, 128); player_hitstop(p, 5);
-            o->ox = (float)(fmax(3.0, fabs(1.5 * b)) * p->face);    /* knock-back X/Y, used after death (2765) */
-            o->oy = (float)(0.5 * (p->ground ? 0. : p->vy));
-        }
-    }
-    if (!def && o->c > 0) o->c--;                                        /* 2762 */
-    if (!def && o->hp <= 0) {                                            /* 2764 + 4387/4388 */
-        snd_play_orig(23, 220, 128); o->fl |= GAN_DEFEATED; o->hp = 0; o->y -= 3; o->st = 3; gan_anim(o, GAN_DEAD); def = 1;
-        G.kills++;
-    }
-    if (def) {                                                           /* 2765 / 2767 / 4389 */
-        o->x = (float)(int)(o->x + o->ox); o->y = (float)(int)(o->y + o->oy);
-        o->oy = fminf(o->oy + 0.25f, 15.f);
-        if (o->y > G.camy + 290 || o->x < 0 || o->x > G.lvl.w || o->y > G.lvl.h + 64) o->alive = 0;
-        return;
-    }
+    /* contact (2731), hits (2732-2759) and the shared 2762-2767 run in combat.c; 4387/4388: D = 3, anim 8 */
+    if (def) { if (o->an.anim != A_GAN[2 * GAN_DEAD] && o->an.anim != A_GAN[2 * GAN_DEAD + 1]) gan_anim(o, GAN_DEAD); return; }
     int near = gan_near_view(o);
     if (near) {
         if (!gan_solid(o->x, o->y + 11)) { o->y = (float)(int)(o->y + o->vy); o->vy = fminf(o->vy + 0.5f, 12.f); }   /* 4376 */
@@ -368,7 +345,7 @@ static void obj_box(const obj_t *o, float *x0, float *y0, float *x1, float *y1) 
 
 /* pixel test of the integer rect [rx0, rx1) x [ry0, ry1) against the object's current image mask
  * (Chowdren sprite collision: alpha != 0); objects without a sprite use their box */
-static int obj_rect_hit(const obj_t *o, int rx0, int ry0, int rx1, int ry1) {
+int obj_rect_hit(const obj_t *o, int rx0, int ry0, int rx1, int ry1) {
     if (!o->an.b) {
         float x0, y0, x1, y1; obj_box(o, &x0, &y0, &x1, &y1);
         return rx0 < x1 && x0 < rx1 && ry0 < y1 && y0 < ry1;
@@ -386,38 +363,101 @@ static int obj_rect_hit(const obj_t *o, int rx0, int ry0, int rx1, int ry1) {
     return 0;
 }
 
+/* a sensor mask (row spans at (ox, oy + j)) against the object's current image mask */
+int obj_rows_hit(const obj_t *o, int ox, int oy, const signed char *x0, const signed char *x1, int h) {
+    if (!o->an.b) return 0;
+    const frame_t *f = anim_frame(&o->an);
+    int bx = (int)floorf(o->x) - (o->flip ? f->w - f->hx : f->hx), by = (int)floorf(o->y) - f->hy;
+    if (ox > bx + f->w || ox + 27 < bx || oy >= by + f->h || oy + h <= by) return 0;
+    for (int j = 0; j < h; j++) {
+        int y = oy + j;
+        if (x1[j] < x0[j] || y < by || y >= by + f->h) continue;
+        for (int x = ox + x0[j]; x <= ox + x1[j]; x++) {
+            int lx = x - bx;
+            if (lx < 0 || lx >= f->w) continue;
+            if (o->flip) lx = f->w - 1 - lx;
+            if (frame_mask_px(o->an.b, f, lx, y - by)) return 1;
+        }
+    }
+    return 0;
+}
+/* Chowdren overlaps_background: any opaque pixel of the current image on solid background */
+int obj_overlaps_bg(const obj_t *o) {
+    if (!o->an.b) return solid_at(&G.lvl, o->x, o->y);
+    const frame_t *f = anim_frame(&o->an);
+    int bx = (int)floorf(o->x) - (o->flip ? f->w - f->hx : f->hx), by = (int)floorf(o->y) - f->hy;
+    if (o->ang == 0) {
+        for (int y = 0; y < f->h; y++)
+            for (int x = 0; x < f->w; x++)
+                if (frame_mask_px(o->an.b, f, o->flip ? f->w - 1 - x : x, y) && px_solid(&G.lvl, bx + x, by + y)) return 1;
+        return 0;
+    }
+    /* rotated image (angle CCW around the hotspot): each opaque pixel's centre, rotated */
+    double a = fmod((double)o->ang, 360.0) / 57.29577951, c = fd_cos(a), sn = fd_sin(a);
+    int hx = o->flip ? f->w - f->hx : f->hx, ox = (int)floorf(o->x), oy = (int)floorf(o->y);
+    for (int y = 0; y < f->h; y++)
+        for (int x = 0; x < f->w; x++) {
+            if (!frame_mask_px(o->an.b, f, o->flip ? f->w - 1 - x : x, y)) continue;
+            double lx = x + 0.5 - hx, ly = y + 0.5 - f->hy;
+            int wx = ox + (int)floor(lx * c + ly * sn), wy = oy + (int)floor(-lx * sn + ly * c);
+            if (px_solid(&G.lvl, wx, wy)) return 1;
+        }
+    return 0;
+}
+void obj_effect(float x, float y, const char *anim) { spawn_effect(x, y, bank_anim(&G.objs, anim)); }
+
 /* comparison harness: objects of the original trace have been animated n ticks before its frame 0 */
 void objects_pretick(int n) {
     for (int k = 0; k < n; k++)
         for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].an.b) anim_tick(&G.o[i].an, -1);
 }
 
+/* monitors / breakable rocks (their events 2632-2670 / 3243 / 4762 not ported yet): broken by a shield
+ * rectangle, or by Lilac's body in an attacking state or a jump (INFERRED, the port's earlier rule) */
+static int monitor_hit(const player_t *p, float bx0, float by0, float bx1, float by1) {
+    for (int i = 0; i < G.nobjs; i++) {
+        const obj_t *s2 = &G.o[i];
+        if (!s2->alive || s2->type != OT_SHIELD) continue;
+        if (overlap(s2->x - 40, s2->y - 40, s2->x + 57, s2->y + 25, bx0, by0, bx1, by1)) return 1;
+    }
+    if (!player_attack_kind(p)) return 0;
+    return overlap(p->x - 16, p->y - 40, p->x + 16, p->y + 2, bx0, by0, bx1, by1);
+}
+
 void objects_update(void) {
     player_t *p = &G.p;
     float px0 = p->x - 7, px1 = p->x + 7, py0 = p->y - 30, py1 = p->y;
     float sx0 = floorf(p->x) - 7, sx1 = floorf(p->x) + 8, sy0 = floorf(p->y - ORIG_REF_DY) - 34, sy1 = floorf(p->y - ORIG_REF_DY) + 12;
-    float ax0, ay0, ax1, ay1;
-    int atk = player_attack_box(p, &ax0, &ay0, &ax1, &ay1);
     int dead = p->hp <= 0;
+    static uint8_t act[MAX_OBJS];
 
+    /* update_objects: built-in movements and animations */
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i];
-        if (!o->alive) continue;
+        act[i] = 0;
+        if (!o->alive || o->type == OT_SHIELD) continue;
         o->t++;
         /* sleep far off-screen objects (Fusion-style "inactive if far") */
         if (fabsf(o->x - (G.camx + SCREEN_W / 2)) > SCREEN_W * 1.5f && o->type != OT_EXPLODE &&
-            o->type != OT_TURRETUS && o->type != OT_PELLET && !(o->type == OT_GANSEKI && o->st != 0)) continue;
+            o->type != OT_TURRETUS && o->type != OT_PELLET && !(o->type == OT_GANSEKI && o->st != 0) && !(o->fl & 0x40 && enemy_type(o->type))) continue;
         /* objects created by this frame's events are first moved/tested next frame (RE frame order:
          * update_objects, then events) */
         if (o->type == OT_PELLET && o->born == G.frame) continue;
         if (o->type == OT_PELLET) pellet_move(o);                 /* update_objects: movement, then animation */
         anim_tick(&o->an, -1);
+        act[i] = 1;
+    }
+    /* Lilac's attacks and contact, shared enemy events (2731-2767) */
+    combat_frame(p);
+    /* per-object events */
+    for (int i = 0; i < G.nobjs; i++) {
+        obj_t *o = &G.o[i];
+        if (!o->alive || !act[i]) continue;
         float bx0, by0, bx1, by1;
         obj_box(o, &bx0, &by0, &bx1, &by1);
-        /* enemies and hazards hit Lilac's PlayerCharacterSensor_375 (RE: 15x46, hotspot 7,34 at (int X,
-         * int Y), i.e. 48..2 px above the feet; RV turretus_jumpinto: passing 2 px above a Turretus is safe) */
+        /* hazards hit Lilac's PlayerCharacterSensor_375 (RE: 15x46, hotspot 7,34 at (int X, int Y)) */
         int hurt_touch = !dead && overlap(sx0, sy0, sx1, sy1, bx0, by0, bx1, by1) && obj_rect_hit(o, (int)sx0, (int)sy0, (int)sx1, (int)sy1);
-        int hit = !dead && atk && overlap(ax0, ay0, ax1, ay1, bx0, by0, bx1, by1);
+        int defeated = enemy_type(o->type) && (o->fl & 0x40);
         switch (o->type) {
         case OT_CRYSTAL:
             /* RE (events 2543 + loop_collect_item 1289/1291): not while hurt (M8) or defeated; the crystal's
@@ -453,12 +493,11 @@ void objects_update(void) {
             }
             break;
         case OT_DRAGONFLY:
+            if (defeated) break;
             /* hover patrol (reconstructed) */
             o->x = o->ox + (float)fd_sin(o->t * 0.015f) * 40.f;
             o->y = o->oy + (float)fd_sin(o->t * 0.06f) * 6.f;
             o->flip = (float)fd_cos(o->t * 0.015f) > 0;  /* art faces left; mirror when moving right */
-            if (hit) { o->alive = 0; G.kills++; explode(o->x, o->y); player_bounce(p, -4.f); break; }
-            if (hurt_touch) player_hurt(p, o->x);
             break;
         case OT_PELLET: {
             /* RE col_4_20: the pellet hits Lilac's sensor (PlayerCharacterSensor_375, 15x46, hotspot 7,34 at
@@ -474,15 +513,14 @@ void objects_update(void) {
             break;
         }
         case OT_GANSEKI:
-            ganseki_events(o, p, hurt_touch, hit);
+            ganseki_events(o, p);
             break;
         case OT_TURRETUS:
+            if (defeated) { set_anim_keep(o, A_TURR[4 + dir_left(o->dir)]); break; }   /* 4775: anim 8 */
             turretus_events(o, p, bx0, by0, bx1, by1);
-            if (hit && o->t > 0) { if (--o->hp <= 0) { o->alive = 0; G.kills++; explode(o->x, o->y); } else o->t = -20; player_bounce(p, -4.f); break; }
-            if (hurt_touch) player_hurt(p, o->x);
             break;
         case OT_ROCK: case OT_MONITOR: case OT_MON_RINGS: case OT_MON_1UP: case OT_MON_INVINC:
-            if (hit) {
+            if (!dead && monitor_hit(p, bx0, by0, bx1, by1)) {
                 obj_t m = *o;                /* the freed slot is reused by the thrown items */
                 o->alive = 0; explode(m.x, m.y - 8);
                 monitor_reward(&m, p);
@@ -552,8 +590,13 @@ void objects_draw(int front) {
         if (!o->alive || !o->an.b || o->type == OT_HANG || o->type == OT_LADDERTOP || o->type == OT_BRIDGE) continue;   /* sensors / LadderTop are invisible */
         float sx = floorf(o->x - G.camx), sy = floorf(o->y - G.camy);
         if (sx < -96 || sx > SCREEN_W + 96 || sy < -96 || sy > SCREEN_H + 96) continue;
-        frame_draw(&G.objs, anim_frame(&o->an), sx, sy, o->flip, 0xffffffff);
+        if (o->type == OT_SHIELD) continue;
+        if (o->inv) r_set_invert(1);
+        if (o->ang != 0) frame_draw_rot(&G.objs, anim_frame(&o->an), sx, sy, o->ang, o->flip, 0xffffffff);
+        else frame_draw(&G.objs, anim_frame(&o->an), sx, sy, o->flip, 0xffffffff);
+        if (o->inv) r_set_invert(0);
     }
+    combat_draw_shields(1);           /* visible slash shields, behind Lilac */
 }
 
 /* Collision groups tested by Lilac's sensors (RE: QualifierLists of frame 21, read at runtime):

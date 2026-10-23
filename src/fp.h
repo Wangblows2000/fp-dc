@@ -121,6 +121,7 @@ void   r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, floa
 void   r_end(void);
 void   r_tex_free(tex_t *t);           /* free one texture */
 void   r_reset(void);                 /* free all textures (level change) */
+void   r_set_invert(int on);         /* following sprites drawn colour-inverted (Chowdren invert shader) */
 void   r_set_letterbox(int on);       /* presentation only: 1 = 16:9 letterboxed (x1.5), 0 = 4:3 fill (x1.5, x2) */
 
 /* ---------------------------------------------------------------- resources */
@@ -163,7 +164,7 @@ enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_MON_INVINC = 4, OT_MON
        OT_SPRING = 8, OT_SIGN = 9, OT_TURRETUS = 10, OT_ROCK = 11, OT_MONITOR = 12,
        OT_SPRING_UL = 13, OT_SPRING_UR = 14, OT_SPRING_R = 15, OT_SPRING_L = 16, OT_HANG = 17,
        OT_PARALLAX = 20, OT_LADDERTOP = 30, OT_GANSEKI = 31,
-       OT_PLAT_VALLEY = 32, OT_PLAT_MOVE2 = 33, OT_PLAT_MOVE3 = 34, OT_BRIDGE = 35, OT_LOG = 36, OT_EXPLODE = 100, OT_PELLET = 101, OT_ITEM_FLY = 102 };
+       OT_PLAT_VALLEY = 32, OT_PLAT_MOVE2 = 33, OT_PLAT_MOVE3 = 34, OT_BRIDGE = 35, OT_LOG = 36, OT_EXPLODE = 100, OT_PELLET = 101, OT_ITEM_FLY = 102, OT_SHIELD = 103 };
 
 #define MAX_ATLAS 4
 typedef struct {
@@ -226,6 +227,9 @@ typedef struct {
     int lad_y, lad_o, lad_lt, lad_first;
     int hitstop;                  /* RE PlayerOthers.K */
     double mom_vx;                /* port change: horizontal speed when the down-kick wind-up started */
+    int hs_off;                   /* RE 1654/1655: movement + speed groups off while K counts down */
+    int hit_i;                    /* RE PlayerOthers.I: hits while in contact (body hits need I < 4) */
+    int sh_latch;                 /* RE SKIN flag 2: one shield per swing */
     int hurt_pending;             /* RE movement R = 1 + GUILifeBaseMeter.B: contact damage applied by 2414 the next frame */   /* RE ladder: OTHERS.Y selector (27 climb, 29 down, 28 climb-over, 47 catch), SKIN.O counter, LadderTop, first frame after a grab */         /* RE: OTHERS.N charge/boost timer (fires at 30), OTHERS.Q latched vertical direction (-1 up, 0, +1 down) */
     float spawn_x, spawn_y;
     int dead_t;
@@ -237,6 +241,9 @@ typedef struct {
     float x, y, ox, oy, vx, vy, fx, fy;
     int t, flip, par;
     int c, fl;                   /* recovered enemy hit timer C (5 after a hit) and alterable flags (bit 5 armoured, bit 6 defeated) */
+    double A, kx, ky;            /* shared enemy rules (spec_combat.md): HP A, knock-back X, Y */
+    float ang;                   /* sprite angle (defeated spin) */
+    int inv, absorbed;           /* invert shader on (hit flash); crystals absorbed (S) */
     animator_t an;
 } obj_t;
 
@@ -301,10 +308,30 @@ void game_draw(void);
 void player_reset(player_t *p, double x, double y);
 void player_update(player_t *p, const input_t *in);
 void player_draw(const player_t *p);
-int  player_attack_box(const player_t *p, float *x0, float *y0, float *x1, float *y1);
 int  player_invincible(const player_t *p);
 int  player_contact_safe(const player_t *p);   /* RE 2731: movement Z = 1 (boost...), attacking states, R set, E > 0 */
-int  player_attack_kind(const player_t *p);    /* 1 ground attack (insta-shield), 2 body hit (Z = 1), 0 none */
+int  player_attack_kind(const player_t *p);    /* legacy: monitors/rocks (shield or Z = 1 body), 0 none */
+int  player_body_z(const player_t *p);         /* RE movement Z = 1: charge/boost (M5) and the kick wind-up (M19) */
+int  player_char_sensor_small(const player_t *p); /* RE 2471-2489: PlayerCharacterSensor anim 1 (small) */
+int  player_anim_frame(const player_t *p);     /* skin animation frame index */
+int  player_anim_is(const player_t *p, const char *name);
+/* Lilac's states (original movement M in comments) */
+enum { ST_NORMAL, ST_ATTACK, ST_CYCLONE, ST_CHARGE, ST_BOOST, ST_HURT, ST_DEAD,
+       ST_UPPERCUT, ST_DKWIND, ST_DIVEKICK, ST_CROUCHATK, ST_HANG,
+       ST_PUSH,        /* M11: pushing against a wall (events 1752/1753, group 1873-1881) */
+       ST_LADDER,      /* M46: on a ladder (1926-1950, 4043-4047) */
+       ST_LADDERIN };  /* M25: climbing down into a ladder from its top (4058, 1888-1890) */
+/* src/game/combat.c (build/re/spec_combat.md) */
+void combat_frame(player_t *p);
+void combat_draw_shields(int behind);
+int  enemy_type(int type);
+int  obj_rect_hit(const obj_t *o, int rx0, int ry0, int rx1, int ry1);
+int  obj_rows_hit(const obj_t *o, int ox, int oy, const signed char *x0, const signed char *x1, int h);
+obj_t *obj_alloc(void);
+void   obj_effect(float x, float y, const char *anim);
+int    obj_overlaps_bg(const obj_t *o);
+int  mv_sensor_rows(int s, int *ox, int *oy, const signed char **x0, const signed char **x1, int *h);
+enum { SENS_MAIN = 0, SENS_LEFTBIG = 2, SENS_RIGHTBIG = 4, SENS_TOPBIG = 6, SENS_BOTTOMBIG = 8 };
 void player_hitstop(player_t *p, int k);
 void player_contact(player_t *p, int damage);  /* RE 2731: R = 1, damage queued for the next frame's 2414 */       /* RE PlayerOthers.K: Lilac frozen K - 1 frames (1654/1655) */
 int  cross_rand(int n);                        /* RE cross_seed LCG: ((seed >> 16) & 0x7fff) * n >> 15 */
