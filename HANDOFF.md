@@ -18,19 +18,30 @@ source /opt/toolchains/dc/kos/environ.sh && make && make cdi        # build/fpdc
 ```
 Boot flow: Press Start → title (START GAME / TIME ATTACK / GALLERY / OPTIONS / QUIT). Developer level select: L+R within 2 s on the title screen only.
 
-## Latest verified (2026-10-23, session 4)
-- host-test: gameplay 38/38, front end 9/9 (valgrind clean).
-- original-trace vs host-test: **16/16 baseline, 57/70 overall, strict 2524/10471 exact frames** (ratchet in tests/orig/strict_baseline.txt). First failing frames are in BUILD_AND_TEST_LOG.
-- Recovered from the executable (RE_NOTES.md): damage + 60-frame invulnerability, Turretus + pellet (shot and hit on the original's exact frames), camera, animation counter rule, angle smoothing, slope force, landing formula, 4-decimal rounding (physics now in doubles), fall cap 15.25, handlebar grab, landing reach from the bottom sensor.
-- emulator (Flycast): unchanged since session 3 for the front end; DV1 with the new camera checked.
+## Latest verified (2026-10-23, session 5)
+- host-test: gameplay 39/39, front end 11/11.
+- original-trace vs host-test: **16/16 baseline, 69/70 overall, strict 10033/10471 (95.8%)**. The only failure, boost_upright, is an unported enemy (Ganseki Jr.).
+- Ported this session (RE_NOTES.md / RUNTIME_MAP.md):
+  - sensor collision and horizontal speed;
+  - title screen events 307-330;
+  - crystal/petal pickup; monitors (crystals, petals, 1-up, invincibility);
+  - hair overlay; corrected Lilac animation map (skid 16, hurt 8, fastrun 23);
+  - move overlays (cyclone/boost/invincibility sparkles); cyclone energy drain;
+  - DV4 music m_boss;
+  - silent loading screen.
+- emulator (Flycast): title, loading screen, DV1-DV4 boot and play. Audio not audible in the VM.
 
-## How to recover more logic (see RE_NOTES.md "Method")
-`tools/re/decomp.sh 'Frames::event_func_N()'` (Ghidra project build/re/ghidra/fp: create once with `analyzeHeadless build/re/ghidra fp -import <Chowdren> -noanalysis`), `tools/re/annot.py`, tracer `WATCH` / `WHO` commands, `tools/re/callgraph.py`. Re-record any trace after probes from a fresh game (`start_orig.sh` + `route_dv1.sh`).
+## Tracer probes added (tools/orig/trace_orig.py)
+- `TRACE_ADDOBJ=a32bd0,a32e00` logs every object creation with its caller event.
+- `TRACE_CREATE=<create_fn>` logs the caller of a create_ function.
+- `TRACE_FANIM=<vtable+0x10>` logs force_animation and set_direction on a class.
+- `SHOTS=f1,f2` takes screenshots at those frames.
+- XVT entries can be added for runtime objects with `<f> REFIND`. They now include the object's x and y.
 
 ## Next three actions
-1. **Port the sensor system** (`loop_player01detectsensor*`, `loop_player01up/down/slopes*/wallcollision`, angle routines in events 1590 and 1603). It explains most remaining differences: landing angle, start-slope angle, push-out from solids.
-2. **Results screen** from the located block (DV4 events 4560–4589, `loop_tally_19`): timeline, positions, tally, sounds.
-3. Turretus hit-by-attack (events 4776/4777: A = 8 health), pellet destroy handlers (`col_7_20`, `col_20_20`), handlebar release/move (4057–4066), jump animation frame selection.
+1. Ganseki Jr. and the other DV enemies; obstacle-group objects (platforms) in the sensor test.
+2. Results screen (DV4 events 4560-4589) and the Serpentine boss (DV4).
+3. Thrown-item motion and the 1-up jingle length from the original (both INFERRED now); boost white trail check against `build/re/fx` shots.
 
 ## Known issues / INFERRED
 Results layout, card timings, transition stagger, pause cursor and the handlebar release are INFERRED. Walk/run anim speeds fitted. Down-kick → cyclone sequences differ by ~3 frames. GALLERY not implemented; only Lilac playable. FP_PROFILE overlay is visible bottom-left in DC builds.

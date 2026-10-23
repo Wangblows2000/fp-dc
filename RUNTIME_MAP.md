@@ -93,7 +93,12 @@ Tags: **RV** = runtime-verified (traced in the running game) · **SD** = static-
 | Dragon Boost | hold c with a FULL meter | M5 / 7, then M5 / 13 | a tap does nothing; needs energy = 100. Holding: 30-frame charge (speed frozen; in the air one move frame, then hover), then auto-fires for 33 frames: straight 12, diagonals (±8, ±8); Up/Down alone give the facing-side diagonal; a down-diagonal boost that lands continues on the ground at 10. Slope force still applies. Sprite angle = direction of travel; left-facing boosts use the dir-16 frames rotated 180° |
 
 ## Animation selection (playerskinsash_341, RV indices)
-idle 0 · walk 1 (0 < |B| < 5) · run 2 (5 ≤ |B| < 9.5) · fastrun 22 (≥ 9.5) · jump 24 · skid 17 · lookup 11 · crouch 10 · attack 26 · airatk 25 · uppercut 28 · charge / down-kick windup 7 · down kick 19 · cyclone 18 · boost 13 · hurt 16 · defeat 38 · crouch kick 30 · spring 14. Walk/run playback speeds are fitted (≈30 and ≈35+|B|), not read from code.
+Active animation id (byte at +0xb1; the old image-table labels said 17 for skid, 22 for fastrun and 16 for hurt, which were wrong): idle 0 · walk 1 (0 < |B| < 5) · run 2 (5 ≤ |B| < 9.5) · fastrun 23 (≥ 9.5) · jump 24 · skid 16 · lookup 11 · crouch 10 · attack 26 · airatk 25 · uppercut 28 · charge / down-kick windup 7 · down kick 19 · cyclone 18 · boost 13 · hurt 8 · defeat 38 · crouch kick 30 · spring 14 · hang 15. RE: skin animation by OTHERS.Y, events 2426-2470. The hair overlay (PlayerSkinSashHair_424) always has the skin's animation id, with its own frames and speeds, drawn behind at the same position and angle. Walk/run playback speeds are fitted (≈30 and ≈35+|B|), not read from code.
+
+## Move overlay effects (RV `build/re/fx` probes: TRACE_ADDOBJ / sparkle positions; RE events 2043, 2834, 2844, 2845)
+- Cyclone (M26): RingSparkle_142 every 6 frames from the first M26 frame at (int X, int Y) + rand 0..40 − 20 per axis; an invisible ShieldInstaShield_407 is created with it. Energy −0.25 per frame (state at frame start).
+- Charge and boost (M5): RingSparkle every other frame at ±8. PlayerOthers D = 1, E = 29 during M5 (and for 29 frames after).
+- Invincibility (Others D = 1; boost or monitor): Sparkle1_316…Sparkle4_400 orbit an anchor (int X, int Y − 4): 1/2 at radius 20, D +7°/frame, 180° apart; 3/4 at radius 10, +10°/frame. Position = anchor + r·(sin D, −cos D). Anchors follow Lilac every 3 frames (1/2) and 6 frames (3/4). Every 6 frames a Sparkle5_284 (anim 4, plays once) is left at each orbiting sparkle.
 
 ## Comparison harness
 `tools/orig/run_all.sh` traces every `tests/orig/*.txt` in the original; `tools/orig/cmp_all.sh` runs the same inputs in the fpdc host build and checks key outcomes (apex, top speed, time to top, airtime, distance, stop timing). The **16 baseline sequences pass** (host-test vs original-trace); 46 of 71 sequences pass overall (see BUILD_AND_TEST_LOG for the failing ones and their first failing frames).
@@ -132,7 +137,7 @@ Note: after a few jumps between frames the original swapped the playable charact
 Spring sound id 5 (played on contact).
 
 ## Skid / turning rule (RV, `skid`, `spring_yellow_right`)
-Input against the motion: if it turns Lilac round, that frame is friction (5E / 9E) + acceleration toward the input, and the skid state starts next frame (−0.5/frame, anim 17, until stopped). If she already faces the input (e.g. thrown backwards by a spring), there is no skid, just friction + acceleration every frame (6E above speed 2, ×9 rules below).
+Input against the motion: if it turns Lilac round, that frame is friction (5E / 9E) + acceleration toward the input, and the skid state starts next frame (−0.5/frame, anim 16, until stopped). If she already faces the input (e.g. thrown backwards by a spring), there is no skid, just friction + acceleration every frame (6E above speed 2, ×9 rules below).
 
 ## Landing (RE/RV)
 Ground is detected by PlayerSensorBottomBig_334 (11×11 at floor Yref + 13): surface rows up to **floor(feet) + 4** count, then the slope loops move Lilac onto the surface. Landing speed (event 1591): **B = B − G·0.84·sin(N)** for 22° < N < 338°, with N from the landing-angle routine (not ported yet; ours measures the angle differently). A boost that lands keeps its speed. Falling speed tops out at **15.25** (event 1577 clamps G to 15 before gravity).
@@ -144,7 +149,7 @@ On the frame the head reaches a ceiling, vy becomes 0 at once (no gravity that f
 8 jump · 9 boost charge · 53 boost fire · 21 attack swing (7 frames in) · 288 + 174 cyclone · 405 kick windup · 176 + 396 kick launch · 17/25/81 hurt · 28 Turretus shot · 5 spring · 27 crystal pickup · 4 pickup (ambiguous) · 100 Press Start · 64 menu move · 63 confirm · 56 begin.
 
 ## Music (RV: `loop_play_music_<n>_<frame>` / `on_frame_N` handlers)
-m_title (title frames) · m_menu1 (character / stage select) · m_stage1 (DV frame 20) · m_stage1b (21–22) · m_boss (23) · m_clear → m_results (results, Time Attack trace: m_clear at act end, m_results 150 frames later). BGM loops whole-file: ChowdrenAudio has no loop points (SD). `m_stage2a.ogg` is referenced but absent in this build.
+m_title (title frames) · m_menu1 (character / stage select) · m_stage1 (DV frame index 20) · m_stage1b (21–22) · m_boss (23 = DV4; RE: `Frames::loop_play_music_4_23` string) · m_stage2 (24, Relic Maze 1) · m_invincibility (invincibility monitor) · m_1up (1-up monitor) · m_clear → m_results (results, Time Attack trace: m_clear at act end, m_results 150 frames later). BGM loops whole-file: ChowdrenAudio has no loop points (SD). `m_stage2a.ogg` is referenced but absent in this build.
 
 ## Front end (RV positions in the original frames; 426×240 view)
 - Index 2 = Press Start (camera 107,0). Index 3 = 1440×480 hub: title menu camera (43,0), file select (43,240), options (523,0). Index 6 = character select, 11 = Time Attack stage select (camera 107,0).
@@ -172,3 +177,11 @@ Meter frame 3784 at (8,8); fill 7439 at (16,10) scaled by energy/100 and drawn o
 - **Precision:** the original floors B, G, N to 4 decimals every frame in doubles; the port now uses doubles for Lilac's physics.
 - **Handlebar:** grabbed by the top-big sensor while falling; Lilac hangs at (sensor x, sensor y + 32).
 - **Results screen:** located (DV4 events 4560–4589, `loop_tally_19`), not ported; the port's layout is still INFERRED.
+
+## Monitors and items (RE events 2543, 1288-1291, 2527-2531, 2632-2670)
+- Crystal: reach X ±19, Y −39..+19 of (int X, int Y); not while hurt (M8/M9); energy +5 (max 100); crystal counter −1; sound 27; RingSparkle.
+- Petal: reach Y −31..+19; sound 37; flies to the HUD counter; +1 half-petal (+2 on Casual), sound 4, two hearts. No pickup at full health (RV).
+- MonitorCrystals throws 7 crystals (loop_spawn_crystals 1323), MonitorRings throws petals, Monitor1up gives a life, MonitorInvincibility sets Others D = 1, E = 1800 and plays m_invincibility. Throw arcs and the 1-up jingle length are INFERRED.
+
+## Loading screen and audio (port design, host-test + emulator)
+Every level, front-end and boot load runs behind a black loading screen with ObjectCrystal_317's spin bottom-right. The music stream and every SFX channel are stopped for the whole load, and the next track starts after it. Root cause of the doubled or stuttering music on the Dreamcast: the AICA loops the stream ring buffer in hardware (`chan->loop = 1`), and blocking GD-ROM loads starve the refill thread, so stale halves replay. Also fixed: the stream volume was set before `snd_stream_start`, which forces volume 255.
