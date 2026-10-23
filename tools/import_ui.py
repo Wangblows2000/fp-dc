@@ -20,17 +20,26 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from convert import write_tex, pack
 
 MAX_ENT = 40
+ACT = {}
 
 def load_img(src, i):
     im = Image.open(os.path.join(src, 'img_%d.png' % i)).convert('RGBA')
     m = [int(v, 0) for v in open(os.path.join(src, 'img_%d_meta.txt' % i)).read().split()]
     hx, hy = [v - 65536 if v > 32767 else v for v in m[:2]]
+    ax, ay = ([v - 65536 if v > 32767 else v for v in m[2:4]] if len(m) >= 4 else (hx, hy))
+    ACT[i] = (ax, ay)                 # Fusion action point (relative to the image's top-left)
     return im, hx, hy
 
 def main():
     frames_dir, src, out, name = sys.argv[1:5]
     # "<frame>+<class_id>" adds a runtime-created class (not placed in the frame) to that frame's scene,
     # off-screen at (-1000, -1000), e.g. 3+titlestar_53 (event 307 creates 250 of them)
+    # "-x REGEX" leaves out classes whose name matches (e.g. stage previews of stages the port lacks)
+    import re
+    argv = sys.argv[5:]; excl = []
+    while '-x' in argv:
+        i = argv.index('-x'); excl.append(re.compile(argv[i + 1])); del argv[i:i + 2]
+    sys.argv[5:] = argv
     frame_nos = [int(v) for v in sys.argv[5:] if '+' not in v]
     extra = {}
     for v in sys.argv[5:]:
@@ -46,6 +55,7 @@ def main():
         for k in extra.get(fno, []):
             c, i = k.rsplit('_', 1)
             fr['objects'].append({'cls': c, 'id': int(i), 'x': -1000, 'y': -1000, 'layer': 0, 'kind': 'obj'})
+        fr['objects'] = [o for o in fr['objects'] if not any(r.search(o['cls']) for r in excl)]
         for o in fr['objects']:
             key = '%s_%d' % (o['cls'], o['id'])
             e = an.get(key, {})
@@ -66,7 +76,7 @@ def main():
                 if gk not in gindex:
                     gindex[gk] = len(groups); groups.append(gk)
                 refs.append((ai, dk, gindex[gk]))
-            objs.append((o['cls'], o['x'], o['y'], o['layer'], 0 if o.get('kind') == 'bg' else 1, refs))
+            objs.append((o['cls'], o['x'] if o['x'] is not None else -1000, o['y'] if o['y'] is not None else -1000, o['layer'], 0 if o.get('kind') == 'bg' else 1, refs))
         scenes.append((fno, fr['width'], fr['height'], objs))
     # assign groups to atlases (whole sequences per atlas)
     imgs = {}
@@ -111,6 +121,8 @@ def main():
             seq += [ids.index(i) for i in fr_ids]; first += len(fr_ids)
             gloc[gi] = (bi, k)
         data += struct.pack('<%dH' % len(seq), *seq)
+        # 'ACT1' + per frame s16 ax, ay: action points (menus place the cursor on a label's action point)
+        data += b'ACT1' + b''.join(struct.pack('<2h', *ACT.get(i, (0, 0))) for i in ids)
         open(os.path.join(out, bn + '.spr'), 'wb').write(data)
         print('bank %s: %d images, %d anims, atlas %d' % (bn, len(ids), len(gl), size))
     for fno, w, h, objs in scenes:

@@ -16,20 +16,27 @@ int r_init(void) { return 0; }
 
 int r_tex_load(tex_t *t, const void *data, size_t size) {
     const uint8_t *d = data;
-    if (size < 16 || memcmp(d, "FPTX", 4) || ntex >= MAXTEX) return -1;
+    int slot = 0;
+    while (slot < ntex && (texs[slot].px || texs[slot].idx)) slot++;      /* reuse freed slots */
+    if (size < 16 || memcmp(d, "FPTX", 4) || slot >= MAXTEX) return -1;
     uint16_t hdr[6]; memcpy(hdr, d + 4, 12);
     size_t bpp = hdr[2] == 1 ? 1 : 2;
     if (hdr[2] > 1 || (size_t)hdr[0] * hdr[1] * bpp + 16 > size || (hdr[2] == 1 && hdr[5] > 3)) return -1;
-    texs[ntex].w = hdr[0]; texs[ntex].h = hdr[1]; texs[ntex].fmt = hdr[2]; texs[ntex].grp = hdr[5];
+    texs[slot].w = hdr[0]; texs[slot].h = hdr[1]; texs[slot].fmt = hdr[2]; texs[slot].grp = hdr[5];
     if (hdr[2] == 1) {
-        texs[ntex].idx = malloc((size_t)hdr[0] * hdr[1]);
-        memcpy(texs[ntex].idx, d + 16, (size_t)hdr[0] * hdr[1]);
+        texs[slot].idx = malloc((size_t)hdr[0] * hdr[1]);
+        memcpy(texs[slot].idx, d + 16, (size_t)hdr[0] * hdr[1]);
     } else {
-        texs[ntex].px = malloc((size_t)hdr[0] * hdr[1] * 2);
-        memcpy(texs[ntex].px, d + 16, (size_t)hdr[0] * hdr[1] * 2);
+        texs[slot].px = malloc((size_t)hdr[0] * hdr[1] * 2);
+        memcpy(texs[slot].px, d + 16, (size_t)hdr[0] * hdr[1] * 2);
     }
-    t->id = ntex++; t->w = hdr[0]; t->h = hdr[1]; t->srcw = hdr[3]; t->srch = hdr[4];
+    t->id = slot; if (slot == ntex) ntex++; t->w = hdr[0]; t->h = hdr[1]; t->srcw = hdr[3]; t->srch = hdr[4];
     return 0;
+}
+
+void r_tex_free(tex_t *t) {
+    if (t->id < 0 || t->id >= ntex) return;
+    free(texs[t->id].px); free(texs[t->id].idx); texs[t->id].px = NULL; texs[t->id].idx = NULL; t->id = -1;
 }
 
 void r_reset(void) {

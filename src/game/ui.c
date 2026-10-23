@@ -20,7 +20,7 @@ int ui_banks_load(ui_banks_t *b, const char *prefix, int n) {
 }
 
 void ui_banks_free(ui_banks_t *b) {
-    for (int i = 0; i < b->n; i++) { free(b->bank[i].frames); free(b->bank[i].anims); free(b->bank[i].seq); }
+    for (int i = 0; i < b->n; i++) { r_tex_free(&b->bank[i].tex); free(b->bank[i].frames); free(b->bank[i].anims); free(b->bank[i].seq); free(b->bank[i].act); free(b->bank[i].mbits); free(b->bank[i].moff); }
     memset(b, 0, sizeof *b);
 }
 
@@ -89,13 +89,26 @@ void ui_tick(ui_scene_t *s) {
     for (int i = 0; i < s->nobj; i++) if (s->o[i].vis && !s->o[i].hold && s->o[i].an.b) anim_tick(&s->o[i].an, -1);
 }
 
+/* Fusion action point of the object's current image, in canvas coordinates (falls back to the hot spot) */
+int ui_action_point(ui_obj_t *o, float *x, float *y) {
+    if (!o || !o->an.b) return -1;
+    const frame_t *f = anim_frame(&o->an);
+    if (!f) return -1;
+    const bank_t *b = o->an.b;
+    int fi = (int)(f - b->frames);
+    float ax = f->hx, ay = f->hy;
+    if (b->act && fi >= 0 && fi < b->nframes) { ax = b->act[2 * fi]; ay = b->act[2 * fi + 1]; }
+    *x = o->x + o->dx + o->shx - f->hx + ax; *y = o->y + o->dy + o->shy - f->hy + ay;
+    return 0;
+}
+
 void ui_draw_obj(ui_scene_t *s, ui_obj_t *o, float camx, float camy, uint32_t argb) {
     if (!o || !o->vis || !o->an.b) return;
     const frame_t *f = anim_frame(&o->an);
     if (!f) return;
     /* backdrops are placed by their top-left corner (their image hot spots are not used) */
     float hx = o->kind == 0 ? f->hx : 0, hy = o->kind == 0 ? f->hy : 0;
-    frame_draw(o->an.b, f, o->x - camx + o->dx + hx, o->y - camy + o->dy + hy, 0, argb);
+    frame_draw(o->an.b, f, o->x - camx + o->dx + o->shx + hx, o->y - camy + o->dy + o->shy + hy, 0, argb);
 }
 
 void ui_draw(ui_scene_t *s, float camx, float camy, int lmin, int lmax) {

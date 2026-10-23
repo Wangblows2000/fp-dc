@@ -66,6 +66,11 @@ int bank_load(bank_t *b, const char *name) {
     {   /* optional collision masks after the sequence table */
         size_t off = need + (size_t)total * 2, msz = 0;
         for (int i = 0; i < b->nframes; i++) msz += (size_t)((b->frames[i].w + 7) / 8) * b->frames[i].h;
+        if (off + 4 + (size_t)b->nframes * 4 <= sz && !memcmp(d + off, "ACT1", 4)) {
+            b->act = malloc(4 * (size_t)b->nframes);
+            for (int i = 0; i < 2 * b->nframes; i++) b->act[i] = (int16_t)rd16(d + off + 4 + 2 * i);
+            off += 4 + (size_t)b->nframes * 4;
+        }
         if (off + 4 + msz <= sz && !memcmp(d + off, "MSK1", 4)) {
             b->mbits = malloc(msz); b->moff = malloc(sizeof(uint32_t) * b->nframes);
             memcpy(b->mbits, d + off + 4, msz);

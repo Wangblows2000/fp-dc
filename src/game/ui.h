@@ -13,9 +13,10 @@ typedef struct {
     struct { uint8_t anim, dir, bank; uint16_t ba; } ent[UI_MAX_ENT];
     int vis, cur, hold;
     float dx, dy;                 /* runtime offset (menu animation) */
+    float shz; int shx, shy, shhome;   /* row shake (RE 328/329): Z, recorded home, offset applied when drawn */
     animator_t an;
 } ui_obj_t;
-typedef struct { int w, h, nobj; ui_obj_t *o; ui_banks_t *banks; } ui_scene_t;
+typedef struct ui_scene_s { int w, h, nobj; ui_obj_t *o; ui_banks_t *banks; } ui_scene_t;
 
 int  ui_banks_load(ui_banks_t *b, const char *prefix, int n);
 void ui_banks_free(ui_banks_t *b);
@@ -26,5 +27,6 @@ int  ui_obj_select(ui_scene_t *s, ui_obj_t *o, int anim, int dir);
 void ui_obj_frame(ui_obj_t *o, int frame);
 void ui_tick(ui_scene_t *s);
 void ui_draw(ui_scene_t *s, float camx, float camy, int lmin, int lmax);
+int  ui_action_point(ui_obj_t *o, float *x, float *y);   /* canvas position of the current frame's action point */
 void ui_draw_obj(ui_scene_t *s, ui_obj_t *o, float camx, float camy, uint32_t argb);
 #endif

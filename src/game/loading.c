@@ -20,6 +20,7 @@ static uint64_t t_start, t_last;
 
 static void loading_draw(void) {
     t_last = plat_time_us();
+    vmuscr_crystal();
     r_begin();
     r_rect(0, 0, SCREEN_W, SCREEN_H, 0xff000000);
     if (have_bank) {
