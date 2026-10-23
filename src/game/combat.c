@@ -278,8 +278,10 @@ void combat_frame(player_t *p) {
             o->ang += (float)fmax(8.0, 2.0 * o->kx);
             if (o->absorbed > 0) { o->absorbed--; obj_effect(o->x, o->y, "objectcrystal_3"); }   /* 2766 (crystal drop: motion INFERRED) */
             if (o->x < 0 || o->x > G.lvl.w || o->y > G.lvl.h || o->y < 0) { o->alive = 0; continue; }   /* 2767 */
-            if (o->y > G.camy + 290) { o->alive = 0; continue; }                                 /* 4389 / 4777 */
-            if (o->ky > 0 && (obj_overlaps_bg(o) || solid_obj_overlap(o))) corpse_land(o);                        /* 4390 / 4776 / 4807 */
+            if ((o->type == OT_GANSEKI || o->type == OT_TURRETUS) && o->y > G.camy + 290) { o->alive = 0; continue; }   /* 4389 / 4777 */
+            int lands = o->type == OT_GANSEKI || o->type == OT_TURRETUS || o->type == OT_DRAGONFLY || o->type == OT_FLOUNDER ||
+                        o->type == OT_CACTEON || o->type == OT_SPOREPOD;          /* classes with a landing event */
+            if (lands && o->ky > 0 && (obj_overlaps_bg(o) || solid_obj_overlap(o))) corpse_land(o);                        /* 4390 / 4776 / 4807 */
         }
     }
 }
