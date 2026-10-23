@@ -66,3 +66,18 @@ Behaviour is taken from the original's compiled events (named functions, readabl
 
 **D-019 Camera from MasterCamera_408 (replaces the reconstruction).**
 The recovered dead-zone camera also decides which enemies are active (Turretus counts only within 200 px of the view), so it is a gameplay rule as well as presentation.
+
+**D-020 Front end follows the original's console layout; content limits are shown, not hidden.**
+- **Console variant:** the original has a built-in console variant (global G[32] = 1). It hides QUIT, Screen size, Controls and Sensitivity. Those options make no sense on a Dreamcast pad, so the port uses this variant.
+- **Characters and stages:** only Lilac and Dragon Valley exist in the port.
+  - Carol and Milla appear on character select but are locked.
+  - The Time Attack list shows every stage, but only Dragon Valley can be started. Shang Mu (where the cursor starts) plays the refusal sound.
+- **Port shortcuts:**
+  - GALLERY plays the move sound only.
+  - Adventure mode skips its opening cutscene and starts DV1.
+  - Continuing a used file starts DV1 (no stage progress yet).
+  - Pause QUIT from a file game returns to the hub (INFERRED).
+- **Buttons:** menu buttons follow the original: jump/A confirms, attack/B goes back, Start confirms where the original accepts it.
+
+**D-021 One small VMU save, written only on explicit actions.**
+`FPDC.SAV` holds the options, 8 file slots and the Time Attack records in 515 bytes (6 blocks with its 3-frame icon). It is written when OKAY is chosen in options and when a new Time Attack record is set, never in the middle of gameplay. Writing to a VMU takes several frames on hardware, so a mid-gameplay write would stall the game.

@@ -180,3 +180,74 @@ See RUNTIME_MAP "Monitors and items". The energy refill starts 41 frames after t
 - 2844: Others D = 1 and flag bit → creates Sparkle1-4 at the player with C (radius) / D (angle) = 20/0, 20/180, 10/0, 10/180. Their own loops (RV): D +7 or +10 per frame, position anchor + C·(sin D, −cos D).
 - 2845: Others D = 1 and the global counter % 6 = 0 → a Sparkle5_284 at each of Sparkle1-4.
 - Lilac's hair whirl during the cyclone is the hair overlay's animation 18, not a separate object.
+
+## Front end after Press Start (session 6; specs in build/re/fe/spec_*.md, port: src/game/fe_hub.c, frontend.c, fe_stsel.inc)
+Method: `tools/re/member_map.py` (gdb) maps each frame's member offsets to object classes; Ghidra reading of `handle_frame_N_events`; confirmed with `tools/orig/trace_fe.py` (objects, alterables, sounds, frame changes per frame) and `tools/orig/cmp_fe.py`.
+- **Frame inventory (index = on_frame_N − 1):** 2 Press Start, 3 hub (title menu / file select / mode select / options / controls, one 1440×480 frame), 5 Time Attack stage select, 6 character select, 7 dispatcher (picks the next frame from globals), 8 stage card, 10 gallery, 11 finished-file stage select, 12 mahjong (minigame). 20-23 Dragon Valley.
+- **Menu input (RE, RV):** InputsP1_23 rebuilt at the end of each frame: I/J/K/L = up/down/left/right (1 on the press edge, 2 while held), M = jump (confirm), N = attack (back), O = special, P = start. Menus therefore react one frame after the press. Port: every menu, Press Start included, reads the previous frame's input.
+- **Shared machinery (RE):**
+  - **Cursor:** the Crystal object goes to the selected row object's action point. The action point now ships in the `.spr` `ACT1` section.
+  - **Row shake on selection:** Z = 4, −0.4 per frame; x += floor(cos(200Z)·Z), y += floor(sin(200Z)·Z·0.5).
+  - **ScrollDot camera:** moves 24 px/frame vertically and 30 horizontally; view = dot − (213, 120).
+  - **Exit wipe:** Fade_50 + FadeEdge_77 (120×240 wedge) +32 px/frame; the frame change fires when F > 50.
+  - **Entry:** 104 tiles shrink over 6 frames, 4 random tiles started per frame.
+- **Console layout (RE):** global G[32] = 1 selects the original's console variant. QUIT and the Screen size / Controls / Sensitivity options are hidden and the cursor skips them. The port uses it (D-020).
+- **Title menu (events 380-392):** START GAME → file select; TIME ATTACK → character select with the Time Attack flag; OPTIONS → options panel; GALLERY plays the move sound only (gallery not ported).
+- **File select (393-437):**
+  - 8-slot carousel, 120 px pitch, wraps; LEFT/RIGHT on the slot moves the carousel.
+  - CLASSIC/ADVENTURE mode panel slides in.
+  - The DELETE confirm sub-panel is there.
+  - RETURN goes back.
+- **Options (464-511):**
+  - Difficulty is dirs 0-3 (HARD, NORMAL, EASY, CASUAL).
+  - Music and SFX volume step by 10.
+  - OKAY writes the settings (records.dat in the original; the VMU save in the port).
+- **Character select (spec_charselect.md):**
+  - Lilac, Carol and Milla rows. The port shows Carol and Milla locked with the padlock overlay (D-020) and the move sound when you try them.
+  - Choosing Lilac plays 63 + her voice 220, then a 20-frame timer, then the wipe (56).
+  - Exits: Time Attack → stage select (5); Classic/Adventure → dispatcher → DV1; RETURN → hub.
+- **Time Attack stage select (spec_stageselect.md):**
+  - Vertical list with icons 30 px apart, eased 1/8 per frame.
+  - Locked stages show the lock.
+  - Choosing slides START? / YES / NO in from x 613 to 320, 20 px per frame, one after another; YES → card → stage.
+  - The record box reads the stage's best time and crystals.
+  - **Port difference:** the confirm state is reached 3 frames later than in the original (f539 vs f542 in r_ta). The slide start/threshold is INFERRED.
+- **Music (RV):** the hub plays m_menu2; character select plays m_menu1 (Time Attack) or m_results (Classic/Adventure); the stage select keeps m_menu1.
+- **Sound ids (RV):** 100 press start, 63 confirm, 64 move, 56 wipe/back-confirm, 220 Lilac voice.
+
+## Pause menu (DV1 = frame index 20; spec_pause.md; port: src/game/game.c pause_*)
+- **Events:** 4878 open, 4879 close, 2928 open/close step timer, 4296/4299/4300 art, 4297/4298/4301/4302 cursor, 4303 confirm, 3551 wipe, 4881 restart → loop_restart_20 (event 1276), 4305 quit → loop_return_0 (frame 7 dispatcher; from Time Attack it then goes to stage select, RV).
+- **Groups:** the gameplay group byte 0x21a5d is turned off while the pause group 0x21a4d is on, so gameplay freezes completely and the HUD stays.
+- **Opening:**
+  - Start edge, not during the card or a wipe.
+  - Sound 63; music paused.
+  - GUIPause at (214,101).
+  - Art frame 3 (RESUME / RESTART / QUIT), or frame 4 with RESTART greyed when lives ≤ 1 (the lives snapshot is taken at frame start, events 4311/4312).
+- **Cursor:**
+  - Crystal at (166, 141 + 24·row).
+  - Up/down 64, clamped, skipping RESTART when it is greyed.
+  - The row is kept between pauses.
+- **Closing:** Start or RESUME closes and the music resumes.
+- **RESTART / QUIT:** sound 56, 50-frame wipe. RESTART reloads the act with lives − 1 and the stage-start crystal count. QUIT leaves to the front end.
+- **Port:** QUIT from Classic goes to the hub (INFERRED; the original's dispatcher target for a file game was not traced).
+- **Trace check (t_pause):** sounds 63 at f301, 64 at f321/f341, 56 at f361, frame change at f412 (51 frames). The port's sequence and the 50-frame wipe match in the host test.
+
+## Save data (port design; the original uses records.dat / file*.dat on PC)
+- **File:** `FPDC.SAV` in one VMU file, built with `vmu_pkg` (3-frame 16-colour crystal icon, derived at build time from the game's ObjectCrystal sprite).
+- **Payload: 515 bytes**, CRC-16:
+  - options: difficulty, music, sfx, sensitivity, unlocks;
+  - 8 file slots: character, difficulty, mode, stage, lives, crystals, petals, time, deaths;
+  - Time Attack records: 16 stages × 4 characters, time and crystals.
+- **Size on the VMU:** 1 header block + 3 icon blocks + 2 data blocks = 6 blocks (3 KB) of the 200, well under the 50 KB target.
+- **Behaviour:**
+  - Loaded at boot.
+  - Written on options OKAY and on a new Time Attack record.
+  - Uses the card that already holds it, else the first card with 6 free blocks.
+- **Not yet written:** file-slot progress at stage results (results screen not ported).
+
+## VMU screen (port design)
+- 48×32 1-bit LCD.
+- **Menus and title:** a 6-frame crystal animation (ObjectCrystal_317 at 1.5× with a sparkle, thresholded to black and white), one frame every 6 ticks.
+- **In a stage:** the current character's life icon (from GUIIcon_346, 2× line art), "×" and the lives count in a 3×5 font.
+- **Pushes:** only when the image changes.
+- **Data:** frames are made by `tools/make_vmu_icons.py` from the game's own images into `ui/vmu_lcd.bin` / `ui/vmu_icon.bin` (gitignored data).

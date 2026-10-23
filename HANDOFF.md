@@ -18,33 +18,26 @@ source /opt/toolchains/dc/kos/environ.sh && make && make cdi        # build/fpdc
 ```
 Boot flow: Press Start → title (START GAME / TIME ATTACK / GALLERY / OPTIONS / QUIT). Developer level select: L+R within 2 s on the title screen only.
 
-## Latest verified (2026-10-23, session 5)
-- host-test: gameplay 39/39, front end 11/11.
-- original-trace vs host-test: **16/16 baseline, 69/70 overall, strict 10033/10471 (95.8%)**. The only failure, boost_upright, is an unported enemy (Ganseki Jr.).
-- Ported this session (RE_NOTES.md / RUNTIME_MAP.md):
-  - sensor collision and horizontal speed;
-  - title screen events 307-330;
-  - crystal/petal pickup; monitors (crystals, petals, 1-up, invincibility);
-  - hair overlay; corrected Lilac animation map (skid 16, hurt 8, fastrun 23);
-  - move overlays (cyclone/boost/invincibility sparkles); cyclone energy drain;
-  - DV4 music m_boss;
-  - silent loading screen.
-- emulator (Flycast): title, loading screen, DV1-DV4 boot and play. Audio not audible in the VM.
+## Latest verified (2026-10-23, session 6)
+- host-test: gameplay 39/39, front end 24/24. original-trace vs host: 69/70, strict 10033/10471 (95.8%), 16/16 baseline.
+- Front end after Press Start ported from the original's events (RE_NOTES "Front end after Press Start", RUNTIME_MAP "Front-end screens in the port"). The code is in `src/game/fe_hub.c` (title menu, file/mode select, delete, options), `frontend.c` (Press Start, character select, shared wipe/tiles) and `fe_stsel.inc` (Time Attack stage select).
+- Pause from DV1 events 4878-4881/4296-4305 (`game.c pause_*`).
+- VMU: `src/game/save.c` (FPDC.SAV, 515 bytes, 5 blocks) and `src/game/vmu.c` (LCD crystal in menus, life icon in stages).
+- Front-end tracer: `tools/orig/run_fe.sh <script> <out.jsonl> <n> <watch offsets> [goto idx]` → `tools/orig/cmp_fe.py <orig.jsonl> <host_stdout>`. The host run uses FP_TRACE_SID=1 FP_TRACE_SND=1 FP_FE_TRACE=1. `tools/re/member_map.py` (gdb) maps a frame's member offsets to classes.
+- Emulator (Flycast, lean CDI): Classic route, Time Attack route, options persisted across reboot, pause, VMU LCD. Audio not audible in the VM.
 
-## Tracer probes added (tools/orig/trace_orig.py)
-- `TRACE_ADDOBJ=a32bd0,a32e00` logs every object creation with its caller event.
-- `TRACE_CREATE=<create_fn>` logs the caller of a create_ function.
-- `TRACE_FANIM=<vtable+0x10>` logs force_animation and set_direction on a class.
-- `SHOTS=f1,f2` takes screenshots at those frames.
-- XVT entries can be added for runtime objects with `<f> REFIND`. They now include the object's x and y.
+## Tracer probes (tools/orig/trace_orig.py, trace_fe.py)
+TRACE_ADDOBJ / TRACE_CREATE / TRACE_FANIM / SHOTS / REFIND as before. `trace_fe.py` logs every object of the current frame (x, y, anim, alterables) plus globals, sounds, music and set_frame. The script keys are `LRUDJXBSE` and `SHOT`.
 
 ## Next three actions
-1. Ganseki Jr. and the other DV enemies; obstacle-group objects (platforms) in the sensor test.
-2. Results screen (DV4 events 4560-4589) and the Serpentine boss (DV4).
-3. Thrown-item motion and the 1-up jingle length from the original (both INFERRED now); boost white trail check against `build/re/fx` shots.
+1. Results screen (DV4 events 4560-4589): write file-slot progress and deaths to the save at stage completion. Today only options and Time Attack records are saved.
+2. Ganseki Jr. and the other DV enemies; the Serpentine boss.
+3. The stage-select confirm 3-frame offset (f539); the stage-select BG parallax; the controls panel if a non-console layout is ever wanted.
 
 ## Known issues / INFERRED
-Results layout, card timings, transition stagger, pause cursor and the handlebar release are INFERRED. Walk/run anim speeds fitted. Down-kick → cyclone sequences differ by ~3 frames. GALLERY not implemented; only Lilac playable. FP_PROFILE overlay is visible bottom-left in DC builds.
+- **INFERRED:** stage-select confirm timing (3 frames late); results layout; card timings; pause QUIT target from a file game (hub); handlebar release.
+- **Not ported:** gallery (inert), finished-file stage select (idx 11), mahjong; Carol and Milla (locked, D-020).
+- **Other:** FP_PROFILE overlay visible bottom-left in DC builds.
 
 ## Safety
 Never write to the user's game folders. extracted/, converted*/, build/, docs/reference/, tools/audio/wav2adpcm are gitignored. Never commit game data (`git ls-files` check before commits).

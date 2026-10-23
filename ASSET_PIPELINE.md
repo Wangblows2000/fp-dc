@@ -53,6 +53,9 @@ G="/mnt/user-data/uploads/Freedom Planet/game"          # read-only copy of the 
 python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui title 3 4 3+titlestar_53   # press start (+ runtime title stars) + hub
 python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui chsel 7      # character select
 python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui stsel 12     # Time Attack stage select
+python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui tasel 6 -x '^bg(1|1[0-9]|[3-9])layer'   # Time Attack stage select (frame index 5); extra BG layers excluded to fit one atlas
+python3 tools/import_loading.py build/frames extracted/linux/images converted2/ui        # loading-screen crystal bank
+python3 tools/make_vmu_icons.py extracted/linux/images converted2/ui                     # VMU LCD frames (crystal, life heads) + save icon
 python3 tools/import_font.py "$G/Data/font.bmp" converted2/ui                             # 8x20 original font
 python3 tools/audio/catalog.py "$G/Data/BGM" "$G/Data/voices" extracted/linux/audio build/audio/catalog.csv
 tools/audio/convert_bgm.sh "$G/Data/BGM" converted2/bgm          # 67 x .adp + bgm_manifest.csv
@@ -63,3 +66,5 @@ Re-running the UI commands reproduces `converted2/ui/` byte for byte (checked 20
 Note: the original's `on_frame_N` is `set_frame(N-1)` (DV1 = set_frame 20 = frame_21.json).
 
 Measured: BGM 67 files, 218.7 MB Ogg, 8,005.8 s → 256.2 MB ADPCM (32 kHz stereo). Voices 1,373 / 76.2 MB (Lilac's gameplay voices converted). SFX 475 / 18.7 MB / 917 s (traced IDs converted: 4 5 8 9 17 21 25 26 27 28 37 53 56 63 64 81 100 174 176 288 396 405). UI banks 5.1 MB.
+
+UI banks carry an optional `ACT1` section (per-image Fusion action point: hot_x, hot_y, act_x, act_y) used for menu cursors. The pause cursor is the level bank anim `pausecursor` (crystal_447), added in `tools/import_frame.py` together with `sparkle1` / `sparkle5`. SFX id 220 (Lilac's character-select voice) was added to `convert_sfx.sh`.
