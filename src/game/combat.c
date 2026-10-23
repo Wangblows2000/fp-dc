@@ -169,6 +169,7 @@ static int any_body_overlap(const player_t *p) {     /* 2761: any of the big dis
 static void corpse_land(obj_t *o) {
     if (o->type == OT_TURRETUS || o->type == OT_SPOREPOD) {      /* 4776 / 4997: keystone + explosion + debris, sound 29 */
         snd_play_orig(29, 220, 128); obj_effect(o->x, o->y, "explosion");
+        keystone_spawn(o->x, o->y, 0, 0);                        /* ObjectKeystone_429 at the corpse (spec_keystones 2.1) */
         if (o->type == OT_SPOREPOD) for (int k = 0; k < 4; k++) {
             obj_t *d = obj_alloc(); int a = ens_anim("debris");
             if (!d || a < 0) break;

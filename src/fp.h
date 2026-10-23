@@ -180,7 +180,7 @@ enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_MON_INVINC = 4, OT_MON
        OT_GBOULDER = 123, OT_BTUNNEL = 124, OT_BTUNNEL2 = 125, OT_BTUNNEL3 = 126, OT_BRK1 = 127, OT_BRK2 = 128, OT_BRK3 = 129,
        OT_BOUNCEMODE = 130, OT_CAMTRIGGER = 131, OT_JUMPPAD = 132, OT_MON_KEYSTONE = 133,
        OT_LOOP016 = 134, OT_LOOP0Q = 135, OT_LOOP115 = 136, OT_LOOP1Q = 137, OT_CHUNK = 138,
-       OT_WF_BACK = 139, OT_WF_FRONT = 140, OT_WF_FRONT2 = 141, OT_WF_FRONT3 = 142, OT_WF_FRONT4 = 143, OT_BBOULDER = 144 };
+       OT_WF_BACK = 139, OT_WF_FRONT = 140, OT_WF_FRONT2 = 141, OT_WF_FRONT3 = 142, OT_WF_FRONT4 = 143, OT_BBOULDER = 144, OT_KEYSTONE = 146 };
 
 #define MAX_ATLAS 4
 typedef struct {
@@ -292,7 +292,7 @@ typedef struct {
     int debug_select, in_select, sel, sel_top, sel_msg_t;
     int mode, card_t, pause_sel, time_attack, res_t, res_time;
     int pause_a, pause_wipe_f, frame_draw_t; float pause_wipe_x;   /* pause menu (GUIPause.A, wipe) */
-    int act_lives, act_crystals;  /* RE 4311/4312: lives / crystals at act start (restart restores them) */
+    int act_lives, act_crystals, act_keystones, act_stage_crystals;  /* RE 4311/4312: lives / crystals at act start (restart restores them) */
     int stage_crystals, keystones;  /* MasterLevel J (crystals this stage, results Bonus1) / O (keystones, Bonus2) */
     int character, file_slot, file_mode, deaths;   /* file being played (-1 none), 0 Adventure / 1 Classic */
     int character_pad;              /* 0 Lilac, 1 Carol, 2 Carol (bike), 3 Milla (life icon order); only Lilac is playable */
@@ -360,6 +360,8 @@ obj_t *obj_alloc(void);
 void   obj_effect(float x, float y, const char *anim);
 void   obj_explode(float x, float y);
 void   obj_drop_crystal(float x, float y, int S);
+void   keystone_spawn(float x, float y, double B, double I);
+void   keystone_update(obj_t *k, player_t *p);
 int    obj_overlaps_bg(const obj_t *o);
 int    obj_in_group(int type, int grp);
 void   obj_spawn_pellet(float x, float y, int dir);

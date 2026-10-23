@@ -60,7 +60,7 @@ void objects_spawn(void) {
             static const struct { int t; const char *a; } EA[] = {
                 { OT_SPIKES_L, "spk_left" }, { OT_SPIKES_R, "spk_right" }, { OT_SPIKES_D, "spk_down" }, { OT_RSPRING_UL, "rspring_ul" },
                 { OT_LOOP016, "loop016" }, { OT_LOOP0Q, "loop0q" }, { OT_LOOP115, "loop115" }, { OT_LOOP1Q, "loop1q" },
-                { OT_GEYSER, "geyser" }, { OT_SPIRAL_MASK, "spiralmask" }, { OT_BALLTUNNEL, "balltunnel" }, { OT_CARD, "card" } };
+                { OT_GEYSER, "geyser" }, { OT_MON_KEYSTONE, "mon_key" }, { OT_SPIRAL_MASK, "spiralmask" }, { OT_BALLTUNNEL, "balltunnel" }, { OT_CARD, "card" } };
             for (unsigned k = 0; k < sizeof EA / sizeof EA[0]; k++) if (o->type == EA[k].t) {
                 int a = ens_anim(EA[k].a);
                 if (a >= 0) anim_set(&o->an, &G.ens, a); else o->an.b = NULL;
@@ -341,6 +341,8 @@ static void monitor_reward(const obj_t *o, player_t *p) {
     case OT_MON_RINGS: throw_items(o, OT_PETAL, 6); break;
     case OT_MON_1UP: p->lives++; music_play("bgm/m_1up.adp"); G.mus_resume_t = 240; break;   /* jingle length INFERRED */
     case OT_MON_INVINC: p->invuln = 1800; p->invinc = 1; music_play("bgm/m_invincibility.adp"); break;
+    case OT_MON_KEYSTONE:                       /* RE 2627 / 2666-2668: 3 keystones at (x + 16, y + 16) */
+        keystone_spawn(o->x + 16, o->y + 16, -2.7, -1); keystone_spawn(o->x + 16, o->y + 16, -2.7, 1); keystone_spawn(o->x + 16, o->y + 16, -3, 0); break;
     }
 }
 
@@ -591,6 +593,7 @@ void objects_update(void) {
         case OT_TD_BOMB: case OT_BLAST: case OT_DEBRIS: tredd_bomb_update(o, p); break;
         case OT_FIREBALL: serp_fireball_update(o, p); break;
         case OT_CHUNK: chase_chunk_update(o); break;
+        case OT_KEYSTONE: keystone_update(o, p); break;
         case OT_PELLET: {
             /* RE col_4_20: the pellet hits Lilac's sensor (PlayerCharacterSensor_375, 15x46, hotspot 7,34 at
              * her reference point) unless she is invulnerable; it is destroyed with effectsexplosion02 */
@@ -611,7 +614,7 @@ void objects_update(void) {
             if (defeated) { set_anim_keep(o, A_TURR[4 + dir_left(o->dir)]); break; }   /* 4775: anim 8 */
             turretus_events(o, p, bx0, by0, bx1, by1);
             break;
-        case OT_ROCK: case OT_MONITOR: case OT_MON_RINGS: case OT_MON_1UP: case OT_MON_INVINC:
+        case OT_ROCK: case OT_MONITOR: case OT_MON_RINGS: case OT_MON_1UP: case OT_MON_INVINC: case OT_MON_KEYSTONE:
             if (!dead && monitor_hit(p, bx0, by0, bx1, by1)) {
                 obj_t m = *o;                /* the freed slot is reused by the thrown items */
                 o->alive = 0; explode(m.x, m.y - 8);

@@ -30,7 +30,7 @@ static void level_start(void) {
     results_reset();
     G.clear_t = 0; G.act_in = 0; G.act_fade = 0; G.frame = 0; G.card_t = 0; G.paused = 0;
     G.pause_a = 0; G.pause_wipe_f = 0;
-    G.act_lives = G.p.lives; G.act_crystals = G.p.crystals;   /* RE 4311/4312 (act-carry values are applied after this; see next_act) */
+    G.act_lives = G.p.lives; G.act_crystals = G.p.crystals; G.act_keystones = G.keystones; G.act_stage_crystals = G.stage_crystals;   /* RE 4311/4312 (act-carry values are applied after this; see next_act) */
     camera_reset();
     camera_update();
 }
@@ -414,7 +414,7 @@ static void pause_update(const input_t *in) {
                 int crystals = G.act_crystals, frame = G.frame;
                 music_stop(); snd_stop_all();
                 G.pause_sel = 1;
-                game_load_level(G.lvdir);
+                { char d[8]; snprintf(d, sizeof d, "%s", G.lvdir); game_load_level(d); }
                 G.p.lives = lives; G.p.crystals = crystals; G.frame = frame;
                 G.act_lives = lives;
             } else {                                /* QUIT: loop_return_0 -> frame 7 dispatcher; RV: Time Attack -> stage select */
@@ -490,6 +490,15 @@ void game_update(const input_t *in) {
         if (G.p.ground && G.p.gsp < 2) G.p.gsp = 2;
     }
     objects_update();
+    if (G.p.state == 6 /* ST_DEAD */ && G.p.dead_t > 120) {     /* death: the act restarts with one life less (RE 1972 / loop_death_13) */
+        int lives = G.p.lives - 1, crystals = G.act_crystals, frame = G.frame, ks = G.act_keystones, sc = G.act_stage_crystals;
+        if (lives < 1) { music_stop(); snd_stop_all(); fe_enter_from_stage(G.time_attack); return; }   /* game over (card not ported) */
+        music_stop(); snd_stop_all();
+        { char d[8]; snprintf(d, sizeof d, "%s", G.lvdir); if (game_load_level(d) < 0) { fe_enter(); return; } }
+        G.p.lives = lives; G.p.crystals = crystals; G.frame = frame; G.act_lives = lives; G.keystones = ks; G.stage_crystals = sc;
+        G.card_t = CARD_DONE;
+        return;
+    }
     cork_start_check(&G.p);                       /* RE 4756/4757 (end of the frame) */
     camera_update();
     /* stage music back after the 1-up jingle / when monitor invincibility ends */
