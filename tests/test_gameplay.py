@@ -179,5 +179,24 @@ r = run('5 EN 100\n60 70 J\n80 140 J\n', 170)
 cyc = [x['en'] for x in r if x['st'] == 2]
 check('cyclone_energy_drain', cyc and abs(min(cyc) - 80.5) < 0.3, 'min %.2f' % (min(cyc) if cyc else -1))
 
+# port change (momentum): uppercut and down-kick keep a faster run speed; FP_ORIG_MOVES=1 restores the original
+ST_UPPERCUT = 7
+up = '0 80 R\n80 81 UX\n'
+for env, name in (({}, 'port'), ({'FP_ORIG_MOVES': '1'}, 'orig')):
+    r = run(up, 130, env)
+    i = next((k for k in range(81, len(r)) if r[k]['vy'] < -6), None)
+    vx = r[i]['vx'] if i is not None else None
+    if name == 'port': check('uppercut_keeps_momentum', vx is not None and vx > 3.0, 'launch vx %s' % vx)
+    else: check('uppercut_original_vx2', vx is not None and abs(vx - 2) < 0.07, 'launch vx %s' % vx)
+dk = '0 90 R\n60 62 J\n70 71 DX\n'
+# (the original's wind-up drags vx 4.8 -> 3.84; the port keeps it)
+for env, name in (({}, 'port'), ({'FP_ORIG_MOVES': '1'}, 'orig')):
+    r = run(dk, 110, env)
+    i = next((k for k in range(71, len(r)) if r[k]['st'] == ST_DIVEKICK), None)
+    vx = r[i]['vx'] if i is not None else None
+    w = [x['vx'] for x in r if x['st'] == ST_DKWIND]
+    if name == 'port': check('downkick_windup_keeps_momentum', w and min(w) >= w[0] - 0.01 and vx is not None and vx >= 5, 'windup vx %.3f..%.3f kick %s' % (w[0], min(w), vx))
+    else: check('downkick_original_vx5', vx is not None and abs(vx - 5) < 0.01, 'kick vx %s' % vx)
+
 print('%d failure(s)' % fails)
 sys.exit(1 if fails else 0)

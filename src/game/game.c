@@ -215,6 +215,7 @@ int game_init(void) {
     for (int i = 0; i < 512; i++) snd_handle[i] = -1;
     vmuscr_init();
     save_load();                                   /* memory card (VMU) / host FP_SAVE */
+    r_set_letterbox(SV.letterbox);
     loading_begin("boot");                         /* boot: sound effects (title data follows in fe_enter) */
     for (int i = 0; i < (int)(sizeof SND_IDS / sizeof SND_IDS[0]); i++) {
         snprintf(nm, sizeof nm, "sfx/s%d.wav", SND_IDS[i]); snd_handle[SND_IDS[i]] = snd_load(nm); loading_tick();

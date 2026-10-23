@@ -58,13 +58,18 @@ int    plat_save_read(void *data, size_t max);
 #define SAVE_FILES 8
 #define SAVE_STAGES 16
 #define SAVE_CHARS 4
+#define SAVE_CARD_ACTS 4
 typedef struct { uint8_t used, character, difficulty, mode, stage, lives, petals; uint16_t crystals, deaths; uint32_t time; } save_file_t;
 typedef struct { uint32_t time; uint16_t crystals; } save_rec_t;   /* time in frames, 0 = no record */
 typedef struct {
     uint8_t difficulty, music_volume, sfx_volume, sensitivity, unlocked;
     save_file_t file[SAVE_FILES];
     save_rec_t rec[SAVE_STAGES][SAVE_CHARS];
+    /* save v2 (port additions; a v1 file loads with these at their defaults) */
+    uint8_t letterbox;                 /* 1: 16:9 picture letterboxed on the 4:3 frame; 0: 426x240 fills the 4:3 frame */
+    uint16_t card_bits[SAVE_CARD_ACTS];/* in-stage cards collected, one bit per card placement, DV1..DV4 */
 } save_t;
+int    save_card_total(void);
 extern save_t SV;
 void   save_defaults(void);
 int    save_load(void);
@@ -109,6 +114,7 @@ void   r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, floa
 void   r_end(void);
 void   r_tex_free(tex_t *t);           /* free one texture */
 void   r_reset(void);                 /* free all textures (level change) */
+void   r_set_letterbox(int on);       /* presentation only: 1 = 16:9 letterboxed (x1.5), 0 = 4:3 fill (x1.5, x2) */
 
 /* ---------------------------------------------------------------- resources */
 typedef struct { uint16_t u, v, w, h; int16_t hx, hy; } frame_t;
@@ -212,6 +218,7 @@ typedef struct {
     int boost_n, boost_q, m5_bounced;
     int lad_y, lad_o, lad_lt, lad_first;
     int hitstop;                  /* RE PlayerOthers.K */
+    double mom_vx;                /* port change: horizontal speed when the down-kick wind-up started */
     int hurt_pending;             /* RE movement R = 1 + GUILifeBaseMeter.B: contact damage applied by 2414 the next frame */   /* RE ladder: OTHERS.Y selector (27 climb, 29 down, 28 climb-over, 47 catch), SKIN.O counter, LadderTop, first frame after a grab */         /* RE: OTHERS.N charge/boost timer (fires at 30), OTHERS.Q latched vertical direction (-1 up, 0, +1 down) */
     float spawn_x, spawn_y;
     int dead_t;
@@ -250,6 +257,7 @@ typedef struct {
     int character_pad;              /* 0 Lilac, 1 Carol, 2 Carol (bike), 3 Milla (life icon order); only Lilac is playable */
     struct { int jump, crystal, hit, explode, attack, hurt, boost; } sfx;
     uint32_t prof_update_us, prof_draw_us;
+    int orig_moves;                 /* 1: down-kick / uppercut exactly as the original (comparisons); 0: port's momentum change */
 } game_t;
 
 extern game_t G;
@@ -348,6 +356,8 @@ void text_draw(float x, float y, const char *s, uint32_t argb, int scale);
 #define PHYS_CYCLONE_GRAV_SUB 0.15 /* RE event 2041: taken off G after the normal gravity while in the cyclone without Down */
 #define PHYS_CYCLONE_T  79         /* RV: cyclone state lasts 79 frames (4 traces, ground and air); landing keeps it */
 #define PHYS_GCYC_JUMP_MUL 0.7    /* RE event 2045: grounded-cyclone jump scales the perpendicular part of the jump by 0.7 */
+#define MOM_UPPER_KEEP  0.9       /* port change: uppercut keeps 90% of a faster run speed at launch */
+#define MOM_UPPER_SLIDE 0.97      /* port change: ground speed kept per frame during the uppercut wind-up */
 #define PHYS_DK_VY_ADD  5.0       /* RV: down-kick adds +5 to vy (after the windup frame's gravity) */
 #define PHYS_CROUCHATK_T 18        /* RV: crouch kick (anim 30) length */
 #define PHYS_BOOST_DIAG 8.0       /* RV: diagonal boost components (8, 8) */

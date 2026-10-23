@@ -39,6 +39,10 @@ void r_tex_free(tex_t *t) {
     free(texs[t->id].px); free(texs[t->id].idx); texs[t->id].px = NULL; texs[t->id].idx = NULL; t->id = -1;
 }
 
+/* the host image is the logical 426x240 view; the presentation mode only matters on the DC (logged for tests) */
+int r_letterbox_mode = -1;
+void r_set_letterbox(int on) { if (getenv("FP_TRACE_SND") && r_letterbox_mode != on) printf("letterbox %d\n", on); r_letterbox_mode = on; }
+
 void r_reset(void) {
     for (int i = 0; i < ntex; i++) { free(texs[i].px); free(texs[i].idx); texs[i].px = NULL; texs[i].idx = NULL; }
     ntex = 0;
