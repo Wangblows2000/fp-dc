@@ -179,7 +179,7 @@ enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_MON_INVINC = 4, OT_MON
        OT_SNAKE_HEAD = 118, OT_SNAKE_BODY = 119, OT_SNAKE_HIT = 120, OT_GEYSER_HOLE1 = 121, OT_GEYSER_HOLE2 = 122,
        OT_GBOULDER = 123, OT_BTUNNEL = 124, OT_BTUNNEL2 = 125, OT_BTUNNEL3 = 126, OT_BRK1 = 127, OT_BRK2 = 128, OT_BRK3 = 129,
        OT_BOUNCEMODE = 130, OT_CAMTRIGGER = 131, OT_JUMPPAD = 132, OT_MON_KEYSTONE = 133,
-       OT_LOOP016 = 134, OT_LOOP0Q = 135, OT_LOOP115 = 136, OT_LOOP1Q = 137 };
+       OT_LOOP016 = 134, OT_LOOP0Q = 135, OT_LOOP115 = 136, OT_LOOP1Q = 137, OT_CHUNK = 138 };
 
 #define MAX_ATLAS 4
 typedef struct {
@@ -281,7 +281,7 @@ typedef struct {
     int nobjs;
     float camx, camy;
     /* MasterCamera_408 alterables (RE, loop_camera_mode0_13 + events 2873-2886, 3539) */
-    struct { float A, B, W, G, H, S, T, N, O, Z; int V, M4; int U; float bC, bD, bE, bF, lC, lD, lE, lF; } cam;   /* U = 1: boss bounds bC..bF easing to the limits lC..lF (2862-2868) */   /* M4: CAM.M = 4 while entering a ladder from the top (not modelled further) */
+    struct { float A, B, W, G, H, S, T, N, O, Z; int V, M4; int U; float bC, bD, bE, bF, lC, lD, lE, lF; int M3; float minC; } cam;   /* U = 1: boss bounds bC..bF easing to the limits lC..lF (2862-2868) */   /* M4: CAM.M = 4 while entering a ladder from the top (not modelled further) */
     int frame, clear_t, paused, kills;
     int act_in, act_fade, act_carry;
     int mus_resume_t;           /* frames until the stage music resumes after a jingle */   /* act change (RE 4135/5045, 3310/3311/3578, 4526/5047) */
@@ -370,6 +370,8 @@ int    act_of(const char *dir);
 void   serp_spawn(void), serp_update(player_t *p), serp4_update(player_t *p);
 int    serp_hidden(const obj_t *o), serp_active(void);
 void   serp_fireball_update(obj_t *f, player_t *p);
+void   chase_spawn(void), chase_update(player_t *p), chase_chunk_update(obj_t *d), chase_end(void);
+int    chase_running(void);
 int    boss_invert_base(void), boss_hidden(const obj_t *o), boss_flash(const obj_t *o);
 int    obj_near_view(const obj_t *o, int n);
 int    ens_anim(const char *name);

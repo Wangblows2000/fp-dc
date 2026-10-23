@@ -574,6 +574,7 @@ void objects_update(void) {
         case OT_CARD: card_update(o, p); break;
         case OT_TD_BOMB: case OT_BLAST: case OT_DEBRIS: tredd_bomb_update(o, p); break;
         case OT_FIREBALL: serp_fireball_update(o, p); break;
+        case OT_CHUNK: chase_chunk_update(o); break;
         case OT_PELLET: {
             /* RE col_4_20: the pellet hits Lilac's sensor (PlayerCharacterSensor_375, 15x46, hotspot 7,34 at
              * her reference point) unless she is invulnerable; it is destroyed with effectsexplosion02 */
@@ -695,7 +696,7 @@ int obj_in_group(int type, int grp) {
     case OBJGRP_SOLID: return type == OT_MONITOR || type == OT_MON_RINGS || type == OT_MON_1UP || type == OT_MON_INVINC || type == OT_ROCK || type == OT_SPIKES || type == OT_SPRING_R ||
                               type == OT_SPIKES_L || type == OT_SPIKES_R || type == OT_SPIKES_D || (type >= OT_LOOP016 && type <= OT_LOOP1Q) ||
                               type == OT_SPIRAL_MASK || type == OT_BALLTUNNEL || type == OT_WR_BARRIER || type == OT_BROCK2 || type == OT_MON_KEYSTONE ||
-                              type == OT_TRUNK || type == OT_PBLOCK2 || type == OT_DOOR;
+                              type == OT_TRUNK || type == OT_PBLOCK2 || type == OT_DOOR || type == OT_BTUNNEL2;
     case OBJGRP_OBSTACLE: case OBJGRP_OBSTACLE_ALL:
         return type == OT_LADDERTOP || type == OT_LOG || type == OT_PLAT_VALLEY || type == OT_PLAT_MOVE2 || type == OT_PLAT_MOVE3 || type == OT_GEYSER || type == OT_RSPRING_UL || type == OT_FLOATPLAT || type == OT_WLOG;
     case OBJGRP_NOEDGE: return type == OT_LADDERTOP || type == OT_LOG || type == OT_PLAT_VALLEY || type == OT_PLAT_MOVE2 || type == OT_PLAT_MOVE3 || type == OT_MONITOR || type == OT_MON_RINGS || type == OT_MON_1UP || type == OT_MON_INVINC || type == OT_SPIKES || type == OT_SPRING || type == OT_SPRING_UL ||

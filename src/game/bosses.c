@@ -178,7 +178,7 @@ static void td_update(player_t *p) {
     obj_t *body = first_of(OT_TD_BODY);
     if (!body) return;
     if (!TD.active) { if (inside_view(body, 200)) TD.active = 1; return; }    /* 5244: groups on, first update next frame (RV) */
-#ifndef DREAMCAST
+#ifdef FP_HOST_ENV
     if (getenv("FP_TD_KILL") && G.frame == atoi(getenv("FP_TD_KILL"))) body->fl |= 0x40;   /* test hook */
 #endif
     int dead = (body->fl & 0x40) != 0;
@@ -238,9 +238,9 @@ static void td_update(player_t *p) {
         if (TD.turn && TD.H <= 202) { TD.turn = 0; TD.J = -TD.J; for (int k = 0; k < 12; k++) TD.pieceB[k] = -TD.pieceB[k]; }
     }
     if (!dead && inside_view(body, 200)) { TD.H += 1.5; TD.I += 1.76 * TD.Gw; }               /* 5258 */
-#ifndef DREAMCAST
+#ifdef FP_HOST_ENV
     if (getenv("FP_DBG_TD")) { obj_t *a = td_piece(0), *b2 = td_piece(1), *c = td_piece(2), *d = td_piece(3), *e = td_piece(4), *f = td_piece(5), *r1 = td_piece(6);
-        printf("td f%d %d %d D%.4f E%.0f F%.4f H%.1f I%.2f J%d L%d | %g,%g %g,%g %g,%g %g,%g %g,%g %g,%g r1 %g,%g\n", G.frame, (int)body->x, (int)body->y, TD.D, TD.E, TD.F, TD.H, TD.I, TD.J, TD.L,
+        printf("td f%d %d %d D%.4f E%.0f F%.4f H%.1f I%.2f J%d L%d A%g c%d | %g,%g %g,%g %g,%g %g,%g %g,%g %g,%g r1 %g,%g\n", G.frame, (int)body->x, (int)body->y, TD.D, TD.E, TD.F, TD.H, TD.I, TD.J, TD.L, body->A, body->c,
             a?a->x:0, a?a->y:0, b2?b2->x:0, b2?b2->y:0, c?c->x:0, c?c->y:0, d?d->x:0, d?d->y:0, e?e->x:0, e?e->y:0, f?f->x:0, f?f->y:0, r1?r1->x:0, r1?r1->y:0); }
 #endif
     /* attacks (group 0x222ee): bomb timer L, bombs at L == 150 / L > 300 while H > 300 */
@@ -291,12 +291,13 @@ void tredd_bomb_update(obj_t *o, player_t *p) {
 
 /* ================================================================ dispatch */
 void bosses_spawn(void) {
-    wr_spawn(); td_spawn(); serp_spawn();
+    wr_spawn(); td_spawn(); serp_spawn(); chase_spawn();
     snap_register(&WR, sizeof WR); snap_register(&TD, sizeof TD);
 }
 void bosses_update(player_t *p) {
     if (first_of(OT_WR_BASE) || WR.active) wr_update(p);
     td_update(p);
+    chase_update(p);
     serp_update(p);
 }
 /* legs / turret visibility and the Base flash (4861/4862: inverted while the weakspot's C > 0 and A > 0) */
