@@ -432,3 +432,54 @@ void pplate_update(player_t *p) {
     int under = p->x >= d->x - 15 && p->x <= d->x + 47 && MVY(p) > d->y && MVY(p) <= d->y + 128 + 31;   /* 5185 */
     if (!pressed && d->c > 0 && !under) { d->y += 2; d->c -= 2; }                              /* 5186 */
 }
+
+/* ---- keystones (ObjectKeystone_429; RE build/re/spec_keystones.md). av: 0 F (base y, 0 = not initialised),
+ * 1 H (x), 2 B (rise speed), 3 I (x step), 4 A (homing percent); st = G (homing), tm = E (taken / spin) */
+void keystone_spawn(float x, float y, double B, double I) {
+    obj_t *k = obj_alloc(); int a = ens_anim("keystone");
+    if (!k || a < 0) return;
+    k->type = OT_KEYSTONE; k->alive = 1; k->x = x; k->y = y; k->layer = 2; k->born = G.frame;
+    k->av[0] = 0; k->av[2] = B; k->av[3] = I; k->av[4] = 0; k->st = 0; k->tm = 0;
+    anim_set(&k->an, &G.ens, a);
+}
+static int keystones_taken_frame = -1;
+static double c_sin_deg(double d) { return d == 180. ? 0. : fd_sin(d / 57.29577951308232); }
+static void force_frame_ens(obj_t *o, int f) { if (o->an.b) { const anim_t *a = &o->an.b->anims[o->an.anim]; o->an.frame = f < a->count ? f : a->count - 1; o->an.acc = 0; } }
+void keystone_update(obj_t *k, player_t *p) {
+    if (k->born == G.frame) return;                                   /* created objects run from the next frame */
+    if (k->tm == 0) force_frame_ens(k, (G.frame / 6) % 4);            /* 2523: 10 images per second */
+    if (k->av[0] == 0) {
+        if (obj_overlaps_bg(k) || k->x < G.camx - 50 || k->x > G.camx + SCREEN_W + 50 || k->y < G.camy - 50 || k->y > G.camy + SCREEN_H + 50) k->st = 1;   /* 2550 / 2551 */
+        k->av[0] = k->y; k->av[1] = k->x;                             /* 2552 */
+    } else if (!k->st && k->tm == 0) {                                /* 2553 bob */
+        double a = (int)G.frame * 1.5, sn = a == 180 ? 0 : 4 * c_sin_deg(a);
+        k->y = (float)(int)(k->av[0] + sn); k->x = (float)(int)k->av[1];
+    }
+    if (k->av[2] < 0 && !k->st && k->tm == 0) { k->av[0] += k->av[2]; k->av[2] = fmin(k->av[2] + 0.1, 0); k->av[1] += k->av[3]; }   /* 2554 */
+    int px = (int)floor(p->x), py = (int)floor(p->y - ORIG_REF_DY);
+    if (!k->st && k->tm == 0 && k->av[2] == 0 && fabsf(k->y - py) <= 119 && fabsf(k->x - px) <= 119) k->st = 1;          /* 2556 magnet */
+    if (k->st) {                                                      /* 2557 homing */
+        double A = k->av[4];
+        k->x = (float)(int)(((int)k->x * (100 - A) + A * p->x) * 0.01);
+        k->y = (float)(int)(((int)k->y * (100 - A) + A * (p->y - ORIG_REF_DY)) * 0.01);
+        k->av[2] = 0; k->av[4] = fmin(A + 1, 100);
+    }
+    if (k->tm == 0 && p->state != ST_HURT && p->state != ST_DEAD && k->av[2] == 0 &&
+        fabsf(k->x - px) <= 19 && k->y >= py - 31 && k->y <= py + 19) {                                                    /* 2558 / 1291 */
+        k->tm = 1; cross_rand(1); obj_effect(k->x, k->y, "ringsparkle");
+    }
+    if (k->tm == 1) {                                                 /* 2564: effects once per frame */
+        if (keystones_taken_frame != G.frame) {
+            keystones_taken_frame = G.frame;
+            p->energy = fminf(PHYS_ENERGY_MAX, p->energy + 10); G.keystones++;
+            if (--p->crystals <= 0) { p->crystals = CRYSTALS_PER_LIFE; p->lives++; }
+            snd_play_orig(39, 220, 128);
+        }
+        k->tm = 2; k->st = 0; int a = ens_anim("keystone_t"); if (a >= 0) anim_set(&k->an, &G.ens, a);
+    }
+    if (k->tm > 1) { k->ang = (float)fmod(720 - 2.0 * k->tm, 360); k->tm += 15; }                                       /* 2567 */
+    if (k->tm > 360) {                                                                                                     /* 2568 */
+        for (int s2 = 0; s2 < 3; s2++) obj_effect(k->x + cross_rand(12) - cross_rand(25), k->y + cross_rand(12) - cross_rand(25), "ringsparkle");
+        snd_play_orig(48, 220, 128); k->alive = 0;
+    }
+}

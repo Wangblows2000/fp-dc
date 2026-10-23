@@ -737,7 +737,7 @@ void player_update(player_t *p, const input_t *in) {
     if (p->state == ST_DEAD) {
         p->vy += PHYS_GRAV; p->y += p->vy;
         set_anim(p, A_DEFEAT); anim_tick(&p->an, -1); if (hair.b) anim_tick(&hair, -1);
-        if (++p->dead_t > 120) player_reset(p, p->spawn_x, p->spawn_y);
+        if (p->dead_t <= 120) p->dead_t++;                 /* game.c restarts the act (loop_death_13) at 121 */
         return;
     }
 
