@@ -196,3 +196,11 @@ Every level, front-end and boot load runs behind a black loading screen with Obj
 | Character select | 6 | frontend.c FE_CHSEL | 63, 220, 56 | spec_charselect | Carol and Milla locked (port rule) |
 | TA stage select | 5 | fe_stsel.inc | 63/64/56 | spec_stageselect | only Dragon Valley startable; BG parallax drift not ported; confirm 3 frames late |
 | Pause | 20 (DV1) | game.c pause_* | 63/64/56 | 4878-4881, 4296-4305, 3551 | QUIT from Classic → hub |
+
+## Session 7: ladders, platforms, Ganseki, push (port: src/characters/player.c, src/game/objects.c)
+- States: ST_PUSH 12, ST_LADDER 13 (M46), ST_LADDERIN 14 (M25). Anims: push, climb, climbdown, climbover, catch.
+- Object types: OT_LADDERTOP 30, OT_GANSEKI 31, OT_PLAT_VALLEY 32, OT_PLAT_MOVE2 33, OT_PLAT_MOVE3 34, OT_BRIDGE 35, OT_LOG 36.
+- The camera follows Lilac's Y on the ladder; cam.M4 holds during the enter-from-top.
+- Hit-stop: simplified (whole player update skipped while it counts down).
+- Mirrored dir-16 animations are no longer stored; `set_anim` draws the right-facing anim flipped (draw_flip / hair_flip).
+- Loading: packs per screen in RAM, released at loading_end; loose files only loading.* and vmu_*.

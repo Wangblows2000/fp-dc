@@ -170,3 +170,25 @@ Labels: original-trace, host-test, emulator. Nothing hardware-validated. Audio n
   - **VMU LCD:** crystal in the menus, life head + "×5" in DV1.
 - **Found in the emulator and fixed:** Carol's lock overlay was a translucent rect on the host but opaque black on PVR (r_rect forces alpha in the PT list). Now the portrait is dimmed with vertex colour.
 - **Not checked:** audio by ear; the BIOS file manager view of the save icon (the HLE BIOS has none; the icon was decoded from the VMU image instead); real VMU hardware.
+
+## 2026-10-23 Session 7: TA regression, loading pipeline, ladders, platforms, Ganseki
+Labels: original-trace, host-test, emulator. Nothing hardware-validated. Audio not audible in the VM.
+- **Time Attack regression (Lilac and enemies invisible, jump played the spring sound):** stale object files compiled
+  against the old `game_t` layout were linked with new ones (the Makefile had no header dependencies), so fields
+  were read at the wrong offsets. Fix: `-MMD -MP` dependency tracking in both Makefiles; clean rebuild.
+- **Loading (Flycast, emulated time; same stages, same disc layout apart from packing):**
+
+| Load | Before | After |
+|---|---|---|
+| Front end | 17.7 s | 0.05 s |
+| Character select | 17.2 s | 0.07 s |
+| TA stage select | 8.9 s | 0.03 s |
+| DV1 | 41.1 s | 0.24 s |
+
+  Caveat: Flycast does not rate-limit GD-ROM DMA, so the "after" times are too short. A model using GD-ROM seek and
+  transfer rates estimates ~1.2 s for DV1 on hardware (INFERRED, not measured).
+- **Comparisons:** cmp_all **76/76**, strict **11311/11377 (99.4%)** (was 10033/10471). Exact: boost sequences, cyclone,
+  ladder_grab_climb, ladder_down_jump, ladder_top_enter, push_wall. ladder_fast_grab 91/151 exact, within tolerance (1 px Y).
+- **Host tests:** gameplay 0 failures, front end 0, pack 0. Host renders of the ladder traces show the climb, climb-over
+  and climb-down sprites.
+- **Emulator:** DV1-DV4 load from the developer select with no VRAM exhaustion (largest free 191/191/895/191 KB).
