@@ -217,7 +217,7 @@ check('hit_flash_3_frames', hits and sum(1 for f in range(hits[0], hits[0] + 5) 
 f0 = hits[1] if len(hits) > 1 else None
 check('defeat_flyaway_spin', f0 and en[f0]['Y'] == -2.75 and en[f0]['ang'] == 8 and en[f0 + 10]['x'] - en[f0]['x'] == 30,
       str(en.get(f0)))
-last = max((f for f in en if int(en[f]['fl']) & 0x40), default=None)   # corpse destroyed in the next frame at (x+3, y+1)
+last = max((f for f in en if en[f]['fl'] == 40), default=None)   # fl printed in hex: 40 = defeated flag   # corpse destroyed in the next frame at (x+3, y+1)
 check('corpse_explodes_on_ground_at_1287_415', last == 170 and en[last]['x'] + 3 == 1287 and en[last]['y'] + 1 == 415, str(last))
 # a plain jump into an enemy never damages it (RE: no shield, Z = 0): jump into the first Dragonfly's path
 
