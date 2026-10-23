@@ -72,6 +72,9 @@ static void set_anim(player_t *p, int a) {
 
 void player_reset(player_t *p, double x, double y) {
     static int init;
+    snap_register(&cur_anim, sizeof cur_anim); snap_register(&hair, sizeof hair); snap_register(pfx, sizeof pfx);
+    snap_register(&spk, sizeof spk); snap_register(&fx_seed, sizeof fx_seed);
+    snap_register(&draw_flip, sizeof draw_flip); snap_register(&hair_flip, sizeof hair_flip);
     if (!init) {
         init = 1;
         char nm[20];

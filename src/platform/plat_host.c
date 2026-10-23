@@ -10,7 +10,23 @@
 #include "../fp.h"
 
 static const char *data_dir = ".";
-static struct { int a, b; uint32_t m; } script[512];
+static struct { int a, b; uint32_t m; } script[8192];
+uint32_t bot_input(int frame);
+static int bot_on;
+int *search_act(int beam, int maxdepth, int *n, uint32_t prev0);
+int *search_explore(int iters, int *n, uint32_t prev0);
+uint32_t search_macro_buttons(int act, int k);
+int search_macro_len(void);
+static int search_on, *plan, plan_n, plan_i; static FILE *search_out; static uint32_t so_m; static int so_a = -1;
+static void so_emit(int f, uint32_t m) {          /* run-length script output: "<a> <b> <buttons>" */
+    if (m == so_m && so_a >= 0) return;
+    if (so_a >= 0 && so_m && search_out) {
+        char b[16]; int k = 0; const char *bn = "LRUDJXBS"; uint32_t bits[8] = { BTN_LEFT, BTN_RIGHT, BTN_UP, BTN_DOWN, BTN_JUMP, BTN_ATTACK, BTN_SPECIAL, BTN_START };
+        for (int i = 0; i < 8; i++) if (so_m & bits[i]) b[k++] = bn[i];
+        b[k] = 0; fprintf(search_out, "%d %d %s\n", so_a, f, b); fflush(search_out);
+    }
+    so_a = f; so_m = m;
+}
 static int nscript, cur_frame;
 static uint32_t prev_held;
 
@@ -59,6 +75,24 @@ void plat_poll_input(input_t *in) {
     uint32_t held = 0;
     for (int i = 0; i < nscript; i++)
         if (cur_frame >= script[i].a && cur_frame < script[i].b) held |= script[i].m;
+    if (search_on && !held && G.mode == MODE_PLAY && !G.clear_t) {
+        int L = search_macro_len();
+        if (!plan || plan_i >= plan_n * L) {
+            free(plan); plan = NULL; plan_i = 0;
+            int beam = getenv("FP_BEAM") ? atoi(getenv("FP_BEAM")) : 48, depth = getenv("FP_DEPTH") ? atoi(getenv("FP_DEPTH")) : 60;
+            plan = getenv("FP_EXPLORE") ? search_explore(atoi(getenv("FP_EXPLORE")), &plan_n, prev_held) : search_act(beam, depth, &plan_n, prev_held);
+            if (!plan || !plan_n) { fprintf(stderr, "search: no plan at f%d\n", cur_frame); search_on = 0; }
+        }
+        if (plan && plan_i < plan_n * L) { held = search_macro_buttons(plan[plan_i / L], plan_i % L); plan_i++; }
+    } else if (search_on && (G.mode != MODE_PLAY || G.clear_t)) {
+        free(plan); plan = NULL; plan_i = 0;
+        if (G.mode == MODE_RESULTS) held = (cur_frame % 40) < 2 ? BTN_JUMP : 0;
+    }
+    if (search_on) so_emit(cur_frame, held);
+    if (bot_on && !held) {
+        held = bot_input(cur_frame);
+        printf("bot %d %u\n", cur_frame, held);
+    }
     in->held = held;
     in->pressed = held & ~prev_held;
     in->released = prev_held & ~held;
@@ -156,7 +190,7 @@ int main(int argc, char **argv) {
         FILE *f = fopen(argv[3], "r");
         if (!f) { perror(argv[3]); return 1; }
         char line[128], btn[32];
-        while (fgets(line, sizeof line, f) && nscript < 512) {
+        while (fgets(line, sizeof line, f) && nscript < 8192) {
             if (line[0] == '#') continue;
             float fx, fy; int ff;
             if (sscanf(line, "%d TP %f %f", &ff, &fx, &fy) == 3 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'T', fx, fy }; continue; }
@@ -168,6 +202,9 @@ int main(int argc, char **argv) {
         }
         fclose(f);
     }
+    bot_on = getenv("FP_BOT") != NULL;
+    search_on = getenv("FP_SEARCH") != NULL;
+    if (search_on) search_out = fopen(getenv("FP_SEARCH_OUT") ? getenv("FP_SEARCH_OUT") : "search_route.txt", "w");
     plat_init();
     r_init();
     snd_init_fp();

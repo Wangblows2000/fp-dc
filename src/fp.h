@@ -70,6 +70,11 @@ typedef struct {
     uint16_t card_bits[SAVE_CARD_ACTS];/* in-stage cards collected, one bit per card placement, DV1..DV4 */
 } save_t;
 int    save_card_total(void);
+/* src/game/snap.c: state snapshots for the host route search */
+void   snap_register(void *p, size_t n);
+size_t snap_size(void);
+void   snap_save(void *buf);
+void   snap_load(const void *buf);
 extern save_t SV;
 void   save_defaults(void);
 int    save_load(void);

@@ -84,6 +84,7 @@ int mv_sensor_top_big(void) { return S[S_TOPBIG].z; }
 
 void mv_reset(void) {
     masks_init();
+    snap_register(S, sizeof S); snap_register(&edge_last_exact, sizeof edge_last_exact);
     memset(S, 0, sizeof S);
     for (int i = 0; i < S_COUNT; i++) S[i].mask = SDEF[i].mask;
     edge_last_exact = -1;
