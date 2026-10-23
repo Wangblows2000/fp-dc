@@ -41,7 +41,8 @@ static struct { int on, t; float a1x, a1y, a3x, a3y; double d1, d3; animator_t a
 static int A_FX_RING = -1, A_FX_SPK = -1, A_FX_SPK5 = -1;
 static uint32_t fx_seed = 1;
 static int fx_rand(int n) { fx_seed = fx_seed * 0x343fdu + 0x269ec3u; return (int)((((fx_seed >> 16) & 0x7fff) * (uint32_t)n) >> 15); }
-int cross_rand(int n) { return fx_rand(n); }    /* the original's single cross_seed LCG is shared by effects and enemies */
+int cross_rand(int n) { return fx_rand(n); }
+int cross_rand_raw(int n) { return fx_rand(n); }   /* the same LCG step (camera shake events consume it every frame) */    /* the original's single cross_seed LCG is shared by effects and enemies */
 static void pfx_spawn(float x, float y, int anim) {
     if (anim < 0) return;
     for (int i = 0; i < NPFX; i++)

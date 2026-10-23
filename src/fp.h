@@ -164,7 +164,21 @@ enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_MON_INVINC = 4, OT_MON
        OT_SPRING = 8, OT_SIGN = 9, OT_TURRETUS = 10, OT_ROCK = 11, OT_MONITOR = 12,
        OT_SPRING_UL = 13, OT_SPRING_UR = 14, OT_SPRING_R = 15, OT_SPRING_L = 16, OT_HANG = 17,
        OT_PARALLAX = 20, OT_LADDERTOP = 30, OT_GANSEKI = 31,
-       OT_PLAT_VALLEY = 32, OT_PLAT_MOVE2 = 33, OT_PLAT_MOVE3 = 34, OT_BRIDGE = 35, OT_LOG = 36, OT_EXPLODE = 100, OT_PELLET = 101, OT_ITEM_FLY = 102, OT_SHIELD = 103 };
+       OT_PLAT_VALLEY = 32, OT_PLAT_MOVE2 = 33, OT_PLAT_MOVE3 = 34, OT_BRIDGE = 35, OT_LOG = 36,
+       /* session 8 (tools/import_frame.py ENGINE_TYPES) */
+       OT_FLOUNDER = 37, OT_CACTEON = 38, OT_SPOREPOD = 39, OT_LIMITER = 40, OT_CARD = 41, OT_SPIKES_L = 42, OT_SPIKES_R = 43, OT_SPIKES_D = 44,
+       OT_RSPRING_UL = 45, OT_CORK_L = 46, OT_CORK_R = 47, OT_LAYER_SW = 48, OT_LAYER_0 = 49, OT_LAYER_1 = 50,
+       OT_SPIRAL_TOP = 51, OT_SPIRAL_BOTTOM = 52, OT_SPIRAL_MASK = 53, OT_BALLTUNNEL = 54, OT_GEYSER = 55,
+       OT_WR_BASE = 56, OT_WR_TURRET = 57, OT_WR_WEAK = 58, OT_WR_RAIL = 59, OT_WR_BARRIER = 60, OT_WR_LEG = 61 /* 61..72: L1-6, R1-6 */,
+       OT_TD_BODY = 73, OT_TD_PIECE = 74 /* 74..85: L1-6, R1-6 */, OT_TD_PUSH = 86, OT_TD_PUSH2 = 87,
+       OT_WLOG = 88, OT_WLOG_GEN = 89, OT_FLOATPLAT = 90, OT_WF_KILL = 91, OT_BOULDER = 92, OT_WALLPLATE = 93, OT_TRAPDOOR = 94,
+       OT_PPLATE = 95, OT_DOOR = 96, OT_TRUNK = 97, OT_PBLOCK1 = 98, OT_PBLOCK2 = 99,
+       OT_EXPLODE = 100, OT_PELLET = 101, OT_ITEM_FLY = 102, OT_SHIELD = 103, OT_SPORE = 104, OT_FIREBALL = 105, OT_TD_BOMB = 106,
+       OT_DEBRIS = 107, OT_BLAST = 108, OT_THROWN = 109,
+       OT_BAM1 = 110, OT_BAM2 = 111, OT_BAM3 = 112, OT_BAM4 = 113, OT_TAOSTONE = 114, OT_SPINLOG = 115, OT_SPINLOG_MASK = 116, OT_BROCK2 = 117,
+       OT_SNAKE_HEAD = 118, OT_SNAKE_BODY = 119, OT_SNAKE_HIT = 120, OT_GEYSER_HOLE1 = 121, OT_GEYSER_HOLE2 = 122,
+       OT_GBOULDER = 123, OT_BTUNNEL = 124, OT_BTUNNEL2 = 125, OT_BTUNNEL3 = 126, OT_BRK1 = 127, OT_BRK2 = 128, OT_BRK3 = 129,
+       OT_BOUNCEMODE = 130, OT_CAMTRIGGER = 131, OT_JUMPPAD = 132, OT_MON_KEYSTONE = 133 };
 
 #define MAX_ATLAS 4
 typedef struct {
@@ -244,6 +258,7 @@ typedef struct {
     double A, kx, ky;            /* shared enemy rules (spec_combat.md): HP A, knock-back X, Y */
     float ang;                   /* sprite angle (defeated spin) */
     int inv, absorbed;           /* invert shader on (hit flash); crystals absorbed (S) */
+    int bd;                      /* enemy contact damage B (2731 needs B > 0) */
     animator_t an;
 } obj_t;
 
@@ -252,13 +267,14 @@ typedef struct {
 typedef struct {
     level_t lvl;
     bank_t lilac, hair, objs;    /* hair: Lilac's hair overlay (PlayerSkinSashHair_424) */
+    bank_t ens;                  /* per-level enemies / bosses / gimmicks (<dir>_ens; tools/import_frame.py ENS) */
     tex_t par[12]; int npar;
     player_t p;
     obj_t o[MAX_OBJS];
     int nobjs;
     float camx, camy;
     /* MasterCamera_408 alterables (RE, loop_camera_mode0_13 + events 2873-2886, 3539) */
-    struct { float A, B, W, G, H, S, T, N, O; int V, M4; } cam;   /* M4: CAM.M = 4 while entering a ladder from the top (not modelled further) */
+    struct { float A, B, W, G, H, S, T, N, O, Z; int V, M4; } cam;   /* M4: CAM.M = 4 while entering a ladder from the top (not modelled further) */
     int frame, clear_t, paused, kills;
     int act_in, act_fade, act_carry;
     int mus_resume_t;           /* frames until the stage music resumes after a jingle */   /* act change (RE 4135/5045, 3310/3311/3578, 4526/5047) */
@@ -330,6 +346,17 @@ int  obj_rows_hit(const obj_t *o, int ox, int oy, const signed char *x0, const s
 obj_t *obj_alloc(void);
 void   obj_effect(float x, float y, const char *anim);
 int    obj_overlaps_bg(const obj_t *o);
+int    obj_in_group(int type, int grp);
+int    obj_near_view(const obj_t *o, int n);
+int    ens_anim(const char *name);
+void   camera_shake(int z);
+int    cross_rand_raw(int n);               /* MasterCamera Z = min(Z + z, z) */
+void   dragonfly_spawn(obj_t *o), dragonfly_update(obj_t *o, player_t *p);
+void   flounder_spawn(obj_t *o), flounder_update(obj_t *o, player_t *p);
+void   cacteon_spawn(obj_t *o), cacteon_update(obj_t *o, player_t *p);
+void   sporepod_spawn(obj_t *o), sporepod_update(obj_t *o, player_t *p);
+void   spore_update(obj_t *o, player_t *p);
+void   enemies_absorb_crystals(void);
 int  mv_sensor_rows(int s, int *ox, int *oy, const signed char **x0, const signed char **x1, int *h);
 enum { SENS_MAIN = 0, SENS_LEFTBIG = 2, SENS_RIGHTBIG = 4, SENS_TOPBIG = 6, SENS_BOTTOMBIG = 8 };
 void player_hitstop(player_t *p, int k);

@@ -98,7 +98,11 @@ static void shield_creators(player_t *p) {
 }
 
 /* ---- enemies */
-int enemy_type(int t) { return t == OT_GANSEKI || t == OT_TURRETUS || t == OT_DRAGONFLY; }
+/* qualifier 20 ("enemies"; RE on_frame_N_init): every class that takes Lilac's hits by the shared rules */
+int enemy_type(int t) {
+    return t == OT_GANSEKI || t == OT_TURRETUS || t == OT_DRAGONFLY || t == OT_FLOUNDER || t == OT_CACTEON || t == OT_SPOREPOD ||
+           t == OT_WR_WEAK || t == OT_TD_BODY || t == OT_SNAKE_BODY || t == OT_SNAKE_HIT;
+}
 static int candidates[MAX_OBJS], ncand;
 
 /* Lilac's character sensor (PlayerCharacterSensor_375, direction 0): anim 0 = x -7..8, y -34..12; anim 1 = y -13..14 */
@@ -163,9 +167,29 @@ static int any_body_overlap(const player_t *p) {     /* 2761: any of the big dis
 
 /* landing explosion (Ganseki 4390, Dragonfly 4807; Turretus 4776 adds the keystone and debris, sound 29) */
 static void corpse_land(obj_t *o) {
-    if (o->type == OT_TURRETUS) { snd_play_orig(29, 220, 128); obj_effect(o->x, o->y, "explosion"); }
-    else { snd_play_orig(50, 220, 128); obj_effect(o->x, o->y, "explosion"); }
+    if (o->type == OT_TURRETUS || o->type == OT_SPOREPOD) {      /* 4776 / 4997: keystone + explosion + debris, sound 29 */
+        snd_play_orig(29, 220, 128); obj_effect(o->x, o->y, "explosion");
+        if (o->type == OT_SPOREPOD) for (int k = 0; k < 4; k++) {
+            obj_t *d = obj_alloc(); int a = ens_anim("debris");
+            if (!d || a < 0) break;
+            d->type = OT_DEBRIS; d->alive = 1; d->x = o->x; d->y = o->y; anim_set(&d->an, &G.ens, a); d->an.frame = 10 - k;
+            d->vx = (float)(k - 1.5) * 1.5f; d->vy = -3.f - k * 0.5f;     /* debris motion INFERRED (movement params not read) */
+        }
+    } else { snd_play_orig(50, 220, 128); obj_effect(o->x, o->y, "explosion"); }   /* 4390 / 4807 / 5031 / 5044 */
     o->alive = 0;
+}
+
+static int solid_obj_overlap(const obj_t *o) {   /* the always-solid group +0x218c0 */
+    float x0, y0, x1, y1;
+    if (!o->an.b) return 0;
+    const frame_t *f = anim_frame(&o->an);
+    x0 = floorf(o->x) - f->hx; y0 = floorf(o->y) - f->hy; x1 = x0 + f->w; y1 = y0 + f->h;
+    for (int i = 0; i < G.nobjs; i++) {
+        const obj_t *s = &G.o[i];
+        if (!s->alive || s == o || !s->an.b || !obj_in_group(s->type, OBJGRP_SOLID)) continue;
+        if (obj_rect_hit(s, (int)x0, (int)y0, (int)x1, (int)y1)) return 1;
+    }
+    return 0;
 }
 
 void combat_frame(player_t *p) {
@@ -186,7 +210,7 @@ void combat_frame(player_t *p) {
                 if (o->alive && enemy_type(o->type) && o->an.b && obj_rect_hit(o, x0, y0, x1, y1)) candidates[ncand++] = i;
             }
             if ((e = pick()) && e->kx == e->kx) {
-                int Bd = e->type == OT_TURRETUS ? 0 : 5;   /* contact damage B: Ganseki 4391, Dragonfly 4796 = 5; Turretus 0 */
+                int Bd = e->type == OT_GANSEKI ? 5 : e->bd;   /* contact damage B: Ganseki 4391 = 5; others set by their own events */
                 if (Bd > 0 && e->c <= 0 && !(e->fl & F_DEFEATED)) player_contact(p, Bd);
             }
         }
@@ -255,7 +279,7 @@ void combat_frame(player_t *p) {
             if (o->absorbed > 0) { o->absorbed--; obj_effect(o->x, o->y, "objectcrystal_3"); }   /* 2766 (crystal drop: motion INFERRED) */
             if (o->x < 0 || o->x > G.lvl.w || o->y > G.lvl.h || o->y < 0) { o->alive = 0; continue; }   /* 2767 */
             if (o->y > G.camy + 290) { o->alive = 0; continue; }                                 /* 4389 / 4777 */
-            if (o->ky > 0 && obj_overlaps_bg(o)) corpse_land(o);                        /* 4390 / 4776 / 4807 */
+            if (o->ky > 0 && (obj_overlaps_bg(o) || solid_obj_overlap(o))) corpse_land(o);                        /* 4390 / 4776 / 4807 */
         }
     }
 }
