@@ -53,6 +53,8 @@ void r_tex_free(tex_t *t) {
 int r_letterbox_mode = -1;
 static int invert_on;
 void r_set_invert(int on) { invert_on = on; }
+static int add_on;
+void r_set_additive(int on) { add_on = on; }
 void r_set_letterbox(int on) { if (getenv("FP_TRACE_SND") && r_letterbox_mode != on) printf("letterbox %d\n", on); r_letterbox_mode = on; }
 
 void r_reset(void) {
@@ -81,6 +83,10 @@ static uint32_t modulate(uint32_t c, uint32_t m) {
 
 /* alpha blend (a = 255: opaque), as the PVR's translucent list does with the vertex alpha */
 static uint32_t blend(uint32_t dst, uint32_t src, uint32_t a) {
+    if (add_on) {                                  /* additive: dst + src * a */
+        uint32_t r = ((dst >> 16) & 255) + ((src >> 16) & 255) * a / 255, g = ((dst >> 8) & 255) + ((src >> 8) & 255) * a / 255, b = (dst & 255) + (src & 255) * a / 255;
+        return ((r > 255 ? 255 : r) << 16) | ((g > 255 ? 255 : g) << 8) | (b > 255 ? 255 : b);
+    }
     if (a >= 255) return src;
     uint32_t r = (((src >> 16) & 255) * a + ((dst >> 16) & 255) * (255 - a)) / 255;
     uint32_t g = (((src >> 8) & 255) * a + ((dst >> 8) & 255) * (255 - a)) / 255;
@@ -136,7 +142,7 @@ void r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float 
             if (!(col & 0x8000)) continue;
             uint32_t rgb = (((col >> 10) & 31) << 19) | (((col >> 5) & 31) << 11) | ((col & 31) << 3);
             if (invert_on) rgb ^= 0xffffff;
-            fb[sy * SCREEN_W + sx] = modulate(rgb, argb);
+            fb[sy * SCREEN_W + sx] = blend(fb[sy * SCREEN_W + sx], modulate(rgb, argb), argb >> 24);
         }
     }
 }

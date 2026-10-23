@@ -211,7 +211,7 @@ void combat_frame(player_t *p) {
                 if (o->alive && enemy_type(o->type) && o->an.b && obj_rect_hit(o, x0, y0, x1, y1)) candidates[ncand++] = i;
             }
             if ((e = pick()) && e->kx == e->kx) {
-                int Bd = e->type == OT_GANSEKI ? 5 : e->bd;   /* contact damage B: Ganseki 4391 = 5; others set by their own events */
+                int Bd = e->type == OT_GANSEKI ? (p->shield == 3 ? 0 : 5) : e->bd;   /* 4392: metal shield -> GansekiJr B = 0 */   /* contact damage B: Ganseki 4391 = 5; others set by their own events */
                 if (Bd > 0 && e->c <= 0 && !(e->fl & F_DEFEATED)) player_contact(p, Bd);
             }
         }

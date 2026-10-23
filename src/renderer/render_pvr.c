@@ -22,15 +22,19 @@ void r_set_letterbox(int on) {
 }
 #endif
 
-static struct { pvr_ptr_t ptr; pvr_poly_hdr_t hdr, hdr_tr, hdr_ia, hdr_ib; int w, h; } texs[MAXTEX];
+static struct { pvr_ptr_t ptr; pvr_poly_hdr_t hdr, hdr_tr, hdr_ia, hdr_ib, hdr_add; int w, h; } texs[MAXTEX];
 /* hit flash (Chowdren invert shader 21): two translucent passes, A = white silhouette (texel alpha, colour
  * from the specular offset), B = destination x (1 - texel colour); transparent texels are black (index 0) */
 static int invert_on; static uint32_t cur_oargb;
 void r_set_invert(int on) { invert_on = on; }
+/* additive blend (Chowdren shader 0x20, e.g. the elemental shields): replayed in the translucent list */
+static int add_on, add_pass;   /* add_pass: replaying an additive sprite */
+void r_set_additive(int on) { add_on = on; }
 /* Fades: r_fade() queues a translucent black quad; everything drawn after it in the same frame is
  * deferred and replayed in the translucent list on top of the fade (PVR lists are submitted once). */
-typedef struct { int kind; const tex_t *t; int u, v, uw, vh, flip; float a[8]; uint32_t argb; int inv; } dcmd_t;
-static dcmd_t dq[192]; static int ndq, overlay, in_tr;
+typedef struct { int kind; const tex_t *t; int u, v, uw, vh, flip; float a[8]; uint32_t argb; int inv, add; } dcmd_t;
+#define NDQ 640
+static dcmd_t dq[NDQ]; static int ndq, overlay, in_tr;
 static pvr_poly_hdr_t col_hdr_tr;
 static int ntex;
 static pvr_poly_hdr_t col_hdr;
@@ -99,6 +103,8 @@ int r_tex_load(tex_t *t, const void *data, size_t size) {
     cxt.gen.culling = PVR_CULLING_NONE;
     cxt.txr.env = PVR_TXRENV_MODULATE;
     pvr_poly_compile(&texs[slot].hdr_tr, &cxt);
+    cxt.blend.src = PVR_BLEND_SRCALPHA; cxt.blend.dst = PVR_BLEND_ONE;          /* additive */
+    pvr_poly_compile(&texs[slot].hdr_add, &cxt);
     cxt.gen.specular = PVR_SPECULAR_ENABLE;
     cxt.blend.src = PVR_BLEND_SRCALPHA; cxt.blend.dst = PVR_BLEND_INVSRCALPHA;
     pvr_poly_compile(&texs[slot].hdr_ia, &cxt);
@@ -153,17 +159,18 @@ void r_end(void) {
         bars();
         pvr_list_finish();
     }
+    add_pass = 0;
     pvr_scene_finish();
 }
 
 void r_fade(float alpha) {
     if (alpha <= 0) return;
     if (alpha > 1) alpha = 1;
-    if (ndq < 192) { dcmd_t *c = &dq[ndq++]; c->kind = 2; c->argb = ((uint32_t)(alpha * 255) << 24); }
+    if (ndq < NDQ) { dcmd_t *c = &dq[ndq++]; c->kind = 2; c->argb = ((uint32_t)(alpha * 255) << 24); }
     overlay = 1;
 }
 static int inv_pass;          /* 0 normal, 1 / 2 invert passes (replay) */
-#define HDR(i) (in_tr ? (inv_pass == 1 ? &texs[i].hdr_ia : inv_pass == 2 ? &texs[i].hdr_ib : &texs[i].hdr_tr) : &texs[i].hdr)
+#define HDR(i) (in_tr ? (inv_pass == 1 ? &texs[i].hdr_ia : inv_pass == 2 ? &texs[i].hdr_ib : add_pass ? &texs[i].hdr_add : &texs[i].hdr_tr) : &texs[i].hdr)
 
 static inline void quad(float x0, float y0, float x1, float y1,
                         float u0, float v0, float u1, float v1, uint32_t argb) {
@@ -189,8 +196,8 @@ static void bars(void) {          /* letterbox: opaque black over anything drawn
 
 void r_sprite(const tex_t *t, int u, int v, int uw, int vh, float x, float y, float w, float h, int flip, uint32_t argb) {
     if (t->id < 0 || t->id >= ntex) return;
-    if ((overlay || invert_on) && !in_tr) {
-        if (ndq < 192) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 0, t, u, v, uw, vh, flip, { x, y, w, h }, argb, invert_on }; }
+    if ((overlay || invert_on || add_on || (argb >> 24) < 0xff) && !in_tr) {   /* translucent / additive / flash: TR list */
+        if (ndq < NDQ) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 0, t, u, v, uw, vh, flip, { x, y, w, h }, argb, invert_on, add_on }; }
         return;
     }
     if (x + w < 0 || y + h < 0 || x >= SCREEN_W || y >= SCREEN_H) return;
@@ -209,8 +216,8 @@ float r_get_scale(void) { return rscale; }
 void r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float py, float hx, float hy,
                   float angle, int flip, uint32_t argb) {
     if (t->id < 0 || t->id >= ntex) return;
-    if ((overlay || invert_on) && !in_tr) {
-        if (ndq < 192) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 1, t, u, v, uw, vh, flip, { px, py, hx, hy, angle }, argb, invert_on }; }
+    if ((overlay || invert_on || add_on || (argb >> 24) < 0xff) && !in_tr) {
+        if (ndq < NDQ) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 1, t, u, v, uw, vh, flip, { px, py, hx, hy, angle, rscale }, argb, invert_on, add_on }; }
         return;
     }
     if (flip) hx = uw - 1 - hx;                    /* the mirrored image's hotspot (texture u reversed below) */
@@ -239,7 +246,7 @@ void r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float 
 void r_rect(float x, float y, float w, float h, uint32_t argb) {
     if (x + w < 0 || y + h < 0 || x >= SCREEN_W || y >= SCREEN_H) return;
     if (overlay && !in_tr) {
-        if (ndq < 192) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 3, NULL, 0, 0, 0, 0, 0, { x, y, w, h }, argb, 0 }; }
+        if (ndq < NDQ) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 3, NULL, 0, 0, 0, 0, 0, { x, y, w, h }, argb, 0, 0 }; }
         return;
     }
     if (cur_hdr != -1) { pvr_prim(in_tr ? &col_hdr_tr : &col_hdr, sizeof col_hdr); cur_hdr = -1; }
@@ -255,14 +262,15 @@ static void replay(void) {
                 cur_oargb = inv_pass == 1 ? 0x00ffffff : 0;
                 uint32_t col = inv_pass == 1 ? (c->argb & 0xff000000) : (c->argb | 0x00ffffff);
                 if (c->kind == 0) r_sprite(c->t, c->u, c->v, c->uw, c->vh, c->a[0], c->a[1], c->a[2], c->a[3], c->flip, col);
-                else r_sprite_rot(c->t, c->u, c->v, c->uw, c->vh, c->a[0], c->a[1], c->a[2], c->a[3], c->a[4], c->flip, col);
+                else { float ks = rscale; rscale = c->a[5]; r_sprite_rot(c->t, c->u, c->v, c->uw, c->vh, c->a[0], c->a[1], c->a[2], c->a[3], c->a[4], c->flip, col); rscale = ks; }
             }
             inv_pass = 0; cur_oargb = 0; cur_hdr = -2;
             continue;
         }
+        if (c->add != add_pass) { add_pass = c->add; cur_hdr = -2; }
         switch (c->kind) {
         case 0: r_sprite(c->t, c->u, c->v, c->uw, c->vh, c->a[0], c->a[1], c->a[2], c->a[3], c->flip, c->argb); break;
-        case 1: r_sprite_rot(c->t, c->u, c->v, c->uw, c->vh, c->a[0], c->a[1], c->a[2], c->a[3], c->a[4], c->flip, c->argb); break;
+        case 1: { float ks = rscale; rscale = c->a[5]; r_sprite_rot(c->t, c->u, c->v, c->uw, c->vh, c->a[0], c->a[1], c->a[2], c->a[3], c->a[4], c->flip, c->argb); rscale = ks; } break;
         case 2:   /* fade: translucent black over the whole display (incl. letterbox) */
             if (cur_hdr != -1) { pvr_prim(&col_hdr_tr, sizeof col_hdr_tr); cur_hdr = -1; }
             quad(0, 0, 640, 480, 0, 0, 0, 0, c->argb);

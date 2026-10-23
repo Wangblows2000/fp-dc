@@ -123,6 +123,7 @@ void   r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, floa
 void   r_end(void);
 void   r_tex_free(tex_t *t);           /* free one texture */
 void   r_reset(void);                 /* free all textures (level change) */
+void   r_set_additive(int on);       /* following sprites drawn additively (Chowdren shader 0x20) */
 void   r_set_invert(int on);         /* following sprites drawn colour-inverted (Chowdren invert shader) */
 void   r_set_letterbox(int on);       /* presentation only: 1 = 16:9 letterboxed (x1.5), 0 = 4:3 fill (x1.5, x2) */
 
@@ -182,7 +183,8 @@ enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_MON_INVINC = 4, OT_MON
        OT_GBOULDER = 123, OT_BTUNNEL = 124, OT_BTUNNEL2 = 125, OT_BTUNNEL3 = 126, OT_BRK1 = 127, OT_BRK2 = 128, OT_BRK3 = 129,
        OT_BOUNCEMODE = 130, OT_CAMTRIGGER = 131, OT_JUMPPAD = 132, OT_MON_KEYSTONE = 133,
        OT_LOOP016 = 134, OT_LOOP0Q = 135, OT_LOOP115 = 136, OT_LOOP1Q = 137, OT_CHUNK = 138,
-       OT_WF_BACK = 139, OT_WF_FRONT = 140, OT_WF_FRONT2 = 141, OT_WF_FRONT3 = 142, OT_WF_FRONT4 = 143, OT_BBOULDER = 144, OT_KEYSTONE = 146, OT_SPIRAL_FRONT = 147, OT_FRONTROCK = 148, OT_FRONTTREE = 149, OT_TREEFRONT = 150 };
+       OT_WF_BACK = 139, OT_WF_FRONT = 140, OT_WF_FRONT2 = 141, OT_WF_FRONT3 = 142, OT_WF_FRONT4 = 143, OT_BBOULDER = 144, OT_KEYSTONE = 146, OT_SPIRAL_FRONT = 147, OT_FRONTROCK = 148, OT_FRONTTREE = 149, OT_TREEFRONT = 150,
+       OT_MON_WOOD = 151, OT_MON_EARTH = 152, OT_MON_FIRE = 153, OT_MON_METAL = 154, OT_MON_WATER = 155, OT_MONICON = 156 };
 
 #define MAX_ATLAS 4
 typedef struct {
@@ -259,6 +261,8 @@ typedef struct {
     int helix;                    /* RE MV.T = MV.U = 0 (spiral helix ride) */
     int roll_ball;                /* OTHERS.Y = 8 kept in M1 after leaving the roll (ball, Z = 1; until landing: INFERRED) */
     int push_s;                   /* RE PAV_B.S: push-step grace timer (1876) */
+    int shield, shield_c, shield_shown;   /* RE OTHERS.B (1 wood 2 fire 3 metal 4 water 5 earth), OTHERS.C, SENSOR.S */
+    int air;                      /* RE OTHERS.J: air counter (water) */
 } player_t;
 
 #define F_NOFLY 0x10000          /* enemy alterable flag 16: no death flight (bosses keep the object) */
@@ -406,6 +410,11 @@ void   layers_refresh(const player_t *p), layers_update(player_t *p);
 void   cork_start_check(player_t *p), cork_move(player_t *p);
 void   tunnel_events(player_t *p), tunnels_reset(void), spiral_front_draw(void);
 void   spinlogs_update(player_t *p), pblocks_update(player_t *p);
+/* src/game/shields.c */
+void   shields_reset(void), shields_update(player_t *p), shields_draw(const player_t *p), shield_on_crystal(player_t *p);
+int    shield_absorb(player_t *p), shield_monitor_type(int ot);
+void   shield_monitor_broken(const obj_t *m), shield_icon_update(obj_t *ic, player_t *p), shield_preview_draw(const obj_t *m, float sx, float sy);
+void   obj_throw_petal(float x, float y);
 extern int objects_mon_ghost;           /* RE 1581: monitors non-solid for the sensors (M5 / M6) */
 int    player_core_nov(player_t *p);      /* one movement pass with MV.U = 0 */
 void   cards_spawn_all(void), card_update(obj_t *o, player_t *p);

@@ -87,6 +87,7 @@ void player_reset(player_t *p, double x, double y) {
         }
     }
     int crystals = p->crystals, lives = p->lives;
+    int sh = G.act_carry ? p->shield : 0, shc = p->shield_c;   /* OTHERS is global: the shield carries over an act change (INFERRED) */
     double energy = p->energy; int init_energy = p->energy_init;
     double sx = p->spawn_x, sy = p->spawn_y;
     *p = (player_t){0};
@@ -97,6 +98,7 @@ void player_reset(player_t *p, double x, double y) {
     p->energy_hold = 41;   /* RV (build/re/crystal_watch): the refill starts 42 frames after the stage starts (intro lock) */
     p->spawn_x = sx ? sx : x; p->spawn_y = sy ? sy : y;
     p->x = x; p->y = y; p->face = 1; p->hp = MAX_HP;
+    p->shield = sh; p->shield_c = sh ? shc : 0;
     mv_reset();
     set_anim(p, A_IDLE);
     pfx_reset();
@@ -114,7 +116,9 @@ int player_invincible(const player_t *p) {
  *   source), state M8, sound 25 + a random hurt voice; PlayerOthers D = 2, E = 60. */
 extern int fe_difficulty;
 void player_damage(player_t *p, int amount) {
-    if (player_invincible(p) || fe_difficulty >= 3) return;
+    if (player_invincible(p)) return;
+    if (shield_absorb(p)) return;                  /* 2412 / 2413: the shield takes the hit (no hurt) */
+    if (fe_difficulty >= 3) return;
     int mult = fe_difficulty == 0 ? 2 : 1;
     p->hp -= mult * amount / 5;
     snd_play_orig(25, 220, 128);    /* RE: Media::play_id 25 */

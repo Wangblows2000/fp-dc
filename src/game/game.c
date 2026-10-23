@@ -506,6 +506,7 @@ void game_update(const input_t *in) {
         G.card_t = CARD_DONE;
         return;
     }
+    shields_update(&G.p);                         /* RE 2673-2705, 2804-2812 */
     pblocks_update(&G.p);                         /* RE 2711-2735 (after the state groups) */
     spinlogs_update(&G.p);                        /* RE 4980-4986 (DV2) */
     tunnel_events(&G.p);                          /* RE 4739-4755 (end of the frame) */
@@ -694,6 +695,7 @@ void game_draw(void) {
     draw_pieces(2, 2);
     objects_draw(1);
     player_draw(&G.p);
+    shields_draw(&G.p);
     spiral_front_draw();
     draw_pieces(3, 3);
     objects_draw(2);

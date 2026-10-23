@@ -35,7 +35,7 @@ static int disc_on_box(const player_t *p, float x0, float y0, float x1, float y1
 /* ---- spikes (RE 3259-3262): solid (q7), damage 10 + |0.5 speed| when the facing sensor touches them moving
  * into them; not while already hurt (OTHERS.D) and not with the metal shield (not ported) */
 void spikes_update(obj_t *o, player_t *p) {
-    if (p->state == ST_DEAD || p->hurt_pending || player_invincible(p) || p->state == ST_HURT) return;
+    if (p->state == ST_DEAD || p->hurt_pending || player_invincible(p) || p->state == ST_HURT || p->shield == 3) return;   /* 3259-3262: not with the metal shield */
     double B = p->ground ? p->gsp : p->vx, Gv = p->ground ? 0 : p->vy;
     int hit = 0; double sp = 0;
     switch (o->type) {
@@ -413,7 +413,7 @@ void bamboo_update(player_t *p) {
         if (b1->st == 0 || b1->st == 2) { b1->tm++; if (b1->tm > 50) { b1->tm = 0; b1->st++; } }   /* 5229 / 5230 */
         if (b1->st == 1) { b1->fx += 5; if (b1->fx >= 70) b1->st = 2; }                        /* 5231 / 5232 */
         if (b1->st == 3) { b1->fx -= 5; if (b1->fx <= 0) { b1->st = 0; b1->dir = -b1->dir; } }  /* 5233 / 5234 */
-        if (b2 && p->state != ST_HURT && p->state != ST_DEAD && !player_invincible(p) && !p->hurt_pending) {   /* 5228 */
+        if (b2 && p->shield != 3 && p->state != ST_HURT && p->state != ST_DEAD && !player_invincible(p) && !p->hurt_pending) {   /* 5228 (metal shield immune) */
             int sx0 = (int)floor(p->x) - 7, sy0 = (int)floor(MVY(p)) - 34;
             if (obj_rect_hit(b2, sx0, sy0, sx0 + 15, sy0 + 46)) player_contact(p, 5);
         }

@@ -204,3 +204,19 @@ Every level, front-end and boot load runs behind a black loading screen with Obj
 - Hit-stop: simplified (whole player update skipped while it counts down).
 - Mirrored dir-16 animations are no longer stored; `set_anim` draws the right-facing anim flipped (draw_flip / hair_flip).
 - Loading: packs per screen in RAM, released at loading_end; loose files only loading.* and vmu_*.
+
+## Session 8: bosses, chase, results, parallax, keystones, roll/tunnels (port: src/game/bosses.c, serpentine.c, chase.c, results.c, parallax.c, gimmicks.c)
+- States: ST_CORK 15 (M45), ST_ROLL 16 (M6). Roll animation = skin anim 7 (2438), speed int(|B|·5 + 25).
+- Object types added: OT_CHUNK 138, OT_WF_* 139-143, OT_BBOULDER 144, OT_KEYSTONE 146, OT_SPIRAL_FRONT 147,
+  OT_FRONTROCK/FRONTTREE/TREEFRONT 148-150; spinning logs (115/116) and PushableBlock1 (98) now active.
+- Original traces recorded this session (scripts in tests/orig_extra_*.txt, CSVs in build/orig_traces/extra_*.csv):
+  tredd 1-3, snake_t1, dv4_chase, dv4_results, dv4_boss, spiral_dv1 (top ride), spiralb_dv1 (bottom ride + reversal),
+  balltunnel_dv3, pblock_dv2. Host TP lands 2-4 frames before the original's; tests align by that offset.
+- Matches: Tredd 1100/1100 frames; DV2 snake 271/271; results timings 72/292/441; spiral bottom ride, DV3 ball tunnel and
+  the pushable block exact (X, B per frame); spiral top ride exact up to input alignment.
+- Camera bounds: boss mode (U = 1, 2862-2868 ease 2 px/frame), chase mode 3 (minimum C), cinematic (5590).
+- Object layer drawing: objects_draw(pass) 0 = layers ≤ 1, 1 = layer 2, 2 = layers ≥ 3; order pieces 0-1, objects 0,
+  pieces 2, objects 1, Lilac, spiral front, pieces 3, objects 2, pieces 4-7.
+- Teleport caveat (tracer): sensors are clamped to the camera bounds, so a TP far from the start region can push Lilac out
+  of the "ground" every frame (DV2 logs at x 10240 could not be reached that way).
+- Emulator (Flycast, developer select, 16:9): DV1-DV4 load and draw; pvr free after load 2046 / 1211 / 1326 / 1144 KB.

@@ -76,7 +76,8 @@ void plat_poll_input(input_t *in) {
     uint32_t held = 0;
     for (int i = 0; i < nscript; i++)
         if (cur_frame >= script[i].a && cur_frame < script[i].b) held |= script[i].m;
-    if (search_on && !held && G.mode == MODE_PLAY && !G.clear_t && !results_on()) {
+    static int search_from = -1; if (search_from < 0) search_from = getenv("FP_SEARCH_FROM") ? atoi(getenv("FP_SEARCH_FROM")) : 0;   /* replay the script before this frame */
+    if (search_on && cur_frame >= search_from && !held && G.mode == MODE_PLAY && !G.clear_t && !results_on()) {
         int L = search_macro_len();
         if (!plan || plan_i >= plan_n * L) {
             free(plan); plan = NULL; plan_i = 0;
@@ -85,7 +86,7 @@ void plat_poll_input(input_t *in) {
             if (!plan || !plan_n) { fprintf(stderr, "search: no plan at f%d\n", cur_frame); search_on = 0; }
         }
         if (plan && plan_i < plan_n * L) { held = search_macro_buttons(plan[plan_i / L], plan_i % L); plan_i++; }
-    } else if (search_on && (G.mode != MODE_PLAY || G.clear_t || results_on())) {
+    } else if (search_on && cur_frame >= search_from && (G.mode != MODE_PLAY || G.clear_t || results_on())) {
         free(plan); plan = NULL; plan_i = 0;
         if (G.mode == MODE_RESULTS) held = (cur_frame % 40) < 2 ? BTN_JUMP : 0;
     }
@@ -166,6 +167,10 @@ static void apply_dbg(int f, int tp) {
         if (dbg[i].k == 'E') p->energy = dbg[i].a;
         if (dbg[i].k == 'D' && !player_invincible(p)) player_hurt(p, p->x + dbg[i].a);   /* test hit from dx */
         if (dbg[i].k == 'H') p->hp = (int)dbg[i].a;
+        if (dbg[i].k == 'M') {                     /* test: a shield monitor (OT_MON_WOOD..WATER) placed 40 px ahead, box top-left */
+            obj_t *o = obj_alloc(); int a = ens_anim(dbg[i].a == OT_MON_WOOD ? "mon_wood" : dbg[i].a == OT_MON_EARTH ? "mon_earth" : dbg[i].a == OT_MON_FIRE ? "mon_fire" : dbg[i].a == OT_MON_METAL ? "mon_metal" : "mon_water");
+            if (o && a >= 0) { o->type = (int)dbg[i].a; o->alive = 1; o->hp = 1; o->layer = 2; o->x = (float)p->x + 30; o->y = (float)(p->y - ORIG_REF_DY) - 18; anim_set(&o->an, &G.ens, a); }
+        }
     }
 }
 
@@ -200,6 +205,7 @@ int main(int argc, char **argv) {
             if (sscanf(line, "%d EN %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'E', fx, 0 }; continue; }
             if (sscanf(line, "%d HURT %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'D', fx, 0 }; continue; }
             if (sscanf(line, "%d HP %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'H', fx, 0 }; continue; }
+            if (sscanf(line, "%d MON %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'M', fx, 0 }; continue; }
             if (sscanf(line, "%d %d %31s", &script[nscript].a, &script[nscript].b, btn) == 3)
                 script[nscript++].m = parse_btn(btn);
         }
@@ -250,9 +256,9 @@ int main(int argc, char **argv) {
         game_update(&in);
         apply_dbg(cur_frame + 2, 1);
         const player_t *p = &G.p;
-        printf("f %d x %.2f y %.2f gsp %.3f vx %.3f vy %.3f gnd %d ang %.3f st %d hp %d cr %d k %d an %d fr %d rot %.2f en %.2f lv %d face %d mode %d sel %d cx %.1f cy %.1f act %d res %d\n",
+        printf("f %d x %.2f y %.2f gsp %.3f vx %.3f vy %.3f gnd %d ang %.3f st %d hp %d cr %d k %d an %d fr %d rot %.2f en %.2f lv %d face %d mode %d sel %d cx %.1f cy %.1f act %d res %d sh %d shc %d air %d\n",
                cur_frame, p->x, p->y, p->gsp, p->vx, p->vy, p->ground, p->N, p->state, p->hp, p->crystals, G.kills, p->an.anim, p->an.frame,
-               p->rot, p->energy, p->lives, p->face, G.mode, G.in_select, G.camx, G.camy, G.lvdir[0] ? G.lvdir[2] - '0' : 0, results_state());
+               p->rot, p->energy, p->lives, p->face, G.mode, G.in_select, G.camx, G.camy, G.lvdir[0] ? G.lvdir[2] - '0' : 0, results_state(), p->shield, p->shield_c, p->air);
         if (getenv("FP_DBG_ENEMY")) {             /* nearest enemy: A, C, knock-back, angle, flags */
             int bi = -1; float bd = 1e9f;
             for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && enemy_type(G.o[i].type)) { float d = fabsf(G.o[i].x - (float)p->x); if (d < bd) { bd = d; bi = i; } }
