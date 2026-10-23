@@ -18,21 +18,20 @@ source /opt/toolchains/dc/kos/environ.sh && make && make cdi        # build/fpdc
 ```
 Boot flow: Press Start → title (START GAME / TIME ATTACK / GALLERY / OPTIONS / QUIT). Developer level select: L+R within 2 s on the title screen only.
 
-## Latest verified (2026-10-23, session 6)
-- host-test: gameplay 39/39, front end 24/24. original-trace vs host: 69/70, strict 10033/10471 (95.8%), 16/16 baseline.
-- Front end after Press Start ported from the original's events (RE_NOTES "Front end after Press Start", RUNTIME_MAP "Front-end screens in the port"). The code is in `src/game/fe_hub.c` (title menu, file/mode select, delete, options), `frontend.c` (Press Start, character select, shared wipe/tiles) and `fe_stsel.inc` (Time Attack stage select).
-- Pause from DV1 events 4878-4881/4296-4305 (`game.c pause_*`).
-- VMU: `src/game/save.c` (FPDC.SAV, 515 bytes, 5 blocks) and `src/game/vmu.c` (LCD crystal in menus, life icon in stages).
-- Front-end tracer: `tools/orig/run_fe.sh <script> <out.jsonl> <n> <watch offsets> [goto idx]` → `tools/orig/cmp_fe.py <orig.jsonl> <host_stdout>`. The host run uses FP_TRACE_SID=1 FP_TRACE_SND=1 FP_FE_TRACE=1. `tools/re/member_map.py` (gdb) maps a frame's member offsets to classes.
-- Emulator (Flycast, lean CDI): Classic route, Time Attack route, options persisted across reboot, pause, VMU LCD. Audio not audible in the VM.
+## Latest verified (2026-10-23, session 7)
+- host-test: gameplay, front end and pack tests 0 failures. original-trace vs host: 76/76, strict 11311/11377 (99.4%).
+- Fixed the Time Attack regression (stale objects; Makefiles now track header dependencies).
+- Loading: DV1 41.1 s → 0.24 s in Flycast (hardware model ~1.2 s, INFERRED). Profiler: src/game/loadprof.c; packs: src/resources/pack.c.
+- Ladders (grab, fast catch, climb, climb-over, enter from the top, jump/drop), moving/valley platforms, bridges, Ganseki Jr, push.
+- Emulator: DV1-DV4 load with no VRAM exhaustion.
 
 ## Tracer probes (tools/orig/trace_orig.py, trace_fe.py)
 TRACE_ADDOBJ / TRACE_CREATE / TRACE_FANIM / SHOTS / REFIND as before. `trace_fe.py` logs every object of the current frame (x, y, anim, alterables) plus globals, sounds, music and set_frame. The script keys are `LRUDJXBSE` and `SHOT`.
 
 ## Next three actions
-1. Results screen (DV4 events 4560-4589): write file-slot progress and deaths to the save at stage completion. Today only options and Time Attack records are saved.
-2. Ganseki Jr. and the other DV enemies; the Serpentine boss.
-3. The stage-select confirm 3-frame offset (f539); the stage-select BG parallax; the controls panel if a non-console layout is ever wanted.
+1. Results screen (DV4 events 4560-4589): file-slot progress and deaths in the save.
+2. DV3 floating platforms and waterfall logs (unmapped object types); Ganseki crystal absorption/spin; full hit-stop.
+3. A trace that really exercises the fast ladder catch; hardware timing of loads.
 
 ## Known issues / INFERRED
 - **INFERRED:** stage-select confirm timing (3 frames late); results layout; card timings; pause QUIT target from a file game (hub); handlebar release.

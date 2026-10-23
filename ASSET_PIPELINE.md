@@ -68,3 +68,8 @@ Note: the original's `on_frame_N` is `set_frame(N-1)` (DV1 = set_frame 20 = fram
 Measured: BGM 67 files, 218.7 MB Ogg, 8,005.8 s → 256.2 MB ADPCM (32 kHz stereo). Voices 1,373 / 76.2 MB (Lilac's gameplay voices converted). SFX 475 / 18.7 MB / 917 s (traced IDs converted: 4 5 8 9 17 21 25 26 27 28 37 53 56 63 64 81 100 174 176 288 396 405). UI banks 5.1 MB.
 
 UI banks carry an optional `ACT1` section (per-image Fusion action point: hot_x, hot_y, act_x, act_y) used for menu cursors. The pause cursor is the level bank anim `pausecursor` (crystal_447), added in `tools/import_frame.py` together with `sparkle1` / `sparkle5`. SFX id 220 (Lilac's character-select voice) was added to `convert_sfx.sh`.
+
+Session 7 disc steps (after conversion): `tools/twiddle_disc.py` (PAL8 → FPTX fmt 2, KOS twiddle order, self-test) →
+`tools/pack_disc.py` (FPK1 packs, LZ4 per entry; needs `pip install lz4 --break-system-packages`) → `tools/pad_disc.py`
+(pad every file to 32 bytes). `tools/import_frame.py` crops gan_/explosion anims and the lilac2/lilachair banks and
+omits mirrored dir-16 animations.

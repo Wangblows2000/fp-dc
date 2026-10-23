@@ -81,3 +81,9 @@ The recovered dead-zone camera also decides which enemies are active (Turretus c
 
 **D-021 One small VMU save, written only on explicit actions.**
 `FPDC.SAV` holds the options, 8 file slots and the Time Attack records in 515 bytes (6 blocks with its 3-frame icon). It is written when OKAY is chosen in options and when a new Time Attack record is set, never in the middle of gameplay. Writing to a VMU takes several frames on hardware, so a mid-gameplay write would stall the game.
+
+**D-022 Loading: one pack per screen, pre-twiddled textures, resident Lilac.** Measured with loadprof before changing
+anything. Packs remove hundreds of ISO9660 opens; textures are twiddled on the PC; Lilac's banks stay in VRAM across
+compatible transitions (CRC-checked, dropped otherwise). No general cache: only the one pack in RAM, freed at loading_end.
+**D-023 Mirrored sprites by UV flip.** Halves Lilac/hair VRAM (lilac2 1 MB → 512 KB, hair 512 KB → 256 KB) so DV levels fit.
+**D-024 Header dependencies in the Makefiles** after the TA regression caused by stale objects.

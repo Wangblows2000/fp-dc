@@ -251,3 +251,34 @@ Method: `tools/re/member_map.py` (gdb) maps each frame's member offsets to objec
 - **In a stage:** the current character's life icon (from GUIIcon_346, 2× line art), "×" and the lives count in a 3×5 font.
 - **Pushes:** only when the image changes.
 - **Data:** frames are made by `tools/make_vmu_icons.py` from the game's own images into `ui/vmu_lcd.bin` / `ui/vmu_icon.bin` (gitignored data).
+
+## Session 7 additions (specs in build/re/spec_ladder.md, spec_boost.md, spec_platforms.md, spec_ganseki.md)
+- **Ladders (RE + original traces ladder_grab_climb, ladder_down_jump, ladder_top_enter, ladder_fast_grab).**
+  - LadderTop_428 sits at each ladder top (x = ladder centre). The grabs run at the end of the frame:
+    4057 (Up, |B| < 4, LadderTop above within ±15, point inside a ladder piece) → M46, Y = 27;
+    4058 (Down, |B| < 4, BottomBig sensor touching a LadderTop) → M25 enter from the top, snap to LT.y + 8;
+    4059/4060 (Up at |B| ≥ 4, LadderTop within 25 px behind) → fast catch, Y = 47 until the catch anim ends (1928).
+  - M46 frame: 4040 sensors, speed events with T = 0, 1933/1934 clamp ±4 and zero without left/right, 1935-1937
+    climb ±2 (stop at TopBig), 4044 LadderTop under feet with Up → climb-over (O counts to 8, 4045 → Y = LT.y - 36,
+    camera +24), 4046 off the ladder → normal, Jump → 1950 (G = -4) or 4047 drop with Down.
+  - M25: 1888-1890 eight frames then M46. **RV:** the first M25 frame snaps back (modelled as `lad_o = -1`).
+- **Dragon Boost (1637-1643, 1650, 1992-2012):** charge latch, fire, drain, min 10, wall bounce/reflect, ceiling flip, 30 invuln.
+- **Level-edge clamp (1641-1643):** B < 0 and X ≤ 16; right edge at width - 16 (width + 32 while the clear timer runs).
+- **Cyclone:** air gravity +0.25 then -0.15 (2041); grounded cyclone jump × 0.7 (2045).
+- **Platforms (3270-3307, 4061, 4737/4738):** moving (types 2 and 3) and valley platforms carry Lilac by their delta; bridges
+  are 12 logs that sag towards the standing point. Platforms, logs and LadderTop are in the obstacle group.
+  Air landing on an object only when falling (G ≥ 0) and the 11-point platform sensor at B = -5 is clear of every obstacle.
+- **Ganseki Jr (spec_ganseki.md):** walk / wake / curl / gravity / floor; HP 8 + damage; hurts on contact via player_contact(5).
+  **Not ported:** crystal absorption and spin.
+- **Push (M11, 1752/1753 enter; 1875-1881, 2322 leave):** ground, |G| < 0.2, held direction into a big side sensor.
+
+## Loading pipeline (session 7, measured with src/game/loadprof.c)
+Per load the profiler logs: heap (mallinfo), largest free VRAM, and time in open / read / texture upload / sfx / decode /
+music / object creation / other, plus allocation count and skipped work.
+- Before: DV1 41.1 s, front end 17.7 s, character select 17.2 s, TA stage select 8.9 s (Flycast emulated time).
+  Most time was per-file opens (ISO9660 directory walk), small fs_read calls, PAL8 twiddling on the SH4 and per-sfx loads.
+- Fixes: packs (FPK1: one LZ4 pack per screen/level, CRC32 per entry, released at loading_end); textures pre-twiddled
+  on the PC (FPTX fmt 2 → pvr_txr_load); 32-byte aligned 64 KB DMA reads; Lilac's banks kept resident across
+  compatible transitions (CRC-checked); empty parallax layers skipped; mirrored left sprites drawn by UV flip.
+- **KOS finding:** fs_iso9660's DMA path needs a 32-byte aligned destination; the < 32-byte tail goes through an
+  unaligned buffer and can hang. All disc files are padded to 32 bytes.
