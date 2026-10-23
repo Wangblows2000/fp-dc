@@ -63,6 +63,7 @@ static void level_free(void) {   /* everything of the level except Lilac's banks
     memset(&G.ens, 0, sizeof G.ens); G.ens.tex.id = -1;
     for (int i = 0; i < G.lvl.natlas && i < MAX_ATLAS; i++) tex_drop(&G.lvl.atlas[i]);
     for (int i = 0; i < G.npar; i++) tex_drop(&G.par[i]);
+    par_free();
     free(G.lvl.pieces); free(G.lvl.objs); free(G.lvl.blob);
     memset(&G.lvl, 0, sizeof G.lvl);
     G.npar = 0; G.nobjs = 0;
@@ -103,16 +104,7 @@ int game_load_level(const char *dir) {
     snprintf(nm, sizeof nm, "%s/%s_ens", dir, dir); if (bank_load(&G.ens, nm) < 0) { memset(&G.ens, 0, sizeof G.ens); G.ens.tex.id = -1; }
     snprintf(nm, sizeof nm, "%s/%s", dir, dir); bad |= level_load(&G.lvl, nm) < 0;
     if (bad) { loading_end(); lp_end(); plat_log("level %s: data load failed\n", dir); return -1; }
-    int want = 0;
-    for (int i = 0; i < G.lvl.nobj; i++)
-        if (G.lvl.objs[i].type >= OT_PARALLAX && G.lvl.objs[i].type < OT_PARALLAX + 8 && G.lvl.objs[i].anim != 0xffff && G.lvl.objs[i].anim + 1 > want)
-            want = G.lvl.objs[i].anim + 1;
-    for (G.npar = 0; G.npar < want && G.npar < 12; G.npar++) {
-        snprintf(nm, sizeof nm, "%s/%s_par%d", dir, dir, G.npar);
-        /* a layer image with no visible pixel (DV1 par2 / par4) is not uploaded: 192 KB of VRAM, which the
-         * full DV1 set needs (tex_load_file_skip_empty leaves the slot empty: id -1, nothing drawn) */
-        if (tex_load_file_skip_empty(&G.par[G.npar], nm) < 0) break;
-    }
+    par_load(dir);                                 /* layer-0 parallax (src/game/parallax.c) */
     G.p.spawn_x = G.p.spawn_y = 0;
     hud_reset();
     { uint64_t to = plat_time_us(); level_start(); LP.obj_us += plat_time_us() - to; }
@@ -484,6 +476,7 @@ void game_update(const input_t *in) {
     input_t none = {0}, rin = results_input(in), sin_ = {0};
     const input_t *pin = (G.clear_t || G.act_in) ? &none : results_on() ? &rin : in;   /* act end / walk-in / results: no control (RE) */
     { static uint32_t sprev; uint32_t h; if (serp4_input(&h)) { sin_.held = h; sin_.pressed = h & ~sprev; sprev = h; pin = &sin_; } else sprev = 0; }   /* DV4 boss exit (5547 lock, 5573-5577) */
+    par_update();                                 /* RE 3541: parallax drift */
     objects_platforms(&G.p);                      /* RE: platform/bridge events run before Lilac's movement */
     player_update(&G.p, pin);
     layers_update(&G.p);                          /* RE 1613-1616 + 3031/3032: loop collision layer */
@@ -516,27 +509,7 @@ void game_update(const input_t *in) {
     if (act_of(G.lvdir) < 4 && !G.clear_t && !G.act_in && G.p.x > G.lvl.w - 50 && (G.p.ground ? G.p.gsp : G.p.vx) > 0) G.clear_t = 1;
 }
 
-/* Parallax bands: positions/images from the level's levelparallaxpiece objects.
- * Scroll factors are RECONSTRUCTED (the original moves them in event code). */
-static void draw_parallax(void) {
-    int k = 0;
-    float vmax = (float)(G.lvl.h - SCREEN_H);
-    for (int i = 0; i < G.lvl.nobj; i++) {
-        const lvobj_t *o = &G.lvl.objs[i];
-        if (o->type < OT_PARALLAX || o->anim >= G.npar) continue;
-        const tex_t *t = &G.par[o->anim];
-        float fx = k == 0 ? 0.f : 0.04f + 0.07f * k;
-        float y = (float)o->y - (vmax > 0 ? G.camy / vmax : 0) * 0.55f * vmax * (k == 0 ? 0.f : 1.f);
-        if (k == 0) {    /* sky: stretch to the screen */
-            r_sprite(t, 0, 0, t->srcw, t->srch, 0, 0, SCREEN_W, SCREEN_H, 0, 0xffffffff);
-        } else if (y < SCREEN_H && y + t->srch > 0) {
-            float off = fmodf(G.camx * fx, (float)t->srcw);
-            for (float x = -off; x < SCREEN_W; x += t->srcw)
-                r_sprite(t, 0, 0, t->srcw, t->srch, floorf(x), floorf(y), t->srcw, t->srch, 0, 0xffffffff);
-        }
-        k++;
-    }
-}
+static void draw_parallax(void) { par_draw(G.frame); }
 
 static void draw_pieces(int lmin, int lmax) {
     const level_t *l = &G.lvl;

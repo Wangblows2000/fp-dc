@@ -131,15 +131,17 @@ int *search_act(int beam, int maxdepth, int *n, uint32_t prev0) {
 typedef struct { int key; uint8_t *st; uint32_t prev; int *path, len, visits, hp, lives; double x; } cell_t;
 static uint32_t gx_seed = 12345;
 static int gx_rand(int n) { gx_seed = gx_seed * 1103515245u + 12345u; return (int)((gx_seed >> 8) % (unsigned)n); }
-static int cell_key(void) { return ((int)(G.p.x / 64)) * 1000 + (int)((G.p.y - ORIG_REF_DY) / 64) + (G.p.state == 13 ? 500 : 0); }
+static int cell_key(void) { return ((int)(G.p.x / 64)) * 1000 + (int)((G.p.y - ORIG_REF_DY) / 64) + (G.p.state == 13 ? 500 : 0) + (boss_progress() / 4) * 1000000; }
+/* progress: x plus damage dealt to the act's boss (a boss arena blocks x until the boss is beaten) */
+static double prog_now(void) { return G.p.x + boss_progress() * 60.0; }
 
 int *search_explore(int iters, int *n, uint32_t prev0) {
     size_t ss = snap_size();
     int cap = 8000, nc = 0;
     cell_t *C = calloc(cap, sizeof *C);
     uint8_t *root = malloc(ss); snap_save(root);
-    C[0] = (cell_t){ cell_key(), root, prev0, NULL, 0, 0, G.p.hp, G.p.lives, G.p.x }; nc = 1;
-    int *res = NULL; double W = G.lvl.w > 0 ? G.lvl.w : 10000;
+    C[0] = (cell_t){ cell_key(), root, prev0, NULL, 0, 0, G.p.hp, G.p.lives, prog_now() }; nc = 1;
+    int *res = NULL; double W = G.lvl.w > 0 ? G.lvl.w + 20000 : 30000;
     int path[4096];
     double bestx = G.p.x;
     for (int it = 0; it < iters && !res; it++) {
@@ -167,9 +169,9 @@ int *search_explore(int iters, int *n, uint32_t prev0) {
                          (G.p.hp + G.p.lives * 100 == C[j].hp + C[j].lives * 100 && len < C[j].len);
             if (!better) continue;
             if (j == nc) { if (nc >= cap) continue; nc++; C[j].st = malloc(ss); C[j].path = NULL; C[j].visits = 0; }
-            C[j].key = key; snap_save(C[j].st); C[j].prev = prev; C[j].len = len; C[j].hp = G.p.hp; C[j].lives = G.p.lives; C[j].x = G.p.x;
+            C[j].key = key; snap_save(C[j].st); C[j].prev = prev; C[j].len = len; C[j].hp = G.p.hp; C[j].lives = G.p.lives; C[j].x = prog_now();
             free(C[j].path); C[j].path = malloc(sizeof(int) * len); memcpy(C[j].path, path, sizeof(int) * len);
-            if (G.p.x > bestx) bestx = G.p.x;
+            if (prog_now() > bestx) bestx = prog_now();
         }
         if (getenv("FP_SEARCH_V") && it % 2000 == 0) fprintf(stderr, "explore it %d cells %d best x %.0f\n", it, nc, bestx);
     }

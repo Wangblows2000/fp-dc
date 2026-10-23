@@ -6,7 +6,7 @@
 #include <math.h>
 #include "../fp.h"
 
-#define MAXTEX 64
+#define MAXTEX 192
 static struct { int w, h, fmt, grp; uint16_t *px; uint8_t *idx; } texs[MAXTEX];
 static uint16_t pals[4][256];
 static int ntex;
@@ -20,6 +20,16 @@ int r_tex_load(tex_t *t, const void *data, size_t size) {
     while (slot < ntex && (texs[slot].px || texs[slot].idx)) slot++;      /* reuse freed slots */
     if (size < 16 || memcmp(d, "FPTX", 4) || slot >= MAXTEX) return -1;
     uint16_t hdr[6]; memcpy(hdr, d + 4, 12);
+    if (hdr[2] == 3) {          /* PAL4: two texels per byte (low nibble first), header field = 16-entry bank 0..63 */
+        if ((size_t)hdr[0] * hdr[1] / 2 + 16 > size || hdr[5] > 63) return -1;
+        size_t n = (size_t)hdr[0] * hdr[1];
+        texs[slot].w = hdr[0]; texs[slot].h = hdr[1]; texs[slot].fmt = 1; texs[slot].grp = hdr[5] / 16;
+        texs[slot].idx = malloc(n);
+        int base = (hdr[5] % 16) * 16;
+        for (size_t i = 0; i < n; i++) { int v = (d[16 + i / 2] >> ((i & 1) * 4)) & 15; texs[slot].idx[i] = (uint8_t)(v ? base + v : 0); }
+        t->id = slot; if (slot == ntex) ntex++; t->w = hdr[0]; t->h = hdr[1]; t->srcw = hdr[3]; t->srch = hdr[4];
+        return 0;
+    }
     size_t bpp = hdr[2] == 1 ? 1 : 2;
     if (hdr[2] > 1 || (size_t)hdr[0] * hdr[1] * bpp + 16 > size || (hdr[2] == 1 && hdr[5] > 3)) return -1;
     texs[slot].w = hdr[0]; texs[slot].h = hdr[1]; texs[slot].fmt = hdr[2]; texs[slot].grp = hdr[5];

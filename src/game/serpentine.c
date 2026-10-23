@@ -152,7 +152,7 @@ static void dv2_update(player_t *p) {
     /* 5049: Lilac inside the arena's x range before the fight -> boss camera (bounds ease to the limits) */
     if (!SN.cam && !SN.done && p->x > SN.climL && p->x < SN.climR) { SN.cam = 1; camera_boss_bounds(SN.climL, SN.climT, SN.climR, SN.climB); }
     /* 5050: the character sensor reaches the trigger column (16x192 at trigX) -> boss active (one-shot) */
-    if (!SN.active && !SN.done && floor(p->x) + 8 > SN.trigX && p->y > SN.climT && p->y < SN.climB + 64) SN.active = 1;
+    if (!SN.active && !SN.done && floor(p->x) + 8 > SN.trigX && floor(p->x) - 7 < SN.trigX + 16 && p->y > SN.climT && p->y < SN.climB + 64) SN.active = 1;
     /* 5051: invisible left wall at climL + 16 (the camera bound gives the same clamp in the port) */
     if (!SN.active) return;
     if (!SN.setup) {                                                                   /* 5052 */
@@ -377,7 +377,7 @@ void serp4_update(player_t *p) {
     }
 #endif
     /* 5461 trigger: the character sensor overlaps a cameratriggerboss (x 12608, 16 px wide) */
-    if (!SN.active && !SN.done && plx + 8 > SN.trigX && ply > SN.climT - 300 && ply < SN.climB + 64) {
+    if (!SN.active && !SN.done && plx + 8 > SN.trigX && plx - 7 < SN.trigX + 16 && ply > SN.climT - 300 && ply < SN.climB + 64) {
         SN.active = 1; S4.P1 = 1; S4.hbr = 1; S4.K = 3;
         p->layer = 1; chase_end(); camera_boss_bounds(SN.climL, SN.climT, SN.climR, SN.climB);
     }
