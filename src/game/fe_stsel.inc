@@ -50,7 +50,7 @@ static void ease_shake(ui_scene_t *s) {
     for (int i = 0; i < s->nobj; i++) {
         ui_obj_t *o = &s->o[i];
         if (o->shz > 0) {
-            double a = 200.0 * o->shz, c = (a == 90. || a == 270.) ? 0. : cos(a / 57.29577951), sn = a == 180. ? 0. : sin(a / 57.29577951);
+            double a = 200.0 * o->shz, c = (a == 90. || a == 270.) ? 0. : cos(a / 57.29577951308232), sn = a == 180. ? 0. : sin(a / 57.29577951308232);
             o->shx = (int)floor(c * o->shz); o->shy = (int)floor(sn * o->shz * 0.5);
             o->shz -= 0.4f; if (o->shz < 0.01f) { o->shz = 0; o->shx = o->shy = 0; }
         }

@@ -21,8 +21,13 @@ VT = {'mv': 0x20b2910, 'player': 0x20b6f30, 'skin': 0x20b7890}   # vtable+0x10 o
 XVT = {'en': 0x20aa470, 'life': 0x20aa510, 'others': 0x20aa3d0, 'turr': 0x20d65d0, 'cam': 0x20bbbd0,
        'hair': 0x20bc5d0, 'sp1': 0x20b68f0, 'sp2': 0x20b9c30, 'sp3': 0x20b9cd0, 'sp4': 0x20b9d70, 'sp5': 0x20b3c70, 'plat3': 0x20dab50}   # plat3 = LevelMovingPlatform3_948; hair = PlayerSkinSashHair_424 (Lilac's hair overlay)
 # extra objects for one trace: XVT_EXTRA="name=0xvtable+0x10,name2=..." (vtable addresses from build/re/nm.txt + 0x10)
+# "name=0xvtable#i" picks the i-th live instance (heap address order) instead of the last one (multi-instance classes)
+XVT_IDX = {}
 for _kv in os.environ.get('XVT_EXTRA', '').split(','):
-    if '=' in _kv: XVT[_kv.split('=')[0]] = int(_kv.split('=')[1], 0)
+    if '=' in _kv:
+        _n, _v = _kv.split('=')
+        if '#' in _v: _v, _i = _v.split('#'); XVT_IDX[_n] = int(_i)
+        XVT[_n] = int(_v, 0)
 # instances picked by x position instead of the last one found (probes of one specific enemy)
 XVT_PICK = {'turr': 1233}   # others = PlayerOthers_126 (invulnerability timer E, RE)
 # HUD counters (Counter::set: value double @+0xa0, min int @+0xa8, max int @+0xac)
@@ -240,7 +245,10 @@ class Tracer(gdb.Breakpoint):
             self.objs = {'player': best[1], 'skin': best[2], 'mv': best[3]}
             for k in list(XVT) + list(CVT):
                 if k in o:
-                    if k in XVT_PICK:
+                    if k in XVT_IDX:
+                        live = sorted(a for a in o[k] if rd_obj(a)[2])
+                        if XVT_IDX[k] < len(live): self.objs[k] = live[XVT_IDX[k]]
+                    elif k in XVT_PICK:
                         self.objs[k] = min(o[k], key=lambda a: abs(rd_obj(a)[0] - XVT_PICK[k]) if rd_obj(a)[2] else 1e9)
                     else: self.objs[k] = o[k][-1]
             gdb.write('extra %s\n' % {k: [hex(v) for v in o.get(k, [])] for k in XVT})

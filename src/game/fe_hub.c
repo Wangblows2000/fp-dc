@@ -317,7 +317,7 @@ int hub_update(const input_t *now) {
         ui_obj_t *o = &S->o[i];
         if (o->shz > 0) {
             double a = 200.0 * o->shz;
-            double c = (a == 90. || a == 270.) ? 0. : cos(a / 57.29577951), s = a == 180. ? 0. : sin(a / 57.29577951);
+            double c = (a == 90. || a == 270.) ? 0. : cos(a / 57.29577951308232), s = a == 180. ? 0. : sin(a / 57.29577951308232);
             o->shx = (int)floor(c * o->shz); o->shy = (int)floor(s * o->shz * 0.5);
             o->shz -= 0.4f; if (o->shz < 0.01f) { o->shz = 0; o->shx = o->shy = 0; }
         }

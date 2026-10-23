@@ -100,11 +100,14 @@ void r_sprite(const tex_t *t, int u, int v, int uw, int vh, float x, float y, fl
     }
 }
 
+static float rscale = 1.f;
+void r_set_scale(float s) { rscale = s; }
+float r_get_scale(void) { return rscale; }
 void r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float py, float hx, float hy,
                   float angle, int flip, uint32_t argb) {
     if (t->id < 0 || t->id >= ntex) return;
     if (flip) hx = uw - 1 - hx;                    /* the mirrored image's hotspot */
-    if (angle == 0) { r_sprite(t, u, v, uw, vh, px - hx, py - hy, uw, vh, flip, argb); return; }
+    if (angle == 0 && rscale == 1.f) { r_sprite(t, u, v, uw, vh, px - hx, py - hy, uw, vh, flip, argb); return; }
     const uint16_t *pxl = texs[t->id].px; const uint8_t *ix = texs[t->id].idx;
     const uint16_t *pal = pals[texs[t->id].grp & 3];
     int tw = texs[t->id].w;
@@ -116,7 +119,7 @@ void r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float 
             if (sx < 0 || sx >= SCREEN_W) continue;
             float dx = sx + 0.5f - px, dy = sy + 0.5f - py;
             /* inverse of (x' = x c + y s, y' = -x s + y c) */
-            float lx = dx * c - dy * s + hx, ly = dx * s + dy * c + hy;
+            float lx = (dx * c - dy * s) / rscale + hx, ly = (dx * s + dy * c) / rscale + hy;
             if (lx < 0 || ly < 0 || lx >= uw || ly >= vh) continue;
             int tu = u + (flip ? uw - 1 - (int)lx : (int)lx), tv = v + (int)ly;
             uint16_t col = ix ? pal[ix[tv * tw + tu]] : pxl[tv * tw + tu];

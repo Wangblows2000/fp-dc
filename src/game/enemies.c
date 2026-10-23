@@ -41,8 +41,8 @@ int obj_near_view(const obj_t *o, int n) {
 static int obstacle(float x, float y) { return px_solid(&G.lvl, (int)floorf(x), (int)floorf(y)); }   /* Frame::test_obstacle */
 static double MVX(const player_t *p) { return p->x; }
 static double MVY(const player_t *p) { return p->y - ORIG_REF_DY; }
-static double c_sin(double deg) { return deg == 180. ? 0. : fd_sin(deg / 57.29577951); }
-static double c_cos(double deg) { return (deg == 90. || deg == 270.) ? 0. : fd_cos(deg / 57.29577951); }
+static double c_sin(double deg) { return deg == 180. ? 0. : fd_sin(deg / 57.29577951308232); }
+static double c_cos(double deg) { return (deg == 90. || deg == 270.) ? 0. : fd_cos(deg / 57.29577951308232); }
 
 /* ---- Dragonfly (EnemyDragonfly_942, events 4778-4807) */
 void dragonfly_spawn(obj_t *o) { o->A = 4; o->vx = -2; o->dir = 16; o->st = 0; o->fx = o->x; o->fy = o->y; o->tm = 0; o->bd = 0; ens_set(o, "df_fly"); }

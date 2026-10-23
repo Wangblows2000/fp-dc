@@ -148,7 +148,7 @@ void player_hurt(player_t *p, double from_x) { (void)from_x; player_damage(p, 10
 static double fric_step(double g);
 
 /* the original's trig (cos taken as 0 at exactly 90/270, sin as 0 at exactly 180; N in degrees) */
-#define DEG 57.29577951
+#define DEG 57.29577951308232
 static double o_cos(double n) { return (n == 270. || n == 90.) ? 0. : fd_cos(n / DEG); }
 static double o_sin(double n) { return n == 180. ? 0. : fd_sin(n / DEG); }
 
@@ -531,8 +531,9 @@ static void air_action_apply(player_t *p, const input_t *in, int act) {
 static void clamp_edges(player_t *p, double x0) {
     (void)x0;
     double *b = p->ground ? &p->gsp : &p->vx;
-    if (*b < 0 && p->x <= EDGE_X) { *b = 0; p->x = EDGE_X; }
-    double r = G.clear_t ? G.lvl.w + 32. : G.lvl.w - EDGE_X;
+    double l = camera_bound_C() + EDGE_X;
+    if (*b < 0 && p->x <= l) { *b = 0; p->x = l; }
+    double r = G.clear_t ? G.lvl.w + 32. : camera_bound_E() - EDGE_X;
     if (*b > 0 && p->x >= r) { p->x = r; *b = 0; }
 }
 
@@ -563,7 +564,7 @@ static void fx_update(player_t *p, int st0) {
         for (int k = 0; k < 4; k++) {
             double d = (k < 2 ? spk.d1 : spk.d3) + (k & 1) * 180.0, r = k < 2 ? 20 : 10;
             float ax = k < 2 ? spk.a1x : spk.a3x, ay = k < 2 ? spk.a1y : spk.a3y;
-            pfx_spawn(ax + (float)(r * fd_sin(d / 57.29577951)), ay - (float)(r * fd_cos(d / 57.29577951)), A_FX_SPK5);
+            pfx_spawn(ax + (float)(r * fd_sin(d / 57.29577951308232)), ay - (float)(r * fd_cos(d / 57.29577951308232)), A_FX_SPK5);
         }
 }
 
@@ -574,8 +575,8 @@ static void fx_draw(void) {
         for (int k = 0; k < 4; k++) {
             double d = (k < 2 ? spk.d1 : spk.d3) + (k & 1) * 180.0, r = k < 2 ? 20 : 10;
             float ax = k < 2 ? spk.a1x : spk.a3x, ay = k < 2 ? spk.a1y : spk.a3y;
-            frame_draw(&G.objs, anim_frame(&spk.an), (float)floor(ax + r * fd_sin(d / 57.29577951) - G.camx),
-                       (float)floor(ay - r * fd_cos(d / 57.29577951) - G.camy), 0, 0xffffffff);
+            frame_draw(&G.objs, anim_frame(&spk.an), (float)floor(ax + r * fd_sin(d / 57.29577951308232) - G.camx),
+                       (float)floor(ay - r * fd_cos(d / 57.29577951308232) - G.camy), 0, 0xffffffff);
         }
 }
 

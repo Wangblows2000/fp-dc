@@ -200,6 +200,9 @@ void r_sprite(const tex_t *t, int u, int v, int uw, int vh, float x, float y, fl
 
 /* rotated sprite: texel (hx,hy) of the rect lands on screen (px,py); angle in degrees CCW
  * (Fusion/Chowdren convention: Active::set_angle rotates around the hotspot) */
+static float rscale = 1.f;
+void r_set_scale(float s) { rscale = s; }
+float r_get_scale(void) { return rscale; }
 void r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float py, float hx, float hy,
                   float angle, int flip, uint32_t argb) {
     if (t->id < 0 || t->id >= ntex) return;
@@ -214,7 +217,7 @@ void r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float 
     float iw = 1.0f / texs[t->id].w, ih = 1.0f / texs[t->id].h;
     float u0 = u * iw, u1 = (u + uw) * iw, v0 = v * ih, v1 = (v + vh) * ih;
     if (flip) { float tmp = u0; u0 = u1; u1 = tmp; }
-    float a = angle * 0.017453293f, c = fcos(a), sn = fsin(a);
+    float a = angle * 0.017453293f, c = fcos(a) * rscale, sn = fsin(a) * rscale;
     float lx[4] = { -hx, uw - hx, -hx, uw - hx }, ly[4] = { -hy, -hy, vh - hy, vh - hy };
     float tu[4] = { u0, u1, u0, u1 }, tv[4] = { v0, v0, v1, v1 };
     pvr_vertex_t vt;

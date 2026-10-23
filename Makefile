@@ -6,7 +6,7 @@
 TARGET = fpdc.elf
 OBJS = src/platform/plat_dc.o src/renderer/render_pvr.o src/resources/assets.o \
        src/physics/level.o src/physics/sensors.o src/characters/player.o src/game/objects.o src/game/game.o \
-       src/game/ui.o src/game/frontend.o src/game/loading.o src/game/vmu.o src/game/fe_hub.o src/game/save.o src/game/loadprof.o src/resources/pack.o src/game/snap.o src/physics/fmath.o src/game/combat.o src/game/enemies.o src/game/gimmicks.o src/game/bosses.o
+       src/game/ui.o src/game/frontend.o src/game/loading.o src/game/vmu.o src/game/fe_hub.o src/game/save.o src/game/loadprof.o src/resources/pack.o src/game/snap.o src/physics/fmath.o src/game/combat.o src/game/enemies.o src/game/gimmicks.o src/game/bosses.o src/game/serpentine.o
 
 FP_GAME ?= /mnt/user-data/uploads/Freedom Planet
 # BGM: music tracks put on the disc (default: the whole ADPCM library). Lean disc with only the

@@ -7,10 +7,10 @@
 #include <string.h>
 #include "../fp.h"
 
-static double snap_half(double v) { double h = floor(v * 2 + 0.5) / 2; return fabs(v - h) < 1e-12 ? h : v; }
-/* Chowdren's degree sin/cos: exact 0 at 180 / 90 / 270; RV (tredd3.csv D = -0.0625 at H 210): exact +-0.5 too */
-static double c_sin(double deg) { return deg == 180. ? 0. : snap_half(fd_sin(deg / 57.29577951)); }
-static double c_cos(double deg) { return (deg == 90. || deg == 270.) ? 0. : snap_half(fd_cos(deg / 57.29577951)); }
+/* Chowdren's degree sin/cos: x / 57.29577951308232 (the binary's constant; RV tredd3.csv D = -0.0625 at H 210 needs
+ * exactly this rounding), exact 0 at 180 / 90 / 270 */
+static double c_sin(double deg) { return deg == 180. ? 0. : fd_sin(deg / 57.29577951308232); }
+static double c_cos(double deg) { return (deg == 90. || deg == 270.) ? 0. : fd_cos(deg / 57.29577951308232); }
 static obj_t *first_of(int type) { for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == type) return &G.o[i]; return NULL; }
 static void set_ens(obj_t *o, const char *name) { int a = ens_anim(name); if (a >= 0) anim_set(&o->an, &G.ens, a); }
 static void box_of(const obj_t *o, float *x0, float *y0, float *x1, float *y1) {
@@ -88,7 +88,7 @@ static void wr_update(player_t *p) {
         /* 4852: segments take the angles of 4853 (last frame), turret aims at Player_326 (truncated direction) */
         for (int k = 0; k < 12; k++) { obj_t *o = leg(k); if (o) o->ang = (float)WR.legA[k]; }
         if (tur) {
-            double a = fd_atan2(tur->y - (int)(p->y - ORIG_REF_DY), (int)p->x - tur->x) * 57.29577951; if (a < 0) a += 360;
+            double a = fd_atan2(tur->y - (int)(p->y - ORIG_REF_DY), (int)p->x - tur->x) * 57.29577951308232; if (a < 0) a += 360;
             tur->dir = (int)(a / 11.25) & 31; tur->ang = (float)(tur->dir * 11.25);              /* auto-rotate */
         }
         double s = c_sin(fmod(WR.A + 3600, 360));                                            /* 4853 */
@@ -98,7 +98,7 @@ static void wr_update(player_t *p) {
             if (inside_view(base, 120) || WR.turretA > 100) WR.turretA++;
             if (WR.turretA == 100) { set_ens(tur, "wr_turret_fire"); WR.turretA++; snd_play_orig(74, 220, 128); }
             if (WR.turretA == 140 || WR.turretA == 155 || WR.turretA == 170 || WR.turretA == 185 || WR.turretA == 200) {
-                double a = tur->ang / 57.29577951;
+                double a = tur->ang / 57.29577951308232;
                 obj_spawn_pellet(tur->x + (float)(int)(27 * fd_cos(a)), tur->y + (float)(int)(-27 * fd_sin(a)), tur->dir);
                 snd_play_orig(28, 220, 128);
                 if (WR.turretA == 200) { WR.turretA = -80; set_ens(tur, "wr_turret"); } else WR.turretA++;
@@ -205,18 +205,18 @@ static void td_update(player_t *p) {
     /* 5245 (H = 230 once, condition "Y <= 79" of unknown meaning) does not fire here: RV tredd3.csv starts at H 200 */
     if (TD.I == 0) { TD.I = body->x; TD.E = body->y; }                                         /* 5246 */
     body->x = (float)(int)TD.I;                                                               /* 5247 */
-    double h2 = fd_sin(TD.H / 2 / 57.29577951), w = powi(1 - powi(h2, 8), 4) - 0.5;          /* 5248 */
+    double h2 = fd_sin(TD.H / 2 / 57.29577951308232), w = powi(1 - powi(h2, 8), 4) - 0.5;          /* 5248 */
     double ch = c_cos(fmod(TD.H + 70, 360)), sh = c_sin(fmod(TD.H, 360));
     TD.D = powi(ch, 40) - powi(sh, 4);
     TD.F = 1.76 * w * TD.J; TD.Gw = 2.2 * TD.J * (0.88 - fabs(TD.F));
-    body->y = (float)(int)(TD.E + 16 * TD.D + 1e-7);   /* +1e-7: the original's exact degree trig lands on whole values (RV tredd3.csv) */
+    body->y = (float)(int)(TD.E + 16 * TD.D);
     TD.pd = TD.J; TD.colE = TD.H;     /* pieces copy the body's J into their D and H into their E (RV tredd3.csv) */
     for (int k = 0; k < 12; k++) {                                                            /* 5249 */
         obj_t *o = td_piece(k);
         if (!o) continue;
         double B = TD.pieceB[k];
-        o->x = (float)(int)(body->x + TD.F * B + 1e-7);
-        o->y = (float)(int)(((k % 6 == 2) ? TD.E + 64 + fmin(0.0, 2 * TD.D * B) : TD.E + TD_OFF[k] + TD.D * B) + 1e-7);
+        o->x = (float)(int)(body->x + TD.F * B);
+        o->y = (float)(int)((k % 6 == 2) ? TD.E + 64 + fmin(0.0, 2 * TD.D * B) : TD.E + TD_OFF[k] + TD.D * B);
     }
     if (TD.H > 284 && !TD.stomp && !dead) {                                                   /* 5250 / 5251 */
         TD.stomp = 1; camera_shake(3);
@@ -291,15 +291,17 @@ void tredd_bomb_update(obj_t *o, player_t *p) {
 
 /* ================================================================ dispatch */
 void bosses_spawn(void) {
-    wr_spawn(); td_spawn();
+    wr_spawn(); td_spawn(); serp_spawn();
     snap_register(&WR, sizeof WR); snap_register(&TD, sizeof TD);
 }
 void bosses_update(player_t *p) {
     if (first_of(OT_WR_BASE) || WR.active) wr_update(p);
     td_update(p);
+    serp_update(p);
 }
 /* legs / turret visibility and the Base flash (4861/4862: inverted while the weakspot's C > 0 and A > 0) */
 int boss_hidden(const obj_t *o) {
+    if (serp_hidden(o)) return 1;
     if (o->type == OT_WR_BARRIER || o->type == OT_WR_WEAK || o->type == OT_TD_PUSH || o->type == OT_TD_PUSH2) return 1;
     if (WR.burst && !WR.weakBlink && (o->type == OT_WR_TURRET || (o->type >= OT_WR_LEG && o->type < OT_WR_LEG + 12))) return 1;
     return 0;

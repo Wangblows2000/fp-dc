@@ -8,7 +8,7 @@
 #include "../fp.h"
 
 static double MVY(const player_t *p) { return p->y - ORIG_REF_DY; }
-static double c_cos(double deg) { return (deg == 90. || deg == 270.) ? 0. : fd_cos(deg / 57.29577951); }
+static double c_cos(double deg) { return (deg == 90. || deg == 270.) ? 0. : fd_cos(deg / 57.29577951308232); }
 static int box_sensor(int s, float x0, float y0, float x1, float y1) {   /* a sensor mask overlapping a box */
     int ox, oy, h; const signed char *a, *b;
     if (!mv_sensor_rows(s, &ox, &oy, &a, &b, &h)) return 0;
@@ -363,7 +363,7 @@ void trunks_update(player_t *p) {
         else if (p->state == ST_CYCLONE && sensor_on(o, SENS_RIGHTBIG)) { o->vx += 3; p->vx = -3; hit = 2; } /* 5222 */
         if (hit) {
             snd_play_orig(23, 220, 128);
-            double n = p->N, g = hit == 2 ? -3.0 : (-PHYS_JUMP) * (n == 90 || n == 270 ? 0 : fd_cos(n / 57.29577951)) - (n == 180 ? 0 : fd_sin(n / 57.29577951)) * B;
+            double n = p->N, g = hit == 2 ? -3.0 : (-PHYS_JUMP) * (n == 90 || n == 270 ? 0 : fd_cos(n / 57.29577951308232)) - (n == 180 ? 0 : fd_sin(n / 57.29577951308232)) * B;
             p->ground = 0; p->N = 0; p->vy = g; if (hit == 1) p->state = ST_NORMAL;
         }
         if (!obj_near_view(o, 200)) continue;                                                  /* 5217: loop_trunk */
@@ -386,7 +386,7 @@ void trunks_update(player_t *p) {
 /* ---- bamboo spike traps (5227-5234): bam1 pivot (st = A, tm = B, fx = C swing, dir = D side), bam2 joint (hurts),
  * bam3 pole, bam4 head; paired by x. Pole image: hotspot (8,52), action point (8,-5): 57 px up the pole. */
 static obj_t *bam_of(int type, float x) { for (int i = 0; i < G.nobjs; i++) { obj_t *o = &G.o[i]; if (o->alive && o->type == type && fabsf(o->x - x) < 4) return o; } return NULL; }
-static void pole_tip(const obj_t *o, float *x, float *y) { double a = o->ang / 57.29577951; *x = o->x + (float)(int)(-57 * fd_sin(a)); *y = o->y + (float)(int)(-57 * fd_cos(a)); }
+static void pole_tip(const obj_t *o, float *x, float *y) { double a = o->ang / 57.29577951308232; *x = o->x + (float)(int)(-57 * fd_sin(a)); *y = o->y + (float)(int)(-57 * fd_cos(a)); }
 void bamboo_update(player_t *p) {
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *b1 = &G.o[i];

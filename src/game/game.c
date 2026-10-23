@@ -36,7 +36,7 @@ static void level_start(void) {
 
 /* stage music per level dir (RE/RV: the original's play_music loops: m_stage1 frame index 20,
  * m_stage1b 21-22, m_boss 23 = DV4) */
-static const char *level_music(const char *dir) {
+const char *level_music(const char *dir) {
     /* RE: Frames::loop_play_music_N_<frame index> strings: 20 m_stage1, 21/22 m_stage1b, 23 m_boss */
     if (!strcmp(dir, "dv1")) return "bgm/m_stage1.adp";
     if (!strcmp(dir, "dv4")) return "bgm/m_boss.adp";
@@ -267,7 +267,7 @@ void game_dev_select(void) {
 void camera_reset(void) {
     const player_t *p = &G.p;
     G.cam.A = p->x; G.cam.B = p->y - 14.f; G.cam.W = G.cam.G = G.cam.H = G.cam.S = G.cam.T = G.cam.N = G.cam.O = 0;
-    G.cam.V = p->ground;
+    G.cam.V = p->ground; G.cam.U = 0;
     float C = 0, E = (float)G.lvl.w, D = 0, F = (float)G.lvl.h;
     if (G.cam.A < C + CAM_HX) G.cam.A = C + CAM_HX;
     if (G.cam.A > E - CAM_HX) G.cam.A = E - CAM_HX;
@@ -275,10 +275,28 @@ void camera_reset(void) {
     if (G.cam.B > F - CAM_HY) G.cam.B = F - CAM_HY;
 }
 
+/* boss camera (RE loop_camera_mode1_13 + 2862 once, 2865-2868 every frame): the bounds start at the current view
+ * (or the limits if already inside them) and move 2 px per frame to the cameralimitboss objects */
+void camera_boss_bounds(float l, float t, float r, float b) {
+    float vl = G.camx, vt = G.camy;
+    G.cam.U = 1; G.cam.lC = l; G.cam.lD = t; G.cam.lE = r; G.cam.lF = b;
+    G.cam.bC = fminf(l, vl); G.cam.bD = fminf(t, vt); G.cam.bE = fmaxf(r, vl + SCREEN_W); G.cam.bF = fmaxf(b, vt + SCREEN_H);
+}
+void camera_normal_bounds(void) { G.cam.U = 0; }
+float camera_bound_C(void) { return G.cam.U == 1 ? G.cam.bC : 0.f; }
+float camera_bound_E(void) { return G.cam.U == 1 ? G.cam.bE : (float)G.lvl.w; }
+
 void camera_update(void) {
     const player_t *p = &G.p;
     float X = p->x, Y = p->y - 14.f;                    /* movement object X, Y (reference point) */
+    if (G.cam.U == 1) {                                  /* 2865-2868 */
+        if (G.cam.bC < G.cam.lC) G.cam.bC = fminf(G.cam.lC, G.cam.bC + 2.f);
+        if (G.cam.bE > G.cam.lE) G.cam.bE = fmaxf(G.cam.lE, G.cam.bE - 2.f);
+        if (G.cam.bD < G.cam.lD) G.cam.bD = fminf(G.cam.lD, G.cam.bD + 2.f);
+        if (G.cam.bF > G.cam.lF) G.cam.bF = fmaxf(G.cam.lF, G.cam.bF - 2.f);
+    }
     float C = 0, E = (float)G.lvl.w, D = 0, F = (float)G.lvl.h;
+    if (G.cam.U == 1) { C = G.cam.bC; E = G.cam.bE; D = G.cam.bD; F = G.cam.bF; }
     int L = p->ground;
     float Bsp = p->ground ? p->gsp : p->vx;             /* movement B */
     float Q = (float)p->face;
@@ -334,8 +352,8 @@ void camera_update(void) {
     /* event 3539 + Frame::set_display_center */
     float cx = floorf(G.cam.A + S), cy = floorf(G.cam.B + T);
     G.cam.Z = G.cam.Z - 0.1f >= 0 ? G.cam.Z - 0.1f : 0;
-    G.camx = fminf(fmaxf(cx - 213.f, 0.f), (float)G.lvl.w - SCREEN_W);
-    G.camy = fminf(fmaxf(cy - 120.f, 0.f), (float)G.lvl.h - SCREEN_H);
+    G.camx = fminf(fmaxf(cx - 213.f, C), E - SCREEN_W);
+    G.camy = fminf(fmaxf(cy - 120.f, D), F - SCREEN_H);
 }
 
 /* ---- stage title card (RV images levelcardintro2/3 = name / "STAGE n"; sequence from a 10 fps
