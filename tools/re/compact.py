@@ -8,7 +8,14 @@ NAMES = {0x3730: 'MV', 0x470: 'CTRL', 0x43b0: 'PAV_A', 0x43f0: 'PLAYER', 0x50f0:
          0x4670: 'S_PLATFORM', 0x46b0: 'S_LANGLE', 0x46f0: 'S_RANGLE', 0x4730: 'S_LEDGE', 0x4770: 'S_REDGE',
          0x47b0: 'SKIN', 0x1b70: 'OTHERS', 0x5670: 'CAM', 0x213a0: 'GLOBALS', 0x218d8: 'Q_OBSTACLE',
          0x218c0: 'Q_218c0', 0x219f8: 'Q_219f8', 0x22040: 'Q_HANG', 0x42f0: 'GROUPS_A'}
-for fn in sys.argv[1:]:
+# --members build/re/fe/members_fN.txt (tools/re/member_map.py): name every member offset of that frame
+args = sys.argv[1:]
+if '--members' in args:
+    i = args.index('--members'); mf = args[i + 1]; del args[i:i + 2]
+    for l in open(mf):
+        t = l.split()
+        if len(t) >= 2: NAMES.setdefault(int(t[0], 16), t[1])
+for fn in args:
     s = open(fn).read()
     s = s[s.find('{'):] if '{' in s else s
     for off, nm in NAMES.items():
