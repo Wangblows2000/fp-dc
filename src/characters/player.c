@@ -186,40 +186,51 @@ static double fric_step(double g) {
     return g - fmin(s, f) * (g > 0 ? 1 : -1);
 }
 
+/* RE (events 1621-1634): horizontal acceleration and friction, E = 0.07375, C = 5 (top speed):
+ *   ground, no input toward +: B >= 0 -> B = max(0, B - 5E), then if |B| < 2 a further max(0, B - 4E)
+ *   (mirror for -); input toward + with B < C: B += E, and if |B| < 2 (and N not within 80..280)
+ *   B = min(2, B + 8E); in the air additionally B += E and, below 2, B = min(2, B + 4E).
+ *   The input rules are skipped in states M2-M6 (look up, crouch, skid, boost) on the ground. */
+static void horiz_accel(player_t *p, const input_t *in, int control, int mx) {
+    double *b = p->ground ? &p->gsp : &p->vx, E = PHYS_ACC, C = PHYS_TOP;
+    int L = p->ground;
+    int r = control && (in->held & BTN_RIGHT), l = control && (in->held & BTN_LEFT);
+    int steep = L && p->N > 80 && p->N < 280;          /* 1619/1620: movement flag 0x20 */
+    if (L) {
+        if (*b >= 0 && !r) *b = fmax(0., *b - 5 * E);
+        if (*b <= 0 && !l) *b = fmin(0., 5 * E + *b);
+        if (fabs(*b) < 2 && *b >= 0 && !r) *b = fmax(0., *b - 4 * E);
+        if (fabs(*b) < 2 && *b <= 0 && !l) *b = fmin(0., 4 * E + *b);
+    }
+    if (r && *b < C && !mx) *b = *b + E;
+    if (l && -C < *b && !mx) *b = *b - E;
+    if (r && *b < C && !mx && fabs(*b) < 2 && !steep) *b = fmin(2., 8 * E + *b);
+    if (l && -C < *b && !mx && fabs(*b) < 2 && !steep) *b = fmax(-2., *b - 8 * E);
+    if (!L) {
+        if (r && *b < C) *b = *b + E;
+        if (r && *b < 2) *b = fmin(2., 4 * E + *b);
+        if (l && -C < *b) *b = *b - E;
+        if (l && -2 < *b) *b = fmax(-2., *b - 4 * E);
+    }
+}
+
 static void ground_speed_update(player_t *p, const input_t *in, int control) {
     int dir = 0;
     if (p->ctrl_lock > 0) { p->ctrl_lock--; control = 0; }   /* RV: side spring locks input 4 frames */
     if (control && (in->held & BTN_RIGHT)) dir = 1;
     else if (control && (in->held & BTN_LEFT)) dir = -1;
-    double s = fabs(p->gsp);
-    /* RV: the x9 rate is used when the NORMAL step would leave |gsp| below 2
-     * (accel: 0->0.66->1.33->1.99 then +E; friction: 2.43->2.06 (5E) then 2.06->1.40 (9E)) */
-    if (dir && p->gsp * dir < 0) {
-        /* RV (skid, spring_yellow_right): input against the motion. A skid (-0.5/frame, anim 17) only
-         * starts when the input turns Lilac round; that frame and any frame where she already faces the
-         * input (e.g. thrown backwards by a spring) use friction then acceleration toward the input */
-        int turning = p->face != dir;
+    if (dir && p->gsp * dir < 0 && p->skidding) {
+        /* RV (skid): once the input has turned Lilac round, the skid state slows her by 0.5 per frame */
         p->face = dir;
-        if (p->skidding) {
-            p->gsp += dir * PHYS_DEC;
-            if (p->gsp * dir > 0) p->gsp = 0;
-        } else {
-            p->gsp = fric_step(p->gsp);
-            double g = fabs(p->gsp) * -1., n = g + PHYS_ACC;     /* signed along dir */
-            if (fabs(n) < PHYS_LOWSPD) n = g + PHYS_ACC * PHYS_ACC_LOWMUL;
-            p->gsp = dir * n;
-            if (turning) p->skidding = 1;
-        }
-    } else if (dir) {
-        p->face = dir; p->skidding = 0;
-        if (s < PHYS_TOP) {
-            double n = s + PHYS_ACC;
-            if (n < PHYS_LOWSPD) n = s + PHYS_ACC * PHYS_ACC_LOWMUL;
-            p->gsp = dir * fmin(n, PHYS_TOP);
-        }                                              /* RV: >= top while holding: speed kept */
+        p->gsp += dir * PHYS_DEC;
+        if (p->gsp * dir > 0) p->gsp = 0;
     } else {
-        p->skidding = 0;
-        p->gsp = fric_step(p->gsp);
+        /* RV: a skid only starts when the input turns Lilac round (the next frame) */
+        int turning = dir && p->gsp * dir < 0 && p->face != dir;
+        if (!(dir && p->gsp * dir < 0)) p->skidding = 0;
+        if (dir) p->face = dir;
+        horiz_accel(p, in, control, 0);
+        if (turning) p->skidding = 1;
     }
     if (p->gsp == 0) p->skidding = 0;
     wall_stop(p);                                  /* RE 1635/1636, before the slope force */
@@ -240,8 +251,9 @@ static void ground_move(player_t *p, const input_t *in, int control, int upd) {
  * (uppercut trace: vx 2 -> 1.9375 on the frame vy goes -4 -> -3.75; stops once vy >= 0) */
 static void air_speed_update(player_t *p, const input_t *in, int control, double grav) {
     if (control) {
-        if ((in->held & BTN_RIGHT) && p->vx < PHYS_TOP) { p->vx = fmin(p->vx + PHYS_AIR_ACC, PHYS_TOP); p->face = 1; }
-        if ((in->held & BTN_LEFT) && p->vx > -PHYS_TOP) { p->vx = fmax(p->vx - PHYS_AIR_ACC, -PHYS_TOP); p->face = -1; }
+        if (in->held & BTN_RIGHT) p->face = 1;
+        else if (in->held & BTN_LEFT) p->face = -1;
+        horiz_accel(p, in, control, 0);
     }
     if (grav > 0) {
         p->vy += grav;
@@ -255,8 +267,9 @@ static void air_move(player_t *p, const input_t *in, int control, double grav) {
     core(p);
     if (p->ground) { if (p->state != ST_BOOST) ground_speed_update(p, in, control); return; }
     if (control) {
-        if ((in->held & BTN_RIGHT) && p->vx < PHYS_TOP) { p->vx = fmin(p->vx + PHYS_AIR_ACC, PHYS_TOP); p->face = 1; }
-        if ((in->held & BTN_LEFT) && p->vx > -PHYS_TOP) { p->vx = fmax(p->vx - PHYS_AIR_ACC, -PHYS_TOP); p->face = -1; }
+        if (in->held & BTN_RIGHT) p->face = 1;
+        else if (in->held & BTN_LEFT) p->face = -1;
+        horiz_accel(p, in, control, 0);
     }
     wall_stop(p);
     air_speed_update(p, in, 0, grav);
@@ -327,7 +340,8 @@ static int ground_actions(player_t *p, const input_t *in) {
         if (p->energy >= PHYS_ENERGY_MAX) { set_state(p, ST_CHARGE); snd_play_orig(9, 230, 128); return 1; }   /* RV: 9 */
     }
     if (in->pressed & BTN_JUMP) {
-        ground_move(p, in, 0, 0);
+        /* RE order: move + sensors (1584-1611), speed rules (1621-1646), then the jump (3047) */
+        ground_move(p, in, 1, 1);
         if (p->ground) jump(p);
         return 1;
     }
