@@ -12,7 +12,7 @@ timeout 1 tail -f /dev/null
 (LIBGL_ALWAYS_SOFTWARE=1 setsid third_party/flycast/build/flycast ${CDI:-build/fpdc.cdi} > /tmp/fc.log 2>&1 &)
 for i in $(seq 60); do W=$(xdotool search --class flycast 2>/dev/null | tail -1); [ -n "$W" ] && break; timeout 0.5 tail -f /dev/null; done
 timeout 3 tail -f /dev/null
-xdotool windowfocus --sync $W 2>/dev/null; xdotool mousemove --window $W 50 50 click 1
+xdotool windowfocus --sync $W 2>/dev/null; [ "${CLICK:-1}" = 1 ] && xdotool mousemove --window $W 50 50 click 1
 for st in $1; do
   case $st in
     wait:*) timeout ${st#wait:} tail -f /dev/null;;
