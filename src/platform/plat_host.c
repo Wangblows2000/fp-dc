@@ -74,11 +74,15 @@ void plat_quit(void) { printf("quit @%d\n", cur_frame); exit(0); }
  * host only: "<f> HURT dx" a hit from x+dx, ignored while invulnerable (like an enemy contact) */
 typedef struct { int f; char k; float a, b; } dbg_t;
 static dbg_t dbg[256]; static int ndbg;
-static void apply_dbg(int f) {
+static void apply_dbg(int f, int tp) {
     for (int i = 0; i < ndbg; i++) {
+        if ((dbg[i].k == 'T') != tp) continue;
         if (dbg[i].f != f) continue;
         player_t *p = &G.p;
-        if (dbg[i].k == 'T') { p->x = dbg[i].a; p->y = dbg[i].b + ORIG_REF_DY; p->ground = 0; p->vx = p->vy = p->gsp = 0; p->N = p->O = 0; }
+        /* like the tracer's TP: writes the movement X, Y and zeroes B, G; L, N, O are left as they are.
+         * The tracer writes it at the START of the original's logic frame f, which the comparison (input
+         * shift 2) lines up with the END of our frame f - 2: applied after that update, before its row */
+        if (dbg[i].k == 'T') { p->x = dbg[i].a; p->y = dbg[i].b + ORIG_REF_DY; p->vx = p->vy = p->gsp = 0; }
         if (dbg[i].k == 'E') p->energy = dbg[i].a;
         if (dbg[i].k == 'D' && !player_invincible(p)) player_hurt(p, p->x + dbg[i].a);   /* test hit from dx */
         if (dbg[i].k == 'H') p->hp = (int)dbg[i].a;
@@ -148,8 +152,9 @@ int main(int argc, char **argv) {
     input_t in;
     for (cur_frame = 0; cur_frame < frames; cur_frame++) {
         plat_poll_input(&in);
-        apply_dbg(cur_frame);
+        apply_dbg(cur_frame, 0);
         game_update(&in);
+        apply_dbg(cur_frame + 2, 1);
         const player_t *p = &G.p;
         printf("f %d x %.2f y %.2f gsp %.3f vx %.3f vy %.3f gnd %d ang %.3f st %d hp %d cr %d k %d an %d fr %d rot %.2f en %.2f lv %d face %d mode %d sel %d cx %.1f cy %.1f act %d\n",
                cur_frame, p->x, p->y, p->gsp, p->vx, p->vy, p->ground, p->N, p->state, p->hp, p->crystals, G.kills, p->an.anim, p->an.frame,
