@@ -25,20 +25,32 @@ uint64_t plat_time_us(void) {
     return (uint64_t)ts.tv_sec * 1000000u + ts.tv_nsec / 1000;
 }
 
+void *plat_alloc_aligned(size_t n) { return malloc(n ? n : 1); }
+
 void *plat_load_file(const char *name, size_t *size) {
+    int found;
+    void *d = pack_load(name, size, &found);
+    if (d || found) return d;
+    return plat_read_raw(name, size);
+}
+
+void *plat_read_raw(const char *name, size_t *size) {
     char path[512];
     snprintf(path, sizeof path, "%s/%s", data_dir, name);
+    uint64_t t0 = plat_time_us();
     FILE *f = fopen(path, "rb");
     if (!f) { plat_log("missing file %s\n", path); return NULL; }
     fseek(f, 0, SEEK_END); long n = ftell(f); fseek(f, 0, SEEK_SET);
+    uint64_t t1 = plat_time_us(); LP.open_us += t1 - t0; LP.nfiles++;
     if (n < 0 || n > 64 * 1024 * 1024) { fclose(f); return NULL; }
     void *d = malloc(n ? n : 1);
     for (long got = 0; got < n;) {                 /* chunked like the Dreamcast build (loading screen) */
         long k = n - got > 65536 ? 65536 : n - got;
         if (fread((char *)d + got, 1, k, f) != (size_t)k) { free(d); fclose(f); return NULL; }
-        got += k; loading_tick();
+        got += k; uint64_t tr = plat_time_us(); LP.read_us += tr - t1; loading_tick(); t1 = plat_time_us();
     }
     fclose(f);
+    LP.bytes += (uint64_t)n; LP.nalloc++; LP.alloc_bytes += (uint64_t)n;
     *size = (size_t)n;
     return d;
 }

@@ -39,14 +39,14 @@ void fe_text(float x, float y, const char *s) {
 
 static int fe_load(void) {
     if (fe_loaded) return 0;
-    loading_begin();
+    loading_begin("frontend");
     int bad = 0;
     bad |= ui_banks_load(&b_title, "title", 1) < 0;
     memset(&b_font, 0, sizeof b_font);
     if (bank_load(&b_font.bank[0], "ui/font") == 0) b_font.n = 1; else bad = 1;
     bad |= ui_load(&s_press, "title_3", &b_title) < 0;
     bad |= ui_load(&s_hub, "title_4", &b_title) < 0;
-    loading_end();
+    loading_end(); lp_end();
     if (bad) { plat_log("front end data missing\n"); return -1; }
     hub_bind(&s_hub);
     fe_difficulty = SV.difficulty <= 3 ? SV.difficulty : 1;
@@ -60,8 +60,10 @@ static int scr_load(int which) {
     if (scr_loaded == which) return 0;
     if (scr_loaded >= 0) { ui_free(&s_scr); ui_banks_free(&b_scr); }
     scr_loaded = -1;
+    lp_begin(which == 0 ? "chsel" : "tasel");
     int bad = which == 0 ? (ui_banks_load(&b_scr, "chsel", 1) < 0 || ui_load(&s_scr, "chsel_7", &b_scr) < 0)
                          : (ui_banks_load(&b_scr, "tasel", 1) < 0 || ui_load(&s_scr, "tasel_6", &b_scr) < 0);
+    pack_release(); lp_end();
     if (bad) { plat_log("front end screen %d missing\n", which); return -1; }
     scr_loaded = which;
     return 0;

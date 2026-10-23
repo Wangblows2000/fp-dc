@@ -13,7 +13,9 @@ int tex_load_file(tex_t *t, const char *name) {
     snprintf(fn, sizeof fn, "%s.tex", name);
     void *d = plat_load_file(fn, &sz);
     if (!d) return -1;
+    uint64_t tu = plat_time_us();
     int r = r_tex_load(t, d, sz);
+    LP.upload_us += plat_time_us() - tu; LP.ntex++; LP.tex_bytes += sz;
     free(d);
     if (r < 0) plat_log("tex %s: invalid\n", fn);
     return r;
@@ -161,7 +163,7 @@ int level_load(level_t *l, const char *name) {
     if (l->natlas > MAX_ATLAS || l->nuniq < 2 || l->tw != (l->w + 15) / 16 || l->th != (l->h + 15) / 16) goto bad;
     size_t off = 28;
     size_t need = off + (size_t)l->npieces * 20 + (size_t)l->nobj * 12 + (size_t)l->nuniq * 32 + (size_t)l->tw * l->th * 4;
-    if (need != sz) { plat_log("level %s: size %u expected %u\n", name, (unsigned)sz, (unsigned)need); goto bad; }
+    if (need > sz || sz - need >= 2048) {   /* the disc pads files (tools/pad_disc.py) */ plat_log("level %s: size %u expected %u\n", name, (unsigned)sz, (unsigned)need); goto bad; }
     l->pieces = malloc(sizeof(piece_t) * (l->npieces ? l->npieces : 1));
     for (int i = 0; i < l->npieces; i++, off += 20) {
         piece_t *p = &l->pieces[i];

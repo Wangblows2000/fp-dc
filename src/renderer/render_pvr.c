@@ -60,12 +60,15 @@ int r_tex_load(tex_t *t, const void *data, size_t size) {
     if (size < 16 || memcmp(d, "FPTX", 4) || slot >= MAXTEX) return -1;
     memcpy(hdr, d + 4, 12);
     int w = hdr[0], h = hdr[1], fmt = hdr[2], grp = hdr[5];
-    size_t bpp = fmt == 1 ? 1 : 2;
-    if (fmt > 1 || (fmt == 1 && grp > 3) || w < 8 || h < 8 || (w & (w - 1)) || (h & (h - 1)) || (size_t)w * h * bpp + 16 > size) return -1;
+    size_t bpp = fmt >= 1 ? 1 : 2;      /* fmt 1: PAL8 linear, 2: PAL8 pre-twiddled on the disc (tools/twiddle_disc.py) */
+    if (fmt > 2 || (fmt >= 1 && grp > 3) || w < 8 || h < 8 || (w & (w - 1)) || (h & (h - 1)) || (size_t)w * h * bpp + 16 > size) return -1;
     pvr_ptr_t p = pvr_mem_malloc(w * h * bpp);
     if (!p) { plat_log("VRAM exhausted (%dx%d)\n", w, h); return -1; }
     int txfmt;
-    if (fmt == 1) {       /* 8-bit palettized: KOS twiddles while uploading */
+    if (fmt == 2) {       /* already in VRAM order: straight store-queue copy */
+        pvr_txr_load(d + 16, p, w * h);
+        txfmt = PVR_TXRFMT_PAL8BPP | PVR_TXRFMT_8BPP_PAL(grp);
+    } else if (fmt == 1) { /* 8-bit palettized, linear: KOS twiddles every texel while uploading */
         pvr_txr_load_ex(d + 16, p, w, h, PVR_TXRLOAD_8BPP);
         txfmt = PVR_TXRFMT_PAL8BPP | PVR_TXRFMT_8BPP_PAL(grp);
     } else {
