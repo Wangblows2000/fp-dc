@@ -273,7 +273,7 @@ void combat_frame(player_t *p) {
             snd_play_orig(23, 220, 128); o->fl |= F_DEFEATED; o->A = 0; o->ky -= 3; o->st = o->type == OT_DRAGONFLY ? 5 : 3;
         }
         if ((o->fl & F_DEFEATED) && o->absorbed > 0) { o->absorbed--; obj_drop_crystal(o->x, o->y, o->absorbed); }   /* 2766 */
-        if ((o->fl & F_DEFEATED) && o->type == OT_TD_BODY) continue;                             /* 5282: flag 16, no fly-away */
+        if ((o->fl & F_DEFEATED) && (o->type == OT_TD_BODY || (o->fl & F_NOFLY))) continue;                             /* 5282: flag 16, no fly-away */
         if (o->fl & F_DEFEATED) {                                                                /* 2765 fly-away */
             o->x = (float)(int)(o->x + o->kx); o->y = (float)(int)(o->y + o->ky);
             o->ky = fmin(o->ky + 0.25, 15.0);

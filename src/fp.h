@@ -252,6 +252,7 @@ typedef struct {
     int dead_t;
 } player_t;
 
+#define F_NOFLY 0x10000          /* enemy alterable flag 16: no death flight (bosses keep the object) */
 typedef struct {
     int type, alive, hp;
     int st, tm, dir, born;       /* recovered enemy state (Turretus D, E; direction); frame created */
@@ -262,6 +263,9 @@ typedef struct {
     float ang;                   /* sprite angle (defeated spin) */
     int inv, absorbed;           /* invert shader on (hit flash); crystals absorbed (S) */
     int bd;                      /* enemy contact damage B (2731 needs B > 0) */
+    float scale;                 /* Active scale (0 = 1) */
+    int hidden;                  /* invisible (still collides) */
+    double av[8];                /* class alterables (boss scripts) */
     animator_t an;
 } obj_t;
 
@@ -277,7 +281,7 @@ typedef struct {
     int nobjs;
     float camx, camy;
     /* MasterCamera_408 alterables (RE, loop_camera_mode0_13 + events 2873-2886, 3539) */
-    struct { float A, B, W, G, H, S, T, N, O, Z; int V, M4; } cam;   /* M4: CAM.M = 4 while entering a ladder from the top (not modelled further) */
+    struct { float A, B, W, G, H, S, T, N, O, Z; int V, M4; int U; float bC, bD, bE, bF, lC, lD, lE, lF; } cam;   /* U = 1: boss bounds bC..bF easing to the limits lC..lF (2862-2868) */   /* M4: CAM.M = 4 while entering a ladder from the top (not modelled further) */
     int frame, clear_t, paused, kills;
     int act_in, act_fade, act_carry;
     int mus_resume_t;           /* frames until the stage music resumes after a jingle */   /* act change (RE 4135/5045, 3310/3311/3578, 4526/5047) */
@@ -357,6 +361,9 @@ int    obj_in_group(int type, int grp);
 void   obj_spawn_pellet(float x, float y, int dir);
 void   bosses_spawn(void), bosses_update(player_t *p), bosses_draw(void);
 void   tredd_bomb_update(obj_t *o, player_t *p);
+void   serp_spawn(void), serp_update(player_t *p), serp4_update(player_t *p);
+int    serp_hidden(const obj_t *o), serp_active(void);
+void   serp_fireball_update(obj_t *f, player_t *p);
 int    boss_invert_base(void), boss_hidden(const obj_t *o), boss_flash(const obj_t *o);
 int    obj_near_view(const obj_t *o, int n);
 int    ens_anim(const char *name);
@@ -396,6 +403,12 @@ void objects_spawn(void);
 void objects_update(void);
 void objects_draw(int front);
 void camera_update(void);
+void camera_boss_bounds(float l, float t, float r, float b);   /* U = 1 (loop_camera_mode1 + 2862) */
+void camera_normal_bounds(void);
+float camera_bound_C(void), camera_bound_E(void);
+const char *level_music(const char *dir);
+void   r_set_scale(float s);           /* following rotated sprites scaled around the hotspot (Active scale) */
+float  r_get_scale(void);
 void camera_reset(void);
 void objects_pretick(int n);
 void hud_draw(void);

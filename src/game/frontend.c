@@ -125,7 +125,7 @@ static double tfadeA, tmoonA, tpressD, tshakeZ, tshake_x0, tshake_y0;
 static int tplanet_x, tplanet_y, tmoon_x, tmoon_y, tfade_alpha, tpress_alpha, tmusic;
 static unsigned tseed;
 static unsigned t_rand(void) { tseed = tseed * 0x343fd + 0x269ec3; return (tseed >> 16) & 0x7fff; }
-#define TDEG 57.29577951
+#define TDEG 57.29577951308232
 static double t_cos(double n) { return (n == 270. || n == 90.) ? 0. : cos(n / TDEG); }
 static double t_sin(double n) { return n == 180. ? 0. : sin(n / TDEG); }
 static int clamp255(int v) { return v < 0 ? 0 : v > 255 ? 255 : v; }
@@ -407,7 +407,7 @@ static void chsel_update(const input_t *now) {
     for (int i = 0; i < s_scr.nobj; i++) {                                            /* RE 328/329 */
         ui_obj_t *o = &s_scr.o[i];
         if (o->shz > 0) {
-            double a = 200.0 * o->shz, c = (a == 90. || a == 270.) ? 0. : cos(a / 57.29577951), sn = a == 180. ? 0. : sin(a / 57.29577951);
+            double a = 200.0 * o->shz, c = (a == 90. || a == 270.) ? 0. : cos(a / 57.29577951308232), sn = a == 180. ? 0. : sin(a / 57.29577951308232);
             o->shx = (int)floor(c * o->shz); o->shy = (int)floor(sn * o->shz * 0.5);
             o->shz -= 0.4f; if (o->shz < 0.01f) { o->shz = 0; o->shx = o->shy = 0; }
         }

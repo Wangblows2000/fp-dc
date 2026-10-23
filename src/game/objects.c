@@ -96,7 +96,7 @@ void objects_spawn(void) {
  * while stood on, decay x0.8 otherwise); one-way flags 0/6 (4737/4738); carry 4061.
  * Fields: ox, oy = I, J; vx = E; vy = S; fx = last N; fl bit 0/6 one-way, bit 2 stood on.
  * Bridge logs: dir = A (index), oy = B (base y), fx = C (target), fy = D (current sag). */
-static double p_sin(double n) { return n == 180. ? 0. : fd_sin(n / 57.29577951); }
+static double p_sin(double n) { return n == 180. ? 0. : fd_sin(n / 57.29577951308232); }
 static void plat_params(int t, double *F, double *Gm) {
     if (t == OT_GEYSER) { *F = 2; *Gm = 240; }                    /* RE create_levelgeyserplate_994: F = 2, G = 240, H = 1 */
     else if (t == OT_PLAT_MOVE2) { *F = 2; *Gm = 120; } else if (t == OT_PLAT_MOVE3) { *F = 1; *Gm = 100; } else { *F = 1; *Gm = 10; }
@@ -219,7 +219,7 @@ static void gan_anim(obj_t *o, int k) {             /* force_animation in the cu
 }
 static void gan_face(obj_t *o, const player_t *p) {  /* direction (int)(atan2 deg / 11.25); 8 / 24 keep the image */
     double py = p->y - ORIG_REF_DY;
-    double a = fd_atan2(o->y - py, p->x - o->x) * 57.29577951; if (a < 0) a += 360;
+    double a = fd_atan2(o->y - py, p->x - o->x) * 57.29577951308232; if (a < 0) a += 360;
     int d = (int)(a / 11.25) & 31;
     if (d == 8 || d == 24) return;
     int left = d > 8 && d < 24;
@@ -323,7 +323,7 @@ void obj_drop_crystal(float x, float y, int S) {
     obj_t *e = alloc_obj();
     if (!e) return;
     int d = (int)((2 * (S % 2) - 1) * (S + 1) / 2.0 + 8);
-    double a = d * 11.25 / 57.29577951;
+    double a = d * 11.25 / 57.29577951308232;
     e->type = OT_ITEM_FLY; e->st = OT_CRYSTAL; e->alive = 1; e->x = x; e->y = y;
     e->vx = 4.f * (float)fd_cos(a); e->vy = -4.f * (float)fd_sin(a);
     if (A_CRYSTAL >= 0) anim_set(&e->an, &G.objs, A_CRYSTAL);
@@ -463,7 +463,7 @@ int obj_overlaps_bg(const obj_t *o) {
         return 0;
     }
     /* rotated image (angle CCW around the hotspot): each opaque pixel's centre, rotated */
-    double a = fmod((double)o->ang, 360.0) / 57.29577951, c = fd_cos(a), sn = fd_sin(a);
+    double a = fmod((double)o->ang, 360.0) / 57.29577951308232, c = fd_cos(a), sn = fd_sin(a);
     int hx = o->flip ? f->w - f->hx : f->hx, ox = (int)floorf(o->x), oy = (int)floorf(o->y);
     for (int y = 0; y < f->h; y++)
         for (int x = 0; x < f->w; x++) {
@@ -572,6 +572,7 @@ void objects_update(void) {
         case OT_RSPRING_UL: rspring_update(o, p); break;
         case OT_CARD: card_update(o, p); break;
         case OT_TD_BOMB: case OT_BLAST: case OT_DEBRIS: tredd_bomb_update(o, p); break;
+        case OT_FIREBALL: serp_fireball_update(o, p); break;
         case OT_PELLET: {
             /* RE col_4_20: the pellet hits Lilac's sensor (PlayerCharacterSensor_375, 15x46, hotspot 7,34 at
              * her reference point) unless she is invulnerable; it is destroyed with effectsexplosion02 */
@@ -667,8 +668,11 @@ void objects_draw(int front) {
         uint32_t col = (o->type == OT_CARD && (o->fl & 2)) ? 0x80ffffff : 0xffffffff;     /* 2573: already collected */
         int inv = boss_flash(o);
         if (inv) r_set_invert(1);
-        if (o->ang != 0) frame_draw_rot(o->an.b, anim_frame(&o->an), sx, sy, o->ang, o->flip, col);
+        if (o->hidden) { if (inv) r_set_invert(0); continue; }
+        if (o->scale != 0 && o->scale != 1.f) r_set_scale(o->scale);
+        if (o->ang != 0 || (o->scale != 0 && o->scale != 1.f)) frame_draw_rot(o->an.b, anim_frame(&o->an), sx, sy, o->ang, o->flip, col);
         else frame_draw(o->an.b, anim_frame(&o->an), sx, sy, o->flip, col);
+        r_set_scale(1.f);
         if (inv) r_set_invert(0);
     }
     combat_draw_shields(1);           /* visible slash shields, behind Lilac */

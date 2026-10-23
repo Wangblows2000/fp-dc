@@ -164,7 +164,7 @@ void frame_draw(const bank_t *b, const frame_t *f, float x, float y, int flip, u
 
 /* rotation around the hotspot (the original rotates Actives around their hot spot) */
 void frame_draw_rot(const bank_t *b, const frame_t *f, float x, float y, float angle_deg, int flip, uint32_t argb) {
-    if (angle_deg == 0 && !flip) { frame_draw(b, f, x, y, 0, argb); return; }
+    if (angle_deg == 0 && !flip && r_get_scale() == 1.f) { frame_draw(b, f, x, y, 0, argb); return; }
     r_sprite_rot(&b->tex, f->u, f->v, f->w, f->h, x, y, f->hx, f->hy, angle_deg, flip, argb);
 }
 

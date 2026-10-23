@@ -98,8 +98,8 @@ void mv_reset(void) {
 }
 
 /* the original's trig: cos is taken as 0 at exactly 90/270 and sin as 0 at exactly 180; degrees are
- * converted with the constant 57.29577951 */
-#define DEG 57.29577951
+ * converted with the constant 57.29577951308232 */
+#define DEG 57.29577951308232
 static double o_cos(double n) { return (n == 270. || n == 90.) ? 0. : fd_cos(n / DEG); }
 static double o_sin(double n) { return n == 180. ? 0. : fd_sin(n / DEG); }
 
