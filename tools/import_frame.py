@@ -121,6 +121,11 @@ BOX_TYPES = {8, 13, 14, 15, 16, 17, 30, 32, 33, 34, 35, 36}
 ALPHA_MIN = int(os.environ.get('FP_ALPHA_MIN', '1'))
 
 def load_img(src, i):
+    if i < 0:   # translucent layer of image -i: its semi-transparent pixels made opaque (drawn with vertex alpha)
+        im, hx, hy = load_img(src, -i)
+        px = [(r, g, b, 255 if 0 < a < 255 else 0) for r, g, b, a in im.getdata()]
+        im = Image.new('RGBA', im.size); im.putdata(px)
+        return im, hx, hy
     im = Image.open(os.path.join(src, 'img_%d.png' % i)).convert('RGBA')
     m = [int(v, 0) for v in open(os.path.join(src, 'img_%d_meta.txt' % i)).read().split()]
     hx, hy = [v - 65536 if v > 32767 else v for v in m[:2]]
@@ -285,8 +290,9 @@ def main():
            ('card_fade', [129]), ('card_gameover', [27]),
            ('pause', an['guipause_347']['anims'][0]['0']['frames']),               # Paused banner + options
            ] + ([('res_complete', an['levelcardactclear1_864']['anims'][7]['0']['frames']),  # "Stage Complete!" build-in
-           ('res_results', [955]), ('res_panel', [10860]), ('res_rows', [10837]),
+           ('res_results', [955]), ('res_panel', [10860]), ('res_rows', an['levelcardactclear3_866']['anims'][7]['0']['frames']),   # 6-frame reveal (RE 4570-4573)
            ('res_bar', [10844, 10660]),
+           ('res_complete_t', [-8005]), ('res_panel_t', [-10860]), ('res_bar_t', [-10844, -10660]),   # alpha-87 layers (RV screenshots)
            ('res_digits', an['totalbonus_870']['images'][:10]),
            ('res_small', an['levelcardbonus3_869']['images'][:10])] if n == 24 else [])   # results: DV4 only
     for nm, frames in HUD:

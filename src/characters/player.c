@@ -533,7 +533,7 @@ static void clamp_edges(player_t *p, double x0) {
     double *b = p->ground ? &p->gsp : &p->vx;
     double l = camera_bound_C() + EDGE_X;
     if (*b < 0 && p->x <= l) { *b = 0; p->x = l; }
-    double r = G.clear_t ? G.lvl.w + 32. : camera_bound_E() - EDGE_X;
+    double r = results_on() ? G.lvl.w + 400. : G.clear_t ? G.lvl.w + 32. : camera_bound_E() - EDGE_X;   /* results: Lilac runs off (RV 16509) */
     if (*b > 0 && p->x >= r) { p->x = r; *b = 0; }
 }
 

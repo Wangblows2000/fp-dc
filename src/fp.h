@@ -290,6 +290,7 @@ typedef struct {
     int mode, card_t, pause_sel, time_attack, res_t, res_time;
     int pause_a, pause_wipe_f, frame_draw_t; float pause_wipe_x;   /* pause menu (GUIPause.A, wipe) */
     int act_lives, act_crystals;  /* RE 4311/4312: lives / crystals at act start (restart restores them) */
+    int stage_crystals, keystones;  /* MasterLevel J (crystals this stage, results Bonus1) / O (keystones, Bonus2) */
     int character, file_slot, file_mode, deaths;   /* file being played (-1 none), 0 Adventure / 1 Classic */
     int character_pad;              /* 0 Lilac, 1 Carol, 2 Carol (bike), 3 Milla (life icon order); only Lilac is playable */
     struct { int jump, crystal, hit, explode, attack, hurt, boost; } sfx;
@@ -361,6 +362,11 @@ int    obj_in_group(int type, int grp);
 void   obj_spawn_pellet(float x, float y, int dir);
 void   bosses_spawn(void), bosses_update(player_t *p), bosses_draw(void);
 void   tredd_bomb_update(obj_t *o, player_t *p);
+void   results_reset(void), results_begin(int pathB), results_draw(void);
+int    results_on(void), results_update(player_t *p), results_state(void);
+float  results_hud_dy(void);
+input_t results_input(const input_t *in);
+int    act_of(const char *dir);
 void   serp_spawn(void), serp_update(player_t *p), serp4_update(player_t *p);
 int    serp_hidden(const obj_t *o), serp_active(void);
 void   serp_fireball_update(obj_t *f, player_t *p);

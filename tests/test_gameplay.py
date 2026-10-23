@@ -129,8 +129,14 @@ check('act_change_dv1_dv2', trig and new and new['mode'] == 1 and abs(new['x'] +
       and 50 <= new['f'] - trig['f'] <= 58, new and 'after %d f, x %.1f hp %d en %.1f' % (new['f'] - trig['f'], new['x'], new['hp'], new['en']))
 walk = [x for x in r if x.get('act') == 2][:33]
 check('act_walk_in_b3', walk and all(abs(x['gsp'] - 3) < 1e-9 or abs(x['vx'] - 3) < 1e-9 for x in walk[1:32]), 'walk-in frames %d' % len(walk))
-r = run('5 TP 16032 1192\n10 400 R\n', 200, env={'FP_LEVEL': 'dv4'})
-check('dv4_end_results', any(x['mode'] == 2 for x in r), 'mode %d' % r[-1]['mode'])
+# DV4 path B (5381): the results overlay starts at X > width - 50, tally state A = 2 at C = 220 with no crystals,
+# the wipe after D = 150 (RV dv4_results: entry f72, A = 2 at f292, wipe f441, next frame f493)
+r = run('5 TP 16000 2280\n20 700 R\n', 520, env={'FP_LEVEL': 'dv4'})
+st = [x.get('res', 0) for x in r]
+f_on = next((x['f'] for x in r if x.get('res', 0) > 0), None); f_a2 = next((x['f'] for x in r if x.get('res', 0) == 3), None)
+f_wipe = next((x['f'] for x in r if x.get('res', 0) >= 11), None)
+check('dv4_end_results', f_on and f_a2 and f_wipe and f_a2 - f_on == 220 and f_wipe - f_a2 == 149 and r[-1]['mode'] == 0,
+      'on %s A2 %s wipe %s mode %d' % (f_on, f_a2, f_wipe, r[-1]['mode']))
 
 # 8 recovered animations are driven by state (idle -> run anim index changes, frames advance)
 r = run('0 200 R\n', 200)
