@@ -144,7 +144,7 @@ typedef struct {
     float energy, energy_drain;  /* RV energy meter 0..100 (boost needs 100) */
     int energy_init;
     int springing, skidding, ctrl_lock;
-    int look;                      /* 2 = looking up (M2), 3 = crouching (M3) this frame (camera) */
+    int look, look_prev;           /* 2 = looking up (M2), 3 = crouching (M3) this / last frame */
     uint32_t held;                 /* this frame's held buttons (object events that test input) */
     double hang_x, hang_y;         /* grabbed hang sensor position (state M41) */                 /* launched by a spring, until landing (spring anim while rising) */
     float rot;                   /* sprite angle, degrees CCW (original Active angle @+0xc4) */
