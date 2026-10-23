@@ -152,11 +152,11 @@ static double fric_step(double g);
 
 /* the original's trig (cos taken as 0 at exactly 90/270, sin as 0 at exactly 180; N in degrees) */
 #define DEG 57.29577951
-static double o_cos(double n) { return (n == 270. || n == 90.) ? 0. : cos(n / DEG); }
-static double o_sin(double n) { return n == 180. ? 0. : sin(n / DEG); }
+static double o_cos(double n) { return (n == 270. || n == 90.) ? 0. : fd_cos(n / DEG); }
+static double o_sin(double n) { return n == 180. ? 0. : fd_sin(n / DEG); }
 
 /* RE (events 1644 / 1646): on the ground, with the RAW sensed angle N between 35 and 325 degrees,
- * B -= F sin(N) when |B| >= C (5), and B -= 0.38 F sin(N) when 0 < |B| < C (no force when stopped) */
+ * B -= F fd_sin(N) when |B| >= C (5), and B -= 0.38 F fd_sin(N) when 0 < |B| < C (no force when stopped) */
 static void slope_force(player_t *p) {
     double n = p->N;
     if (!(n > 35. && n < 325.)) return;
@@ -245,7 +245,7 @@ static void detach(player_t *p) {
 }
 
 /* RV: original order per logic frame = MOVE with the current speed, THEN update the speed
- * (dX(f) = B(f-1)*cos(O); see RUNTIME_MAP "Ground movement"). */
+ * (dX(f) = B(f-1)*fd_cos(O); see RUNTIME_MAP "Ground movement"). */
 /* friction step toward 0 (RV: 5E, or 9E when the step would leave |gsp| below 2) */
 static double fric_step(double g) {
     double s = fabs(g), f = PHYS_ACC * PHYS_FRIC_MUL;
@@ -347,7 +347,7 @@ static void air_move(player_t *p, const input_t *in, int control, double grav) {
  * velocity becomes B along + 7 perpendicular to the RAW surface angle N (run_jump: N 355.914,
  * B 5.013 -> vx 5.499, vy -6.625; using the smoothed O gives 5.396 / -6.71). No gravity that frame. */
 static void jump(player_t *p) {
-    /* RE (event 3047): G = cos(N) A - B sin(N), B = cos(N) B + A sin(N), A = jump strength -7; N = 0 */
+    /* RE (event 3047): G = fd_cos(N) A - B fd_sin(N), B = fd_cos(N) B + A fd_sin(N), A = jump strength -7; N = 0 */
     double n = p->N, c = o_cos(n), sn = o_sin(n), b = p->gsp;
     p->vy = c * -PHYS_JUMP - b * sn;
     p->vx = c * b + -PHYS_JUMP * sn;
@@ -543,7 +543,7 @@ static void fx_update(player_t *p, int st0) {
         for (int k = 0; k < 4; k++) {
             double d = (k < 2 ? spk.d1 : spk.d3) + (k & 1) * 180.0, r = k < 2 ? 20 : 10;
             float ax = k < 2 ? spk.a1x : spk.a3x, ay = k < 2 ? spk.a1y : spk.a3y;
-            pfx_spawn(ax + (float)(r * sin(d / 57.29577951)), ay - (float)(r * cos(d / 57.29577951)), A_FX_SPK5);
+            pfx_spawn(ax + (float)(r * fd_sin(d / 57.29577951)), ay - (float)(r * fd_cos(d / 57.29577951)), A_FX_SPK5);
         }
 }
 
@@ -554,8 +554,8 @@ static void fx_draw(void) {
         for (int k = 0; k < 4; k++) {
             double d = (k < 2 ? spk.d1 : spk.d3) + (k & 1) * 180.0, r = k < 2 ? 20 : 10;
             float ax = k < 2 ? spk.a1x : spk.a3x, ay = k < 2 ? spk.a1y : spk.a3y;
-            frame_draw(&G.objs, anim_frame(&spk.an), (float)floor(ax + r * sin(d / 57.29577951) - G.camx),
-                       (float)floor(ay - r * cos(d / 57.29577951) - G.camy), 0, 0xffffffff);
+            frame_draw(&G.objs, anim_frame(&spk.an), (float)floor(ax + r * fd_sin(d / 57.29577951) - G.camx),
+                       (float)floor(ay - r * fd_cos(d / 57.29577951) - G.camy), 0, 0xffffffff);
         }
 }
 
@@ -806,8 +806,8 @@ void player_update(player_t *p, const input_t *in) {
                 ground_move(p, in, 0, 0);
                 if (p->ground) {
                     /* RE event 2045 (group 0x21a5c = cyclone, L = 1, jump pressed): like the normal jump 3047
-                     * but the perpendicular part is scaled by 0.7: G = cos(N) A 0.7 - sin(N) B,
-                     * B = cos(N) B + A sin(N) with A = -7 (PAV_A.A); L = N = 0; the state stays M26.
+                     * but the perpendicular part is scaled by 0.7: G = fd_cos(N) A 0.7 - fd_sin(N) B,
+                     * B = fd_cos(N) B + A fd_sin(N) with A = -7 (PAV_A.A); L = N = 0; the state stays M26.
                      * It also clears PAV_B.O (the air cyclone becomes available again). The jump-cut flag
                      * PAV_A.C = 1 is set too, but the event that cuts is not identified: no cut here (RV). */
                     double n = p->N, c = o_cos(n), sn = o_sin(n), b = p->gsp;
@@ -872,7 +872,7 @@ void player_update(player_t *p, const input_t *in) {
         double deg_s = p->O;
         if (p->state == ST_BOOST) {
             if (p->ground) p->rot = deg_s + (p->face < 0 ? 180. : 0.);
-            else p->rot = atan2(-p->vy, p->vx) * 57.29578;
+            else p->rot = fd_atan2(-p->vy, p->vx) * 57.29578;
         } else if (p->ground) p->rot = deg_s;
         else {
             double r = fmod(p->rot, 360.); if (r < 0) r += 360.;

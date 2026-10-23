@@ -17,6 +17,29 @@
 #endif
 
 static uint32_t prev_held;
+/* demo playback (verification builds): a "demo.txt" input script on the disc (same format as the host
+ * scripts: "<first frame> <end frame> <buttons LRUDJXBS>") replaces the pad; positions go to the serial log
+ * every 60 frames so a run can be compared with the host replay of the same script. */
+static struct { int a, b; uint32_t m; } *demo; static int ndemo, demo_frame, demo_on;
+static void demo_load(void) {
+    size_t sz; char *t = plat_read_raw("demo.txt", &sz);
+    if (!t) return;
+    demo = malloc(sizeof *demo * 8192);
+    char *p = t, *end = t + sz;
+    while (p < end && ndemo < 8192) {
+        int a, b, n = 0; char btn[16];
+        char line[64]; size_t k = 0; while (p < end && *p != '\n' && k < sizeof line - 1) line[k++] = *p++; line[k] = 0; if (p < end) p++;
+        if (sscanf(line, "%d %d %15s%n", &a, &b, btn, &n) == 3) {
+            uint32_t m = 0;
+            for (char *c = btn; *c; c++) switch (*c) {
+                case 'L': m |= BTN_LEFT; break; case 'R': m |= BTN_RIGHT; break; case 'U': m |= BTN_UP; break; case 'D': m |= BTN_DOWN; break;
+                case 'J': m |= BTN_JUMP; break; case 'X': m |= BTN_ATTACK; break; case 'B': m |= BTN_SPECIAL; break; case 'S': m |= BTN_START; break; }
+            demo[ndemo].a = a; demo[ndemo].b = b; demo[ndemo].m = m; ndemo++;
+        }
+    }
+    free(t); demo_on = 1;
+    printf("demo: %d script lines\n", ndemo);
+}
 
 void plat_init(void) {}
 
@@ -65,7 +88,13 @@ void *plat_read_raw(const char *name, size_t *size) {
 
 void plat_poll_input(input_t *in) {
     uint32_t held = 0;
-    maple_device_t *dev = maple_enum_type(0, MAPLE_FUNC_CONTROLLER);
+    maple_device_t *dev = demo_on ? NULL : maple_enum_type(0, MAPLE_FUNC_CONTROLLER);
+    if (demo_on) {
+        for (int i = 0; i < ndemo; i++) if (demo_frame >= demo[i].a && demo_frame < demo[i].b) held |= demo[i].m;
+        if (demo_frame % 60 == 0)
+            printf("demo f %d mode %d lv %s x %.2f y %.2f hp %d lives %d\n", demo_frame, G.mode, G.lvdir, G.p.x, G.p.y, G.p.hp, G.p.lives);
+        demo_frame++;
+    }
     if (dev) {
         cont_state_t *st = (cont_state_t *)maple_dev_status(dev);
         if (st) {
@@ -305,6 +334,7 @@ int main(int argc, char **argv) {
     plat_init();
     if (r_init() < 0) { printf("pvr init failed\n"); return 1; }
     snd_init_fp();
+    demo_load();
     if (game_init() < 0) {
         printf("game init failed: data missing under %s\n", FP_DATA_ROOT);
         for (;;) { r_begin(); text_draw(20, 100, "DATA MISSING", 0xffff4040, 3); r_end(); }
