@@ -289,9 +289,35 @@ void objects_draw(int front) {
  *                   spiral-tunnel mask, BreakableRock, MinibossBarrier
  *   OBJGRP_OBSTACLE (+0x218d8) solid while grounded / landed on from above: bridge logs, YellowSpringUp /
  *                   UpLeft / UpRight, LadderTop, LevelValleyPlatform1, LevelMovingPlatform2/3
- *   OBJGRP_NOEDGE   (+0x218f0) clears the edge sensors (no angle taken from objects)
- * Not ported yet: returns no hit, so only the terrain is solid (as before). */
+ *   OBJGRP_NOEDGE   (+0x218f0) clears the edge sensors (no angle taken from objects): monitors, springs,
+ *                   bridge logs, ladder tops, spikes, platforms, keystone monitor
+ * Ported members: monitors, breakable rock, upward spikes, wall springs (solid); the obstacle group's
+ * springs are still handled by their own contact rules (RV), so OBJGRP_OBSTACLE has no members yet. */
+static int in_group(int type, int grp) {
+    switch (grp) {
+    case OBJGRP_SOLID: return type == OT_MONITOR || type == OT_ROCK || type == OT_SPIKES || type == OT_SPRING_R;
+    case OBJGRP_NOEDGE: return type == OT_MONITOR || type == OT_SPIKES || type == OT_SPRING || type == OT_SPRING_UL ||
+                               type == OT_SPRING_UR || type == OT_SPRING_R;
+    default: return 0;
+    }
+}
 int objects_sensor_hit(int grp, int ox, int oy, const signed char *x0, const signed char *x1, int h) {
-    (void)grp; (void)ox; (void)oy; (void)x0; (void)x1; (void)h;
+    for (int i = 0; i < G.nobjs; i++) {
+        const obj_t *o = &G.o[i];
+        if (!o->alive || !in_group(o->type, grp) || !o->an.b) continue;
+        const frame_t *f = anim_frame(&o->an);
+        int bx = (int)floorf(o->x) - (o->flip ? f->w - f->hx : f->hx), by = (int)floorf(o->y) - f->hy;
+        if (ox > bx + f->w || ox + 27 < bx || oy >= by + f->h || oy + h <= by) continue;
+        for (int j = 0; j < h; j++) {
+            int y = oy + j;
+            if (x1[j] < x0[j] || y < by || y >= by + f->h) continue;
+            for (int x = ox + x0[j]; x <= ox + x1[j]; x++) {
+                int lx = x - bx;
+                if (lx < 0 || lx >= f->w) continue;
+                if (o->flip) lx = f->w - 1 - lx;
+                if (frame_mask_px(o->an.b, f, lx, y - by)) return 1;
+            }
+        }
+    }
     return 0;
 }

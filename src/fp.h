@@ -129,6 +129,7 @@ enum { OBJGRP_SOLID, OBJGRP_OBSTACLE, OBJGRP_NOEDGE };   /* QualifierLists +0x21
 void mv_reset(void);
 int  mv_core(mv_t *m);
 void mv_allsensors(mv_t *m);
+
 int  mv_sensor_left_big(void), mv_sensor_right_big(void), mv_sensor_top_big(void);
 /* objects of a collision group overlapping a sensor mask (row spans x0[j]..x1[j] at (ox, oy + j)) */
 int  objects_sensor_hit(int grp, int ox, int oy, const signed char *x0, const signed char *x1, int h);
@@ -209,6 +210,7 @@ int  player_attack_box(const player_t *p, float *x0, float *y0, float *x1, float
 int  player_invincible(const player_t *p);
 void player_hurt(player_t *p, double from_x);
 void player_damage(player_t *p, int amount);
+void player_sync_sensors(player_t *p);
 void player_hang(player_t *p, double hx, double hy);
 int  player_can_hang(const player_t *p);   /* RE event 2414: amount in GUILifeBaseMeter units (5 = 1 half-petal on Normal) */
 void player_bounce(player_t *p, double vy);

@@ -217,10 +217,10 @@ def main():
     # ---- Lilac (playerskinsash_341) from recovered animation tables, both facings
     # Animation numbers RUNTIME-VERIFIED from original traces (sprite image -> images_* table),
     # except hurt/defeat (still by eye). See RUNTIME_MAP.md "Lilac animations".
-    LILAC = [('idle', 0), ('walk', 1), ('run', 2), ('fastrun', 22), ('jump', 24), ('lookup', 11),
-             ('crouch', 10), ('skid', 17), ('attack', 26), ('airatk', 25), ('uppercut', 28),
+    LILAC = [('idle', 0), ('walk', 1), ('run', 2), ('fastrun', 23), ('jump', 24), ('lookup', 11),
+             ('crouch', 10), ('skid', 16), ('attack', 26), ('airatk', 25), ('uppercut', 28),
              ('dkwind', 7), ('divekick', 19), ('cyclone', 18), ('charge', 7), ('boost', 13),
-             ('hurt', 16), ('defeat', 38), ('crouchatk', 30), ('spring', 14), ('hang', 15)]
+             ('hurt', 8), ('defeat', 38), ('crouchatk', 30), ('spring', 14), ('hang', 15)]
     la = an['playerskinsash_341']['anims']
     lb = {'name': 'lilac2', 'anims': []}
     for nm, ai in LILAC:
