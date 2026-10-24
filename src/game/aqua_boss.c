@@ -206,15 +206,13 @@ static void rocks_frame(player_t *p) {
     }
 }
 int aqua_worm_on_plate(const obj_t *pl) { return iw_head && iw_head->alive && iw_head->an.b && pl->an.b && obj_obj_hit(iw_head, pl); }   /* 4095 */
-int aqua_cam_locked(void);
-void aqua_release_camera_keep(void);
 static void iw_frame(player_t *p) {
     obj_t *h = iw_head;
     if (!h || !h->alive) return;
     int H = h->st;
     /* test_collisions_16: head starts overlapping the background while H = 8 and falling -> H = 9, camera released */
     { int bg = iw_group && obj_overlaps_bg(h);
-      if (bg && !iw_bg_latch && h->st == 8 && h->av[6] > 0) { h->st = 9; aqua_release_camera_keep(); }
+      if (bg && !iw_bg_latch && h->st == 8 && h->av[6] > 0) { h->st = 9; level_release_camera(1); }
       iw_bg_latch = bg; }
     if (h->st == -3 && PX(p) > 11704 + 100) h->st = -2;                                     /* 4200 */
     if (h->st == -2) { h->tm++; shake_min(3); }                                             /* 4201 */
@@ -236,7 +234,7 @@ static void iw_frame(player_t *p) {
             for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == OT_IW_SEG) G.o[i].av[1] = -20 * G.o[i].av[0] - 30;
             h->av[3] = 50; h->st = 6; h->av[2] = -150; iw_set_anim(h, 0, 0); h->av[7] = 1;
         }
-        if (h->st == 0 && aqua_cam_locked()) h->tm++;                                       /* 4212 */
+        if (h->st == 0 && level_cam_locked()) h->tm++;                                       /* 4212 */
         if (h->st == 0 && iw_anim != 8 && PX(p) + 20 < h->x) h->av[4] = -1;                 /* 4213 */
         if (h->st == 0 && iw_anim != 8 && h->x < PX(p) - 20) h->av[4] = 1;                  /* 4214 */
         if (h->st == 0 && h->tm > 100) { h->st = 1; h->tm = 0; }                            /* 4215 */
@@ -425,7 +423,7 @@ static void ch_frame(player_t *p) {
         if (ch->st == 5 && ch_ball->alive && ch_ball->av[6] > 50) {                          /* 4451 */
             ch->hidden = 1; ch_mouth->hidden = 1; ch->st = 6;
             obj_effect(ch_ball->x, ch_ball->y, "shade_at"); obj_effect(ch_ball->x, ch_ball->y, "explosion01");
-            ch_ball->alive = 0; snd_play_orig(50, 220, 128); aqua_release_camera();
+            ch_ball->alive = 0; snd_play_orig(50, 220, 128); level_release_camera(0);
         }
         if (ch->st == 6 && p->state != ST_DEAD && !ch_next_done) {                           /* 4452: Brick2 -> Brick, loop_next_act_17 */
             ch_next_done = 1; ch_defeat = 0;
@@ -433,7 +431,7 @@ static void ch_frame(player_t *p) {
             G.at_g4 = 10; G.at_g5 = 6144; G.at_g6 = 1101;
             G.act_lives = G.p.lives; G.act_crystals = G.p.crystals; G.act_keystones = G.keystones; G.act_stage_crystals = G.stage_crystals;
             ch_fade = 0; music_volume(100); music_play("bgm/m_stage0b.adp");
-            aqua_maker_start(); aqua_camera_bounds();
+            aqua_maker_start(); level_camera_bounds();
         }
     }
     if (ch_fade > 0) { ch_fade--; music_volume(ch_fade * 100 / 90); if (ch_fade == 0) music_stop(); }   /* 1.5 s fade (INFERRED linear) */

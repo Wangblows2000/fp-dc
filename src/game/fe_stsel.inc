@@ -136,7 +136,7 @@ static void stsel_update(const input_t *now) {
     if (wipe_step()) {
         wipe.on = 0;
         if (T.exit_to == 6) { if (scr_load(0) == 0) { set_state(FE_CHSEL); chsel_enter(); } }
-        else { int at = T.e[T.sel_k] == 0; fe_unload(); game_start_adventure(at ? "at1" : "dv1", 1); }   /* RE 714 / 715: AT -> frame 16, DV -> 20 */
+        else { const char *lv = level_first_of_stage(T.e[T.sel_k]); fe_unload(); game_start_adventure(lv ? lv : "dv1", 1); }   /* RE 714 / 715: icon E = stage index -> its first act (levels.c) */
     }
 }
 

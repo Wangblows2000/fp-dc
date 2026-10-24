@@ -45,9 +45,9 @@ static int on_player(const obj_t *m, const player_t *p) {     /* Player_326: 27-
 }
 void monitors_frame(player_t *p) {
     int M = player_orig_m(p);
-    /* 2605: the head bump (any character), A < 2, not held -> A = 1, B = -2, flag 0 (AT only in the port: DV's monitors
-     * keep their session-8 behaviour, D-051) */
-    if (aqua_level() && M != 46 && p->state != ST_DEAD)
+    /* 2605: the head bump (any character), A < 2, not held -> A = 1, B = -2, flag 0 (levels with monitor_hop: Aqua Tunnel;
+     * Dragon Valley's monitors keep their traced session-8 behaviour, D-051) */
+    if (level_cur()->monitor_hop && M != 46 && p->state != ST_DEAD)
         for (int i = 0; i < G.nobjs; i++) {
             obj_t *o = &G.o[i];
             if (!o->alive || !mon_type(o->type) || o->av[4] || o->av[0] >= 2 || (o->fl & 0x200)) continue;
@@ -71,7 +71,7 @@ void monitors_frame(player_t *p) {
         if (o->av[0] == 2) {
             o->x = (float)(int)(o->x + o->av[2]); o->y = (float)(int)(o->y + o->av[3]); o->av[3] = fmin(o->av[3] + 0.25, 15);   /* 2613 */
             if (o->x < -64 || o->x > G.lvl.w + 64 || o->y < -64 || o->y > G.lvl.h + 64) { o->alive = 0; continue; }   /* 2614 */
-            if (aqua_level() && o->av[2] > 0)                                                              /* 4143: water jets turn it back */
+            if (o->av[2] > 0)                                                                               /* 4143: water jets turn it back */
                 for (int k = 0; k < G.nobjs; k++) { obj_t *j = &G.o[k]; if (j->alive && (j->type == OT_WJET || j->type == OT_WJET_R) && j->an.b && obj_obj_hit(o, j)) { o->av[2] = -o->av[2]; snd_play_orig(14, 220, 128); break; } }
             if (obj_overlaps_bg(o) || on_solid(o, OBJGRP_SOLID) || on_solid(o, OBJGRP_OBSTACLE_ALL)) o->fl |= 0x200;   /* 4736 */
             for (int k = 0; k < G.nobjs && !(o->fl & 0x200); k++) {                                        /* 2751 / 2752 */

@@ -9,7 +9,7 @@ static void at2_intro(player_t *p);
 /* GV[3] (event 2774): a global frame counter the original never resets; traces set its phase (host FP_AT_GT) */
 int aqua_gt_off;
 static int GT(void) { return G.frame + aqua_gt_off; }
-static int at_act(void) { return !strncmp(G.lvdir, "at", 2) ? G.lvdir[2] - '0' : 0; }
+static int at_act(void) { const level_def_t *L = level_cur(); return L->stage == 0 ? L->act : 0; }   /* the Aqua Tunnel stage script (stage index 0) */
 int aqua_level(void) { return at_act(); }
 
 static void set_ens(obj_t *o, const char *name) {
@@ -18,11 +18,8 @@ static void set_ens(obj_t *o, const char *name) {
 }
 
 /* ================================================================ Milla's dig spots (AT1, spec_milla_moves 6) */
-/* 4171-4182 (frame 17): MILLA.D = 1 while PLAYER (Player_326 at int X, int Y = feet - 14) is inside one of these boxes */
-static const short DIGZ1[12][4] = {
-    { 6939, 7302, 102, 185 }, { 1479, 1705, 594, 671 }, { 9450, 9654, 181, 262 }, { 3214, 3315, 838, 904 },
-    { 8866, 9270, 715, 794 }, { 8197, 8418, 442, 507 }, { 9247, 10206, 611, 729 }, { 10607, 10744, 656, 711 },
-    { 10523, 10563, 659, 713 }, { 10413, 11262, 1052, 1154 }, { 11671, 12410, 822, 903 }, { 10388, 10482, 157, 223 } };
+/* 4171-4182 (frame 17): MILLA.D = 1 while PLAYER (Player_326 at int X, int Y = feet - 14) is inside one of the level's dig
+ * zones (level_def_t.dig_zones, src/game/levels.c) */
 
 static int player_px(const player_t *p) { return (int)floor(p->x); }
 static int player_py(const player_t *p) { return (int)floor(p->y - ORIG_REF_DY); }
@@ -97,11 +94,14 @@ int aqua_dig_hint(void) { return dig_hint; }
 /* before the movement block: 3313 clears MILLA.D, 4171-4182 set it inside a zone */
 void aqua_pre(player_t *p) {
     at2_intro(p);
-    if (at_act() != 1 || !chr_is_milla(G.character)) return;
+    const level_def_t *L = level_cur();
+    if (!L->ndig_zones || !chr_is_milla(G.character)) return;
     p->mD = 0;
     int px = player_px(p), py = player_py(p);
-    for (int i = 0; i < 12; i++)
-        if (px >= DIGZ1[i][0] && px <= DIGZ1[i][1] && py >= DIGZ1[i][2] && py <= DIGZ1[i][3]) { p->mD = 1; break; }
+    for (int i = 0; i < L->ndig_zones; i++) {
+        const zone_t *z = &L->dig_zones[i];
+        if (px >= z->x0 && px <= z->x1 && py >= z->y0 && py <= z->y1) { p->mD = 1; break; }
+    }
 }
 
 /* 4183-4194 (after the state groups in the port; the original's order is INFERRED, spec U10) */
@@ -550,57 +550,8 @@ static void bombs_frame(player_t *p) {
 
 
 /* ================================================================ stage flow (spec_at_flow) */
-/* 3.1 normal camera bounds: C = 0, E = sign.x + 213 (AT2: the frame width while g4 < 10; after the Chomper C = 5931,
- * E = width + 50) */
-void aqua_camera_bounds(void) {
-    switch (at_act()) {
-    case 1: G.cam_nE = 12480 + 213; break;
-    case 2: if (G.at_g4 >= 10) { G.cam_nC = 6144 - 213; G.cam_nE = (float)G.lvl.w + 50; } else G.cam_nE = (float)G.lvl.w; break;
-    case 3: G.cam_nE = 856 + 213; break;
-    case 4: G.cam_nE = 7424 + 213; break;
-    }
-}
-static int cam_locked;
-static void boss_camera(player_t *p) {                          /* 3.2: 4198/4199, 4408/4409, 4599 */
-    int px = (int)p->x, py = (int)floor(p->y - ORIG_REF_DY);
-    switch (at_act()) {
-    case 1:
-        if (!cam_locked && px > 11704 && py < 903) { cam_locked = 1; camera_boss_bounds(11368, 600, 12479, 903); }
-        else if (cam_locked && px < 11704 - 240 && py < 903) { cam_locked = 0; camera_normal_bounds(); G.cam_m2 = 1; }
-        break;
-    case 2:
-        if (G.at_g4 >= 10) break;
-        if (!cam_locked && px > 6032 && py > 976) { cam_locked = 1; camera_boss_bounds(6032, 976, 6863, 1231); }
-        else if (cam_locked && py < 976) { cam_locked = 0; camera_normal_bounds(); G.cam_m2 = 1; }
-        break;
-    case 4:
-        if (!cam_locked && G.at_g4 < 10 && px > 6464) { cam_locked = 1; camera_boss_bounds(6464, 8, 7039, 319); }
-        break;
-    }
-}
-void aqua_release_camera(void) { cam_locked = 0; camera_normal_bounds(); G.cam_m2 = 1; }
-void aqua_release_camera_keep(void) { camera_normal_bounds(); G.cam_m2 = 1; }   /* worm head landing: CAM.M 2, U 0, the trigger flag stays on */
-int aqua_cam_locked(void) { return cam_locked; }   /* 4451 (Chomper defeat) */
-
-static void checkpoint(int g4, float x, float y) {              /* g4 / g5 / g6 + loop_cp_16 (restart values) */
-    G.at_g4 = g4; G.at_g5 = x; G.at_g6 = y;
-    G.act_lives = G.p.lives; G.act_crystals = G.p.crystals; G.act_keystones = G.keystones; G.act_stage_crystals = G.stage_crystals;
-}
-static void checkpoints(player_t *p) {                          /* 6.1 */
-    double X = p->x;
-    switch (at_act()) {
-    case 1:
-        if (X > 7540 && X < 7640 && G.at_g4 < 2) checkpoint(2, 7600, 1100);       /* 4196 */
-        if (X > 11250 && X < 11350 && G.at_g4 < 3) checkpoint(3, 11300, 988);     /* 4197 */
-        break;
-    case 2:
-        if (X > 5640 && X < 5740 && G.at_g4 < 3) checkpoint(3, 5720, 270);        /* 4405 (g1 != 1) */
-        break;
-    case 4:
-        if (X > 3264 && X < 3364 && G.at_g4 < 2) checkpoint(2, 3264, 200);       /* 4598 */
-        break;
-    }
-}
+/* camera bounds, the boss camera locks and the checkpoints are level data since session 13 (levels.c: cam_right,
+ * boss_cam, cps; level_flow_frame) */
 /* AT2 intro (6.2, group 0x22134): the left corridor's current carries her as a ball until 4395 */
 static int intro_on;
 static void at2_intro(player_t *p) {
@@ -617,27 +568,16 @@ static void at2_intro(player_t *p) {
         G.at_g4 = 2; G.at_g5 = 1536; G.at_g6 = 1120;
     }
 }
-static void kill_items_in(float x0, float x1, float y0, float y1, int jelly) {
-    for (int i = 0; i < G.nobjs; i++) {
-        obj_t *o = &G.o[i];
-        if (!o->alive || o->x < x0 || o->x > x1 || o->y < y0 || o->y > y1) continue;
-        if (o->type == OT_CRYSTAL || (jelly && (o->type == OT_JELLY || o->type == OT_PETAL))) o->alive = 0;
-    }
-}
 static void flow_spawn(void) {
-    cam_locked = 0; intro_on = at_act() == 2;
-    if (at_act() == 1) {                                                           /* 4318 / 4319: crystal sets per character */
-        if (!chr_is_milla(G.character)) kill_items_in(7579, 7788, 732, 1129, 0);
-        else kill_items_in(7790, 8050, 929, 1133, 0);
-    }
-    if (at_act() == 2) kill_items_in(5260, 5467, 379, 814, 1);                      /* 4484 / 4485 (g1 != 1) */
+    intro_on = at_act() == 2;
+    level_flow_spawn();                                                            /* item sets per character (levels.c kills) */
 }
 
 /* ================================================================ spawn / per frame / per object */
 void aqua_spawn(void) {
     dig_hint = 0; maker_on = 0;
-    if (at_act()) flow_spawn();
-    if (!at_act()) return;
+    flow_spawn();                                                                   /* item sets (level data) and Aqua Tunnel's AT2 intro */
+    /* the objects below are set up in every level that places them (session 13: no stage test) */
     /* dig spots: A = index in reverse creation order (spec 6.2, INFERRED order) */
     int n = 0;
     for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == OT_DIGSPOT) n++;
@@ -682,20 +622,21 @@ void aqua_spawn(void) {
 }
 
 void aqua_update(player_t *p) {
-    if (!at_act()) return;
+    /* session 13: the passes act on their own object types in any level; a level with none of these objects (every type
+     * from OT_DIGSPOT up, placed or made at run time) skips them all, as Dragon Valley always did */
+    if (!objects_have_from(OT_DIGSPOT) && !at_act()) { level_flow_frame(p); return; }
     bursts_frame(p);                         /* 4134 (trigger block), col_8_16, 4130-4133 */
     bombs_frame(p);                          /* 3245-3251 bombs, 2630-2672 / 2760 / 4074 / 3243 / col_9_13 explosions */
     jelly_frame(p);                          /* 4067-4069 (after the platforms) */
     bricks_frame(p);                         /* 4070-4077 */
     aqua_gim_post(p);                        /* 4078-4100 (aqua_gim.c) */
-    aqua_boss_update(p);                     /* Iron Worm 4200-4237, Chomper 4410-4463, Chomper Snake 4600-4660 (aqua_boss.c) */
+    if (at_act()) aqua_boss_update(p);       /* Aqua Tunnel's bosses: Iron Worm 4200-4237, Chomper 4410-4463, Chomper Snake 4600-4660 (aqua_boss.c) */
     fireflies_frame();                       /* 4101-4113 */
     slimes_frame(p);                         /* 4114-4129 */
     bursts_timer();                          /* 4130-4133 */
     whisps_frame();                          /* 4144-4149 */
     jets_frame(p);                           /* 4136-4143 (near the end of the frame) */
-    checkpoints(p);                          /* 4196 / 4197, 4405, 4598 */
-    boss_camera(p);                          /* 4198 / 4199, 4408 / 4409, 4599 */
+    level_flow_frame(p);                     /* checkpoints and the boss camera (level data): 4196 / 4197, 4405, 4598; 4198 / 4199, 4408 / 4409, 4599 */
     maker_frame();                           /* 4453-4455 */
     dig_events(p);
 }
