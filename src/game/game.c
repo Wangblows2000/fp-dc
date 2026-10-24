@@ -52,9 +52,11 @@ static void bank_free(bank_t *b) { free(b->act); free(b->frames); free(b->anims)
 static uint32_t chr_crc[8];      /* skin .tex/.spr, overlay .tex/.spr, bike .tex/.spr, second atlases of the resident character banks */
 static int chr_resident, chr_resident_who = -1;
 /* the playing character's bank files: Lilac lilac2 + lilachair; Carol carol2 + caroltail + carolbike (+ pal2c.pal) */
-static const char *const CHR_FILES[2][8] = { { "lilac2.tex", "lilac2.spr", "lilachair.tex", "lilachair.spr", "lilac2_2.tex", "lilachair_2.tex", 0, 0 },
+static const char *const CHR_FILES[3][8] = { { "lilac2.tex", "lilac2.spr", "lilachair.tex", "lilachair.spr", "lilac2_2.tex", "lilachair_2.tex", 0, 0 },
                                              { "carol2.tex", "carol2.spr", "caroltail.tex", "caroltail.spr", "carolbike.tex", "carolbike.spr",
-                                               "carol2_2.tex", "carolbike_2.tex" } };   /* _2: split atlases (tools/import_frame.py) */
+                                               "carol2_2.tex", "carolbike_2.tex" },   /* _2: split atlases (tools/import_frame.py) */
+                                             { "milla2.tex", "milla2.spr", "millatail.tex", "millatail.spr", "millafx.tex", "millafx.spr",
+                                               "milla2_2.tex", "millafx_2.tex" } };   /* Milla (session 11): skin, tail, cube/shield */
 
 /* only textures that were actually created (a zeroed tex_t has id 0 = somebody else's slot) */
 static void tex_drop(tex_t *t) { if (t->w > 0) r_tex_free(t); memset(t, 0, sizeof *t); t->id = -1; }
@@ -92,7 +94,7 @@ static int chr_crcs(const char *dir, int who, uint32_t c[8]) {
 /* every level lives in its own data dir (own palettes + Lilac bank; tools/build_level.sh) */
 int game_load_level(const char *dir) {
     uint32_t want_crc[8];
-    int who = chr_is_carol(G.character) ? 1 : 0;
+    int who = chr_is_carol(G.character) ? 1 : chr_is_milla(G.character) ? 2 : 0;
     lp_begin(dir);
     int keep = chr_resident && chr_resident_who == who && chr_crcs(dir, who, want_crc) == 0 && !memcmp(want_crc, chr_crc, sizeof chr_crc);
     if (keep) level_free(); else game_unload_all();
@@ -102,15 +104,16 @@ int game_load_level(const char *dir) {
     int bad = 0;
     char nm[48];
     for (int i = 0; i < 4; i++) {   /* bank 2 = the character's palette: Carol's replaces Lilac's (tools/build_level.sh) */
-        if (i == 2 && who == 1) snprintf(nm, sizeof nm, "%s/pal2c.pal", dir); else snprintf(nm, sizeof nm, "%s/pal%d.pal", dir, i);
+        if (i == 2 && who) snprintf(nm, sizeof nm, "%s/pal2%s.pal", dir, who == 1 ? "c" : "m"); else snprintf(nm, sizeof nm, "%s/pal%d.pal", dir, i);
         bad |= pal_load_file(nm) < 0;
     }
     if (keep) { LP.nskip += who ? 8 : 6; LP.skip_bytes += (uint64_t)G.lilac.tex.w * G.lilac.tex.h + (uint64_t)G.hair.tex.w * G.hair.tex.h + (uint64_t)G.bike.tex.w * G.bike.tex.h
                                            + (uint64_t)G.lilac.tex2.w * G.lilac.tex2.h + (uint64_t)G.hair.tex2.w * G.hair.tex2.h + (uint64_t)G.bike.tex2.w * G.bike.tex2.h; }
     else {
-        snprintf(nm, sizeof nm, "%s/%s", dir, who ? "carol2" : "lilac2"); bad |= bank_load(&G.lilac, nm) < 0;
-        snprintf(nm, sizeof nm, "%s/%s", dir, who ? "caroltail" : "lilachair"); if (bank_load(&G.hair, nm) < 0) plat_log("no overlay bank\n");
-        if (who) { snprintf(nm, sizeof nm, "%s/carolbike", dir); if (bank_load(&G.bike, nm) < 0) plat_log("no bike bank\n"); }
+        static const char *const SK[3] = { "lilac2", "carol2", "milla2" }, *const OV[3] = { "lilachair", "caroltail", "millatail" };
+        snprintf(nm, sizeof nm, "%s/%s", dir, SK[who]); bad |= bank_load(&G.lilac, nm) < 0;
+        snprintf(nm, sizeof nm, "%s/%s", dir, OV[who]); if (bank_load(&G.hair, nm) < 0) plat_log("no overlay bank\n");
+        if (who) { snprintf(nm, sizeof nm, "%s/%s", dir, who == 1 ? "carolbike" : "millafx"); if (bank_load(&G.bike, nm) < 0) plat_log("no bike / cube bank\n"); }
         chr_resident = !bad && chr_crcs(dir, who, chr_crc) == 0;   /* only packed data can be matched later */
         chr_resident_who = who;
     }
@@ -203,13 +206,18 @@ static void sel_draw(void) {
 }
 
 /* ---- sounds: original Assets.dat sound IDs (Media::play_id, RUNTIME_MAP "Sound IDs") */
-static const int SND_IDS[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 38, 39, 40, 41, 42, 43, 45, 46, 47, 48, 49, 50, 51, 53, 56, 57, 58, 61, 63, 64, 74, 76, 78, 80, 81, 95, 98, 100, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 126, 128, 133, 139, 140, 141, 154, 159, 160, 161, 162, 174, 176, 220, 221, 232, 288, 289, 290, 307, 311, 313, 314, 315, 319, 320, 387, 396, 405, 409, 410, 411, 412, 413, 414 };   /* + Carol / bike / jump pads (session 10, spec_carol_*) */
+static const int SND_IDS[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 38, 39, 40, 41, 42, 43, 45, 46, 47, 48, 49, 50, 51, 53, 56, 57, 58, 61, 63, 64, 74, 76, 78, 80, 81, 95, 98, 100, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 126, 128, 133, 139, 140, 141, 154, 159, 160, 161, 162, 174, 176, 220, 221, 232, 288, 289, 290, 307, 311, 313, 314, 315, 319, 320, 387, 396, 405, 409, 410, 411, 412, 413, 414,
+                               186, 170, 178, 179, 180, 181, 182, 183, 184, 185, 202, 203, 204, 205, 206, 207, 244, 415, 416, 417, 418, 419, 420, 421, 422 };   /* + Milla (session 11; 186 = her character-select voice, shared) */   /* + Carol / bike / jump pads (session 10, spec_carol_*) */
 static int snd_handle[512];
 /* Sound RAM (2 MB, shared with the music stream) cannot hold every character's samples (RV Flycast: 1.8 MB of samples
  * at boot crashed the AICA): the shared set loads at boot, each character's own set when a stage starts with her */
 static const int SND_LILAC[] = { 9, 21, 31, 174, 176, 288, 289, 290, 314, 396, 405 };     /* + VOICES */
 static const int SND_CAROL[] = { 33, 61, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 126, 128, 133, 139, 140, 141, 154,
                                  159, 160, 161, 162, 232, 387, 409, 410, 411, 412, 413, 414 };
+/* Milla (session 11; RE loop_sound_* Milla branches, spec_milla_*): hurt 179-182, die 178, float 244 + flaps 170, dig
+ * 183-185, dig voices 186 / 202-204, idle voices 205-207, cube / shield 415-422 */
+static const int SND_MILLA[] = { 170, 178, 179, 180, 181, 182, 183, 184, 185, 202, 203, 204, 205, 206, 207, 244,
+                                 415, 416, 417, 418, 419, 420, 421, 422 };
 static int snd_group = -1;
 static int in_group(const int *g, int n, int id) { for (int i = 0; i < n; i++) if (g[i] == id) return 1; return 0; }
 uint32_t prof_acc[PS_N], prof_max[PS_N];
@@ -223,19 +231,18 @@ void snd_play_orig(int id, int vol, int pan) {
     if (getenv("FP_TRACE_SID")) printf("sid %d\n", id);   /* original sound id, belongs to the next 'f' row */
 #endif
     if (id >= 0 && id < 512 && snd_handle[id] >= 0) snd_play(snd_handle[id], vol, pan); }
-void snd_group_load(int carol) {
+void snd_group_load(int who) {       /* 0 Lilac (+ voices), 1 Carol, 2 Milla */
     char nm[48];
-    if (snd_group == carol) return;
-    const int *u = carol ? SND_LILAC : SND_CAROL, *l = carol ? SND_CAROL : SND_LILAC;
-    int nu = carol ? (int)(sizeof SND_LILAC / sizeof *SND_LILAC) : (int)(sizeof SND_CAROL / sizeof *SND_CAROL);
-    int nl = carol ? (int)(sizeof SND_CAROL / sizeof *SND_CAROL) : (int)(sizeof SND_LILAC / sizeof *SND_LILAC);
-    for (int i = 0; i < nu; i++) if (snd_handle[u[i]] >= 0) { snd_unload(snd_handle[u[i]]); snd_handle[u[i]] = -1; }
-    if (carol) for (int i = 0; i < (int)(sizeof VOICES / sizeof VOICES[0]); i++) if (voice_handle[i] >= 0) { snd_unload(voice_handle[i]); voice_handle[i] = -1; }
-    for (int i = 0; i < nl; i++) { snprintf(nm, sizeof nm, "sfx/s%d.wav", l[i]); snd_handle[l[i]] = snd_load(nm); loading_tick(); }
-    if (!carol) for (int i = 0; i < (int)(sizeof VOICES / sizeof VOICES[0]); i++) { snprintf(nm, sizeof nm, "sfx/%s.wav", VOICES[i]); voice_handle[i] = snd_load(nm); loading_tick(); }
-    snd_group = carol;
+    if (snd_group == who) return;
+    static const int *const GR[3] = { SND_LILAC, SND_CAROL, SND_MILLA };
+    static const int GN[3] = { sizeof SND_LILAC / sizeof *SND_LILAC, sizeof SND_CAROL / sizeof *SND_CAROL, sizeof SND_MILLA / sizeof *SND_MILLA };
+    for (int g = 0; g < 3; g++) if (g != who) for (int i = 0; i < GN[g]; i++) if (snd_handle[GR[g][i]] >= 0) { snd_unload(snd_handle[GR[g][i]]); snd_handle[GR[g][i]] = -1; }
+    if (who) for (int i = 0; i < (int)(sizeof VOICES / sizeof VOICES[0]); i++) if (voice_handle[i] >= 0) { snd_unload(voice_handle[i]); voice_handle[i] = -1; }
+    for (int i = 0; i < GN[who]; i++) if (snd_handle[GR[who][i]] < 0) { snprintf(nm, sizeof nm, "sfx/s%d.wav", GR[who][i]); snd_handle[GR[who][i]] = snd_load(nm); loading_tick(); }
+    if (!who) for (int i = 0; i < (int)(sizeof VOICES / sizeof VOICES[0]); i++) if (voice_handle[i] < 0) { snprintf(nm, sizeof nm, "sfx/%s.wav", VOICES[i]); voice_handle[i] = snd_load(nm); loading_tick(); }
+    snd_group = who;
     G.sfx.attack = snd_handle[21];
-    plat_log("sound set %s, sound RAM largest free block %d KB\n", carol ? "carol" : "lilac", snd_mem_free_kb());
+    plat_log("sound set %s, sound RAM largest free block %d KB\n", who == 1 ? "carol" : who == 2 ? "milla" : "lilac", snd_mem_free_kb());
 }
 int snd_loop_orig(int id, int vol, int freq) {
 #ifdef FP_HOST_ENV
@@ -266,7 +273,8 @@ int game_init(void) {
     loading_begin("boot");                         /* boot: sound effects (title data follows in fe_enter) */
     for (int i = 0; i < (int)(sizeof SND_IDS / sizeof SND_IDS[0]); i++) {
         int id = SND_IDS[i];
-        if (in_group(SND_LILAC, sizeof SND_LILAC / sizeof *SND_LILAC, id) || in_group(SND_CAROL, sizeof SND_CAROL / sizeof *SND_CAROL, id)) continue;
+        if (in_group(SND_LILAC, sizeof SND_LILAC / sizeof *SND_LILAC, id) || in_group(SND_CAROL, sizeof SND_CAROL / sizeof *SND_CAROL, id) ||
+            in_group(SND_MILLA, sizeof SND_MILLA / sizeof *SND_MILLA, id)) continue;
         snprintf(nm, sizeof nm, "sfx/s%d.wav", id); snd_handle[id] = snd_load(nm); loading_tick();
     }
     for (int i = 0; i < 16; i++) voice_handle[i] = -1;
@@ -633,13 +641,13 @@ void text_draw(float x, float y, const char *s, uint32_t argb, int scale) {
 
 /* ---- HUD: original GUI images (object bank anims hud_*), layout measured in the original at its
  * native 426x240 by template matching a screenshot (RUNTIME_MAP "HUD"). All coordinates = image top-left. */
-#define NHUD 18
+#define NHUD 19
 static int hud_anim[NHUD] = { -2 };
 void hud_reset(void) { hud_anim[0] = -2; }
 static void hud_init(void) {
     if (hud_anim[0] == -2) {
         static const char *nm[NHUD] = { "hud_frame", "hud_fill", "hud_petals", "hud_icon", "hud_clock", "hud_digits",
-            "card_stage", "card_name", "pause", "res_complete", "res_results", "res_panel", "res_rows", "res_digits", "res_small", "pausecursor", "hud_icon_c", "hud_icon_cb" };
+            "card_stage", "card_name", "pause", "res_complete", "res_results", "res_panel", "res_rows", "res_digits", "res_small", "pausecursor", "hud_icon_c", "hud_icon_cb", "hud_icon_m" };
         for (int i = 0; i < NHUD; i++) hud_anim[i] = bank_anim(&G.objs, nm[i]);
     }
 }
@@ -681,12 +689,19 @@ void hud_draw(void) {
     /* energy meter: fill = guienergy alt A / 100 as x scale (RV en_xs); shine loop while full (RV en_img) */
     int full = p->energy >= PHYS_ENERGY_MAX;
     int fill_frame = full ? (G.frame / 2) % 20 : 0;      /* anim 1, speed 50 = one frame per 2 ticks */
+    if (chr_is_milla(G.character)) {      /* GUIScoreTimeRings dir 4 (2197-2201, in Milla's bank); GUIEnergy hidden (1657) */
+        int a = bank_anim(&G.lilac, "hudm");
+        if (a >= 0) { const anim_t *an = &G.lilac.anims[a]; int fr = player_milla_hud(); if (fr >= an->count) fr = an->count - 1;
+            const frame_t *f = &G.lilac.frames[G.lilac.seq[an->first + fr]]; frame_draw(&G.lilac, f, 8 + f->hx, 8 + hud_dy + f->hy, 0, 0xffffffff); }
+    }
+    else {
     hud_img(0, 0, 8, 8 + hud_dy, -1);                             /* frame interior is opaque: fill goes on top */
     hud_img(1, fill_frame, 16, 10 + hud_dy, (int)(100.f * p->energy / PHYS_ENERGY_MAX + 0.5f));
+    }
     /* life petals: counter value = half-petals 0..14 (RV GUIRings_125, max 14) */
     if (p->hp > 0) hud_img(2, p->hp, 8, 19 + hud_dy, -1);
     /* character head + crystal icon, lives (2 digits), crystals (3 digits) */
-    hud_img(G.character == CHR_CAROL_BIKE || G.p.bike ? 17 : chr_is_carol(G.character) ? 16 : 3, 0, 128, 8 + hud_dy, -1);   /* guiicon direction by character (Carol 1, on the bike 2) */
+    hud_img(chr_is_milla(G.character) ? 18 : G.character == CHR_CAROL_BIKE || G.p.bike ? 17 : chr_is_carol(G.character) ? 16 : 3, 0, 128, 8 + hud_dy, -1);   /* guiicon direction by character (Carol 1, on the bike 2) */
     hud_number(p->lives < 0 ? 0 : p->lives > 99 ? 99 : p->lives, 2, 144, 8 + hud_dy);
     hud_number(p->crystals < 0 ? 0 : p->crystals > 999 ? 999 : p->crystals, 3, 176, 8 + hud_dy);
     /* clock + stage timer mm:ss:cc (RV GUITimerM/S/Milli counters; colons are part of the clock image) */

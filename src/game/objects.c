@@ -652,7 +652,8 @@ void objects_update(void) {
         case OT_MONICON: shield_icon_update(o, p); break;
         case OT_ROCK: case OT_MONITOR: case OT_MON_RINGS: case OT_MON_1UP: case OT_MON_INVINC: case OT_MON_KEYSTONE:
         case OT_MON_WOOD: case OT_MON_EARTH: case OT_MON_FIRE: case OT_MON_METAL: case OT_MON_WATER:
-            if (!dead && (monitor_hit(p, bx0, by0, bx1, by1) || side_sensor_break(p, o))) {
+            if (!dead && (monitor_hit(p, bx0, by0, bx1, by1) || side_sensor_break(p, o) ||
+                          (o->type == OT_ROCK ? player_cube_breaks_rock(o) : player_cube_opens_monitor(o)))) {   /* Milla: 4762 / 2618 / 2619 */
                 if (side_sensor_break(p, o)) player_hitstop(p, 5);          /* RV spiral_dv1: OTHERS.K = 5 per rock */
                 obj_t m = *o;                /* the freed slot is reused by the thrown items */
                 o->alive = 0; explode(m.x, m.y - 8);
@@ -662,6 +663,9 @@ void objects_update(void) {
                 monitor_reward(&m, p); shield_monitor_broken(&m);
                 player_bounce(p, -4.f);
             }
+            break;
+        case OT_BROCK2:                  /* 4761 / 5369 (DV2 / DV4): Milla's cube burst or beam breaks it (spec_milla_combat 4.2) */
+            if (!dead && player_cube_breaks_rock(o)) { snd_play_orig(13, 220, 128); obj_explode(o->x + 16, o->y + 16); o->alive = 0; }
             break;
         case OT_ITEM_FLY:
             /* crystals / petals thrown out of a monitor: ballistic, settle on the ground, then normal items */

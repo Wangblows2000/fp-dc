@@ -376,6 +376,7 @@ def main():
            ('hud_petals', an['guirings_125']['images']),        # counter 0..14 half-petals
            ('hud_icon', [311]),                                 # guiicon anim 0 = Lilac head + crystal
            ('hud_icon_c', [112]), ('hud_icon_cb', [395]),       # guiicon directions 1 / 2: Carol, Carol on the bike (session 10)
+           ('hud_icon_m', [507]),                               # guiicon direction 4: Milla (session 11)
            ('hud_clock', an['guitimer_536']['anims'][0]['0']['frames']),
            ('hud_digits', an['guilives_425']['images'][:10]),   # counter digits 0-9 (lives/crystals/timer)
            ('card_stage', an['levelcardintro3_684']['anims'][0]['0']['frames'][:1]),   # "STAGE 1" (Dragon Valley is stage 1)
@@ -487,6 +488,24 @@ def main():
             dd = an['effectsdust01_369']['anims'][4]['0']                   # bike exhaust (2129)
             cb['anims'].append({'name': 'bdust', 'frames': dd['frames'], 'speed': dd['max_speed'], 'loop': dd['loop'], 'back_to': dd['back_to']})
         write_bank2(src, cb, out, report)
+    # Milla (session 11): skin and tail, every animation index and every direction that is not a pixel mirror of
+    # direction - 16 (the port flips): 'a<index>' (dir 0), 'a<index>_l' (dir 16), 'a<index>_d<dir>' (others).
+    # millafx: PlayerReflect_463 (the cube / shield / bursts / beam, spec_milla_combat 1), 11 colours -> 4 bpp
+    for cls, bname in (('playerskinmilla_461', 'milla2'), ('playerskinmillatail_462', 'millatail'), ('playerreflect_463', 'millafx')):
+        ma = an[cls]['anims']; mb = {'name': bname, 'anims': []}
+        for ai, entry in enumerate(ma):
+            if not entry: continue
+            for dkey in sorted(entry, key=int):
+                d = int(dkey); dd = entry[dkey]
+                if d >= 16 and str(d - 16) in entry and mirrored(entry[str(d - 16)], dd): continue
+                nm = 'a%d' % ai if d == 0 else 'a%d_l' % ai if d == 16 else 'a%d_d%d' % (ai, d)
+                mb['anims'].append({'name': nm, 'frames': dd['frames'], 'speed': dd['max_speed'], 'loop': dd['loop'], 'back_to': dd['back_to']})
+        if bname == 'milla2':
+            dd = an['playerdig_464']['anims'][0]['0']                     # the dirt mound of the dig (M27), frame = int(B / 24)
+            mb['anims'].append({'name': 'dig', 'frames': dd['frames'], 'speed': 0, 'loop': 1, 'back_to': 0})
+            # her HUD panel (GUIScoreTimeRings_345 direction 4; 2197-2201 pick the frame), kept in her bank (loaded only for her)
+            mb['anims'].append({'name': 'hudm', 'frames': an['guiscoretimerings_345']['anims'][0]['4']['frames'], 'speed': 0, 'loop': 1, 'back_to': 0})
+        write_bank2(src, mb, out, report)
     write_lv2(os.path.join(out, name + '.lv2'), W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, len(atlases), bank)
     report.append('objects exported: %d (types %s)' % (len(objs), sorted({o['type'] for o in objs})))
     report.append('skipped classes (not implemented / helpers): %s' % sorted(skipped.items(), key=lambda kv: -kv[1])[:40])
@@ -505,7 +524,7 @@ def write_bank2(src, bank, out, report):
     # is unchanged, and nothing uses their untrimmed box (explosions: effects; Ganseki: hotspot rules +
     # pixel masks). Keeps the 1024x1024 object atlas within one PVR texture.
     # Lilac's skin and hair banks too: her collision is the separate sensor objects, never the sprite box
-    whole = bank['name'] in ('lilac2', 'lilachair', 'carol2', 'caroltail', 'carolbike')
+    whole = bank['name'] in ('lilac2', 'lilachair', 'carol2', 'caroltail', 'carolbike', 'milla2', 'millatail', 'millafx')
     keep = bank.get('keep_box', set())
     if bank['name'].endswith('_ens'):
         crop_ids = {i for a in bank['anims'] for i in a['frames']}
@@ -517,10 +536,11 @@ def write_bank2(src, bank, out, report):
         crop_ids = {i for a in bank['anims'] if whole or a['name'].startswith(('gan_', 'explosion')) for i in a['frames']}
         # the parked bike (ObjectBike_459) collides with its whole image box (initialize_active(1)): keep it (RV b_remount)
         crop_ids -= {i for a in bank['anims'] if a['name'].startswith('pbike') for i in a['frames']}
+    crop_off = {}
     for i in crop_ids:
         im, hx, hy = imgs[i]; bb = im.getbbox()
         if bb and (bb[2] - bb[0], bb[3] - bb[1]) != im.size:
-            imgs[i] = (im.crop(bb), hx - bb[0], hy - bb[1])
+            imgs[i] = (im.crop(bb), hx - bb[0], hy - bb[1]); crop_off[i] = (bb[0], bb[1])
     size, pos, second = 64, None, []
     while not pos:          # smallest power-of-two atlas: square, then half height (PVR textures may be 2:1)
         pos = pack([(i, imgs[i][0]) for i in ids], size, size // 2) or pack([(i, imgs[i][0]) for i in ids], size)
@@ -551,7 +571,7 @@ def write_bank2(src, bank, out, report):
     # 450 KB of it empty; the DV1-DV3 object banks reached 552 rows when Carol's fuel can / pads were added) is split
     # into a half-height first atlas and a small second one (<name>_2.tex, frames v | 0x8000, the _ens mechanism).
     # Drawing is unchanged (bank_draw / bank_frame_tex); only the VRAM layout differs (Lilac's banks too since session 11).
-    if not second and (bank['name'] in ('lilac2', 'lilachair', 'carol2', 'carolbike', 'caroltail') or bank['name'].endswith(('_obj', '_ens'))):
+    if not second and (bank['name'] in ('lilac2', 'lilachair', 'carol2', 'carolbike', 'caroltail', 'milla2', 'millatail', 'millafx') or bank['name'].endswith(('_obj', '_ens'))):
         def ph(p):
             return max(((y + imgs[i][0].height) for i, (x, y) in p.items()), default=8)
         def p2(n):
@@ -601,6 +621,15 @@ def write_bank2(src, bank, out, report):
     data += struct.pack('<%dH' % len(seq), *seq)
     # collision masks (Chowdren: image collision bit = alpha != 0): 'MSK1', then per frame rows of
     # ceil(w / 8) bytes, bit 7 of byte 0 = leftmost pixel
+    if bank['name'] in ('milla2',):
+        # 'ACT1': per-frame action point relative to the (cropped) image (img meta 3rd/4th values): the held cube sits at
+        # MILLA's action point (spec_milla_combat 3.3)
+        data += b'ACT1'
+        for i in ids:
+            m = [int(v, 0) for v in open(os.path.join(src, 'img_%d_meta.txt' % i)).read().split()] if i >= 0 else [0, 0, 0, 0]
+            ax, ay = [v - 65536 if v > 32767 else v for v in m[2:4]]
+            ox, oy = crop_off.get(i, (0, 0))
+            data += struct.pack('<2h', ax - ox, ay - oy)
     data += b'MSK1'
     for i in ids:
         im = imgs[i][0]; a = im.getchannel('A'); w, h = im.size

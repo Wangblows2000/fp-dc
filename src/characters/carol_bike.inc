@@ -322,7 +322,7 @@ static void carol_pad_move(player_t *p, const input_t *in) {
      * sensor loops still run at the pad's angle (RV: 2 px push-out) and G restarts from 0 each frame (RV 0.25) */
     p->vx = p->gsp = 0;
     if (p->padJ == 2) { p->ground = 0; p->vy += PHYS_GRAV; return; }
-    mv_t m = { p->x, p->y - ORIG_REF_DY, 0, 0, p->N, p->O, 0, p->ground, 0, 1, 1 };
+    mv_t m = { p->x, p->y - ORIG_REF_DY, 0, 0, p->N, p->O, 0, p->ground, 0, 1, 1, 0 };
     mv_core(&m);
     p->x = m.X; p->y = m.Y + ORIG_REF_DY; p->ground = 0;
     p->vy = PHYS_GRAV;

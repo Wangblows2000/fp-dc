@@ -281,7 +281,7 @@ int mv_core(mv_t *m) {
         for (int i = 0; i < 10; i++) if (!down_iter(m)) break;   /* 1587 */
     }
     /* 1588-1592: landing */
-    if (m->L == 0 && m->G >= 0 && S[S_BOTTOMBIG].z) {
+    if (m->L == 0 && m->G >= 0 && S[S_BOTTOMBIG].z && !m->nol) {
         m->N = m->O = 0;
         edges_iter(m);
         if (S[S_LEDGE].z && S[S_REDGE].z) m->N = m->O = angle_detect(m);
@@ -295,7 +295,7 @@ int mv_core(mv_t *m) {
         m->P = 1; m->N = m->O = 180;
         mv_allsensors(m);
     }
-    if (m->P == 1 && S[S_BOTTOMBIG].z) { m->P = 2; edges_iter(m); }
+    if (m->P == 1 && S[S_BOTTOMBIG].z && !m->nol) { m->P = 2; edges_iter(m); }
     if (m->P == 2 && S[S_LEDGE].z && S[S_REDGE].z) m->N = m->O = angle_detect(m);
     if (m->P == 2 && (m->N < 170 || m->N > 190)) { m->P = 3; m->B = m->B - m->G * PHYS_LAND_J * (o_sin(m->N) / 0.35); }
     if (m->P == 3) { m->P = 0; m->W = m->G; m->G = 0; m->L = 1; r |= MV_LANDED | MV_CEILING; }
