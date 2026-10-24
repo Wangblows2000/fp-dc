@@ -64,24 +64,34 @@ static void shield_anim(obj_t *o, const sdef_t *d) {
     int a = bank_anim(b, d->anim + (d->anim[0] == '*'));
     if (a >= 0) anim_set(&o->an, b, a);
 }
-static void shield_create(const player_t *p, int dir, int A, int speed) {
+static obj_t *shield_create(const player_t *p, int dir, int A, int speed) {
     if (dir == 5) dir = 4; else if (dir == 21) dir = 20; else if (dir == 28 || dir == 29) dir = 30; else if (dir == 12 || dir == 13) dir = 14;   /* direction-table aliases */
     int k; for (k = 0; k < NSD && SD[k].dir != dir; k++) ;
-    if (k == NSD) return;
+    if (k == NSD) return NULL;
     obj_t *o = obj_alloc();
-    if (!o) return;
+    if (!o) return NULL;
     int px, py; spawn_point(p, &px, &py);
     o->type = OT_SHIELD; o->alive = 1; o->x = (float)px; o->y = (float)py; o->dir = k; o->st = A;
     o->tm = 0; o->c = 0; o->vx = (float)(speed > 0 ? speed : SD[k].speed); o->fl = 0; o->born = G.frame;
     shield_anim(o, &SD[k]);
+    return o;
 }
-void combat_shield_create(const player_t *p, int dir, int A, int speed) { shield_create(p, dir, A, speed); }
+void combat_shield_create(const player_t *p, int dir, int A, int speed) {
+    obj_t *o = shield_create(p, dir, A, speed);
+    if (o && speed > 0) { o->c = 200; o->fl |= 2; }   /* force_speed(100) (see shield_tick) */
+}
 /* Active::update: counter += speed, advance when it goes above 100 (-100); past the last frame the
  * "finished" byte is set and an object with flag 8 is destroyed on the following update */
 static void shield_tick(obj_t *o) {
     if (o->fl & 1) { o->alive = 0; return; }
     o->c += (int)o->vx;
     if (o->c > 100) {
+        o->c -= 100;
+        if (o->tm + 1 >= sdef(o)->n) o->fl |= 1; else o->tm++;
+    }
+    /* Carol's creators force_speed(100): RV (c_claw_hit2) the counter reads 200 on the creation frame and the first
+     * update advances two frames (0 -> 2), then one per update; the shield lives as many frames as it has images */
+    while ((o->fl & 2) && o->c > 100 && !(o->fl & 1)) {
         o->c -= 100;
         if (o->tm + 1 >= sdef(o)->n) o->fl |= 1; else o->tm++;
     }
