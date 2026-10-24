@@ -10,10 +10,11 @@
 #define PADF_Y     0x800       /* PSC flag 11: Y arrived */
 #define PADF_OFF   0x1         /* port: MV.T = U = 0 since 2188 (no movement) until the launch / drop */
 
-static void pfx_spawn_b(float x, float y, const bank_t *b, int anim) {
-    if (anim < 0) return;
+static pfx_t *pfx_spawn_b(float x, float y, const bank_t *b, int anim) {
+    if (anim < 0) return NULL;
     for (int i = 0; i < NPFX; i++)
-        if (!pfx[i].an.b) { pfx[i].x = x; pfx[i].y = y; anim_set(&pfx[i].an, b, anim); anim_restart(&pfx[i].an); return; }
+        if (!pfx[i].an.b) { pfx[i].x = x; pfx[i].y = y; pfx[i].vx = pfx[i].vy = 0; pfx[i].argb = 0xffffffff; anim_set(&pfx[i].an, b, anim); anim_restart(&pfx[i].an); return &pfx[i]; }
+    return NULL;
 }
 static void c_wburst(float x, float y) { pfx_spawn_b(x, y, &G.objs, bank_anim(&G.objs, "wburst")); }
 static void c_sparkle(float x, float y, int frame) {
@@ -163,7 +164,11 @@ static void bike_events(player_t *p, const input_t *in, int st0) {
     /* 2129: exhaust puff every 8th frame standing / every 4th moving, not under water, not boosting */
     if (!p->water && p->nitroF != 2 && G.frame % (B == 0 ? 8 : 4) == 0) {
         float wx, wy; bike_action_point(p, &wx, &wy);
-        pfx_spawn_b(wx, wy, &G.lilac, bank_anim(&G.lilac, "bdust"));
+        /* EffectsDust01_369 (RE create_effectsdust01_369): blend alpha 0x74, random direction of 32 (one cross_seed
+         * step, seed >> 26 & 31), BallMovement speed 9 = 1.125 px/frame (y up); fraction kept as a float (INFERRED step) */
+        pfx_t *d = pfx_spawn_b(wx, wy, &G.lilac, bank_anim(&G.lilac, "bdust"));
+        int dir = fx_rand(32);
+        if (d) { d->argb = 0x74ffffff; d->vx = (float)(1.125 * fd_cos(dir * 11.25 / 57.29577951308232)); d->vy = (float)(-1.125 * fd_sin(dir * 11.25 / 57.29577951308232)); }
     }
     /* 1727 (M0, OTHERS.Y 8) / 2165 (M32): spin hit box, ShieldInstaShield A = 2 direction 24, when none exists */
     if ((p->state == ST_BIKEAIR || (p->state == ST_NORMAL && !p->m1 && p->cY == 8))) {

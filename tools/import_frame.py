@@ -547,10 +547,11 @@ def write_bank2(src, bank, out, report):
                 write_tex(at2.crop((0, 0, s2, max(8, bb2[3]))), os.path.join(out, bank['name'] + '_2.tex'))
                 for i in second: pos[i] = (pos2[i][0], pos2[i][1] | 0x8000)
                 report.append('bank %s: second atlas %d (%d frames)' % (bank['name'], s2, len(second)))
-    # Carol's banks (session 10 perf): a content height just over a power of two (carol2 574 rows -> a 1024x1024
-    # texture, 450 KB of it empty) is split into a half-height first atlas and a small second one (<name>_2.tex,
-    # frames v | 0x8000, the _ens mechanism). Drawing is unchanged; only the VRAM layout differs.
-    if not second and bank['name'] in ('carol2', 'carolbike', 'caroltail'):
+    # Session 10 perf (D-038): a content height just over a power of two (carol2 574 rows -> a 1024x1024 texture,
+    # 450 KB of it empty; the DV1-DV3 object banks reached 552 rows when Carol's fuel can / pads were added) is split
+    # into a half-height first atlas and a small second one (<name>_2.tex, frames v | 0x8000, the _ens mechanism).
+    # Drawing is unchanged (bank_draw / bank_frame_tex); only the VRAM layout differs. Lilac's own banks never need it.
+    if not second and (bank['name'] in ('carol2', 'carolbike', 'caroltail') or bank['name'].endswith(('_obj', '_ens'))):
         def ph(p):
             return max(((y + imgs[i][0].height) for i, (x, y) in p.items()), default=8)
         def p2(n):

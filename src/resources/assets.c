@@ -118,6 +118,11 @@ int frame_mask_px(const bank_t *b, const frame_t *f, int x, int y) {
     return (m[x >> 3] >> (7 - (x & 7))) & 1;
 }
 
+const tex_t *bank_frame_tex(const bank_t *b, const frame_t *f, int *v) {
+    if (f->v & 0x8000) { *v = f->v & 0x7fff; return &b->tex2; }
+    *v = f->v; return &b->tex;
+}
+
 int bank_anim(const bank_t *b, const char *name) {
     for (int i = 0; i < b->nanims; i++)
         if (!strcmp(b->anims[i].name, name)) return i;

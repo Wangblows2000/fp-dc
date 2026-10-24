@@ -42,7 +42,7 @@ static animator_t psc;           /* Carol on the bike: her on-foot skin PlayerSk
  *   the anchor (int X, int Y - 4): 1 and 2 at radius 20 (+7 deg/frame, opposite), 3 and 4 at radius 10
  *   (+10 deg/frame); position = anchor + r (sin D, -cos D); anchors follow Lilac every 3 frames (1, 2) and
  *   6 frames (3, 4); every 6 frames a Sparkle5 is left at each of the four (2844/2845). */
-typedef struct { float x, y; animator_t an; } pfx_t;
+typedef struct { float x, y, vx, vy; uint32_t argb; animator_t an; } pfx_t;   /* vx/vy/argb: Carol's exhaust dust */
 #define NPFX 48
 static pfx_t pfx[NPFX];
 static struct { int on, t; float a1x, a1y, a3x, a3y; double d1, d3; animator_t an; } spk;
@@ -54,7 +54,7 @@ int cross_rand_raw(int n) { return fx_rand(n); }   /* the same LCG step (camera 
 static void pfx_spawn(float x, float y, int anim) {
     if (anim < 0) return;
     for (int i = 0; i < NPFX; i++)
-        if (!pfx[i].an.b) { pfx[i].x = x; pfx[i].y = y; anim_set(&pfx[i].an, &G.objs, anim); anim_restart(&pfx[i].an); return; }
+        if (!pfx[i].an.b) { pfx[i].x = x; pfx[i].y = y; pfx[i].vx = pfx[i].vy = 0; pfx[i].argb = 0xffffffff; anim_set(&pfx[i].an, &G.objs, anim); anim_restart(&pfx[i].an); return; }
 }
 static void pfx_reset(void) {
     memset(pfx, 0, sizeof pfx); memset(&spk, 0, sizeof spk);
@@ -608,7 +608,7 @@ static void clamp_edges(player_t *p, double x0) {
 
 static void fx_update(player_t *p, int st0) {
     for (int i = 0; i < NPFX; i++)
-        if (pfx[i].an.b) { anim_tick(&pfx[i].an, -1); if (pfx[i].an.done) pfx[i].an.b = NULL; }
+        if (pfx[i].an.b) { anim_tick(&pfx[i].an, -1); pfx[i].x += pfx[i].vx; pfx[i].y += pfx[i].vy; if (pfx[i].an.done) pfx[i].an.b = NULL; }
     int ix = (int)floor(p->x), iy = (int)floor(p->y - ORIG_REF_DY);
     if (st0 == ST_CYCLONE && p->state_t % 6 == 1) {
         int rx = fx_rand(41) - 20, ry = fx_rand(41) - 20;
@@ -639,7 +639,7 @@ static void fx_update(player_t *p, int st0) {
 
 static void fx_draw(void) {
     for (int i = 0; i < NPFX; i++)
-        if (pfx[i].an.b) frame_draw(&G.objs, anim_frame(&pfx[i].an), floorf(pfx[i].x - G.camx), floorf(pfx[i].y - G.camy), 0, 0xffffffff);
+        if (pfx[i].an.b) frame_draw(pfx[i].an.b, anim_frame(&pfx[i].an), floorf(pfx[i].x - G.camx), floorf(pfx[i].y - G.camy), 0, pfx[i].argb);
     if (spk.on && spk.an.b)
         for (int k = 0; k < 4; k++) {
             double d = (k < 2 ? spk.d1 : spk.d3) + (k & 1) * 180.0, r = k < 2 ? 20 : 10;

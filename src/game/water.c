@@ -139,7 +139,8 @@ void water_draw_hud(void) {
             const anim_t *an = &G.objs.anims[a];
             int fi = (int)v; if (fi >= an->count) fi = an->count - 1;
             const frame_t *f = &G.objs.frames[G.objs.seq[an->first + fi]];
-            r_sprite(&G.objs.tex, f->u, f->v, f->w, f->h, -16 + 2 * W.icon_c, 96, f->w, f->h, 0, 0xffffffff);
+            int tv; const tex_t *t = bank_frame_tex(&G.objs, f, &tv);
+            r_sprite(t, f->u, tv, f->w, f->h, -16 + 2 * W.icon_c, 96, f->w, f->h, 0, 0xffffffff);
         }
     }
 }
