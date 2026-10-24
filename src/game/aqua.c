@@ -670,6 +670,7 @@ void aqua_spawn(void) {
         case OT_MON_CRATE: set_ens(o, "mon_crate"); if (off) o->alive = 0; break;
         }
     }
+    aqua_gim_spawn();
 }
 
 void aqua_update(player_t *p) {
@@ -678,6 +679,7 @@ void aqua_update(player_t *p) {
     bombs_frame(p);                          /* 3245-3251 bombs, 2630-2672 / 2760 / 4074 / 3243 / col_9_13 explosions */
     jelly_frame(p);                          /* 4067-4069 (after the platforms) */
     bricks_frame(p);                         /* 4070-4077 */
+    aqua_gim_post(p);                        /* 4078-4100 (aqua_gim.c) */
     fireflies_frame();                       /* 4101-4113 */
     slimes_frame(p);                         /* 4114-4129 */
     bursts_timer();                          /* 4130-4133 */
@@ -691,6 +693,7 @@ void aqua_update(player_t *p) {
 
 int aqua_obj_update(obj_t *o, player_t *p) {
     (void)p;
+    if (aqua_gim_obj(o)) return 1;                 /* aqua_gim.c: run in the platform block */
     switch (o->type) {
     case OT_DIGSPOT: case OT_FIREFLY: case OT_SLIME: case OT_WHISPMAKER: case OT_ABRICK: case OT_ABRICK2:
     case OT_SLIMEBURST: case OT_WHISP: case OT_ABPIECE: case OT_WJET: case OT_WJET_R: case OT_WJET_B: case OT_WJET_MAKER:
@@ -707,6 +710,7 @@ void aqua_prerun(int n) {
         G.frame++;
         for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].an.b) anim_tick(&G.o[i].an, -1);
         fireflies_frame(); slimes_frame(&G.p); bursts_timer(); whisps_frame();
+        { int fr = G.frame; G.frame = k + 1 - n; aqua_gim_post(&G.p); G.frame = fr; }   /* the platform block runs during the card (GT continuous up to row 0) */
     }
     G.frame = 0;
 }

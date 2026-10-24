@@ -69,6 +69,14 @@ ENGINE_TYPES = {
     'waterjet': 169, 'waterjetright': 170, 'waterjetback': 171, 'waterjetmaker': 172, 'jellyspring': 173,   # spec_at_gimmicks_a.md
     'redspringup': 174, 'redspringdown': 175, 'redspringleft': 176, 'redspringright': 177, 'redspringupright': 178,
     'monitorbomb': 179, 'monitorcrate': 180,
+    'aquabrickplatform': 183, 'collapsingplatform': 184, 'switchdoor2': 185, 'switchmillablock': 186, 'levelcrusher1': 187, 'levelcrusher2': 189,
+    'gimmickrotatingpipe': 190, 'gimmickrotatingpipebase': 191, 'gimmickrotatingpipebase2': 192, 'objectspinningbeam': 193,
+    'levelaxelplatform1': 194, 'levelaxelplatform2': 195, 'axelplatformmaker1': 196, 'axelplatformmaker2': 197,
+    'gimmickswingspawner1': 198, 'gimmickswingspawner2': 199, 'scrollingbrick': 203, 'slimefloor': 204, 'slimeraft': 205,
+    'aquatreeoverlay': 206, 'fishstatuefront': 207,
+    'minibossironworm': 214, 'minibossironwormsegment': 215, 'minibossironwormbase': 216,   # spec_ironworm.md
+    'minibosschomper': 217, 'minibosschompertail': 218, 'minibosschomperball': 219, 'minibosschompermouth': 220,   # spec_chomper.md
+    'bosschompersnake': 221, 'bosschompersnakesegment': 222, 'bosschompersnakemouth': 223,   # spec_chompersnake.md
     'waterfallback': 139, 'waterfallfront': 140, 'waterfallfront2': 141, 'waterfallfront3': 142, 'waterfallfront4': 143,   # EnemyGansekiJr_835 (RE build/re/spec_ganseki.md)     # LadderTop_428: invisible obstacle at the top of each ladder (RE spec_ladder.md)
 }
 
@@ -87,8 +95,43 @@ AT_ENS = [('objectdigspot_779', 0, '0', 'digspot'), ('guiweaponslot_426', 7, '0'
           ('redspringdown_422', 5, '0', 'rs_down_b'), ('redspringleft_421', 0, '0', 'rs_left'), ('redspringleft_421', 5, '0', 'rs_left_b'),
           ('redspringright_420', 0, '0', 'rs_right'), ('redspringright_420', 5, '0', 'rs_right_b'),
           ('redspringupright_417', 0, '0', 'rs_ur'), ('redspringupright_417', 5, '0', 'rs_ur_b'),
-          ('monitorbomb_535', 0, '0', 'mon_bomb'), ('monitorbomb_535', 7, '0', 'mon_bomb_arm'), ('monitorcrate_364', 0, '0', 'mon_crate')]
-AT_ENS_WITH = {'effectswaterhit_756': ('waterjetright', 'waterjetmaker'), 'waterjetright_751': ('waterjetmaker',), 'enemyslimeburst_718': ('enemyslime',), 'effectwhisp_767': ('objectwhispmaker',),
+          ('monitorbomb_535', 0, '0', 'mon_bomb'), ('monitorbomb_535', 7, '0', 'mon_bomb_arm'), ('monitorcrate_364', 0, '0', 'mon_crate'),
+          # spec_at_gimmicks_b.md
+          ('aquabrickplatform_731', 0, '0', 'abplat'), ('aquabrickplatform_803', 0, '0', 'abplat2'), ('collapsingplatform_732', 0, '0', 'collapse'),
+          ('switchdoor_770', 0, '0', 'sdoor'), ('switchdoor2_777', 0, '0', 'sdoor2'), ('switchmillablock_784', 0, '0', 'mblock'),
+          ('switchwallplate_831', 0, '0', 'wplate'), ('switchpressureplate_769', 0, '0', 'aplate'), ('levelcrusher1_808', 0, '0', 'crushv'),
+          ('levelcrusher1_847', 0, '0', 'crushh'), ('levelcrusher2_851', 0, '0', 'crushh2'), ('gimmickrotatingpipe_828', 0, '0', 'pipe'),
+          ('gimmickrotatingpipebase_782', 0, '0', 'pipehub'), ('gimmickrotatingpipebase2_783', 0, '0', 'pipecog'),
+          ('objectspinningbeam_806', 0, '0', 'beam'), ('levelaxelplatform1_680', 0, '0', 'axel1'), ('levelaxelplatform1_845', 0, '0', 'axel1b'),
+          ('levelaxelplatform2_737', 0, '0', 'axel2'), ('levelaxelplatform2_846', 0, '0', 'axel2b'), ('gimmickswingbase_821', 0, '0', 'swbase'),
+          ('gimmickswingchain_822', 0, '0', 'swchain'), ('gimmickswingplatform_823', 0, '0', 'swplat'), ('scrollingbrick_859', 0, '0', 'scrollbrick'),
+          ('slimefloor_857', 0, '0', 'slimefloor'), ('slimeraft_858', 0, '0', 'raft'), ('aquatreeoverlay_762', 0, '0', 'treeovl'),
+          ('fishstatuefront_813', 0, '0', 'fishstatue'), ('effectsexplosion01_367', 4, '0', 'explosion01'),
+          # spec_ironworm.md (AT1 miniboss)
+          ('minibossironworm_773', 0, '0', 'iw_r'), ('minibossironworm_773', 0, '16', 'iw_l'), ('minibossironworm_773', 7, '0', 'iw_open_r'),
+          ('minibossironworm_773', 7, '16', 'iw_open_l'), ('minibossironworm_773', 8, '0', 'iw_close_r'), ('minibossironworm_773', 8, '16', 'iw_close_l'),
+          ('minibossironworm_773', 10, '0', 'iw_blink_r'), ('minibossironworm_773', 10, '16', 'iw_blink_l'),
+          ('minibossironwormsegment_772', 0, '0', 'iws_r'), ('minibossironwormsegment_772', 0, '16', 'iws_l'),
+          ('minibossironwormsegment_772', 10, '0', 'iws_blink_r'), ('minibossironwormsegment_772', 10, '16', 'iws_blink_l'),
+          ('minibossironwormbase_775', 0, '0', 'iwbase'), ('enemyrock_776', 0, '0', 'rock'), ('enemyrock_776', 7, '0', 'rock_break'),
+          ('minibossacid_774', 0, '0', 'acid'), ('minibossacid_774', 10, '0', 'acid_splat'),
+          # spec_chomper.md (AT2 miniboss)
+          ('minibosschomper_815', 0, '0', 'ch'), ('minibosschomper_815', 7, '0', 'ch_daze0'), ('minibosschomper_815', 7, '1', 'ch_daze1'),
+          ('minibosschompertail_816', 0, '0', 'cht'), ('minibosschomperball_817', 0, '0', 'chb'),
+          ('minibosschompermouth_818', 0, '0', 'chm_close'), ('minibosschompermouth_818', 0, '1', 'chm_close1'),
+          ('minibosschompermouth_818', 10, '0', 'chm_open'), ('minibosschompermouth_818', 10, '1', 'chm_open1'),
+          ('effectshade_436', 0, '0', 'shade_at'),
+          # spec_chompersnake.md (AT4 boss)
+          ('bosschompersnake_861', 0, '0', 'sn'), ('bosschompersnake_861', 7, '1', 'sn_pale'),
+          ('bosschompersnakesegment_860', 0, '0', 'sns'), ('bosschompersnakesegment_860', 0, '1', 'sns_pale'),
+          ('bosschompersnakemouth_863', 0, '0', 'snm_close'), ('bosschompersnakemouth_863', 0, '1', 'snm_close1'),
+          ('bosschompersnakemouth_863', 10, '0', 'snm_open'), ('bosschompersnakemouth_863', 10, '1', 'snm_open1'),
+          ('bossbubblebomb_862', 0, '0', 'bub')]
+AT_ENS_WITH = {'enemyrock_776': ('minibossironworm',), 'minibossacid_774': ('minibossironworm', 'minibosschomper', 'bosschompersnake'),
+               'bossbubblebomb_862': ('bosschompersnake',), 'effectshade_436': ('minibosschomper', 'bosschompersnake'),
+               'levelaxelplatform1_680': ('axelplatformmaker1',), 'levelaxelplatform2_737': ('axelplatformmaker2',),
+               'gimmickswingbase_821': ('gimmickswingspawner1', 'gimmickswingspawner2'), 'gimmickswingchain_822': ('gimmickswingspawner1', 'gimmickswingspawner2'),
+               'gimmickswingplatform_823': ('gimmickswingspawner1', 'gimmickswingspawner2'), 'effectsexplosion01_367': ('collapsingplatform', 'minibosschomper'), 'effectswaterhit_756': ('waterjetright', 'waterjetmaker'), 'waterjetright_751': ('waterjetmaker',), 'enemyslimeburst_718': ('enemyslime',), 'effectwhisp_767': ('objectwhispmaker',),
                'breakableaquabrickpiece_682': ('breakableaquabrick', 'breakableaquabrick2'), 'breakableaquabrick_681': ('breakableaquabrick2',)}
 
 # ---- per-level bank of enemies, bosses and gimmicks (<name>_ens): (class, anim, direction, name[, frame slice]);
@@ -146,7 +189,7 @@ ENS = [('enemydragonfly_942', a, d, nm + ('' if d == '0' else '_l')) for a, nm i
       [('bubblenumbers_405', 0, d, 'bnum%s' % d) for d in ('0', '1', '2', '3', '4', '5')] + \
       AT_ENS
 ENS_WITH = {**AT_ENS_WITH, 'guiweaponslot_426': ('objectdigspot',), 'enemysporeprojectile_1022': ('enemysporepod',), 'objectkeystone_429': ('enemysporepod', 'enemyturretus', 'monitorkeystone'),
-            'effectsdebris_427': ('enemysporepod', 'bossserpentinehead', 'objectdigspot'), 'effectsexplosion06_435': ('minibosswretchnidbase', 'minibosstredd', 'bossserpentinehead', 'monitorbomb'),
+            'effectsdebris_427': ('enemysporepod', 'bossserpentinehead', 'objectdigspot'), 'effectsexplosion06_435': ('minibosswretchnidbase', 'minibosstredd', 'bossserpentinehead', 'monitorbomb', 'minibossironworm', 'bosschompersnake'),
             'effectsshade_436': ('enemygansekijr', 'enemydragonfly', 'enemystarflounder', 'enemycacteon'),
             'minibosstreddbomb_1060': ('minibosstredd',), 'minibosstredddebris_1058': ('minibosstredd',), 'monitoricon_363': ('minibosstredd', 'shieldmonitor_onmap'),
             'bossfireball_1003': ('bossserpentinehead',), 'bossboulder_1099': ('bossgiantboulder',), 'effectwarning_1100': ('bossgiantboulder',),
@@ -709,7 +752,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         d += struct.pack('<2i4H4B', p['x'] - hx, p['y'] - hy, u, v, im.width, im.height, k, p['layer'], p['col'], (1 if p['invisible'] else 0) | p.get('scroll08', 0))
     for o in objs:
         a = names.index(o['cls'][:15]) if o['cls'][:15] in names else (o.get('par_index', 0xffff) if 20 <= o['type'] < 28 else 0xffff)
-        if 139 <= o['type'] <= 143 or o['type'] in (169, 170): a = o.get('layer', 2)   # waterfalls, AT water jets: the instance's layer
+        if 139 <= o['type'] <= 143 or o['type'] in (169, 170, 187, 204): a = o.get('layer', 2)   # waterfalls, AT water jets / crushers / slime floor: the instance's layer
         d += struct.pack('<2H2i', o['type'], a, o['x'], o['y'])
     for t in table: d += t
     d += struct.pack('<%dH' % len(smap), *smap)

@@ -49,6 +49,7 @@ void objects_spawn(void) {
             if (o->x < 0) o->alive = 0;
             continue;
         }
+        if (o->type == OT_CRUSH_V || o->type == OT_SLIMEFLOOR) { o->layer = lo->anim; o->an.b = NULL; continue; }   /* AT: lvobj anim = instance layer (aqua_gim_spawn) */
         if (o->type == OT_WJET || o->type == OT_WJET_R) { o->layer = lo->anim; o->an.b = NULL; continue; }   /* AT water jets: lvobj anim = instance layer (aqua_spawn) */
         if (lo->anim != 0xffff && lo->anim < G.objs.nanims) anim_set(&o->an, &G.objs, lo->anim);
         else o->an.b = NULL;
@@ -135,6 +136,7 @@ void objects_plat_pretick(int n) {
     }
 }
 void objects_platforms(player_t *p) {
+    if (aqua_level()) { aqua_platforms(p); return; }   /* Aqua Tunnel: its own platform block (src/game/aqua_gim.c) */
     /* DV3 gimmick blocks (5131-5234) run with the platforms, before Lilac's movement */
     wlogs_update(p); dv3_switch_update(p); trunks_update(p); bamboo_update(p); pplate_update(p);
     double MY = p->y - ORIG_REF_DY;
@@ -424,6 +426,51 @@ static void obj_box(const obj_t *o, float *x0, float *y0, float *x1, float *y1) 
     *x1 = *x0 + f->w - 2 * m; *y1 = *y0 + f->h - 2 * m;
 }
 
+/* rotated images (o->ang, degrees CCW about the hotspot; AT collapsing platform, pipes, beam): the world pixel
+ * (wx, wy) maps back into the image by the inverse rotation of its centre (INFERRED model of Chowdren's rotated
+ * collision mask; the forward map is obj_overlaps_bg's). Bounding box of the rotated image in *x0..*y1 (exclusive). */
+static void rot_cs(const obj_t *o, double *c, double *s) { double a = fmod((double)o->ang, 360.0) / 57.29577951308232; *c = fd_cos(a); *s = fd_sin(a); }
+static void rot_bounds(const obj_t *o, const frame_t *f, int *x0, int *y0, int *x1, int *y1) {
+    double c, s; rot_cs(o, &c, &s);
+    int hx = o->flip ? f->w - f->hx : f->hx;
+    double cx[4] = { -hx, f->w - hx, -hx, f->w - hx }, cy[4] = { -f->hy, -f->hy, f->h - f->hy, f->h - f->hy };
+    double a0 = 1e9, b0 = 1e9, a1 = -1e9, b1 = -1e9;
+    for (int k = 0; k < 4; k++) {
+        double wx = cx[k] * c + cy[k] * s, wy = -cx[k] * s + cy[k] * c;
+        if (wx < a0) { a0 = wx; } if (wx > a1) { a1 = wx; } if (wy < b0) { b0 = wy; } if (wy > b1) { b1 = wy; }
+    }
+    int ox = (int)floorf(o->x), oy = (int)floorf(o->y);
+    *x0 = ox + (int)floor(a0) - 1; *y0 = oy + (int)floor(b0) - 1; *x1 = ox + (int)ceil(a1) + 1; *y1 = oy + (int)ceil(b1) + 1;
+}
+static int rot_px(const obj_t *o, const frame_t *f, double c, double s, int wx, int wy) {
+    int hx = o->flip ? f->w - f->hx : f->hx;
+    double dx = wx + 0.5 - (int)floorf(o->x), dy = wy + 0.5 - (int)floorf(o->y);
+    int lx = (int)floor(dx * c - dy * s + hx), ly = (int)floor(dx * s + dy * c + f->hy);
+    if (lx < 0 || lx >= f->w || ly < 0 || ly >= f->h) return 0;
+    return frame_mask_px(o->an.b, f, o->flip ? f->w - 1 - lx : lx, ly);
+}
+/* world pixel of the object's current mask (rotation-aware) */
+int obj_px(const obj_t *o, int wx, int wy) {
+    if (!o->an.b) return 0;
+    const frame_t *f = anim_frame(&o->an);
+    if (o->ang != 0) { double c, s; rot_cs(o, &c, &s); return rot_px(o, f, c, s, wx, wy); }
+    int bx = (int)floorf(o->x) - (o->flip ? f->w - f->hx : f->hx), by = (int)floorf(o->y) - f->hy;
+    int lx = wx - bx, ly = wy - by;
+    if (lx < 0 || lx >= f->w || ly < 0 || ly >= f->h) return 0;
+    return frame_mask_px(o->an.b, f, o->flip ? f->w - 1 - lx : lx, ly);
+}
+static int rows_hit_rot(const obj_t *o, const frame_t *f, int ox, int oy, const signed char *x0, const signed char *x1, int h) {
+    int a0, b0, a1, b1; rot_bounds(o, f, &a0, &b0, &a1, &b1);
+    if (ox > a1 || ox + 27 < a0 || oy >= b1 || oy + h <= b0) return 0;
+    double c, s; rot_cs(o, &c, &s);
+    for (int j = 0; j < h; j++) {
+        int y = oy + j;
+        if (x1[j] < x0[j] || y < b0 || y >= b1) continue;
+        for (int x = ox + x0[j]; x <= ox + x1[j]; x++) if (x >= a0 && x < a1 && rot_px(o, f, c, s, x, y)) return 1;
+    }
+    return 0;
+}
+
 /* pixel test of the integer rect [rx0, rx1) x [ry0, ry1) against the object's current image mask
  * (Chowdren sprite collision: alpha != 0); objects without a sprite use their box */
 int obj_rect_hit(const obj_t *o, int rx0, int ry0, int rx1, int ry1) {
@@ -432,6 +479,12 @@ int obj_rect_hit(const obj_t *o, int rx0, int ry0, int rx1, int ry1) {
         return rx0 < x1 && x0 < rx1 && ry0 < y1 && y0 < ry1;
     }
     const frame_t *f = anim_frame(&o->an);
+    if (o->ang != 0) {
+        int a0, b0, a1, b1; rot_bounds(o, f, &a0, &b0, &a1, &b1); double c, s; rot_cs(o, &c, &s);
+        for (int y = ry0 > b0 ? ry0 : b0; y < (ry1 < b1 ? ry1 : b1); y++)
+            for (int x = rx0 > a0 ? rx0 : a0; x < (rx1 < a1 ? rx1 : a1); x++) if (rot_px(o, f, c, s, x, y)) return 1;
+        return 0;
+    }
     int ox = (int)floorf(o->x) - (o->flip ? f->w - f->hx : f->hx), oy = (int)floorf(o->y) - f->hy;
     int x0 = rx0 > ox ? rx0 : ox, x1 = rx1 < ox + f->w ? rx1 : ox + f->w;
     int y0 = ry0 > oy ? ry0 : oy, y1 = ry1 < oy + f->h ? ry1 : oy + f->h;
@@ -448,6 +501,7 @@ int obj_rect_hit(const obj_t *o, int rx0, int ry0, int rx1, int ry1) {
 int obj_rows_hit(const obj_t *o, int ox, int oy, const signed char *x0, const signed char *x1, int h) {
     if (!o->an.b) return 0;
     const frame_t *f = anim_frame(&o->an);
+    if (o->ang != 0) return rows_hit_rot(o, f, ox, oy, x0, x1, h);
     int bx = (int)floorf(o->x) - (o->flip ? f->w - f->hx : f->hx), by = (int)floorf(o->y) - f->hy;
     if (ox > bx + f->w || ox + 27 < bx || oy >= by + f->h || oy + h <= by) return 0;
     for (int j = 0; j < h; j++) {
@@ -466,6 +520,14 @@ int obj_rows_hit(const obj_t *o, int ox, int oy, const signed char *x0, const si
 int obj_obj_hit(const obj_t *a, const obj_t *b) {
     if (!a->an.b || !b->an.b) return 0;
     const frame_t *fa = anim_frame(&a->an), *fb = anim_frame(&b->an);
+    if (a->ang != 0 || b->ang != 0) {
+        int a0, b0, a1, b1, c0, d0, c1, d1;
+        if (a->ang != 0) rot_bounds(a, fa, &a0, &b0, &a1, &b1); else { a0 = (int)floorf(a->x) - (a->flip ? fa->w - fa->hx : fa->hx); b0 = (int)floorf(a->y) - fa->hy; a1 = a0 + fa->w; b1 = b0 + fa->h; }
+        if (b->ang != 0) rot_bounds(b, fb, &c0, &d0, &c1, &d1); else { c0 = (int)floorf(b->x) - (b->flip ? fb->w - fb->hx : fb->hx); d0 = (int)floorf(b->y) - fb->hy; c1 = c0 + fb->w; d1 = d0 + fb->h; }
+        int x0 = a0 > c0 ? a0 : c0, x1 = a1 < c1 ? a1 : c1, y0 = b0 > d0 ? b0 : d0, y1 = b1 < d1 ? b1 : d1;
+        for (int y = y0; y < y1; y++) for (int x = x0; x < x1; x++) if (obj_px(a, x, y) && obj_px(b, x, y)) return 1;
+        return 0;
+    }
     int ax = (int)floorf(a->x) - (a->flip ? fa->w - fa->hx : fa->hx), ay = (int)floorf(a->y) - fa->hy;
     int bx = (int)floorf(b->x) - (b->flip ? fb->w - fb->hx : fb->hx), by = (int)floorf(b->y) - fb->hy;
     int x0 = ax > bx ? ax : bx, x1 = ax + fa->w < bx + fb->w ? ax + fa->w : bx + fb->w;
@@ -567,7 +629,7 @@ void objects_update(void) {
          * update_objects, then events) */
         if (o->type == OT_PELLET && o->born == G.frame) continue;
         if (o->type == OT_PELLET) pellet_move(o);                 /* update_objects: movement, then animation */
-        anim_tick(&o->an, -1);
+        anim_tick(&o->an, (o->type == OT_AXEL1 || o->type == OT_AXEL2) ? o->c : -1);   /* AT axels: speed set by 4085 / 4519 */
         act[i] = 1;
     }
     /* test_collisions: enemies absorb free crystals (col_3_13 + 1290 + 2546) */
@@ -733,7 +795,8 @@ void objects_draw(int pass) {
         if (!o->alive || !o->an.b || o->type == OT_HANG || o->type == OT_LADDERTOP || o->type == OT_BRIDGE) continue;   /* sensors / LadderTop are invisible */
         if ((pass == 0 && o->layer > 1) || (pass == 1 && o->layer != 2) || (pass == 2 && o->layer < 3)) continue;
         float sx = floorf(o->x - G.camx), sy = floorf(o->y - G.camy);
-        if (sx < -96 || sx > SCREEN_W + 96 || sy < -96 || sy > SCREEN_H + 96) continue;
+        { const frame_t *cf = anim_frame(&o->an); float m = 96; if (cf->w > m) m = cf->w; if (cf->h > m) m = cf->h; if (cf->w + cf->h > m && o->ang != 0) m = cf->w + cf->h;
+          if (sx < -m || sx > SCREEN_W + m || sy < -m || sy > SCREEN_H + m) continue; }
         if (o->type == OT_SHIELD || o->type == OT_GEYSER || o->type == OT_SPIRAL_MASK || o->type == OT_BALLTUNNEL || o->type == OT_WR_WEAK || o->type == OT_FLOATPLAT || o->type == OT_TD_PUSH || o->type == OT_TD_PUSH2 || o->type == OT_SPIRAL_FRONT) continue;   /* invisible (the spiral front: spiral_front_draw) */
         if (boss_hidden(o)) continue;
         if (o->type == OT_WLOG && o->st == 0) continue;                                    /* emerging behind the waterfall (layer 0) */
@@ -776,12 +839,16 @@ int obj_in_group(int type, int grp) {
                               type == OT_SPIRAL_MASK || type == OT_BALLTUNNEL || type == OT_WR_BARRIER || type == OT_BROCK2 || type == OT_MON_KEYSTONE ||
                               type == OT_TRUNK || type == OT_PBLOCK2 || type == OT_DOOR || type == OT_BTUNNEL2 || type == OT_PBLOCK1 || (type >= OT_MON_WOOD && type <= OT_MON_WATER) ||
                               type == OT_ABRICK || type == OT_ABRICK2 || type == OT_JELLY || type == OT_MON_BOMB || type == OT_MON_CRATE ||
-                              type == OT_RSPRING_U || type == OT_RSPRING_D || type == OT_RSPRING_L || type == OT_RSPRING_R;   /* AT Q7 */
+                              type == OT_RSPRING_U || type == OT_RSPRING_D || type == OT_RSPRING_L || type == OT_RSPRING_R ||   /* AT Q7 */
+                              type == OT_COLLAPSE || type == OT_SDOOR || type == OT_SDOOR2 || type == OT_CRUSH_V || type == OT_CRUSH_H || type == OT_CRUSH_H2 ||
+                              type == OT_PIPE || type == OT_PIPEHUB || type == OT_BEAM || type == OT_SLIMEFLOOR || type == OT_RAFT;   /* spec_at_gimmicks_b 0 */
     case OBJGRP_OBSTACLE: case OBJGRP_OBSTACLE_ALL:
-        return type == OT_LADDERTOP || type == OT_LOG || type == OT_PLAT_VALLEY || type == OT_PLAT_MOVE2 || type == OT_PLAT_MOVE3 || type == OT_GEYSER || type == OT_RSPRING_UL || type == OT_FLOATPLAT || type == OT_WLOG || type == OT_SPINLOG_MASK || type == OT_RSPRING_UR;
+        return type == OT_LADDERTOP || type == OT_LOG || type == OT_PLAT_VALLEY || type == OT_PLAT_MOVE2 || type == OT_PLAT_MOVE3 || type == OT_GEYSER || type == OT_RSPRING_UL || type == OT_FLOATPLAT || type == OT_WLOG || type == OT_SPINLOG_MASK || type == OT_RSPRING_UR ||
+               type == OT_ABPLAT || type == OT_AXEL1 || type == OT_AXEL2 || type == OT_SWPLAT;
     case OBJGRP_NOEDGE: return type == OT_LADDERTOP || type == OT_LOG || type == OT_PLAT_VALLEY || type == OT_PLAT_MOVE2 || type == OT_PLAT_MOVE3 || type == OT_MONITOR || type == OT_MON_RINGS || type == OT_MON_1UP || type == OT_MON_INVINC || type == OT_SPIKES || type == OT_SPRING || type == OT_SPRING_UL ||
                                type == OT_SPRING_UR || type == OT_SPRING_R || type == OT_GEYSER || type == OT_RSPRING_UL || type == OT_SPIKES_L || type == OT_SPIKES_R || type == OT_SPIKES_D || type == OT_MON_KEYSTONE || type == OT_FLOATPLAT || type == OT_PBLOCK2 || type == OT_PBLOCK1 || (type >= OT_MON_WOOD && type <= OT_MON_WATER) ||
-                               type == OT_MON_BOMB || type == OT_MON_CRATE || (type >= OT_RSPRING_U && type <= OT_RSPRING_UR);
+                               type == OT_MON_BOMB || type == OT_MON_CRATE || (type >= OT_RSPRING_U && type <= OT_RSPRING_UR) ||
+                               type == OT_ABPLAT || type == OT_AXEL1 || type == OT_AXEL2 || type == OT_SWPLAT;
     default: return 0;
     }
 }
@@ -840,7 +907,7 @@ static int sensor_hit_any(int grp, int type, int ox, int oy, const signed char *
         if ((grp == OBJGRP_OBSTACLE || grp == OBJGRP_SOLID) && (o->fl & 1)) continue;   /* flag 0: ignored (4738 platforms; loop layers 3025/3026) */
         if (grp == OBJGRP_SOLID && objects_mon_ghost && (o->type == OT_MONITOR || o->type == OT_MON_RINGS || o->type == OT_MON_1UP ||
                                                           o->type == OT_MON_INVINC || o->type == OT_MON_KEYSTONE || o->type == OT_ROCK || (o->type >= OT_MON_WOOD && o->type <= OT_MON_WATER))) continue;   /* 1581 (RV spiral_dv1: rocks too) */
-        { int m = bank_extent(o->an.b) + 2;                     /* cheap reject before the frame lookup (same result) */
+        { int m = bank_extent(o->an.b) * (o->ang != 0 ? 2 : 1) + 2;   /* cheap reject before the frame lookup (same result) */
           if (o->x < ox - m || o->x > ox + 27 + m || o->y < oy - m || o->y > oy + h + m) continue; }
         const frame_t *f = anim_frame(&o->an);
         int bx = (int)floorf(o->x) - (o->flip ? f->w - f->hx : f->hx), by = (int)floorf(o->y) - f->hy;
@@ -849,8 +916,10 @@ static int sensor_hit_any(int grp, int type, int ox, int oy, const signed char *
             for (int j = 0; j < h; j++) { int y = oy + j; if (x1[j] < x0[j] || y < jy0 || y >= jy1) continue; if (ox + x1[j] >= jx0 && ox + x0[j] < jx1) return i; }
             continue;
         }
+        if (o->ang != 0) { if (rows_hit_rot(o, f, ox, oy, x0, x1, h)) return i; continue; }   /* AT rotated masks */
         if (ox > bx + f->w || ox + 27 < bx || oy >= by + f->h || oy + h <= by) continue;
-        if (o->type == OT_LOG || o->type == OT_WLOG || o->type == OT_PBLOCK2 || o->type == OT_PBLOCK1 || o->type == OT_ROCK || o->type == OT_ABRICK || o->type == OT_ABRICK2 || (o->type >= OT_RSPRING_U && o->type <= OT_RSPRING_UR)) {   /* initialize_active(true): collision box = image rect (rock: RV spiralb timing) */
+        if (o->type == OT_LOG || o->type == OT_WLOG || o->type == OT_PBLOCK2 || o->type == OT_PBLOCK1 || o->type == OT_ROCK || o->type == OT_ABRICK || o->type == OT_ABRICK2 || (o->type >= OT_RSPRING_U && o->type <= OT_RSPRING_UR) ||
+            o->type == OT_ABPLAT || o->type == OT_CRUSH_H || o->type == OT_CRUSH_H2 || o->type == OT_SWPLAT || o->type == OT_RAFT) {   /* initialize_active(true): collision box = image rect (rock: RV spiralb timing) */
             for (int j = 0; j < h; j++) {
                 int y = oy + j;
                 if (x1[j] < x0[j] || y < by || y >= by + f->h) continue;
