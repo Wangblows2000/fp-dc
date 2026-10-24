@@ -49,6 +49,7 @@ void objects_spawn(void) {
             if (o->x < 0) o->alive = 0;
             continue;
         }
+        if (o->type == OT_WJET || o->type == OT_WJET_R) { o->layer = lo->anim; o->an.b = NULL; continue; }   /* AT water jets: lvobj anim = instance layer (aqua_spawn) */
         if (lo->anim != 0xffff && lo->anim < G.objs.nanims) anim_set(&o->an, &G.objs, lo->anim);
         else o->an.b = NULL;
         if (o->type == OT_TURRETUS) { o->A = 8; o->st = 0; o->tm = 0; o->dir = 14; }   /* RE: created with A = 8, direction 14 */
@@ -354,7 +355,7 @@ void obj_drop_crystal(float x, float y, int S) {
 }
 static void monitor_reward(const obj_t *o, player_t *p) {
     switch (o->type) {
-    case OT_MONITOR: throw_items(o, OT_CRYSTAL, 7); break;
+    case OT_MONITOR: case OT_MON_CRATE: throw_items(o, OT_CRYSTAL, 7); break;   /* the crate's icon frame 7 = the crystal monitor's (RE 2662) */
     case OT_MON_RINGS: throw_items(o, OT_PETAL, 6); break;
     case OT_MON_1UP: p->lives++; music_play("bgm/m_1up.adp"); G.mus_resume_t = 240; break;   /* jingle length INFERRED */
     case OT_MON_INVINC: p->invuln = 1800; p->invinc = 1; music_play("bgm/m_invincibility.adp"); break;
@@ -653,16 +654,18 @@ void objects_update(void) {
             break;
         case OT_MONICON: shield_icon_update(o, p); break;
         case OT_ROCK: case OT_MONITOR: case OT_MON_RINGS: case OT_MON_1UP: case OT_MON_INVINC: case OT_MON_KEYSTONE:
-        case OT_MON_WOOD: case OT_MON_EARTH: case OT_MON_FIRE: case OT_MON_METAL: case OT_MON_WATER:
-            if (!dead && (monitor_hit(p, bx0, by0, bx1, by1) || side_sensor_break(p, o) ||
-                          (o->type == OT_ROCK ? player_cube_breaks_rock(o) : player_cube_opens_monitor(o)))) {   /* Milla: 4762 / 2618 / 2619 */
+        case OT_MON_WOOD: case OT_MON_EARTH: case OT_MON_FIRE: case OT_MON_METAL: case OT_MON_WATER: case OT_MON_BOMB: case OT_MON_CRATE:
+            if ((o->fl & 0x200) || (!dead && (monitor_hit(p, bx0, by0, bx1, by1) || side_sensor_break(p, o) ||
+                          (o->type == OT_ROCK ? player_cube_breaks_rock(o) : player_cube_opens_monitor(o))))) {   /* Milla: 4762 / 2618 / 2619; 0x200: bomb blast (3243) */
                 if (side_sensor_break(p, o)) player_hitstop(p, 5);          /* RV spiral_dv1: OTHERS.K = 5 per rock */
                 obj_t m = *o;                /* the freed slot is reused by the thrown items */
                 o->alive = 0; explode(m.x, m.y - 8);
                 if (m.type == OT_ROCK) snd_play_orig(13, 220, 128);          /* RV spiral_dv1: rock break = 13 */
-                else { snd_play_orig(307, 220, 128); snd_play_orig(12, 220, 128); }   /* RV mon/inv traces: 307 + 12 on the
-                                                    break frame; RE Frames::event_func_2623 plays 307 for the monitor group */
-                monitor_reward(&m, p); shield_monitor_broken(&m);
+                else if (m.type == OT_MON_CRATE) snd_play_orig(278, 220, 128);   /* RE 2625: D = 3 (crate) -> 278 */
+                else if (m.type == OT_MON_RINGS || m.type == OT_MON_KEYSTONE || m.type == OT_MON_BOMB) snd_play_orig(12, 220, 128);   /* RE 2626: D not 0 / 3 / -1 -> 12 */
+                else if (m.type == OT_MON_INVINC || (m.type >= OT_MON_WOOD && m.type <= OT_MON_WATER)) { snd_play_orig(308, 220, 128); snd_play_orig(316, 220, 128); }   /* RE 2624: D = 0 */
+                else { snd_play_orig(307, 220, 128); snd_play_orig(12, 220, 128); }   /* RE 2623: D = -1 (crystals; RV mon trace 307 + 12) */
+                monitor_reward(&m, p); shield_monitor_broken(&m); aqua_monitor_broken(&m);
                 player_bounce(p, -4.f);
             }
             break;
@@ -742,6 +745,8 @@ void objects_draw(int pass) {
         if (inv) r_set_invert(1);
         if (o->hidden) { if (inv) r_set_invert(0); continue; }
         if (addv) r_set_additive(1);
+        if (o->type == OT_JELLY) { const frame_t *f = anim_frame(&o->an); float x0, y0, x1, y1; aqua_jelly_box(o, &x0, &y0, &x1, &y1);
+            int v; const tex_t *t = bank_frame_tex(o->an.b, f, &v); r_sprite(t, f->u, v, f->w, f->h, floorf(x0 - G.camx), floorf(y0 - G.camy), x1 - x0, y1 - y0 - 1, 0, col); continue; }
         if (o->scale != 0 && o->scale != 1.f) r_set_scale(o->scale);
         if (o->ang != 0 || (o->scale != 0 && o->scale != 1.f)) frame_draw_rot(o->an.b, anim_frame(&o->an), sx, sy, o->ang, o->flip, col);
         else frame_draw(o->an.b, anim_frame(&o->an), sx, sy, o->flip, col);
@@ -770,11 +775,13 @@ int obj_in_group(int type, int grp) {
                               type == OT_SPIKES_L || type == OT_SPIKES_R || type == OT_SPIKES_D || (type >= OT_LOOP016 && type <= OT_LOOP1Q) ||
                               type == OT_SPIRAL_MASK || type == OT_BALLTUNNEL || type == OT_WR_BARRIER || type == OT_BROCK2 || type == OT_MON_KEYSTONE ||
                               type == OT_TRUNK || type == OT_PBLOCK2 || type == OT_DOOR || type == OT_BTUNNEL2 || type == OT_PBLOCK1 || (type >= OT_MON_WOOD && type <= OT_MON_WATER) ||
-                              type == OT_ABRICK || type == OT_ABRICK2;   /* AT Q7 */
+                              type == OT_ABRICK || type == OT_ABRICK2 || type == OT_JELLY || type == OT_MON_BOMB || type == OT_MON_CRATE ||
+                              type == OT_RSPRING_U || type == OT_RSPRING_D || type == OT_RSPRING_L || type == OT_RSPRING_R;   /* AT Q7 */
     case OBJGRP_OBSTACLE: case OBJGRP_OBSTACLE_ALL:
-        return type == OT_LADDERTOP || type == OT_LOG || type == OT_PLAT_VALLEY || type == OT_PLAT_MOVE2 || type == OT_PLAT_MOVE3 || type == OT_GEYSER || type == OT_RSPRING_UL || type == OT_FLOATPLAT || type == OT_WLOG || type == OT_SPINLOG_MASK;
+        return type == OT_LADDERTOP || type == OT_LOG || type == OT_PLAT_VALLEY || type == OT_PLAT_MOVE2 || type == OT_PLAT_MOVE3 || type == OT_GEYSER || type == OT_RSPRING_UL || type == OT_FLOATPLAT || type == OT_WLOG || type == OT_SPINLOG_MASK || type == OT_RSPRING_UR;
     case OBJGRP_NOEDGE: return type == OT_LADDERTOP || type == OT_LOG || type == OT_PLAT_VALLEY || type == OT_PLAT_MOVE2 || type == OT_PLAT_MOVE3 || type == OT_MONITOR || type == OT_MON_RINGS || type == OT_MON_1UP || type == OT_MON_INVINC || type == OT_SPIKES || type == OT_SPRING || type == OT_SPRING_UL ||
-                               type == OT_SPRING_UR || type == OT_SPRING_R || type == OT_GEYSER || type == OT_RSPRING_UL || type == OT_SPIKES_L || type == OT_SPIKES_R || type == OT_SPIKES_D || type == OT_MON_KEYSTONE || type == OT_FLOATPLAT || type == OT_PBLOCK2 || type == OT_PBLOCK1 || (type >= OT_MON_WOOD && type <= OT_MON_WATER);
+                               type == OT_SPRING_UR || type == OT_SPRING_R || type == OT_GEYSER || type == OT_RSPRING_UL || type == OT_SPIKES_L || type == OT_SPIKES_R || type == OT_SPIKES_D || type == OT_MON_KEYSTONE || type == OT_FLOATPLAT || type == OT_PBLOCK2 || type == OT_PBLOCK1 || (type >= OT_MON_WOOD && type <= OT_MON_WATER) ||
+                               type == OT_MON_BOMB || type == OT_MON_CRATE || (type >= OT_RSPRING_U && type <= OT_RSPRING_UR);
     default: return 0;
     }
 }
@@ -837,8 +844,13 @@ static int sensor_hit_any(int grp, int type, int ox, int oy, const signed char *
           if (o->x < ox - m || o->x > ox + 27 + m || o->y < oy - m || o->y > oy + h + m) continue; }
         const frame_t *f = anim_frame(&o->an);
         int bx = (int)floorf(o->x) - (o->flip ? f->w - f->hx : f->hx), by = (int)floorf(o->y) - f->hy;
+        if (o->type == OT_JELLY) {                                 /* AT jelly spring: scaled box (spec_at_gimmicks_a 3) */
+            float jx0, jy0, jx1, jy1; aqua_jelly_box(o, &jx0, &jy0, &jx1, &jy1);
+            for (int j = 0; j < h; j++) { int y = oy + j; if (x1[j] < x0[j] || y < jy0 || y >= jy1) continue; if (ox + x1[j] >= jx0 && ox + x0[j] < jx1) return i; }
+            continue;
+        }
         if (ox > bx + f->w || ox + 27 < bx || oy >= by + f->h || oy + h <= by) continue;
-        if (o->type == OT_LOG || o->type == OT_WLOG || o->type == OT_PBLOCK2 || o->type == OT_PBLOCK1 || o->type == OT_ROCK || o->type == OT_ABRICK || o->type == OT_ABRICK2) {   /* initialize_active(true): collision box = image rect (rock: RV spiralb timing) */
+        if (o->type == OT_LOG || o->type == OT_WLOG || o->type == OT_PBLOCK2 || o->type == OT_PBLOCK1 || o->type == OT_ROCK || o->type == OT_ABRICK || o->type == OT_ABRICK2 || (o->type >= OT_RSPRING_U && o->type <= OT_RSPRING_UR)) {   /* initialize_active(true): collision box = image rect (rock: RV spiralb timing) */
             for (int j = 0; j < h; j++) {
                 int y = oy + j;
                 if (x1[j] < x0[j] || y < by || y >= by + f->h) continue;

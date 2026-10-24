@@ -66,6 +66,9 @@ ENGINE_TYPES = {
     'levellayer016': 134, 'levellayer0loop04': 135, 'levellayer115': 136, 'levellayer1loop03': 137,
     'objectdigspot': 160,   # Aqua Tunnel (session 12, src/game/aqua.c)
     'enemyfirefly': 161, 'enemyslime': 162, 'objectwhispmaker': 163, 'breakableaquabrick': 164, 'breakableaquabrick2': 165,
+    'waterjet': 169, 'waterjetright': 170, 'waterjetback': 171, 'waterjetmaker': 172, 'jellyspring': 173,   # spec_at_gimmicks_a.md
+    'redspringup': 174, 'redspringdown': 175, 'redspringleft': 176, 'redspringright': 177, 'redspringupright': 178,
+    'monitorbomb': 179, 'monitorcrate': 180,
     'waterfallback': 139, 'waterfallfront': 140, 'waterfallfront2': 141, 'waterfallfront3': 142, 'waterfallfront4': 143,   # EnemyGansekiJr_835 (RE build/re/spec_ganseki.md)     # LadderTop_428: invisible obstacle at the top of each ladder (RE spec_ladder.md)
 }
 
@@ -77,8 +80,15 @@ AT_ENS = [('objectdigspot_779', 0, '0', 'digspot'), ('guiweaponslot_426', 7, '0'
           ('enemyslime_717', 7, '16', 'sl_jump_l'), ('enemyslime_717', 8, '0', 'sl_land'), ('enemyslime_717', 8, '16', 'sl_land_l'),
           ('enemyslime_717', 10, '0', 'sl_dead'), ('enemyslimeburst_718', 0, '0', 'slb'), ('enemyslimeburst_718', 7, '0', 'slb_pop'),
           ('effectwhisp_767', 0, '0', 'whisp'), ('breakableaquabrick_681', 0, '0', 'abrick'), ('breakableaquabrick2_819', 0, '0', 'abrick2'),
-          ('breakableaquabrickpiece_682', 0, '0', 'abpiece')]
-AT_ENS_WITH = {'enemyslimeburst_718': ('enemyslime',), 'effectwhisp_767': ('objectwhispmaker',),
+          ('breakableaquabrickpiece_682', 0, '0', 'abpiece'),
+          ('waterjet_740', 0, '0', 'wjet'), ('waterjetback_759', 0, '0', 'wjetb'), ('waterjetright_751', 0, '0', 'wjetr'),
+          ('waterjetmaker_820', 0, '0', 'wjetmk'), ('effectswaterhit_756', 4, '0', 'waterhit'), ('jellyspring_704', 0, '0', 'jelly'),
+          ('redspringup_419', 0, '0', 'rs_up'), ('redspringup_419', 5, '0', 'rs_up_b'), ('redspringdown_422', 0, '0', 'rs_down'),
+          ('redspringdown_422', 5, '0', 'rs_down_b'), ('redspringleft_421', 0, '0', 'rs_left'), ('redspringleft_421', 5, '0', 'rs_left_b'),
+          ('redspringright_420', 0, '0', 'rs_right'), ('redspringright_420', 5, '0', 'rs_right_b'),
+          ('redspringupright_417', 0, '0', 'rs_ur'), ('redspringupright_417', 5, '0', 'rs_ur_b'),
+          ('monitorbomb_535', 0, '0', 'mon_bomb'), ('monitorbomb_535', 7, '0', 'mon_bomb_arm'), ('monitorcrate_364', 0, '0', 'mon_crate')]
+AT_ENS_WITH = {'effectswaterhit_756': ('waterjetright', 'waterjetmaker'), 'waterjetright_751': ('waterjetmaker',), 'enemyslimeburst_718': ('enemyslime',), 'effectwhisp_767': ('objectwhispmaker',),
                'breakableaquabrickpiece_682': ('breakableaquabrick', 'breakableaquabrick2'), 'breakableaquabrick_681': ('breakableaquabrick2',)}
 
 # ---- per-level bank of enemies, bosses and gimmicks (<name>_ens): (class, anim, direction, name[, frame slice]);
@@ -136,7 +146,7 @@ ENS = [('enemydragonfly_942', a, d, nm + ('' if d == '0' else '_l')) for a, nm i
       [('bubblenumbers_405', 0, d, 'bnum%s' % d) for d in ('0', '1', '2', '3', '4', '5')] + \
       AT_ENS
 ENS_WITH = {**AT_ENS_WITH, 'guiweaponslot_426': ('objectdigspot',), 'enemysporeprojectile_1022': ('enemysporepod',), 'objectkeystone_429': ('enemysporepod', 'enemyturretus', 'monitorkeystone'),
-            'effectsdebris_427': ('enemysporepod', 'bossserpentinehead', 'objectdigspot'), 'effectsexplosion06_435': ('minibosswretchnidbase', 'minibosstredd', 'bossserpentinehead'),
+            'effectsdebris_427': ('enemysporepod', 'bossserpentinehead', 'objectdigspot'), 'effectsexplosion06_435': ('minibosswretchnidbase', 'minibosstredd', 'bossserpentinehead', 'monitorbomb'),
             'effectsshade_436': ('enemygansekijr', 'enemydragonfly', 'enemystarflounder', 'enemycacteon'),
             'minibosstreddbomb_1060': ('minibosstredd',), 'minibosstredddebris_1058': ('minibosstredd',), 'monitoricon_363': ('minibosstredd', 'shieldmonitor_onmap'),
             'bossfireball_1003': ('bossserpentinehead',), 'bossboulder_1099': ('bossgiantboulder',), 'effectwarning_1100': ('bossgiantboulder',),
@@ -166,13 +176,26 @@ PAR_IMG = {'levelparallaxpiece0_491': 16032, 'levelparallaxpiece1_891': 3030, 'l
            'levelparallaxpiece6_897': 3033, 'levelparallaxpiece2_892': 4216, 'levelparallaxpiece7_913': 3238,
            'levelparallaxpiece7_987': 3404, 'levelparallaxpiece8_1006': 5422, 'levelparallaxpiece9_1005': 6320,
            'levelparallaxpiece10_1007': 6272, 'levelparallaxpiece11_1009': 5129, 'levelparallaxpiece12_1067': 6388,
-           'levelparallaxpiece13_1068': 6387, 'levelparallaxpiece13_1092': 6387}
-PAR_BOXH = {'levelparallaxpiece6_897': 160, 'levelparallaxpiece13_1068': 1024, 'levelparallaxpiece13_1092': 820}
+           'levelparallaxpiece13_1068': 6387, 'levelparallaxpiece13_1092': 6387,
+           # Aqua Tunnel (session 12, RE spec_at_flow 4.2)
+           'levelparallaxpiece6_678': 2532, 'levelparallaxpiece2_676': 2430, 'levelparallaxpiece5_677': 7125,
+           'levelparallaxpiece8_837': 8305, 'levelparallaxpiece9_842': 3482, 'levelparallaxpiece7_836': 4868,
+           'levelparallaxpiece10_843': 3028, 'levelparallaxpiece6_844': 2532, 'levelparallaxpiece8_850': 8305,
+           'levelparallaxpiece7_849': 4868, 'levelparallaxpiece6_853': 4866, 'levelparallaxpiece9_855': 687,
+           'levelparallaxpiece10_873': 3028}
+PAR_BOXH = {'levelparallaxpiece6_897': 160, 'levelparallaxpiece13_1068': 1024, 'levelparallaxpiece13_1092': 820,
+            'levelparallaxpiece6_678': 800, 'levelparallaxpiece2_676': 960, 'levelparallaxpiece5_677': 1105,
+            'levelparallaxpiece8_837': 1105, 'levelparallaxpiece9_842': 1105, 'levelparallaxpiece7_836': 1105, 'levelparallaxpiece10_843': 1105}
+PAR_BOXW = {'levelparallaxpiece6_853': 400}          # box wider than its image (AT4 screen-fixed backdrop)
+PAR_WRAPY = {18, 19, 20}                             # AT3 / AT4 frames (json 19, 20): 4532 / 4527 wrap in both axes; AT2 json 18 has none (see below)
 # D, E, G (RE 5110 / 5315 / 5603; DV1's start events not read: the same table is used, INFERRED)
 PAR_DEG = {491: (.99, .94, 0), 891: (.98, .93, 0), 893: (.95, .91, 0), 894: (.96, .92, -.1), 895: (.92, .88, -.3),
            896: (.6, .7, 0), 897: (.5, .6, 0), 892: (.4, .5, 0), 913: (.35, .43, 0), 987: (.35, .43, 0),
            1006: (.7, .8, 0), 1005: (.6, .7, 0), 1007: (.4, .5, 0), 1009: (.35, .43, 0), 1067: (.15, .15, 0),
-           1068: (.15, .15, 0), 1092: (.15, .15, 0)}
+           1068: (.15, .15, 0), 1092: (.15, .15, 0),
+           678: (.75, .75, 0), 676: (.55, .55, 0), 677: (.40, .40, 0), 837: (.60, .60, 0), 842: (.50, .50, 0), 836: (.40, .40, 0),
+           843: (.30, .30, 0), 844: (.50, .50, 0), 850: (.45, .45, 0), 849: (.40, .40, 0), 853: (1.0, 1.0, 0), 855: (.70, .70, 0),
+           873: (.30, .30, 0)}
 
 def pow2_split(n, cap=1024):
     out, r = [], n
@@ -213,8 +236,11 @@ def export_parallax(fr, src, name, out):
         if has_switch and o['id'] in (491, 891): flags |= 1        # shown while view top < 1360 (5101/5102)
         if has_switch and o['id'] in (1006, 1005): flags |= 2      # shown while view top >= 1360
         if o['id'] == 1005: flags |= 4                             # piece9: water frames (5094)
+        if fr['frame'] in (19, 20): flags |= 8                     # AT3 / AT4: wrap in y too (4532 / 4527)
+        if fr['frame'] == 18 and o['id'] in (677, 676): flags |= 16    # AT2 (4398 / 4399): shown while view left < 7544
+        if fr['frame'] == 18 and o['id'] in (836, 837, 842, 843): flags |= 32   # shown while view left > 7544
         iw, ih = images[imgidx[img]][0], images[imgidx[img]][1]
-        pieces.append((imgidx[img], D, E, G, o['y'], iw, PAR_BOXH.get(key, ih), flags))
+        pieces.append((imgidx[img], D, E, G, o['y'], PAR_BOXW.get(key, iw), PAR_BOXH.get(key, ih), flags))
     d = bytearray(b'FPPX' + struct.pack('<4H', len(images), len(pieces), 1 if water else 0, 0))
     for w, h, chunks in images:
         d += struct.pack('<3H', w, h, len(chunks))
@@ -272,7 +298,9 @@ def main():
             col = 0 if ac is None else {9: 1, 8: 1, 11: 3}.get(ac, 0)
             box = ac == 9
             invisible = b['fields'].get('0x5f') == 0 and '0x5c' in b['fields']
-            pieces.append({'img': b['image'], 'x': o['x'], 'y': o['y'], 'layer': o['layer'] or 0, 'layer0': o['layer0'], 'col': col,
+            if LMAP and o['layer0'] == 1: invisible_extra = 2       # AT layer 1 scrolls at 0.8 (RE Layer::init, spec_at_flow 4.1)
+            else: invisible_extra = 0
+            pieces.append({'img': b['image'], 'x': o['x'], 'y': o['y'], 'layer': o['layer'] or 0, 'layer0': o['layer0'], 'scroll08': invisible_extra, 'col': col,
                            'box': box, 'invisible': invisible, 'cls': o['cls']})
         else:
             t = ENGINE_TYPES.get(o['cls'])
@@ -420,7 +448,7 @@ def main():
     # ---- enemies / bosses / gimmicks bank (cropped; their collision uses masks relative to the hotspot)
     placed = {o['cls'].rsplit('_', 1)[0] for o in fr['objects']}
     if any(o['cls'].startswith('monitor') and o['cls'].endswith('shield') and o['x'] >= 0 for o in fr['objects']): placed.add('shieldmonitor_onmap')
-    if n in (22, 23): placed.add('water_level')          # DV2 / DV3: MasterLevel A = 1 (5109 / 5314)
+    if n in (22, 23, 17, 18, 20): placed.add('water_level')   # DV2 / DV3: MasterLevel A = 1 (5109 / 5314); AT1 / AT2 / AT4 (4309 / 4478 / 4685)
     ens = {'name': name + '_ens', 'anims': [], 'keep_box': set()}
     for e in ENS:
         cls, ai, dk, nm = e[:4]
@@ -448,7 +476,7 @@ def main():
              ('dkwind', 7), ('divekick', 19), ('cyclone', 18), ('charge', 7), ('boost', 13),
              ('hurt', 8), ('defeat', 38), ('crouchatk', 30), ('spring', 14), ('hang', 15),
              ('push', 12), ('climb', 9), ('climbdown', 35), ('climbover', 36), ('catch', 33),
-             ('cork', 32), ('cork2', 31), ('swim', 39)]   # cork: RV cork_dv1 (M45, OTHERS.Y 45 -> skin 32, 46 -> 31); RV push_wall / ladder_* traces, RE events 2456-2467
+             ('cork', 32), ('cork2', 31), ('swim', 39), ('shake', 27)]   # cork: RV cork_dv1 (M45, OTHERS.Y 45 -> skin 32, 46 -> 31); RV push_wall / ladder_* traces, RE events 2456-2467
     la = an['playerskinsash_341']['anims']
     lb = {'name': 'lilac2', 'anims': []}
     def mirrored(d0, d16):
@@ -678,10 +706,10 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
     for p in pieces:
         im, hx, hy = imgs[p['img']]
         k, u, v = where[p['img']]
-        d += struct.pack('<2i4H4B', p['x'] - hx, p['y'] - hy, u, v, im.width, im.height, k, p['layer'], p['col'], 1 if p['invisible'] else 0)
+        d += struct.pack('<2i4H4B', p['x'] - hx, p['y'] - hy, u, v, im.width, im.height, k, p['layer'], p['col'], (1 if p['invisible'] else 0) | p.get('scroll08', 0))
     for o in objs:
         a = names.index(o['cls'][:15]) if o['cls'][:15] in names else (o.get('par_index', 0xffff) if 20 <= o['type'] < 28 else 0xffff)
-        if 139 <= o['type'] <= 143: a = o.get('layer', 2)   # waterfalls: the instance's layer
+        if 139 <= o['type'] <= 143 or o['type'] in (169, 170): a = o.get('layer', 2)   # waterfalls, AT water jets: the instance's layer
         d += struct.pack('<2H2i', o['type'], a, o['x'], o['y'])
     for t in table: d += t
     d += struct.pack('<%dH' % len(smap), *smap)

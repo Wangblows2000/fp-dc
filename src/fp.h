@@ -208,7 +208,10 @@ enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_MON_INVINC = 4, OT_MON
        /* Aqua Tunnel (session 12, src/game/aqua.c) */
        OT_DIGSPOT = 160 /* ObjectDigSpot_779: Milla's dig spot (AT1) */,
        OT_FIREFLY = 161, OT_SLIME = 162, OT_WHISPMAKER = 163, OT_ABRICK = 164, OT_ABRICK2 = 165,   /* spec_at_enemies.md */
-       OT_SLIMEBURST = 166, OT_WHISP = 167, OT_ABPIECE = 168 /* runtime-created */ };
+       OT_SLIMEBURST = 166, OT_WHISP = 167, OT_ABPIECE = 168 /* runtime-created */,
+       OT_WJET = 169, OT_WJET_R = 170, OT_WJET_B = 171, OT_WJET_MAKER = 172, OT_JELLY = 173,   /* spec_at_gimmicks_a.md */
+       OT_RSPRING_U = 174, OT_RSPRING_D = 175, OT_RSPRING_L = 176, OT_RSPRING_R = 177, OT_RSPRING_UR = 178,
+       OT_MON_BOMB = 179, OT_MON_CRATE = 180, OT_WATERHIT = 181, OT_BOMBX = 182 /* runtime: hit effect, bomb explosion (MonitorIcon frame 9) */ };
 
 #define MAX_ATLAS 4
 typedef struct {
@@ -270,6 +273,7 @@ typedef struct {
     int boost_n, boost_q, m5_bounced;
     int lad_y, lad_o, lad_lt, lad_first;
     int hitstop;                  /* RE PlayerOthers.K */
+    int shake_o;                  /* M12 (shake off water, AT jets): SKIN.O frame counter (1885-1887) */
     double mom_vx;                /* port change: horizontal speed when the down-kick wind-up started */
     int hs_off;                   /* RE 1654/1655: movement + speed groups off while K counts down */
     int hit_i;                    /* RE PlayerOthers.I: hits while in contact (body hits need I < 4) */
@@ -372,6 +376,10 @@ typedef struct {
     int character_pad;              /* 0 Lilac, 1 Carol, 2 Carol (bike), 3 Milla (life icon order); only Lilac is playable */
     struct { int jump, crystal, hit, explode, attack, hurt, boost; } sfx;
     uint32_t prof_update_us, prof_draw_us;
+    int at_g4; float at_g5, at_g6;  /* Aqua Tunnel act-start mode g4 (-1 act change, 1 fresh, 2..9 checkpoint, 10 AT2 after the Chomper) and restart X / MV.Y (spec_at_flow 1.4 / 6.1) */
+    char at_dir[8];
+    float cam_nC, cam_nE;          /* normal camera bounds C / E (U = 0): 0 / width in DV; AT per act (spec_at_flow 3.1) */
+    int cam_m2;                    /* CAM.M = 2: camera returns to the player (loop_camera_mode2) */
     int orig_moves;                 /* 1: down-kick / uppercut exactly as the original (comparisons); 0: port's momentum change */
 } game_t;
 
@@ -451,7 +459,8 @@ enum { ST_NORMAL, ST_ATTACK, ST_CYCLONE, ST_CHARGE, ST_BOOST, ST_HURT, ST_DEAD,
        ST_FLOAT,       /* Milla M22: Puppy Float (2247-2253) */
        ST_DIG,         /* Milla M27: dig (2254-2268) */
        ST_MCARRY,      /* Milla M30: charging / carrying the cube or a monitor (2269-2277) */
-       ST_MSHIELD };   /* Milla M31: shield / burst / beam (2278-2293) */
+       ST_MSHIELD,     /* Milla M31: shield / burst / beam (2278-2293) */
+       ST_SHAKE };     /* M12: shake off water after an Aqua Tunnel water jet (1885-1887, 4141/4142) */
 /* src/game/combat.c (build/re/spec_combat.md) */
 void combat_frame(player_t *p);
 void combat_draw_shields(int behind);
@@ -501,6 +510,10 @@ int    aqua_level(void);                      /* act 1-4 in Aqua Tunnel, else 0 
 void   aqua_spawn(void), aqua_pre(player_t *p), aqua_update(player_t *p);
 int    aqua_obj_update(obj_t *o, player_t *p);
 int    aqua_dig_hint(void), aqua_obj_alpha(const obj_t *o);
+void   aqua_jelly_box(const obj_t *o, float *x0, float *y0, float *x1, float *y1), aqua_monitor_broken(const obj_t *m), aqua_maker_start(void);
+void   aqua_spring(obj_t *o, player_t *p);
+void   aqua_camera_bounds(void), aqua_release_camera(void), aqua_prerun(int n);
+extern int aqua_gt_off;
 /* src/game/gimmicks.c */
 void   spikes_update(obj_t *o, player_t *p), rspring_update(obj_t *o, player_t *p);
 void   layers_refresh(const player_t *p), layers_update(player_t *p);
@@ -540,6 +553,8 @@ int  player_can_hang(const player_t *p);   /* RE event 2414: amount in GUILifeBa
 void player_bounce(player_t *p, double vy);
 void player_spring(player_t *p, double vx, double vy, double top);
 void player_spring_side(player_t *p, double gsp);
+void player_launch(player_t *p, double vx, double vy, int sound);   /* spring state M40 without the feet snap (jelly spring, red down spring) */
+void player_shake(player_t *p, double B);                          /* M12 entry (4141 / 4142) */
 void objects_spawn(void);
 void objects_update(void);
 void objects_draw(int front);

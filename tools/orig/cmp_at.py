@@ -24,15 +24,17 @@ def num(r, k, d=0.0):
     except (KeyError, ValueError, TypeError): return d
 
 def cfg(name):
-    c = {'CHAR': '4', 'TRACK': [], 'OSHIFT': SHIFT}
+    c = {'CHAR': '4', 'TRACK': [], 'OSHIFT': SHIFT, 'PRERUN': '122'}   # RV a1_current: the card runs object events before row 0 (122 = 120 + the 2-frame row shift)
     p = os.path.join(ROOT, 'tests/orig_at/%s.cfg' % name)
     if os.path.exists(p):
         for l in open(p):
             t = l.split()
             if not t or t[0].startswith('#'): continue
             if t[0] == 'CHAR': c['CHAR'] = t[1]
-            elif t[0] == 'TRACK': c['TRACK'].append((t[1], int(t[2]), int(t[3])))
+            elif t[0] == 'TRACK': c['TRACK'].append((t[1], int(t[2]), int(t[3]), int(t[4]) if len(t) > 4 else None))
             elif t[0] == 'OSHIFT': c['OSHIFT'] = int(t[1])
+            elif t[0] == 'PRERUN': c['PRERUN'] = t[1]      # frames of object events before row 0 (the stage card)
+            elif t[0] == 'GT': c['GT'] = t[1]              # GV[3] at row 0 (parity of the 2-frame cadences)
     return c
 
 def run_host(name, c, o0, fr):
@@ -41,8 +43,19 @@ def run_host(name, c, o0, fr):
     env = dict(os.environ, FP_CHAR=c['CHAR'], FP_ORIG_MOVES='1', FP_LEVEL=lvl, FP_SPAWN_X=o0['mv_X'], FP_SPAWN_Y=o0['mv_Y'],
                FP_SPAWN_L=str(int(float(o0['mv_L']))), FP_SPAWN_N=o0['mv_N'], FP_ENERGY=o0.get('en_A') or '100',
                FP_HP=o0.get('c_petals') or '14', FP_CSV=out, FP_TRACE_SID='1')
-    if c['TRACK']: env['FP_TRACK'] = ','.join('%d:%d' % (t, x) for _, t, x in c['TRACK'])
-    r = subprocess.run([os.path.join(ROOT, 'host/fpdc_host'), 'converted2', str(fr + 5), os.path.join(ROOT, 'tests/orig_at/%s.txt' % name)],
+    if 'PRERUN' in c: env['FP_AT_PRERUN'] = c['PRERUN']
+    if 'GT' in c: env['FP_AT_GT'] = c['GT']
+    elif 'gv3' in o0: env['FP_AT_GT'] = str(int(float(o0['gv3'])))
+    if c['TRACK']: env['FP_TRACK'] = ','.join('%d:%d' % (t, x) for _, t, x, _s in c['TRACK'])
+    # teleports / alterable writes act on the original's frame f directly, keys are seen 2 frames later (input lag): the host
+    # gets the TP / SETV lines 2 frames earlier so that port row f matches original row f + 2 after a teleport as well
+    scr = os.path.join(ROOT, 'build/fpdc_traces/at_%s.txt' % name)
+    with open(scr, 'w') as sf:
+        for l in open(os.path.join(ROOT, 'tests/orig_at/%s.txt' % name)):
+            t = l.split()
+            if len(t) >= 2 and t[1] in ('TP', 'SETV', 'SETB'): t[0] = str(max(0, int(t[0]) - int(os.environ.get('TPSHIFT', '0'))))
+            sf.write(' '.join(t) + '\n')
+    r = subprocess.run([os.path.join(ROOT, 'host/fpdc_host'), 'converted2', str(fr + 5), scr],
                        cwd=ROOT, env=env, capture_output=True, text=True)
     snd, pending, obs = [], [], {}
     for line in r.stdout.splitlines():
@@ -61,15 +74,23 @@ def main():
         op = os.path.join(ROOT, 'build/orig_traces/at/%s.csv' % name)
         if not os.path.exists(op): print('SKIP', name); continue
         orig = load(op); O = {int(r['frame']): r for r in orig}
+        if len(orig) < 10: print('SKIP', name, '(trace incomplete)'); continue
         fr = int(os.environ.get('FR', len(orig) - 8))
         c = cfg(name)
+        tr = []                                   # "pre*": the instance of that family whose frame-0 x is the spawn x
+        for pre, t, x0, sh in c['TRACK']:
+            if pre.endswith('*'):
+                cand = [k[:-2] for k in orig[0] if k.startswith(pre[:-1]) and k.endswith('_x') and (abs(num(orig[0], k) - x0) < 1 or abs(num(orig[0], k[:-2] + '_F') - x0) < 1)]
+                pre = cand[0] if cand else pre[:-1] + '?'
+            tr.append((pre, t, x0, sh))
+        c['TRACK'] = tr
         P, snd, obs = run_host(name, c, orig[0], fr)
         tps = [int(l.split()[0]) for l in open(os.path.join(ROOT, 'tests/orig_at/%s.txt' % name)) if ' TP ' in l]
         skip = set()
         for t in tps: skip.update(range(t - 3, t + 4))
         f0 = max([50] + [t + 4 for t in tps])          # compare after the last teleport
         fields = {'X': 4.0, 'Y': 4.0, 'B': 0.05, 'G': 0.05, 'L': 0, 'M': 0}
-        for pre, _, _ in c['TRACK']: fields[pre] = 2.0
+        for pre, _, _, _s in c['TRACK']: fields[pre] = 2.0
         good = {k: 0 for k in fields}; first = {}; n = 0
         for p in P:
             f = int(p['frame'])
@@ -77,10 +98,14 @@ def main():
             o = O[f + SHIFT]; n += 1
             vals = {'X': (num(p, 'X'), num(o, 'mv_X')), 'Y': (num(p, 'Y'), num(o, 'mv_Y')), 'B': (num(p, 'B'), num(o, 'mv_B')),
                     'G': (num(p, 'G'), num(o, 'mv_G')), 'L': (int(p['L']), int(num(o, 'mv_L'))), 'M': (int(p['M']), int(num(o, 'mv_M')))}
-            for pre, t, x0 in c['TRACK']:
-                q = obs.get((f, t, x0)); oo = O.get(f + c['OSHIFT'])
-                if q is None or oo is None or (pre + '_x') not in oo: continue
-                vals[pre] = (max(abs(q['x'] - num(oo, pre + '_x')), abs(q['y'] - num(oo, pre + '_y'))), 0)
+            for pre, t, x0, sh in c['TRACK']:
+                q = obs.get((f, t, x0))
+                if q is None: continue
+                ds = []
+                for shf in ([c['OSHIFT']] if sh is None else [sh, SHIFT]):   # world objects: shift 0, after a player-driven hit: 2
+                    oo = O.get(f + shf)
+                    if oo is not None and (pre + '_x') in oo: ds.append(max(abs(q['x'] - num(oo, pre + '_x')), abs(q['y'] - num(oo, pre + '_y'))))
+                if ds: vals[pre] = (min(ds), 0)
             for k, (a_, b_) in vals.items():
                 if abs(a_ - b_) <= fields[k] + 1e-9: good[k] += 1
                 elif k not in first: first[k] = (f, a_, b_)

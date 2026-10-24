@@ -95,16 +95,24 @@ void par_draw(int gframe) {
         const ppiece_t *p = &PC[i];
         if ((p->flags & 1) && vt >= 1360) continue;      /* 5101 / 5102 */
         if ((p->flags & 2) && vt < 1360) continue;
-        int A = IMG[p->img].w, ih = IMG[p->img].h;
+        if ((p->flags & 16) && vl >= 7544) continue;     /* AT2 4398 / 4399 (at exactly 7544 the first frame's choice: left set) */
+        if ((p->flags & 32) && vl <= 7544) continue;
+        int A = p->bw, ih = IMG[p->img].h, iw = IMG[p->img].w;   /* box width (AT4 piece6_853: 400 for a 384-px image) */
         double C = p->y0;
         if (p->flags & 4) { static const int off[4] = { -360, 0, -360, -720 }; C += off[(gframe / 8) % 4]; }   /* 5094 */
         int sx = (int)fmod(trunc(p->D * vl + p->F - vl), (double)A);
         int sy = (int)trunc(p->E * vt + C) - vt;
         int boxw = A * ((427 / A) + 2), y1 = sy + p->bh;
+        if (p->flags & 8) {                               /* AT3 / AT4 (4532 / 4527): endless in y as well */
+            int B = p->bh;
+            sy = (int)fmod(trunc(p->E * vt + C - vt), (double)B);
+            y1 = sy + B * ((241 / B) + 2);
+        }
         if (y1 <= 0 || sy >= SCREEN_H) continue;
         for (int ty = sy; ty < y1; ty += ih)               /* tiles down the box (piece13), clipped at its bottom */
-            for (int tx = sx; tx < sx + boxw && tx < SCREEN_W; tx += A)
-                draw_image(p->img, tx, ty, sy, y1);
+            for (int bx = sx; bx < sx + boxw && bx < SCREEN_W; bx += A)
+                for (int tx = bx; tx < bx + A && tx < SCREEN_W; tx += iw)   /* the image tiles inside each box period */
+                    draw_image(p->img, tx, ty, sy, y1);
     }
     if (has_water) {                                      /* 5103-5105 */
         double C = (water_y - (vt + 120)) / 220.0;

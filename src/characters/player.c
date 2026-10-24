@@ -17,18 +17,18 @@
 
 enum { A_IDLE, A_WALK, A_RUN, A_FASTRUN, A_JUMP, A_LOOKUP, A_CROUCH, A_SKID, A_ATTACK, A_AIRATK,
        A_UPPERCUT, A_DKWIND, A_DIVEKICK, A_CYCLONE, A_CHARGE, A_BOOST, A_HURT, A_DEFEAT, A_CROUCHATK, A_SPRING, A_HANG,
-       A_PUSH, A_CLIMB, A_CLIMBDOWN, A_CLIMBOVER, A_CATCH, A_CORK, A_CORK2, A_SWIM,
+       A_PUSH, A_CLIMB, A_CLIMBDOWN, A_CLIMBOVER, A_CATCH, A_CORK, A_CORK2, A_SWIM, A_SHAKE,
        /* Carol only (playerskincarol_449 indices, spec_carol_moves 5.1): wall cling, pounce, claw swings, Wild Kick,
         * jump-pad hold, bike mount pose, air rising (Y = 40, G < 0) */
        A_C_WALL, A_C_POUNCE, A_C_CLAW0, A_C_CLAW1, A_C_CLAW2, A_C_KICK, A_C_PADHOLD, A_C_MOUNT, A_C_RISE, A_COUNT };
 /* names = tools/import_frame.py LILAC (runtime-verified playerskinsash_341 animation numbers) */
 static const char *anim_names[A_COUNT] = { "idle", "walk", "run", "fastrun", "jump", "lookup", "crouch",
     "skid", "attack", "airatk", "uppercut", "dkwind", "divekick", "cyclone", "charge", "boost", "hurt", "defeat", "crouchatk", "spring", "hang",
-    "push", "climb", "climbdown", "climbover", "catch", "cork", "cork2", "swim", 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    "push", "climb", "climbdown", "climbover", "catch", "cork", "cork2", "swim", "shake", 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 /* Carol: the original forces the same index on her skin as on Lilac's for each animation code OTHERS.Y (events
  * 2426-2470), except the fast run (Lilac 23, Carol 2) and Y = 43; her bank names them a<index> (tools/import_frame.py) */
 static const signed char carol_idx[A_COUNT] = { 0, 1, 2, 2, 24, 11, 10, 16, 25, 25, 28, 13, 19, 18, 7, 13, 8, 38, 30, 14, 15,
-    12, 9, 35, 36, 33, 32, 31, 39, 13, 28, 25, 26, 29, 21, 30, 20, 14 };
+    12, 9, 35, 36, 33, 32, 31, 39, 27, 13, 28, 25, 26, 29, 21, 30, 20, 14 };
 static int anim_r[A_COUNT], anim_l[A_COUNT], hair_r[A_COUNT], hair_l[A_COUNT], bike_r[A_COUNT], bike_l[A_COUNT];
 static int cur_anim = -1;
 static animator_t hair;          /* PlayerSkinSashHair_424: follows the skin's animation id (RV) */
@@ -248,7 +248,7 @@ int player_orig_m(const player_t *p) {
     case ST_ROLL: return 6; case ST_HURT: return 8; case ST_DEAD: return 9; case ST_PUSH: return 11;
     case ST_CLAW: case ST_ATTACK: return 20; case ST_UPPERCUT: return 21; case ST_CYCLONE: return 26;
     case ST_CHARGE: case ST_BOOST: return 5; case ST_DKWIND: return 19; case ST_LADDERIN: return 25;
-    case ST_HANG: return 41; case ST_CORK: return 45; case ST_LADDER: return 46;
+    case ST_HANG: return 41; case ST_CORK: return 45; case ST_LADDER: return 46; case ST_SHAKE: return 12;
     case ST_WILDKICK: return 44; case ST_WALL: return 47; case ST_PAD: return 48; case ST_BIKEAIR: return 32;
     default: return -1;
     }
@@ -272,12 +272,27 @@ void player_bounce(player_t *p, double vy) { if (!p->ground && p->vy > 0) p->vy 
 /* RV (spring_yellow_up / _upleft): on contact the feet snap to the spring top and the speed is set
  * (vertical: vy -10.75, vx kept; diagonal: (+-9, -8.75)); the original's spring state (M40, skin anim 14)
  * lasts until the apex, then the fall animation; normal gravity and air drag apply */
-void player_spring(player_t *p, double vx, double vy, double top) {
-    p->ground = 0; p->N = p->O = 0; p->y = top; p->vy = -vy; if (vx) { p->vx = vx; p->face = vx > 0 ? 1 : -1; }
+static void spring_state(player_t *p, double vx, double vy) {
+    p->ground = 0; p->N = p->O = 0; p->vy = -vy; if (vx) { p->vx = vx; p->face = vx > 0 ? 1 : -1; }
     p->jumping = 0; p->cyclone_used = 0; p->boost_used = 0; p->springing = 1;
     if (p->state != ST_BOOST) p->state = ST_NORMAL;
     p->cY = 40; p->m1 = 0;          /* M40 (Carol: the M0 air rules, OTHERS.Y 40) */
+}
+void player_spring(player_t *p, double vx, double vy, double top) {
+    spring_state(p, vx, vy); p->y = top;
     snd_play_orig(5, 230, 128);    /* RV: id 5 at spring contact (spring_yellow_up .snd) */
+}
+
+/* spring state without the feet snap (jelly spring 4068: G = -9 - 0.1 A after gravity; red down spring) */
+void player_launch(player_t *p, double vx, double vy, int sound) {
+    spring_state(p, vx, vy);
+    if (sound) snd_play_orig(sound, 230, 128);
+}
+/* M12 (4141 / 4142): B = +-5, S = 0 (no acceleration / friction), skin animation 27 (OTHERS.Y 25) */
+void player_shake(player_t *p, double B) {
+    if (p->state != ST_SHAKE) { p->state = ST_SHAKE; p->state_t = 0; p->shake_o = 0; }
+    if (p->ground) p->gsp = B; else p->vx = B;
+    p->springing = 0; p->jumping = 0; p->m1 = 0; p->look = 0;
 }
 
 /* RV (spring_yellow_right): a wall spring sets the ground speed to +-10, no input lock */
@@ -1042,6 +1057,17 @@ void player_update(player_t *p, const input_t *in) {
         if (!p->ground || (p->gsp != 0 && p->push_s <= 0)) { p->state = ST_NORMAL; break; }   /* 1875 / 1876 (PAV_B.S grace) */
         if (!(((in->held & BTN_RIGHT) && mv_sensor_right_big()) || ((in->held & BTN_LEFT) && mv_sensor_left_big()))) p->state = ST_NORMAL;   /* 1877-1880 */
         break;
+    case ST_SHAKE:    /* M12 (1885-1887): no input, S = 0 (no ground acceleration / friction), air gravity + drag */
+        if (p->shake_o > 30 || (p->shake_o > 1 && p->an.done)) {   /* 1886 (anim 27 finished; trigger block) / 1887 (O > 30: B = 0) */
+            if (p->shake_o > 30) { if (p->ground) p->gsp = 0; else p->vx = 0; }
+            p->state = ST_NORMAL; p->cY = 40; p->shake_o = 0;
+            if (p->ground) ground_move(p, in, 1, 1); else air_move(p, in, 1, PHYS_GRAV);
+            break;
+        }
+        p->shake_o++; p->cY = 25;
+        if (p->ground) { core(p); wall_stop(p); if (!p->ground) air_speed_update(p, in, 0, PHYS_GRAV); }
+        else air_move(p, in, 0, PHYS_GRAV);
+        break;
     case ST_LADDER: ladder_frame(p, in); break;
     case ST_CORK: cork_move(p); break;                /* M45 (gimmicks.c) */
     case ST_ROLL: roll_move(p, in); break;            /* M6 */
@@ -1157,6 +1183,7 @@ void player_update(player_t *p, const input_t *in) {
     case ST_BOOST: a = A_BOOST; break;
     case ST_HURT: a = A_HURT; break;
     case ST_PUSH: a = A_PUSH; break;
+    case ST_SHAKE: a = A_SHAKE; if (cur_anim != A_SHAKE) { set_anim(p, a); anim_restart(&p->an); if (hair.b) anim_restart(&hair); } break;   /* OTHERS.Y 25 -> skin 27 */
     case ST_CORK: a = (p->cork_e > 0.25 && p->cork_e < 1.5) ? A_CORK2 : A_CORK; break;   /* 4715/4716: OTHERS.Y 46 / 45 */
     case ST_LADDERIN: a = A_CLIMBOVER; break;
     case ST_LADDER:   /* 2456-2467; 2497: climb speed int(|G| * 10) (frozen when still) */

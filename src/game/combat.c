@@ -326,7 +326,7 @@ void combat_frame(player_t *p) {
         if ((!(o->fl & F_DEFEATED) && o->c == 1) || (o->fl & F_DEFEATED)) o->inv = 0;           /* 2763 */
         if (o->A <= 0 && !(o->fl & F_DEFEATED)) {                                                /* 2764 */
             G.kills++;                   /* test/trace counter only (no counterpart in the original) */
-            snd_play_orig(23, 220, 128); o->fl |= F_DEFEATED; o->A = 0; o->ky -= 3; o->st = o->type == OT_DRAGONFLY ? 5 : 3;
+            snd_play_orig(23, 220, 128); o->fl |= F_DEFEATED; o->A = 0; o->ky -= 3; if (o->type != OT_FIREFLY && o->type != OT_SLIME) o->st = o->type == OT_DRAGONFLY ? 5 : 3;   /* AT: their own 4111 / 4127 set D (the patrol still runs once, spec_at_enemies 1.5)*/
         }
         if ((o->fl & F_DEFEATED) && o->absorbed > 0) { o->absorbed--; obj_drop_crystal(o->x, o->y, o->absorbed); }   /* 2766 */
         if ((o->fl & F_DEFEATED) && (o->type == OT_TD_BODY || (o->fl & F_NOFLY))) continue;                             /* 5282: flag 16, no fly-away */
