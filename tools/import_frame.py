@@ -353,6 +353,9 @@ def main():
                             ('ringsparkle_142', 4, '0', 'ringsparkle'), ('effectsheart_444', 4, '0', 'heart'),
                             ('sparkle1_316', 0, '0', 'sparkle1'), ('sparkle5_284', 4, '0', 'sparkle5'),
                             ('crystal_447', 0, '0', 'pausecursor'),
+                            # session 10 (spec_carol_bike A/C): fuel can, jump pad dark / lit / DV4 block pad, white burst
+                            ('objectfuel_533', 0, '0', 'fuel'), ('objectjumppad_539', 0, '0', 'jpad'), ('objectjumppad_539', 0, '1', 'jpad_lit'),
+                            ('objectjumppad_1104', 7, '0', 'jpad_blk'), ('effectswhiteburst_31', 4, '0', 'wburst'),
                             # visible attack shields (ShieldInstaShield_407 anim 4; RE spec_combat.md): whip, uppercut, crouch kick
                             ('shieldinstashield_407', 4, '0', 'slash'), ('shieldinstashield_407', 4, '16', 'slash_l'),
                             ('shieldinstashield_407', 4, '1', 'upslash'), ('shieldinstashield_407', 4, '17', 'upslash_l'),
@@ -372,6 +375,7 @@ def main():
            ('hud_fill', an['guienergy_127']['anims'][1]['0']['frames']),  # fill; anim 1 = shine loop when full
            ('hud_petals', an['guirings_125']['images']),        # counter 0..14 half-petals
            ('hud_icon', [311]),                                 # guiicon anim 0 = Lilac head + crystal
+           ('hud_icon_c', [112]), ('hud_icon_cb', [395]),       # guiicon directions 1 / 2: Carol, Carol on the bike (session 10)
            ('hud_clock', an['guitimer_536']['anims'][0]['0']['frames']),
            ('hud_digits', an['guilives_425']['images'][:10]),   # counter digits 0-9 (lives/crystals/timer)
            ('card_stage', an['levelcardintro3_684']['anims'][0]['0']['frames'][:1]),   # "STAGE 1" (Dragon Valley is stage 1)
@@ -450,6 +454,37 @@ def main():
             hb['anims'].append({'name': 'h_' + nm + suf, 'frames': dd['frames'], 'speed': dd['max_speed'],
                                 'loop': dd['loop'], 'back_to': dd['back_to']})
     write_bank2(src, hb, out, report)
+    # Carol (session 10): her skin, tail and bike-riding skin, every animation index the class has, named 'a<index>'
+    # ('_l' = direction 16 when it is not a pixel mirror of direction 0). The game loads them only when Carol plays.
+    for cls, bname in (('playerskincarol_449', 'carol2'), ('playerskincaroltail_448', 'caroltail'), ('playerskincarolbike_460', 'carolbike')):
+        ca = an[cls]['anims']; cb = {'name': bname, 'anims': []}
+        for ai, entry in enumerate(ca):
+            if not entry: continue
+            d0 = entry.get('0') or next(iter(entry.values()))
+            for dkey, suf in (('0', ''), ('16', '_l')):
+                if dkey == '16' and (not entry.get('16') or mirrored(d0, entry['16'])): continue
+                dd = entry.get(dkey) or d0
+                cb['anims'].append({'name': 'a%d%s' % (ai, suf), 'frames': dd['frames'], 'speed': dd['max_speed'],
+                                    'loop': dd['loop'], 'back_to': dd['back_to']})
+            # extra directions the events select: Wild Kick in the air (2425: direction + 1 -> 1 / 17) and the bored idle
+            # (1735: direction + 4 -> 4 / 20), named 'a<index>_d<direction>'
+            for dkey in {21: ('1', '17'), 0: ('4', '20')}.get(ai, ()):
+                if dkey in entry and not (dkey == '17' and mirrored(entry.get('1', d0), entry[dkey])):
+                    dd = entry[dkey]
+                    cb['anims'].append({'name': 'a%d_d%s' % (ai, dkey), 'frames': dd['frames'], 'speed': dd['max_speed'],
+                                        'loop': dd['loop'], 'back_to': dd['back_to']})
+        if bname == 'carol2':
+            # Carol-only objects ride in her bank (loaded only when she plays): attack shields (ShieldInstaShield_407 anim 4,
+            # spec_carol_combat 2.2), the parked bike (ObjectBike_459) and the bike-wreck debris (EffectsDebris_427 frames 47-50)
+            for dk in ('2', '3', '4', '18', '19', '20', '14', '30', '24'):
+                dd = an['shieldinstashield_407']['anims'][4][dk]
+                cb['anims'].append({'name': 'sh%s' % dk, 'frames': dd['frames'], 'speed': dd['max_speed'], 'loop': dd['loop'], 'back_to': dd['back_to']})
+            for dk, suf in (('0', ''), ('16', '_l')):
+                dd = an['objectbike_459']['anims'][0][dk]
+                cb['anims'].append({'name': 'pbike' + suf, 'frames': dd['frames'], 'speed': dd['max_speed'], 'loop': dd['loop'], 'back_to': dd['back_to']})
+            dd = an['effectsdebris_427']['anims'][0]['0']
+            cb['anims'].append({'name': 'bdebris', 'frames': dd['frames'][47:51], 'speed': 0, 'loop': -1, 'back_to': 0})
+        write_bank2(src, cb, out, report)
     write_lv2(os.path.join(out, name + '.lv2'), W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, len(atlases), bank)
     report.append('objects exported: %d (types %s)' % (len(objs), sorted({o['type'] for o in objs})))
     report.append('skipped classes (not implemented / helpers): %s' % sorted(skipped.items(), key=lambda kv: -kv[1])[:40])
@@ -468,7 +503,7 @@ def write_bank2(src, bank, out, report):
     # is unchanged, and nothing uses their untrimmed box (explosions: effects; Ganseki: hotspot rules +
     # pixel masks). Keeps the 1024x1024 object atlas within one PVR texture.
     # Lilac's skin and hair banks too: her collision is the separate sensor objects, never the sprite box
-    whole = bank['name'] in ('lilac2', 'lilachair')
+    whole = bank['name'] in ('lilac2', 'lilachair', 'carol2', 'caroltail', 'carolbike')
     keep = bank.get('keep_box', set())
     if bank['name'].endswith('_ens'):
         crop_ids = {i for a in bank['anims'] for i in a['frames']}

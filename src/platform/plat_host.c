@@ -249,9 +249,10 @@ int main(int argc, char **argv) {
         for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive) printf("obj %d %.0f %.0f\n", G.o[i].type, G.o[i].x, G.o[i].y);
     if (getenv("FP_ORIG_MOVES")) G.orig_moves = 1;
     if (getenv("FP_ENERGY")) G.p.energy = (float)atof(getenv("FP_ENERGY"));
+    if (getenv("FP_ANIM_SYNC")) { int fr = 0, acc = 0; if (sscanf(getenv("FP_ANIM_SYNC"), "%d,%d", &fr, &acc) == 2) player_anim_sync(&G.p, fr, acc); }
     if (getenv("FP_HP")) G.p.hp = atoi(getenv("FP_HP"));
     FILE *csv = getenv("FP_CSV") ? fopen(getenv("FP_CSV"), "w") : NULL;
-    if (csv) fprintf(csv, "frame,held,X,Y,B,G,L,Q,state,anim,afr,rot,energy,hp\n");
+    if (csv) fprintf(csv, "frame,held,X,Y,B,G,L,Q,state,anim,afr,rot,energy,hp,M,cY,cA,cL,cS,aname,inv,hafr,sacc,hacc\n");
     input_t in;
     for (cur_frame = 0; cur_frame < frames; cur_frame++) {
         plat_poll_input(&in);
@@ -283,9 +284,10 @@ int main(int argc, char **argv) {
             for (int b = 0; b < 8; b++) if (in.held & (1u << (b < 4 ? b : b))) h[k++] = bn[b];
             h[k] = 0;
             /* original units: B = ground speed (ground) or x speed (air); G = y speed in air; Y = feet - 14 */
-            fprintf(csv, "%d,%s,%.4f,%.4f,%.5f,%.5f,%d,%d,%d,%d,%d,%.3f,%.2f,%d\n", cur_frame, k ? h : "-", p->x, p->y - ORIG_REF_DY,
+            fprintf(csv, "%d,%s,%.4f,%.4f,%.5f,%.5f,%d,%d,%d,%d,%d,%.3f,%.2f,%d,%d,%d,%d,%d,%d,%s,%d,%d,%d,%d\n", cur_frame, k ? h : "-", p->x, p->y - ORIG_REF_DY,
                     p->ground ? p->gsp : p->vx, p->ground ? 0.f : p->vy, p->ground, p->face, p->state, p->an.anim, p->an.frame,
-                    p->rot, p->energy, p->hp);
+                    p->rot, p->energy, p->hp, player_orig_m(p), p->cY, p->cA, p->cL, p->cS,
+                    p->an.b ? p->an.b->anims[p->an.anim].name : "-", p->invuln, player_hair_frame(), p->an.acc, player_hair_acc());
         }
         if (dump && cur_frame % every == 0) {
             game_draw();

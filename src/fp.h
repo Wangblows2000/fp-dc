@@ -65,6 +65,11 @@ int    plat_save_read(void *data, size_t max);
 #define SAVE_FILES 8
 #define SAVE_STAGES 16
 #define SAVE_CHARS 4
+/* Character ids are the original's global value 1 (spec_charselect): 0 Lilac, 1 Spade, 2 Carol, 3 Carol on the bike,
+ * 4 Milla, 5 Torque. chr_slot(): index for per-character tables (records, VMU/HUD life icons): Lilac, Carol, Milla, other. */
+enum { CHR_LILAC = 0, CHR_CAROL = 2, CHR_CAROL_BIKE = 3, CHR_MILLA = 4 };
+static inline int chr_slot(int g1) { return g1 == 2 || g1 == 3 ? 1 : g1 == 4 ? 2 : g1 == 0 ? 0 : 3; }
+static inline int chr_is_carol(int g1) { return g1 == 2 || g1 == 3; }
 #define SAVE_CARD_ACTS 4
 typedef struct { uint8_t used, character, difficulty, mode, stage, lives, petals; uint16_t crystals, deaths; uint32_t time; } save_file_t;
 typedef struct { uint32_t time; uint16_t crystals; } save_rec_t;   /* time in frames, 0 = no record */
@@ -268,6 +273,25 @@ typedef struct {
     int roll_ball;                /* OTHERS.Y = 8 kept in M1 after leaving the roll (ball, Z = 1; until landing: INFERRED) */
     int push_s;                   /* RE PAV_B.S: push-step grace timer (1876) */
     int shield, shield_c, shield_shown;   /* RE OTHERS.B (1 wood 2 fire 3 metal 4 water 5 earth), OTHERS.C, SENSOR.S */
+    int bike;                       /* Carol riding the bike (MV.A = 3; spec_carol_bike) */
+    /* Carol (build/re/spec_carol_moves.md, spec_carol_combat.md, spec_carol_bike.md): PlayerSkinCarol_449 alterables */
+    int cA, cL, cN, cS, cM, cfl;    /* combo index A, Wild Kick counter L, special cooldown N, voice cooldown S, cling cooldown M,
+                                     * flags: bit 0 in a claw anim, 1 buffered press, 2 shield made, 3 a shield hit, 12 big slash */
+    int pounce;                     /* OTHERS.Y = 24 (pounce: B held at >= 6) */
+    int m1;                         /* airborne in M1 (jump / roll-off / wall jump) rather than M0 (walked off, pounce) */
+    int claw_chain;                 /* 2140 fired: the next claw animation restarts at frame 0 */
+    int wall_t;                     /* frames in M47 (sound 33 once) */
+    int c_fall;                     /* pounce cancelled (1775): anim 24 from frame 6 */
+    int cY;                         /* OTHERS.Y (animation code) as Carol's events set it (3 jump, 7 wall, 8 ball, 20-22 claw,
+                                     * 24 pounce, 40 launched / falling, 44 kick, 0-2 ground) */
+    int c_nospd;                    /* MV.S = 0 (speed rules off: roll entries 1748/1749/1806 until 1722/1796/1807/2173) */
+    int c_land_m1;                  /* landed this frame from M1 (1807: the M0 group, and Y 0-2, from the next frame) */
+    int c_sens;                     /* character sensor animation (2471-2489: 1 = small); Y 24 / 44 keep the previous one */
+    int c_spd_sk, c_spd_tl;         /* forced animation speeds of the skin / tail (force_speed persists; -1 = restored) */
+    /* jump-pad ride (M48, spec_carol_bike C4): PSC C, D, E, F, G, H, I, J, K, L and flags 10/11 */
+    int padC, padJ, padK, padL, padfl; double padD, padE, padF, padG, padH, padI;
+    /* bike (spec_carol_bike B): BSK hit points C, rev A, nitro OTHERS.F / G, BSK flag 1 latch */
+    int bikeC, nitroF, nitroG, bike_latch; double rev;
     int air;                      /* RE OTHERS.J: air counter (water) */
     int water, y26, cyc_block, drown;   /* RE OTHERS.H; OTHERS.Y = 26 swim code; OTHERS.P < 3 after leaving water; drowned (M10) */
 } player_t;
@@ -299,7 +323,9 @@ typedef struct {
 
 typedef struct {
     level_t lvl;
-    bank_t lilac, hair, objs;    /* hair: Lilac's hair overlay (PlayerSkinSashHair_424) */
+    bank_t lilac, hair, objs;    /* lilac: the playing character's skin (Lilac lilac2 / Carol carol2); hair: its overlay
+                                    (Lilac's hair PlayerSkinSashHair_424 / Carol's tail PlayerSkinCarolTail_448) */
+    bank_t bike;                 /* Carol riding the bike (PlayerSkinCarolBike_460), loaded only for Carol */
     bank_t ens;                  /* per-level enemies / bosses / gimmicks (<dir>_ens; tools/import_frame.py ENS) */
     tex_t par[12]; int npar;
     player_t p;
@@ -364,6 +390,10 @@ int  player_attack_kind(const player_t *p);    /* legacy: monitors/rocks (shield
 int  player_body_z(const player_t *p);         /* RE movement Z = 1: charge/boost (M5) and the kick wind-up (M19) */
 int  player_char_sensor_small(const player_t *p); /* RE 2471-2489: PlayerCharacterSensor anim 1 (small) */
 int  player_anim_frame(const player_t *p);     /* skin animation frame index */
+int  player_orig_m(const player_t *p);         /* the original's movement state M (traces, tests) */
+int  player_hair_frame(void);                  /* hair / tail overlay frame (traces) */
+int  player_hair_acc(void);
+void player_anim_sync(player_t *p, int frame, int acc);   /* traces: skin + overlay animation phase */
 int  player_anim_is(const player_t *p, const char *name);
 /* Lilac's states (original movement M in comments) */
 enum { ST_NORMAL, ST_ATTACK, ST_CYCLONE, ST_CHARGE, ST_BOOST, ST_HURT, ST_DEAD,
@@ -372,10 +402,16 @@ enum { ST_NORMAL, ST_ATTACK, ST_CYCLONE, ST_CHARGE, ST_BOOST, ST_HURT, ST_DEAD,
        ST_LADDER,      /* M46: on a ladder (1926-1950, 4043-4047) */
        ST_LADDERIN,    /* M25: climbing down into a ladder from its top (4058, 1888-1890) */
        ST_CORK,        /* M45: half corkscrew ride (4715-4724, 4756/4757) */
-       ST_ROLL };      /* M6: roll (tunnel gimmicks 4739-4755, group 1851-1864) */
+       ST_ROLL,        /* M6: roll (tunnel gimmicks 4739-4755, group 1851-1864) */
+       ST_CLAW,        /* Carol M20: Wild Claw combo (2131-2142) */
+       ST_WILDKICK,    /* Carol M44: Wild Kick (2143-2157) */
+       ST_WALL,        /* Carol M47: wall cling (2173-2183) */
+       ST_PAD,         /* Carol M48: jump-pad ride (2184-2196, 4931-4935) */
+       ST_BIKEAIR };   /* Carol on the bike M32: air jump (2164-2172) */
 /* src/game/combat.c (build/re/spec_combat.md) */
 void combat_frame(player_t *p);
 void combat_draw_shields(int behind);
+void combat_shield_create(const player_t *p, int dir, int A, int speed);   /* ShieldInstaShield_407 at Player_326 (Carol's creators) */
 int  enemy_type(int type);
 int  obj_rect_hit(const obj_t *o, int rx0, int ry0, int rx1, int ry1);
 int  obj_obj_hit(const obj_t *a, const obj_t *b);
@@ -423,7 +459,7 @@ void   cork_start_check(player_t *p), cork_move(player_t *p);
 void   tunnel_events(player_t *p), tunnels_reset(void), spiral_front_draw(void);
 void   spinlogs_update(player_t *p), pblocks_update(player_t *p);
 /* water (src/game/water.c, build/re/spec_water.md) */
-typedef struct { double E, C, I, J, CUT, RO, RP; } phys_w_t;
+typedef struct { double E, C, I, J, CUT, RO, RP, D; } phys_w_t;   /* D: MV.D speed cap (Lilac 15, Carol 12, bike 15) */
 extern phys_w_t phys_w;
 void   phys_set_water(int h);              /* 1543-1548: the constant tables at the start of the frame */
 void   water_reset(void), water_events(player_t *p), water_draw_tint(void), water_draw_front(void), water_draw_hud(void);
@@ -481,7 +517,7 @@ void text_draw(float x, float y, const char *s, uint32_t argb, int scale);
 #define PHYS_DEC        0.5       /* RV: skid (input against motion) -0.5/frame */
 #define PHYS_TOP        (phys_w.C)   /* 5 (RV alt C); 4 under water (1545) */
 #define PHYS_TOP_DRY    5.0       /* RV: alt C. Above it, holding keeps speed (no friction) */
-#define PHYS_MAXSPD     15.0      /* INF: alt D = 15 */
+#define PHYS_MAXSPD     (phys_w.D)   /* RE alt D: Lilac 15 (1543); Carol 12 (1555), 15 under water (1545) and on the bike */
 #define PHYS_AIR_ACC    0.1475    /* RV: 2*E per frame in the air */
 #define PHYS_AIR_DRAG   0.96875   /* RV: vx *= 0.96875 each air frame while -4 < vy < 0 (after gravity) */
 #define PHYS_DRAG_VY    4.0       /* RV: drag window upper bound on rising speed */

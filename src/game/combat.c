@@ -17,7 +17,10 @@
 
 /* ---- shields: anim 4 of ShieldInstaShield_407 per direction (image rect relative to the creation point) */
 typedef struct { signed char x0, x1, y0, y1; } sbox_t;
-typedef struct { int dir, speed, n; sbox_t f[6]; const char *anim; } sdef_t;
+typedef struct { int dir, speed, n; sbox_t f[12]; const char *anim; } sdef_t;
+#define B2(a, b, c, d) { a, b, c, d }
+#define B6(b) { b, b, b, b, b, b }
+#define B12(b) { b, b, b, b, b, b, b, b, b, b, b, b }
 static const sdef_t SD[] = {
     { 0, 100, 6, { {-1,39,-25,13}, {-1,57,-25,13}, {-1,57,-25,13}, {-1,57,-25,13}, {-1,57,-25,13}, {-1,57,-25,13} }, "slash" },
     { 16, 100, 6, { {-38,2,-25,13}, {-56,2,-25,13}, {-56,2,-25,13}, {-56,2,-25,13}, {-56,2,-25,13}, {-56,2,-25,13} }, "slash_l" },
@@ -28,6 +31,17 @@ static const sdef_t SD[] = {
     { 7, 100, 5, { {6,29,2,25}, {-2,29,-5,25}, {-5,29,-9,25}, {-6,27,-10,23}, {-6,26,-9,22} }, NULL },
     { 9, 100, 5, { {-28,-5,2,25}, {-28,3,-5,25}, {-28,6,-9,25}, {-26,7,-10,23}, {-25,7,-9,22} }, NULL },
     { 8, 100, 6, { {-40,40,-33,7}, {-40,40,-33,7}, {-40,40,-33,7}, {-40,40,-33,7}, {-40,40,-33,7}, {-40,40,-33,7} }, NULL },
+    /* Carol (spec_carol_combat 2.2; one box for every frame of a direction; drawn from her bank as 'sh<dir>'):
+     * claw / Wild Kick swings 2-4 (right) and 18-20 (left), big slash 30 / 14 (12 frames), bike spin 24 */
+    { 2, 100, 6, B6(B2(-1,55,-23,13)), "*sh2" },
+    { 3, 20, 5, B6(B2(3,53,-42,6)), "*sh3" },
+    { 4, 20, 5, B6(B2(3,53,-29,19)), "*sh4" },
+    { 18, 100, 6, B6(B2(-54,2,-23,13)), "*sh18" },
+    { 19, 20, 5, B6(B2(-52,-2,-42,6)), "*sh19" },
+    { 20, 20, 5, B6(B2(-52,-2,-29,19)), "*sh20" },
+    { 30, 100, 12, B12(B2(-22,42,-42,22)), "*sh30" },
+    { 14, 100, 12, B12(B2(-41,23,-42,22)), "*sh14" },
+    { 24, 100, 8, B12(B2(-24,24,-28,20)), "*sh24" },
 };
 #define NSD (int)(sizeof SD / sizeof SD[0])
 /* obj_t use for shields: dir = index into SD, st = shield A (0 or 2), tm = frame index, c = speed counter,
@@ -42,7 +56,16 @@ static int spawn_point(const player_t *p, int *px, int *py) {   /* Player_326: (
     *px = (int)(X < 0 ? 0 : X > G.lvl.w ? G.lvl.w : X); *py = (int)(Y < 0 ? 0 : Y > G.lvl.h ? G.lvl.h : Y);
     return 1;
 }
+/* '*name': the animation is in the character's skin bank (Carol's shields ride in her bank, tools/import_frame.py) */
+static void shield_anim(obj_t *o, const sdef_t *d) {
+    o->an.b = NULL;
+    if (!d->anim) return;
+    const bank_t *b = d->anim[0] == '*' ? &G.lilac : &G.objs;
+    int a = bank_anim(b, d->anim + (d->anim[0] == '*'));
+    if (a >= 0) anim_set(&o->an, b, a);
+}
 static void shield_create(const player_t *p, int dir, int A, int speed) {
+    if (dir == 5) dir = 4; else if (dir == 21) dir = 20; else if (dir == 28 || dir == 29) dir = 30; else if (dir == 12 || dir == 13) dir = 14;   /* direction-table aliases */
     int k; for (k = 0; k < NSD && SD[k].dir != dir; k++) ;
     if (k == NSD) return;
     obj_t *o = obj_alloc();
@@ -50,9 +73,9 @@ static void shield_create(const player_t *p, int dir, int A, int speed) {
     int px, py; spawn_point(p, &px, &py);
     o->type = OT_SHIELD; o->alive = 1; o->x = (float)px; o->y = (float)py; o->dir = k; o->st = A;
     o->tm = 0; o->c = 0; o->vx = (float)(speed > 0 ? speed : SD[k].speed); o->fl = 0; o->born = G.frame;
-    o->an.b = NULL;
-    if (SD[k].anim) { int a = bank_anim(&G.objs, SD[k].anim); if (a >= 0) { anim_set(&o->an, &G.objs, a); } }
+    shield_anim(o, &SD[k]);
 }
+void combat_shield_create(const player_t *p, int dir, int A, int speed) { shield_create(p, dir, A, speed); }
 /* Active::update: counter += speed, advance when it goes above 100 (-100); past the last frame the
  * "finished" byte is set and an object with flag 8 is destroyed on the following update */
 static void shield_tick(obj_t *o) {
@@ -92,7 +115,7 @@ static void shield_creators(player_t *p) {
             if ((d == 0 || d == 16) && (p->face > 0) != (d == 0)) {
                 int k; for (k = 0; k < NSD && SD[k].dir != (p->face > 0 ? 0 : 16); k++) ;
                 o->dir = k;
-                if (SD[k].anim) { int a = bank_anim(&G.objs, SD[k].anim); if (a >= 0) { anim_set(&o->an, &G.objs, a); } }
+                shield_anim(o, &SD[k]);
             }
         }
 }
@@ -231,6 +254,7 @@ void combat_frame(player_t *p) {
                 if ((e = pick())) {
                     double kx = fmax(3.0 - s->st, fabs(1.5 * B)) * Q;
                     hit_common(p, e, 5 + s->st, kx, 0.5 * Gv, (4 - s->st) + fabs(B) / 10);
+                    p->cfl |= 0x8;                 /* 2740: every PlayerSkinCarol gets flag 3 (claw chain from frame 3) */
                     break;
                 }
                 collect(p, AT_SHIELD, 1, s);

@@ -17,12 +17,19 @@
 
 enum { A_IDLE, A_WALK, A_RUN, A_FASTRUN, A_JUMP, A_LOOKUP, A_CROUCH, A_SKID, A_ATTACK, A_AIRATK,
        A_UPPERCUT, A_DKWIND, A_DIVEKICK, A_CYCLONE, A_CHARGE, A_BOOST, A_HURT, A_DEFEAT, A_CROUCHATK, A_SPRING, A_HANG,
-       A_PUSH, A_CLIMB, A_CLIMBDOWN, A_CLIMBOVER, A_CATCH, A_CORK, A_CORK2, A_SWIM, A_COUNT };
+       A_PUSH, A_CLIMB, A_CLIMBDOWN, A_CLIMBOVER, A_CATCH, A_CORK, A_CORK2, A_SWIM,
+       /* Carol only (playerskincarol_449 indices, spec_carol_moves 5.1): wall cling, pounce, claw swings, Wild Kick,
+        * jump-pad hold, bike mount pose, air rising (Y = 40, G < 0) */
+       A_C_WALL, A_C_POUNCE, A_C_CLAW0, A_C_CLAW1, A_C_CLAW2, A_C_KICK, A_C_PADHOLD, A_C_MOUNT, A_C_RISE, A_COUNT };
 /* names = tools/import_frame.py LILAC (runtime-verified playerskinsash_341 animation numbers) */
 static const char *anim_names[A_COUNT] = { "idle", "walk", "run", "fastrun", "jump", "lookup", "crouch",
     "skid", "attack", "airatk", "uppercut", "dkwind", "divekick", "cyclone", "charge", "boost", "hurt", "defeat", "crouchatk", "spring", "hang",
-    "push", "climb", "climbdown", "climbover", "catch", "cork", "cork2", "swim" };
-static int anim_r[A_COUNT], anim_l[A_COUNT], hair_r[A_COUNT], hair_l[A_COUNT];
+    "push", "climb", "climbdown", "climbover", "catch", "cork", "cork2", "swim", 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+/* Carol: the original forces the same index on her skin as on Lilac's for each animation code OTHERS.Y (events
+ * 2426-2470), except the fast run (Lilac 23, Carol 2) and Y = 43; her bank names them a<index> (tools/import_frame.py) */
+static const signed char carol_idx[A_COUNT] = { 0, 1, 2, 2, 24, 11, 10, 16, 25, 25, 28, 13, 19, 18, 7, 13, 8, 38, 30, 14, 15,
+    12, 9, 35, 36, 33, 32, 31, 39, 13, 28, 25, 26, 29, 21, 30, 20, 14 };
+static int anim_r[A_COUNT], anim_l[A_COUNT], hair_r[A_COUNT], hair_l[A_COUNT], bike_r[A_COUNT], bike_l[A_COUNT];
 static int cur_anim = -1;
 static animator_t hair;          /* PlayerSkinSashHair_424: follows the skin's animation id (RV) */
 
@@ -61,10 +68,44 @@ static void set_anim(player_t *p, int a) {
     int idx = left && anim_l[a] >= 0 ? anim_l[a] : anim_r[a];
     draw_flip = left && anim_l[a] < 0;
     cur_anim = a;
+    if (p->bike && G.bike.nanims) {          /* Carol on the bike: PlayerSkinCarolBike_460 (same index; no tail) */
+        int bi = left && bike_l[a] >= 0 ? bike_l[a] : bike_r[a];
+        draw_flip = left && bike_l[a] < 0;
+        anim_set(&p->an, &G.bike, bi < 0 ? 0 : bi); hair.b = NULL; return;
+    }
     anim_set(&p->an, &G.lilac, idx);
     int h = left && hair_l[a] >= 0 ? hair_l[a] : hair_r[a];
     hair_flip = left && hair_l[a] < 0;
     if (h >= 0) anim_set(&hair, &G.hair, h); else hair.b = NULL;
+}
+
+/* animation tables for the character's banks (re-read after every level load: the banks are per level) */
+static const void *anims_key; static int anims_who = -1;
+static void player_anims_init(void) {
+    int who = chr_is_carol(G.character);
+    if (anims_key == (const void *)G.lilac.anims && anims_who == who) return;
+    anims_key = G.lilac.anims; anims_who = who;
+    char nm[20];
+    for (int i = 0; i < A_COUNT; i++) {
+        if (who) {   /* Carol: a<index> (+ _l when direction 16 is its own art) on the skin, tail and bike-skin banks */
+            snprintf(nm, sizeof nm, "a%d", carol_idx[i]); anim_r[i] = bank_anim(&G.lilac, nm); hair_r[i] = G.hair.nanims ? bank_anim(&G.hair, nm) : -1;
+            bike_r[i] = G.bike.nanims ? bank_anim(&G.bike, nm) : -1;
+            snprintf(nm, sizeof nm, "a%d_l", carol_idx[i]); anim_l[i] = bank_anim(&G.lilac, nm); hair_l[i] = G.hair.nanims ? bank_anim(&G.hair, nm) : -1;
+            bike_l[i] = G.bike.nanims ? bank_anim(&G.bike, nm) : -1;
+            if (anim_r[i] < 0) anim_r[i] = bank_anim(&G.lilac, "a0") < 0 ? 0 : bank_anim(&G.lilac, "a0");
+            if (bike_r[i] < 0 && G.bike.nanims) bike_r[i] = bank_anim(&G.bike, "a0");
+            continue;
+        }
+        if (!anim_names[i]) { anim_r[i] = anim_r[A_IDLE]; anim_l[i] = anim_l[A_IDLE]; hair_r[i] = hair_r[A_IDLE]; hair_l[i] = hair_l[A_IDLE]; continue; }
+        anim_r[i] = bank_anim(&G.lilac, anim_names[i]);
+        snprintf(nm, sizeof nm, "%s_l", anim_names[i]);
+        anim_l[i] = bank_anim(&G.lilac, nm);
+        if (anim_r[i] < 0) { plat_log("lilac anim %s missing\n", anim_names[i]); anim_r[i] = 0; }
+        /* (anim_l < 0: drawn as the mirrored right-facing animation) */
+        snprintf(nm, sizeof nm, "h_%s", anim_names[i]); hair_r[i] = G.hair.nanims ? bank_anim(&G.hair, nm) : -1;
+        snprintf(nm, sizeof nm, "h_%s_l", anim_names[i]); hair_l[i] = G.hair.nanims ? bank_anim(&G.hair, nm) : -1;
+        /* (hair_l < 0: mirrored) */
+    }
 }
 
 void player_reset(player_t *p, double x, double y) {
@@ -72,20 +113,8 @@ void player_reset(player_t *p, double x, double y) {
     snap_register(&cur_anim, sizeof cur_anim); snap_register(&hair, sizeof hair); snap_register(pfx, sizeof pfx);
     snap_register(&spk, sizeof spk); snap_register(&fx_seed, sizeof fx_seed);
     snap_register(&draw_flip, sizeof draw_flip); snap_register(&hair_flip, sizeof hair_flip);
-    if (!init) {
-        init = 1;
-        char nm[20];
-        for (int i = 0; i < A_COUNT; i++) {
-            anim_r[i] = bank_anim(&G.lilac, anim_names[i]);
-            snprintf(nm, sizeof nm, "%s_l", anim_names[i]);
-            anim_l[i] = bank_anim(&G.lilac, nm);
-            if (anim_r[i] < 0) { plat_log("lilac anim %s missing\n", anim_names[i]); anim_r[i] = 0; }
-            /* (anim_l < 0: drawn as the mirrored right-facing animation) */
-            snprintf(nm, sizeof nm, "h_%s", anim_names[i]); hair_r[i] = G.hair.nanims ? bank_anim(&G.hair, nm) : -1;
-            snprintf(nm, sizeof nm, "h_%s_l", anim_names[i]); hair_l[i] = G.hair.nanims ? bank_anim(&G.hair, nm) : -1;
-            /* (hair_l < 0: mirrored) */
-        }
-    }
+    (void)init;
+    player_anims_init();
     int crystals = p->crystals, lives = p->lives;
     int sh = G.act_carry ? p->shield : 0, shc = p->shield_c;   /* OTHERS is global: the shield carries over an act change (INFERRED) */
     double energy = p->energy; int init_energy = p->energy_init;
@@ -97,7 +126,7 @@ void player_reset(player_t *p, double x, double y) {
     (void)energy; p->energy = 0.; p->energy_init = 1;
     p->energy_hold = 41;   /* RV (build/re/crystal_watch): the refill starts 42 frames after the stage starts (intro lock) */
     p->spawn_x = sx ? sx : x; p->spawn_y = sy ? sy : y;
-    p->x = x; p->y = y; p->face = 1; p->hp = MAX_HP;
+    p->x = x; p->y = y; p->face = 1; p->hp = MAX_HP; p->c_spd_sk = p->c_spd_tl = -1;
     p->shield = sh; p->shield_c = sh ? shc : 0;
     mv_reset();
     set_anim(p, A_IDLE);
@@ -123,7 +152,10 @@ void player_damage(player_t *p, int amount) {
     p->hp -= mult * amount / 5;
     snd_play_orig(25, 220, 128);    /* RE: Media::play_id 25 */
     snd_play_orig(17, 220, 128);    /* RV: id 17 logged on the same frame */
-    { static const char *vh[4] = { "lilac_hurt0", "lilac_hurt1", "lilac_hurt2", "lilac_hurt3" }; voice_play(vh[rand() & 3]); }
+    if (chr_is_carol(G.character)) {               /* Carol's voice set (event 959): hurt0..3 = 114 115 118 119, die = 128 */
+        static const int vc[4] = { 114, 115, 118, 119 };
+        if (p->hp > 0) snd_play_orig(vc[rand() & 3], 255, 128); else snd_play_orig(128, 255, 128);
+    } else { static const char *vh[4] = { "lilac_hurt0", "lilac_hurt1", "lilac_hurt2", "lilac_hurt3" }; voice_play(vh[rand() & 3]); }
     if (p->hp <= 0) { p->state = ST_DEAD; p->dead_t = 0; p->vy = -5; p->vx = 0; p->ground = 0; return; }
     double b = p->ground ? p->gsp : p->vx, g = p->ground ? 0. : p->vy;   /* ground: B = ground speed, G = 0 */
     p->state = ST_HURT; p->state_t = 0;
@@ -168,20 +200,39 @@ static void slope_force(player_t *p) {
 
 int player_body_z(const player_t *p) {        /* RE 1680/1686/1693: Z = 1 in M5 (charge, boost) and M19 (kick wind-up); 1687 M6 (roll); 1786 M1 with OTHERS.Y = 8 */
     return p->state == ST_CHARGE || p->state == ST_BOOST || p->state == ST_DKWIND || p->state == ST_ROLL ||
-           (p->state == ST_NORMAL && p->roll_ball && !p->ground);
+           (p->state == ST_NORMAL && p->roll_ball && !p->ground && (!chr_is_carol(G.character) || p->m1));
 }
 int player_contact_safe(const player_t *p) {
     /* RE 2731: no contact damage with movement Z = 1, in M20/M21/M26/M44 (attack, uppercut, cyclone), with
      * R set (already hurt this frame) or while invulnerable (PlayerOthers.E > 0). The kick itself (M0) is not safe. */
     return player_invincible(p) || player_body_z(p) || p->state == ST_ATTACK || p->state == ST_UPPERCUT ||
-           p->state == ST_CYCLONE || p->state == ST_DEAD || p->hurt_pending;
+           p->state == ST_CYCLONE || p->state == ST_DEAD || p->hurt_pending ||
+           p->state == ST_CLAW || p->state == ST_WILDKICK;   /* Carol M20 / M44 */
 }
 int player_char_sensor_small(const player_t *p) {
+    if (chr_is_carol(G.character)) return p->c_sens;
     /* RE 2471-2489: anim 1 (15x27) for OTHERS.Y 5,7,8,9,14,20-23,26,42: kick wind-up, attacks, crouch kick, cyclone */
     return p->state == ST_DKWIND || p->state == ST_ATTACK || p->state == ST_CYCLONE || p->state == ST_CROUCHATK || p->look == 3 ||
            p->state == ST_ROLL || (p->state == ST_NORMAL && p->roll_ball);
 }
 int player_anim_frame(const player_t *p) { return p->an.frame; }
+int player_hair_frame(void) { return hair.b ? hair.frame : -1; }   /* hair / Carol's tail frame (traces) */
+int player_hair_acc(void) { return hair.b ? hair.acc : -1; }
+void player_anim_sync(player_t *p, int frame, int acc) {               /* traces: start in the original's animation phase */
+    p->an.frame = frame; p->an.acc = acc; if (hair.b) { hair.frame = frame; hair.acc = acc; }
+}
+/* the original's MV.M for this state (traces / tests) */
+int player_orig_m(const player_t *p) {
+    switch (p->state) {
+    case ST_NORMAL: return p->m1 ? 1 : p->look == 2 ? 2 : p->look == 3 ? 3 : p->skidding ? 4 : 0;
+    case ST_ROLL: return 6; case ST_HURT: return 8; case ST_DEAD: return 9; case ST_PUSH: return 11;
+    case ST_CLAW: case ST_ATTACK: return 20; case ST_UPPERCUT: return 21; case ST_CYCLONE: return 26;
+    case ST_CHARGE: case ST_BOOST: return 5; case ST_DKWIND: return 19; case ST_LADDERIN: return 25;
+    case ST_HANG: return 41; case ST_CORK: return 45; case ST_LADDER: return 46;
+    case ST_WILDKICK: return 44; case ST_WALL: return 47; case ST_PAD: return 48; case ST_BIKEAIR: return 32;
+    default: return -1;
+    }
+}
 int player_anim_is(const player_t *p, const char *name) {
     for (int a = 0; a < A_COUNT; a++) if (!strcmp(anim_names[a], name)) return cur_anim == a;
     return 0;
@@ -190,7 +241,7 @@ int player_anim_is(const player_t *p, const char *name) {
  * any attack state or a jump breaks them (INFERRED) */
 int player_attack_kind(const player_t *p) {
     if (p->state == ST_ATTACK || p->state == ST_UPPERCUT || p->state == ST_CYCLONE || p->state == ST_CROUCHATK ||
-        player_body_z(p) || p->state == ST_DIVEKICK) return 2;
+        player_body_z(p) || p->state == ST_DIVEKICK || p->state == ST_CLAW || p->state == ST_WILDKICK) return 2;
     if (p->state == ST_NORMAL && !p->ground && p->jumping) return 1;
     return 0;
 }
@@ -205,6 +256,7 @@ void player_spring(player_t *p, double vx, double vy, double top) {
     p->ground = 0; p->N = p->O = 0; p->y = top; p->vy = -vy; if (vx) { p->vx = vx; p->face = vx > 0 ? 1 : -1; }
     p->jumping = 0; p->cyclone_used = 0; p->boost_used = 0; p->springing = 1;
     if (p->state != ST_BOOST) p->state = ST_NORMAL;
+    p->cY = 40; p->m1 = 0;          /* M40 (Carol: the M0 air rules, OTHERS.Y 40) */
     snd_play_orig(5, 230, 128);    /* RV: id 5 at spring contact (spring_yellow_up .snd) */
 }
 
@@ -378,7 +430,7 @@ static void jump(player_t *p) {
     p->vy = c * -PHYS_JUMP - b * sn;
     p->vx = c * b + -PHYS_JUMP * sn;
     p->ground = 0; p->jumping = 1; p->N = 0;
-    snd_play(G.sfx.jump, 200, 128);
+    snd_play_orig(8, 200, 128);
 }
 
 static void set_state(player_t *p, int s) { p->state = s; p->state_t = 0; }
@@ -703,6 +755,8 @@ static int push_wants(const player_t *p, const input_t *in) {
     return ((in->held & BTN_RIGHT) && mv_sensor_right_big()) || ((in->held & BTN_LEFT) && mv_sensor_left_big());
 }
 
+#include "carol.inc"
+
 /* ---- roll, state M6 (build/re/spec_roll_gimmicks.md §1). Lilac's table 1543: O 0.0334 friction, P 0.2 brake,
  * Q 0.035 uphill, R 0.25 downhill (water values 1545/1546 not used: the port has no water physics yet). */
 #define ROLL_O (phys_w.RO)   /* 0.0334; 0.0217 under water (1545) */
@@ -718,8 +772,7 @@ static void roll_move(player_t *p, const input_t *in) {
     p->x = m.X; p->y = m.Y + ORIG_REF_DY; p->N = m.N; p->O = m.O; p->ground = m.L;
     if (m.L) { p->gsp = m.B; p->vy = 0; } else { p->vx = m.B; p->vy = m.G; }
     if (r & MV_LANDED) { p->springing = 0; p->jumping = 0; p->cyclone_used = 0; p->boost_used = 0; }
-    horiz_accel(p, in, 1, 1);
-    wall_stop(p);
+    if (!(is_carol() && p->c_nospd)) { horiz_accel(p, in, 1, 1); wall_stop(p); }   /* Carol's roll entries set MV.S = 0 (RV c_run_down) */
     if (!p->ground) {
         air_speed_update(p, in, 0, PHYS_GRAV);
         if (p->vy < 0 && mv_sensor_top_big()) p->vy = 0;
@@ -730,6 +783,7 @@ static void roll_group(player_t *p, const input_t *in) {
     double *b = p->ground ? &p->gsp : &p->vx, N = p->N;
     int L = p->ground, r = (in->held & BTN_RIGHT) != 0, l = (in->held & BTN_LEFT) != 0;
     p->boost_n++;                                                         /* 1851 (OTHERS.Y = 8) */
+    if (is_carol()) p->cY = 8;
     if (*b < 0 && r) *b = fmin(*b + ROLL_P, 0.);                          /* 1852 */
     if (*b < 0 && !r) *b = fmin(*b + ROLL_O, 0.);                         /* 1853 */
     if (*b > 0 && l) *b = fmax(*b - ROLL_P, 0.);                          /* 1854 */
@@ -738,20 +792,24 @@ static void roll_group(player_t *p, const input_t *in) {
     if (L && *b < 0 && N > 180) *b -= ROLL_Q * o_sin(N);                  /* 1857 */
     if (L && *b < 0 && N < 180) *b -= ROLL_R * o_sin(N);                  /* 1858 */
     if (L && *b > 0 && N > 180) *b -= ROLL_R * o_sin(N);                  /* 1859 */
-    if (!L) { p->state = ST_NORMAL; p->jumping = 0; p->roll_ball = 1; }  /* 1860: M = 1 (PAV_A.C = 0) */
+    if (!L) { p->state = ST_NORMAL; p->jumping = 0; p->roll_ball = 1; p->m1 = 1; p->c_nospd = 0; }  /* 1860: M = 1 (PAV_A.C = 0) */
     if (L && (in->pressed & BTN_JUMP) && p->tun_lock != 1) {             /* 1861 (as 3047) */
         double c = o_cos(N), sn = o_sin(N), B = p->gsp;
         p->vy = c * -PHYS_JUMP - B * sn;
         p->vx = c * B + -PHYS_JUMP * sn;
-        p->ground = 0; p->N = 0; p->state = ST_NORMAL; p->jumping = 1; p->roll_ball = 1;
-        snd_play(G.sfx.jump, 200, 128);
+        p->ground = 0; p->N = 0; p->state = ST_NORMAL; p->jumping = 1; p->roll_ball = 1; p->m1 = 1; p->c_nospd = 0;   /* RV c_roll_jump: air control */
+        snd_play_orig(8, 200, 128);
         b = &p->vx;
     }
     /* 1862: (|B| < 2 and OTHERS.N > 30) OR Up pressed -> M0 (an OR event; RV spiral_dv1 / spiralb: the slow roll
      * stands up after 30 roll frames without input) */
-    if ((fabs(*b) < 2 && p->boost_n > 30) || (in->pressed & BTN_UP)) { p->state = ST_NORMAL; p->boost_n = 0; p->roll_ball = 0; }
-    if (L && fabs(*b) < 2 && p->boost_n > 30 && (in->held & BTN_DOWN) && !l && !r) { *b = 0; p->state = ST_NORMAL; p->roll_ball = 0; }   /* 1863: M3 */
-    if ((in->held & BTN_SPECIAL) && p->energy >= PHYS_ENERGY_MAX && p->tun_lock != 1) {                  /* 1864 */
+    if ((fabs(*b) < 2 && p->boost_n > 30) || (in->pressed & BTN_UP)) { p->state = ST_NORMAL; p->boost_n = 0; p->roll_ball = 0; p->c_nospd = 0; }
+    if (L && fabs(*b) < 2 && p->boost_n > 30 && (in->held & BTN_DOWN) && !l && !r) { *b = 0; p->state = ST_NORMAL; p->roll_ball = 0; p->look = 3; }   /* 1863: M3 */
+    if (is_carol()) {
+        if (in->pressed & BTN_ATTACK) { p->roll_ball = 0; p->m1 = !p->ground; c_start_claw(p, 0, 1); }                      /* 1865: rolling attack (big slash) */
+        if ((in->held & BTN_SPECIAL) && p->energy >= C_KICK_COST && p->cN <= 0) { p->roll_ball = 0; c_start_kick(p, 0); }  /* 1866 (no voice, RV c_roll_special) */
+    }
+    else if ((in->held & BTN_SPECIAL) && p->energy >= PHYS_ENERGY_MAX && p->tun_lock != 1) {             /* 1864 */
         p->state = ST_CHARGE; p->state_t = 0; p->boost_n = 0; p->roll_ball = 0;
         snd_play_orig(9, 230, 128);
     }
@@ -776,7 +834,12 @@ void player_update(player_t *p, const input_t *in) {
     /* the stage-start delay counts frames from the start in every state (original boost_cycle trace: the
      * refill resumes the frame after a boost ends) */
     int held = p->energy_hold > 0; if (held) p->energy_hold--;
-    if (p->state == ST_BOOST || p->state == ST_CHARGE) {}    /* M5: drained by the group (2007), no refill */
+    int carol = is_carol();
+    if (carol) {                                              /* 1663: +0.25 when M != 44 and OTHERS.K <= 0 (Lilac's 1660 does not run) */
+        if (p->state != ST_WILDKICK && p->hitstop <= 0 && !held) p->energy = fminf(PHYS_ENERGY_MAX, p->energy + 0.25f);
+        c_q0 = p->face; c_g0 = p->ground; p->c_land_m1 = 0;
+    }
+    else if (p->state == ST_BOOST || p->state == ST_CHARGE) {}    /* M5: drained by the group (2007), no refill */
     else if (p->state == ST_CYCLONE) p->energy = fmax(0., p->energy - PHYS_ENERGY_CYCLONE);
     else if (held) {}
     else p->energy = fmin(PHYS_ENERGY_MAX, p->energy + PHYS_ENERGY_REFILL);
@@ -817,13 +880,14 @@ void player_update(player_t *p, const input_t *in) {
     if (p->state == ST_HANG) {
         /* RE 4062/4065 hold the position; RV: B is 0 from the next frame, G keeps gaining gravity (unused) */
         p->x = p->hang_x; p->y = p->hang_y + 32 + ORIG_REF_DY; p->vx = 0; if (p->vy > PHYS_MAXFALL) p->vy = PHYS_MAXFALL; p->vy += PHYS_GRAV;
-        if (in->pressed & BTN_JUMP) { p->state = ST_NORMAL; p->vx = 0; p->vy = -PHYS_JUMP; p->jumping = 1; snd_play(G.sfx.jump, 200, 128); }   /* INFERRED */
+        if (in->pressed & BTN_JUMP) { p->state = ST_NORMAL; p->vx = 0; p->vy = -PHYS_JUMP; p->jumping = 1; snd_play_orig(8, 200, 128); }   /* INFERRED */
         else if (in->pressed & BTN_DOWN) { p->state = ST_NORMAL; p->vy = 0; p->y += 1; }                                                     /* INFERRED */
         set_anim(p, A_HANG); anim_tick(&p->an, -1); if (hair.b) anim_tick(&hair, -1);
         return;
     }
     switch (p->state) {
     case ST_NORMAL:
+        if (carol) { carol_normal(p, in, &crouch_look); break; }
         if (p->ground) {
             if (p->water && (in->held & BTN_JUMP) && !(in->pressed & BTN_JUMP) && p->vy > -3) {   /* 1758: holding jump re-jumps under water */
                 ground_move(p, in, 1, 1); if (p->ground) jump(p); break;
@@ -919,7 +983,7 @@ void player_update(player_t *p, const input_t *in) {
                     p->vy = c * -PHYS_JUMP * PHYS_GCYC_JUMP_MUL - sn * b;
                     p->vx = c * b + -PHYS_JUMP * sn;
                     p->ground = 0; p->N = 0; p->jumping = 0; p->cyclone_used = 0;
-                    snd_play(G.sfx.jump, 200, 128);
+                    snd_play_orig(8, 200, 128);
                 }
             } else ground_move(p, in, 1, 1);
         } else {
@@ -954,6 +1018,9 @@ void player_update(player_t *p, const input_t *in) {
         p->m5_bounced = 0;
         m5_move(p);
         break;
+    case ST_CLAW: carol_claw_move(p, in); break;      /* Carol M20 (the group runs after the edge clamp) */
+    case ST_WILDKICK: carol_kick_move(p, in); break;  /* Carol M44 */
+    case ST_WALL: carol_wall(p, in); break;           /* Carol M47 */
     case ST_HURT:     /* RV (hurt_turretus): knockback (-2.2*away, -4.2), gravity 0.5 + air drag; after
                        * landing M8 stays ~5 frames with ground friction */
         if (p->ground) { ground_move(p, in, 0, 1); if (p->state_t >= p->hurt_land_t + 5) p->state = ST_NORMAL; }
@@ -973,7 +1040,17 @@ void player_update(player_t *p, const input_t *in) {
     /* the M5 group starts the frame after the entry (1686 runs before the entry events 1760-1895) */
     if ((p->state == ST_CHARGE || p->state == ST_BOOST) && (st0 == ST_CHARGE || st0 == ST_BOOST)) m5_group(p, in);
     else if (p->m5_bounced) { p->m5_bounced = 0; p->energy = fmax(0., p->energy - PHYS_ENERGY_DRAIN); if (p->invuln < 30) p->invuln = 30; }  /* 1637/1639: the group still runs that frame */
-    if (p->state == ST_ROLL) roll_group(p, in);   /* 1687: M6 group (after 1641-1651) */
+    if (p->state == ST_ROLL && (!carol || st0 == ST_ROLL)) roll_group(p, in);   /* 1687: M6 group (after 1641-1651); Carol's own entries: from the next frame */
+    if (carol) {                                   /* group 0x21a4a: 2104 / 2105, then M20 (0x21a2f) and M44 (0x21a2c) from their 2nd frame */
+        carol_timers(p);
+        if (p->state == ST_CLAW && st0 == ST_CLAW) carol_claw_group(p, in);
+        else if (p->state == ST_WILDKICK && st0 == ST_WILDKICK) carol_kick_group(p, in);
+        if (!p->ground && p->cY < 3 && p->vy > 0) p->cY = 40;                  /* 2432: walked off / falling */
+        if (p->state != ST_NORMAL || p->cY != 8) p->roll_ball = 0;             /* Z = 1 only with OTHERS.Y 8 in M1 (1786) */
+        if (p->state == ST_HURT && st0 == ST_HURT) p->cY = 9;                  /* M8 group: OTHERS.Y 9 */
+        if (p->state == ST_PUSH && st0 == ST_PUSH) p->cY = 13;                 /* M11 group: OTHERS.Y 13 */
+        if (p->state == ST_ROLL && p->cY != 8 && st0 == ST_ROLL) p->cY = 8;
+    }
     if (p->hurt_pending) { int d = p->hurt_pending; p->hurt_pending = 0; player_damage(p, d); }   /* 2414 (after the movement block) */
     ladder_grabs(p, in);                           /* 4057-4060 run last */
     if (p->state != ST_DEAD && p->y > G.lvl.h + 64) {
@@ -1000,6 +1077,22 @@ void player_update(player_t *p, const input_t *in) {
 
     /* animation selection (RV: recovered indices, speed bands from traces) */
     int a, speed = -1, restart = 0;
+    if (carol) {                     /* Carol: OTHERS.Y -> animation (carol.inc); the tail takes the same index */
+        int force6 = 0;
+        a = carol_anim(p, &force6);
+        carol_speeds(p);
+        int f6 = (force6 && cur_anim != A_JUMP) || (p->c_fall && a == A_JUMP);   /* 2460 / 1775: anim 24 from frame 6 */
+        set_anim(p, a);
+        if (f6) { p->an.frame = 6; p->an.done = 0; if (hair.b) { hair.frame = 6; hair.done = 0; } }
+        p->c_fall = 0;
+        anim_tick(&p->an, p->c_spd_sk);
+        if (hair.b) anim_tick(&hair, p->c_spd_tl);
+        (void)speed;
+        if (p->state == ST_WILDKICK && p->cL > 20) { p->an.frame = 0; if (hair.b) hair.frame = 0; }   /* 2154: frame 0 held */
+        carol_sensor(p);
+        fx_update(p, st0);
+        return;
+    }
     switch (p->state) {
     case ST_ATTACK: a = p->ground ? A_ATTACK : A_AIRATK; restart = 1; break;
     case ST_UPPERCUT: a = A_UPPERCUT; restart = 1; break;
@@ -1043,10 +1136,10 @@ void player_update(player_t *p, const input_t *in) {
 void player_draw(const player_t *p) {
     if (p->invuln && !p->invinc && !spk.on && (p->invuln & 4) && p->state != ST_HURT) { fx_draw(); return; }   /* invincibility: no blink (INFERRED) */
     /* the sprite hotspot (= rotation centre) is the movement object's position: p->y - ORIG_REF_DY */
-    if (hair.b) frame_draw_rot(&G.hair, anim_frame(&hair), floor(p->x - G.camx), floor(p->y - ORIG_REF_DY - G.camy), p->rot, hair_flip, 0xffffffff);
+    if (hair.b) frame_draw_rot(hair.b, anim_frame(&hair), floor(p->x - G.camx), floor(p->y - ORIG_REF_DY - G.camy), p->rot, hair_flip, 0xffffffff);
     const frame_t *f = anim_frame(&p->an);
     double hxp = p->x, hyp = p->y - ORIG_REF_DY;   /* RE 1517: the skin sits at (int X, int Y) */
-    frame_draw_rot(&G.lilac, f, floor(hxp - G.camx), floor(hyp - G.camy), p->rot, draw_flip, 0xffffffff);
+    frame_draw_rot(p->an.b, f, floor(hxp - G.camx), floor(hyp - G.camy), p->rot, draw_flip, 0xffffffff);
     fx_draw();
 }
 

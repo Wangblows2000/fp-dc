@@ -49,8 +49,11 @@ static void bank_free(bank_t *b) { free(b->act); free(b->frames); free(b->anims)
 /* Lilac's banks stay resident across a level change when the next level's pack holds byte-identical
  * files (CRC-32 in the pack index): all four Dragon Valley acts share them (1.5 MB of textures). They
  * are loaded first after a full VRAM reset, so freeing everything else leaves VRAM contiguous. */
-static uint32_t chr_crc[4];      /* lilac2.tex, lilac2.spr, lilachair.tex, lilachair.spr of the resident banks */
-static int chr_resident;
+static uint32_t chr_crc[6];      /* skin .tex/.spr, overlay .tex/.spr, bike .tex/.spr of the resident character banks */
+static int chr_resident, chr_resident_who = -1;
+/* the playing character's bank files: Lilac lilac2 + lilachair; Carol carol2 + caroltail + carolbike (+ pal2c.pal) */
+static const char *const CHR_FILES[2][6] = { { "lilac2.tex", "lilac2.spr", "lilachair.tex", "lilachair.spr", 0, 0 },
+                                             { "carol2.tex", "carol2.spr", "caroltail.tex", "caroltail.spr", "carolbike.tex", "carolbike.spr" } };
 
 /* only textures that were actually created (a zeroed tex_t has id 0 = somebody else's slot) */
 static void tex_drop(tex_t *t) { if (t->w > 0) r_tex_free(t); memset(t, 0, sizeof *t); t->id = -1; }
@@ -71,34 +74,42 @@ static void level_free(void) {   /* everything of the level except Lilac's banks
 
 void game_unload_all(void) {
     level_free();
-    bank_free(&G.lilac); bank_free(&G.hair);
-    chr_resident = 0;
+    bank_free(&G.lilac); bank_free(&G.hair); bank_free(&G.bike);
+    chr_resident = 0; chr_resident_who = -1;
     r_reset();
 }
 
-static int chr_crcs(const char *dir, uint32_t c[4]) {
-    static const char *f[4] = { "lilac2.tex", "lilac2.spr", "lilachair.tex", "lilachair.spr" };
+static int chr_crcs(const char *dir, int who, uint32_t c[6]) {
     char nm[48];
-    for (int i = 0; i < 4; i++) { snprintf(nm, sizeof nm, "%s/%s", dir, f[i]); if (pack_entry_crc(nm, &c[i]) < 0) return -1; }
+    for (int i = 0; i < 6; i++) {
+        c[i] = 0; if (!CHR_FILES[who][i]) continue;
+        snprintf(nm, sizeof nm, "%s/%s", dir, CHR_FILES[who][i]); if (pack_entry_crc(nm, &c[i]) < 0) return -1;
+    }
     return 0;
 }
 
 /* every level lives in its own data dir (own palettes + Lilac bank; tools/build_level.sh) */
 int game_load_level(const char *dir) {
-    uint32_t want_crc[4];
+    uint32_t want_crc[6];
+    int who = chr_is_carol(G.character) ? 1 : 0;
     lp_begin(dir);
-    int keep = chr_resident && chr_crcs(dir, want_crc) == 0 && !memcmp(want_crc, chr_crc, sizeof chr_crc);
+    int keep = chr_resident && chr_resident_who == who && chr_crcs(dir, who, want_crc) == 0 && !memcmp(want_crc, chr_crc, sizeof chr_crc);
     if (keep) level_free(); else game_unload_all();
     loading_begin(dir);                            /* silent loading screen (src/game/loading.c) */
     snprintf(G.lvdir, sizeof G.lvdir, "%s", dir);
     int bad = 0;
     char nm[48];
-    for (int i = 0; i < 4; i++) { snprintf(nm, sizeof nm, "%s/pal%d.pal", dir, i); bad |= pal_load_file(nm) < 0; }
-    if (keep) { LP.nskip += 4; LP.skip_bytes += (uint64_t)G.lilac.tex.w * G.lilac.tex.h + (uint64_t)G.hair.tex.w * G.hair.tex.h; }
+    for (int i = 0; i < 4; i++) {   /* bank 2 = the character's palette: Carol's replaces Lilac's (tools/build_level.sh) */
+        if (i == 2 && who == 1) snprintf(nm, sizeof nm, "%s/pal2c.pal", dir); else snprintf(nm, sizeof nm, "%s/pal%d.pal", dir, i);
+        bad |= pal_load_file(nm) < 0;
+    }
+    if (keep) { LP.nskip += who ? 6 : 4; LP.skip_bytes += (uint64_t)G.lilac.tex.w * G.lilac.tex.h + (uint64_t)G.hair.tex.w * G.hair.tex.h + (uint64_t)G.bike.tex.w * G.bike.tex.h; }
     else {
-        snprintf(nm, sizeof nm, "%s/lilac2", dir); bad |= bank_load(&G.lilac, nm) < 0;
-        snprintf(nm, sizeof nm, "%s/lilachair", dir); if (bank_load(&G.hair, nm) < 0) plat_log("no hair bank\n");
-        chr_resident = !bad && chr_crcs(dir, chr_crc) == 0;   /* only packed data can be matched later */
+        snprintf(nm, sizeof nm, "%s/%s", dir, who ? "carol2" : "lilac2"); bad |= bank_load(&G.lilac, nm) < 0;
+        snprintf(nm, sizeof nm, "%s/%s", dir, who ? "caroltail" : "lilachair"); if (bank_load(&G.hair, nm) < 0) plat_log("no overlay bank\n");
+        if (who) { snprintf(nm, sizeof nm, "%s/carolbike", dir); if (bank_load(&G.bike, nm) < 0) plat_log("no bike bank\n"); }
+        chr_resident = !bad && chr_crcs(dir, who, chr_crc) == 0;   /* only packed data can be matched later */
+        chr_resident_who = who;
     }
     snprintf(nm, sizeof nm, "%s/%s_obj", dir, dir); bad |= bank_load(&G.objs, nm) < 0;
     snprintf(nm, sizeof nm, "%s/%s_ens", dir, dir); if (bank_load(&G.ens, nm) < 0) { memset(&G.ens, 0, sizeof G.ens); G.ens.tex.id = -1; }
@@ -189,7 +200,7 @@ static void sel_draw(void) {
 }
 
 /* ---- sounds: original Assets.dat sound IDs (Media::play_id, RUNTIME_MAP "Sound IDs") */
-static const int SND_IDS[] = { 0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 34, 35, 37, 38, 39, 40, 41, 42, 43, 45, 46, 47, 48, 49, 50, 51, 53, 56, 57, 58, 63, 64, 74, 76, 78, 80, 81, 95, 98, 100, 174, 176, 220, 288, 289, 290, 307, 311, 313, 314, 315, 319, 320, 396, 405 };
+static const int SND_IDS[] = { 0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 38, 39, 40, 41, 42, 43, 45, 46, 47, 48, 49, 50, 51, 53, 56, 57, 58, 61, 63, 64, 74, 76, 78, 80, 81, 95, 98, 100, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 126, 128, 133, 139, 140, 141, 154, 159, 160, 161, 162, 174, 176, 220, 221, 232, 288, 289, 290, 307, 311, 313, 314, 315, 319, 320, 387, 396, 405, 409, 410, 411, 412, 413, 414 };   /* + Carol / bike / jump pads (session 10, spec_carol_*) */
 static int snd_handle[512];
 uint32_t prof_acc[PS_N], prof_max[PS_N];
 static const char *VOICES[] = { "lilac_attack0", "lilac_attack1", "lilac_attack2", "lilac_attack3", "lilac_uppercut0",
@@ -231,6 +242,9 @@ int game_init(void) {
     G.sfx.hurt = snd_handle[17]; G.sfx.crystal = snd_handle[27]; G.sfx.explode = snd_handle[81]; G.sfx.hit = snd_handle[25];
     /* host tests (FP_LEVEL) and DC verification demos ("LEVEL <dir>"): start a level directly (no front end) */
     if (plat_start_level()) {
+#ifdef FP_HOST_ENV
+        if (getenv("FP_CHAR")) G.character = atoi(getenv("FP_CHAR"));   /* 0 Lilac, 2 Carol, 3 Carol on the bike (global value 1) */
+#endif
         G.mode = MODE_PLAY; int r = game_load_level(plat_start_level()); G.card_t = CARD_DONE;
 #ifdef FP_HOST_ENV
         if (getenv("FP_CARD")) G.card_t = 0;
@@ -376,7 +390,7 @@ static void next_act(void) {
     if (a >= 4) {
         G.mode = MODE_RESULTS; G.res_t = 0; G.res_time = G.frame; music_play("bgm/m_clear.adp");
         if (G.time_attack) {                          /* Time Attack record (stage list order: 0 Shang Mu Academy, 1 Dragon Valley) */
-            save_rec_t *r = &SV.rec[1][G.character < SAVE_CHARS ? G.character : 0];
+            save_rec_t *r = &SV.rec[1][chr_slot(G.character)];
             if (!r->time || (uint32_t)G.frame < r->time) { r->time = (uint32_t)G.frame; r->crystals = (uint16_t)(CRYSTALS_PER_LIFE - G.p.crystals); save_store(); }
         }
         return;
@@ -457,7 +471,7 @@ static void pause_update(const input_t *in) {
 
 void game_update(const input_t *in) {
     /* VMU screen: the character's life icon and lives in a stage, the crystal everywhere else */
-    if (G.mode == MODE_PLAY && !G.in_select) vmuscr_life(G.character, G.p.lives); else vmuscr_crystal();
+    if (G.mode == MODE_PLAY && !G.in_select) vmuscr_life(G.character == 2 ? 1 : G.character == 3 ? 2 : G.character == 4 ? 3 : G.character == 0 ? 0 : 4, G.p.lives); else vmuscr_crystal();
     if (G.mode == MODE_FRONTEND) { fe_update(in); return; }
     if (G.in_select) { sel_update(in); return; }
     if (G.mode == MODE_RESULTS) {
@@ -582,13 +596,13 @@ void text_draw(float x, float y, const char *s, uint32_t argb, int scale) {
 
 /* ---- HUD: original GUI images (object bank anims hud_*), layout measured in the original at its
  * native 426x240 by template matching a screenshot (RUNTIME_MAP "HUD"). All coordinates = image top-left. */
-#define NHUD 16
+#define NHUD 18
 static int hud_anim[NHUD] = { -2 };
 void hud_reset(void) { hud_anim[0] = -2; }
 static void hud_init(void) {
     if (hud_anim[0] == -2) {
         static const char *nm[NHUD] = { "hud_frame", "hud_fill", "hud_petals", "hud_icon", "hud_clock", "hud_digits",
-            "card_stage", "card_name", "pause", "res_complete", "res_results", "res_panel", "res_rows", "res_digits", "res_small", "pausecursor" };
+            "card_stage", "card_name", "pause", "res_complete", "res_results", "res_panel", "res_rows", "res_digits", "res_small", "pausecursor", "hud_icon_c", "hud_icon_cb" };
         for (int i = 0; i < NHUD; i++) hud_anim[i] = bank_anim(&G.objs, nm[i]);
     }
 }
@@ -634,7 +648,7 @@ void hud_draw(void) {
     /* life petals: counter value = half-petals 0..14 (RV GUIRings_125, max 14) */
     if (p->hp > 0) hud_img(2, p->hp, 8, 19 + hud_dy, -1);
     /* character head + crystal icon, lives (2 digits), crystals (3 digits) */
-    hud_img(3, 0, 128, 8 + hud_dy, -1);
+    hud_img(G.character == CHR_CAROL_BIKE || G.p.bike ? 17 : chr_is_carol(G.character) ? 16 : 3, 0, 128, 8 + hud_dy, -1);   /* guiicon direction by character (Carol 1, on the bike 2) */
     hud_number(p->lives < 0 ? 0 : p->lives > 99 ? 99 : p->lives, 2, 144, 8 + hud_dy);
     hud_number(p->crystals < 0 ? 0 : p->crystals > 999 ? 999 : p->crystals, 3, 176, 8 + hud_dy);
     /* clock + stage timer mm:ss:cc (RV GUITimerM/S/Milli counters; colons are part of the clock image) */

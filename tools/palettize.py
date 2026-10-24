@@ -15,7 +15,10 @@ import os, re, struct, sys
 
 def main():
     d = sys.argv[1]
-    args = [a for a in sys.argv[2:] if not a.startswith('--flex=') and not a.startswith('--pal4=')]
+    args = [a for a in sys.argv[2:] if not a.startswith(('--flex=', '--pal4=', '--gid='))]
+    # --gid=N: number the (single) group N instead of 0 (a palette that replaces bank N at run time, e.g. Carol's
+    # textures use Lilac's bank 2 when she plays; written as pal<N>.pal in <dir>)
+    gid = next((int(a[6:]) for a in sys.argv[2:] if a.startswith('--gid=')), None)
     # --pal4=<group>:<regex>: 4 bpp textures (<= 15 colours per image key); one 16-entry block per key (images whose
     # colours fit together share a block) at the start of palette group <group>; FPTX fmt 3, header field = bank 0..63
     pal4 = [a[7:].split(':', 1) for a in sys.argv[2:] if a.startswith('--pal4=')]
@@ -98,9 +101,9 @@ def main():
         for f in members[g]:
             w, h, sw, sh, px = texs[f]
             idx = bytes(index[p] if p & 0x8000 else 0 for p in px)
-            open(os.path.join(d, f), 'wb').write(b'FPTX' + struct.pack('<6H', w, h, 1, sw, sh, g) + idx)
+            open(os.path.join(d, f), 'wb').write(b'FPTX' + struct.pack('<6H', w, h, 1, sw, sh, g if gid is None else gid) + idx)
         pal += [0] * (256 - len(pal))
-        open(os.path.join(d, 'pal%d.pal' % g), 'wb').write(b'FPPL' + struct.pack('<2H', g, max(len(cols[g]) + 1, len(pre) + len(cols[g]) + 1 if pre else 0)) + struct.pack('<256H', *pal))
+        gg = g if gid is None else gid; open(os.path.join(d, 'pal%d.pal' % gg), 'wb').write(b'FPPL' + struct.pack('<2H', gg, max(len(cols[g]) + 1, len(pre) + len(cols[g]) + 1 if pre else 0)) + struct.pack('<256H', *pal))
         print('group %d %-22s %2d textures, %3d colours' % (g, rx.pattern, len(members[g]), len(cols[g])))
 
 if __name__ == '__main__':
