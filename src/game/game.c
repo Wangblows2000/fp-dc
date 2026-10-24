@@ -62,7 +62,7 @@ static void tex_drop(tex_t *t) { if (t->w > 0) r_tex_free(t); memset(t, 0, sizeo
 void camera_shake(int z) { float n = G.cam.Z + z; G.cam.Z = n < z ? n : (float)z; }
 
 static void level_free(void) {   /* everything of the level except Lilac's banks */
-    tex_drop(&G.objs.tex); bank_free(&G.objs);
+    tex_drop(&G.objs.tex); if (G.objs.tex2.w > 0) tex_drop(&G.objs.tex2); bank_free(&G.objs);
     if (G.ens.nframes) { tex_drop(&G.ens.tex); if (G.ens.tex2.w > 0) tex_drop(&G.ens.tex2); bank_free(&G.ens); }
     memset(&G.ens, 0, sizeof G.ens); G.ens.tex.id = -1;
     for (int i = 0; i < G.lvl.natlas && i < MAX_ATLAS; i++) tex_drop(&G.lvl.atlas[i]);
@@ -653,7 +653,8 @@ static void hud_img(int which, int frame, float x, float y, int w_override) {
     const frame_t *f = &G.objs.frames[G.objs.seq[an->first + frame]];
     int w = w_override >= 0 ? w_override : f->w;
     if (w <= 0) return;
-    r_sprite(&G.objs.tex, f->u, f->v, w, f->h, x, y, w, f->h, 0, 0xffffffff);
+    int v; const tex_t *t = bank_frame_tex(&G.objs, f, &v);
+    r_sprite(t, f->u, v, w, f->h, x, y, w, f->h, 0, 0xffffffff);
 }
 /* draw a bank frame by its hotspot (cards, pause, results are placed by their original hot spots) */
 static void hud_img_hot(int which, int frame, float x, float y) {

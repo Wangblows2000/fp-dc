@@ -74,6 +74,7 @@ def main():
                     'sA': (num(p, 'rev'), num(o, 'sa_A'))  if name.startswith('b_') else (int(p['cA']), int(num(o, 'sa_A'))), 'sL': (int(p['cL']), int(num(o, 'sa_L'))), 'en': (num(p, 'energy'), num(o, 'en_A'))}
             o3 = O.get(f + SHIFT + 1, o)
             if pa != int(num(o, 'ctail_aid', -1)) or num(o3, 'ctail_aid', -1) != num(o, 'ctail_aid', -1) or int(p['hafr']) < 0: del vals['tfr']; n_tfr_skip[0] += 1
+            if name.startswith('b_'): vals['sL'] = (0, 0)   # on b_ traces the logged skin is the bike skin (sa_A = rev): its L is not Carol's kick/pad counter
             if pa in (3, 4, 5, 6, 18, 19, 20, 30, 34) and not name.startswith('b_'): vals['anim'] = (0, 0)   # no tail animation with that index: ctail_aid keeps the old one
             for k, (a, b) in vals.items():
                 if abs(a - b) <= fields[k] + 1e-9: good[k] += 1

@@ -165,6 +165,7 @@ typedef struct { const bank_t *b; int anim, frame, acc, loops, done; } animator_
 
 int  bank_load(bank_t *b, const char *name);
 int  bank_anim(const bank_t *b, const char *name);       /* -1 if missing */
+const tex_t *bank_frame_tex(const bank_t *b, const frame_t *f, int *v);   /* atlas holding frame f and its v (second atlas: bit 15) */
 void anim_set(animator_t *a, const bank_t *b, int anim);  /* restarts only if changed */
 void anim_restart(animator_t *a);
 void anim_tick(animator_t *a, int speed_override);       /* <0: use table speed */
