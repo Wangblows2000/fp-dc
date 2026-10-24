@@ -49,11 +49,12 @@ static void bank_free(bank_t *b) { free(b->act); free(b->frames); free(b->anims)
 /* Lilac's banks stay resident across a level change when the next level's pack holds byte-identical
  * files (CRC-32 in the pack index): all four Dragon Valley acts share them (1.5 MB of textures). They
  * are loaded first after a full VRAM reset, so freeing everything else leaves VRAM contiguous. */
-static uint32_t chr_crc[6];      /* skin .tex/.spr, overlay .tex/.spr, bike .tex/.spr of the resident character banks */
+static uint32_t chr_crc[8];      /* skin .tex/.spr, overlay .tex/.spr, bike .tex/.spr, second atlases of the resident character banks */
 static int chr_resident, chr_resident_who = -1;
 /* the playing character's bank files: Lilac lilac2 + lilachair; Carol carol2 + caroltail + carolbike (+ pal2c.pal) */
-static const char *const CHR_FILES[2][6] = { { "lilac2.tex", "lilac2.spr", "lilachair.tex", "lilachair.spr", 0, 0 },
-                                             { "carol2.tex", "carol2.spr", "caroltail.tex", "caroltail.spr", "carolbike.tex", "carolbike.spr" } };
+static const char *const CHR_FILES[2][8] = { { "lilac2.tex", "lilac2.spr", "lilachair.tex", "lilachair.spr", 0, 0, 0, 0 },
+                                             { "carol2.tex", "carol2.spr", "caroltail.tex", "caroltail.spr", "carolbike.tex", "carolbike.spr",
+                                               "carol2_2.tex", "carolbike_2.tex" } };   /* _2: split atlases (tools/import_frame.py) */
 
 /* only textures that were actually created (a zeroed tex_t has id 0 = somebody else's slot) */
 static void tex_drop(tex_t *t) { if (t->w > 0) r_tex_free(t); memset(t, 0, sizeof *t); t->id = -1; }
@@ -79,9 +80,9 @@ void game_unload_all(void) {
     r_reset();
 }
 
-static int chr_crcs(const char *dir, int who, uint32_t c[6]) {
+static int chr_crcs(const char *dir, int who, uint32_t c[8]) {
     char nm[48];
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 8; i++) {
         c[i] = 0; if (!CHR_FILES[who][i]) continue;
         snprintf(nm, sizeof nm, "%s/%s", dir, CHR_FILES[who][i]); if (pack_entry_crc(nm, &c[i]) < 0) return -1;
     }
@@ -90,7 +91,7 @@ static int chr_crcs(const char *dir, int who, uint32_t c[6]) {
 
 /* every level lives in its own data dir (own palettes + Lilac bank; tools/build_level.sh) */
 int game_load_level(const char *dir) {
-    uint32_t want_crc[6];
+    uint32_t want_crc[8];
     int who = chr_is_carol(G.character) ? 1 : 0;
     lp_begin(dir);
     int keep = chr_resident && chr_resident_who == who && chr_crcs(dir, who, want_crc) == 0 && !memcmp(want_crc, chr_crc, sizeof chr_crc);
@@ -104,7 +105,8 @@ int game_load_level(const char *dir) {
         if (i == 2 && who == 1) snprintf(nm, sizeof nm, "%s/pal2c.pal", dir); else snprintf(nm, sizeof nm, "%s/pal%d.pal", dir, i);
         bad |= pal_load_file(nm) < 0;
     }
-    if (keep) { LP.nskip += who ? 6 : 4; LP.skip_bytes += (uint64_t)G.lilac.tex.w * G.lilac.tex.h + (uint64_t)G.hair.tex.w * G.hair.tex.h + (uint64_t)G.bike.tex.w * G.bike.tex.h; }
+    if (keep) { LP.nskip += who ? 8 : 4; LP.skip_bytes += (uint64_t)G.lilac.tex.w * G.lilac.tex.h + (uint64_t)G.hair.tex.w * G.hair.tex.h + (uint64_t)G.bike.tex.w * G.bike.tex.h
+                                           + (uint64_t)G.lilac.tex2.w * G.lilac.tex2.h + (uint64_t)G.bike.tex2.w * G.bike.tex2.h; }
     else {
         snprintf(nm, sizeof nm, "%s/%s", dir, who ? "carol2" : "lilac2"); bad |= bank_load(&G.lilac, nm) < 0;
         snprintf(nm, sizeof nm, "%s/%s", dir, who ? "caroltail" : "lilachair"); if (bank_load(&G.hair, nm) < 0) plat_log("no overlay bank\n");
