@@ -90,6 +90,7 @@ void objects_spawn(void) {
     pads_spawn();                                 /* jump pads: index, angle, chain end, lit (spec_carol_bike C2) */
     layers_refresh(&G.p);
     bosses_spawn();
+    aqua_spawn();
     wlogs_spawn(); dv3_switch_spawn(); tunnels_reset(); shields_reset(); water_reset();
     /* 3566 / 3567: 12 logs per bridge at (bx + 16k, by + 56), A = k, B = base y */
     int nb = G.nobjs;
@@ -581,6 +582,7 @@ void objects_update(void) {
         float bx0, by0, bx1, by1;
         obj_box(o, &bx0, &by0, &bx1, &by1);
         int defeated = enemy_type(o->type) && (o->fl & 0x40);
+        if (o->type >= OT_DIGSPOT || o->type == OT_MON_KEYSTONE || o->type == OT_MON_WOOD) { if (aqua_obj_update(o, p)) continue; }   /* Aqua Tunnel objects (src/game/aqua.c) */
         switch (o->type) {
         case OT_CRYSTAL:
             /* RE (events 2543 + loop_collect_item 1289/1291): not while hurt (M8) or defeated; the crystal's
@@ -733,6 +735,7 @@ void objects_draw(int pass) {
         if (boss_hidden(o)) continue;
         if (o->type == OT_WLOG && o->st == 0) continue;                                    /* emerging behind the waterfall (layer 0) */
         uint32_t col = (o->type == OT_CARD && (o->fl & 2)) ? 0x80ffffff : 0xffffffff;     /* 2573: already collected */
+        if (o->type == OT_WHISP) { int a = aqua_obj_alpha(o); if (a <= 0) continue; col = ((uint32_t)a << 24) | 0xffffff; }   /* 4147 / 4148 fade */
         if (o->type == OT_WF_BACK) col = 0x9cffffff;                                        /* RE create_waterfallback: blend alpha 0x9c */
         int addv = o->type == OT_WF_FRONT;                                                  /* RE create_waterfallfront_1037: set_shader(0x20) = additive (spec_water §6) */
         int inv = boss_flash(o);
@@ -766,7 +769,8 @@ int obj_in_group(int type, int grp) {
     case OBJGRP_SOLID: return type == OT_MONITOR || type == OT_MON_RINGS || type == OT_MON_1UP || type == OT_MON_INVINC || type == OT_ROCK || type == OT_SPIKES || type == OT_SPRING_R ||
                               type == OT_SPIKES_L || type == OT_SPIKES_R || type == OT_SPIKES_D || (type >= OT_LOOP016 && type <= OT_LOOP1Q) ||
                               type == OT_SPIRAL_MASK || type == OT_BALLTUNNEL || type == OT_WR_BARRIER || type == OT_BROCK2 || type == OT_MON_KEYSTONE ||
-                              type == OT_TRUNK || type == OT_PBLOCK2 || type == OT_DOOR || type == OT_BTUNNEL2 || type == OT_PBLOCK1 || (type >= OT_MON_WOOD && type <= OT_MON_WATER);
+                              type == OT_TRUNK || type == OT_PBLOCK2 || type == OT_DOOR || type == OT_BTUNNEL2 || type == OT_PBLOCK1 || (type >= OT_MON_WOOD && type <= OT_MON_WATER) ||
+                              type == OT_ABRICK || type == OT_ABRICK2;   /* AT Q7 */
     case OBJGRP_OBSTACLE: case OBJGRP_OBSTACLE_ALL:
         return type == OT_LADDERTOP || type == OT_LOG || type == OT_PLAT_VALLEY || type == OT_PLAT_MOVE2 || type == OT_PLAT_MOVE3 || type == OT_GEYSER || type == OT_RSPRING_UL || type == OT_FLOATPLAT || type == OT_WLOG || type == OT_SPINLOG_MASK;
     case OBJGRP_NOEDGE: return type == OT_LADDERTOP || type == OT_LOG || type == OT_PLAT_VALLEY || type == OT_PLAT_MOVE2 || type == OT_PLAT_MOVE3 || type == OT_MONITOR || type == OT_MON_RINGS || type == OT_MON_1UP || type == OT_MON_INVINC || type == OT_SPIKES || type == OT_SPRING || type == OT_SPRING_UL ||
@@ -834,7 +838,7 @@ static int sensor_hit_any(int grp, int type, int ox, int oy, const signed char *
         const frame_t *f = anim_frame(&o->an);
         int bx = (int)floorf(o->x) - (o->flip ? f->w - f->hx : f->hx), by = (int)floorf(o->y) - f->hy;
         if (ox > bx + f->w || ox + 27 < bx || oy >= by + f->h || oy + h <= by) continue;
-        if (o->type == OT_LOG || o->type == OT_WLOG || o->type == OT_PBLOCK2 || o->type == OT_PBLOCK1 || o->type == OT_ROCK) {   /* initialize_active(true): collision box = image rect (rock: RV spiralb timing) */
+        if (o->type == OT_LOG || o->type == OT_WLOG || o->type == OT_PBLOCK2 || o->type == OT_PBLOCK1 || o->type == OT_ROCK || o->type == OT_ABRICK || o->type == OT_ABRICK2) {   /* initialize_active(true): collision box = image rect (rock: RV spiralb timing) */
             for (int j = 0; j < h; j++) {
                 int y = oy + j;
                 if (x1[j] < x0[j] || y < by || y >= by + f->h) continue;

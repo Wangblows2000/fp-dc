@@ -417,7 +417,7 @@ static void chsel_update(const input_t *now) {
         wipe.on = 0;
         if (C.exit_to == 3) { set_state(FE_HUB); hub_enter(); }
         else if (C.exit_to == 5) { if (scr_load(1) == 0) { set_state(FE_STSEL); stsel_enter(); } }
-        else { const char *lv = "dv1"; fe_unload(); game_start_adventure(lv, 0); }
+        else { const char *lv = chr_is_milla(G.character) ? "at1" : "dv1"; fe_unload(); game_start_adventure(lv, 0); }   /* RE 799: Classic with G1 == 4 -> frame 16 (Aqua Tunnel 1) */
     }
 }
 static void chsel_draw(void) {
@@ -461,7 +461,7 @@ void fe_update(const input_t *in) {
         if (ex == HUB_EXIT_CONTINUE) {        /* original: frame 8 (stage from the save); the port has Dragon Valley only */
             fe_mode = SV.file[hub_selected_file()].mode ? 1 : 2; G.file_slot = hub_selected_file();
             G.character = SV.file[hub_selected_file()].character == CHR_CAROL_BIKE ? CHR_CAROL : SV.file[hub_selected_file()].character;
-            fe_unload(); game_start_adventure("dv1", 0);
+            fe_unload(); game_start_adventure(chr_is_milla(G.character) ? "at1" : "dv1", 0);   /* Milla's route starts at Aqua Tunnel (RE 799) */
         }
         break;
     }

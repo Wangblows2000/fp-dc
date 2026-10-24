@@ -73,6 +73,8 @@ def pack(images, size, height=None):
     pos = {}
     for key, im in order:
         w, h = im.width + 1, im.height + 1  # 1px gutter
+        if im.width > size:                 # session 12: wider than the atlas (was placed at x 0 and overflowed)
+            return None
         if x + w > size:
             x, y, shelf = 0, y + shelf, 0
         if y + h > height:

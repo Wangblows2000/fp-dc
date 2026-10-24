@@ -134,7 +134,8 @@ static void shield_creators(player_t *p) {
 /* qualifier 20 ("enemies"; RE on_frame_N_init): every class that takes Lilac's hits by the shared rules */
 int enemy_type(int t) {
     return t == OT_GANSEKI || t == OT_TURRETUS || t == OT_DRAGONFLY || t == OT_FLOUNDER || t == OT_CACTEON || t == OT_SPOREPOD ||
-           t == OT_WR_WEAK || t == OT_TD_BODY || t == OT_SNAKE_BODY || t == OT_SNAKE_HIT || t == OT_BBOULDER;
+           t == OT_WR_WEAK || t == OT_TD_BODY || t == OT_SNAKE_BODY || t == OT_SNAKE_HIT || t == OT_BBOULDER ||
+           t == OT_FIREFLY || t == OT_SLIME;   /* Aqua Tunnel Q20 (spec_at_enemies) */
 }
 static int candidates[MAX_OBJS], ncand;
 
@@ -336,7 +337,7 @@ void combat_frame(player_t *p) {
             if (o->x < 0 || o->x > G.lvl.w || o->y > G.lvl.h || o->y < 0) { o->alive = 0; continue; }   /* 2767 */
             if ((o->type == OT_GANSEKI || o->type == OT_TURRETUS) && o->y > G.camy + 290) { o->alive = 0; continue; }   /* 4389 / 4777 */
             int lands = o->type == OT_GANSEKI || o->type == OT_TURRETUS || o->type == OT_DRAGONFLY || o->type == OT_FLOUNDER ||
-                        o->type == OT_CACTEON || o->type == OT_SPOREPOD;          /* classes with a landing event */
+                        o->type == OT_CACTEON || o->type == OT_SPOREPOD || o->type == OT_FIREFLY || o->type == OT_SLIME;   /* classes with a landing event (AT 4113 / 4129) */
             if (lands && o->ky > 0 && (obj_overlaps_bg(o) || solid_obj_overlap(o))) corpse_land(o);                        /* 4390 / 4776 / 4807 */
         }
     }

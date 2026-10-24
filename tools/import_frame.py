@@ -64,8 +64,22 @@ ENGINE_TYPES = {
     'bossgiantboulder': 123, 'bosstunnel': 124, 'bosstunnel2': 125, 'bosstunnel3': 126, 'breakable1': 127, 'breakable2': 128, 'breakable3': 129,
     'bossbouncemode': 130, 'cameratriggerboss': 131, 'objectjumppad': 132, 'monitorkeystone': 133, 'objectfuel': 158,
     'levellayer016': 134, 'levellayer0loop04': 135, 'levellayer115': 136, 'levellayer1loop03': 137,
+    'objectdigspot': 160,   # Aqua Tunnel (session 12, src/game/aqua.c)
+    'enemyfirefly': 161, 'enemyslime': 162, 'objectwhispmaker': 163, 'breakableaquabrick': 164, 'breakableaquabrick2': 165,
     'waterfallback': 139, 'waterfallfront': 140, 'waterfallfront2': 141, 'waterfallfront3': 142, 'waterfallfront4': 143,   # EnemyGansekiJr_835 (RE build/re/spec_ganseki.md)     # LadderTop_428: invisible obstacle at the top of each ladder (RE spec_ladder.md)
 }
+
+# ---- Aqua Tunnel (session 12, src/game/aqua.c; specs build/re/spec_at_*.md)
+AT_ENS = [('objectdigspot_779', 0, '0', 'digspot'), ('guiweaponslot_426', 7, '0', 'dighint')] + \
+         [('enemyfirefly_749', 0, d, 'ff%s' % d) for d in ('0', '1', '2', '16', '17', '18')] + \
+         [('enemyfirefly_749', 8, '0', 'ff_dead'), ('enemyfirefly_749', 8, '16', 'ff_dead_l'),
+          ('enemyslime_717', 0, '0', 'sl_idle'), ('enemyslime_717', 0, '16', 'sl_idle_l'), ('enemyslime_717', 7, '0', 'sl_jump'),
+          ('enemyslime_717', 7, '16', 'sl_jump_l'), ('enemyslime_717', 8, '0', 'sl_land'), ('enemyslime_717', 8, '16', 'sl_land_l'),
+          ('enemyslime_717', 10, '0', 'sl_dead'), ('enemyslimeburst_718', 0, '0', 'slb'), ('enemyslimeburst_718', 7, '0', 'slb_pop'),
+          ('effectwhisp_767', 0, '0', 'whisp'), ('breakableaquabrick_681', 0, '0', 'abrick'), ('breakableaquabrick2_819', 0, '0', 'abrick2'),
+          ('breakableaquabrickpiece_682', 0, '0', 'abpiece')]
+AT_ENS_WITH = {'enemyslimeburst_718': ('enemyslime',), 'effectwhisp_767': ('objectwhispmaker',),
+               'breakableaquabrickpiece_682': ('breakableaquabrick', 'breakableaquabrick2'), 'breakableaquabrick_681': ('breakableaquabrick2',)}
 
 # ---- per-level bank of enemies, bosses and gimmicks (<name>_ens): (class, anim, direction, name[, frame slice]);
 # an entry is exported when its class is placed in the frame or when it is a child of a placed class (ENS_WITH)
@@ -119,15 +133,16 @@ ENS = [('enemydragonfly_942', a, d, nm + ('' if d == '0' else '_l')) for a, nm i
        ('monitormetalshield_360', 0, '0', 'mon_metal'), ('monitorwatershield_361', 0, '0', 'mon_water'),
        ('effectswatersplash_379', 4, '0', 'splash'), ('bubblepatch_804', 0, '0', 'bpatch'), ('bubblepatch_804', 7, '0', 'bpatch_open'),
        ('bubblepatch_804', 8, '0', 'bpatch_close'), ('mediumbubble_805', 0, '0', 'mbubble'), ('generalwaterhorizon_377', 0, '0', 'horizon')] + \
-      [('bubblenumbers_405', 0, d, 'bnum%s' % d) for d in ('0', '1', '2', '3', '4', '5')]
-ENS_WITH = {'enemysporeprojectile_1022': ('enemysporepod',), 'objectkeystone_429': ('enemysporepod', 'enemyturretus', 'monitorkeystone'),
-            'effectsdebris_427': ('enemysporepod', 'bossserpentinehead'), 'effectsexplosion06_435': ('minibosswretchnidbase', 'minibosstredd', 'bossserpentinehead'),
+      [('bubblenumbers_405', 0, d, 'bnum%s' % d) for d in ('0', '1', '2', '3', '4', '5')] + \
+      AT_ENS
+ENS_WITH = {**AT_ENS_WITH, 'guiweaponslot_426': ('objectdigspot',), 'enemysporeprojectile_1022': ('enemysporepod',), 'objectkeystone_429': ('enemysporepod', 'enemyturretus', 'monitorkeystone'),
+            'effectsdebris_427': ('enemysporepod', 'bossserpentinehead', 'objectdigspot'), 'effectsexplosion06_435': ('minibosswretchnidbase', 'minibosstredd', 'bossserpentinehead'),
             'effectsshade_436': ('enemygansekijr', 'enemydragonfly', 'enemystarflounder', 'enemycacteon'),
             'minibosstreddbomb_1060': ('minibosstredd',), 'minibosstredddebris_1058': ('minibosstredd',), 'monitoricon_363': ('minibosstredd', 'shieldmonitor_onmap'),
             'bossfireball_1003': ('bossserpentinehead',), 'bossboulder_1099': ('bossgiantboulder',), 'effectwarning_1100': ('bossgiantboulder',),
             'breakablerockpiece_432': ('bosstunnel2', 'bosstunnel'), 'breakabledebris1_1098': ('breakable1',), 'effectsdust_437': ('pushableblock1',), 'effectswatersplash_379': ('water_level',), 'bubblepatch_804': ('water_level',), 'mediumbubble_805': ('water_level',), 'generalwaterhorizon_377': ('water_level',), 'bubblenumbers_405': ('water_level',), 'shieldwood_342': ('shieldmonitor_onmap',), 'shieldearth_443': ('shieldmonitor_onmap',), 'shieldwater_439': ('shieldmonitor_onmap',), 'shieldmagnetic_344': ('shieldmonitor_onmap',), 'shieldflamefront_343': ('shieldmonitor_onmap',), 'shieldflameback_376': ('shieldmonitor_onmap',), 'effectsshield_440': ('shieldmonitor_onmap',)}
 
-ENS_ONLY_WITH = {'effectswatersplash_379', 'bubblepatch_804', 'mediumbubble_805', 'generalwaterhorizon_377', 'bubblenumbers_405', 'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
+ENS_ONLY_WITH = {'guiweaponslot_426', 'effectswatersplash_379', 'bubblepatch_804', 'mediumbubble_805', 'generalwaterhorizon_377', 'bubblenumbers_405', 'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 # classes whose untrimmed image box matters (spring top edges RV, box-collision platforms/logs, invisible
 # sensors): their images are never cropped. Everything else in the object bank is cropped to its opaque pixels.
 BOX_TYPES = {8, 13, 14, 15, 16, 17, 30, 32, 33, 34, 35, 36}
@@ -232,6 +247,16 @@ def main():
     bd = json.load(open(os.path.join(fd, 'backdrops.json')))
     an = json.load(open(os.path.join(fd, 'anims.json')))
     W, H = fr['width'], fr['height']
+    # Layer map (session 12, D-045): the port draws and collides with the play layer as 2 (Dragon Valley's). Aqua Tunnel
+    # has one more background layer: the player and the collision backdrops are on layer 3 (RE: FrameObject::
+    # overlaps_background tests the object's own layer only), layer 2 holds objects behind the play layer and layer 4
+    # is in front. Such frames are mapped 2 -> 1, 3 -> 2, 4 -> 3; pieces keep the original layer order (stable sort below).
+    main = next((o['layer'] for o in fr['objects'] if o['cls'] == 'playerstartingpoint' and o['layer'] is not None
+                 and o['x'] is not None and 0 <= o['x'] < W and 0 <= o['y'] < H), 2)
+    LMAP = {2: 1, 3: 2, 4: 3} if main == 3 else {}
+    for o in fr['objects']:
+        o['layer0'] = o['layer'] or 0
+        if o['layer'] is not None: o['layer'] = LMAP.get(o['layer'], o['layer'])
     report = ['frame %d -> %s  (%dx%d px, %d placements)' % (n, name, W, H, len(fr['objects']))]
 
     pieces, objs, skipped = [], [], {}
@@ -247,7 +272,7 @@ def main():
             col = 0 if ac is None else {9: 1, 8: 1, 11: 3}.get(ac, 0)
             box = ac == 9
             invisible = b['fields'].get('0x5f') == 0 and '0x5c' in b['fields']
-            pieces.append({'img': b['image'], 'x': o['x'], 'y': o['y'], 'layer': o['layer'] or 0, 'col': col,
+            pieces.append({'img': b['image'], 'x': o['x'], 'y': o['y'], 'layer': o['layer'] or 0, 'layer0': o['layer0'], 'col': col,
                            'box': box, 'invisible': invisible, 'cls': o['cls']})
         else:
             t = ENGINE_TYPES.get(o['cls'])
@@ -647,7 +672,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
        obj   {u16 type, anim (index in <name>_obj bank or 0xffff); s32 x, y}  (12 B)
        uniq tiles: 32 B each (16 rows of u16, bit x = pixel x)
        solid map u16[tw*th]; platform map u16[tw*th]"""
-    pieces = sorted(pieces, key=lambda p: p['layer'])   # stable: keeps the frame's instance (z) order inside a layer
+    pieces = sorted(pieces, key=lambda p: (p['layer'], p['layer0']))   # stable: keeps the frame's instance (z) order inside a layer (mapped layers keep their original order)
     names = [a['name'] for a in bank['anims']]
     d = bytearray(b'FPL2' + struct.pack('<2I4H2HI', W, H, len(pieces), len(objs), natlas, len(table), TW, TH, 0))
     for p in pieces:

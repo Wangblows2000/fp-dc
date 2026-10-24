@@ -271,9 +271,17 @@ int main(int argc, char **argv) {
         apply_dbg(cur_frame + 2, 1);
         const player_t *p = &G.p;
         double mdd[7]; player_milla_dbg(mdd);
-        printf("f %d x %.2f y %.2f gsp %.3f vx %.3f vy %.3f gnd %d ang %.3f st %d hp %d cr %d k %d an %d fr %d rot %.2f en %.2f lv %d face %d mode %d sel %d cx %.1f cy %.1f act %d res %d sh %d shc %d air %d chr %d bike %d bc %d oy %d rA %d rx %.1f ry %.1f me %.2f mh %d mm %d\n",
+        printf("f %d x %.2f y %.2f gsp %.3f vx %.3f vy %.3f gnd %d ang %.3f st %d hp %d cr %d k %d an %d fr %d rot %.2f en %.2f lv %d face %d mode %d sel %d cx %.1f cy %.1f act %d res %d sh %d shc %d air %d chr %d bike %d bc %d oy %d rA %d rx %.1f ry %.1f me %.2f mh %d mm %d ma %.1f mb %.1f\n",
                cur_frame, p->x, p->y, p->gsp, p->vx, p->vy, p->ground, p->N, p->state, p->hp, p->crystals, G.kills, p->an.anim, p->an.frame,
-               p->rot, p->energy, p->lives, p->face, G.mode, G.in_select, G.camx, G.camy, G.lvdir[0] ? G.lvdir[2] - '0' : 0, results_state(), p->shield, p->shield_c, p->air, G.character, p->bike, p->bikeC, p->cY, player_cube_state(), mdd[1], mdd[2], p->mE, player_milla_hud(), player_orig_m(p));
+               p->rot, p->energy, p->lives, p->face, G.mode, G.in_select, G.camx, G.camy, G.lvdir[0] ? G.lvdir[2] - '0' : 0, results_state(), p->shield, p->shield_c, p->air, G.character, p->bike, p->bikeC, p->cY, player_cube_state(), mdd[1], mdd[2], p->mE, player_milla_hud(), player_orig_m(p), p->mA, p->mB);
+        { static const char *tk; static int tk_init; if (!tk_init) { tk_init = 1; tk = getenv("FP_TRACK"); }   /* "type:spawnx,..." per-frame object dump */
+          if (tk) { const char *q = tk; int t, x0, nn;
+            while (sscanf(q, "%d:%d%n", &t, &x0, &nn) == 2) {
+                for (int i = 0; i < G.nobjs; i++) { const obj_t *o = &G.o[i];
+                    if (o->alive && o->type == t && (int)o->ox == x0)
+                        printf("ob %d %d %d x %.2f y %.2f st %d A %.2f dir %d an %d fr %d fl %x a0 %.3f a1 %.3f a2 %.3f a3 %.3f a4 %.3f fx %.2f fy %.2f bd %d\n", cur_frame, t, x0, o->x, o->y, o->st, o->A, o->dir,
+                               o->an.b ? o->an.anim : -1, o->an.frame, o->fl, o->av[0], o->av[1], o->av[2], o->av[3], o->av[4], o->fx, o->fy, o->bd); }
+                q += nn; if (*q == ',') q++; else break; } } }
         if (getenv("FP_DBG_ENEMY")) {             /* nearest enemy: A, C, knock-back, angle, flags */
             int bi = -1; float bd = 1e9f;
             for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && enemy_type(G.o[i].type)) { float d = fabsf(G.o[i].x - (float)p->x); if (d < bd) { bd = d; bi = i; } }
