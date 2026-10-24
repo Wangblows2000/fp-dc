@@ -193,7 +193,7 @@ Every level, front-end and boot load runs behind a black loading screen with Obj
 | Title menu | 3 (cam 43,0) | fe_hub.c title_events | 63/64 | 380-392, console layout | GALLERY inert; QUIT hidden (console) |
 | File / mode select | 3 (cam 43,240) | file_events, delete_events | 63/64/56 | 393-437 | Adventure skips the cutscene; continue starts DV1 |
 | Options | 3 (cam 523,0) | options_events | 63/64 | 464-511 | Controls / screen size / sensitivity hidden (console); SFX volume display-only on host |
-| Character select | 6 | frontend.c FE_CHSEL | 63, 220, 56 | spec_charselect | Lilac and Carol playable (session 10); Milla locked |
+| Character select | 6 | frontend.c FE_CHSEL | 63, 220/221/186, 56 | spec_charselect | Lilac, Carol (session 10) and Milla (session 11) playable |
 | TA stage select | 5 | fe_stsel.inc | 63/64/56 | spec_stageselect | only Dragon Valley startable; BG parallax drift not ported; confirm 3 frames late |
 | Pause | 20 (DV1) | game.c pause_* | 63/64/56 | 4878-4881, 4296-4305, 3551 | QUIT from Classic → hub |
 
@@ -248,3 +248,24 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
 - Traces: tests/orig_carol/*.txt (c_ on foot DV1, b_ on the bike DV1, c_jumppad_dv2 DV2), CSVs build/orig_traces/carol,
   compared by tools/orig/cmp_carol.py (V=1 prints the first mismatching frame per field). Host CSV columns added:
   M, cY, cA, cL, cS, aname, inv, hafr, sacc, hacc, rev; host f-line adds chr, bike, bc, oy.
+
+## Session 11: Milla (port: src/characters/milla.inc, player.c; combat.c 2742-2745; objects.c rocks / monitors)
+- Character id CHR_MILLA 4 (host `FP_CHAR=4`, demo `CHAR 4`); select cursor 3, voice 186. Classic / Adventure start at
+  DV1 in the port (the original sends Milla to Aqua Tunnel 1, frame 16, which is not ported: D-040).
+- States: ST_MATK 22 (M20), ST_FLOAT 23 (M22), ST_DIG 24 (M27), ST_MCARRY 25 (M30), ST_MSHIELD 26 (M31);
+  `player_orig_m()` maps them back. OTHERS.Y is `cY` (shared with Carol).
+- Player fields: mA/mB/mC/mD (dig power, progress, reward roll, zone), mE (float meter), mF (holding: 2 cube), mG (cube
+  charge), mH (attack cool-down), mN (float counter), mfl1/mfl10, nol (MV.V = 0), mC4 (MV.C = 4), skinI.
+- The cube: a static `mcube_t` in milla.inc (not in G.o): drawn after the skin, ticked and collided at the frame start
+  (update_objects + test_collisions_20), its group 0x21a67 after the state groups. Hooks: `player_cube_hits /
+  _breaks_rock / _opens_monitor / _damage` for combat.c and objects.c.
+- Frame order: cube tick + collisions -> movement (milla_normal / milla_move) -> 1665 -> clamp -> 1723-1725 (grounded
+  M0, after the clamp) -> 0x21a67 -> M20 / M22 / M27 / M30 / M31 groups (each only while M is still its state) -> 2414
+  -> animation (index from OTHERS.Y, direction 0/16 - F, nearest existing direction, tail with its own counter).
+- Banks: milla2 (skin + dig mound + HUD panel `hudm`, ACT1 action points, palette pal2m.pal), millatail (4 bpp),
+  millafx (PlayerReflect_463, 4 bpp) in G.lilac / G.hair / G.bike.
+- Host: f-line adds rA rx ry me mh mm; CSV adds mE, mF, mG, rA, rx, ry, rC, rF, ranim, mdir. Script commands
+  `<f> DIGZONE v` (MILLA.D) and `<f> SETV others E v` (invulnerability, same line as the tracer's).
+- Traces: tests/orig_milla/*.txt (DV1; m_dig_at1 Aqua Tunnel, FRAME=16), CSVs build/orig_traces/milla, compared by
+  tools/orig/cmp_milla.py (FR=295 for the 300-frame traces). Teleports far from the start can fail in the original
+  (camera bounds): use spots near the DV1 start or at x 5430 / 6740.

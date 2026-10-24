@@ -290,3 +290,29 @@ No audio device in the VM: sounds were checked through the host and original sou
   x 2983, Carol at 3350), which explains the object-update difference. Peak player section ≤ 6.6 ms in all runs.
 - **DC build:** 0 warnings. Emulator only; real hardware still untested.
 
+## Session 11 (2026-10-24): Milla, 4 bpp overlays
+Labels: original-trace (RV), RE, host-test, emulator (Flycast, emulated time). **Nothing measured on real hardware.**
+No audio device in the VM: sounds were checked through the sound-id traces, not by ear.
+
+- **Milla against the original (tools/orig/cmp_milla.py, FR=295, 41 traces, 9170 compared frames):** X 95.8 %, Y 99.4 %,
+  B 98.8 %, G 98.4 %, L 99.8 %, M 99.6 %, OTHERS.Y 99.6 %, animation index 98.3 %, direction 99.3 %, cube state 99.7 %,
+  cube position 98.5 %, float meter 99.9 %, energy 100 %. 36 traces match X/Y/B/G on every frame, including every
+  recoil trace (ground neutral / up / down, air neutral / down, into a wall). The other 5: 4 teleport traces next to
+  the DV1 Turretus without invulnerability (the pellet hit is 1-2 frames off, as for Lilac and Carol) and one jump at
+  the level's left edge (B differs by 0.5 for one frame). Known small differences: the cube thrown at the Turretus
+  bursts 2 frames later in the port (1 px of held-cube height); the beam's first hit 1 frame earlier; flap sound 170
+  cadence (the original's timer uses frame time).
+- **Host tests:** test_milla 33/33 (select + Time Attack, energy, float rise / duration / sounds / release, no double
+  jump, cube charge / cancel / carry / throw / burst, shield, burst, super beam, recoil -7 / down / up / wall, hits on
+  the Turretus, rock breaking, hurt voices, cube drop, dig only in zones, HUD frames, Lilac / Carol unchanged);
+  test_gameplay 72/72, test_frontend 30/30, test_carol 19/19.
+- **Lilac / Carol regression:** cmp_all 76/76, strict 11311/11377 (99.4 %, unchanged); cmp_carol 43 ok / 10 known
+  (unchanged). Host renders (DV1-DV4, 20 frames per character) pixel-identical before/after the 4 bpp overlays.
+- **Found in the emulator and fixed:** a 300 ms frame (objects section) when the beam was near rocks: the rotated
+  hitbox scanned all 10240 beam pixels against every rock / monitor; now only the overlap rectangle (D-042).
+- **Performance (Flycast, demo_milla_dv1: float, cube, throw, shield, burst, super beam aimed down, run):** windows
+  after boot 603 and 602 vblanks per 600 frames; player 2.4-2.6 ms avg (max 5.7), objects 0.66-0.82 ms avg, draw CPU
+  ~1.6 ms. VRAM free after load: DV1 Lilac 2541 / Carol 1981 / Milla 2181 KB; DV2 Lilac 1707 / Carol 1179 / Milla
+  1347 KB. Sound RAM largest free block: Lilac 380, Carol 351, Milla 375 KB.
+- **DC build:** 0 warnings. Emulator only; real hardware still untested.
+
