@@ -146,7 +146,7 @@ Ground is detected by PlayerSensorBottomBig_334 (11×11 at floor Yref + 13): sur
 On the frame the head reaches a ceiling, vy becomes 0 at once (no gravity that frame; air drag still applies).
 
 ## Sound IDs (Media::play_id 0xa4e650 / play(string) 0xa4e2c0, logged by the tracer to `<trace>.snd`)
-8 jump · 9 boost charge · 53 boost fire · 21 attack swing (7 frames in) · 288 + 174 cyclone · 405 kick windup · 176 + 396 kick launch · 17/25/81 hurt · 28 Turretus shot · 5 spring · 27 crystal pickup · 4 pickup (ambiguous) · 100 Press Start · 64 menu move · 63 confirm · 56 begin.
+8 jump · 9 boost charge · 53 boost fire · 21 attack swing (7 frames in) · 288 + 174 cyclone · 405 kick windup · 176 + 396 kick launch · 25 + one of 80/81/82 Lilac hurt (17 also on projectile hits) · 307 + 12 monitor break · 13 rock break · 28 Turretus shot · 5 spring · 27 crystal pickup · 4 pickup (ambiguous) · 100 Press Start · 64 menu move · 63 confirm · 56 begin.
 
 ## Music (RV: `loop_play_music_<n>_<frame>` / `on_frame_N` handlers)
 m_title (title frames) · m_menu2 (hub: title menu, files, options; RV) · m_menu1 (Time Attack character select + stage select) · m_results (Classic/Adventure character select; RV) · m_stage1 (DV frame index 20) · m_stage1b (21–22) · m_boss (23 = DV4; RE: `Frames::loop_play_music_4_23` string) · m_stage2 (24, Relic Maze 1) · m_invincibility (invincibility monitor) · m_1up (1-up monitor) · m_clear → m_results (results, Time Attack trace: m_clear at act end, m_results 150 frames later). BGM loops whole-file: ChowdrenAudio has no loop points (SD). `m_stage2a.ogg` is referenced but absent in this build.
@@ -220,3 +220,11 @@ Every level, front-end and boot load runs behind a black loading screen with Obj
 - Teleport caveat (tracer): sensors are clamped to the camera bounds, so a TP far from the start region can push Lilac out
   of the "ground" every frame (DV2 logs at x 10240 could not be reached that way).
 - Emulator (Flycast, developer select, 16:9): DV1-DV4 load and draw; pvr free after load 2046 / 1211 / 1326 / 1144 KB.
+
+## Session 9: DC perf log and frame budget (port: src/platform/plat_dc.c, fp.h PROF)
+Every 600 frames the DC build prints `perf:` and `prof(avg/max us):` with per-section average/maximum microseconds
+(par, plat = objects_platforms, player, layers, obj = objects_update, gimmick = shields/water/pblocks/spinlogs/tunnel/
+cork, cam, res, draw = game_draw incl. wait, submit = list submission, wait = pvr_wait_ready, mus = music refills on
+the stream thread), `frame_avg` and `vblanks N per 600 frames` (pvr_get_vbl_count: 600 = no frame missed), then up to 8
+missed-vblank frames with their own update/draw split. Times are timer_us_gettime64 (emulated time in Flycast).
+Demo discs print `demo f` every 600 frames (console output is slow; the report frame is excluded from the pacing).
