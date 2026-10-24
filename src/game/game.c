@@ -300,7 +300,7 @@ void camera_update(void) {
     }
     float C = G.cam.minC, E = (float)G.lvl.w, D = 0, F = (float)G.lvl.h;
     if (G.cam.U == 1) { C = G.cam.bC; E = G.cam.bE; D = G.cam.bD; F = G.cam.bF; }
-    if (!G.cam.M3) {   /* CAM.M = 3 (DV4 chase): A / B are set by 5404-5408, the mode-0 rules are skipped */
+    if (!G.cam.M3 && !G.cam.cine) {   /* CAM.M = 3 (DV4 chase): A / B are set by 5404-5408; cinematic (5547: group 0x21a47 off): only 5551 moves A / B */
     int L = p->ground;
     float Bsp = p->ground ? p->gsp : p->vx;             /* movement B */
     float Q = (float)p->face;

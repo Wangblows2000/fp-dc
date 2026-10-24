@@ -290,5 +290,16 @@ check('water_jump_swim_leap', at(r, 360)['vy'] == -6.0 and at(r, 384)['vy'] == -
 r = run('60 TP 1493 2860\n', 3800, {'FP_LEVEL': 'dv3'})
 check('water_drowns_after_62s', at(r, 3600)['air'] == 28 and at(r, 3790)['st'] == 6)
 
+# DV4 boss defeat (spec_dv4_boss_events 5547-5578; FP_SN_AUTOKILL deals the hits): the head rises up the shaft and explodes on
+# the surface, the cinematic camera stays there (normal camera group off), Lilac rises as the boost ball (anim 7) at
+# 10 px/frame, resumes physics at y < 1230 in M6, lands on the surface, then the results run and the menu follows
+r = run(open(os.path.join(HERE, 'play', 'dv4_to_boss.txt')).read(), 4700, {'FP_LEVEL': 'dv4', 'FP_SN_AUTOKILL': '1'})
+rise = [x for x in r if x['gnd'] == 0 and x['y'] - 14 < 1300 and x['x'] > 12500 and x['x'] < 13300]
+land = [x for x in r if x['gnd'] == 1 and abs(x['y'] - 14 - 1260) < 8 and x['x'] > 12500 and x['x'] < 13300]
+view = [x for x in r if x['res'] >= 1]
+check('dv4_exit_rises_to_surface', bool(rise) and bool(land), '%d air / %d grounded frames on the surface' % (len(rise), len(land)))
+check('dv4_exit_camera_on_surface', bool(land) and land[0]['cy'] < 1300 and land[0]['y'] - land[0]['cy'] > 0 and land[0]['y'] - land[0]['cy'] < 240, str(land[0]['cy'] if land else None))
+check('dv4_exit_results_then_menu', bool(view) and max(x['res'] for x in r) >= 3 and r[-1]['mode'] == 0)
+
 print('%d failure(s)' % fails)
 sys.exit(1 if fails else 0)

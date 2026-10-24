@@ -82,6 +82,21 @@ def build_imgmap():
                 IMGMAP.setdefault(ptr, (a, d, i))
 
 SETC = {}
+SETV = {}
+SETB = {}   # "<f> SETB <hexoff> <byte>": write one byte at Frames + off (group switches, debug setups)
+FRAMES = [None]
+def find_frames(mv, others):
+    # GameManager (0x285ec60, bss) points to the current Frames object (an mmap'd block, not in [heap]):
+    # Frames + 0x3730 holds the PlayerMovementValues instance, + 0x1b70 PlayerOthers
+    gm = bytes(inf.read_memory(0x285ec60, 0x800))
+    for k in range(0, 0x800, 8):
+        cand = struct.unpack_from('<Q', gm, k)[0]
+        if cand < 0x10000: continue
+        try:
+            v = struct.unpack('<QQ', bytes(inf.read_memory(cand + 0x1b70, 8)) + bytes(inf.read_memory(cand + 0x3730, 8)))
+        except Exception: continue
+        if v[1] == mv and v[0] == others: return cand
+    return None   # "<f> SETV <obj> <alterable letter | 0xoffset> <value>": write a double into a found object (debug setups)
 WATCH = {}
 REFIND = set()
 WHO = {}
@@ -102,6 +117,10 @@ def load_script(path):
                 WHO.setdefault(int(t[0]), []).append((int(t[2], 16), [int(x, 16) for x in t[3].split(',')]))
             elif len(t) == 4 and t[1] == 'WATCH':   # "<f> WATCH <obj> <alt index|cnt>": log every write (bt)
                 WATCH.setdefault(int(t[0]), []).append((t[2], t[3]))
+            elif len(t) == 4 and t[1] == 'SETB':
+                SETB.setdefault(int(t[0]), []).append((int(t[2], 16), int(t[3], 0)))
+            elif len(t) == 5 and t[1] == 'SETV':
+                SETV.setdefault(int(t[0]), []).append((t[2], t[3], float(t[4])))
             elif len(t) == 4 and t[1] == 'TP':
                 TP[int(t[0])] = (float(t[2]), float(t[3]))
             elif len(t) == 3 and not line.startswith('#'):
@@ -269,6 +288,17 @@ class Tracer(gdb.Breakpoint):
             gdb.write('frame %d t=%.1f\n' % (self.f, time.time())); gdb.flush()
         held = held_at(self.ev, self.f)
         self.write_keys(held); self.prev = held
+        if self.f in SETB:
+            if FRAMES[0] is None: FRAMES[0] = find_frames(self.objs['mv'], self.objs.get('others', 0)); gdb.write('frames at %s\n' % (hex(FRAMES[0]) if FRAMES[0] else None))
+            for off_, b_ in SETB[self.f]:
+                if FRAMES[0]: inf.write_memory(FRAMES[0] + off_, bytes([b_]))
+        for nm_, key_, val_ in SETV.get(self.f, []):
+            if nm_ in self.objs:
+                o_ = self.objs[nm_]
+                if key_.startswith('0x'): inf.write_memory(o_ + int(key_, 16), struct.pack('<d', val_))
+                else:
+                    alt_ = struct.unpack('<Q', bytes(inf.read_memory(o_ + 0x20, 8)))[0]
+                    inf.write_memory(alt_ + 0x50 + 8 * (ord(key_) - 65), struct.pack('<d', val_))
         if self.f in SETC and SETC[self.f][0] == 'en_alt' and 'en' in self.objs:
             alt = struct.unpack('<Q', bytes(inf.read_memory(self.objs['en'] + 0x20, 8)))[0]
             inf.write_memory(alt + 0x50, struct.pack('<d', SETC[self.f][1]))
