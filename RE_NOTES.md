@@ -322,6 +322,20 @@ Method: `tools/re/member_map.py` (gdb) maps each frame's member offsets to objec
   20-30, drowning at 32 (RV 62 s). Bubble patches (DV3 only) refill J by 1/frame to −30 and cut J ≥ 20 to 18.
   RV checks: entry 1.2 → 1.35 → cap 2; walk −0.51187 (9E) then +E; jump −6, swim −3, leap −6.5, re-entry 1.4 → −1.0.
 
+## Session 9 (rendering order, DV4 exit, sounds)
+- **Blend modes (RE):** WaterfallBack blend alpha 0x9c; WaterfallFront (create_waterfallfront_1037) `set_shader(0x20)` =
+  additive; GeneralWater tint dst·(1 − src); horizon strip additive. No level art has meaningful per-pixel semi-alpha
+  (scan of the converted atlases: only the pause banner, results cards and the monitor icon), so the water/waterfall
+  look is per object. Port: deferred translucent commands keep their draw-call depth (render_pvr.c `dcmd_t.z`).
+- **DV4 exit (RE, spec_dv4_boss_events §9-10, not traced):** 5547 turns the normal camera group off (cinematic camera
+  holds the surface), 5567 places Lilac as the boost ball (skin/hair anim 7 speed 50, angle 0, N = O = 0), 5569/5570
+  release her at y < 1230 in M6 with G = -4. A forced original setup (SETV/SETB) fired 5547 with the wrong head/body
+  instances, so there is no trace of the real sequence.
+- **Sounds (RV, tracer `.snd`):** Lilac hurt = 25 + one of 80/81/82 (17 also on projectile hits). Monitor break = 307 +
+  12 on the break frame (traces mon and inv, DV1 crystal monitors; RE Frames::event_func_2623 plays 307 for the whole
+  monitor group, so the invincibility monitor shares it). Rock break = 13 (spiral_dv1). Attack hit on a monitor 21.
+- **BGM:** ChowdrenAudio loops whole files (no loop points, SD); the port's ADPCM seam fix is D-033.
+
 ## Loading pipeline (session 7, measured with src/game/loadprof.c)
 Per load the profiler logs: heap (mallinfo), largest free VRAM, and time in open / read / texture upload / sfx / decode /
 music / object creation / other, plus allocation count and skipped work.

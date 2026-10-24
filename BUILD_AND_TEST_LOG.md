@@ -205,3 +205,49 @@ Labels: original-trace, host-test, emulator. Nothing hardware-validated. Audio n
   sprites were drawn opaque on the PVR (punch-through list ignores vertex alpha).
 - **Sound:** 72 original ids + 16 voices loaded at boot (~1.25 MB SPU RAM for the ids). Not audible here (no audio device).
 - **Route search:** DV1 cleared incl. Wretchnid (f6039); consecutive DV2-DV4 search in progress.
+
+## Session 9 (2026-10-24): rendering order, DV4 boss exit, audio, performance
+Labels: original-trace (RV), RE, host-test, emulator (Flycast, emulated time). **Nothing measured on real hardware.**
+No audio device in the VM: audio was checked through the host sound-id trace, the DC stream log and an offline
+decoder model, not by ear.
+
+- **Transparency / draw order:** cause: deferred translucent commands were replayed with the end-of-frame depth.
+  Fix: per-command depth. Flycast DV1/DV2 waterfalls and water strips now stay behind the foreground and the HUD.
+  Remaining: the lower DV1 waterfall is slightly darker than the original (open).
+- **DV4 boss exit:** host test dv4_exit_rises_to_surface (46 air / 101 grounded frames on the surface),
+  dv4_exit_camera_on_surface, dv4_exit_results_then_menu (FP_SN_AUTOKILL). RE only; no original trace of the exit.
+- **Sounds (original trace vs host):** original monitor break = 21 (hit), 307, 12 on one frame (traces mon, inv);
+  host now 21 30 307 12 (30 = the port's attack hit, unchanged). Rocks: original 13; host 13 x7 in the spiral trace
+  replay, no 80/81/82. Lilac's hurt (player_damage) unchanged. Tests: invincibility_monitor_shatter_sound,
+  rock_break_sound_not_hurt.
+- **Invincibility left-channel loudness:** model of the AICA decoder (no leak) over two loops of m_invincibility.adp:
+  before, the 2nd loop had rms 14595 vs 6978 (low-nibble channel) and 18910 clipped samples (12918 on the other);
+  after sealing (adpcm_loop_seal.py) the 2nd loop is bit-identical to the 1st on both channels. All 67 tracks sealed
+  (+5..66 bytes each). Flycast DC log: `music: loop bgm/m_invincibility.adp (762464 bytes)` at the full sealed length.
+- **Performance (Flycast, demo discs, 600-frame windows; vblanks = pvr_get_vbl_count, 600 = no frame missed):**
+
+| Scene (demo) | Build | update avg | player avg / max | vblanks per 600 frames |
+|---|---|---|---|---|
+| DV3 standing (demo43) | session 8 (perf line) | 18.5 ms | — | — ("slow" 599/600) |
+| DV3 standing | FP_PERF_BASELINE (old sensor scan) | 18.1 ms | 11.5-12.8 / 26.6 ms | 730-840 |
+| DV3 standing | session 9 | 8.8 ms | 2.6-3.0 / 6.6 ms | 603 |
+| DV1 route (DV1 + DV2 start) | FP_PERF_BASELINE | — | 5.3-6.9 / 28.4 ms | 603 |
+| DV1 route | session 9 | ~3.5 ms | 1.9-2.4 / 13.9 ms | 603 |
+| DV2 route (from act start) | FP_PERF_BASELINE | — | 5.0-6.3 / 14.9 ms | 603 |
+| DV2 route | session 9 | ~4 ms | 2.0-2.6 / 8.3 ms | 603 |
+| DV4 to boss (chase, boss) | FP_PERF_BASELINE | — | 3.8-4.6 / 16.6 ms | 602-603 |
+| DV4 to boss | session 9 | ~3-5 ms | 1.1-1.9 / 6.5 ms | 602-603 |
+
+  The first window of every run includes boot and loading (662-673). draw (CPU part) 1.5-2.1 ms, list submit < 0.11 ms,
+  ~190-230 polygons; the PVR is not the limit. Peak single sections: objects_update 10-14 ms on the frame a monitor
+  opens the invincibility music (music_play opens a file) and in the DV4 boss.
+- **Residual jitter (emulator, open):** about once per second a frame period is 19.2 ms instead of 16.7 in every scene,
+  including with ~12 ms idle per frame and with music disabled; the time appears in whichever section runs then, so
+  it is not game code. Net effect 2-3 extra vblanks per 600 frames. Needs a real-hardware check.
+- **Stable 60 fps claim:** emulator only — 600 frames rendered in 602-603 vblanks in every measured window of DV1-DV4
+  including the DV4 boulder chase and boss and the DV1→DV2 route. Not measured on hardware.
+- **VRAM (pvr free after load, Flycast):** DV1 2046 → 2302 KB, DV4 1144 → 1656 KB, DV3 1709 KB, DV2 1467 KB
+  (piece atlases after the first capped at 1024x512, D-035). Host renders before/after pixel-identical: DV1+DV2 route
+  280 frames, DV3 30, DV4 94.
+- **Regression:** gameplay 0 failures, front end 0, cmp_all 76/76, strict 11311/11377 (99.4%), unchanged by every
+  performance change. DC build 0 warnings. Session 9 disc (lean BGM) boots to the file menu in Flycast.

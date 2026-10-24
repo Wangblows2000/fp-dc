@@ -105,3 +105,14 @@ the game returns to the menu (the original's game-over card is not ported).
 ADPCM). Ids not in the list are silent, so new events must add theirs to `SND_IDS` and `convert_sfx.sh`.
 **D-032 Verification demos can start a level directly** (`LEVEL <dir>` line in demo.txt, same path as host `FP_LEVEL`),
 so host and emulator replays of a route script start from the same state.
+**D-033 BGM files end at the ADPCM decoder's reset state.** The AICA decoder has no leak, so a whole-file loop carries
+the end-of-file state (sample, step) into data encoded from (0, 127): wrong offset and step until the clamp wears it
+off (m_invincibility: 2nd loop rms x2, ~19 k clipped samples, simulated). `tools/audio/adpcm_loop_seal.py` (run by
+convert_bgm.sh) appends a few samples per channel that end both channels at exactly (0, 127) and pads to 32 bytes
+(2-4 ms). Chosen over restarting the stream at the loop (an audible gap) and over trimming (cannot reach the state).
+**D-034 Sensor queries scan candidate lists, not every slot.** Per group (solid / obstacle / no-edge / obstacle-all)
+the slot indices whose type is in the group, in slot order, rebuilt when a slot is allocated or retyped. Every
+original test still runs in the same order, so results are identical (cmp_all and host frames unchanged).
+`make FP_PERF_BASELINE=1` builds the old full scan for A/B measurements.
+**D-035 Piece atlases after the first are at most 1024x512** (tools/import_frame.py; up to MAX_ATLAS = 4). Saves
+256-512 KB of VRAM per DV level; host renders of the four levels are pixel-identical.
