@@ -157,6 +157,27 @@ void snd_stop_all(void) { snd_sfx_stop_all(); }
 void snd_play(int h, int vol, int pan) {
     if (h >= 0 && h < nsfx) snd_sfx_play(sfx[h], vol, pan);
 }
+/* looping samples on their own AICA channels (Carol's bike engine, 2103 / 2125): volume and pitch are updated in
+ * place with an AICA channel UPDATE command (as KOS snd_stream_volume does) */
+#include <dc/sound/aica_comm.h>
+int snd_loop_start(int h, int vol, int freq) {
+    if (h < 0 || h >= nsfx) return -1;
+    int ch = snd_sfx_chn_alloc();
+    if (ch < 0) return -1;
+    sfx_play_data_t d = { 0 };
+    d.chn = ch; d.idx = sfx[h]; d.vol = vol; d.pan = 128; d.loop = 1; d.freq = freq;
+    snd_sfx_play_ex(&d);
+    return ch;
+}
+void snd_loop_set(int ch, int vol, int freq) {
+    if (ch < 0) return;
+    AICA_CMDSTR_CHANNEL(tmp, cmd, chan);
+    cmd->cmd = AICA_CMD_CHAN; cmd->timestamp = 0; cmd->size = AICA_CMDSTR_CHANNEL_SIZE; cmd->cmd_id = ch;
+    chan->cmd = AICA_CH_CMD_UPDATE | AICA_CH_UPDATE_SET_VOL | AICA_CH_UPDATE_SET_FREQ;
+    chan->vol = vol; chan->freq = freq;
+    snd_sh4_to_aica(tmp, cmd->size);
+}
+void snd_loop_end(int ch) { if (ch >= 0) { snd_sfx_stop(ch); snd_sfx_chn_free(ch); } }
 
 /* Music (D-013): AICA 4-bit ADPCM, stereo, 32 kHz (.adp, byte-interleaved; hardware-decoded so the
  * SH4 only reads the disc) or legacy raw s16le stereo 22050 Hz (.pcm). Every track loops whole-file

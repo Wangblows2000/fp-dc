@@ -49,6 +49,9 @@ extern uint32_t prof_acc[PS_N], prof_max[PS_N];
 void   snd_init_fp(void);
 int    snd_load(const char *name);
 void   snd_play(int h, int vol, int pan);
+int    snd_loop_start(int h, int vol, int freq);   /* platform: looping sample on an allocated channel (-1: none) */
+void   snd_loop_set(int ch, int vol, int freq);
+void   snd_loop_end(int ch);
 int    music_play(const char *name);
 void   music_update(void);
 void   music_stop(void);
@@ -195,7 +198,8 @@ enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_MON_INVINC = 4, OT_MON
        OT_BOUNCEMODE = 130, OT_CAMTRIGGER = 131, OT_JUMPPAD = 132, OT_MON_KEYSTONE = 133,
        OT_LOOP016 = 134, OT_LOOP0Q = 135, OT_LOOP115 = 136, OT_LOOP1Q = 137, OT_CHUNK = 138,
        OT_WF_BACK = 139, OT_WF_FRONT = 140, OT_WF_FRONT2 = 141, OT_WF_FRONT3 = 142, OT_WF_FRONT4 = 143, OT_BBOULDER = 144, OT_KEYSTONE = 146, OT_SPIRAL_FRONT = 147, OT_FRONTROCK = 148, OT_FRONTTREE = 149, OT_TREEFRONT = 150,
-       OT_MON_WOOD = 151, OT_MON_EARTH = 152, OT_MON_FIRE = 153, OT_MON_METAL = 154, OT_MON_WATER = 155, OT_MONICON = 156, OT_BUBBLEPATCH = 157 };
+       OT_MON_WOOD = 151, OT_MON_EARTH = 152, OT_MON_FIRE = 153, OT_MON_METAL = 154, OT_MON_WATER = 155, OT_MONICON = 156, OT_BUBBLEPATCH = 157,
+       OT_FUEL = 158 /* ObjectFuel_533 (Carol: the bike) */, OT_PBIKE = 159 /* ObjectBike_459: parked / wrecked bike (created by Carol's events) */ };
 
 #define MAX_ATLAS 4
 typedef struct {
@@ -288,6 +292,15 @@ typedef struct {
     int c_land_m1;                  /* landed this frame from M1 (1807: the M0 group, and Y 0-2, from the next frame) */
     int c_sens;                     /* character sensor animation (2471-2489: 1 = small); Y 24 / 44 keep the previous one */
     int c_spd_sk, c_spd_tl;         /* forced animation speeds of the skin / tail (force_speed persists; -1 = restored) */
+    int c_y12;                      /* frames in OTHERS.Y 12 (2443: Lilac's invisible SKIN anim 20 ends it) */
+    int c_skid_snd;                 /* bike skid sample 162 playing (2127 / 2128) */
+    double bikeB;                   /* BSK.B: the M32 air-jump timer (6 -> -1 by 0.2) */
+    int c_anim_hold;                /* keep this frame's animation (the event ran after the animation events) */
+    int c_pavO;                     /* PAV_B.O: the bike's air jump used (2166 sets, 1741 in the grounded M0 group clears) */
+    int c_spd_bsk;                  /* forced speed of the bike skin (-1 restored) */
+    int c_skid0, skid_snd6;         /* skidding at the frame start; skid sound 6 played */
+    double c_gwall;                 /* G on the wall before the bike's climb (2118 reads it) */
+    int item_ovr; double item_x, item_y;   /* position the item pick-ups test this frame (M48 moves Carol after them) */
     /* jump-pad ride (M48, spec_carol_bike C4): PSC C, D, E, F, G, H, I, J, K, L and flags 10/11 */
     int padC, padJ, padK, padL, padfl; double padD, padE, padF, padG, padH, padI;
     /* bike (spec_carol_bike B): BSK hit points C, rev A, nitro OTHERS.F / G, BSK flag 1 latch */
@@ -375,6 +388,11 @@ void fe_update(const input_t *in);
 void fe_draw(void);
 void hud_reset(void);
 void snd_play_orig(int id, int vol, int pan);
+int  snd_loop_orig(int id, int vol, int freq);  /* looping sample on its own channel (bike engine); returns the channel or -1 */
+void snd_loop_update(int ch, int vol, int freq);
+void snd_loop_stop(int ch);
+void pads_spawn(void);                           /* jump-pad configuration (src/characters/carol_bike.inc) */
+void player_engine_stop(void);
 void voice_play(const char *name);
 void plat_quit(void);
 void r_fade(float alpha);      /* full-screen black overlay with alpha (translucent list) */

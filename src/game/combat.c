@@ -256,6 +256,16 @@ void combat_frame(player_t *p) {
             collect(p, AT_TOP, 0, NULL); if ((e = pick())) hit_common(p, e, 5, 0.5 * B, Gv, fabs(Gv) / 5 + 3);
             if (p->hitstop <= 0) { collect(p, AT_TOP, 1, NULL); if (ncand) deflect(p, 5); }
         }
+        if (p->bike && p->hitstop <= 0) {                                                         /* 2738 / 2739: bike rams (B > 5 / B < -5) */
+            for (int side = 1; side >= 0 && p->hitstop <= 0; side--) {
+                if (side ? !(B > 5) : !(B < -5)) continue;
+                collect(p, side ? AT_RIGHT : AT_LEFT, 0, NULL);
+                if ((e = pick())) {
+                    p->hit_i++; e->c = 5; e->kx = fmax(3.0, fabs(B - 2)) * Q; e->ky = 0.5 * Gv; e->A -= fabs(0.25 * B) + 1;
+                    e->inv = 1; snd_play_orig(24, 220, 128); p->hitstop = 3; p->hs_off = 0;   /* K = 3 */
+                }
+            }
+        }
         if (p->hitstop <= 0) {                                                                    /* 2740 / 2741 */
             for (int i = 0; i < G.nobjs && p->hitstop <= 0; i++) {
                 obj_t *s = &G.o[i];

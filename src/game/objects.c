@@ -87,6 +87,7 @@ void objects_spawn(void) {
         }
     }
     cards_spawn_all();
+    pads_spawn();                                 /* jump pads: index, angle, chain end, lit (spec_carol_bike C2) */
     layers_refresh(&G.p);
     bosses_spawn();
     wlogs_spawn(); dv3_switch_spawn(); tunnels_reset(); shields_reset(); water_reset();
@@ -373,6 +374,7 @@ static void spawn_effect(float x, float y, int anim) {
 /* item reach (RE 1288/1289/2543): item position within X +-19 and Y - up .. Y + 19 of (int X, int Y) */
 static int item_in_reach(const obj_t *o, const player_t *p, int up) {
     int ix = (int)floor(p->x), iy = (int)floor(p->y - ORIG_REF_DY), cx = (int)floorf(o->x), cy = (int)floorf(o->y);
+    if (p->item_ovr) { ix = (int)floor(p->item_x); iy = (int)floor(p->item_y); }   /* the jump-pad ride moves Carol after the item events (RV) */
     return cx >= ix - 19 && cx <= ix + 19 && cy >= iy - up && cy <= iy + 19;
 }
 
