@@ -644,6 +644,7 @@ void serp4_update(player_t *p) {
                     S4.stun = 0; S4.exit = 1; S4.B = 0; hb->alive = 0;
                     float tx = hd->x; for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == OT_BTUNNEL) { tx = G.o[i].x; break; }
                     p->x = tx; p->y = G.camy + 290 + ORIG_REF_DY; p->state = ST_NORMAL; p->vx = p->vy = 0; p->gsp = 0; p->ground = 0;
+                    p->N = p->O = 0; p->rot = 0; p->face = 1; p->springing = 0; p->hitstop = 0; p->hs_off = 0;   /* SKIN/HAIR angle 0, dir 0 (5567); off the ceiling/walls of the bowl */
                     p->scripted = 1; snd_play_orig(53, 220, 128);
                 }
             }
@@ -663,7 +664,11 @@ void serp4_update(player_t *p) {
     if (S4.exit) {
         if (S4.B == 0) {                                                               /* 5569 / 5570 */
             p->y -= 10; p->vx = p->vy = 0;
-            if (p->y - ORIG_REF_DY < 1230) { S4.B = 1; p->scripted = 0; p->ground = 0; p->vy = -4; p->vx = 0; p->face = 1; }
+            p->invuln = 40;                                                            /* 5569: OTH.D = 1, E = 40 */
+            if (p->y - ORIG_REF_DY < 1230) {                                           /* 5570: M = 6, L = 0, G = -4, B = 0, Q = 1 */
+                S4.B = 1; p->scripted = 0; p->ground = 0; p->vy = -4; p->vx = 0; p->gsp = 0; p->face = 1; p->N = p->O = 0;
+                p->state = ST_ROLL; p->state_t = 0; p->roll_ball = 1; p->tun_lock = 0;
+            }
         } else {
             if (S4.B >= 1 && S4.B < 40 && p->ground) S4.B += 1;                        /* 5573 */
             if (S4.B == 40) { results_begin(0); S4.B = 41; }                           /* 5576 */

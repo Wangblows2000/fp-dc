@@ -761,7 +761,9 @@ static void roll_group(player_t *p, const input_t *in) {
 void player_update(player_t *p, const input_t *in) {
     static const input_t no_input;
     if (p->in_lock) in = &no_input;                                       /* CTRL.M (110-116 skip the pad) */
-    if (p->scripted) { p->held = 0; anim_tick(&p->an, -1); return; }     /* loop_stop_player_13: moved by the DV4 exit script */
+    if (p->scripted) {                       /* loop_stop_player_13: moved by the DV4 exit script; 5567 forces skin/hair anim 7 at speed 50, angle 0 */
+        p->held = 0; p->rot = 0; set_anim(p, A_CHARGE); anim_tick(&p->an, 50); if (hair.b) anim_tick(&hair, 50); return;
+    }
     double x_start = p->x;
     int st0 = p->state;
     p->state_t++;
