@@ -7,10 +7,11 @@ F=${1:-21}; N=${2:-dv1}; O=${3:-converted2}
 mkdir -p "$O"
 T="$O/$N.tmp"; rm -rf "$T" && mkdir -p "$T"
 python3 tools/import_frame.py build/frames extracted/linux/images "$F" "$N" "$T"
-# Carol's banks (session 10) get their own palette for bank 2, which replaces Lilac's when Carol plays (pal2c.pal)
+# Carol's banks (session 10) get their own palette for bank 2, which replaces Lilac's when Carol plays (pal2c.pal).
+# Overlays with <= 15 colours (Lilac's hair, Carol's tail) are 4 bpp blocks at the start of that group (session 11).
 mkdir -p "$T/carol" && mv "$T"/carol*.tex "$T/carol/"
-python3 tools/palettize.py "$T/carol" '^carol' --gid=2 && mv "$T/carol/pal2.pal" "$T/pal2c.pal"
-python3 tools/palettize.py "$T" "^${N}_p[0-9]" '_par[0-9]' '^lilac' '_obj' '--flex=_ens' '--pal4=1:_p[xw]'
+python3 tools/palettize.py "$T/carol" '^carol' --gid=2 '--pal4=0:^caroltail' && mv "$T/carol/pal2.pal" "$T/pal2c.pal"
+python3 tools/palettize.py "$T" "^${N}_p[0-9]" '_par[0-9]' '^lilac' '_obj' '--flex=_ens' '--pal4=1:_p[xw]' '--pal4=2:^lilachair'
 mv "$T/carol/"*.tex "$T/" && rmdir "$T/carol"
 rm -rf "$O/$N" && mv "$T" "$O/$N"
 cp converted/sfx_*.wav "$O"/ 2>/dev/null || true

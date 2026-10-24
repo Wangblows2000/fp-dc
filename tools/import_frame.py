@@ -550,8 +550,8 @@ def write_bank2(src, bank, out, report):
     # Session 10 perf (D-038): a content height just over a power of two (carol2 574 rows -> a 1024x1024 texture,
     # 450 KB of it empty; the DV1-DV3 object banks reached 552 rows when Carol's fuel can / pads were added) is split
     # into a half-height first atlas and a small second one (<name>_2.tex, frames v | 0x8000, the _ens mechanism).
-    # Drawing is unchanged (bank_draw / bank_frame_tex); only the VRAM layout differs. Lilac's own banks never need it.
-    if not second and (bank['name'] in ('carol2', 'carolbike', 'caroltail') or bank['name'].endswith(('_obj', '_ens'))):
+    # Drawing is unchanged (bank_draw / bank_frame_tex); only the VRAM layout differs (Lilac's banks too since session 11).
+    if not second and (bank['name'] in ('lilac2', 'lilachair', 'carol2', 'carolbike', 'caroltail') or bank['name'].endswith(('_obj', '_ens'))):
         def ph(p):
             return max(((y + imgs[i][0].height) for i, (x, y) in p.items()), default=8)
         def p2(n):
