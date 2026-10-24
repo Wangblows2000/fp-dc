@@ -200,7 +200,7 @@ static void sel_draw(void) {
 }
 
 /* ---- sounds: original Assets.dat sound IDs (Media::play_id, RUNTIME_MAP "Sound IDs") */
-static const int SND_IDS[] = { 0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 38, 39, 40, 41, 42, 43, 45, 46, 47, 48, 49, 50, 51, 53, 56, 57, 58, 61, 63, 64, 74, 76, 78, 80, 81, 95, 98, 100, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 126, 128, 133, 139, 140, 141, 154, 159, 160, 161, 162, 174, 176, 220, 221, 232, 288, 289, 290, 307, 311, 313, 314, 315, 319, 320, 387, 396, 405, 409, 410, 411, 412, 413, 414 };   /* + Carol / bike / jump pads (session 10, spec_carol_*) */
+static const int SND_IDS[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 38, 39, 40, 41, 42, 43, 45, 46, 47, 48, 49, 50, 51, 53, 56, 57, 58, 61, 63, 64, 74, 76, 78, 80, 81, 95, 98, 100, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 126, 128, 133, 139, 140, 141, 154, 159, 160, 161, 162, 174, 176, 220, 221, 232, 288, 289, 290, 307, 311, 313, 314, 315, 319, 320, 387, 396, 405, 409, 410, 411, 412, 413, 414 };   /* + Carol / bike / jump pads (session 10, spec_carol_*) */
 static int snd_handle[512];
 uint32_t prof_acc[PS_N], prof_max[PS_N];
 static const char *VOICES[] = { "lilac_attack0", "lilac_attack1", "lilac_attack2", "lilac_attack3", "lilac_uppercut0",
@@ -213,6 +213,14 @@ void snd_play_orig(int id, int vol, int pan) {
     if (getenv("FP_TRACE_SID")) printf("sid %d\n", id);   /* original sound id, belongs to the next 'f' row */
 #endif
     if (id >= 0 && id < 512 && snd_handle[id] >= 0) snd_play(snd_handle[id], vol, pan); }
+int snd_loop_orig(int id, int vol, int freq) {
+#ifdef FP_HOST_ENV
+    if (getenv("FP_TRACE_SID")) printf("sid %d\n", id);
+#endif
+    return id >= 0 && id < 512 ? snd_loop_start(snd_handle[id], vol, freq) : -1;
+}
+void snd_loop_update(int ch, int vol, int freq) { snd_loop_set(ch, vol, freq); }
+void snd_loop_stop(int ch) { snd_loop_end(ch); }
 void voice_play(const char *name) {
     for (int i = 0; i < (int)(sizeof VOICES / sizeof VOICES[0]); i++)
         if (!strcmp(VOICES[i], name)) { if (voice_handle[i] >= 0) snd_play(voice_handle[i], 255, 128); return; }

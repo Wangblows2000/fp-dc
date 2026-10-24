@@ -23,7 +23,12 @@
 #define C_FL_WSND   0x10000    /* port: wall-grab sound played this cling */
 #define C_KICK_COST 20.0       /* 1770 / 1795 / 1866 / 1904: ENERGY >= 20 */
 
+#define BIKE_LAND_POSE 0x2000  /* BSK flag 8 (kept in cfl): the landing pose after a can (2107) */
 static int is_carol(void) { return chr_is_carol(G.character); }
+static int bike_air_jump_ok(const player_t *p, const input_t *in);   /* carol_bike.inc */
+static obj_t *pbike_create(const player_t *p, int wrecked);
+static void bike_set(player_t *p, int on);
+static int carol_skin_frame(const player_t *p);
 static int c_q0, c_g0;         /* facing (MV.Q) and L at the start of the frame: the events read them before 2421 */
 static int c_kick_snd;         /* frames until sample 413 (2 s) has finished (2149 "not playing") */
 
@@ -59,7 +64,7 @@ static void c_start_roll(player_t *p) {                        /* 1748 / 1749 / 
     snd_play_orig(7, 220, 128);
 }
 static void c_start_wall(player_t *p) {                        /* 1771 / 1793 / 1905: M = 47, CAROL.M = 10 */
-    set_state(p, ST_WALL); p->cM = 10; p->wall_t = 0; p->cfl &= ~C_FL_WSND;
+    set_state(p, ST_WALL); p->cM = 10; p->wall_t = 0; p->cfl &= ~C_FL_WSND; p->c_gwall = p->vy;
 }
 /* pounce (1773/1774 M0, 1796/1797 M1, 1907/1908 M40; crouch 1836): L = N = 0, M = 0, OTHERS.Y = 24; G kept */
 static void c_pounce(player_t *p, int crouch) {
@@ -68,7 +73,7 @@ static void c_pounce(player_t *p, int crouch) {
     p->ground = 0; p->N = 0;
     if (crouch) { p->vy = -3; p->vx = 8 * q; }
     else if (q > 0) { if (p->vx < 5) p->vx = 5; } else { if (p->vx > -5) p->vx = -5; }
-    set_state(p, ST_NORMAL); p->m1 = 0; p->cY = 24; p->c_fall = 0; p->c_nospd = 0;
+    set_state(p, ST_NORMAL); p->m1 = 0; p->cY = 24; p->c_fall = 0; p->c_nospd = 0; p->springing = 0;
     /* loop_sound_pounce: 154 every pounce; voice 133 when no CAROL has S > 0 (event 1301: S = 600) */
     if (p->cS <= 0) { snd_play_orig(133, 255, 128); p->cS = 600; }
     snd_play_orig(154, 220, 128);
@@ -93,6 +98,7 @@ static void c_air_move(player_t *p, const input_t *in) {
 static void carol_normal(player_t *p, const input_t *in, int *crouch_look) {
     int jp = (in->pressed & BTN_JUMP) != 0, ap = (in->pressed & BTN_ATTACK) != 0, sph = (in->held & BTN_SPECIAL) != 0;
     int was_ground = p->ground;
+    p->c_skid0 = p->skidding;
     int cm = p->m1 ? 1 : !p->ground ? 0 : p->look_prev == 2 ? 2 : p->look_prev == 3 ? 3 : 0;
     int lr = (in->held & (BTN_LEFT | BTN_RIGHT)) != 0;
     int up = (in->held & BTN_UP) && !(in->held & BTN_DOWN), dn = (in->held & BTN_DOWN) && !(in->held & BTN_UP);
@@ -103,30 +109,34 @@ static void carol_normal(player_t *p, const input_t *in, int *crouch_look) {
 
     if (cm == 0 && p->ground) {                                    /* ---- M0 group, grounded ---- */
         if (p->cY <= 2) p->c_nospd = 0;                            /* 1722 */
+        p->c_pavO = 0;                                             /* 1741: PAV_B.O = 0 (the bike's air jump is available again) */
         double B = fabs(p->gsp);
-        if (B == 0) { if (p->cY != 48 && p->cY != 12) p->cY = 0; } else p->cY = B < PHYS_TOP ? 1 : 2;   /* 1723-1725 */
-        if (p->skidding) p->cY = 6;                                /* 1744-1747 (skid, shared) */
+        if (B == 0) { if (p->cY != 48 && p->cY != 12) p->cY = 0; } else p->cY = B < 5 ? 1 : 2;   /* 1723-1725 (5, also on the bike: RV) */
+        if (p->skidding && p->c_skid0) p->cY = 6;                  /* M4 group (skid): OTHERS.Y 6 from its 2nd frame (RV b_skid) */
+        if (p->cY == 12 && ++p->c_y12 > 33) p->cY = 0;             /* 2443: Lilac's SKIN anim 20 (8 frames at 25) has ended (INFERRED) */
         /* 1742 / 1743: look up / crouch (switch the M0 group off); RV for Lilac: Down with no direction crouches once
          * |B| < 2 (B = 0) */
         if (dn && !lr && B < PHYS_LOWSPD) { p->gsp = 0; p->look = 3; *crouch_look = 1; return; }
         if (up && !lr && B < 0.01) { p->look = 2; *crouch_look = 1; return; }
-        if ((in->pressed & BTN_DOWN) && B >= 2) { c_start_roll(p); return; }              /* 1748 (group off) */
-        if (landed && (in->held & BTN_DOWN) && B >= 2) c_start_roll(p);                    /* 1749 (turns M1 off, not M0: original bug kept) */
+        if (!p->bike && (in->pressed & BTN_DOWN) && B >= 2) { c_start_roll(p); return; }   /* 1748 (A = 2; group off) */
+        if (!p->bike && landed && (in->held & BTN_DOWN) && B >= 2) c_start_roll(p);         /* 1749 (turns M1 off, not M0: original bug kept) */
         if (jp) { set_state(p, ST_NORMAL); c_jump(p); return; }                            /* 1750 (group off) */
         if (p->state == ST_NORMAL && push_wants(p, in)) { set_state(p, ST_PUSH); p->face = (in->held & BTN_RIGHT) ? 1 : -1; }   /* 1752 / 1753 */
         if (ap && p->state != ST_CLAW) c_start_claw(p, 1, 0);                               /* 1756 */
         if (p->water && (in->held & BTN_JUMP) && p->vy > -3) { set_state(p, ST_NORMAL); c_jump(p); return; }   /* 1758 */
         if (p->cN > 0) p->cN--;                                                            /* 1759 */
-        if (sph && p->energy >= C_KICK_COST && p->cN <= 0) c_start_kick(p, 1);              /* 1770 */
+        if (sph && p->energy >= C_KICK_COST && p->cN <= 0 && !p->bike) c_start_kick(p, 1);   /* 1770 (on the bike only airborne) */
         return;
     }
     if (cm == 0) {                                                 /* ---- M0 group, airborne (walked off, pounce, M40) ---- */
         int side = c_side(in);
+        if (p->springing && p->cY != 24) p->cY = 40;                                                    /* M40 group: OTHERS.Y 40 */
         if (ap && p->state != ST_CLAW) c_start_claw(p, 1, 0);                                         /* 1756 */
         if (p->cN > 0) p->cN--;                                                                         /* 1759 */
         if (sph && p->energy >= C_KICK_COST && p->cN <= 0) c_start_kick(p, 1);                          /* 1770 */
         if (side && c_wall_touch(side) && !c_on_pblock(side) && p->cM <= 0) c_start_wall(p);           /* 1771 */
-        if (jp && p->cY != 24) c_pounce(p, 0);                                                          /* 1773 / 1774 */
+        if (p->bike) { if (bike_air_jump_ok(p, in)) set_state(p, ST_BIKEAIR); }                         /* 1779 (A = 3): M = 32 */
+        else if (jp && p->cY != 24) c_pounce(p, 0);                                                      /* 1773 / 1774 */
         if (p->cY == 24) {
             int s = p->vx > 1 ? 1 : p->vx < -1 ? -1 : 0;
             if (s != c_q0) { p->cY = 3; p->c_fall = 1; }                                                /* 1775: cancel (anim 24 frame 6) */
@@ -140,15 +150,20 @@ static void carol_normal(player_t *p, const input_t *in, int *crouch_look) {
         if (p->cY <= 2 || p->cY == 4 || p->cY == 5 || p->cY == 6 || p->cY == 7 || p->cY == 40) p->cY = 3;   /* 1785 (RV: 0-2, 7, 40 -> 3) */
         if (!p->ground && !(in->held & BTN_JUMP) && !p->water && side && c_wall_touch(side) && p->cM <= 0) c_start_wall(p);   /* 1793 */
         if (sph && p->energy >= C_KICK_COST) c_start_kick(p, 1);                                         /* 1795 */
-        if (jp && !p->water) c_pounce(p, 0);                                                             /* 1796 / 1797 */
-        if (p->cY == 8 && ap) c_start_claw(p, 0, 1);                                                     /* 1800: ball-jump attack -> big slash */
+        if (p->bike) {
+            if (fabs(p->vx) <= 9) p->cfl &= ~C_FL_BIG;                                                   /* 1798 */
+            if (bike_air_jump_ok(p, in)) set_state(p, ST_BIKEAIR);                                       /* 1799: M = 32 */
+        } else if (jp && !p->water) c_pounce(p, 0);                                                      /* 1796 / 1797 */
+        if (!p->bike && p->cY == 8 && ap) c_start_claw(p, 0, 1);                                         /* 1800: ball-jump attack -> big slash */
         if (p->jumping && !p->ground && !(in->held & BTN_JUMP) && p->vy < -PHYS_JUMP_CUT) p->vy = -PHYS_JUMP_CUT;   /* 1801 */
         if (p->water && !p->ground && (in->held & (BTN_UP | BTN_JUMP)) && p->vy > -3) p->vy = fmin(fmax(p->vy - 0.2, -3.), -1.);   /* 1802 swim */
         if (ap && p->state != ST_CLAW) c_start_claw(p, 1, 0);                                            /* 1803 */
         if (p->ground) {
-            if ((in->held & BTN_DOWN) && fabs(p->gsp) >= 0.2) c_start_roll(p);                          /* 1806 (M1 group off) */
+            if (!p->bike && (in->held & BTN_DOWN) && fabs(p->gsp) >= 0.2) c_start_roll(p);              /* 1806 (M1 group off) */
             else { if (p->state != ST_WILDKICK && p->state != ST_CLAW) set_state(p, ST_NORMAL);
-                   p->m1 = 0; p->c_nospd = 0; p->c_land_m1 = 1; }                                       /* 1807 */
+                   p->m1 = 0; p->c_nospd = 0; p->c_land_m1 = 1;                                         /* 1807 */
+                   if (p->bike) snd_play_orig(161, 220, 128);                                           /* loop_action_land (bike set, RV) */
+                   if (p->bike && (p->cfl & BIKE_LAND_POSE)) { p->cfl &= ~BIKE_LAND_POSE; p->cY = 12; p->c_y12 = 0; } }   /* 2107 */
         }
         return;
     }
@@ -161,8 +176,11 @@ static void carol_normal(player_t *p, const input_t *in, int *crouch_look) {
     /* ---- M3 crouch (1823-1836) ---- */
     if (p->cY != 23) { p->cY = 5; p->gsp = 0; }                                                          /* 1823 */
     if (p->ground && p->gsp == 0 && (in->held & BTN_DOWN)) { p->look = 3; *crouch_look = 1; }           /* 1825-1827 */
+    if (p->bike && p->ground && fabs(p->gsp) < 3 && (in->held & BTN_DOWN) && jp) {                       /* 1828: get off the bike */
+        pbike_create(p, 0); bike_set(p, 0); p->cN = 25; p->nitroF = 0;
+    }
     if (ap) { c_start_claw(p, 0, 0); p->look = 0; }                                                      /* 1834 */
-    if (jp && p->ground) { c_pounce(p, 1); p->look = 0; }                                                /* 1836 */
+    if (jp && p->ground && !p->bike) { c_pounce(p, 1); p->look = 0; }                                    /* 1836 (A = 2: also right after 1828, RV) */
     (void)up; (void)landed;
 }
 
@@ -171,7 +189,7 @@ static void carol_claw_move(player_t *p, const input_t *in) {
     if (p->ground) c_ground_move(p, in, 1); else c_air_move(p, in);
 }
 static void carol_claw_group(player_t *p, const input_t *in) {
-    int fr = p->an.frame, face16 = c_q0 < 0;
+    int fr = carol_skin_frame(p), face16 = c_q0 < 0;
     p->cY = 20 + p->cA; p->cfl &= ~C_FL_INCLAW;                                            /* 2131 */
     if (fr == 2 && !(p->cfl & C_FL_SHIELD) && !(p->cfl & C_FL_BIG)) {                      /* 2132 */
         combat_shield_create(p, (face16 ? 18 : 2) + p->cA, 1, 100);
@@ -209,7 +227,7 @@ static void carol_kick_move(player_t *p, const input_t *in) {
     p->face = face;
 }
 static void carol_kick_group(player_t *p, const input_t *in) {
-    int fr = p->an.frame;
+    int fr = carol_skin_frame(p);
     p->cY = 44;                                                                             /* 2143 */
     if (!p->hurt_pending && p->invuln < 2) p->invuln = 2;                                   /* 2144 (E >= 3; RV reads 2, see top) */
     if (!(in->held & BTN_JUMP) && p->vy < -PHYS_JUMP_CUT && p->jumping && !p->ground) p->vy = -PHYS_JUMP_CUT;   /* 2145 */
@@ -225,7 +243,7 @@ static void carol_kick_group(player_t *p, const input_t *in) {
     if (fr != 2 && fr != 5 && fr != 7) p->cfl &= ~C_FL_SHIELD;                              /* 2151 */
     if (p->cL <= 20 && p->hitstop <= 2) p->energy = fmaxf(0.f, p->energy - 1.5f);           /* 2152 */
     if (p->cL < 20 || (p->cL == 20 && !(in->held & BTN_SPECIAL)) || (p->cL == 20 && p->energy <= 0)) p->cL++;   /* 2153 */
-    if (p->cL > 20) { p->an.frame = 0; if (hair.b) hair.frame = 0; p->cL++; c_kick_snd = 0; }   /* 2154 (stop 413: not reproduced) */
+    if (p->cL > 20) { p->an.frame = 0; psc.frame = 0; if (hair.b) hair.frame = 0; p->cL++; c_kick_snd = 0; }   /* 2154 (stop 413: not reproduced) */
     if (p->cL > 30) { set_state(p, ST_NORMAL); p->m1 = 0; p->cY = 0; }                       /* 2155 */
     if (p->ground && (in->pressed & BTN_JUMP)) jump(p);                                       /* 2156: M stays */
 }
@@ -244,10 +262,14 @@ static void carol_wall(player_t *p, const input_t *in) {
         if (p->vy < 0 && mv_sensor_top_big()) p->vy = 0;
     }
     if (p->vy > 4) p->vy = 4;                                                       /* 2173: G = min(G, 4), O = N = 0, Y = 7, S = 1 */
+    p->c_gwall = p->vy;                                                             /* (the engine rev reads G here, 2118) */
+    if (p->bike && ((q > 0 && (in->held & BTN_RIGHT)) || (q < 0 && (in->held & BTN_LEFT)))) p->vy = fmax(p->vy - 0.6, -8.);   /* 2176: the bike climbs */
     p->O = 0; p->N = 0; p->cY = 7; p->c_nospd = 0;
-    if (!(p->cfl & C_FL_WSND) && p->an.frame == 1) { p->cfl |= C_FL_WSND; snd_play_orig(p->bike ? 161 : 33, 220, 128); }   /* 2174 / 2175 (RV timing: skin frame 1) */
+    int f1 = carol_skin_frame(p) == 1;                                              /* 2174 / 2175: PSC frame 1, once while true (RV) */
+    if (f1 && !(p->cfl & C_FL_WSND)) snd_play_orig(p->bike ? 161 : 33, 220, 128);
+    if (f1) p->cfl |= C_FL_WSND; else p->cfl &= ~C_FL_WSND;
     p->wall_t++;
-    int let_go = p->ground || (q > 0 && !(in->held & BTN_RIGHT)) || (q < 0 && !(in->held & BTN_LEFT));   /* 2177 (RV) */
+    int let_go = p->ground || (!p->bike && ((q > 0 && !(in->held & BTN_RIGHT)) || (q < 0 && !(in->held & BTN_LEFT))));   /* 2177 (RV; the release branches need A = 2) */
     if (let_go || !c_wall_touch(q)) { set_state(p, ST_NORMAL); p->m1 = 1; }        /* 2177 / 2179: M = 1, T = U = 1 */
     if (in->pressed & BTN_JUMP) {                                                   /* 2181 + 2183 (bike 2182: B = -6 Q) */
         p->vx = (p->bike ? -6 : -3) * q; p->vy = -PHYS_JUMP;
@@ -271,7 +293,6 @@ static int carol_anim(const player_t *p, int *force6) {
     case ST_CORK: return (p->cork_e > 0.25 && p->cork_e < 1.5) ? A_CORK2 : A_CORK;
     case ST_LADDERIN: return A_CLIMBOVER;
     case ST_LADDER: return p->lad_y == 28 ? A_CLIMBOVER : p->lad_y == 47 ? A_CATCH : p->lad_y == 29 ? A_CLIMBDOWN : A_CLIMB;
-    case ST_PAD: return p->padJ >= 3 ? A_C_PADHOLD : A_CHARGE;
     default: break;
     }
     if (p->y26 && p->state == ST_NORMAL && p->cY != 24 && p->cY != 8) return A_SWIM;
@@ -290,6 +311,7 @@ static int carol_anim(const player_t *p, int *force6) {
     case 20: return A_C_CLAW0;
     case 21: return A_C_CLAW1;
     case 22: return A_C_CLAW2;
+    case 23: return A_C_PADHOLD;
     case 24: return A_C_POUNCE;
     case 26: return A_SWIM;
     case 44: return A_C_KICK;
@@ -302,7 +324,13 @@ static int carol_anim(const player_t *p, int *force6) {
     }
 }
 /* animation speeds (2490-2500): force_speed persists until restore_speed (2490: Y not in 1, 2, 8, 15, 26, 40) */
+static void carol_speeds_foot(player_t *p);
 static void carol_speeds(player_t *p) {
+    carol_speeds_foot(p);
+    p->c_spd_bsk = p->state == ST_BIKEAIR ? 100 : (p->state == ST_PAD && p->padJ < 3) ? 35 : -1;   /* BSK: restore_speed except M32 (2164) and the pad hop (2184) */
+}
+static void carol_speeds_foot(player_t *p) {
+    if (p->state == ST_PAD && p->padJ < 3) return;   /* 2184 forced 35 */
     double B = fabs(p->ground ? p->gsp : p->vx), Gs = fabs(p->vy);
     int y = p->y26 && p->state == ST_NORMAL && p->cY != 24 && p->cY != 8 ? 26 : p->cY;
     if (p->state == ST_LADDER) y = p->lad_y;

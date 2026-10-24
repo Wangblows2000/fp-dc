@@ -440,6 +440,8 @@ void pplate_update(player_t *p) {
         pressed = obj_rect_hit(pl, x1, y1, x2, y2 + PB_PLATE_REACH);
     }
     if (p->ground && sensor_on(pl, SENS_BOTTOMBIG)) pressed = 1;                                /* 4973 */
+    for (int i = 0; i < G.nobjs && !pressed; i++)                                               /* 4972: a parked bike holds it */
+        if (G.o[i].alive && G.o[i].type == OT_PBIKE && obj_obj_hit(&G.o[i], pl)) pressed = 1;
     pl->hidden = pressed;                                   /* 5182 shows the plate each frame; 4971/4973 hide it while pressed */
     if (pressed && !pplate_latch) { pplate_latch = 1; snd_play_orig(49, 220, 128); }          /* 5183 */
     if (!d) return;

@@ -24,7 +24,8 @@ def pretick(r):   # enemies' animation phase at frame 0 (as tools/orig/cmp_all.s
 
 def run_host(name, o0, fr, o2=None):
     out = os.path.join(ROOT, 'build/fpdc_traces/carol_%s.csv' % name)
-    env = dict(os.environ, FP_CHAR='2', FP_ORIG_MOVES='1', FP_LEVEL=os.environ.get('LEVEL', 'dv1'),
+    lvl = os.environ.get('LEVEL') or ('dv2' if name.startswith('c_jumppad') else 'dv1')
+    env = dict(os.environ, FP_CHAR='3' if name.startswith('b_') else '2', FP_ORIG_MOVES='1', FP_LEVEL=lvl,
                FP_SPAWN_X=o0['mv_X'], FP_SPAWN_Y=o0['mv_Y'], FP_SPAWN_L=str(int(float(o0['mv_L']))), FP_SPAWN_N=o0['mv_N'],
                FP_ENERGY=o0.get('en_A') or '100', FP_OBJ_PRETICK=str(pretick(o0)),
                FP_ANIM_SYNC='%s,%s' % (o2.get('ctail_afr', 0), o2.get('ctail_acc', 0)) if o2 else '0,0', FP_HP=o0.get('c_petals') or '14', FP_CSV=out, FP_TRACE_SID='1')
@@ -44,7 +45,7 @@ def num(r, k, d=0.0):
 
 def main():
     names = sys.argv[1:] or sorted(n[:-4] for n in os.listdir(os.path.join(ROOT, 'tests/orig_carol'))
-                                   if n.startswith('c_') and n.endswith('.txt'))
+                                   if (n.startswith('c_') or n.startswith('b_')) and n.endswith('.txt'))
     fr = int(os.environ.get('FR', 160)); verbose = os.environ.get('V')
     os.makedirs(os.path.join(ROOT, 'build/fpdc_traces'), exist_ok=True)
     tot_bad = 0
@@ -52,12 +53,13 @@ def main():
         op = os.path.join(ROOT, 'build/orig_traces/carol/%s.csv' % name)
         if not os.path.exists(op): print('SKIP', name); continue
         orig = load(op); O = {int(r['frame']): r for r in orig}
+        if len(orig) < 10: print('SKIP', name, '(trace incomplete)'); continue
         script = open(os.path.join(ROOT, 'tests/orig_carol/%s.txt' % name)).read().split('\n')
         tps = [int(l.split()[0]) for l in script if ' TP ' in l]
         P, snd = run_host(name, orig[0], fr, O.get(2))
         skip = set()
         for t in tps: skip.update(range(t - 3, t + 4))
-        fields = {'X': 4.0, 'Y': 4.0, 'B': 0.05, 'G': 0.05, 'L': 0, 'M': 0, 'oY': 0, 'anim': 0, 'tfr': 0, 'sA': 0, 'sL': 0, 'en': 0.3}
+        fields = {'X': 4.0, 'Y': 4.0, 'B': 0.05, 'G': 0.05, 'L': 0, 'M': 0, 'oY': 0, 'anim': 0, 'tfr': 0, 'sA': 0.01 if name.startswith('b_') else 0, 'sL': 0, 'en': 0.3}
         good = {k: 0 for k in fields}; first = {}; n = 0; n_tfr_skip = [0]
         for p in P:
             f = int(p['frame'])
@@ -69,9 +71,10 @@ def main():
                     'oY': (int(p['cY']), int(num(o, 'others_Y'))), 'anim': (pa, int(num(o, 'ctail_aid', -1))),
                     'tfr': (int(p['hafr']), int(num(O.get(f + SHIFT + 1, o), 'ctail_afr', -1))),   # port row f is one animation tick ahead
 
-                    'sA': (int(p['cA']), int(num(o, 'sa_A'))), 'sL': (int(p['cL']), int(num(o, 'sa_L'))), 'en': (num(p, 'energy'), num(o, 'en_A'))}
+                    'sA': (num(p, 'rev'), num(o, 'sa_A'))  if name.startswith('b_') else (int(p['cA']), int(num(o, 'sa_A'))), 'sL': (int(p['cL']), int(num(o, 'sa_L'))), 'en': (num(p, 'energy'), num(o, 'en_A'))}
             o3 = O.get(f + SHIFT + 1, o)
-            if pa != int(num(o, 'ctail_aid', -1)) or num(o3, 'ctail_aid', -1) != num(o, 'ctail_aid', -1): del vals['tfr']; n_tfr_skip[0] += 1
+            if pa != int(num(o, 'ctail_aid', -1)) or num(o3, 'ctail_aid', -1) != num(o, 'ctail_aid', -1) or int(p['hafr']) < 0: del vals['tfr']; n_tfr_skip[0] += 1
+            if pa in (3, 4, 5, 6, 18, 19, 20, 30, 34) and not name.startswith('b_'): vals['anim'] = (0, 0)   # no tail animation with that index: ctail_aid keeps the old one
             for k, (a, b) in vals.items():
                 if abs(a - b) <= fields[k] + 1e-9: good[k] += 1
                 elif k not in first: first[k] = (f, a, b)

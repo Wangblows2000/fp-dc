@@ -62,7 +62,7 @@ ENGINE_TYPES = {
     'objecttaostone': 114, 'spinninglog': 115, 'spinninglogmask': 116, 'breakablerock2': 117,
     'bossserpentinehead': 118, 'bosssnakebody': 119, 'bosssnakehitbox': 120, 'bossgeyseroverlap1': 121, 'bossgeyseroverlap2': 122,
     'bossgiantboulder': 123, 'bosstunnel': 124, 'bosstunnel2': 125, 'bosstunnel3': 126, 'breakable1': 127, 'breakable2': 128, 'breakable3': 129,
-    'bossbouncemode': 130, 'cameratriggerboss': 131, 'objectjumppad': 132, 'monitorkeystone': 133,
+    'bossbouncemode': 130, 'cameratriggerboss': 131, 'objectjumppad': 132, 'monitorkeystone': 133, 'objectfuel': 158,
     'levellayer016': 134, 'levellayer0loop04': 135, 'levellayer115': 136, 'levellayer1loop03': 137,
     'waterfallback': 139, 'waterfallfront': 140, 'waterfallfront2': 141, 'waterfallfront3': 142, 'waterfallfront4': 143,   # EnemyGansekiJr_835 (RE build/re/spec_ganseki.md)     # LadderTop_428: invisible obstacle at the top of each ladder (RE spec_ladder.md)
 }
@@ -484,6 +484,8 @@ def main():
                 cb['anims'].append({'name': 'pbike' + suf, 'frames': dd['frames'], 'speed': dd['max_speed'], 'loop': dd['loop'], 'back_to': dd['back_to']})
             dd = an['effectsdebris_427']['anims'][0]['0']
             cb['anims'].append({'name': 'bdebris', 'frames': dd['frames'][47:51], 'speed': 0, 'loop': -1, 'back_to': 0})
+            dd = an['effectsdust01_369']['anims'][4]['0']                   # bike exhaust (2129)
+            cb['anims'].append({'name': 'bdust', 'frames': dd['frames'], 'speed': dd['max_speed'], 'loop': dd['loop'], 'back_to': dd['back_to']})
         write_bank2(src, cb, out, report)
     write_lv2(os.path.join(out, name + '.lv2'), W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, len(atlases), bank)
     report.append('objects exported: %d (types %s)' % (len(objs), sorted({o['type'] for o in objs})))
@@ -513,6 +515,8 @@ def write_bank2(src, bank, out, report):
         crop_ids = {i for a in bank['anims'] for i in a['frames']} - keep_ids
     else:
         crop_ids = {i for a in bank['anims'] if whole or a['name'].startswith(('gan_', 'explosion')) for i in a['frames']}
+        # the parked bike (ObjectBike_459) collides with its whole image box (initialize_active(1)): keep it (RV b_remount)
+        crop_ids -= {i for a in bank['anims'] if a['name'].startswith('pbike') for i in a['frames']}
     for i in crop_ids:
         im, hx, hy = imgs[i]; bb = im.getbbox()
         if bb and (bb[2] - bb[0], bb[3] - bb[1]) != im.size:

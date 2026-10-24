@@ -105,6 +105,10 @@ void plat_poll_input(input_t *in) {
 static int nsnd;
 void snd_init_fp(void) {}
 int  snd_load(const char *name) { size_t s; void *d = plat_load_file(name, &s); if (!d) return -1; free(d); return nsnd++; }
+static int host_loop_ch = 1;
+int snd_loop_start(int h, int vol, int freq) { if (getenv("FP_TRACE_SND")) printf("snd loop %d vol %d freq %d @%d\n", h, vol, freq, cur_frame); return h >= 0 ? host_loop_ch++ : -1; }
+void snd_loop_set(int ch, int vol, int freq) { (void)ch; (void)vol; (void)freq; }
+void snd_loop_end(int ch) { if (getenv("FP_TRACE_SND")) printf("snd loopstop %d @%d\n", ch, cur_frame); }
 void snd_play(int h, int vol, int pan) { (void)vol; (void)pan; if (getenv("FP_TRACE_SND")) printf("snd %d @%d\n", h, cur_frame); }
 /* host: no audio output; FP_TRACE_SND logs music starts so tests can check transitions (no duplicates) */
 static char host_mus[64];
@@ -252,7 +256,7 @@ int main(int argc, char **argv) {
     if (getenv("FP_ANIM_SYNC")) { int fr = 0, acc = 0; if (sscanf(getenv("FP_ANIM_SYNC"), "%d,%d", &fr, &acc) == 2) player_anim_sync(&G.p, fr, acc); }
     if (getenv("FP_HP")) G.p.hp = atoi(getenv("FP_HP"));
     FILE *csv = getenv("FP_CSV") ? fopen(getenv("FP_CSV"), "w") : NULL;
-    if (csv) fprintf(csv, "frame,held,X,Y,B,G,L,Q,state,anim,afr,rot,energy,hp,M,cY,cA,cL,cS,aname,inv,hafr,sacc,hacc\n");
+    if (csv) fprintf(csv, "frame,held,X,Y,B,G,L,Q,state,anim,afr,rot,energy,hp,M,cY,cA,cL,cS,aname,inv,hafr,sacc,hacc,rev\n");
     input_t in;
     for (cur_frame = 0; cur_frame < frames; cur_frame++) {
         plat_poll_input(&in);
@@ -260,9 +264,9 @@ int main(int argc, char **argv) {
         game_update(&in);
         apply_dbg(cur_frame + 2, 1);
         const player_t *p = &G.p;
-        printf("f %d x %.2f y %.2f gsp %.3f vx %.3f vy %.3f gnd %d ang %.3f st %d hp %d cr %d k %d an %d fr %d rot %.2f en %.2f lv %d face %d mode %d sel %d cx %.1f cy %.1f act %d res %d sh %d shc %d air %d\n",
+        printf("f %d x %.2f y %.2f gsp %.3f vx %.3f vy %.3f gnd %d ang %.3f st %d hp %d cr %d k %d an %d fr %d rot %.2f en %.2f lv %d face %d mode %d sel %d cx %.1f cy %.1f act %d res %d sh %d shc %d air %d chr %d bike %d bc %d oy %d\n",
                cur_frame, p->x, p->y, p->gsp, p->vx, p->vy, p->ground, p->N, p->state, p->hp, p->crystals, G.kills, p->an.anim, p->an.frame,
-               p->rot, p->energy, p->lives, p->face, G.mode, G.in_select, G.camx, G.camy, G.lvdir[0] ? G.lvdir[2] - '0' : 0, results_state(), p->shield, p->shield_c, p->air);
+               p->rot, p->energy, p->lives, p->face, G.mode, G.in_select, G.camx, G.camy, G.lvdir[0] ? G.lvdir[2] - '0' : 0, results_state(), p->shield, p->shield_c, p->air, G.character, p->bike, p->bikeC, p->cY);
         if (getenv("FP_DBG_ENEMY")) {             /* nearest enemy: A, C, knock-back, angle, flags */
             int bi = -1; float bd = 1e9f;
             for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && enemy_type(G.o[i].type)) { float d = fabsf(G.o[i].x - (float)p->x); if (d < bd) { bd = d; bi = i; } }
@@ -284,10 +288,10 @@ int main(int argc, char **argv) {
             for (int b = 0; b < 8; b++) if (in.held & (1u << (b < 4 ? b : b))) h[k++] = bn[b];
             h[k] = 0;
             /* original units: B = ground speed (ground) or x speed (air); G = y speed in air; Y = feet - 14 */
-            fprintf(csv, "%d,%s,%.4f,%.4f,%.5f,%.5f,%d,%d,%d,%d,%d,%.3f,%.2f,%d,%d,%d,%d,%d,%d,%s,%d,%d,%d,%d\n", cur_frame, k ? h : "-", p->x, p->y - ORIG_REF_DY,
+            fprintf(csv, "%d,%s,%.4f,%.4f,%.5f,%.5f,%d,%d,%d,%d,%d,%.3f,%.2f,%d,%d,%d,%d,%d,%d,%s,%d,%d,%d,%d,%.4f\n", cur_frame, k ? h : "-", p->x, p->y - ORIG_REF_DY,
                     p->ground ? p->gsp : p->vx, p->ground ? 0.f : p->vy, p->ground, p->face, p->state, p->an.anim, p->an.frame,
                     p->rot, p->energy, p->hp, player_orig_m(p), p->cY, p->cA, p->cL, p->cS,
-                    p->an.b ? p->an.b->anims[p->an.anim].name : "-", p->invuln, player_hair_frame(), p->an.acc, player_hair_acc());
+                    p->an.b ? p->an.b->anims[p->an.anim].name : "-", p->invuln, player_hair_frame(), p->an.acc, player_hair_acc(), p->rev);
         }
         if (dump && cur_frame % every == 0) {
             game_draw();
