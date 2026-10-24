@@ -85,6 +85,7 @@ int mv_sensor_rows(int s, int *ox, int *oy, const signed char **x0, const signed
     *ox = S[s].x - k->hx; *oy = S[s].y - k->hy; *x0 = k->x0; *x1 = k->x1; *h = k->h;
     return 1;
 }
+int mv_sensor_pos(int s, int *x, int *y) { if (s < 0 || s >= S_COUNT) return 0; *x = S[s].x; *y = S[s].y; return 1; }
 int mv_sensor_left_big(void) { return S[S_LEFTBIG].z; }
 int mv_sensor_right_big(void) { return S[S_RIGHTBIG].z; }
 int mv_sensor_top_big(void) { return S[S_TOPBIG].z; }

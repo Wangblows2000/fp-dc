@@ -194,6 +194,7 @@ void player_hang(player_t *p, double hx, double hy) {
     p->state = ST_HANG; p->state_t = 0; p->hang_x = hx; p->hang_y = hy;
     p->x = hx; p->y = hy + 32 + ORIG_REF_DY; p->gsp = 0; p->ground = 0;   /* RV: B, G not reset on the grab */
     p->jumping = 0; p->cyclone_used = 0; p->boost_used = 0; p->springing = 0;
+    snd_play_orig(33, 220, 128);                                          /* RV a1_jelly_charge (AT1 handlebar): sound 33 on the grab */
 }
 
 /* sources whose damage value has not been recovered yet use the Turretus pellet's 10 (2 half-petals) */
@@ -248,7 +249,7 @@ int player_orig_m(const player_t *p) {
     case ST_ROLL: return 6; case ST_HURT: return 8; case ST_DEAD: return 9; case ST_PUSH: return 11;
     case ST_CLAW: case ST_ATTACK: return 20; case ST_UPPERCUT: return 21; case ST_CYCLONE: return 26;
     case ST_CHARGE: case ST_BOOST: return 5; case ST_DKWIND: return 19; case ST_LADDERIN: return 25;
-    case ST_HANG: return 41; case ST_CORK: return 45; case ST_LADDER: return 46; case ST_SHAKE: return 12;
+    case ST_HANG: return 41; case ST_CORK: return 45; case ST_LADDER: return 46; case ST_SHAKE: return 12; case ST_HELD: return 43;
     case ST_WILDKICK: return 44; case ST_WALL: return 47; case ST_PAD: return 48; case ST_BIKEAIR: return 32;
     default: return -1;
     }
@@ -298,7 +299,7 @@ void player_shake(player_t *p, double B) {
 /* RV (spring_yellow_right): a wall spring sets the ground speed to +-10, no input lock */
 void player_spring_side(player_t *p, double gsp) {
     /* the trigger frame already includes that frame's (input-free) friction step: 10 -> 9.63125 */
-    if (p->ground) { p->gsp = fric_step(gsp); p->ctrl_lock = 4; p->skidding = 0; } else p->vx = gsp;
+    if (p->ground) { p->gsp = fric_step(gsp); p->ctrl_lock = 4; p->skidding = 0; } else { p->vx = gsp; p->ctrl_lock = 3; }   /* OTHERS.O = +-5 also in the air (RV a1_redleft: 3 frames held) */
     snd_play_orig(5, 230, 128);
 }
 
@@ -446,6 +447,7 @@ static void air_speed_update(player_t *p, const input_t *in, int control, double
 static void air_move(player_t *p, const input_t *in, int control, double grav) {
     core(p);
     if (p->ground) { if (p->state != ST_BOOST) ground_speed_update(p, in, control); return; }
+    if (p->ctrl_lock > 0) { p->ctrl_lock--; control = 0; }   /* OTHERS.O lock (side springs) in the air too */
     if (control) {
         if (in->held & BTN_RIGHT) p->face = 1;
         else if (in->held & BTN_LEFT) p->face = -1;
@@ -872,6 +874,12 @@ void player_update(player_t *p, const input_t *in) {
     objects_mon_ghost = p->state == ST_ROLL || p->state == ST_CHARGE || p->state == ST_BOOST;   /* 1581 (5 <= M <= 6) */
     if (p->ground) p->roll_ball = 0;
     if (p->invuln) p->invuln--;
+    if (p->state == ST_HELD) {                    /* M43 (1715 -> 1923/1924): no movement, L = 1, ball pose; placed by aqua_boss.c (4435) */
+        p->ground = 1; p->gsp = 0; p->vx = 0; p->vy = 0; p->N = 0; p->O = 0;
+        set_anim(p, A_CHARGE); anim_tick(&p->an, -1); if (hair.b) anim_tick(&hair, -1);
+        player_sync_sensors(p);
+        return;
+    }
     /* RV energy meter (GUIEnergy_127 alt A): -3/frame while boosting, -0.25/frame in the cyclone, else
      * +0.4/frame up to 100 (state at the start of the frame) */
     /* the stage-start delay counts frames from the start in every state (original boost_cycle trace: the
@@ -927,7 +935,7 @@ void player_update(player_t *p, const input_t *in) {
     if (p->state == ST_HANG) {
         /* RE 4062/4065 hold the position; RV: B is 0 from the next frame, G keeps gaining gravity (unused) */
         p->x = p->hang_x; p->y = p->hang_y + 32 + ORIG_REF_DY; p->vx = 0; if (p->vy > PHYS_MAXFALL) p->vy = PHYS_MAXFALL; p->vy += PHYS_GRAV;
-        if (in->pressed & BTN_JUMP) { p->state = ST_NORMAL; p->vx = 0; p->vy = -PHYS_JUMP; p->jumping = 1; snd_play_orig(8, 200, 128); }   /* INFERRED */
+        if (in->pressed & BTN_JUMP) { p->state = ST_NORMAL; p->vx = 0; p->vy = -4.5; p->jumping = 0; p->m1 = 1; p->cY = 3; }   /* RV a1_jelly_charge: G -4.5, M1, no jump sound */
         else if (in->pressed & BTN_DOWN) { p->state = ST_NORMAL; p->vy = 0; p->y += 1; }                                                     /* INFERRED */
         set_anim(p, A_HANG); anim_tick(&p->an, -1); if (hair.b) anim_tick(&hair, -1);
         return;

@@ -280,7 +280,7 @@ int main(int argc, char **argv) {
           if (tk) { const char *q = tk; int t, x0, nn;
             while (sscanf(q, "%d:%d%n", &t, &x0, &nn) == 2) {
                 for (int i = 0; i < G.nobjs; i++) { const obj_t *o = &G.o[i];
-                    if (o->alive && o->type == t && (int)o->ox == x0)
+                    if (o->alive && o->type == t && (x0 < 0 || (int)o->ox == x0))
                         printf("ob %d %d %d x %.2f y %.2f st %d A %.2f dir %d an %d fr %d fl %x a0 %.3f a1 %.3f a2 %.3f a3 %.3f a4 %.3f fx %.2f fy %.2f bd %d\n", cur_frame, t, x0, o->x, o->y, o->st, o->A, o->dir,
                                o->an.b ? o->an.anim : -1, o->an.frame, o->fl, o->av[0], o->av[1], o->av[2], o->av[3], o->av[4], o->fx, o->fy, o->bd); }
                 q += nn; if (*q == ',') q++; else break; } } }

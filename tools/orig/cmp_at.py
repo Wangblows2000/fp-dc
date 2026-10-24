@@ -47,6 +47,7 @@ def run_host(name, c, o0, fr):
     if 'GT' in c: env['FP_AT_GT'] = c['GT']
     elif 'gv3' in o0: env['FP_AT_GT'] = str(int(float(o0['gv3'])))
     if c['TRACK']: env['FP_TRACK'] = ','.join('%d:%d' % (t, x) for _, t, x, _s in c['TRACK'])
+    if os.environ.get('XTRACK'): env['FP_TRACK'] = ','.join(filter(None, [env.get('FP_TRACK'), os.environ['XTRACK']]))   # extra port objects to dump
     # teleports / alterable writes act on the original's frame f directly, keys are seen 2 frames later (input lag): the host
     # gets the TP / SETV lines 2 frames earlier so that port row f matches original row f + 2 after a teleport as well
     scr = os.path.join(ROOT, 'build/fpdc_traces/at_%s.txt' % name)
@@ -57,6 +58,7 @@ def run_host(name, c, o0, fr):
             sf.write(' '.join(t) + '\n')
     r = subprocess.run([os.path.join(ROOT, 'host/fpdc_host'), 'converted2', str(fr + 5), scr],
                        cwd=ROOT, env=env, capture_output=True, text=True)
+    open(out[:-4] + '.out', 'w').write(r.stdout)   # raw host output (ob / sid lines) for debugging
     snd, pending, obs = [], [], {}
     for line in r.stdout.splitlines():
         t = line.split()

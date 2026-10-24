@@ -211,7 +211,16 @@ enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_MON_INVINC = 4, OT_MON
        OT_SLIMEBURST = 166, OT_WHISP = 167, OT_ABPIECE = 168 /* runtime-created */,
        OT_WJET = 169, OT_WJET_R = 170, OT_WJET_B = 171, OT_WJET_MAKER = 172, OT_JELLY = 173,   /* spec_at_gimmicks_a.md */
        OT_RSPRING_U = 174, OT_RSPRING_D = 175, OT_RSPRING_L = 176, OT_RSPRING_R = 177, OT_RSPRING_UR = 178,
-       OT_MON_BOMB = 179, OT_MON_CRATE = 180, OT_WATERHIT = 181, OT_BOMBX = 182 /* runtime: hit effect, bomb explosion (MonitorIcon frame 9) */ };
+       OT_MON_BOMB = 179, OT_MON_CRATE = 180, OT_WATERHIT = 181, OT_BOMBX = 182 /* runtime: hit effect, bomb explosion (MonitorIcon frame 9) */,
+       /* spec_at_gimmicks_b.md (src/game/aqua_gim.c) */
+       OT_ABPLAT = 183, OT_COLLAPSE = 184, OT_SDOOR2 = 185, OT_MBLOCK = 186, OT_CRUSH_V = 187, OT_CRUSH_H = 188, OT_CRUSH_H2 = 189,
+       OT_PIPE = 190, OT_PIPEHUB = 191, OT_PIPECOG = 192, OT_BEAM = 193, OT_AXEL1 = 194, OT_AXEL2 = 195, OT_AXMAKER1 = 196, OT_AXMAKER2 = 197,
+       OT_SWSPAWN1 = 198, OT_SWSPAWN2 = 199, OT_SWBASE = 200, OT_SWCHAIN = 201, OT_SWPLAT = 202, OT_SCROLLBRICK = 203, OT_SLIMEFLOOR = 204,
+       OT_RAFT = 205, OT_TREEOVL = 206, OT_FISHSTATUE = 207, OT_CRUSH_VIS = 208 /* layer-2 drawn copy */, OT_SLIMEF_VIS = 209,
+       OT_SDOOR = 210, OT_APLATE = 211, OT_WPLATE_AT = 212 /* AT retypes of SwitchDoor_770 / PressurePlate_769 / WallPlate_831 */, OT_EXPL01 = 213,
+       /* AT bosses (src/game/aqua_boss.c): spec_ironworm.md, spec_chomper.md, spec_chompersnake.md */
+       OT_IW_HEAD = 214, OT_IW_SEG = 215, OT_IW_BASE = 216, OT_CH_HEAD = 217, OT_CH_TAIL = 218, OT_CH_BALL = 219, OT_CH_MOUTH = 220,
+       OT_SN_HEAD = 221, OT_SN_SEG = 222, OT_SN_MOUTH = 223, OT_ACID = 224, OT_ROCK_AT = 225, OT_BUBBLE = 226 /* runtime */ };
 
 #define MAX_ATLAS 4
 typedef struct {
@@ -417,6 +426,8 @@ int    player_cube_state(void);
 int    player_cube_hits(const obj_t *e);
 int    player_cube_breaks_rock(const obj_t *o);
 int    player_cube_opens_monitor(const obj_t *o);
+int    player_cube_xy(float *x, float *y), player_cube_rect(int x0, int y0, int x1, int y1);
+void   player_cube_cancel(void), player_cube_burst(void);
 double player_cube_damage(double *kx, double *ky, int *armour_only, int Q);
 int    player_milla_hud(void);
 void   player_milla_dbg(double v[7]);   /* traces: cube A, x, y, C, F, anim, MILLA's shown direction */                           /* jump-pad configuration (src/characters/carol_bike.inc) */
@@ -460,7 +471,8 @@ enum { ST_NORMAL, ST_ATTACK, ST_CYCLONE, ST_CHARGE, ST_BOOST, ST_HURT, ST_DEAD,
        ST_DIG,         /* Milla M27: dig (2254-2268) */
        ST_MCARRY,      /* Milla M30: charging / carrying the cube or a monitor (2269-2277) */
        ST_MSHIELD,     /* Milla M31: shield / burst / beam (2278-2293) */
-       ST_SHAKE };     /* M12: shake off water after an Aqua Tunnel water jet (1885-1887, 4141/4142) */
+       ST_SHAKE,       /* M12: shake off water after an Aqua Tunnel water jet (1885-1887, 4141/4142) */
+       ST_HELD };      /* M43: held in the AT2 Chomper mouth (4435; OTHERS.Y 8 ball pose, L = 1) */
 /* src/game/combat.c (build/re/spec_combat.md) */
 void combat_frame(player_t *p);
 void combat_draw_shields(int behind);
@@ -507,6 +519,11 @@ void   spore_update(obj_t *o, player_t *p);
 void   enemies_absorb_crystals(void);
 /* src/game/aqua.c (Aqua Tunnel, session 12) */
 int    aqua_level(void);                      /* act 1-4 in Aqua Tunnel, else 0 */
+void   aqua_platforms(player_t *p);           /* AT platform / gimmick block before Lilac's movement (aqua_gim.c) */
+void   aqua_gim_spawn(void), aqua_set_input(const input_t *in), aqua_gim_post(player_t *p);
+int    aqua_gim_obj(obj_t *o);                /* 1: an aqua_gim.c type (no generic object code) */
+int    obj_px(const obj_t *o, int wx, int wy); /* world pixel of an object's current (rotated) mask */
+int    mv_sensor_pos(int s, int *x, int *y);  /* placed sensor position (Chowdren x, y) */
 void   aqua_spawn(void), aqua_pre(player_t *p), aqua_update(player_t *p);
 int    aqua_obj_update(obj_t *o, player_t *p);
 int    aqua_dig_hint(void), aqua_obj_alpha(const obj_t *o);

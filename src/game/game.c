@@ -565,6 +565,7 @@ void game_update(const input_t *in) {
     if (G.card_t < CARD_DONE) {                   /* intro card: no control, timer not running */
         G.card_t++;
         input_t none = {0};
+        aqua_set_input(&none);
         objects_platforms(&G.p);
         player_update(&G.p, &none);
         camera_update();
@@ -579,6 +580,7 @@ void game_update(const input_t *in) {
     const input_t *pin = (G.clear_t || G.act_in) ? &none : results_on() ? &rin : in;   /* act end / walk-in / results: no control (RE) */
     { static uint32_t sprev; uint32_t h; if (serp4_input(&h)) { sin_.held = h; sin_.pressed = h & ~sprev; sprev = h; pin = &sin_; } else sprev = 0; }   /* DV4 boss exit (5547 lock, 5573-5577) */
     PROF(PS_PAR, par_update());                   /* RE 3541: parallax drift */
+    aqua_set_input(pin);                          /* AT swings read CTRL.K (4357) */
     PROF(PS_PLAT, objects_platforms(&G.p));       /* RE: platform/bridge events run before Lilac's movement */
     aqua_pre(&G.p);                               /* Aqua Tunnel: dig zones (3313, 4171-4182) */
     PROF(PS_PLAYER, player_update(&G.p, pin));

@@ -240,6 +240,14 @@ int player_cube_opens_monitor(const obj_t *o) {
     if (cube.A == 5 && cube_hits_obj(o)) return 1;
     return 0;
 }
+/* Aqua Tunnel bosses (aqua_boss.c): the cube's position / state, its image against a box, cancelling or bursting it */
+int player_cube_xy(float *x, float *y) { if (!is_milla()) return -1; *x = cube.x; *y = cube.y; return cube.A; }
+int player_cube_rect(int x0, int y0, int x1, int y1) {
+    if (!is_milla() || (!cube.vis && cube.A != 3) || !cube.an.b) return 0;
+    obj_t c = cube_obj(); return obj_rect_hit(&c, x0, y0, x1, y1);
+}
+void player_cube_cancel(void) { if (is_milla()) { cube.vis = 0; cube.A = 0; } }                 /* CUBE hidden, A = 0 */
+void player_cube_burst(void) { if (is_milla() && cube.A == 2) { cube.A = 3; m_wburst(cube.x, cube.y); } }
 /* hits on enemies (2742-2745), called from combat_frame after 2741: returns the damage term and fills the knock-back */
 double player_cube_damage(double *kx, double *ky, int *armour_only, int Q) {
     extern int fe_difficulty;
