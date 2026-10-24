@@ -184,6 +184,14 @@ static void milla_cube_collide(void) {
     if (hit) { cube.A = 3; m_wburst(cube.x, cube.y); }
 }
 /* exported for objects.c / combat.c: the cube's current hitbox against an object (rotated images: per pixel) */
+/* the object's current image rectangle (mask collisions; flip-aware) */
+static void m_obj_rect(const obj_t *o, int *x0, int *y0, int *x1, int *y1) {
+    const frame_t *f = anim_frame(&o->an);
+    *x0 = (int)floorf(o->x) - (o->flip ? f->w - f->hx : f->hx); *y0 = (int)floorf(o->y) - f->hy; *x1 = *x0 + f->w; *y1 = *y0 + f->h;
+}
+/* performance (SH4): the rotated hitbox is tested only inside the intersection of its bounding box with the object's
+ * image, pixel by pixel in the object's space with an inverse rotation (the beam is 160x64: a full scan of its pixels
+ * against every rock / monitor / enemy cost up to 300 ms in one Flycast frame) */
 static int cube_hits_obj(const obj_t *e) {
     if (!cube.vis && cube.A != 3) return 0;
     if (!cube.an.b || !e->an.b) return 0;
@@ -192,12 +200,28 @@ static int cube_hits_obj(const obj_t *e) {
     const frame_t *f = anim_frame(&c.an);
     double a = fmod((double)c.ang, 360.0) / 57.29577951308232, co = fd_cos(a), sn = fd_sin(a);
     int hx = c.flip ? f->w - f->hx : f->hx, ox = (int)floorf(c.x), oy = (int)floorf(c.y);
-    for (int y = 0; y < f->h; y += 1)
-        for (int x = 0; x < f->w; x += 1) {
-            if (!frame_mask_px(c.an.b, f, c.flip ? f->w - 1 - x : x, y)) continue;
-            double lx = x + 0.5 - hx, ly = y + 0.5 - f->hy;
-            int wx = ox + (int)floor(lx * co + ly * sn), wy = oy + (int)floor(-lx * sn + ly * co);
-            if (obj_rect_hit(e, wx, wy, wx + 1, wy + 1)) return 1;
+    /* bounding box of the rotated image (corners relative to the hotspot) */
+    double cx[4] = { -hx, f->w - hx, -hx, f->w - hx }, cy[4] = { -f->hy, -f->hy, f->h - f->hy, f->h - f->hy };
+    double bx0 = 1e9, by0 = 1e9, bx1 = -1e9, by1 = -1e9;
+    for (int k = 0; k < 4; k++) {
+        double wx = cx[k] * co + cy[k] * sn, wy = -cx[k] * sn + cy[k] * co;
+        bx0 = fmin(bx0, wx); bx1 = fmax(bx1, wx); by0 = fmin(by0, wy); by1 = fmax(by1, wy);
+    }
+    int ex0, ey0, ex1, ey1; m_obj_rect(e, &ex0, &ey0, &ex1, &ey1);
+    int x0 = ox + (int)floor(bx0), y0 = oy + (int)floor(by0), x1 = ox + (int)ceil(bx1) + 1, y1 = oy + (int)ceil(by1) + 1;
+    x0 = x0 < ex0 ? ex0 : x0; y0 = y0 < ey0 ? ey0 : y0; x1 = x1 > ex1 ? ex1 : x1; y1 = y1 > ey1 ? ey1 : y1;
+    if (x0 >= x1 || y0 >= y1) return 0;
+    const frame_t *fe = anim_frame(&e->an);
+    for (int y = y0; y < y1; y++)
+        for (int x = x0; x < x1; x++) {
+            int lxe = x - ex0; if (e->flip) lxe = fe->w - 1 - lxe;
+            if (!frame_mask_px(e->an.b, fe, lxe, y - ey0)) continue;
+            /* world pixel centre -> cube image space (inverse rotation) */
+            double dx = x + 0.5 - ox, dy = y + 0.5 - oy;
+            double lx = dx * co - dy * sn + hx, ly = dx * sn + dy * co + f->hy;
+            int ix = (int)floor(lx), iy = (int)floor(ly);
+            if (ix < 0 || iy < 0 || ix >= f->w || iy >= f->h) continue;
+            if (frame_mask_px(c.an.b, f, c.flip ? f->w - 1 - ix : ix, iy)) return 1;
         }
     return 0;
 }
