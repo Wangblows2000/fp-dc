@@ -643,6 +643,13 @@ void hud_draw(void) {
     hud_number(mm > 99 ? 99 : mm, 2, 343, 8 + hud_dy);
     hud_number(ss, 2, 369, 8 + hud_dy);
     hud_number(cs % 100, 2, 395, 8 + hud_dy);
+    /* DV4 boss hit tally (guibosshealth value, 3 -> 0; port presentation): bottom right of the 426x240 view, with the
+     * timer's margins (right edge 11 px in, 8 px from the edge). It does not slide with the HUD (shown mid-fight only). */
+    { int k; extern int serp4_hud(int *k);
+      if (serp4_hud(&k) && k >= 0 && k <= 9 && hud_anim[5] >= 0) {
+          const frame_t *f = &G.objs.frames[G.objs.seq[G.objs.anims[hud_anim[5]].first + k]];
+          hud_number(k, 1, SCREEN_W - 11 - 10, SCREEN_H - 8 - f->h);
+      } }
     char buf[32];
 
 #ifdef FP_PROFILE

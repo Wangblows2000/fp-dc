@@ -316,5 +316,20 @@ check('invincibility_monitor_shatter_sound', i >= 2 and m[i - 2:i] == ['307', '1
 r = sids(open(os.path.join(HERE, 'orig_extra_spiral_dv1.txt')).read(), 380, {'FP_LEVEL': 'dv1'})
 check('rock_break_sound_not_hurt', '13' in r and not {'80', '81', '82'} & set(r), ' '.join(r))
 
+# DV2 pressure plate (5182-5186 + 4971): the door sinks 8 px/frame while pressed (RV plate3: 1016 -> 1144, top stays in
+# view), and a pushable block resting over the plate presses it (4971; reach over the pit = port deviation D-036)
+def objs_at(script, f, env):
+    with tempfile.NamedTemporaryFile('w', suffix='.txt', delete=False) as fh:
+        fh.write(script); name = fh.name
+    out = subprocess.run([BIN, DATA, str(f + 1), name], capture_output=True, text=True, check=True,
+                         env={**os.environ, 'FP_DBG_OBJS': str(f), **env}).stdout
+    os.unlink(name)
+    return {int(l.split()[3]): (float(l.split()[5]), float(l.split()[7])) for l in out.splitlines() if l.startswith('obj ')}
+d = [objs_at('58 TP 2900 1120\n', f, {'FP_LEVEL': 'dv2'}).get(96, (0, 0))[1] for f in (74, 75, 76, 92)]
+check('dv2_door_sinks_when_pressed', d == [1016, 1024, 1032, 1144], str(d))
+push = '1 140 L\n200 215 L\n215 222 LJ\n222 280 L\n320 566 R\n596 597 L\n'
+o = objs_at(push, 800, {'FP_LEVEL': 'dv2', 'FP_SPAWN_X': '2895', 'FP_SPAWN_Y': '520'})
+check('dv2_block_presses_plate', o.get(96, (0, 0))[1] == 1144 and o.get(98, (0, 0))[1] == 1137 and o.get(98, (0, 0))[0] > 2895, str(o.get(96)) + ' ' + str(o.get(98)))
+
 print('%d failure(s)' % fails)
 sys.exit(1 if fails else 0)

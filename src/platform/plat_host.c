@@ -152,7 +152,8 @@ void plat_quit(void) { printf("quit @%d\n", cur_frame); exit(0); }
 
 /* debug-route commands shared with tools/orig/trace_orig.py: "<f> TP x y" (original units: Y is the
  * reference point 14 px above the feet), "<f> EN v" energy, "<f> HP v" petals (half-petals);
- * host only: "<f> HURT dx" a hit from x+dx, ignored while invulnerable (like an enemy contact) */
+ * host only: "<f> HURT dx" a hit from x+dx, ignored while invulnerable (like an enemy contact); "<f> PB x y" moves the
+ * first pushable block to original coordinates */
 typedef struct { int f; char k; float a, b; } dbg_t;
 static dbg_t dbg[256]; static int ndbg;
 static void apply_dbg(int f, int tp) {
@@ -167,6 +168,7 @@ static void apply_dbg(int f, int tp) {
         if (dbg[i].k == 'E') p->energy = dbg[i].a;
         if (dbg[i].k == 'D' && !player_invincible(p)) player_hurt(p, p->x + dbg[i].a);   /* test hit from dx */
         if (dbg[i].k == 'H') p->hp = (int)dbg[i].a;
+        if (dbg[i].k == 'P') for (int k = 0; k < G.nobjs; k++) if (G.o[k].alive && G.o[k].type == OT_PBLOCK1) { G.o[k].x = dbg[i].a + 41; G.o[k].y = dbg[i].b; break; }   /* port x = original x + 41 */
         if (dbg[i].k == 'M') {                     /* test: a shield monitor (OT_MON_WOOD..WATER) placed 40 px ahead, box top-left */
             obj_t *o = obj_alloc(); int a = ens_anim(dbg[i].a == OT_MON_WOOD ? "mon_wood" : dbg[i].a == OT_MON_EARTH ? "mon_earth" : dbg[i].a == OT_MON_FIRE ? "mon_fire" : dbg[i].a == OT_MON_METAL ? "mon_metal" : "mon_water");
             if (o && a >= 0) { o->type = (int)dbg[i].a; o->alive = 1; o->hp = 1; o->layer = 2; o->x = (float)p->x + 30; o->y = (float)(p->y - ORIG_REF_DY) - 18; anim_set(&o->an, &G.ens, a); }
@@ -206,6 +208,7 @@ int main(int argc, char **argv) {
             if (sscanf(line, "%d HURT %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'D', fx, 0 }; continue; }
             if (sscanf(line, "%d HP %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'H', fx, 0 }; continue; }
             if (sscanf(line, "%d MON %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'M', fx, 0 }; continue; }
+            if (sscanf(line, "%d PB %f %f", &ff, &fx, &fy) == 3 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'P', fx, fy }; continue; }   /* first pushable block to original (x, y) */
             if (sscanf(line, "%d %d %31s", &script[nscript].a, &script[nscript].b, btn) == 3)
                 script[nscript++].m = parse_btn(btn);
         }

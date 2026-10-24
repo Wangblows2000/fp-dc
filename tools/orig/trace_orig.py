@@ -119,6 +119,8 @@ def load_script(path):
                 WATCH.setdefault(int(t[0]), []).append((t[2], t[3]))
             elif len(t) == 4 and t[1] == 'SETB':
                 SETB.setdefault(int(t[0]), []).append((int(t[2], 16), int(t[3], 0)))
+            elif len(t) == 5 and t[1] == 'SETXY':   # debug: "<f> SETXY <obj> <x> <y>" writes a found object's int x, y
+                SETV.setdefault(int(t[0]), []).append((t[2], 'XY', (int(t[3]), int(t[4]))))
             elif len(t) == 5 and t[1] == 'SETV':
                 SETV.setdefault(int(t[0]), []).append((t[2], t[3], float(t[4])))
             elif len(t) == 4 and t[1] == 'TP':
@@ -292,10 +294,48 @@ class Tracer(gdb.Breakpoint):
             if FRAMES[0] is None: FRAMES[0] = find_frames(self.objs['mv'], self.objs.get('others', 0)); gdb.write('frames at %s\n' % (hex(FRAMES[0]) if FRAMES[0] else None))
             for off_, b_ in SETB[self.f]:
                 if FRAMES[0]: inf.write_memory(FRAMES[0] + off_, bytes([b_]))
+        try:
+            if os.environ.get('XLIST'):   # XLIST="name=0xoff,q:name=0xoff": x, y, flags of every instance of an ObjectList at
+                if FRAMES[0] is None: FRAMES[0] = find_frames(self.objs['mv'], self.objs.get('others', 0))   # Frames+off (q: = qualifier)
+                if FRAMES[0]:
+                    if not hasattr(self, 'xlf'): self.xlf = open(self.outpath[:-4] + '.xl', 'w')
+                    rq = lambda a_, n_: bytes(inf.read_memory(a_, n_))
+                    for kv in os.environ['XLIST'].split(','):
+                        nm_, off_ = kv.split('='); off_ = int(off_, 0)
+                        bases = [FRAMES[0] + off_]
+                        if nm_.startswith('q:'):
+                            qn_ = struct.unpack('<i', rq(FRAMES[0] + off_, 4))[0]
+                            qa_ = struct.unpack('<Q', rq(FRAMES[0] + off_ + 8, 8))[0]
+                            bases = [struct.unpack('<Q', rq(qa_ + 8 * j_, 8))[0] for j_ in range(qn_)]
+                        for bi_, base_ in enumerate(bases):
+                            items, cnt = struct.unpack('<QQ', rq(base_ + 8, 16))
+                            if cnt > 256: continue
+                            for i_ in range(1, cnt):
+                                ob = struct.unpack('<Q', rq(items + i_ * 16, 8))[0]
+                                if not ob: continue
+                                x_, y_ = struct.unpack('<ii', rq(ob + 8, 8))
+                                fl_ = struct.unpack('<I', rq(struct.unpack('<Q', rq(ob + 0x20, 8))[0] + 0x120, 4))[0]
+                                self.xlf.write('%d %s%d.%d %d %d fl %x obj %x\n' % (self.f, nm_, bi_, i_, x_, y_, fl_, ob))
+                                if not hasattr(self, 'xlobj'): self.xlobj = {}
+                                self.xlobj['%s%d.%d' % (nm_, bi_, i_)] = ob
+                    self.xlf.flush()
+        except Exception:
+            import traceback; open('/tmp/xl_err.txt', 'a').write(traceback.format_exc())
         for nm_, key_, val_ in SETV.get(self.f, []):
-            if nm_ in self.objs:
-                o_ = self.objs[nm_]
-                if key_.startswith('0x'): inf.write_memory(o_ + int(key_, 16), struct.pack('<d', val_))
+            if nm_ in self.objs or nm_ in getattr(self, 'xlobj', {}):
+                o_ = self.objs[nm_] if nm_ in self.objs else self.xlobj[nm_]
+                if key_ == 'XY':   # FrameObject::set_position (0xa33c30) minus its UniformGrid::move (can't call inferior code here)
+                    ox_, oy_ = struct.unpack('<ii', bytes(inf.read_memory(o_ + 8, 8)))
+                    inf.write_memory(o_ + 8, struct.pack('<ii', *val_))
+                    col_ = struct.unpack('<Q', bytes(inf.read_memory(o_ + 0x28, 8)))[0]
+                    if col_:
+                        bx_ = list(struct.unpack('<4i', bytes(inf.read_memory(col_ + 8, 16))))
+                        dx_, dy_ = val_[0] - ox_, val_[1] - oy_
+                        inf.write_memory(col_ + 8, struct.pack('<4i', bx_[0] + dx_, bx_[1] + dy_, bx_[2] + dx_, bx_[3] + dy_))
+                        c20_ = struct.unpack('<Q', bytes(inf.read_memory(col_ + 0x20, 8)))[0]
+                        f_ = struct.unpack('<I', bytes(inf.read_memory(c20_ + 0x18, 4)))[0]
+                        inf.write_memory(c20_ + 0x18, struct.pack('<I', f_ & 0xfffffcff))
+                elif key_.startswith('0x'): inf.write_memory(o_ + int(key_, 16), struct.pack('<d', val_))
                 else:
                     alt_ = struct.unpack('<Q', bytes(inf.read_memory(o_ + 0x20, 8)))[0]
                     inf.write_memory(alt_ + 0x50 + 8 * (ord(key_) - 65), struct.pack('<d', val_))

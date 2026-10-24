@@ -689,13 +689,9 @@ int serp4_hud(int *k) { *k = S4.K; return SN.level == 4 && S4.hud && SN.active &
 int serp_progress(void) { return (SN.done ? 200 : 0) + (SN.level == 4 ? (3 - S4.K) * 100 + (S4.exit ? 100 : 0) : 0); }
 
 void serp_draw_hud(void) {
-    int k;
-    if (serp4_hud(&k)) {                                     /* guiboss (264,208) + guibosshealth counter (277,222), layer 6 */
-        int a = ens_anim("guiboss");
-        if (a >= 0) { const anim_t *an = &G.ens.anims[a]; frame_draw(&G.ens, &G.ens.frames[G.ens.seq[an->first]], 264, 208, 0, 0xffffffff); }
-        int d = bank_anim(&G.objs, "hud_digits");
-        if (d >= 0 && k >= 0 && k <= 9) { const anim_t *an = &G.objs.anims[d]; frame_draw(&G.objs, &G.objs.frames[G.objs.seq[an->first + k]], 277, 222, 0, 0xffffffff); }
-    }
+    /* The guiboss "BOSS" bar is not drawn: RE 5478 shows guiboss and its counter only when guiboss alterable A > 0,
+     * and nothing in DV4 sets A (spec_dv4_boss_events U-G1), so the final game never shows it. The hit tally
+     * (guibosshealth value K) is kept by request and drawn by hud_draw() at the bottom right. */
     int f = serp4_flash();
     if (f > 0) r_rect(0, 0, SCREEN_W, SCREEN_H, ((uint32_t)f << 24) | 0xffffff);   /* 5547 white levelcardfade */
 }
