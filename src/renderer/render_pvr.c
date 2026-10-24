@@ -140,7 +140,7 @@ int r_pal_load(const void *data, size_t size) {
 }
 
 void r_begin(void) {
-    pvr_wait_ready();
+    PROF(PS_WAIT, pvr_wait_ready());
     pvr_scene_begin();
     pvr_list_begin(PVR_LIST_PT_POLY);
     cur_hdr = -2;
@@ -152,6 +152,7 @@ void r_begin(void) {
 static void replay(void);
 static void bars(void);
 void r_end(void) {
+    uint64_t t_sub = plat_time_us();
     bars();
     pvr_list_finish();
     if (ndq) {
@@ -163,6 +164,7 @@ void r_end(void) {
     }
     add_pass = 0;
     pvr_scene_finish();
+    { uint32_t d = (uint32_t)(plat_time_us() - t_sub); prof_acc[PS_SUBMIT] += d; if (d > prof_max[PS_SUBMIT]) prof_max[PS_SUBMIT] = d; }
 }
 
 void r_fade(float alpha) {

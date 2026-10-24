@@ -301,5 +301,20 @@ check('dv4_exit_rises_to_surface', bool(rise) and bool(land), '%d air / %d groun
 check('dv4_exit_camera_on_surface', bool(land) and land[0]['cy'] < 1300 and land[0]['y'] - land[0]['cy'] > 0 and land[0]['y'] - land[0]['cy'] < 240, str(land[0]['cy'] if land else None))
 check('dv4_exit_results_then_menu', bool(view) and max(x['res'] for x in r) >= 3 and r[-1]['mode'] == 0)
 
+# Break sounds (RV original traces mon / inv / spiral_dv1; RE Frames::event_func_2623): a monitor plays 307 + 12, a rock 13.
+# None of them may play 80/81/82, which are Lilac's own hurt set (RV: hurt = 25 + one of 80/81/82).
+def sids(script, frames, env):
+    with tempfile.NamedTemporaryFile('w', suffix='.txt', delete=False) as f:
+        f.write(script); name = f.name
+    out = subprocess.run([BIN, DATA, str(frames), name], capture_output=True, text=True, check=True,
+                         env={**os.environ, 'FP_TRACE_SID': '1', 'FP_TRACE_SND': '1', **env}).stdout
+    os.unlink(name)
+    return [l.split()[1] for l in out.splitlines() if l.startswith('sid ') or l.startswith('music ')]
+m = sids('5 60 R\n10 13 X\n30 33 X\n', 120, {'FP_LEVEL': 'dv1', 'FP_SPAWN_X': '6150', 'FP_SPAWN_Y': '830'})
+i = m.index('bgm/m_invincibility.adp') if 'bgm/m_invincibility.adp' in m else -1
+check('invincibility_monitor_shatter_sound', i >= 2 and m[i - 2:i] == ['307', '12'] and '25' not in m[:i], ' '.join(m))
+r = sids(open(os.path.join(HERE, 'orig_extra_spiral_dv1.txt')).read(), 380, {'FP_LEVEL': 'dv1'})
+check('rock_break_sound_not_hurt', '13' in r and not {'80', '81', '82'} & set(r), ' '.join(r))
+
 print('%d failure(s)' % fails)
 sys.exit(1 if fails else 0)

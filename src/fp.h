@@ -40,6 +40,11 @@ void   plat_log(const char *fmt, ...);
 int    save_card_total(void);
 const char *plat_start_level(void);   /* level to start directly (host FP_LEVEL, DC demo "LEVEL <dir>" line), or NULL */
 uint64_t plat_time_us(void);
+/* frame profiler (DC perf log, every 600 frames: average / max microseconds per section; task 48) */
+enum { PS_PAR, PS_PLAT, PS_PLAYER, PS_LAYERS, PS_OBJ, PS_GIMMICK, PS_CAM, PS_RES, PS_DRAW, PS_SUBMIT, PS_WAIT, PS_MUS, PS_N };   /* PS_MUS: music thread refills (other thread) */
+extern uint32_t prof_acc[PS_N], prof_max[PS_N];
+#define PROF(i, stmt) do { uint64_t _pt = plat_time_us(); stmt; uint32_t _pd = (uint32_t)(plat_time_us() - _pt); \
+    prof_acc[i] += _pd; if (_pd > prof_max[i]) prof_max[i] = _pd; } while (0)
 
 void   snd_init_fp(void);
 int    snd_load(const char *name);
@@ -269,21 +274,26 @@ typedef struct {
 
 #define F_NOFLY 0x10000          /* enemy alterable flag 16: no death flight (bosses keep the object) */
 typedef struct {
-    int type, alive, hp;
-    int st, tm, dir, born;       /* recovered enemy state (Turretus D, E; direction); frame created */
-    float x, y, ox, oy, vx, vy, fx, fy;
-    int t, flip, par;
+    /* hot fields first (performance, task 48): the per-frame scans (sensor queries, type loops) read type, alive, fl,
+     * flip, x, y and the animator; with obj_t padded to 256 bytes and the array 32-byte aligned they share one or two
+     * SH4 cache lines instead of four */
+    int type, alive;
     int c, fl;                   /* recovered enemy hit timer C (5 after a hit) and alterable flags (bit 5 armoured, bit 6 defeated) */
+    float x, y;
+    int flip, layer;             /* layer: frame layer for drawing (2 = the play layer; waterfalls 0-3) */
+    animator_t an;
+    int hp;
+    int st, tm, dir, born;       /* recovered enemy state (Turretus D, E; direction); frame created */
+    float ox, oy, vx, vy, fx, fy;
+    int t, par;
     double A, kx, ky;            /* shared enemy rules (spec_combat.md): HP A, knock-back X, Y */
     float ang;                   /* sprite angle (defeated spin) */
     int inv, absorbed;           /* invert shader on (hit flash); crystals absorbed (S) */
     int bd;                      /* enemy contact damage B (2731 needs B > 0) */
     float scale;                 /* Active scale (0 = 1) */
     int hidden;                  /* invisible (still collides) */
-    int layer;                   /* frame layer for drawing (2 = the play layer; waterfalls 0-3) */
     double av[8];                /* class alterables (boss scripts) */
-    animator_t an;
-} obj_t;
+} __attribute__((aligned(32))) obj_t;
 
 #define MAX_OBJS 640
 
