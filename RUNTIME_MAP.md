@@ -269,3 +269,28 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
 - Traces: tests/orig_milla/*.txt (DV1; m_dig_at1 Aqua Tunnel, FRAME=16), CSVs build/orig_traces/milla, compared by
   tools/orig/cmp_milla.py (FR=295 for the 300-frame traces). Teleports far from the start can fail in the original
   (camera bounds): use spots near the DV1 start or at x 5430 / 6740.
+
+## Session 12: Aqua Tunnel (port: src/game/aqua.c, aqua_gim.c, aqua_boss.c; tools/import_frame.py; tests/test_aqua.py)
+- Levels at1..at4 = original frame index 16..19 (`tools/build_level.sh 17 at1 converted2` … `20 at4`). AT layers map
+  2→1, 3→2, 4→3 (D-045). Per-level banks at<n>_ens hold every AT class (AT_ENS in import_frame.py; at1/at4 split into
+  two atlases).
+- Routes: Milla's Classic / Continue load at1; Time Attack icon 6 (AT) replaces DV for her (fe_stsel.inc
+  `stage_playable`, RE 623-625); records per stage index (`stage_rec_index`: AT 0, DV 1).
+- Object types: 160-182 (dig spot, enemies, jets, jelly, springs, bomb / crate), 183-213 (gimmicks B: ABPLAT, COLLAPSE,
+  SDOOR / SDOOR2 / APLATE / WPLATE_AT (AT retypes of SwitchDoor / PressurePlate / WallPlate), MBLOCK, CRUSH_V /
+  CRUSH_VIS / CRUSH_H / CRUSH_H2, PIPE / PIPEHUB / PIPECOG, BEAM, AXEL1/2, AXMAKER1/2, SWSPAWN1/2 → SWBASE / SWCHAIN /
+  SWPLAT, SCROLLBRICK, SLIMEFLOOR / SLIMEF_VIS, RAFT, TREEOVL, FISHSTATUE), 214-227 (bosses: IW_HEAD → IW_HEADF at
+  emergence (enemy), IW_SEG, IW_BASE, CH_HEAD / TAIL / BALL (enemy) / MOUTH, SN_HEAD / SEG / MOUTH, ACID, ROCK_AT,
+  BUBBLE).
+- Frame order in an AT act: objects_platforms (no-op in AT) → aqua_pre (dig zones) → player_update → objects_update
+  (combat, shared enemy events) → aqua_update: bursts, bombs, jelly, bricks, **aqua_gim_post** (path 3283, carry 4061,
+  swings, collapse, plates / doors, Milla block, wall plates + pipes, beam, crushers, axels, slime / rafts, dip),
+  **aqua_boss_update** (worm / Chomper / snake, rocks, acid), fireflies, slimes, burst timers, whisps, jets,
+  checkpoints, boss camera, jet maker, dig.
+- Rotated object masks (o->ang): obj_px / rows_hit_rot in objects.c serve the sensors, obj_rect_hit and obj_obj_hit.
+- Player: ST_SHAKE (M12), ST_HELD (M43, the Chomper's mouth), `tint` (OTHERS.R, green 0x80ff80 while > 0).
+- Results: `results_begin(2)` = AT4 (timer frozen at the kill, Milla stands, raft exit 4588-4592, wipe at x 7024).
+- Sounds: stage group SND_AT in game.c (D-047).
+- Host: `FP_TRACK=type:spawnx` (spawnx -1 = any; 214 also matches 227), `FP_AT_GT`, `FP_AT_PRERUN`; script commands
+  `<f> BOSSHP v` (AT boss HP). cmp_at.py writes the raw host output to build/fpdc_traces/at_<name>.out; `XTRACK=` adds
+  port objects to it.

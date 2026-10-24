@@ -262,6 +262,19 @@ double player_cube_damage(double *kx, double *ky, int *armour_only, int Q) {
     return 0;
 }
 
+/* ---- monitors held by Milla (spec_milla_monitor_carry: 2202, 3132-3134, 2233, 2246; RE) ---- */
+static void m_hold(obj_t *m, player_t *p) {
+    m->av[4] = 1; m->av[0] = 0; m->fl |= 1; p->mF = 1; set_state(p, ST_MCARRY);
+}
+static obj_t *m_held(void) { for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && mon_type(G.o[i].type) && G.o[i].av[4]) return &G.o[i]; return NULL; }
+static void m_carry_place(player_t *p) {                          /* 3132: centred above the action point, in front of Milla */
+    obj_t *m = m_held();
+    if (!m || p->mF != 1) return;
+    double ax, ay, a = p->rot; m_action_point(p, &ax, &ay);
+    m->fl |= 1; m->layer = 3;
+    m->x = (float)(int)(ax + o_sin(a) * -31 + o_cos(a) * -16); m->y = (float)(int)(ay + o_cos(a) * -31 + o_sin(a) * 16);
+}
+
 /* ---- Milla group 0x21a67 (2197-2240), every frame ---- */
 static void milla_group_main(player_t *p, const input_t *in) {
     int ah = (in->held & BTN_ATTACK) != 0, ap = (in->pressed & BTN_ATTACK) != 0, sh = (in->held & BTN_SPECIAL) != 0;
@@ -274,6 +287,12 @@ static void milla_group_main(player_t *p, const input_t *in) {
     if ((p->mF == 1) || (p->mF == 2 && cube.A == 1)) m_hud = (G.frame / 4) % 2 + 4;         /* 2199 */
     if (p->mF == 2 && cube.A == 0) m_hud = (G.frame / 4) % 2 + 8;                            /* 2200 */
     if (M == 3 || M == 27) m_hud = (G.frame / 4) % 2 + 6;                                    /* 2201 */
+    if (((M <= 5 && p->mF != 1) || (M == 30 && p->mF != 1)) && p->state != ST_DEAD) {        /* 2202: a falling monitor caught on the head */
+        obj_t *m = mon_pick(SENS_TOPBIG, 1, 0);
+        if (m) { m_hold(m, p); m->av[1] = 0; cube.A = 0; cube.vis = 0; }
+    }
+    m_carry_place(p);                                                                        /* 3132 */
+    { obj_t *m = m_held(); if (m && p->mF != 1) { m->av[4] = 0; m->av[0] = 2; m->layer = 2; } }   /* 3133: dropped (old X / Y) */
     if (p->state == ST_NORMAL && !p->m1 && p->mF > 0) set_state(p, ST_MCARRY);               /* 2203: M = 0 and F > 0 -> M30 */
     if (cube.A == 0) { cube.vis = 0; cube.F = 0; cube.X = cube.Y = 0; }                      /* 2206 */
     if (cube.A == 0 && p->mF == 0) p->mG = 0;                                                /* 2207 */
@@ -325,6 +344,11 @@ static void milla_group_main(player_t *p, const input_t *in) {
     if (cube.A == 6) cube.F += 1;                                                            /* 2227 */
     if (cube.A == 6 && cube.F > 10) { cube.A = 0; cube.F = 0; }                             /* 2228 */
     if (cube.A != 5 && cube.H > 4) cube.H = 4;                                               /* 2229 */
+    if (ap && p->mF == 1) {                                                                  /* 3134 throw / 2233 */
+        obj_t *m = m_held();
+        if (m) { m->av[4] = 0; m->av[0] = 2; m->av[2] = o_cos(O) * (4 * Q + B); m->av[3] = -o_sin(O) * (4 * Q + B); m->layer = 2; }
+        if (p->state == ST_MCARRY) { p->mF = 0; set_state(p, ST_NORMAL); p->m1 = 0; }
+    }
     if (ap && p->mF == 2 && cube.A == 1) { cube.X = o_cos(O) * (5 * Q + B); cube.Y = -o_sin(O) * (5 * Q + B); }   /* 2231 */
     if (ap && p->mF == 2 && p->mG >= 40) {                                                   /* 2232: throw */
         p->mF = 0; p->mH = 2; snd_play_orig(417, 220, 128); p->mG = 0;
@@ -348,6 +372,7 @@ static void milla_group_m20(player_t *p, const input_t *in) {
     if (p->mH <= 0) { set_state(p, ST_MCARRY); p->mF = 2; }                                  /* 2243 */
     else { set_state(p, ST_NORMAL); p->m1 = 0; p->mF = 0; }                                 /* 2244 */
     if (cube.A > 1) { set_state(p, ST_NORMAL); p->m1 = 0; }                                 /* 2245 (F stays 2: cleared by 2210 next frame) */
+    { obj_t *m = mon_pick(SENS_BOTTOMBIG, 0, 0); if (m) m_hold(m, p); }                     /* 2246: lift the monitor instead (overrides 2243) */
 }
 
 /* ---- M22 Puppy Float group 0x21a37 ---- */

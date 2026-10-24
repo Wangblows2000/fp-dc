@@ -331,6 +331,7 @@ typedef struct {
      * OTHERS.N (float counter), SKIN.I (flap speed term), MV.V = 0 (no landing while floating), MV.C = 4 (carrying) */
     double mA, mB, mE; int mC, mD, mF, mG, mH, mfl1, mfl10, mN, nol, mC4; double skinI;
     int air;                      /* RE OTHERS.J: air counter (water) */
+    int tint;                     /* RE OTHERS.R: AT acid / slime green tint timer (100; 2513 counts down, 2514 resets the colour) */
     int water, y26, cyc_block, drown;   /* RE OTHERS.H; OTHERS.Y = 26 swim code; OTHERS.P < 3 after leaving water; drowned (M10) */
 } player_t;
 
@@ -523,6 +524,9 @@ void   aqua_platforms(player_t *p);           /* AT platform / gimmick block bef
 void   aqua_gim_spawn(void), aqua_set_input(const input_t *in), aqua_gim_post(player_t *p);
 int    aqua_gim_obj(obj_t *o);                /* 1: an aqua_gim.c type (no generic object code) */
 int    obj_px(const obj_t *o, int wx, int wy); /* world pixel of an object's current (rotated) mask */
+int    mon_type(int t), mon_thrown(const obj_t *m);   /* src/game/monitors.c (spec_milla_monitor_carry) */
+obj_t *mon_pick(int sensor, int need_b_pos, int need_rest);
+void   monitors_frame(player_t *p);
 void   aqua_boss_spawn(void), aqua_boss_update(player_t *p), aqua_boss_draw_hud(void), aqua_blast(float x, float y), aqua_release_camera_keep(void);
 int    aqua_boss_obj(const obj_t *o), aqua_worm_on_plate(const obj_t *pl), aqua_cam_locked(void);
 extern int aqua_snake_kill_frame;

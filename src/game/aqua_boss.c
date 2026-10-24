@@ -90,12 +90,12 @@ static void acids_frame(player_t *p) {
     }
     for (int i = 0; i < G.nobjs; i++) {                                                  /* 4234 / 4459: damage 5 */
         obj_t *a = &G.o[i];
-        if (a->alive && a->type == OT_ACID && a->st == 0 && vulnerable(p) && csens_hit(p, a)) { player_contact(p, 5); break; }
+        if (a->alive && a->type == OT_ACID && a->st == 0 && vulnerable(p) && csens_hit(p, a)) { player_contact(p, 5); p->tint = 100; break; }
     }
     for (int i = 0; i < G.nobjs; i++) {                                                  /* 4235 / 4460: stick + splash */
         obj_t *a = &G.o[i];
         if (!a->alive || a->type != OT_ACID || a->st != 0 || p->state == ST_DEAD || !csens_hit(p, a)) continue;
-        acid_splash(a, 2); a->fx = a->x - PX(p); a->fy = a->y - PY(p); snd = 1;
+        acid_splash(a, 2); a->fx = a->x - PX(p); a->fy = a->y - PY(p); snd = 1; p->tint = 100;
     }
     if (snd) snd_play_orig(69, 220, 128);
     for (int i = 0; i < G.nobjs; i++) {                                                  /* 4236 / 4461 */
@@ -384,7 +384,7 @@ static void ch_frame(player_t *p) {
                 ch->tm -= 1; p->state = ST_HELD; p->x = ch->x - 44; p->y = ch->y + ORIG_REF_DY; ch_mouth->layer = 3;
                 if (ch->tm == 1) {                                                           /* 4436: spat out */
                     ch->av[2] = 1; ch->tm = 0; ch->st = 0; ch->av[3] = 150; ch_mouth_anim(1); last_frame(ch_mouth); ch_g_latch = 1;
-                    player_contact(p, 10); ch_mouth->layer = 2;
+                    player_contact(p, 10); p->tint = 100; ch_mouth->layer = 2;
                     p->state = ST_NORMAL; p->ground = 0; p->vx = -8; p->vy = -2;
                 }
             }
@@ -527,7 +527,12 @@ static void sn_frame(player_t *p) {
     if (sn_fight) {
         if (sn->st == 0 || sn->st == 1 || sn->st == 3) { sn->av[1] = fmod(sn->av[1] + 5, 360.); for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == OT_SN_SEG) G.o[i].av[2] = fmod(G.o[i].av[2] + 5, 360.); }   /* 4602 */
         if (sn->st == 2) { sn->av[1] = fmod(sn->av[1] + 2.5, 360.); for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == OT_SN_SEG) G.o[i].av[2] = fmod(G.o[i].av[2] + 2.5, 360.); }   /* 4603 */
-        { static int r1; if (!r1) for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == OT_RAFT && G.o[i].y >= 401) { G.o[i].alive = 0; r1 = 1; } }   /* 4604 */
+        for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == OT_RAFT && G.o[i].y >= 401) G.o[i].alive = 0;   /* 4604 */
+        for (int i = 0; i < G.nobjs; i++) {                                                  /* 4653: arena floor scroll (after the movement) */
+            obj_t *o = &G.o[i]; if (!o->alive) continue;
+            if (o->type == OT_SCROLLBRICK) { o->x = (float)(int)(o->av[0] - o->av[1]); o->av[1] = fmod(o->av[1] + 4, 128); }
+            if (o->type == OT_SLIMEFLOOR || o->type == OT_SLIMEF_VIS) o->av[2] = fmod(o->av[2] + 4, 128);   /* with 4554: 8 px / frame (INFERRED) */
+        }
         if (!sn_results) {                                                                   /* group 0x2219c */
             double *F = &sn->av[1], *Gm = &sn->av[2], *I = &sn->av[3], *M = &sn->av[5], *N = &sn->av[6];
             if (sn->st == 0 && sn->x > sn->av[4]) sn->x -= 3;                                 /* 4606 */
@@ -567,22 +572,21 @@ static void sn_frame(player_t *p) {
               if (n) { obj_t *b = &G.o[idx[R(n)]]; b->alive = 0; aqua_blast(b->x - 16, b->y - 16); } }
             { int n = 0, idx[16]; for (int i = 0; i < G.nobjs && n < 16; i++) { obj_t *b = &G.o[i]; if (b->alive && b->type == OT_BUBBLE && b->st && b->tm > 80) idx[n++] = i; }    /* 4629 */
               if (n) { obj_t *b = &G.o[idx[R(n)]]; b->alive = 0;
-                       obj_t *m = spawn(OT_MON_BOMB, "mon_bomb", b->x - 16, b->y - 16, 2); if (m) { m->av[6] = 1; m->av[5] = 0; m->fl = 0; m->tm = 0; } } }
+                       obj_t *m = spawn(OT_MON_BOMB, "mon_bomb", b->x - 16, b->y - 16, 2); if (m) { m->av[0] = 1; m->av[1] = 0; m->fl = 1; m->tm = 0; } } }   /* BOMB.A = 1: falls (shared 2606) */
             { float qx, qy; int qa = player_cube_xy(&qx, &qy);                                 /* 4630 */
               if (qa == 2) { int pop = 0; for (int i = 0; i < G.nobjs; i++) { obj_t *b = &G.o[i]; if (b->alive && b->type == OT_BUBBLE && player_cube_hits(b)) { b->alive = 0; aqua_blast(b->x - 16, b->y - 16); pop = 1; } }
                              if (pop) player_cube_burst(); } }
             for (int i = 0; i < G.nobjs; i++) {                                               /* 4631-4634 bombs */
                 obj_t *m = &G.o[i]; if (!m->alive || m->type != OT_MON_BOMB) continue;
                 for (int k = 0; k < G.nobjs && !(m->fl & 0x100); k++) { obj_t *a = &G.o[k]; if (a->alive && a->type == OT_ACID && obj_obj_hit(a, m)) { m->fl |= 0x100; m->tm = 0; set_anim_ens(m, "mon_bomb_arm"); snd_play_orig(172, 220, 128); } }   /* 4631 */
-                if (m->av[6] == 1) { m->y += (float)m->av[5]; m->av[5] = fmin(m->av[5] + 0.2, 10); m->fl |= 1; }   /* 2606 fall (non-solid while falling: INFERRED, RV a4_snake) */
                 if (on_slime(m)) { m->x -= 8; m->layer = 1; }                                  /* 4632 */
                 if (m->x < G.camx - 200) { m->alive = 0; continue; }                          /* 4633 */
-                if (on_raft(m) && m->av[6] == 1) { m->av[6] = 0; m->av[5] = 0; m->fl &= ~1; }   /* 4634 */
+                if (on_raft(m)) { m->av[0] = 0; m->av[1] = 0; }                               /* 4634 */
             }
             float x1, y1, x2, y2; box_of(sn, &x1, &y1, &x2, &y2);
             if (sn->tm <= 0) {                                                                 /* 4635: a thrown bomb (A = 2) in the head */
                 for (int i = 0; i < G.nobjs; i++) { obj_t *m = &G.o[i];
-                    if (m->alive && m->type == OT_MON_BOMB && m->av[6] == 2 && m->x > x1 && m->x < x2 - 16 && m->y > y1 && m->y < y2 - 16) { m->fl |= 0x200; sn_hit(10, 150); } }
+                    if (m->alive && m->type == OT_MON_BOMB && m->av[0] == 2 && m->x > x1 && m->x < x2 - 16 && m->y > y1 && m->y < y2 - 16) { m->fl |= 0x200; sn_hit(10, 150); } }
             }
             { float qx, qy; int qa = player_cube_xy(&qx, &qy);                                 /* 4636: cube into the open mouth */
               if (sn->tm <= 0 && *Gm == 1 && sn_mouth->an.frame > 2 && qa == 2 && qx >= x2 - 39 && qx < x2 && qy < y2 && qy > y1 + 32) {
