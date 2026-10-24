@@ -547,6 +547,41 @@ def write_bank2(src, bank, out, report):
                 write_tex(at2.crop((0, 0, s2, max(8, bb2[3]))), os.path.join(out, bank['name'] + '_2.tex'))
                 for i in second: pos[i] = (pos2[i][0], pos2[i][1] | 0x8000)
                 report.append('bank %s: second atlas %d (%d frames)' % (bank['name'], s2, len(second)))
+    # Carol's banks (session 10 perf): a content height just over a power of two (carol2 574 rows -> a 1024x1024
+    # texture, 450 KB of it empty) is split into a half-height first atlas and a small second one (<name>_2.tex,
+    # frames v | 0x8000, the _ens mechanism). Drawing is unchanged; only the VRAM layout differs.
+    if not second and bank['name'] in ('carol2', 'carolbike', 'caroltail'):
+        def ph(p):
+            return max(((y + imgs[i][0].height) for i, (x, y) in p.items()), default=8)
+        def p2(n):
+            v = 8
+            while v < n: v *= 2
+            return v
+        P = p2(ph(pos)); cur = size * P
+        if P >= 256:
+            order = [i for i, _ in sorted(((i, imgs[i][0]) for i in ids), key=lambda kv: (-kv[1].height, kv[0]))]
+            lo, hi = 0, len(order)                 # the shelf packer places in this order: the fitting prefix is monotone
+            while lo < hi:
+                m = (lo + hi + 1) // 2
+                if pack([(i, imgs[i][0]) for i in order[:m]], size, P // 2): lo = m
+                else: hi = m - 1
+            take, rest = order[:lo], order[lo:]
+            if take and rest:
+                pos1 = pack([(i, imgs[i][0]) for i in take], size, P // 2)
+                pos2, s2 = None, 64
+                while not pos2 and s2 <= 1024:
+                    pos2 = pack([(i, imgs[i][0]) for i in rest], s2, s2 // 2) or pack([(i, imgs[i][0]) for i in rest], s2)
+                    if not pos2: s2 *= 2
+                if pos2:
+                    w2 = s2; h2 = p2(ph(pos2))
+                    if size * (P // 2) + w2 * h2 < cur:
+                        at2 = Image.new('RGBA', (s2, s2), (0, 0, 0, 0))
+                        for i in rest: at2.paste(imgs[i][0], pos2[i])
+                        write_tex(at2.crop((0, 0, s2, max(8, ph(pos2)))), os.path.join(out, bank['name'] + '_2.tex'))
+                        pos = dict(pos1); second = list(rest)
+                        for i in rest: pos[i] = (pos2[i][0], pos2[i][1] | 0x8000)
+                        report.append('bank %s: split %dx%d -> %dx%d + %dx%d (%d frames in the second)' % (
+                            bank['name'], size, P, size, P // 2, w2, h2, len(rest)))
     atlas = Image.new('RGBA', (size, size), (0, 0, 0, 0))
     # (atlas height is cropped to content by write_tex's pow2 rounding below)
     for i in ids:
