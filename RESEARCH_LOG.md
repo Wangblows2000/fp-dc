@@ -68,3 +68,11 @@ Ledger categories: **CONFIRMED** (verified on the files / reproducible test), **
 | Chowdren source public? | No public source found (mp2.dk/chowdren) | web |
 | All stage frames identified by title card after `set_frame(N)` (DV = 20–23, etc.) | CONFIRMED | RUNTIME_MAP "Frame index table", build/orig/sel_*.png |
 | Move set rules (uppercut, down kick, cyclone, boost, attacks, crouch) and jump-from-raw-angle, air drag, landing-frame friction | CONFIRMED (runtime traces) | RUNTIME_MAP "Moves", tests/orig/ |
+
+## 6. Session 12: Aqua Tunnel (frames 16-19)
+- Static specs: at_inventory, spec_at_flow, spec_at_enemies, spec_at_gimmicks_a/b, spec_ironworm, spec_chomper,
+  spec_chompersnake, spec_milla_monitor_carry (build/re, not committed).
+- Tracer: FRAME=16..19; the AT checkpoint globals 4-6 persist across set_frame restarts and are now cleared
+  (run_trace.sh, CP=keep to keep them). Teleports onto the AT1 start jelly launch the player (G -13), which shifts
+  sensor-driven events right after a TP (a1_collapse, a1_bomb_lift).
+- Trace-vs-spec corrections listed in RE_NOTES "Session 12" (D-049).

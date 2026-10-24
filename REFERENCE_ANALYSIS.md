@@ -19,3 +19,7 @@ Measuring the original binary directly is more precise than video:
 
 ## How to provide footage if wanted
 Short clips or PNG frame sequences (attached to the chat) at 60 fps would let me record timestamped observations. The direct-measurement route above is still preferred for physics.
+
+## Session 12
+Aqua Tunnel was ported from the Linux build only (static RE + gdb traces of the running original); no reference
+footage was used.

@@ -55,3 +55,10 @@ Only rows with evidence are filled; "UNVERIFIED" marks reconstruction.
 3. Object behaviours from event code, where they matter for traversal: springs (5 kinds in DV1), `levelvalleyplatform1` (moving/jump-through platforms), `halfcorkscrew*`, `layerchangeswitch` (two collision layers for loops), breakable rocks as solids.
 4. Parallax scroll factors (event code) and camera rules.
 5. Remaining Dragon Valley frames (22, 23), then later stages via `tools/build_level.sh <frame> <name>`.
+
+## 6. Session 12 (Aqua Tunnel)
+- Recovered and ported: Aqua Tunnel acts 1-4 with every object class of frame_17..20.json except Spade-only hitboxes
+  (build/re/at_inventory.md); four acts reachable as Milla only (D-046).
+- Evidence: static RE specs in build/re (spec_at_*, spec_ironworm, spec_chomper, spec_chompersnake,
+  spec_milla_monitor_carry); 37 original AT traces + 1 Milla DV trace; host tests tests/test_aqua.py; Flycast runs.
+- Open: see HANDOFF "Aqua Tunnel: verified vs approximated" and TODO "Aqua Tunnel".

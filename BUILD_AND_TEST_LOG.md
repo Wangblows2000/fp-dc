@@ -316,3 +316,23 @@ No audio device in the VM: sounds were checked through the sound-id traces, not 
   1347 KB. Sound RAM largest free block: Lilac 380, Carol 351, Milla 375 KB.
 - **DC build:** 0 warnings. Emulator only; real hardware still untested.
 
+
+## Session 12 (2026-10-24): Aqua Tunnel
+Labels: original-trace (RV), RE, host-test, emulator (Flycast, emulated time). **Nothing measured on real hardware.**
+No audio device in the VM: sounds were checked through the sound-id traces, not by ear.
+
+- **Baseline at the session start:** test_gameplay 72/72, test_frontend 30/30, test_carol 19/19, test_milla 33/33;
+  cmp_all 76/76, strict 11311/11377 (99.4 %); cmp_carol 43/53 exact; cmp_milla 36/41 exact.
+- **End of session:** the same numbers for every DV suite (gameplay 72/72, frontend 30/30, carol 19/19, milla 33/33,
+  cmp_all 76/76 strict 11311/11377, cmp_carol 43/53); cmp_milla 37/42 (new m_lift_throw_dv1 matches X/Y/B/G/L/M/OTHERS.Y
+  on every frame); new test_aqua 19/19 (Milla-only routes, act transitions AT1→AT2→AT3→AT4, worm head holds the gate
+  open, Chomper swallow, snake defeat → results → raft exit → front end, Lilac and Carol through every act).
+- **Aqua Tunnel against the original (tools/orig/cmp_at.py, Milla, 35 traces):** 21 match X/Y/B/G on every compared
+  frame and their tracked objects (slimes, fireflies, doors, gate, plates, pipes, rafts, slime floor, worm head,
+  Chomper head and lure, snake head, carried / thrown bomb). The other 14 are listed in HANDOFF "Aqua Tunnel: verified
+  vs approximated" (TP + jelly-launch artifacts, small timing differences, AT2 intro).
+- **Performance (Flycast, lean disc, demo `LEVEL atN` + hold right, Milla; 600-frame windows after the boot window):**
+  AT1 603, AT2 603, AT3 602, AT4 603 vblanks per 600 frames. Averages: AT1 player 3.4 ms / objects 1.45 / draw 8.8;
+  AT2 4.1 / 2.4 / 7.1; AT3 1.8 / 0.56 / 13.6; AT4 4.7 / 0.73 / 9.3. VRAM free after load: AT1 2570, AT2 1672, AT3 3347,
+  AT4 2816 KB. Sound RAM largest free block with Milla and the AT group: 324 KB. No AICA crash.
+- **DC build:** 0 warnings.

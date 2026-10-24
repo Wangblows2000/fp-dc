@@ -346,7 +346,7 @@ static void milla_group_main(player_t *p, const input_t *in) {
     if (cube.A != 5 && cube.H > 4) cube.H = 4;                                               /* 2229 */
     if (ap && p->mF == 1) {                                                                  /* 3134 throw / 2233 */
         obj_t *m = m_held();
-        if (m) { m->av[4] = 0; m->av[0] = 2; m->av[2] = o_cos(O) * (4 * Q + B); m->av[3] = -o_sin(O) * (4 * Q + B); m->layer = 2; }
+        if (m) { m->av[4] = 0; m->av[0] = 2; m->av[2] = o_cos(O) * (4 * Q + B); m->av[3] = -o_sin(O) * (4 * Q + B); m->layer = 2; snd_play_orig(417, 220, 128); }   /* RV m_lift_throw_dv1: sound 417 (the spec read none) */
         if (p->state == ST_MCARRY) { p->mF = 0; set_state(p, ST_NORMAL); p->m1 = 0; }
     }
     if (ap && p->mF == 2 && cube.A == 1) { cube.X = o_cos(O) * (5 * Q + B); cube.Y = -o_sin(O) * (5 * Q + B); }   /* 2231 */
@@ -487,7 +487,7 @@ static void milla_groups(player_t *p, const input_t *in, int st0) {
     if (p->state == ST_HURT && st0 == ST_HURT) p->cY = 9;
     if (p->state == ST_PUSH && st0 == ST_PUSH) p->cY = 13;
     if (p->state == ST_ROLL && st0 == ST_ROLL) p->cY = 8;
-    if (!p->ground && p->cY < 3 && p->vy > 0 && p->state == ST_NORMAL) p->cY = 40;         /* 2432 */
+    if (!p->ground && p->cY < 3 && p->vy > 0 && (p->state == ST_NORMAL || p->state == ST_MCARRY)) p->cY = 40;   /* 2432 (RV m_lift_throw_dv1: also in M30) */
 }
 
 /* ---- animation: OTHERS.Y -> MILLA animation index (2426-2470), direction 0 / 16 minus MILLA.F, speeds 2490-2500 ---- */

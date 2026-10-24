@@ -37,4 +37,6 @@ hold/release **B** Dragon Boost (aim with the D-pad) · **Start** pause
 `third_party/fp-assets` (public domain) · docs: `HANDOFF.md`, `PROJECT_STATUS.md`, `TODO.md`,
 `RESEARCH_LOG.md`, `DECISIONS.md`, `ASSET_PIPELINE.md`, `BUILD_AND_TEST_LOG.md`
 
+Stages: Dragon Valley 1-4 (Lilac, Carol, Milla) and Aqua Tunnel 1-4 (Milla, session 12).
+
 Fan project, not affiliated with GalaxyTrail. Freedom Planet assets belong to their owners.

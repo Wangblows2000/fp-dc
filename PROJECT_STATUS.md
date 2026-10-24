@@ -20,3 +20,12 @@
 | Sensor/collision system | Not ported (main remaining physics gap) | — |
 | Other enemies, mini-boss, boss | Not done | — |
 | Real hardware | **Not tested** | — |
+
+## Session 12 (2026-10-24): Aqua Tunnel
+| Area | State | Evidence label |
+|---|---|---|
+| Aqua Tunnel acts 1-4 (Milla only; Classic / Continue / Time Attack) | Done: flow, parallax, water, music, checkpoints, act transitions, results + raft exit | RE + original-trace (cmp_at 21/35 exact) + host-test |
+| AT enemies and gimmicks (A and B specs) | Done | RE + original-trace |
+| Iron Worm, Chomper, Chomper Snake | Done; worm and Chomper cycles match the original exactly; defeats RE-only | RE + original-trace |
+| Milla monitor lifting / throwing | Done (all stages; head bump in AT) | RE + original-trace |
+| Real hardware | **Not tested** (Flycast only) | — |
