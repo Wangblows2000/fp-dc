@@ -10,6 +10,9 @@ RESTART_CMDS=()
 if [ "$R" = 1 ]; then
   # CHAR=<n>: set global value 1 (character: 0 Lilac, 2 Carol, 3 Carol on the bike, 4 Milla) before the restart
   CH=(); [ -n "$CHAR" ] && CH=(-ex "set {double}(*(long*)0x285ec68 + 8) = $CHAR")
+  # session 12: Aqua Tunnel keeps a checkpoint in globals 4-6 (number, x, y; spec_at_gimmicks_a 2.6) across restarts;
+  # CP=0 (default) clears them so every trace starts at the act start (CP=keep leaves them)
+  [ "${CP:-0}" != keep ] && CH+=(-ex "set {double}(*(long*)0x285ec68 + 32) = 0" -ex "set {double}(*(long*)0x285ec68 + 40) = 0" -ex "set {double}(*(long*)0x285ec68 + 48) = 0")
   RESTART_CMDS=(-ex 'break *0x9fcb7a' -ex continue "${CH[@]}" -ex 'call ((void(*)(void*,int))0x9fc8c0)((void*)0x285ec60, '${FRAME:-20}')' -ex 'delete')
 fi
 timeout 3000 gdb -q -batch -p $PID "${RESTART_CMDS[@]}" \

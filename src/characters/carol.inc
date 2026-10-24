@@ -313,6 +313,7 @@ static int carol_anim(const player_t *p, int *force6) {
     case 22: return A_C_CLAW2;
     case 23: return A_C_PADHOLD;
     case 24: return A_C_POUNCE;
+    case 25: return A_SHAKE;                              /* M12 (AT water jets) */
     case 26: return A_SWIM;
     case 44: return A_C_KICK;
     case 40: default:

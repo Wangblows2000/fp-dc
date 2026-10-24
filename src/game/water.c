@@ -14,12 +14,14 @@ void phys_set_water(int h) {
     else phys_w = (phys_w_t){ PHYS_ACC_DRY, PHYS_TOP_DRY, PHYS_GRAV_DRY, PHYS_JUMP_DRY, PHYS_JUMP_CUT_DRY, 0.0334, 0.2, chr_is_carol(G.character) ? 12.0 : 15.0 };   /* 1543 / 1555 Carol (D 12) / 1547 */
 }
 
-#define WB 2700.0
+#define WB water_line()
+/* MasterLevel B per level: DV2 / DV3 2700 (5109 / 5314); Aqua Tunnel 1200 / 1200 / none / 1480 (4309 / 4478 / 4530 / 4685) */
+static double water_line(void) { return !strcmp(G.lvdir, "at1") || !strcmp(G.lvdir, "at2") ? 1200.0 : !strcmp(G.lvdir, "at4") ? 1480.0 : 2700.0; }
 #define NB 64
 typedef struct { int alive, frame; double a, b, d; } bubble_t;
 static struct { int icon_c, mus, mus_v, music_cut; int gx; bubble_t bub[NB]; int pa[4], pb[4]; } W;
 
-int water_on(void) { return !strcmp(G.lvdir, "dv2") || !strcmp(G.lvdir, "dv3"); }
+int water_on(void) { return !strcmp(G.lvdir, "dv2") || !strcmp(G.lvdir, "dv3") || !strcmp(G.lvdir, "at1") || !strcmp(G.lvdir, "at2") || !strcmp(G.lvdir, "at4"); }
 double water_c(void) { double a = fmod(1.5 * G.frame, 360.); return WB + 3 * ((a == 90. || a == 270.) ? 0. : fd_cos(a / 57.29577951308232)); }
 void water_reset(void) { memset(&W, 0, sizeof W); W.mus_v = 100; snap_register(&W, sizeof W); }
 

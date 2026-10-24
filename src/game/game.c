@@ -19,13 +19,26 @@ game_t G;
 #endif
 
 static void level_start(void) {
+    float stx = 0, sty = 0;
     for (int i = 0; i < G.lvl.nobj; i++)
-        if (G.lvl.objs[i].type == OT_START) { G.p.spawn_x = G.lvl.objs[i].x; G.p.spawn_y = G.lvl.objs[i].y; }
+        if (G.lvl.objs[i].type == OT_START) { G.p.spawn_x = stx = G.lvl.objs[i].x; G.p.spawn_y = sty = G.lvl.objs[i].y; }
+    int at = aqua_level();
+    if (at) {                                                       /* RE 2955-2957 (spec_at_flow 1.4 / 1.5): no floor snap */
+        if (strcmp(G.at_dir, G.lvdir) && !G.act_carry) G.at_g4 = 1;   /* a fresh start of this act */
+        if (at == 1 && G.at_g4 < 1) G.at_g4 = 1;                    /* 4307 */
+        snprintf(G.at_dir, sizeof G.at_dir, "%s", G.lvdir);
+        if (G.act_carry) G.at_g4 = -1;                              /* 3578: act change -> walk-in from x -32 */
+        if (G.at_g4 <= 0) { G.p.spawn_x = -32; G.p.spawn_y = sty + 16 + ORIG_REF_DY; }
+        else if (G.at_g4 == 1) { G.p.spawn_x = stx + 16; G.p.spawn_y = sty + 16 + ORIG_REF_DY; }
+        else { G.p.spawn_x = G.at_g5; G.p.spawn_y = G.at_g6 + ORIG_REF_DY; }
+    } else {
     /* snap spawn to the floor below the start marker */
     float sy, a;
     if (floor_probe(&G.lvl, G.p.spawn_x, G.p.spawn_y - 32, 400, 1, &sy, &a)) G.p.spawn_y = sy;
+    }
     /* crystals, lives, energy persist across restarts (RV: debug restart kept them) */
     player_reset(&G.p, G.p.spawn_x, G.p.spawn_y);
+    if (at) { G.p.ground = 0; G.p.face = 1; if (at == 1 && G.at_g4 == 1) G.p.cY = 3; }   /* L = 0 (2955-2957); AT1 fall pose OTHERS.Y 3 (4308) */
     objects_spawn();
     results_reset();
     G.clear_t = 0; G.act_in = 0; G.act_fade = 0; G.frame = 0; G.card_t = 0; G.paused = 0;
@@ -42,6 +55,7 @@ const char *level_music(const char *dir) {
      * Aqua Tunnel (session 12, tools/re/bgm_refs.py): 16 m_stage0, 17/18 m_stage0b, 19 m_boss2 (boss start) */
     if (!strcmp(dir, "dv1")) return "bgm/m_stage1.adp";
     if (!strcmp(dir, "at1")) return "bgm/m_stage0.adp";
+    if (!strcmp(dir, "at2")) return G.at_g4 >= 10 ? "bgm/m_stage0b.adp" : "bgm/m_stage0.adp";   /* loop_play_music_5_17 (4330) */
     if (!strncmp(dir, "at", 2)) return "bgm/m_stage0b.adp";
     return "bgm/m_stage1b.adp";
 }
@@ -306,7 +320,7 @@ int game_init(void) {
 
 /* from the front end: character/stage chosen */
 void game_start_adventure(const char *dir, int time_attack) {
-    G.time_attack = time_attack;
+    G.time_attack = time_attack; G.at_g4 = 1; G.at_dir[0] = 0;
     G.p.energy_init = 0;                       /* fresh run: lives/crystals reset by player_reset */
     G.stage_crystals = 0; G.keystones = 0;
     G.mode = MODE_PLAY;
@@ -334,9 +348,11 @@ void game_dev_select(void) {
 #define CAM_HY 120.f
 void camera_reset(void) {
     const player_t *p = &G.p;
+    G.cam_nC = 0; G.cam_nE = (float)G.lvl.w; G.cam_m2 = 0;
+    aqua_camera_bounds();                                          /* AT per-act normal bounds (spec_at_flow 3.1) */
     G.cam.A = p->x; G.cam.B = p->y - 14.f; G.cam.W = G.cam.G = G.cam.H = G.cam.S = G.cam.T = G.cam.N = G.cam.O = 0;
     G.cam.V = p->ground; G.cam.U = 0; G.cam.M3 = 0; G.cam.minC = 0; G.cam.cine = 0;
-    float C = 0, E = (float)G.lvl.w, D = 0, F = (float)G.lvl.h;
+    float C = G.cam_nC, E = fminf(G.cam_nE, (float)G.lvl.w), D = 0, F = (float)G.lvl.h;
     if (G.cam.A < C + CAM_HX) G.cam.A = C + CAM_HX;
     if (G.cam.A > E - CAM_HX) G.cam.A = E - CAM_HX;
     if (G.cam.B < D + CAM_HY) G.cam.B = D + CAM_HY;
@@ -351,8 +367,8 @@ void camera_boss_bounds(float l, float t, float r, float b) {
     G.cam.bC = fminf(l, vl); G.cam.bD = fminf(t, vt); G.cam.bE = fmaxf(r, vl + SCREEN_W); G.cam.bF = fmaxf(b, vt + SCREEN_H);
 }
 void camera_normal_bounds(void) { G.cam.U = 0; }
-float camera_bound_C(void) { return G.cam.U == 1 ? G.cam.bC : 0.f; }
-float camera_bound_E(void) { return G.cam.U == 1 ? G.cam.bE : (float)G.lvl.w; }
+float camera_bound_C(void) { return G.cam.U == 1 ? G.cam.bC : G.cam_nC; }
+float camera_bound_E(void) { return G.cam.U == 1 ? G.cam.bE : G.cam_nE; }
 
 void camera_update(void) {
     const player_t *p = &G.p;
@@ -363,8 +379,17 @@ void camera_update(void) {
         if (G.cam.bD < G.cam.lD) G.cam.bD = fminf(G.cam.lD, G.cam.bD + 2.f);
         if (G.cam.bF > G.cam.lF) G.cam.bF = fmaxf(G.cam.lF, G.cam.bF - 2.f);
     }
-    float C = G.cam.minC, E = (float)G.lvl.w, D = 0, F = (float)G.lvl.h;
+    float C = fmaxf(G.cam.minC, G.cam_nC), E = G.cam_nE, D = 0, F = (float)G.lvl.h;
     if (G.cam.U == 1) { C = G.cam.bC; E = G.cam.bE; D = G.cam.bD; F = G.cam.bF; }
+    if (G.cam_m2 && !G.cam.cine) {                       /* loop_camera_mode2: back to Player_326 (spec_at_flow 3.2) */
+        float Bsp = p->ground ? p->gsp : p->vx, Gsp = p->ground ? 0.f : p->vy;
+        float sa = 6.f + fminf(fabsf(Gsp), 4.f) + fabsf(Bsp) / 1.5f, sb = 6.f + fabsf(Gsp) * 0.5f;
+        float tx = floorf(X), ty = floorf(Y);
+        if (G.cam.A < tx) G.cam.A = fminf(G.cam.A + sa, tx); else if (G.cam.A > tx) G.cam.A = fmaxf(G.cam.A - sa, tx);
+        if (G.cam.B < ty) G.cam.B = fminf(G.cam.B + sb, ty); else if (G.cam.B > ty) G.cam.B = fmaxf(G.cam.B - sb, ty);
+        if (G.cam.A == tx && G.cam.B == ty) G.cam_m2 = 0;
+        G.cam.V = p->ground;
+    } else
     if (!G.cam.M3 && !G.cam.cine) {   /* CAM.M = 3 (DV4 chase): A / B are set by 5404-5408; cinematic (5547: group 0x21a47 off): only 5551 moves A / B */
     int L = p->ground;
     float Bsp = p->ground ? p->gsp : p->vx;             /* movement B */
@@ -423,7 +448,8 @@ void camera_update(void) {
     float cx = floorf(G.cam.A + S), cy = floorf(G.cam.B + T);
     G.cam.Z = G.cam.Z - 0.1f >= 0 ? G.cam.Z - 0.1f : 0;
     if (G.cam.cine) { cx = floorf(G.cam.cineX); cy = floorf(G.cam.cineY); C = 0; E = (float)G.lvl.w; D = 0; F = (float)G.lvl.h; }   /* 5590 */
-    G.camx = fminf(fmaxf(cx - 213.f, C), E - SCREEN_W);
+    G.camx = fminf(fmaxf(cx - 213.f, C), fminf(E, (float)G.lvl.w) - SCREEN_W);   /* E can exceed the frame (AT): the display clamp keeps the frame */
+    if (G.camx < 0) G.camx = 0;
     G.camy = fminf(fmaxf(cy - 120.f, D), F - SCREEN_H);
 }
 
@@ -455,7 +481,8 @@ static void next_act(void) {
     /* RE (events 4526 / 5047): no stage card on an act change; a 32-frame fade from black while Lilac,
      * placed 50 px left of the start marker, walks in at B = 3 with no control; then control returns */
     G.card_t = CARD_DONE; G.act_in = 1; G.act_fade = 248;
-    G.p.x = G.p.spawn_x - 50; G.p.face = 1;
+    if (!aqua_level()) G.p.x = G.p.spawn_x - 50;                 /* AT: x = -32 absolute (2955), level_start */
+    G.p.face = 1;
     camera_reset(); camera_update();
 }
 
@@ -556,10 +583,11 @@ void game_update(const input_t *in) {
     aqua_pre(&G.p);                               /* Aqua Tunnel: dig zones (3313, 4171-4182) */
     PROF(PS_PLAYER, player_update(&G.p, pin));
     PROF(PS_LAYERS, layers_update(&G.p));         /* RE 1613-1616 + 3031/3032: loop collision layer */
-    if (G.act_in) {                               /* RE 4526: B = 3 every frame for 32 frames */
-        if (G.p.ground) G.p.gsp = 3; else G.p.vx = 3;
+    if (G.act_in) {                               /* RE 4526: B = 3 every frame for 32 frames (AT2 4403: B = 0) */
+        double wb = !strcmp(G.lvdir, "at2") ? 0 : 3;
+        if (G.p.ground) G.p.gsp = wb; else G.p.vx = wb;
         G.act_fade = G.act_fade - 8 < 0 ? 0 : G.act_fade - 8;
-        if (++G.act_in > 32) { G.act_in = 0; G.act_fade = 0; }  /* RE 5047: control returns at A >= 32 */
+        if (++G.act_in > 32) { G.act_in = 0; G.act_fade = 0; if (aqua_level()) G.at_g4 = 1; }  /* RE 5047 / 4404 / 4597: control returns at A >= 32, g4 = 1 */
     }
     if (G.clear_t) {                              /* RE 3311: grounded, B = max(B, 2), facing right */
         G.p.face = 1;
@@ -589,7 +617,8 @@ void game_update(const input_t *in) {
     if (G.mus_resume_t > 0 && --G.mus_resume_t == 0)
         music_play(G.p.invinc ? "bgm/m_invincibility.adp" : level_music(G.lvdir));
     if (G.p.invinc && G.p.invuln == 0) { G.p.invinc = 0; music_play(level_music(G.lvdir)); }
-    if (G.clear_t) {                              /* RE 3310 / 3578: fade +4 per frame; at 255 next frame */
+    if (G.clear_t && !strcmp(G.lvdir, "at3") && G.p.y - ORIG_REF_DY >= 380) { }   /* AT3 4523 / inline: the fade pauses below y 380 */
+    else if (G.clear_t) {                              /* RE 3310 / 3578: fade +4 per frame; at 255 next frame */
         int a = G.clear_t == 1 ? 0 : G.clear_t;     /* fade object created with alpha 0 */
         if (a != 255 && a < 128) a = 2 * (a >> 1) + 2;                       /* RE 2905: +2 while < 128 */
         if (a != 255) a = 2 * (a >> 1) + 4 > 255 ? 255 : 2 * (a >> 1) + 4;  /* RE 3310: +4 */
@@ -599,7 +628,8 @@ void game_update(const input_t *in) {
     /* RE (events 4135 / 5045): the act ends when Lilac passes X > frame width - 50 moving right; DV4 runs the
      * results instead (5381 / 5576, src/game/results.c) */
     { int rr; PROF(PS_RES, rr = results_update(&G.p)); if (rr) return; }
-    if (act_of(G.lvdir) < 4 && !G.clear_t && !G.act_in && G.p.x > G.lvl.w - 50 && (G.p.ground ? G.p.gsp : G.p.vx) > 0) G.clear_t = 1;
+    { int at3 = !strcmp(G.lvdir, "at3");                       /* AT3 4521: also MV.Y < 380 */
+      if (act_of(G.lvdir) < 4 && !G.clear_t && !G.act_in && G.p.x > G.lvl.w - 50 && (G.p.ground ? G.p.gsp : G.p.vx) > 0 && (!at3 || G.p.y - ORIG_REF_DY < 380)) G.clear_t = 1; }
 }
 
 static void draw_parallax(void) { par_draw(G.frame); }
@@ -621,6 +651,7 @@ static void draw_pieces(int lmin, int lmax) {
           if (hp) { char k[16]; snprintf(k, sizeof k, ",%d,", i); if (strstr(hp, k)) continue; } }
 #endif
         int sx = p->x - cx, sy = p->y - cy;
+        if (p->pad & 2) { sx = p->x - (int)trunc(0.800000011920929 * cx); sy = p->y - (int)trunc(0.800000011920929 * cy); }   /* AT layer 1 scrolls at 0.8 */
         if (sx >= SCREEN_W || sy >= SCREEN_H || sx + p->w <= 0 || sy + p->h <= 0) continue;
         r_sprite(&l->atlas[p->atlas], p->u, p->v, p->w, p->h, (float)sx, (float)sy, p->w, p->h, 0, 0xffffffff);
     }

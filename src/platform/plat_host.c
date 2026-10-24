@@ -258,6 +258,8 @@ int main(int argc, char **argv) {
     if (getenv("FP_OBJLIST"))              /* object list (debugging): type x y */
         for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive) printf("obj %d %.0f %.0f\n", G.o[i].type, G.o[i].x, G.o[i].y);
     if (getenv("FP_ORIG_MOVES")) G.orig_moves = 1;
+    if (getenv("FP_AT_GT")) aqua_gt_off = atoi(getenv("FP_AT_GT"));
+    if (getenv("FP_AT_PRERUN")) { int g = aqua_gt_off; aqua_gt_off -= atoi(getenv("FP_AT_PRERUN")); aqua_prerun(atoi(getenv("FP_AT_PRERUN"))); aqua_gt_off = g; }
     if (getenv("FP_ENERGY")) G.p.energy = (float)atof(getenv("FP_ENERGY"));
     if (getenv("FP_ANIM_SYNC")) { int fr = 0, acc = 0; if (sscanf(getenv("FP_ANIM_SYNC"), "%d,%d", &fr, &acc) == 2) player_anim_sync(&G.p, fr, acc); }
     if (getenv("FP_HP")) G.p.hp = atoi(getenv("FP_HP"));

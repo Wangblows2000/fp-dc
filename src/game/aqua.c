@@ -5,6 +5,10 @@
 #include <math.h>
 #include <string.h>
 
+static void at2_intro(player_t *p);
+/* GV[3] (event 2774): a global frame counter the original never resets; traces set its phase (host FP_AT_GT) */
+int aqua_gt_off;
+static int GT(void) { return G.frame + aqua_gt_off; }
 static int at_act(void) { return !strncmp(G.lvdir, "at", 2) ? G.lvdir[2] - '0' : 0; }
 int aqua_level(void) { return at_act(); }
 
@@ -91,6 +95,7 @@ int aqua_dig_hint(void) { return dig_hint; }
 
 /* before the movement block: 3313 clears MILLA.D, 4171-4182 set it inside a zone */
 void aqua_pre(player_t *p) {
+    at2_intro(p);
     if (at_act() != 1 || !chr_is_milla(G.character)) return;
     p->mD = 0;
     int px = player_px(p), py = player_py(p);
@@ -105,7 +110,7 @@ static void dig_events(player_t *p) {
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *s = &G.o[i];
         if (!s->alive || s->type != OT_DIGSPOT) continue;
-        if (player_on_spot(p, s) && (G.frame % 30) > 14) dig_hint = 1;                      /* 4184 */
+        if (player_on_spot(p, s) && (GT() % 30) > 14) dig_hint = 1;                      /* 4184 */
         if (!(s->fl & 1) && p->state == ST_DIG && p->mfl1 && player_on_spot(p, s)) s->fl |= 1;   /* 4185 */
         if (s->fl & 1) dig_reward(s, p);                                                     /* 4189-4194 */
     }
@@ -173,7 +178,7 @@ static void fireflies_frame(void) {
         obj_t *o = &G.o[idx[k]];
         if (o->st != 0) continue;
         o->dir = (int)(16 + o->av[2]) & 31; o->y = (float)(int)(16 * c_sin(o->av[0]) + o->fy); o->av[0] = fmod(o->av[0] + 6, 360);
-        if ((G.frame & 1) == 0) o->x -= 1;
+        if ((GT() & 1) == 0) o->x -= 1;
     }
     { const obj_t *kept = NULL; int turn[64] = {0};                                          /* 4107: F of the first kept instance (FIRST) */
       for (int k = 0; k < n; k++) { obj_t *o = &G.o[idx[k]]; if (o->st != 0) continue;
@@ -183,7 +188,7 @@ static void fireflies_frame(void) {
         obj_t *o = &G.o[idx[k]];
         if (o->st != 1) continue;
         o->dir = (int)o->av[2] & 31; o->y = (float)(int)(16 * c_sin(o->av[0]) + o->fy); o->av[0] = fmod(o->av[0] + 6, 360);
-        if ((G.frame & 1) == 0) o->x += 1;
+        if ((GT() & 1) == 0) o->x += 1;
     }
     { const obj_t *kept = NULL; int turn[64] = {0};                                          /* 4110 */
       for (int k = 0; k < n; k++) { obj_t *o = &G.o[idx[k]]; if (o->st != 1) continue;
@@ -220,6 +225,8 @@ static void slimes_frame(player_t *p) {
     for (int k = 0; k < n; k++) {
         obj_t *o = &G.o[idx[k]];
         double *E = &o->av[0], *H = &o->av[1], *I = &o->av[2], *J = &o->av[3], *K = &o->av[4];
+        if (o->an.done && o->av[5] == 0) { o->an.acc += 100 - 50; o->av[5] = 1; }              /* RV: a finishing update leaves the counter unchanged */
+        if (!o->an.done) o->av[5] = 0;
         if (!o->tm) { o->tm = 1; o->fx = o->x; o->fy = o->y; }                                  /* 4114 */
         int nv = obj_near_view(o, 40);
         if (nv && o->st == 0) { o->x = (float)(int)(20 * c_sin(*E) + o->fx); *E += 2; }        /* 4115 */
@@ -252,6 +259,12 @@ static void bursts_frame(player_t *p) {
             if (!p->hurt_pending && !player_invincible(p) && p->invuln <= 0) { player_contact(p, 10); b->A = 999; }
         }
         if (ov) b->fl |= 2; else b->fl &= ~2;
+    }
+}
+static void bursts_timer(void) {                                                                /* 4130-4133 (after the slimes' 4119) */
+    for (int i = 0; i < G.nobjs; i++) {
+        obj_t *b = &G.o[i];
+        if (!b->alive || b->type != OT_SLIMEBURST) continue;
         b->A += 1;                                                                              /* 4130 */
         if (b->A > 40 && !(b->fl & 1)) {                                                         /* 4132 / 4133 */
             if (obj_near_view(b, 50)) snd_play_orig(240, 220, 128);
@@ -263,7 +276,7 @@ static void bursts_frame(player_t *p) {
 /* ================================================================ whisps (4144-4149, cosmetic) */
 static void whisps_frame(void) {
     int nb = G.nobjs;
-    if (G.frame % 20 == 0)                                                                      /* 4144 */
+    if (GT() % 20 == 0)                                                                      /* 4144 */
         for (int i = 0; i < nb; i++) {
             obj_t *m = &G.o[i];
             if (!m->alive || m->type != OT_WHISPMAKER) continue;
@@ -279,7 +292,7 @@ static void whisps_frame(void) {
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *w = &G.o[i];
         if (!w->alive || w->type != OT_WHISP) continue;
-        if (G.frame % 6 == 0) w->dir = (w->dir + (int)w->A) & 31;                              /* 4146 */
+        if (GT() % 6 == 0) w->dir = (w->dir + (int)w->A) & 31;                              /* 4146 */
         double r = w->dir * 11.25 / 57.29577951308232;
         w->x += (float)(1.25 * cos(r)); w->y -= (float)(1.25 * sin(r));                         /* BallMovement speed 10 */
         double B = ++w->av[0];                                                                  /* 4147-4149 */
@@ -346,9 +359,277 @@ static void bricks_frame(player_t *p) {
     }
 }
 
+
+/* ================================================================ water jets (spec_at_gimmicks_a 2) */
+/* WaterJet_740: 32x64 box at (x - 16, y), not solid; the layer lives in o->hidden == 0 / layer (instance layer; AT2's
+ * x 1424/1456 jets sit on layer 2 (port 1) until 4395). Overlap with PLAYER's disc: M12 with B = -5 / +5 (4141/4142) */
+static int disc_box(const player_t *p, float x0, float y0, float x1, float y1) {
+    int px = (int)p->x, py = (int)floor(p->y - ORIG_REF_DY);
+    float cx = fmaxf(x0, fminf((float)px, x1 - 1)), cy = fmaxf(y0, fminf((float)py, y1 - 1));
+    return (cx - px) * (cx - px) + (cy - py) * (cy - py) <= 13.5f * 13.5f;
+}
+static int wh_age;
+static void jets_frame(player_t *p) {
+    int M = player_orig_m(p), px = (int)p->x, py = (int)floor(p->y - ORIG_REF_DY);
+    int gt = GT();
+    obj_t *first = NULL;
+    for (int i = G.nobjs - 1; i >= 0; i--) {                                                  /* selection order: newest first */
+        obj_t *o = &G.o[i];
+        if (!o->alive) continue;
+        if (o->type == OT_WJET) { if (o->an.b) o->an.frame = gt % 16; }                        /* 4136 */
+        else if (o->type == OT_WJET_B) { if (o->an.b) o->an.frame = (gt / 2) % 16; }
+        if (o->type != OT_WJET || o->layer != 2 || first) continue;
+        if (disc_box(p, o->x - 16, o->y, o->x + 16, o->y + 64)) first = o;
+    }
+    int lilac = !chr_is_carol(G.character) && !chr_is_milla(G.character);
+    if (first && M != 9 && !(lilac && M == 21) && p->state != ST_DEAD) {                      /* 4141 / 4142 */
+        player_shake(p, px < (int)first->x ? -5 : 5);
+        snd_play_orig(14, 220, 128);
+    }
+    /* WaterJetRight (4137-4140): zone by position, A = spawn x */
+    int active = 0;
+    for (int i = 0; i < G.nobjs; i++) {
+        obj_t *o = &G.o[i];
+        if (!o->alive || o->type != OT_WJET_R) continue;
+        double A = o->fx;
+        if (A < G.camx + 490) o->x = (float)(A + 8 * (gt % 8));                               /* 4137 scroll */
+        if (o->y >= py - 15 && o->y <= py + 15 && px - 100 < A && A < px + 40) active = 1;
+    }
+    static int was;
+    if (active && !was && p->cY != 8) { snd_play_orig(14, 220, 128); snd_play_orig(7, 220, 128); }   /* 4138 (once) */
+    was = active;
+    if (active && M != 9 && p->state != ST_DEAD) {                                            /* 4139 */
+        if (chr_is_milla(G.character)) p->mE = 0;
+        if (p->state != ST_ROLL) { p->state = ST_ROLL; p->state_t = 0; p->tun_lock = 0; }
+        if (p->ground) p->gsp = 15; else p->vx = 15;
+        obj_t *w = obj_alloc();                                                               /* EffectsWaterHit at PLAYER (+-16) */
+        if (w) { w->type = OT_WATERHIT; w->alive = 1; w->layer = 2; set_ens(w, "waterhit"); anim_restart(&w->an);
+                 w->A = cross_rand(33) - 16; w->av[0] = cross_rand(33) - 16; w->x = (float)(int)(p->x + w->A); w->y = (float)(int)(p->y - ORIG_REF_DY + w->av[0]); }
+    }
+    for (int i = 0; i < G.nobjs; i++) {                                                       /* 4140: follow her, self-destroy */
+        obj_t *w = &G.o[i];
+        if (!w->alive || w->type != OT_WATERHIT) continue;
+        if (!w->an.b || w->an.done) { w->alive = 0; continue; }
+        w->x = (float)(int)(p->x + w->A); w->y = (float)(int)(p->y - ORIG_REF_DY + w->av[0]);
+    }
+    (void)wh_age;
+}
+/* WaterJetMaker (AT2, 4453-4455): started by the Chomper's defeat (aqua_maker_start) */
+static int maker_on;
+void aqua_maker_start(void) { maker_on = 1; }
+static void maker_frame(void) {
+    if (!maker_on) return;
+    int nb = G.nobjs;
+    for (int i = 0; i < nb; i++) {
+        obj_t *m = &G.o[i];
+        if (!m->alive || m->type != OT_WJET_MAKER) continue;
+        m->A += 16; m->x += 16;                                                                   /* 4453 */
+        if (m->A >= 128) {                                                                        /* 4454 */
+            for (int k = 0; k < 2; k++) { obj_t *j = obj_alloc(); if (!j) break;
+                j->type = OT_WJET_R; j->alive = 1; j->layer = 1; j->x = m->x; j->y = m->y + 32 * k; j->fx = m->x; set_ens(j, "wjetr"); }
+            m->A -= 128;
+        }
+        if (m->x >= 7301) m->alive = 0;                                                           /* 4455 */
+    }
+}
+
+/* ================================================================ JellySpring_704 (4067-4069) */
+/* av[0] = A (0..40), fl bit 1 = pressed; scale x 1 + 0.01A, y 1 - 0.02A about the hotspot (32, 31) */
+void aqua_jelly_box(const obj_t *o, float *x0, float *y0, float *x1, float *y1) {
+    double sx = 1 + 0.01 * o->av[0], sy = 1 - 0.02 * o->av[0];
+    *x0 = (float)floor(o->x - 32 * sx); *x1 = (float)floor(o->x + 48 * sx); *y0 = (float)floor(o->y - 31 * sy); *y1 = (float)floor(o->y + sy) + 1;
+}
+static void jelly_frame(player_t *p) {
+    int any = 0; obj_t *fire = NULL;
+    for (int i = 0; i < G.nobjs; i++) {
+        obj_t *o = &G.o[i];
+        if (!o->alive || o->type != OT_JELLY) continue;
+        float x0, y0, x1, y1; aqua_jelly_box(o, &x0, &y0, &x1, &y1);
+        if (p->state != ST_DEAD && box_sensor(SENS_BOTTOMBIG, x0, y0, x1, y1)) { any = 1; o->av[0] = fmin(o->av[0] + 1, 40); o->fl |= 2; }   /* 4067 */
+    }
+    if (any) return;
+    for (int i = G.nobjs - 1; i >= 0; i--) {                                                  /* 4068: first selected (newest) */
+        obj_t *o = &G.o[i];
+        if (!o->alive || o->type != OT_JELLY) continue;
+        if (o->av[0] > 20 && (o->fl & 2)) { if (!fire) fire = o; o->fl &= ~2; }
+    }
+    if (fire) player_launch(p, 0, 9 + 0.1 * fire->av[0], 212);                                 /* G = -9 - 0.1 A, M40, sound 212 */
+    for (int i = 0; i < G.nobjs; i++) {                                                       /* 4069 */
+        obj_t *o = &G.o[i];
+        if (o->alive && o->type == OT_JELLY && o->av[0] > 0) o->av[0] = fmax(o->av[0] - 2, 0);
+    }
+}
+
+/* ================================================================ red springs (2997-3004), objects.c calls aqua_spring */
+static void spring_press(obj_t *o, const char *idle, const char *pressed) {
+    (void)idle; int a = ens_anim(pressed); if (a >= 0) { anim_set(&o->an, &G.ens, a); anim_restart(&o->an); }
+}
+void aqua_spring(obj_t *o, player_t *p) {
+    if (p->state == ST_DEAD || p->state == ST_HURT) return;                                     /* M not 9 / 10 (INFERRED: 10 = hurt variant) */
+    float x0, y0, x1, y1; ibox(o, &x0, &y0, &x1, &y1);
+    double B = p->ground ? p->gsp : p->vx, Gv = p->ground ? 0 : p->vy;
+    switch (o->type) {
+    case OT_RSPRING_U:                                                                            /* 2997: G = -18 (port: -17.75 after gravity) */
+        if (Gv >= 0 && box_sensor(SENS_BOTTOMBIG, x0, y0, x1, y1)) { player_spring(p, 0, 17.75, y0 - 2 + 0.25f); spring_press(o, "rs_up", "rs_up_b"); }
+        break;
+    case OT_RSPRING_D:                                                                            /* 3000: G = 18 (+ gravity) */
+        if (Gv <= 0 && box_sensor(SENS_TOPBIG, x0, y0, x1, y1)) { player_launch(p, 0, -18.25, 5); spring_press(o, "rs_down", "rs_down_b"); }
+        break;
+    case OT_RSPRING_R:                                                                            /* 2998: pushes right, B = 14, O = 5 */
+        if (B <= 0 && box_sensor(SENS_LEFTBIG, x0, y0, x1, y1)) { player_spring_side(p, 14); spring_press(o, "rs_right", "rs_right_b"); }
+        break;
+    case OT_RSPRING_L:                                                                            /* 2999: B = -14, O = -5 */
+        if (B >= 0 && box_sensor(SENS_RIGHTBIG, x0, y0, x1, y1)) { player_spring_side(p, -14); spring_press(o, "rs_left", "rs_left_b"); }
+        break;
+    case OT_RSPRING_UR:                                                                           /* 3001 / 3002: (14, -14) (port -13.75) */
+        if ((Gv >= 0 && box_sensor(SENS_BOTTOMBIG, x0, y0, x1, y1)) || (!p->ground && B <= 0 && box_sensor(SENS_LEFTBIG, x0, y0, x1, y1))) {
+            player_spring(p, 14.0, 13.75, p->ground || Gv >= 0 ? y0 - 2 : p->y); spring_press(o, "rs_ur", "rs_ur_b");
+        }
+        break;
+    }
+    if (o->an.done) { int a = ens_anim(o->type == OT_RSPRING_U ? "rs_up" : o->type == OT_RSPRING_D ? "rs_down" : o->type == OT_RSPRING_R ? "rs_right" : o->type == OT_RSPRING_L ? "rs_left" : "rs_ur"); if (a >= 0) anim_set(&o->an, &G.ens, a); }
+}
+
+/* ================================================================ MonitorBomb_535 / MonitorCrate_364 (spec_at_gimmicks_a 5) */
+/* bomb: fl bit 8 armed (0x100), bit 7 beep latch (0x80); tm = F fuse. Explosion = OT_BOMBX (MonitorIcon frame 9):
+ * area (x - 8, y - 4) .. (x + 40, y + 36), rises 1 px/frame, A = age, 32 frames */
+static void bomb_explode(float x, float y, int age0) {
+    obj_t *e = obj_alloc();
+    if (e) { e->type = OT_BOMBX; e->alive = 1; e->x = x; e->y = y; e->A = age0; e->an.b = NULL; e->st = 0; e->layer = 2; }
+    obj_drop_crystal(x + 16, y + 16, 0);                                                          /* 3250 / 3251: one crystal up (INFERRED speed) */
+}
+void aqua_monitor_broken(const obj_t *m) { if (m->type == OT_MON_BOMB) bomb_explode(m->x, m->y, 1); }   /* generic break path (2627: A 1 on its first frame) */
+static void bombs_frame(player_t *p) {
+    int nb = G.nobjs;
+    for (int i = 0; i < nb; i++) {
+        obj_t *o = &G.o[i];
+        if (!o->alive || o->type != OT_MON_BOMB) continue;
+        if (!(o->fl & 0x100)) {                                                                   /* 3245 / 4056 */
+            int arm = p->state != ST_DEAD && (box_sensor(SENS_LEFTBIG, o->x, o->y, o->x + 32, o->y + 32) || box_sensor(SENS_RIGHTBIG, o->x, o->y, o->x + 32, o->y + 32) ||
+                                              box_sensor(SENS_TOPBIG, o->x, o->y, o->x + 32, o->y + 32) || box_sensor(SENS_BOTTOMBIG, o->x, o->y, o->x + 32, o->y + 32));
+            for (int k = 0; k < G.nobjs && !arm; k++) { const obj_t *e = &G.o[k]; if (e->alive && enemy_type(e->type) && e->an.b) { float a0, b0, a1, b1; ibox(e, &a0, &b0, &a1, &b1); arm = box_ov(a0, b0, a1, b1, o->x, o->y, o->x + 32, o->y + 32); } }
+            if (arm) { o->fl |= 0x100; o->tm = 0; set_ens(o, "mon_bomb_arm"); snd_play_orig(172, 220, 128); }
+            continue;
+        }
+        if (o->an.frame == 1 && !(o->fl & 0x80)) { o->fl |= 0x80; snd_play_orig(173, 200, 128); }   /* 3246 / 3247 */
+        if (o->an.frame >= 2) o->fl &= ~0x80;
+        o->tm += 1; o->av[7] = o->tm + 10;                                                         /* 3248: force_speed(F + 10) */
+        if (o->tm >= 120) { obj_t m = *o; o->alive = 0; bomb_explode(m.x, m.y, 0); }               /* 3249 / 3250 */
+    }
+    for (int i = 0; i < G.nobjs; i++) {                                                           /* explosions: 2630-2672, 2760, 4074, 3243, col_9_13 */
+        obj_t *e = &G.o[i];
+        if (!e->alive || e->type != OT_BOMBX) continue;
+        if (e->st == 0) { e->st = 1; snd_play_orig(38, 230, 128); camera_shake(3); }              /* 2669 */
+        float x0 = e->x - 8, y0 = e->y - 4, x1 = e->x + 40, y1 = e->y + 36;
+        if (((int)e->A % 4) == 1) obj_effect(e->x, e->y, "explosion06");                           /* 2670 */
+        { float cx0 = p->x - 7, cx1 = p->x + 9, cy1 = p->y - ORIG_REF_DY + 13, cy0 = p->y - ORIG_REF_DY - 34;   /* col_9_13 (OTHERS.D = 0) */
+          if (p->state != ST_DEAD && p->state != ST_HURT && !p->invinc && !p->hurt_pending && box_ov(cx0, cy0, cx1, cy1, x0, y0, x1, y1)) player_contact(p, 20); }
+        if (!(e->fl & 2)) {                                                                        /* 2760 (once): enemies A -= 15 */
+            e->fl |= 2;
+            for (int k = 0; k < G.nobjs; k++) { obj_t *q = &G.o[k];
+                if (!q->alive || !enemy_type(q->type) || (q->fl & 0x20) || !q->an.b) continue;
+                float a0, b0, a1, b1; ibox(q, &a0, &b0, &a1, &b1);
+                if (box_ov(a0, b0, a1, b1, x0, y0, x1, y1)) { q->c = 5; q->ky = -3; q->kx = cross_rand(5) - 2; snd_play_orig(24, 220, 128); q->A -= 15; q->inv = 1; } }
+        }
+        for (int k = 0; k < G.nobjs; k++) { obj_t *q = &G.o[k];                                    /* 4074 bricks; 3243 monitors after 10 frames */
+            if (!q->alive) continue;
+            if (q->type == OT_ABRICK && box_ov(q->x, q->y, q->x + 32, q->y + 64, x0, y0, x1, y1)) { q->fl |= 0x40; q->av[1] = -3; q->av[0] = cross_rand(5) - 2; p->hitstop = 5; }
+            if (e->A > 10 && q != e && (q->type == OT_MONITOR || q->type == OT_MON_RINGS || q->type == OT_MON_1UP || q->type == OT_MON_INVINC || q->type == OT_MON_KEYSTONE ||
+                (q->type >= OT_MON_WOOD && q->type <= OT_MON_WATER) || q->type == OT_MON_BOMB || q->type == OT_MON_CRATE) &&
+                box_ov(q->x, q->y, q->x + 32, q->y + 32, x0, y0, x1, y1)) q->fl |= 0x200;   /* broken by the generic path in objects.c */
+        }
+        e->A += 1; if (e->A < 32) e->y -= 1;                                                       /* 2630 / 2631 */
+        if (e->A >= 32) e->alive = 0;                                                              /* 2672 */
+    }
+}
+
+
+/* ================================================================ stage flow (spec_at_flow) */
+/* 3.1 normal camera bounds: C = 0, E = sign.x + 213 (AT2: the frame width while g4 < 10; after the Chomper C = 5931,
+ * E = width + 50) */
+void aqua_camera_bounds(void) {
+    switch (at_act()) {
+    case 1: G.cam_nE = 12480 + 213; break;
+    case 2: if (G.at_g4 >= 10) { G.cam_nC = 6144 - 213; G.cam_nE = (float)G.lvl.w + 50; } else G.cam_nE = (float)G.lvl.w; break;
+    case 3: G.cam_nE = 856 + 213; break;
+    case 4: G.cam_nE = 7424 + 213; break;
+    }
+}
+static int cam_locked;
+static void boss_camera(player_t *p) {                          /* 3.2: 4198/4199, 4408/4409, 4599 */
+    int px = (int)p->x, py = (int)floor(p->y - ORIG_REF_DY);
+    switch (at_act()) {
+    case 1:
+        if (!cam_locked && px > 11704 && py < 903) { cam_locked = 1; camera_boss_bounds(11368, 600, 12479, 903); }
+        else if (cam_locked && px < 11704 - 240 && py < 903) { cam_locked = 0; camera_normal_bounds(); G.cam_m2 = 1; }
+        break;
+    case 2:
+        if (G.at_g4 >= 10) break;
+        if (!cam_locked && px > 6032 && py > 976) { cam_locked = 1; camera_boss_bounds(6032, 976, 6863, 1231); }
+        else if (cam_locked && py < 976) { cam_locked = 0; camera_normal_bounds(); G.cam_m2 = 1; }
+        break;
+    case 4:
+        if (!cam_locked && G.at_g4 < 10 && px > 6464) { cam_locked = 1; camera_boss_bounds(6464, 8, 7039, 319); }
+        break;
+    }
+}
+void aqua_release_camera(void) { cam_locked = 0; camera_normal_bounds(); G.cam_m2 = 1; }   /* 4451 (Chomper defeat) */
+
+static void checkpoint(int g4, float x, float y) {              /* g4 / g5 / g6 + loop_cp_16 (restart values) */
+    G.at_g4 = g4; G.at_g5 = x; G.at_g6 = y;
+    G.act_lives = G.p.lives; G.act_crystals = G.p.crystals; G.act_keystones = G.keystones; G.act_stage_crystals = G.stage_crystals;
+}
+static void checkpoints(player_t *p) {                          /* 6.1 */
+    double X = p->x;
+    switch (at_act()) {
+    case 1:
+        if (X > 7540 && X < 7640 && G.at_g4 < 2) checkpoint(2, 7600, 1100);       /* 4196 */
+        if (X > 11250 && X < 11350 && G.at_g4 < 3) checkpoint(3, 11300, 988);     /* 4197 */
+        break;
+    case 2:
+        if (X > 5640 && X < 5740 && G.at_g4 < 3) checkpoint(3, 5720, 270);        /* 4405 (g1 != 1) */
+        break;
+    case 4:
+        if (X > 3264 && X < 3364 && G.at_g4 < 2) checkpoint(2, 3264, 200);       /* 4598 */
+        break;
+    }
+}
+/* AT2 intro (6.2, group 0x22134): the left corridor's current carries her as a ball until 4395 */
+static int intro_on;
+static void at2_intro(player_t *p) {
+    if (at_act() != 2 || !intro_on) return;
+    double X = p->x, Y = p->y - ORIG_REF_DY;
+    if (G.at_g4 <= 1 && X < 1500) {                                                /* 4393 / 4394 */
+        if (p->state != ST_ROLL) { p->state = ST_ROLL; p->state_t = 0; }
+        if (p->ground) p->gsp = 15; else p->vy = 15 - 10 * (p->water ? 1 : 0);
+        p->in_lock = 1;
+    }
+    if (G.at_g4 == 1 && p->water && X > 1240 && Y > 1480) {                        /* 4395 */
+        p->in_lock = 0; intro_on = 0;
+        for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == OT_WJET) G.o[i].layer = 2;
+        G.at_g4 = 2; G.at_g5 = 1536; G.at_g6 = 1120;
+    }
+}
+static void kill_items_in(float x0, float x1, float y0, float y1, int jelly) {
+    for (int i = 0; i < G.nobjs; i++) {
+        obj_t *o = &G.o[i];
+        if (!o->alive || o->x < x0 || o->x > x1 || o->y < y0 || o->y > y1) continue;
+        if (o->type == OT_CRYSTAL || (jelly && (o->type == OT_JELLY || o->type == OT_PETAL))) o->alive = 0;
+    }
+}
+static void flow_spawn(void) {
+    cam_locked = 0; intro_on = at_act() == 2;
+    if (at_act() == 1) {                                                           /* 4318 / 4319: crystal sets per character */
+        if (!chr_is_milla(G.character)) kill_items_in(7579, 7788, 732, 1129, 0);
+        else kill_items_in(7790, 8050, 929, 1133, 0);
+    }
+    if (at_act() == 2) kill_items_in(5260, 5467, 379, 814, 1);                      /* 4484 / 4485 (g1 != 1) */
+}
+
 /* ================================================================ spawn / per frame / per object */
 void aqua_spawn(void) {
-    dig_hint = 0;
+    dig_hint = 0; maker_on = 0;
+    if (at_act()) flow_spawn();
     if (!at_act()) return;
     /* dig spots: A = index in reverse creation order (spec 6.2, INFERRED order) */
     int n = 0;
@@ -370,10 +651,23 @@ void aqua_spawn(void) {
         case OT_SLIME:                                                                           /* ctor: anim 0, dir 16, A 3, E 170, J -1, K 2 */
             if (off) { o->alive = 0; break; }
             o->A = 3; o->dir = 16; o->st = 0; o->tm = 0; o->bd = 0; memset(o->av, 0, sizeof o->av); o->av[0] = 170; o->av[3] = -1; o->av[4] = 2;
-            slime_sprite_base(o); break;
+            slime_sprite_base(o); o->an.acc = 50; break;                                      /* RV a1_slime: counter 50 at the act start */
         case OT_WHISPMAKER: o->an.b = NULL; if (off) o->alive = 0; break;                       /* invisible */
         case OT_ABRICK: if (off) { o->alive = 0; break; } set_ens(o, "abrick"); o->fl = 0; break;
         case OT_ABRICK2: if (off) { o->alive = 0; break; } set_ens(o, "abrick2"); o->fl = 0; break;
+        case OT_WJET: case OT_WJET_R: {                                                          /* lvobj anim = instance layer (mapped) */
+            if (off) { o->alive = 0; break; }
+            set_ens(o, o->type == OT_WJET ? "wjet" : "wjetr"); o->fx = o->x; break; }
+        case OT_WJET_B: if (off) { o->alive = 0; break; } set_ens(o, "wjetb"); break;
+        case OT_WJET_MAKER: if (off) { o->alive = 0; break; } set_ens(o, "wjetmk"); o->A = 0; o->layer = 1; break;
+        case OT_JELLY: if (off) { o->alive = 0; break; } set_ens(o, "jelly"); o->av[0] = 0; o->fl = 0; break;
+        case OT_RSPRING_U: set_ens(o, "rs_up"); if (off) o->alive = 0; break;
+        case OT_RSPRING_D: set_ens(o, "rs_down"); if (off) o->alive = 0; break;
+        case OT_RSPRING_L: set_ens(o, "rs_left"); if (off) o->alive = 0; break;
+        case OT_RSPRING_R: set_ens(o, "rs_right"); if (off) o->alive = 0; break;
+        case OT_RSPRING_UR: set_ens(o, "rs_ur"); if (off) o->alive = 0; break;
+        case OT_MON_BOMB: set_ens(o, "mon_bomb"); o->fl = 0; o->tm = 0; if (off) o->alive = 0; break;
+        case OT_MON_CRATE: set_ens(o, "mon_crate"); if (off) o->alive = 0; break;
         }
     }
 }
@@ -381,10 +675,17 @@ void aqua_spawn(void) {
 void aqua_update(player_t *p) {
     if (!at_act()) return;
     bursts_frame(p);                         /* 4134 (trigger block), col_8_16, 4130-4133 */
+    bombs_frame(p);                          /* 3245-3251 bombs, 2630-2672 / 2760 / 4074 / 3243 / col_9_13 explosions */
+    jelly_frame(p);                          /* 4067-4069 (after the platforms) */
     bricks_frame(p);                         /* 4070-4077 */
     fireflies_frame();                       /* 4101-4113 */
     slimes_frame(p);                         /* 4114-4129 */
+    bursts_timer();                          /* 4130-4133 */
     whisps_frame();                          /* 4144-4149 */
+    jets_frame(p);                           /* 4136-4143 (near the end of the frame) */
+    checkpoints(p);                          /* 4196 / 4197, 4405, 4598 */
+    boss_camera(p);                          /* 4198 / 4199, 4408 / 4409, 4599 */
+    maker_frame();                           /* 4453-4455 */
     dig_events(p);
 }
 
@@ -392,8 +693,20 @@ int aqua_obj_update(obj_t *o, player_t *p) {
     (void)p;
     switch (o->type) {
     case OT_DIGSPOT: case OT_FIREFLY: case OT_SLIME: case OT_WHISPMAKER: case OT_ABRICK: case OT_ABRICK2:
-    case OT_SLIMEBURST: case OT_WHISP: case OT_ABPIECE: return 1;    /* handled by the per-frame passes above */
+    case OT_SLIMEBURST: case OT_WHISP: case OT_ABPIECE: case OT_WJET: case OT_WJET_R: case OT_WJET_B: case OT_WJET_MAKER:
+    case OT_JELLY: case OT_WATERHIT: case OT_BOMBX: return 1;    /* handled by the per-frame passes above */
+    case OT_RSPRING_U: case OT_RSPRING_D: case OT_RSPRING_L: case OT_RSPRING_R: case OT_RSPRING_UR: aqua_spring(o, p); return 1;
     case OT_MON_KEYSTONE: case OT_MON_WOOD: aqua_monitor_fall(o); return 0;   /* the monitor code still runs */
     }
     return 0;
+}
+
+/* traces: the original runs the gameplay events through the stage card before a trace's first row (host FP_AT_PRERUN) */
+void aqua_prerun(int n) {
+    for (int k = 0; k < n; k++) {
+        G.frame++;
+        for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].an.b) anim_tick(&G.o[i].an, -1);
+        fireflies_frame(); slimes_frame(&G.p); bursts_timer(); whisps_frame();
+    }
+    G.frame = 0;
 }

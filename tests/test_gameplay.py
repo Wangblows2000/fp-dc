@@ -312,7 +312,7 @@ def sids(script, frames, env):
     return [l.split()[1] for l in out.splitlines() if l.startswith('sid ') or l.startswith('music ')]
 m = sids('5 60 R\n10 13 X\n30 33 X\n', 120, {'FP_LEVEL': 'dv1', 'FP_SPAWN_X': '6150', 'FP_SPAWN_Y': '830'})
 i = m.index('bgm/m_invincibility.adp') if 'bgm/m_invincibility.adp' in m else -1
-check('invincibility_monitor_shatter_sound', i >= 2 and m[i - 2:i] == ['307', '12'] and '25' not in m[:i], ' '.join(m))
+check('invincibility_monitor_shatter_sound', i >= 2 and m[i - 2:i] == ['308', '316'] and '25' not in m[:i], ' '.join(m))   # RE 2624 (D = 0): 308 + 316 (session 12; was 307 + 12 INFERRED)
 r = sids(open(os.path.join(HERE, 'orig_extra_spiral_dv1.txt')).read(), 380, {'FP_LEVEL': 'dv1'})
 check('rock_break_sound_not_hurt', '13' in r and not {'80', '81', '82'} & set(r), ' '.join(r))
 
