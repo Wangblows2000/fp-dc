@@ -105,6 +105,8 @@ void plat_poll_input(input_t *in) {
 static int nsnd;
 void snd_init_fp(void) {}
 int  snd_load(const char *name) { size_t s; void *d = plat_load_file(name, &s); if (!d) return -1; free(d); return nsnd++; }
+void snd_unload(int h) { (void)h; }
+int snd_mem_free_kb(void) { return -1; }
 static int host_loop_ch = 1;
 int snd_loop_start(int h, int vol, int freq) { if (getenv("FP_TRACE_SND")) printf("snd loop %d vol %d freq %d @%d\n", h, vol, freq, cur_frame); return h >= 0 ? host_loop_ch++ : -1; }
 void snd_loop_set(int ch, int vol, int freq) { (void)ch; (void)vol; (void)freq; }

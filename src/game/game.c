@@ -96,6 +96,7 @@ int game_load_level(const char *dir) {
     int keep = chr_resident && chr_resident_who == who && chr_crcs(dir, who, want_crc) == 0 && !memcmp(want_crc, chr_crc, sizeof chr_crc);
     if (keep) level_free(); else game_unload_all();
     loading_begin(dir);                            /* silent loading screen (src/game/loading.c) */
+    snd_group_load(who);                           /* the character's own sounds (sound RAM holds one set) */
     snprintf(G.lvdir, sizeof G.lvdir, "%s", dir);
     int bad = 0;
     char nm[48];
@@ -202,6 +203,13 @@ static void sel_draw(void) {
 /* ---- sounds: original Assets.dat sound IDs (Media::play_id, RUNTIME_MAP "Sound IDs") */
 static const int SND_IDS[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 38, 39, 40, 41, 42, 43, 45, 46, 47, 48, 49, 50, 51, 53, 56, 57, 58, 61, 63, 64, 74, 76, 78, 80, 81, 95, 98, 100, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 126, 128, 133, 139, 140, 141, 154, 159, 160, 161, 162, 174, 176, 220, 221, 232, 288, 289, 290, 307, 311, 313, 314, 315, 319, 320, 387, 396, 405, 409, 410, 411, 412, 413, 414 };   /* + Carol / bike / jump pads (session 10, spec_carol_*) */
 static int snd_handle[512];
+/* Sound RAM (2 MB, shared with the music stream) cannot hold every character's samples (RV Flycast: 1.8 MB of samples
+ * at boot crashed the AICA): the shared set loads at boot, each character's own set when a stage starts with her */
+static const int SND_LILAC[] = { 9, 21, 31, 174, 176, 288, 289, 290, 314, 396, 405 };     /* + VOICES */
+static const int SND_CAROL[] = { 33, 61, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 126, 128, 133, 139, 140, 141, 154,
+                                 159, 160, 161, 162, 232, 387, 409, 410, 411, 412, 413, 414 };
+static int snd_group = -1;
+static int in_group(const int *g, int n, int id) { for (int i = 0; i < n; i++) if (g[i] == id) return 1; return 0; }
 uint32_t prof_acc[PS_N], prof_max[PS_N];
 static const char *VOICES[] = { "lilac_attack0", "lilac_attack1", "lilac_attack2", "lilac_attack3", "lilac_uppercut0",
     "lilac_uppercut1", "lilac_uppercut2", "lilac_uppercut3", "lilac_cyclone1", "lilac_cyclone2", "lilac_hurt0",
@@ -213,6 +221,20 @@ void snd_play_orig(int id, int vol, int pan) {
     if (getenv("FP_TRACE_SID")) printf("sid %d\n", id);   /* original sound id, belongs to the next 'f' row */
 #endif
     if (id >= 0 && id < 512 && snd_handle[id] >= 0) snd_play(snd_handle[id], vol, pan); }
+void snd_group_load(int carol) {
+    char nm[48];
+    if (snd_group == carol) return;
+    const int *u = carol ? SND_LILAC : SND_CAROL, *l = carol ? SND_CAROL : SND_LILAC;
+    int nu = carol ? (int)(sizeof SND_LILAC / sizeof *SND_LILAC) : (int)(sizeof SND_CAROL / sizeof *SND_CAROL);
+    int nl = carol ? (int)(sizeof SND_CAROL / sizeof *SND_CAROL) : (int)(sizeof SND_LILAC / sizeof *SND_LILAC);
+    for (int i = 0; i < nu; i++) if (snd_handle[u[i]] >= 0) { snd_unload(snd_handle[u[i]]); snd_handle[u[i]] = -1; }
+    if (carol) for (int i = 0; i < (int)(sizeof VOICES / sizeof VOICES[0]); i++) if (voice_handle[i] >= 0) { snd_unload(voice_handle[i]); voice_handle[i] = -1; }
+    for (int i = 0; i < nl; i++) { snprintf(nm, sizeof nm, "sfx/s%d.wav", l[i]); snd_handle[l[i]] = snd_load(nm); loading_tick(); }
+    if (!carol) for (int i = 0; i < (int)(sizeof VOICES / sizeof VOICES[0]); i++) { snprintf(nm, sizeof nm, "sfx/%s.wav", VOICES[i]); voice_handle[i] = snd_load(nm); loading_tick(); }
+    snd_group = carol;
+    G.sfx.attack = snd_handle[21];
+    plat_log("sound set %s, sound RAM largest free block %d KB\n", carol ? "carol" : "lilac", snd_mem_free_kb());
+}
 int snd_loop_orig(int id, int vol, int freq) {
 #ifdef FP_HOST_ENV
     if (getenv("FP_TRACE_SID")) printf("sid %d\n", id);
@@ -241,9 +263,12 @@ int game_init(void) {
 #endif
     loading_begin("boot");                         /* boot: sound effects (title data follows in fe_enter) */
     for (int i = 0; i < (int)(sizeof SND_IDS / sizeof SND_IDS[0]); i++) {
-        snprintf(nm, sizeof nm, "sfx/s%d.wav", SND_IDS[i]); snd_handle[SND_IDS[i]] = snd_load(nm); loading_tick();
+        int id = SND_IDS[i];
+        if (in_group(SND_LILAC, sizeof SND_LILAC / sizeof *SND_LILAC, id) || in_group(SND_CAROL, sizeof SND_CAROL / sizeof *SND_CAROL, id)) continue;
+        snprintf(nm, sizeof nm, "sfx/s%d.wav", id); snd_handle[id] = snd_load(nm); loading_tick();
     }
-    for (int i = 0; i < (int)(sizeof VOICES / sizeof VOICES[0]); i++) { snprintf(nm, sizeof nm, "sfx/%s.wav", VOICES[i]); voice_handle[i] = snd_load(nm); loading_tick(); }
+    for (int i = 0; i < 16; i++) voice_handle[i] = -1;
+    snd_group_load(0);                             /* Lilac's set (the front end starts on her) */
     loading_end(); lp_end();
     /* legacy handles used by gameplay code, now mapped to the original sound IDs */
     G.sfx.jump = snd_handle[8]; G.sfx.attack = snd_handle[21]; G.sfx.boost = snd_handle[53];
@@ -252,6 +277,8 @@ int game_init(void) {
     if (plat_start_level()) {
 #ifdef FP_HOST_ENV
         if (getenv("FP_CHAR")) G.character = atoi(getenv("FP_CHAR"));   /* 0 Lilac, 2 Carol, 3 Carol on the bike (global value 1) */
+#else
+        { extern int demo_char; if (demo_char >= 0) G.character = demo_char; }   /* verification discs: CHAR n */
 #endif
         G.mode = MODE_PLAY; int r = game_load_level(plat_start_level()); G.card_t = CARD_DONE;
 #ifdef FP_HOST_ENV

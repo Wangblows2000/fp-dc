@@ -49,6 +49,9 @@ extern uint32_t prof_acc[PS_N], prof_max[PS_N];
 void   snd_init_fp(void);
 int    snd_load(const char *name);
 void   snd_play(int h, int vol, int pan);
+void   snd_unload(int h);                         /* platform: free a loaded sample (its handle slot is reused) */
+int    snd_mem_free_kb(void);                     /* largest free block of sound RAM (KB; -1 on the host) */
+void   snd_group_load(int carol);                 /* game.c: the character's own sound set (one resident at a time) */
 int    snd_loop_start(int h, int vol, int freq);   /* platform: looping sample on an allocated channel (-1: none) */
 void   snd_loop_set(int ch, int vol, int freq);
 void   snd_loop_end(int ch);

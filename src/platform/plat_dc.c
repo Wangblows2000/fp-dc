@@ -8,6 +8,7 @@
 #include <dc/sound/stream.h>
 #include <dc/sound/sfxmgr.h>
 #include <dc/vmu_pkg.h>
+#include <dc/sound/sound.h>
 #include <dc/vmufs.h>
 #include <dc/maple/vmu.h>
 #include "../fp.h"
@@ -23,6 +24,7 @@ static uint32_t prev_held;
 static struct { int a, b; uint32_t m; } *demo; static int ndemo, demo_frame, demo_on;
 static char demo_level[8];
 int demo_letterbox = -1;
+int demo_char = -1;                  /* verification discs: "CHAR n" starts the LEVEL as character n (0 Lilac, 2 Carol, 3 on the bike) */
 static struct { int f; float x, y; } demo_tp[16]; static int ndemo_tp;   /* verification: "<f> TP x y" */
 const char *plat_start_level(void) { return demo_level[0] ? demo_level : NULL; }
 static void demo_load(void) {
@@ -35,6 +37,7 @@ static void demo_load(void) {
         char line[64]; size_t k = 0; while (p < end && *p != '\n' && k < sizeof line - 1) line[k++] = *p++; line[k] = 0; if (p < end) p++;
         { int tf; float tx, ty; if (sscanf(line, "%d TP %f %f", &tf, &tx, &ty) == 3 && ndemo_tp < 16) { demo_tp[ndemo_tp].f = tf; demo_tp[ndemo_tp].x = tx; demo_tp[ndemo_tp].y = ty; ndemo_tp++; continue; } }
         if (!strncmp(line, "LETTERBOX ", 10)) { demo_letterbox = line[10] - '0'; continue; }   /* verification: presentation mode */
+        if (!strncmp(line, "CHAR ", 5)) { demo_char = line[5] - '0'; continue; }
         if (!strncmp(line, "LEVEL ", 6)) { size_t L = strlen(line + 6); if (L > 0 && L < sizeof demo_level) memcpy(demo_level, line + 6, L + 1); continue; }
         if (sscanf(line, "%d %d %15s%n", &a, &b, btn, &n) == 3) {
             uint32_t m = 0;
@@ -137,7 +140,9 @@ void snd_init_fp(void) {
 
 int snd_load(const char *name) {
     char path[128];
-    if (nsfx >= MAX_SFX) return -1;
+    int slot = nsfx;
+    for (int i = 0; i < nsfx; i++) if (sfx[i] == SFXHND_INVALID) { slot = i; break; }   /* reuse an unloaded slot */
+    if (slot >= MAX_SFX) return -1;
     snprintf(path, sizeof path, FP_DATA_ROOT "/%s", name);
     /* whole file through the aligned reader, then KOS parses it from memory (snd_sfx_load reads the
      * 44-byte header and then the data from a non-sector-aligned position: one drive command per sector) */
@@ -148,9 +153,12 @@ int snd_load(const char *name) {
     LP.snd_us += plat_time_us() - ts; LP.nsnd++;
     free(w);
     if (h == SFXHND_INVALID) { plat_log("sfx load failed %s\n", path); return -1; }
-    sfx[nsfx] = h;
-    return nsfx++;
+    sfx[slot] = h;
+    if (slot == nsfx) nsfx++;
+    return slot;
 }
+void snd_unload(int h) { if (h >= 0 && h < nsfx && sfx[h] != SFXHND_INVALID) { snd_sfx_unload(sfx[h]); sfx[h] = SFXHND_INVALID; } }
+int snd_mem_free_kb(void) { return (int)(snd_mem_available() / 1024); }
 
 void snd_stop_all(void) { snd_sfx_stop_all(); }
 
