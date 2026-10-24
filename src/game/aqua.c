@@ -51,10 +51,11 @@ static void spawn_monitor(int type, const char *anim, float x, float y) {
     if (!m) return;
     m->type = type; m->alive = 1; m->hp = 1; m->x = m->ox = x; m->y = m->oy = y; m->layer = 2;
     set_ens(m, anim);
-    m->vy = -4; m->st = 1;                                         /* st 1: falling (aqua_monitor_fall) */
+    m->av[0] = 1; m->av[1] = -4; m->fl |= 1;                      /* A = 1, B = -4: the shared hop / fall (monitors.c 2606) */
 }
 
 void aqua_monitor_fall(obj_t *m) {
+    (void)m; return;                                               /* replaced by monitors.c (A = 1) */
     if (m->st != 1) return;
     m->vy += 0.25f; if (m->vy > 8) m->vy = 8;                       /* gravity INFERRED (spec: loop_monitorsunstuckfromground) */
     float ny = m->y + m->vy;

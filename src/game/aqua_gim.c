@@ -378,7 +378,7 @@ static void slime_raft(player_t *p) {
     if (p->ground && !p->hurt_pending && !player_invincible(p) && p->state != ST_HURT && p->state != ST_DEAD)   /* 4555 */
         for (int i = 0; i < G.nobjs; i++) {
             obj_t *o = &G.o[i];
-            if (o->alive && o->type == OT_SLIMEFLOOR && sens_hit(SENS_BOTTOMBIG, o)) { player_contact(p, 5); break; }   /* (green tint OTHERS.R 100: not drawn) */
+            if (o->alive && o->type == OT_SLIMEFLOOR && sens_hit(SENS_BOTTOMBIG, o)) { player_contact(p, 5); p->tint = 100; break; }   /* OTHERS.R = 100: green tint */
         }
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i]; if (!o->alive || o->type != OT_RAFT) continue;

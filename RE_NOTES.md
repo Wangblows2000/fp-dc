@@ -466,6 +466,56 @@ RV = trace.
 - **Not ported (RE, documented):** lifting and throwing monitors / fuel cans (2202-2205, 2230, 2233, 2246, 3135), the
   shield-hit sound 315 path (2412), idle voice variants, alternative palettes (1566-1569).
 
+## Session 12: Aqua Tunnel (specs build/re/spec_at_flow.md, spec_at_enemies.md, spec_at_gimmicks_a.md, spec_at_gimmicks_b.md, spec_ironworm.md, spec_chomper.md, spec_chompersnake.md, at_inventory.md; port src/game/aqua.c, aqua_gim.c, aqua_boss.c)
+Aqua Tunnel = original frame index 16-19 (handle_frame_17..20_events, frame_17..20.json, port at1..at4; loop and
+collision names use the index, e.g. `_16` = AT1). Traces: `FRAME=16..19 CHAR=4`, scripts tests/orig_at, CSVs
+build/orig_traces/at, compared by tools/orig/cmp_at.py (port row f vs original row f + 2; world objects get PRERUN 122
+frames of the card's object events; GT = GV[3] phase from the trace's gv3). run_trace.sh clears the AT checkpoint
+globals 4-6 before a restart (`CP=keep` keeps them): stale checkpoints had polluted the first traces.
+- **Flow (RE spec_at_flow + RV):** checkpoints g4/g5/g6 (AT1 7600,1100 / 11300,988; AT2 5720,270 and the Chomper's
+  6144,1101 (g4 10) / 7648,1124 (g4 11); AT4 3264,200); walk-in after an act change from X = -32, Y = start + 16
+  (AT2 B = 0, AT3/AT4 B = 3); AT1 fresh start at start + (16, 16) falling; act ends AT1 X > 12462, AT2 X > 11534,
+  AT3 X > 376 with Y < 380 (top exit), AT4 through the boss results; per-act camera bounds (E = sign.x + 213), boss locks
+  (AT1 11368..12479 x 600..903, AT2 6032..6863 x 976..1231, AT4 6464..7039 x 8..319) and the mode-2 return; water
+  lines AT1/AT2 1200, AT4 1480, none in AT3. Music: AT1 m_stage0; AT2 m_stage0 -> m_midboss (Chomper trigger 4410)
+  -> m_stage0b (4452, g4 >= 10); AT3 m_stage0b; AT4 m_stage0b -> m_boss2 (4601); no command on act changes.
+- **Enemies (RE + RV a1_slime, a1_current):** fireflies (patrol still runs on the defeat frame), slimes (animation
+  counter 50 at the act start; a finishing animation update leaves the counter unchanged), slime bursts, whisps,
+  breakable aqua bricks, monitor bomb (arm, beeps, 120-frame fuse, explosion 20 to the player, -15 to enemies, bricks,
+  chains) and crate. Monitor break sounds by D (2623-2626, D-050).
+- **Gimmicks A (RE + RV):** water jets (4136; 4141/4142 shake M12), current (4137-4140 -> roll B 15), jet maker, jelly
+  springs (charge > 20 frames, launch G = -9 - 0.1 A), red springs (side springs: 3-frame input lock in the air).
+- **Gimmicks B (RE + RV, aqua_gim.c):** aqua brick platforms (obstacle box), collapsing platform (rotated mask about
+  its bottom-left hotspot, 0 -> -40 degrees, B += 0.02, shake 5, sound 51), AT1 pressure plates -> floor doors (slide
+  224 px left, non-solid from the first frame) and the arena gate (momentary, +-4 px/frame), AT2 Milla block (cube +
+  grounded) -> doors, wall plates (RightBig + push M11 or Carol's cling M47) -> every pipe turns a quarter (0.03/frame
+  ramp, sounds 49/62/51; AT3 auto-return below y 2900), spinning beam (+1 degree/frame; TopBig touching while standing
+  on it kills, ignoring invulnerability), AT2 crusher pillars (collision copy on the play layer, drawn copy behind;
+  360-frame cos bob of 96 px, dip and carry), AT3 sliding slabs (3 px/frame, 40-frame stops, push / carry), axels
+  (AT1/AT4 makers every 60 GT frames, J +-2, one-way and anti-crush flags 4088-4092; AT3 bobbing), swings (pendulum
+  E -= F cos D, D += E; carry by last frame's integer motion; jump or walk-off adds the tangential speed), slime floor
+  (scroll, 5 damage, 99-frame green tint), rafts (264 px at 4 px/frame, carry; boss raft 1784 px).
+- **Placement correction (RV, D-048):** the AT gimmick block matches the traces only after the port's player update
+  (a4_raft, a1_plates, a3_crusher, a2_beam, a2_crusher).
+- **Iron Worm (RE + RV a1_worm, exact):** the head is link 7 of the 6-segment chain: x = Bx + 6 E sin(theta),
+  y = By + 7 E cos(theta) - 14, F0 = -140 (the spec read 5 / 6 / -120); the chain has run 62 frames of the card when
+  play starts. Wake at PLAYER.x > 11804, 61-frame rumble, sound 242, 8 rocks on GT % 3, emergence E -> 24, idle 101 /
+  161 frames, spit (anim 7, ~22 acids on GT % 4), thrash at HP < 25, defeat (140 frames of explosions, swing up, slam,
+  thrown head lands; camera released, trigger flag kept). Host test: the left slam puts the head on the arena plate,
+  which holds the gate open (4095, spec U1).
+- **Chomper (RE + RV a2_chomper and a2_swallow, exact):** enters from x 7020, swims 6320..6720, mouth shut 181 then
+  open 181 / shut 121, lure on a horizontal spring (the vertical one is inert, RE), impulses J += 4X + 2Y from the
+  shared hits, bite when the lure enters the open mouth moving right (HP 30, 10 per bite), cube bite (thrown cube into
+  the open mouth), swallow M43 49 frames then spat out (B -8, G -2, 10 damage, tint), defeat at +120 / +170, bricks
+  swap, g4 = 10, water-jet maker on.
+- **Chomper Snake (RE + RV a4_snake: head exact, player differs from frame 1044):** raft ride 446 frames to x 6736,
+  lunge / dive / home cycle (~652 frames), bubbles at I 30/60/90 (the third drops a bomb), acid bursts (they splash only
+  once on the play layer, RV), damage by a thrown bomb (-10) or a thrown cube in the open mouth (-5), 148-frame blink,
+  defeat timeline (explosions, sink, white fade at +160, results at +340 on the raft, raft exit and wipe at x 7024).
+  RV a4_snake_bomb: at frame 1048 Milla catches the falling bomb (M30) - monitor lifting (2202) is needed there.
+- **Milla in AT (RE 799 / 623-625, D-046):** Classic / Adventure / Continue start at AT1; the Time Attack AT icon
+  replaces DV for her only. Dig zones and rewards of spec_milla_moves §6 are live in AT1.
+
 ## PC save files (reference for the VMU save; the port does not read or ship them)
 `file1..8.sav` and `records.dat` are Clickteam ArrayObject files (RV, parsed from the user's copies):
 `"CNC ARRAY\0"`, u16 2, u16 0, i32 X, Y, Z, i32 flags (5 = numeric + base 1), then X·Y·Z int32 (x fastest).

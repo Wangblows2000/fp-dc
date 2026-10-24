@@ -107,3 +107,20 @@ omits mirrored dir-16 animations.
   1403 -> 1707 KB, Carol 1147 -> 1179 KB, Milla 1347 KB. Sound RAM largest free block: Lilac 380 KB, Carol 351 KB,
   Milla 375 KB.
 
+
+## Session 12: Aqua Tunnel
+- Levels: `for l in "17 at1" "18 at2" "19 at3" "20 at4"; do set -- $l; tools/build_level.sh $1 $2 converted2; done`
+  (frame_17..20.json = original frame index 16..19). Same importer, banks, palettes, split atlases and 4 bpp parallax as
+  DV; DV rebuilds stay byte-identical.
+- import_frame.py: AT layer map 2→1, 3→2, 4→3 (D-045); AT_ENS (enemies, gimmicks, Iron Worm, Chomper, Chomper Snake,
+  acid, rocks, bubbles, effects) with AT_ENS_WITH parents for runtime-created classes; ENGINE_TYPES 160-223; types whose
+  lvobj anim carries the instance layer: 139-143, 169, 170, 187, 204; 13 AT parallax pieces (PAR_IMG / BOXH / BOXW /
+  DEG, flags 8 = y wrap, 16/32 = the AT2 switch at view left 7544). tasel (stage select) keeps the AT preview
+  (`-x '^bg(1[0-9]|[3-9])layer'`).
+- convert.py: `pack()` refuses an image wider than the atlas (the AT1 bank had been written invalid).
+- Sounds: convert_sfx.sh IDS adds 201 (Milla idle voice) and the AT stage group 55 62 69 99 172 173 240 242 251 252
+  278 306 308 316 (D-047).
+- Music: the lean disc list adds m_stage0, m_stage0b, m_midboss, m_boss2 (14 tracks: m_1up m_boss m_boss2 m_clear
+  m_invincibility m_menu1 m_menu2 m_midboss m_results m_stage0 m_stage0b m_stage1 m_stage1b m_title).
+- Known gap: the DV `effectsshade_436` ENS entry names a class that does not exist (`effectshade_436`), so DV enemies
+  have no shade puff; AT uses the right name (`shade_at`). Left alone to keep DV banks byte-identical (TODO).

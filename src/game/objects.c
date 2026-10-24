@@ -638,6 +638,7 @@ void objects_update(void) {
     combat_frame(p);
     /* minibosses / bosses (their event blocks follow the enemies') */
     bosses_update(p);
+    monitors_frame(p);                                /* loose monitors: hop, throw flight, ghost rules (monitors.c) */
     /* per-object events */
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i];
@@ -718,10 +719,12 @@ void objects_update(void) {
         case OT_ROCK: case OT_MONITOR: case OT_MON_RINGS: case OT_MON_1UP: case OT_MON_INVINC: case OT_MON_KEYSTONE:
         case OT_MON_WOOD: case OT_MON_EARTH: case OT_MON_FIRE: case OT_MON_METAL: case OT_MON_WATER: case OT_MON_BOMB: case OT_MON_CRATE:
             if ((o->fl & 0x200) || (!dead && (monitor_hit(p, bx0, by0, bx1, by1) || side_sensor_break(p, o) ||
-                          (o->type == OT_ROCK ? player_cube_breaks_rock(o) : player_cube_opens_monitor(o))))) {   /* Milla: 4762 / 2618 / 2619; 0x200: bomb blast (3243) */
+                          (o->type == OT_ROCK ? player_cube_breaks_rock(o) : (o->av[0] == 0 && !o->av[4] && player_cube_opens_monitor(o)))))) {   /* 2618 / 2619: resting monitors only */   /* Milla: 4762 / 2618 / 2619; 0x200: bomb blast (3243) */
                 if (side_sensor_break(p, o)) player_hitstop(p, 5);          /* RV spiral_dv1: OTHERS.K = 5 per rock */
                 obj_t m = *o;                /* the freed slot is reused by the thrown items */
-                o->alive = 0; explode(m.x, m.y - 8);
+                o->alive = 0;
+                if (m.type != OT_ROCK && mon_thrown(&m)) obj_effect(m.x + 16, m.y + 16, "explosion01");   /* 2622: thrown -> EffectsExplosion01 */
+                else explode(m.x, m.y - 8);
                 if (m.type == OT_ROCK) snd_play_orig(13, 220, 128);          /* RV spiral_dv1: rock break = 13 */
                 else if (m.type == OT_MON_CRATE) snd_play_orig(278, 220, 128);   /* RE 2625: D = 3 (crate) -> 278 */
                 else if (m.type == OT_MON_RINGS || m.type == OT_MON_KEYSTONE || m.type == OT_MON_BOMB) snd_play_orig(12, 220, 128);   /* RE 2626: D not 0 / 3 / -1 -> 12 */

@@ -155,3 +155,37 @@ Host tests enter a zone with `<f> DIGZONE 1`.
 **D-044 Milla's monitor lifting is not ported.** Attack while standing on a monitor (2246) lifts it in the original; the
 port charges a cube instead. Listed in HANDOFF.
 
+
+## Session 12 (2026-10-24): Aqua Tunnel
+**D-045 Aqua Tunnel's play layer is mapped onto the port's layer 2.** AT plays on Chowdren layer 3 (DV: 2), so
+tools/import_frame.py maps AT layers 2→1, 3→2, 4→3 (the main layer is the one holding the in-level
+playerstartingpoint); the original index stays in `layer0`, and an AT layer-1 piece keeps its 0.8 scroll as piece pad
+bit 2. Objects that come in per-layer copies (LevelCrusher1_808, SlimeFloor_857, water jets, waterfalls) carry the
+mapped layer in the lvobj anim field: the copy below the play layer is drawn, the play-layer copy collides. DV rebuilds
+are byte-identical.
+**D-046 Only Milla plays Aqua Tunnel; it reverses D-040.** As in the original (RE 799 / 623-625), Milla's Classic,
+Adventure and Continue start at Aqua Tunnel 1, and her Time Attack shows the Aqua Tunnel icon in Dragon Valley's slot;
+Lilac and Carol keep Dragon Valley. Milla's dig spots and rewards (spec_milla_moves §6) are live in AT1. Lilac and Carol
+are checked through all four acts by host tests only (tests/test_aqua.py).
+**D-047 Stage sound groups.** Aqua Tunnel's 14 samples (pipes 62, bombs 172/173, jets 240, crate 278, dig 306, shields
+308/316, Iron Worm 242/55/69, Chomper / snake 99/251/252) load with an AT act and are freed when another stage loads,
+like the character groups of D-037 (Flycast: 324 KB sound RAM largest free block with Milla in AT1).
+**D-048 The AT gimmick block runs after Lilac's movement.** The RE call order puts the AT platform/gimmick events
+before the movement call, but against the original's traces (a4_raft, a1_plates, a3_crusher, a2_beam, a2_crusher) the
+port only matches with the block in aqua_update(), after player_update() and the object pass: the raft starts and the
+door moves on the frame the sensors first reach them. DV's platform block stays before the movement (its traces match).
+**D-049 Traces win over the static specs, as in D-039.** Corrections found this session (RE_NOTES "Session 12"): the
+Iron Worm head is link 7 of its chain (x 6E, y 7E, F0 = -140) and its chain has run 62 frames when play starts; the
+slime's animation counter starts at 50; a finishing animation update leaves the counter unchanged; the firefly patrol
+still runs on its defeat frame; snake acid only splashes on the play layer.
+**D-050 Monitor-icon break sounds by D.** Monitors break with sound 278 (crate), 12 (rings, keystone, bomb), 308 + 316
+(invincibility, shields) or 307 + 12 (others), read from 2623-2626 (RE); test_gameplay's invincibility expectation was
+changed to 308 + 316.
+**D-051 Milla lifts, carries and throws monitors (supersedes D-044).** spec_milla_monitor_carry.md: attack while the
+bottom-big sensor is on a monitor (2246) or a falling monitor on her head (2202) lifts it (M30, F = 1, skin directions
+31/15, no sound); 3132 carries it above her action point; attack throws it (3134: X = cos(O)(4Q + B),
+Y = -sin(O)(4Q + B)); a hurt / roll drops it (3133). Loose monitors (src/game/monitors.c): the thrown / dropped flight
+breaks on background, solids, obstacles or enemies (2751: -15) and leaves EffectsExplosion01; the A = 1 hop lands
+with the unstuck loops. The head bump that starts a hop (2605, every character) is enabled in Aqua Tunnel only, so
+Dragon Valley's monitors keep their traced session-8 behaviour. RV a4_snake / a4_snake_bomb (Milla catches the falling
+bomb at frame 1048) now match.
