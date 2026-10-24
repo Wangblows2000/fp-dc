@@ -251,3 +251,42 @@ decoder model, not by ear.
   280 frames, DV3 30, DV4 94.
 - **Regression:** gameplay 0 failures, front end 0, cmp_all 76/76, strict 11311/11377 (99.4%), unchanged by every
   performance change. DC build 0 warnings. Session 9 disc (lean BGM) boots to the file menu in Flycast.
+
+## Session 10 (2026-10-24): DV2 plate, boss HUD, Carol
+Labels: original-trace (RV), RE, host-test, emulator (Flycast, emulated time). **Nothing measured on real hardware.**
+No audio device in the VM: sounds were checked through the host and original sound-id traces, not by ear.
+
+- **DV2 plate / boss HUD:** host tests dv2_block_presses_plate, dv2_door_sinks_when_pressed (door 1016 → 1144 at
+  8 px/frame); DV4 hit tally bottom right, no guiboss bar.
+- **Carol against the original (tools/orig/cmp_carol.py, 53 traces, 5682 compared frames):** X 99.3 %, Y 99.2 %,
+  B 98.4 %, G 98.1 %, L 99.8 %, M 99.8 %, OTHERS.Y 99.7 %, tail anim 99.7 %, tail frame 97.7 %, skin A 99.5 %,
+  energy 100 %. 43 traces match X/Y/B/G on every frame; the other 10 diverge only from a known cause: 7 teleport traces
+  get the Turretus pellet hit 1-2 frames off (frame ~146), c_fuel_dv1 rams a Dragonfly one frame apart, b_remount and
+  c_jumppad_dv2 differ in G on a display-only frame. Sound ids: misses/extras are random voice and claw-pitch picks
+  (unsynced seed) and the pellet timing.
+- **Host tests:** test_carol 19/19 (energy, pounce, claw, kick, roll, wall cling/jump, fuel can, bike air jump, ride,
+  dismount/remount, 3-hit wreck, nitro, DV2 pad chain, Lilac's pad crystals, Lilac unchanged); test_gameplay 72/72,
+  test_frontend 30/30.
+- **Lilac regression:** cmp_all 76/76, strict 11311/11377 (99.4 %), identical to session 9. Host renders of Lilac and
+  Carol (DV1-DV4, 20 frames each) pixel-identical before/after the atlas splits.
+- **Found in the emulator and fixed:**
+  - AICA crash at boot (ARM CPUUndefinedException) with Carol's sounds added: 1812 KB of samples. Fix: per-character
+    sound groups (D-037); largest free block 389 KB (Lilac) / 351 KB (Carol).
+  - DV2 with Carol had 123 KB of VRAM free after load. Fix: split atlases (D-038).
+  - Bike exhaust invisible (particles always drawn from the object atlas); now drawn from their bank, translucent,
+    drifting (RE EffectsDust01).
+- **Performance (Flycast, demo discs, 600-frame windows after the boot window; vblanks 600 = no frame missed):**
+
+| Scene (demo) | VRAM free after load | update (player + obj + plat + gimmick) | draw CPU | vblanks / 600 |
+|---|---|---|---|---|
+| DV1 Lilac run | 2238 KB | ~4.5 ms (2.7 + 0.7 + 0.9 + 0.2) | 1.6 ms | 603, 603 |
+| DV1 Carol on foot | 1981 KB | ~4.3 ms (2.6 + 0.7 + 0.8 + 0.2) | 1.6 ms | 603 (621 in the window with an act restart) |
+| DV1 Carol on the bike | 1981 KB | ~3.7-4.4 ms (2.2-2.7 + 0.7 + 0.7-0.9 + 0.2) | 1.6 ms | 603, 603 |
+| DV2 Lilac (pads area) | 1403 KB | ~5.7 ms (3.1 + 1.0 + 1.0 + 0.5) | 1.7 ms | 603 |
+| DV2 Carol (pad chain, then wall) | 1147 KB | ~6.2 ms (3.0 + 1.7 + 0.9 + 0.5) | 1.6 ms | 603 |
+
+  draw = game_draw incl. waiting for the PVR (8.8-11.2 ms of it is the wait). The boot window is 664-675 vblanks
+  for every disc. Carol costs about the same CPU as Lilac; the DV2 runs end in different places (Lilac stops at
+  x 2983, Carol at 3350), which explains the object-update difference. Peak player section ≤ 6.6 ms in all runs.
+- **DC build:** 0 warnings. Emulator only; real hardware still untested.
+

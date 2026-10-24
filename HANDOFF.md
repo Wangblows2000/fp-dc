@@ -6,7 +6,9 @@ Native Dreamcast (KallistiOS) port of Freedom Planet. A custom C engine plays da
 ## Environment (ephemeral cloud VM; rebuild if missing)
 - KOS git 5f834c1 at /opt/toolchains/dc/kos, toolchain /opt/toolchains/dc/sh-elf (GCC 15.2.0). **environ.sh patch**: `export KOS_LD_SCRIPT=-T$KOS_BASE/utils/ldscripts/shlelf.xc` before environ_base.sh.
 - mkdcdisc: third_party/mkdcdisc/builddir/mkdcdisc. Flycast: third_party/flycast/build/flycast, driven by `tools/flycast_run.sh` (x=A c=B s=X Return=Start, f/v = L/R; developer select = `key:f key:v` on the title).
-- Original game: writable copy /home/claude/fprun (never the user's folder). `tools/orig/start_orig.sh` → `tools/orig/route_dv1.sh` → `FRAME=<20 dv1 / 21 dv2 / 22 dv3 / 23 dv4> tools/orig/run_trace.sh <script> <out.csv> <frames>`. `XVT_EXTRA="name=0x<vtable+0x10>#<instance>"` logs extra objects. A teleport far from the start can be blocked by the camera bounds (sensors are clamped to them).
+- Original game: writable copy /home/claude/fprun (never the user's folder). /home/claude/fprun_user = the same game
+  with the user's PC saves (Carol unlocked); for traces and reference only, never shipped or read by the port.
+  Carol traces: `CHAR=2` (on foot) / bike via the fuel can; scripts tests/orig_carol, CSVs build/orig_traces/carol. `tools/orig/start_orig.sh` → `tools/orig/route_dv1.sh` → `FRAME=<20 dv1 / 21 dv2 / 22 dv3 / 23 dv4> tools/orig/run_trace.sh <script> <out.csv> <frames>`. `XVT_EXTRA="name=0x<vtable+0x10>#<instance>"` logs extra objects. A teleport far from the start can be blocked by the camera bounds (sensors are clamped to them).
 - Trace scripts: `<f> TP x y`, `<f> EN v`, `<f> HP v`, `<a> <b> KEYS` (a 1-frame range sends nothing; use ≥ 2 frames).
 - Host-only debug script commands: `<f> MON <type>` (shield monitor ahead of Lilac), `<f> HURT <dx>`.
 - User PC: `C:\Users\wobbles\Desktop\Freedom Planet` (read-only input); deliverables go to its `fpdc\` subfolder.
@@ -15,7 +17,8 @@ Native Dreamcast (KallistiOS) port of Freedom Planet. A custom C engine plays da
 See ASSET_PIPELINE.md (levels, UI, font, audio). Then:
 ```sh
 for l in "21 dv1" "22 dv2" "23 dv3" "24 dv4"; do set -- $l; tools/build_level.sh $1 $2 converted2; done
-make -C host && python3 tests/test_gameplay.py && python3 tests/test_frontend.py && Q=1 tools/orig/cmp_all.sh
+make -C host && python3 tests/test_gameplay.py && python3 tests/test_frontend.py && python3 tests/test_carol.py
+Q=1 tools/orig/cmp_all.sh && python3 tools/orig/cmp_carol.py          # Lilac / Carol against the original's traces
 source /opt/toolchains/dc/kos/environ.sh && make && make cdi        # build/fpdc.cdi (~300 MB)
 make cdi DEMO=tests/play/<route>.txt CDI=build/fpdc_demo.cdi        # verification disc: scripted input ("LEVEL dv1" line starts the act)
 ```
@@ -45,26 +48,54 @@ RE_NOTES "Session 9", DECISIONS D-033 to D-035.
 - **Performance:** sensor candidate lists (D-034), hot obj_t fields, second piece atlas ≤ 1024x512 (D-035), DC frame
   profiler in the perf log. Flycast: every level at 602-603 vblanks per 600 frames (was 730 in the DV3 demo).
 
+## Session 10 (2026-10-24): Carol, DV2 plate, boss HUD
+Brief order: DV2 physics puzzle, boss HUD, full Carol, Carol performance, testing/docs. Details: RE_NOTES "Session 10"
+and "PC save files", RUNTIME_MAP "Session 10", ASSET_PIPELINE "Session 10", DECISIONS D-036 to D-039,
+BUILD_AND_TEST_LOG "Session 10".
+- **DV2 plate:** a resting pushable block presses the plate (4971; reach 32 px above, D-036), the door sinks (RV).
+- **Boss HUD:** the unused guiboss bar is gone; the hit tally sits bottom right.
+- **Carol (playable on character select, Time Attack and files):** her own movement table, pounce, Wild Claw combo
+  and big slash, Wild Kick, roll and ball jump, wall cling/jump, voices and sounds, tail overlay, VMU life icon.
+  Bike from fuel cans: engine loop, air jump, nitro, ramming, wall ride, dismount/parked bike/remount, 3-hit wreck,
+  exhaust. Red jump pads in DV2-DV4 (Lilac gets crystals from them, as in the original). 53 original traces.
+- **Audio:** per-character sound groups at level load (D-037): the full set had overflowed AICA RAM in Flycast.
+- **VRAM:** split atlases (D-038) for Carol's banks and the DV1-DV3 object banks.
+
 ## Latest verified
-- host-test: gameplay 0 failures (new: invincibility_monitor_shatter_sound, rock_break_sound_not_hurt, dv4_exit_*),
-  front end 0. original-trace vs host: cmp_all 76/76, strict 11311/11377 (99.4%).
-- emulator (Flycast, session 9 build): see BUILD_AND_TEST_LOG "Session 9" for per-level frame pacing, section times and
-  VRAM. pvr free after load DV1/DV3/DV4 2302/1709/1656 KB. **Emulator only; nothing measured on real hardware.**
+- host-test: gameplay 72/72, front end 30/30, Carol 19/19. original-trace vs host: cmp_all 76/76, strict
+  11311/11377 (99.4%, unchanged); cmp_carol 53 traces, 43 exact in X/Y/B/G, 10 with the known differences below.
+- emulator (Flycast, session 10 build): Lilac DV1/DV2, Carol DV1/DV2 and the bike DV1 at 603 vblanks per 600 frames
+  after the boot window; VRAM free after load DV1 2238 (Lilac) / 1981 (Carol) KB, DV2 1403 / 1147 KB; no AICA crash
+  with either sound group. **Emulator only; nothing measured on real hardware.**
 
 ## Next actions
-1. Real hardware: run the session 9 disc and read the `perf:`/`prof` lines over serial (or watch for stutter): the
-   Flycast numbers are emulated time. Check the BGM loop by ear (m_invincibility after ~24 s, m_stage1 after ~3 min).
-2. Flycast shows a +2.5 ms frame period about once per second in every scene, also with 12 ms of idle time and with
-   music off, so it is not the game's CPU time; confirm on hardware whether it exists there.
-3. Trace the DV4 boss exit in the original (needs the real defeat; the forced setup fired 5547 with the wrong instances).
-4. Finish the consecutive DV1→DV4 route search; traces still open: shield icon timing, water tint extent, spinning log.
+1. Real hardware: run the session 10 disc and read the `perf:`/`prof` lines over serial (or watch for stutter); listen
+   to Carol's sounds and the bike engine loop (pitch follows rev: 22000 + 7000·rev Hz on channel 10).
+2. Carol traces still to record: under water, the 3-hit wreck, death with the bike, DV3/DV4 pads (incl. the DV4 block
+   pad 5356), bored idles; sync the original's cross_seed in the tracer to compare random voices.
+3. Flycast shows a +2.5 ms frame period about once per second in every scene; confirm on hardware whether it exists.
+4. Trace the DV4 boss exit in the original; finish the consecutive DV1→DV4 route search.
+
+## Carol: verified vs approximated
+- **Matched to original traces (RV, cmp_carol, 53 traces):** on-foot movement, pounce chains, roll and roll jump, crouch
+  lunge, wall cling/slide/jump/top/away, claw combo and big slash incl. hits, Wild Kick incl. air and roll kicks, energy;
+  bike riding, jump, air jump, nitro, dismount, remount, claw and kick on the bike, ram, wall ride, wall jump, skid; fuel
+  can pick-up; DV2 jump-pad chain and walking onto a pad. Fields per frame: X, Y, B, G, L, M, OTHERS.Y, tail
+  animation and frame, skin A/L, energy, sound ids.
+- **Traced with known harness differences:** 7 traces that place Carol by teleport next to the DV1 Turretus get the
+  pellet hit 1-2 frames off (from frame ~146; the same as Lilac's TP traces); c_fuel_dv1 rams a Dragonfly one frame
+  apart (enemy phase); b_remount and c_jumppad_dv2 differ only in G on a frame where the original's G is a display value.
+- **RE only (no trace):** 3-hit wreck and debris, DV3/DV4 pad tables, death/fall with the bike, Carol under water.
+- **INFERRED / not ported:** see RE_NOTES "Session 10" (sample 413 stop, claw pitch, DV4 block pad 5356, the 2443 Y12
+  timer, bored-idle variants, spin-shield angle, debris direction, bike monitor smash path, dust step rounding).
+  Random voices and pitches use the port's own seed, so they differ from a given original run.
 
 ## Known issues / INFERRED
 - **Open (session 9):** the lower waterfall is slightly darker than the original in DV1; Tredd's rock break sound (13)
   is INFERRED from the DV1 rocks; the DV4 exit is RE-only (no original trace).
 - **INFERRED:** water tint extent (drawn full width below the surface, also over left foreground rocks); shield carry-over
   between acts; spinning-log phase (global counter offset); breath bubbles' SKIN condition; stage-select confirm timing.
-- **Not ported:** gallery, Carol/Milla (locked, D-020), the original's game-over card, enemies' own water splashes.
+- **Not ported:** gallery, Milla (locked, D-020), the original's game-over card, enemies' own water splashes.
 
 ## Safety
 Never write to the user's game folders. extracted/, converted*/, build/, docs/reference/, tools/audio/wav2adpcm are gitignored. Never commit game data or decompiled output (`git ls-files` check before commits).
