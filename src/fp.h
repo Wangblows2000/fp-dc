@@ -76,6 +76,7 @@ int    plat_save_read(void *data, size_t max);
 enum { CHR_LILAC = 0, CHR_CAROL = 2, CHR_CAROL_BIKE = 3, CHR_MILLA = 4 };
 static inline int chr_slot(int g1) { return g1 == 2 || g1 == 3 ? 1 : g1 == 4 ? 2 : g1 == 0 ? 0 : 3; }
 static inline int chr_is_carol(int g1) { return g1 == 2 || g1 == 3; }
+static inline int chr_is_milla(int g1) { return g1 == 4; }
 #define SAVE_CARD_ACTS 4
 typedef struct { uint8_t used, character, difficulty, mode, stage, lives, petals; uint16_t crystals, deaths; uint32_t time; } save_file_t;
 typedef struct { uint32_t time; uint16_t crystals; } save_rec_t;   /* time in frames, 0 = no record */
@@ -226,7 +227,7 @@ int  solid_at(const level_t *l, float x, float y);
 int  px_span_solid(const level_t *l, int x0, int x1, int y);   /* any solid pixel in row y, x0..x1 */
 
 /* Lilac's movement core (src/physics/sensors.c, RE events 1584-1611): the original's movement object */
-typedef struct { double X, Y, B, G, N, O, W; int L, P, nov, noh; } mv_t;   /* nov: MV.U = 0 (no vertical move / up-down loops; M45); noh: MV.T = 0 (no horizontal move / wall loops; helix) */
+typedef struct { double X, Y, B, G, N, O, W; int L, P, nov, noh, nol; } mv_t;   /* nol: MV.V = 0 (no landing, 1588-1592 / 1594: Milla's float) */   /* nov: MV.U = 0 (no vertical move / up-down loops; M45); noh: MV.T = 0 (no horizontal move / wall loops; helix) */
 enum { MV_LANDED = 1, MV_LEFT_GROUND = 2, MV_CEILING = 4 };
 enum { OBJGRP_SOLID, OBJGRP_OBSTACLE, OBJGRP_NOEDGE, OBJGRP_OBSTACLE_ALL };   /* QualifierLists +0x218c0, +0x218d8 (minus flag-0 platforms), +0x218f0; +0x218d8 with every instance */
 void mv_reset(void);
@@ -309,6 +310,9 @@ typedef struct {
     int padC, padJ, padK, padL, padfl; double padD, padE, padF, padG, padH, padI;
     /* bike (spec_carol_bike B): BSK hit points C, rev A, nitro OTHERS.F / G, BSK flag 1 latch */
     int bikeC, nitroF, nitroG, bike_latch; double rev;
+    /* Milla (session 11, spec_milla_moves / spec_milla_combat): PlayerSkinMilla_461 alterables A-H, flags 1 / 10;
+     * OTHERS.N (float counter), SKIN.I (flap speed term), MV.V = 0 (no landing while floating), MV.C = 4 (carrying) */
+    double mA, mB, mE; int mC, mD, mF, mG, mH, mfl1, mfl10, mN, nol, mC4; double skinI;
     int air;                      /* RE OTHERS.J: air counter (water) */
     int water, y26, cyc_block, drown;   /* RE OTHERS.H; OTHERS.Y = 26 swim code; OTHERS.P < 3 after leaving water; drowned (M10) */
 } player_t;
@@ -342,7 +346,7 @@ typedef struct {
     level_t lvl;
     bank_t lilac, hair, objs;    /* lilac: the playing character's skin (Lilac lilac2 / Carol carol2); hair: its overlay
                                     (Lilac's hair PlayerSkinSashHair_424 / Carol's tail PlayerSkinCarolTail_448) */
-    bank_t bike;                 /* Carol riding the bike (PlayerSkinCarolBike_460), loaded only for Carol */
+    bank_t bike;                 /* Carol riding the bike (PlayerSkinCarolBike_460), loaded only for Carol; Milla: millafx (PlayerReflect_463, the cube) */
     bank_t ens;                  /* per-level enemies / bosses / gimmicks (<dir>_ens; tools/import_frame.py ENS) */
     tex_t par[12]; int npar;
     player_t p;
@@ -395,7 +399,15 @@ void snd_play_orig(int id, int vol, int pan);
 int  snd_loop_orig(int id, int vol, int freq);  /* looping sample on its own channel (bike engine); returns the channel or -1 */
 void snd_loop_update(int ch, int vol, int freq);
 void snd_loop_stop(int ch);
-void pads_spawn(void);                           /* jump-pad configuration (src/characters/carol_bike.inc) */
+void pads_spawn(void);
+/* Milla's cube (src/characters/milla.inc, spec_milla_combat): state A (-1 when Milla is not playing) and its hitbox */
+int    player_cube_state(void);
+int    player_cube_hits(const obj_t *e);
+int    player_cube_breaks_rock(const obj_t *o);
+int    player_cube_opens_monitor(const obj_t *o);
+double player_cube_damage(double *kx, double *ky, int *armour_only, int Q);
+int    player_milla_hud(void);
+void   player_milla_dbg(double v[7]);   /* traces: cube A, x, y, C, F, anim, MILLA's shown direction */                           /* jump-pad configuration (src/characters/carol_bike.inc) */
 void player_engine_stop(void);
 void voice_play(const char *name);
 void plat_quit(void);
@@ -429,7 +441,12 @@ enum { ST_NORMAL, ST_ATTACK, ST_CYCLONE, ST_CHARGE, ST_BOOST, ST_HURT, ST_DEAD,
        ST_WILDKICK,    /* Carol M44: Wild Kick (2143-2157) */
        ST_WALL,        /* Carol M47: wall cling (2173-2183) */
        ST_PAD,         /* Carol M48: jump-pad ride (2184-2196, 4931-4935) */
-       ST_BIKEAIR };   /* Carol on the bike M32: air jump (2164-2172) */
+       ST_BIKEAIR,     /* Carol on the bike M32: air jump (2164-2172) */
+       ST_MATK,        /* Milla M20: attack (one group frame, 2241-2246) */
+       ST_FLOAT,       /* Milla M22: Puppy Float (2247-2253) */
+       ST_DIG,         /* Milla M27: dig (2254-2268) */
+       ST_MCARRY,      /* Milla M30: charging / carrying the cube or a monitor (2269-2277) */
+       ST_MSHIELD };   /* Milla M31: shield / burst / beam (2278-2293) */
 /* src/game/combat.c (build/re/spec_combat.md) */
 void combat_frame(player_t *p);
 void combat_draw_shields(int behind);

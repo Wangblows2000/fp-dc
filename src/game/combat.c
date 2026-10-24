@@ -149,7 +149,7 @@ static int sensor_hits(const obj_t *o, int s) {
     if (!mv_sensor_rows(s, &ox, &oy, &x0, &x1, &h)) return 0;
     return obj_rows_hit(o, ox, oy, x0, x1, h);
 }
-typedef enum { AT_BOTTOM, AT_TOP, AT_SHIELD, AT_LEFT, AT_RIGHT, AT_CHAR, AT_P326 } atk_t;
+typedef enum { AT_BOTTOM, AT_TOP, AT_SHIELD, AT_LEFT, AT_RIGHT, AT_CHAR, AT_P326, AT_CUBE } atk_t;
 /* collect enemies overlapped by an attacker; armoured: keep only flag-5 ones (deflect events) */
 static void collect(const player_t *p, atk_t a, int armoured, const obj_t *sh) {
     ncand = 0;
@@ -167,6 +167,7 @@ static void collect(const player_t *p, atk_t a, int armoured, const obj_t *sh) {
         case AT_P326: hit = sensor_hits(o, SENS_MAIN); break;
         case AT_CHAR: { int x0, y0, x1, y1; char_rect(p, &x0, &y0, &x1, &y1); hit = obj_rect_hit(o, x0, y0, x1, y1); break; }
         case AT_SHIELD: { int x0, y0, x1, y1; shield_rect(sh, &x0, &y0, &x1, &y1); hit = obj_rect_hit(o, x0, y0, x1, y1); break; }
+        case AT_CUBE: hit = player_cube_hits(o); break;
         }
         if (hit) candidates[ncand++] = i;
     }
@@ -280,6 +281,15 @@ void combat_frame(player_t *p) {
                 collect(p, AT_SHIELD, 1, s);
                 if (ncand) { deflect(p, 5 + s->st); break; }
             }
+        }
+        if (player_cube_state() >= 3) {                                                           /* 2742-2745: Milla's cube (no K gate, no OTHERS.I) */
+            double kx = 0, ky = 0; int arm = 0;
+            double dmg = player_cube_damage(&kx, &ky, &arm, Q);
+            if (dmg > 0) {
+                collect(p, AT_CUBE, 0, NULL);
+                if ((e = pick())) { e->c = 5; e->kx = kx; e->ky = ky; e->A -= dmg; e->inv = 1; snd_play_orig(24, 220, 128); }
+            }
+            if (dmg > 0 || arm) { collect(p, AT_CUBE, 1, NULL); if (ncand) { for (int k = 0; k < ncand; k++) G.o[candidates[k]].c = 5; snd_play_orig(30, 220, 128); } }
         }
         if (Z && p->hitstop <= 0 && p->hit_i < 4) {                                              /* 2753-2756 */
             for (int side = 0; side < 2 && p->hitstop <= 0; side++) {

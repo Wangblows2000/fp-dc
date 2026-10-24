@@ -11,8 +11,12 @@ python3 tools/import_frame.py build/frames extracted/linux/images "$F" "$N" "$T"
 # Overlays with <= 15 colours (Lilac's hair, Carol's tail) are 4 bpp blocks at the start of that group (session 11).
 mkdir -p "$T/carol" && mv "$T"/carol*.tex "$T/carol/"
 python3 tools/palettize.py "$T/carol" '^carol' --gid=2 '--pal4=0:^caroltail' && mv "$T/carol/pal2.pal" "$T/pal2c.pal"
+# Milla (session 11): same scheme, pal2m.pal
+mkdir -p "$T/milla" && mv "$T"/milla*.tex "$T/milla/"
+python3 tools/palettize.py "$T/milla" '^milla' --gid=2 '--pal4=0:^millatail|^millafx' && mv "$T/milla/pal2.pal" "$T/pal2m.pal"
 python3 tools/palettize.py "$T" "^${N}_p[0-9]" '_par[0-9]' '^lilac' '_obj' '--flex=_ens' '--pal4=1:_p[xw]' '--pal4=2:^lilachair'
 mv "$T/carol/"*.tex "$T/" && rmdir "$T/carol"
+mv "$T/milla/"*.tex "$T/" && rmdir "$T/milla"
 rm -rf "$O/$N" && mv "$T" "$O/$N"
 cp converted/sfx_*.wav "$O"/ 2>/dev/null || true
 cp converted/stage1.pcm "$O"/ 2>/dev/null || true

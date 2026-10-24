@@ -251,7 +251,7 @@ static void carol_kick_group(player_t *p, const input_t *in) {
 /* ---- M47 wall cling: the movement block runs with T = 0 (X frozen) from the second frame, then 2173-2183 ---- */
 static void carol_wall(player_t *p, const input_t *in) {
     int q = c_q0;
-    mv_t m = { p->x, p->y - ORIG_REF_DY, p->ground ? p->gsp : p->vx, p->ground ? 0. : p->vy, p->N, p->O, 0, p->ground, 0, 0, p->wall_t > 0 };
+    mv_t m = { p->x, p->y - ORIG_REF_DY, p->ground ? p->gsp : p->vx, p->ground ? 0. : p->vy, p->N, p->O, 0, p->ground, 0, 0, p->wall_t > 0, 0 };
     int r = mv_core(&m);
     p->x = m.X; p->y = m.Y + ORIG_REF_DY; p->N = m.N; p->O = m.O; p->ground = m.L;
     if (m.L) { p->gsp = m.B; p->vy = 0; if (r & MV_LANDED) on_land(p); ground_speed_update(p, in, 1); }
