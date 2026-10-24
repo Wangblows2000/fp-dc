@@ -189,8 +189,9 @@ static void sel_draw(void) {
 }
 
 /* ---- sounds: original Assets.dat sound IDs (Media::play_id, RUNTIME_MAP "Sound IDs") */
-static const int SND_IDS[] = { 0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 34, 35, 37, 38, 39, 40, 41, 42, 43, 45, 46, 47, 48, 49, 50, 51, 53, 56, 57, 58, 63, 64, 74, 76, 78, 80, 81, 95, 98, 100, 174, 176, 220, 288, 289, 290, 311, 313, 314, 315, 319, 320, 396, 405 };
+static const int SND_IDS[] = { 0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 34, 35, 37, 38, 39, 40, 41, 42, 43, 45, 46, 47, 48, 49, 50, 51, 53, 56, 57, 58, 63, 64, 74, 76, 78, 80, 81, 95, 98, 100, 174, 176, 220, 288, 289, 290, 307, 311, 313, 314, 315, 319, 320, 396, 405 };
 static int snd_handle[512];
+uint32_t prof_acc[PS_N], prof_max[PS_N];
 static const char *VOICES[] = { "lilac_attack0", "lilac_attack1", "lilac_attack2", "lilac_attack3", "lilac_uppercut0",
     "lilac_uppercut1", "lilac_uppercut2", "lilac_uppercut3", "lilac_cyclone1", "lilac_cyclone2", "lilac_hurt0",
     "lilac_hurt1", "lilac_hurt2", "lilac_hurt3", "lilac_die", "lilac_cantmoveit" };
@@ -486,10 +487,10 @@ void game_update(const input_t *in) {
     input_t none = {0}, rin = results_input(in), sin_ = {0};
     const input_t *pin = (G.clear_t || G.act_in) ? &none : results_on() ? &rin : in;   /* act end / walk-in / results: no control (RE) */
     { static uint32_t sprev; uint32_t h; if (serp4_input(&h)) { sin_.held = h; sin_.pressed = h & ~sprev; sprev = h; pin = &sin_; } else sprev = 0; }   /* DV4 boss exit (5547 lock, 5573-5577) */
-    par_update();                                 /* RE 3541: parallax drift */
-    objects_platforms(&G.p);                      /* RE: platform/bridge events run before Lilac's movement */
-    player_update(&G.p, pin);
-    layers_update(&G.p);                          /* RE 1613-1616 + 3031/3032: loop collision layer */
+    PROF(PS_PAR, par_update());                   /* RE 3541: parallax drift */
+    PROF(PS_PLAT, objects_platforms(&G.p));       /* RE: platform/bridge events run before Lilac's movement */
+    PROF(PS_PLAYER, player_update(&G.p, pin));
+    PROF(PS_LAYERS, layers_update(&G.p));         /* RE 1613-1616 + 3031/3032: loop collision layer */
     if (G.act_in) {                               /* RE 4526: B = 3 every frame for 32 frames */
         if (G.p.ground) G.p.gsp = 3; else G.p.vx = 3;
         G.act_fade = G.act_fade - 8 < 0 ? 0 : G.act_fade - 8;
@@ -499,7 +500,7 @@ void game_update(const input_t *in) {
         G.p.face = 1;
         if (G.p.ground && G.p.gsp < 2) G.p.gsp = 2;
     }
-    objects_update();
+    PROF(PS_OBJ, objects_update());
     if (G.p.state == 6 /* ST_DEAD */ && G.p.dead_t > 120) {     /* death: the act restarts with one life less (RE 1972 / loop_death_13) */
         int lives = G.p.lives - 1, crystals = G.act_crystals, frame = G.frame, ks = G.act_keystones, sc = G.act_stage_crystals;
         if (lives < 1) { music_stop(); snd_stop_all(); fe_enter_from_stage(G.time_attack); return; }   /* game over (card not ported) */
@@ -509,13 +510,15 @@ void game_update(const input_t *in) {
         G.card_t = CARD_DONE;
         return;
     }
+    PROF(PS_GIMMICK, {
     shields_update(&G.p);                         /* RE 2673-2705, 2804-2812 */
     water_events(&G.p);                           /* RE 4150-4170, 4396/4397, 4464-4473 */
     pblocks_update(&G.p);                         /* RE 2711-2735 (after the state groups) */
     spinlogs_update(&G.p);                        /* RE 4980-4986 (DV2) */
     tunnel_events(&G.p);                          /* RE 4739-4755 (end of the frame) */
     cork_start_check(&G.p);                       /* RE 4756/4757 (end of the frame) */
-    camera_update();
+    });
+    PROF(PS_CAM, camera_update());
     /* stage music back after the 1-up jingle / when monitor invincibility ends */
     if (G.mus_resume_t > 0 && --G.mus_resume_t == 0)
         music_play(G.p.invinc ? "bgm/m_invincibility.adp" : level_music(G.lvdir));
@@ -529,7 +532,7 @@ void game_update(const input_t *in) {
     }
     /* RE (events 4135 / 5045): the act ends when Lilac passes X > frame width - 50 moving right; DV4 runs the
      * results instead (5381 / 5576, src/game/results.c) */
-    if (results_update(&G.p)) return;
+    { int rr; PROF(PS_RES, rr = results_update(&G.p)); if (rr) return; }
     if (act_of(G.lvdir) < 4 && !G.clear_t && !G.act_in && G.p.x > G.lvl.w - 50 && (G.p.ground ? G.p.gsp : G.p.vx) > 0) G.clear_t = 1;
 }
 

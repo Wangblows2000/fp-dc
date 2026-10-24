@@ -99,7 +99,7 @@ void plat_poll_input(input_t *in) {
     if (demo_on) {
         for (int i = 0; i < ndemo; i++) if (demo_frame >= demo[i].a && demo_frame < demo[i].b) held |= demo[i].m;
         for (int i = 0; i < ndemo_tp; i++) if (demo_frame == demo_tp[i].f) { G.p.x = demo_tp[i].x; G.p.y = demo_tp[i].y + ORIG_REF_DY; G.p.vx = G.p.vy = G.p.gsp = 0; }
-        if (demo_frame % 60 == 0)
+        if (demo_frame % 600 == 0)   /* console output is slow (serial): rare, and the perf log skips the print time */
             printf("demo f %d mode %d lv %s x %.2f y %.2f hp %d lives %d\n", demo_frame, G.mode, G.lvdir, G.p.x, G.p.y, G.p.hp, G.p.lives);
         demo_frame++;
     }
@@ -167,19 +167,32 @@ static file_t mus_f = -1;      /* KOS VFS: aligned sector reads take the DMA pat
 static char mus_name[64];
 static int mus_vol = 255;
 static int mus_paused;           /* pause menu: stream stopped in place, not polled */
-static uint8_t mus_buf[MUS_CHUNK * 2] __attribute__((aligned(32)));
+static uint8_t mus_buf[MUS_CHUNK * 2 + 8] __attribute__((aligned(32)));
+static int mus_pos, mus_loop_len;   /* bytes read since the loop start; loop length (file length & ~31) */
 
 static void *mus_cb(snd_stream_hnd_t hnd, int smp_req, int *smp_recv) {
     /* KOS passes the request in BYTES (snd_stream.c: get_data(hnd, needed_bytes, &got_bytes)) */
     (void)hnd;
-    int want = smp_req > (int)sizeof mus_buf ? (int)sizeof mus_buf : smp_req;
+    /* Whole-file loop. The loud one-sided audio ~25 s into invincibility was the loop seam: the AICA ADPCM decoder
+     * has no leak, so its end-of-file state (prev sample, step) carried into the file start, which was encoded from
+     * (0, 127). Fixed in the data: tools/audio/adpcm_loop_seal.py ends every track at decoder state (0, 127) and pads
+     * it to 32 bytes (D-033). Here: deliveries stay multiples of 8 (KOS rounds got_bytes up and splits in 32-byte
+     * blocks; requests are 2048-byte multiples) and the loop point is the 32-byte-aligned length, so an unsealed
+     * file at worst drops < 32 bytes instead of desynchronising. */
+    uint64_t t_cb = timer_us_gettime64();
+    int want = (smp_req > (int)sizeof mus_buf ? (int)sizeof mus_buf : smp_req) & ~7;
     int got = 0, rewinds = 0;
     while (got < want && rewinds < 2) {
-        ssize_t n = fs_read(mus_f, mus_buf + got, (size_t)(want - got));
-        if (n <= 0) { fs_seek(mus_f, 0, SEEK_SET); rewinds++; continue; }   /* whole-file loop */
-        got += (int)n;
+        int room = mus_loop_len - mus_pos;
+        if (room <= 0) { printf("music: loop %s (%d bytes)\n", mus_name, mus_pos); fs_seek(mus_f, 0, SEEK_SET); mus_pos = 0; rewinds++; continue; }   /* whole-file loop */
+        int k = want - got < room ? want - got : room;
+        ssize_t n = fs_read(mus_f, mus_buf + got, (size_t)k);
+        if (n <= 0) { fs_seek(mus_f, 0, SEEK_SET); mus_pos = 0; rewinds++; continue; }
+        got += (int)n; mus_pos += (int)n;
     }
-    *smp_recv = got & ~3;
+    if (got & 7) { memset(mus_buf + got, 0, 8 - (got & 7)); got = (got + 7) & ~7; }   /* only at a short read: keep the pairing */
+    *smp_recv = got;
+    { uint32_t d = (uint32_t)(timer_us_gettime64() - t_cb); prof_acc[PS_MUS] += d; if (d > prof_max[PS_MUS]) prof_max[PS_MUS] = d; }
     return mus_buf;
 }
 
@@ -214,6 +227,7 @@ int music_play(const char *name) {
     snprintf(path, sizeof path, FP_DATA_ROOT "/%s", name);
     mus_f = fs_open(path, O_RDONLY);
     if (mus_f < 0) { mutex_unlock(&mus_lock); plat_log("music missing %s\n", path); return -1; }
+    mus_pos = 0; mus_loop_len = (int)(fs_total(mus_f) & ~31);
     int adpcm = strstr(name, ".adp") != NULL;
     mus = snd_stream_alloc(mus_cb, adpcm ? SND_STREAM_BUFFER_MAX_ADPCM : MUS_CHUNK);
     if (mus == SND_STREAM_INVALID) { fs_close(mus_f); mus_f = -1; mutex_unlock(&mus_lock); return -1; }
@@ -349,23 +363,40 @@ int main(int argc, char **argv) {
     }
     input_t in;
     uint64_t t_prev = timer_us_gettime64();
-    uint32_t frames = 0, slow = 0;
+    uint32_t frames = 0, slow = 0; uint64_t t_prof = t_prev; int skip_next = 0;
     for (;;) {
         uint64_t t0 = timer_us_gettime64();
+        /* the previous frame's period (t0 - t_prev) and its own update / draw split (G.prof_*, not yet overwritten) */
+        static uint32_t slow_log[8][4]; static int nslow_log;   /* missed vblanks: kept, printed with the 600-frame report */
+        if (skip_next) { skip_next = 0; t_prof = t0; }   /* frame_avg: from the first frame after the report */
+        else if (t0 - t_prev > 17500 && frames > 1) {
+            slow++;
+            if (nslow_log < 8) { uint32_t *l = slow_log[nslow_log++]; l[0] = frames - 1; l[1] = (uint32_t)(t0 - t_prev); l[2] = G.prof_update_us; l[3] = G.prof_draw_us; }
+        }
+        t_prev = t0;
         plat_poll_input(&in);
         game_update(&in);
         music_update();
         uint64_t t1 = timer_us_gettime64();
-        game_draw();       /* r_begin() waits for the PVR -> paces to vblank */
+        PROF(PS_DRAW, game_draw());   /* r_begin() waits for the PVR -> paces to vblank (PS_WAIT, inside) */
         uint64_t t2 = timer_us_gettime64();
         G.prof_update_us = (uint32_t)(t1 - t0);
         G.prof_draw_us = (uint32_t)(t2 - t1);
-        if (t0 - t_prev > 17500) slow++;
-        t_prev = t0;
         if (++frames % 600 == 0)
             printf("perf: frame %lu upd %lu us draw %lu us polys %lu slow %lu\n",
                    (unsigned long)frames, (unsigned long)G.prof_update_us,
                    (unsigned long)G.prof_draw_us, (unsigned long)r_stat_polys, (unsigned long)slow);
+        if (frames % 600 == 0) {
+            static const char *nm[PS_N] = { "par", "plat", "player", "layers", "obj", "gimmick", "cam", "res", "draw", "submit", "wait", "mus" };
+            char b[400]; int k = 0;
+            for (int i = 0; i < PS_N; i++) { k += snprintf(b + k, sizeof b - k, " %s %lu/%lu", nm[i], (unsigned long)(prof_acc[i] / 600), (unsigned long)prof_max[i]); prof_acc[i] = prof_max[i] = 0; }
+            { static int vbl_prev; int vbl = pvr_get_vbl_count();
+              printf("prof(avg/max us):%s frame_avg %lu vblanks %d per 600 frames\n", b, (unsigned long)((t0 - t_prof) / 599), vbl - vbl_prev); vbl_prev = vbl; }
+            for (int i = 0; i < nslow_log; i++) printf("  slow frame %lu: period %lu us, its upd %lu draw %lu\n", (unsigned long)slow_log[i][0],
+                                                       (unsigned long)slow_log[i][1], (unsigned long)slow_log[i][2], (unsigned long)slow_log[i][3]);
+            nslow_log = 0;
+        }
+        if (frames % 600 == 0) skip_next = 1;   /* the console prints are not part of the next frame's period */
     }
     return 0;
 }

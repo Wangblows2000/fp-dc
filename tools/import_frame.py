@@ -260,13 +260,19 @@ def main():
     imgs = {i: load_img(src, i) for i in ids}
     remaining = list(ids); atlases = []; where = {}
     while remaining:
-        pos = None; take = list(remaining)
-        while take:
-            pos = pack([(i, imgs[i][0]) for i in take], 1024)
-            if pos: break
-            take = take[:len(take) * 3 // 4]
-        if not take: raise SystemExit('piece too large for 1024 atlas')
         k = len(atlases)
+        # the first atlas is up to 1024x1024; later ones at most 1024x512 (task 48: a 1024x1024 second atlas was
+        # often only ~55-65 % used, wasting 384-512 KB of VRAM per level; the renderer takes up to MAX_ATLAS = 4)
+        cap = (lambda t: pack([(i, imgs[i][0]) for i in t], 1024)) if k == 0 else (lambda t: pack([(i, imgs[i][0]) for i in t], 1024, 512))
+        pos = cap(remaining); take = list(remaining)
+        if not pos:                              # largest prefix that fits (binary search)
+            lo, hi = 0, len(remaining)
+            while hi - lo > 1:
+                mid = (lo + hi) // 2
+                if cap(remaining[:mid]): lo = mid
+                else: hi = mid
+            take = remaining[:lo]; pos = cap(take) if take else None
+        if not take: raise SystemExit('piece too large for the atlas')
         if len(take) == len(remaining):          # last atlas: the smallest power-of-two height that holds the rest
             for hh in (128, 256, 512):
                 p2 = pack([(i, imgs[i][0]) for i in take], 1024, hh)

@@ -12,9 +12,10 @@ static int A_TURR[6] = { -1, -1, -1, -1, -1, -1 };   /* idle, idle_l, shoot, sho
 static int A_GAN[10] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };   /* Ganseki: pose, walk, dead, curl, wake; even = right, odd = left */
 static int A_PELLET = -1, A_EXPLODE2 = -1, A_SPARKLE = -1, A_HEART = -1, A_CRYSTAL = -1, A_PETAL = -1;
 
+static unsigned obj_gen = 1;   /* bumped whenever a slot is (re)allocated or retyped: invalidates the sensor candidates */
 static obj_t *alloc_obj(void) {
     for (int i = 0; i < MAX_OBJS; i++)
-        if (!G.o[i].alive) { if (i >= G.nobjs) G.nobjs = i + 1; memset(&G.o[i], 0, sizeof G.o[i]); return &G.o[i]; }
+        if (!G.o[i].alive) { if (i >= G.nobjs) G.nobjs = i + 1; memset(&G.o[i], 0, sizeof G.o[i]); obj_gen++; return &G.o[i]; }
     return NULL;
 }
 obj_t *obj_alloc(void) { return alloc_obj(); }
@@ -31,7 +32,7 @@ void objects_spawn(void) {
     A_SPARKLE = bank_anim(&G.objs, "ringsparkle"); A_HEART = bank_anim(&G.objs, "heart");
     A_CRYSTAL = bank_anim(&G.objs, "objectcrystal_3"); A_PETAL = bank_anim(&G.objs, "objectpetal_355");
     memset(G.o, 0, sizeof G.o);
-    G.nobjs = 0;
+    G.nobjs = 0; obj_gen++;
     for (int i = 0; i < G.lvl.nobj; i++) if (G.lvl.objs[i].type == OT_LOG && G.lvl.objs[i].anim != 0xffff) A_LOG = G.lvl.objs[i].anim;
     for (int i = 0; i < G.lvl.nobj; i++) {
         const lvobj_t *lo = &G.lvl.objs[i];
@@ -273,7 +274,8 @@ static void explode(float x, float y) {
     if (!e) return;
     e->type = OT_EXPLODE; e->alive = 1; e->x = x; e->y = y;
     if (A_EXPLODE >= 0) anim_set(&e->an, &G.objs, A_EXPLODE);
-    snd_play(G.sfx.explode, 220, 128);
+    /* No sound here: the explosion is only the visual. This used to play id 81, one of Lilac's own hurt sounds
+     * (RV: her hurt = 25 + one of 80/81/82), on every monitor and rock. Callers play the event's own sound. */
 }
 void obj_explode(float x, float y) { explode(x, y); }
 
@@ -652,6 +654,9 @@ void objects_update(void) {
                 if (side_sensor_break(p, o)) player_hitstop(p, 5);          /* RV spiral_dv1: OTHERS.K = 5 per rock */
                 obj_t m = *o;                /* the freed slot is reused by the thrown items */
                 o->alive = 0; explode(m.x, m.y - 8);
+                if (m.type == OT_ROCK) snd_play_orig(13, 220, 128);          /* RV spiral_dv1: rock break = 13 */
+                else { snd_play_orig(307, 220, 128); snd_play_orig(12, 220, 128); }   /* RV mon/inv traces: 307 + 12 on the
+                                                    break frame; RE Frames::event_func_2623 plays 307 for the monitor group */
                 monitor_reward(&m, p); shield_monitor_broken(&m);
                 player_bounce(p, -4.f);
             }
@@ -662,7 +667,7 @@ void objects_update(void) {
             if (o->vy > 0 && solid_at(&G.lvl, o->x, o->y + 4)) { o->vy = -o->vy * 0.5f; o->vx *= 0.8f; if (o->vy > -0.5f) { o->vy = 0; o->vx = 0; } }
             if (++o->tm > 120 || (o->vx == 0 && o->vy == 0) ||
                 (o->tm >= 12 && item_in_reach(o, p, o->st == OT_CRYSTAL ? 39 : 31)))   /* collectable mid-flight (INFERRED) */ {
-                o->type = o->st; o->st = 0; o->tm = 0;     /* becomes a normal crystal / petal */
+                o->type = o->st; o->st = 0; o->tm = 0; obj_gen++;     /* becomes a normal crystal / petal */
             }
             break;
         case OT_SPIKES: spikes_update(o, p); break;        /* RE 3259 (was a contact hurt) */
@@ -763,13 +768,63 @@ int obj_in_group(int type, int grp) {
     default: return 0;
     }
 }
-static int sensor_hit_any(int grp, int type, int ox, int oy, const signed char *x0, const signed char *x1, int h) {
+/* Sensor candidates (performance, task 48): the indices, in slot order, of every object whose type belongs to a
+ * sensor group (solid / obstacle / no-edge), alive or not. Lilac's sensors query these groups ~70 times a frame;
+ * scanning all ~600 slots each time (one cache miss per obj_t on the SH4) cost ~10 ms a frame in Flycast. The list is
+ * a superset filter only: the loop below still applies every original test in the same slot order, so the result
+ * (first hit) is unchanged. Rebuilt when a slot is allocated or retyped (obj_gen) or the slot count changes. */
+#define NGRP 4
+static short cand[NGRP + 1][MAX_OBJS]; static int ncand[NGRP + 1]; static unsigned cand_gen; static int cand_nobjs = -1;
+static uint8_t grp_bits[256]; static int grp_bits_ok;   /* bit g: type is in group g; bit NGRP: in any group */
+static int in_any_group(int t) { return obj_in_group(t, OBJGRP_SOLID) || obj_in_group(t, OBJGRP_OBSTACLE) || obj_in_group(t, OBJGRP_NOEDGE); }
+static void cand_refresh(void) {
+    if (!grp_bits_ok) {
+        for (int t = 0; t < 256; t++) {
+            for (int g = 0; g < NGRP; g++) if (obj_in_group(t, g)) grp_bits[t] |= 1 << g;
+            if (in_any_group(t)) grp_bits[t] |= 1 << NGRP;
+        }
+        grp_bits_ok = 1;
+    }
+    if (cand_gen == obj_gen && cand_nobjs == G.nobjs) return;
+    for (int g = 0; g <= NGRP; g++) ncand[g] = 0;
     for (int i = 0; i < G.nobjs; i++) {
+        unsigned t = (unsigned)G.o[i].type, b = t < 256 ? grp_bits[t] : 0;
+        for (int g = 0; g <= NGRP; g++) if (b & (1 << g)) cand[g][ncand[g]++] = (short)i;
+    }
+    cand_gen = obj_gen; cand_nobjs = G.nobjs;
+}
+/* largest |hotspot| + size over a bank's frames: no frame of it can reach further than this from the object's x/y */
+static const bank_t *ext_b[8]; static int ext_m[8], next_b;
+static int bank_extent(const bank_t *b) {
+    for (int k = 0; k < 8; k++) if (ext_b[k] == b) return ext_m[k];
+    int m = 0;
+    for (int i = 0; i < b->nframes; i++) {
+        const frame_t *f = &b->frames[i];
+        int e = abs(f->hx) + f->w; if (abs(f->hx - f->w) + f->w > e) e = abs(f->hx - f->w) + f->w;
+        if (abs(f->hy) + f->h > e) e = abs(f->hy) + f->h;
+        if (e > m) m = e;
+    }
+    ext_b[next_b] = b; ext_m[next_b] = m; next_b = (next_b + 1) & 7;
+    return m;
+}
+static int sensor_hit_any(int grp, int type, int ox, int oy, const signed char *x0, const signed char *x1, int h) {
+    cand_refresh();
+    /* group query: that group's list; type query: the any-group list if the type is in one, else every slot */
+    int L = type < 0 ? (grp >= 0 && grp < NGRP ? grp : -1) : ((unsigned)type < 256 && (grp_bits[type] >> NGRP & 1) ? NGRP : -1);
+#ifdef FP_PERF_BASELINE
+    L = -1;                                        /* A/B measurement build: the old full scan */
+#endif
+    int n = L >= 0 ? ncand[L] : G.nobjs;
+    const short *cl = L >= 0 ? cand[L] : NULL;
+    for (int c = 0; c < n; c++) {
+        int i = cl ? cl[c] : c;
         const obj_t *o = &G.o[i];
-        if (!o->alive || !o->an.b || (type >= 0 ? o->type != type : !in_group(o->type, grp))) continue;
+        if (!o->alive || !o->an.b || (type >= 0 ? o->type != type : !(L >= 0 ? (grp_bits[o->type] >> grp & 1) : in_group(o->type, grp)))) continue;
         if ((grp == OBJGRP_OBSTACLE || grp == OBJGRP_SOLID) && (o->fl & 1)) continue;   /* flag 0: ignored (4738 platforms; loop layers 3025/3026) */
         if (grp == OBJGRP_SOLID && objects_mon_ghost && (o->type == OT_MONITOR || o->type == OT_MON_RINGS || o->type == OT_MON_1UP ||
                                                           o->type == OT_MON_INVINC || o->type == OT_MON_KEYSTONE || o->type == OT_ROCK || (o->type >= OT_MON_WOOD && o->type <= OT_MON_WATER))) continue;   /* 1581 (RV spiral_dv1: rocks too) */
+        { int m = bank_extent(o->an.b) + 2;                     /* cheap reject before the frame lookup (same result) */
+          if (o->x < ox - m || o->x > ox + 27 + m || o->y < oy - m || o->y > oy + h + m) continue; }
         const frame_t *f = anim_frame(&o->an);
         int bx = (int)floorf(o->x) - (o->flip ? f->w - f->hx : f->hx), by = (int)floorf(o->y) - f->hy;
         if (ox > bx + f->w || ox + 27 < bx || oy >= by + f->h || oy + h <= by) continue;

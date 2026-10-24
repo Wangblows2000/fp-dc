@@ -188,7 +188,7 @@ static void td_update(player_t *p) {
         obj_t *c = td_piece(k);
         if (!c || !((k < 6) ? TD.pd < 0 : TD.pd > 0)) continue;
         for (int i = 0; i < G.nobjs; i++) { obj_t *r = &G.o[i];
-            if (r->alive && r->type == OT_ROCK && obj_obj_hit(r, c)) { r->alive = 0; obj_explode(r->x, r->y - 8); } }
+            if (r->alive && r->type == OT_ROCK && obj_obj_hit(r, c)) { r->alive = 0; obj_explode(r->x, r->y - 8); snd_play_orig(13, 220, 128); }   /* rock break 13 (as DV1 rocks; INFERRED for Tredd's) */ }
     }
     /* leg damage (5237-5240): claws 5, stomping columns 10 */
     if (!dead && p->state != ST_DEAD && !p->hurt_pending && !player_invincible(p) && !player_body_z(p) &&

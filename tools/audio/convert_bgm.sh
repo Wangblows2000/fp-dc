@@ -15,6 +15,7 @@ for f in "$SRC"/*.ogg; do
   n=$(basename "$f" .ogg)
   ffmpeg -v error -y -i "$f" -ac 2 -ar $RATE -sample_fmt s16 "$TMP/$n.wav"
   "$HERE/wav2adpcm" -n -i -t "$TMP/$n.wav" "$OUT/$n.adp" > /dev/null
+  python3 "$HERE/adpcm_loop_seal.py" "$OUT/$n.adp" > /dev/null   # clean whole-file loop seam (D-033)
   rm -f "$TMP/$n.wav"
   read sr dur < <(ffprobe -v error -show_entries stream=sample_rate:format=duration -of csv=p=0 "$f" | tr "\n" " "; echo) || true
   echo "$n,$(stat -c %s "$f"),$sr,$dur,$(stat -c %s "$OUT/$n.adp"),$RATE,whole" >> "$OUT/bgm_manifest.csv"
