@@ -204,7 +204,11 @@ enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_MON_INVINC = 4, OT_MON
        OT_LOOP016 = 134, OT_LOOP0Q = 135, OT_LOOP115 = 136, OT_LOOP1Q = 137, OT_CHUNK = 138,
        OT_WF_BACK = 139, OT_WF_FRONT = 140, OT_WF_FRONT2 = 141, OT_WF_FRONT3 = 142, OT_WF_FRONT4 = 143, OT_BBOULDER = 144, OT_KEYSTONE = 146, OT_SPIRAL_FRONT = 147, OT_FRONTROCK = 148, OT_FRONTTREE = 149, OT_TREEFRONT = 150,
        OT_MON_WOOD = 151, OT_MON_EARTH = 152, OT_MON_FIRE = 153, OT_MON_METAL = 154, OT_MON_WATER = 155, OT_MONICON = 156, OT_BUBBLEPATCH = 157,
-       OT_FUEL = 158 /* ObjectFuel_533 (Carol: the bike) */, OT_PBIKE = 159 /* ObjectBike_459: parked / wrecked bike (created by Carol's events) */ };
+       OT_FUEL = 158 /* ObjectFuel_533 (Carol: the bike) */, OT_PBIKE = 159 /* ObjectBike_459: parked / wrecked bike (created by Carol's events) */,
+       /* Aqua Tunnel (session 12, src/game/aqua.c) */
+       OT_DIGSPOT = 160 /* ObjectDigSpot_779: Milla's dig spot (AT1) */,
+       OT_FIREFLY = 161, OT_SLIME = 162, OT_WHISPMAKER = 163, OT_ABRICK = 164, OT_ABRICK2 = 165,   /* spec_at_enemies.md */
+       OT_SLIMEBURST = 166, OT_WHISP = 167, OT_ABPIECE = 168 /* runtime-created */ };
 
 #define MAX_ATLAS 4
 typedef struct {
@@ -413,6 +417,7 @@ void voice_play(const char *name);
 void plat_quit(void);
 void r_fade(float alpha);      /* full-screen black overlay with alpha (translucent list) */
 int  game_load_level(const char *dir);   /* unloads the current level first */
+int  stage_rec_index(const char *dir);   /* Time Attack record row: 0 Aqua Tunnel, 1 Dragon Valley */
 void game_update(const input_t *in);
 void game_draw(void);
 void player_reset(player_t *p, double x, double y);
@@ -491,6 +496,11 @@ void   cacteon_spawn(obj_t *o), cacteon_update(obj_t *o, player_t *p);
 void   sporepod_spawn(obj_t *o), sporepod_update(obj_t *o, player_t *p);
 void   spore_update(obj_t *o, player_t *p);
 void   enemies_absorb_crystals(void);
+/* src/game/aqua.c (Aqua Tunnel, session 12) */
+int    aqua_level(void);                      /* act 1-4 in Aqua Tunnel, else 0 */
+void   aqua_spawn(void), aqua_pre(player_t *p), aqua_update(player_t *p);
+int    aqua_obj_update(obj_t *o, player_t *p);
+int    aqua_dig_hint(void), aqua_obj_alpha(const obj_t *o);
 /* src/game/gimmicks.c */
 void   spikes_update(obj_t *o, player_t *p), rspring_update(obj_t *o, player_t *p);
 void   layers_refresh(const player_t *p), layers_update(player_t *p);

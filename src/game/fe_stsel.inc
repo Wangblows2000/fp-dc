@@ -18,7 +18,8 @@ static struct {
 } T;
 
 static int stsel_progress(void) { return 0; }              /* RecordData(1, 40): stages beyond DV are not in the port */
-static int stage_playable(int e) { return e == 1; }        /* Dragon Valley only */
+/* Dragon Valley for Lilac / Carol; Aqua Tunnel for Milla (session 12: RE 623 puts AT (E 0) in DV's slot for G1 = 1 / 4) */
+static int stage_playable(int e) { return chr_is_milla(G.character) ? e == 0 : e == 1; }
 
 static void stsel_enter(void) {
     memset(&T, 0, sizeof T);
@@ -65,7 +66,12 @@ static void stsel_update(const input_t *now) {
     T.checkA = fmodf(T.checkA + 0.5f, 64.f);
     if (!T.main && !T.slide && !T.confirm_on && !T.back && !wipe.on) { if (tiles_step()) T.main = 1; }   /* RE 616 */
     /* MAP (RE 623-643): Lilac's list and the locks */
-    for (int i = 0; i < 13; i++) { T.e[i] = STAGE_LILAC[i]; if (i > 1 && T.e[i] != 14 && T.e[i] > stsel_progress()) T.e[i] = 99; }
+    for (int i = 0; i < 13; i++) {
+        T.e[i] = STAGE_LILAC[i];
+        if (chr_is_milla(G.character) && T.e[i] == 1) T.e[i] = 0;                       /* RE 623: Aqua Tunnel replaces Dragon Valley */
+        if (chr_is_carol(G.character) || chr_is_milla(G.character)) { if (i == 6) T.e[i] = 8; if (i == 7) T.e[i] = 6; }   /* RE 624 / 625 */
+        if (i > 1 && T.e[i] != 14 && T.e[i] > stsel_progress()) T.e[i] = 99;           /* RE 641-643 locks */
+    }
     if (T.main) {
         /* RE 660/661: ease to home / targets 1/8 per frame */
         T.nv = (7 * T.nv + T.nx) / 8; T.nw = (7 * T.nw + T.ny) / 8;
@@ -128,7 +134,7 @@ static void stsel_update(const input_t *now) {
     if (wipe_step()) {
         wipe.on = 0;
         if (T.exit_to == 6) { if (scr_load(0) == 0) { set_state(FE_CHSEL); chsel_enter(); } }
-        else { fe_unload(); game_start_adventure("dv1", 1); }                                     /* RE 715: DV -> frame 20, Time Attack */
+        else { int at = T.e[T.sel_k] == 0; fe_unload(); game_start_adventure(at ? "at1" : "dv1", 1); }   /* RE 714 / 715: AT -> frame 16, DV -> 20 */
     }
 }
 
@@ -168,8 +174,9 @@ static void stsel_draw(void) {
     if (T.yes) T.yes->dx = T.yesx - T.yes->x;
     if (T.ret) T.ret->dx = T.retx - T.ret->x;
     /* record box (RE 665-667): hidden for Shang Mu (D == 0); "TIME --:--:--" without a time */
-    uint32_t ms = sel_e < SAVE_STAGES ? (uint32_t)((uint64_t)SV.rec[sel_e][0].time * 1000 / 60) : 0;
-    int crys = sel_e < SAVE_STAGES ? SV.rec[sel_e][0].crystals : 0;
+    int cs = chr_slot(G.character);                          /* RE 657 / 658: the record column of the selected character */
+    uint32_t ms = sel_e < SAVE_STAGES ? (uint32_t)((uint64_t)SV.rec[sel_e][cs].time * 1000 / 60) : 0;
+    int crys = sel_e < SAVE_STAGES ? SV.rec[sel_e][cs].crystals : 0;
     int box = T.main && T.D != 0;
     for (int i = 0; i < 9; i++) if (T.rec[i]) T.rec[i]->vis = box;
     if (T.rec[1]) ui_obj_select(s, T.rec[1], 0, ms ? 0 : 8);

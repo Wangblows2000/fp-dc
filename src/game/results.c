@@ -114,7 +114,7 @@ int results_update(player_t *p) {
             R.saved = 1;
             cards_commit();
             if (G.time_attack) {
-                save_rec_t *r = &SV.rec[1][chr_slot(G.character)];
+                save_rec_t *r = &SV.rec[stage_rec_index(G.lvdir)][chr_slot(G.character)];
                 if (!r->time || (uint32_t)R.time_frames < r->time) { r->time = (uint32_t)R.time_frames; r->crystals = (uint16_t)G.stage_crystals; }
             }
             save_store();

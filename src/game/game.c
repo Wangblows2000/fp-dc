@@ -38,10 +38,15 @@ static void level_start(void) {
 /* stage music per level dir (RE/RV: the original's play_music loops: m_stage1 frame index 20,
  * m_stage1b 21-22, m_boss 23 = DV4) */
 const char *level_music(const char *dir) {
-    /* RE: Frames::loop_play_music_N_<frame index> strings: 20 m_stage1, 21/22 m_stage1b, 23 m_boss */
+    /* RE: Frames::loop_play_music_N_<frame index> strings: 20 m_stage1, 21/22 m_stage1b, 23 m_boss;
+     * Aqua Tunnel (session 12, tools/re/bgm_refs.py): 16 m_stage0, 17/18 m_stage0b, 19 m_boss2 (boss start) */
     if (!strcmp(dir, "dv1")) return "bgm/m_stage1.adp";
+    if (!strcmp(dir, "at1")) return "bgm/m_stage0.adp";
+    if (!strncmp(dir, "at", 2)) return "bgm/m_stage0b.adp";
     return "bgm/m_stage1b.adp";
 }
+/* the stage's icon frame E on the Time Attack list = its record row (RE spec_stageselect: 0 Aqua Tunnel, 1 Dragon Valley) */
+int stage_rec_index(const char *dir) { return !strncmp(dir, "at", 2) ? 0 : 1; }
 int act_of(const char *dir) { return dir[2] - '0'; }
 
 static void bank_free(bank_t *b) { free(b->act); free(b->frames); free(b->anims); free(b->seq); free(b->mbits); free(b->moff); memset(b, 0, sizeof *b); }
@@ -435,7 +440,7 @@ static void next_act(void) {
     if (a >= 4) {
         G.mode = MODE_RESULTS; G.res_t = 0; G.res_time = G.frame; music_play("bgm/m_clear.adp");
         if (G.time_attack) {                          /* Time Attack record (stage list order: 0 Shang Mu Academy, 1 Dragon Valley) */
-            save_rec_t *r = &SV.rec[1][chr_slot(G.character)];
+            save_rec_t *r = &SV.rec[stage_rec_index(G.lvdir)][chr_slot(G.character)];
             if (!r->time || (uint32_t)G.frame < r->time) { r->time = (uint32_t)G.frame; r->crystals = (uint16_t)(CRYSTALS_PER_LIFE - G.p.crystals); save_store(); }
         }
         return;
@@ -548,6 +553,7 @@ void game_update(const input_t *in) {
     { static uint32_t sprev; uint32_t h; if (serp4_input(&h)) { sin_.held = h; sin_.pressed = h & ~sprev; sprev = h; pin = &sin_; } else sprev = 0; }   /* DV4 boss exit (5547 lock, 5573-5577) */
     PROF(PS_PAR, par_update());                   /* RE 3541: parallax drift */
     PROF(PS_PLAT, objects_platforms(&G.p));       /* RE: platform/bridge events run before Lilac's movement */
+    aqua_pre(&G.p);                               /* Aqua Tunnel: dig zones (3313, 4171-4182) */
     PROF(PS_PLAYER, player_update(&G.p, pin));
     PROF(PS_LAYERS, layers_update(&G.p));         /* RE 1613-1616 + 3031/3032: loop collision layer */
     if (G.act_in) {                               /* RE 4526: B = 3 every frame for 32 frames */
@@ -560,6 +566,7 @@ void game_update(const input_t *in) {
         if (G.p.ground && G.p.gsp < 2) G.p.gsp = 2;
     }
     PROF(PS_OBJ, objects_update());
+    aqua_update(&G.p);                            /* Aqua Tunnel per-frame events (src/game/aqua.c) */
     if (G.p.state == 6 /* ST_DEAD */ && G.p.dead_t > 120) {     /* death: the act restarts with one life less (RE 1972 / loop_death_13) */
         int lives = G.p.lives - 1, crystals = G.act_crystals, frame = G.frame, ks = G.act_keystones, sc = G.act_stage_crystals;
         if (lives < 1) { music_stop(); snd_stop_all(); fe_enter_from_stage(G.time_attack); return; }   /* game over (card not ported) */
