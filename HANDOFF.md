@@ -8,7 +8,9 @@ Native Dreamcast (KallistiOS) port of Freedom Planet. A custom C engine plays da
 - mkdcdisc: third_party/mkdcdisc/builddir/mkdcdisc. Flycast: third_party/flycast/build/flycast, driven by `tools/flycast_run.sh` (x=A c=B s=X Return=Start, f/v = L/R; developer select = `key:f key:v` on the title).
 - Original game: writable copy /home/claude/fprun (never the user's folder). /home/claude/fprun_user = the same game
   with the user's PC saves (Carol unlocked); for traces and reference only, never shipped or read by the port.
-  Carol traces: `CHAR=2` (on foot) / bike via the fuel can; scripts tests/orig_carol, CSVs build/orig_traces/carol. `tools/orig/start_orig.sh` → `tools/orig/route_dv1.sh` → `FRAME=<20 dv1 / 21 dv2 / 22 dv3 / 23 dv4> tools/orig/run_trace.sh <script> <out.csv> <frames>`. `XVT_EXTRA="name=0x<vtable+0x10>#<instance>"` logs extra objects. A teleport far from the start can be blocked by the camera bounds (sensors are clamped to them).
+  Carol traces: `CHAR=2` (on foot) / bike via the fuel can; scripts tests/orig_carol, CSVs build/orig_traces/carol.
+  Milla traces: `CHAR=4` (any frame; `FRAME=16` = Aqua Tunnel 1 for the dig); `<f> SETV others E 9999` makes her
+  invulnerable (the host understands the same line). `tools/orig/start_orig.sh` → `tools/orig/route_dv1.sh` → `FRAME=<20 dv1 / 21 dv2 / 22 dv3 / 23 dv4> tools/orig/run_trace.sh <script> <out.csv> <frames>`. `XVT_EXTRA="name=0x<vtable+0x10>#<instance>"` logs extra objects. A teleport far from the start can be blocked by the camera bounds (sensors are clamped to them).
 - Trace scripts: `<f> TP x y`, `<f> EN v`, `<f> HP v`, `<a> <b> KEYS` (a 1-frame range sends nothing; use ≥ 2 frames).
 - Host-only debug script commands: `<f> MON <type>` (shield monitor ahead of Lilac), `<f> HURT <dx>`.
 - User PC: `C:\Users\wobbles\Desktop\Freedom Planet` (read-only input); deliverables go to its `fpdc\` subfolder.
@@ -17,8 +19,8 @@ Native Dreamcast (KallistiOS) port of Freedom Planet. A custom C engine plays da
 See ASSET_PIPELINE.md (levels, UI, font, audio). Then:
 ```sh
 for l in "21 dv1" "22 dv2" "23 dv3" "24 dv4"; do set -- $l; tools/build_level.sh $1 $2 converted2; done
-make -C host && python3 tests/test_gameplay.py && python3 tests/test_frontend.py && python3 tests/test_carol.py
-Q=1 tools/orig/cmp_all.sh && python3 tools/orig/cmp_carol.py          # Lilac / Carol against the original's traces
+make -C host && python3 tests/test_gameplay.py && python3 tests/test_frontend.py && python3 tests/test_carol.py && python3 tests/test_milla.py
+Q=1 tools/orig/cmp_all.sh && python3 tools/orig/cmp_carol.py && FR=295 python3 tools/orig/cmp_milla.py   # against the original's traces
 source /opt/toolchains/dc/kos/environ.sh && make && make cdi        # build/fpdc.cdi (~300 MB)
 make cdi DEMO=tests/play/<route>.txt CDI=build/fpdc_demo.cdi        # verification disc: scripted input ("LEVEL dv1" line starts the act)
 ```
@@ -61,20 +63,44 @@ BUILD_AND_TEST_LOG "Session 10".
 - **Audio:** per-character sound groups at level load (D-037): the full set had overflowed AICA RAM in Flycast.
 - **VRAM:** split atlases (D-038) for Carol's banks and the DV1-DV3 object banks.
 
+## Session 11 (2026-10-24): Milla, 4 bpp overlays
+Details: RE_NOTES "Session 11", RUNTIME_MAP "Session 11", ASSET_PIPELINE "Session 11", DECISIONS D-040 to D-044,
+BUILD_AND_TEST_LOG "Session 11". Specs (build/re, not committed): spec_milla_moves.md, spec_milla_combat.md.
+- **Milla (playable on character select, Time Attack and files):** Lilac's movement table, Puppy Float, Phantom Cube
+  (charge, carry, throw, burst), Barrier Shield, Shield Burst, Super Shield beam with its recoil, dig state (zones only),
+  voices, HUD panel, life / VMU icon, sounds as their own group. 41 original traces.
+- **Differences between the brief and the original (v1.21.5, RE + RV):** the shield neither blocks nor reflects
+  projectiles; the "Cube Blaster" is the thrown cube; DV has no dig zones; the cube does not press the DV2 plate (only
+  pushables, the bike and the player's foot sensor do).
+- **VRAM:** 4 bpp overlays and split atlases for Lilac's banks (+300 KB free with Lilac in DV1).
+
+## Milla: verified vs approximated
+- **Matched to original traces (RV):** walking / running, jump and release cut, float (start, rise, meter, end, refloat,
+  walk-off, springs incl. Down), cube charge / cancel / appear / carry / throw / burst timing, shield (walk, decay,
+  tap, hold), shield burst and its two hits on the Turretus, super shield and beam incl. every recoil trace (ground,
+  up, down, air, air down, wall), rock breaking by the burst and the beam, hurt through the shield, idle.
+- **Small known differences:** the cube thrown at the Turretus bursts 2 frames late (1 px of held-cube height); the
+  beam's first hit is 1 frame early; flap-sound cadence (frame-time timer in the original).
+- **RE only:** shield on springs / ladders, dig rewards (spots of Aqua Tunnel / Relic Maze), float under water (blocked
+  by the swim rule), recoil under a ceiling (no low ceiling found near the DV1 start).
+- **Not ported:** lifting / throwing monitors and fuel cans (D-044), Aqua Tunnel / Relic Maze themselves (Milla's
+  Classic route starts there in the original: D-040), alternative palettes, idle voice variants.
+
 ## Latest verified
-- host-test: gameplay 72/72, front end 30/30, Carol 19/19. original-trace vs host: cmp_all 76/76, strict
-  11311/11377 (99.4%, unchanged); cmp_carol 53 traces, 43 exact in X/Y/B/G, 10 with the known differences below.
-- emulator (Flycast, session 10 build): Lilac DV1/DV2, Carol DV1/DV2 and the bike DV1 at 603 vblanks per 600 frames
-  after the boot window; VRAM free after load DV1 2238 (Lilac) / 1981 (Carol) KB, DV2 1403 / 1147 KB; no AICA crash
-  with either sound group. **Emulator only; nothing measured on real hardware.**
+- host-test: gameplay 72/72, front end 30/30, Carol 19/19, Milla 33/33. original-trace vs host: cmp_all 76/76, strict
+  11311/11377 (99.4%, unchanged); cmp_carol 53 traces, 43 exact in X/Y/B/G; cmp_milla 41 traces, 36 exact.
+- emulator (Flycast, session 11 build): Milla DV1 at 603 / 602 vblanks per 600 frames after the boot window (float,
+  cube, shields, beam); VRAM free after load DV1 Lilac 2541 / Carol 1981 / Milla 2181 KB, DV2 1707 / 1179 / 1347 KB; no
+  AICA crash with any sound group. **Emulator only; nothing measured on real hardware.**
 
 ## Next actions
-1. Real hardware: run the session 10 disc and read the `perf:`/`prof` lines over serial (or watch for stutter); listen
-   to Carol's sounds and the bike engine loop (pitch follows rev: 22000 + 7000·rev Hz on channel 10).
-2. Carol traces still to record: under water, the 3-hit wreck, death with the bike, DV3/DV4 pads (incl. the DV4 block
+1. Real hardware: run the session 11 disc and read the `perf:`/`prof` lines over serial (or watch for stutter); listen
+   to Carol's and Milla's sounds and the bike engine loop.
+2. Milla: monitor lifting (2202-2205, 2230, 2233, 2246); Aqua Tunnel 1 as her first stage (dig spots, D-040).
+3. Carol traces still to record: under water, the 3-hit wreck, death with the bike, DV3/DV4 pads (incl. the DV4 block
    pad 5356), bored idles; sync the original's cross_seed in the tracer to compare random voices.
-3. Flycast shows a +2.5 ms frame period about once per second in every scene; confirm on hardware whether it exists.
-4. Trace the DV4 boss exit in the original; finish the consecutive DV1→DV4 route search.
+4. Flycast shows a +2.5 ms frame period about once per second in every scene; confirm on hardware whether it exists.
+5. Trace the DV4 boss exit in the original; finish the consecutive DV1→DV4 route search.
 
 ## Carol: verified vs approximated
 - **Matched to original traces (RV, cmp_carol, 53 traces):** on-foot movement, pounce chains, roll and roll jump, crouch
@@ -95,7 +121,7 @@ BUILD_AND_TEST_LOG "Session 10".
   is INFERRED from the DV1 rocks; the DV4 exit is RE-only (no original trace).
 - **INFERRED:** water tint extent (drawn full width below the surface, also over left foreground rocks); shield carry-over
   between acts; spinning-log phase (global counter offset); breath bubbles' SKIN condition; stage-select confirm timing.
-- **Not ported:** gallery, Milla (locked, D-020), the original's game-over card, enemies' own water splashes.
+- **Not ported:** gallery, the original's game-over card, enemies' own water splashes, Milla's monitor lifting.
 
 ## Safety
 Never write to the user's game folders. extracted/, converted*/, build/, docs/reference/, tools/audio/wav2adpcm are gitignored. Never commit game data or decompiled output (`git ls-files` check before commits).

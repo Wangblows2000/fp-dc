@@ -203,7 +203,7 @@ Method: `tools/re/member_map.py` (gdb) maps each frame's member offsets to objec
   - Music and SFX volume step by 10.
   - OKAY writes the settings (records.dat in the original; the VMU save in the port).
 - **Character select (spec_charselect.md):**
-  - Lilac, Carol and Milla rows. Since session 10 Lilac and Carol are playable; Milla stays locked with the padlock overlay and the move sound when you try her.
+  - Lilac, Carol and Milla rows. Since session 11 Lilac, Carol and Milla are playable (D-040).
   - Choosing Lilac plays 63 + her voice 220, then a 20-frame timer, then the wipe (56).
   - Exits: Time Attack → stage select (5); Classic/Adventure → dispatcher → DV1; RETURN → hub.
 - **Time Attack stage select (spec_stageselect.md):**
@@ -411,6 +411,60 @@ Carol 33 61 113-122 126 128 133 139-141 154 159-162 232 387 409-414. Largest fre
 timer (33 frames); bored-idle variants; spin-shield angle; debris direction; monitor smash on the bike through
 attack_kind; a few bike-skin animations without original data. Random voice/pitch choices differ (the port's random
 seed is not synced with the original).
+
+## Session 11: Milla (specs build/re/spec_milla_moves.md, spec_milla_combat.md; port src/characters/milla.inc)
+Milla is MV.A = 4 (character select G1 4, voice 186). She uses Lilac's movement table (1543: C 5, D 15, E 0.07375,
+I 0.25, jump -7, cut -3), no landing sound (1657 turns group 0x21a62 off), energy +0.5/frame outside M20 with the meter
+hidden. Checked against 41 original traces (tests/orig_milla, tools/orig/cmp_milla.py); the tracer runs her with CHAR=4
+(PlayerSkinMilla_461 0x20bdcf0, tail 0x20bdd90, PlayerReflect_463 0x20bde30, PlayerDig_464 0x20bded0). RE = spec,
+RV = trace.
+- **Puppy Float M22 (RE + RV):** jump held, G >= 0, MILLA.E < 100 (1782 airborne M0 / 1811 M1 / 1915 springs). Each
+  float frame: OTHERS.Y 14 (anim 18, speed 100 - max(0, 80 - 2N)), L = 0, MV.V = 0 (no landing), E += 0.9 (+20 and
+  sound 244 on the 2nd frame), G = max(G - 0.5, -2) after gravity: she rises 2 px/frame. Ends on E >= 100 (89 frames
+  from an empty meter) or jump released (anim 24 from frame 6). The meter refills on the ground, springs, M41/M46.
+  Flap sound 170 every 0.1 s of frame time from N > 15 (the tracer's frame times make the original's cadence
+  irregular: the port plays it every 6 frames, INFERRED).
+- **No double jump, no crouch jump, no crouch attack; look-up jump allowed (RE).**
+- **The cube, PlayerReflect_463 (RE + RV):** one reused object, state A: 0 parked, 1 held, 2 flying, 3 burst, 4 shield,
+  5 shield burst / beam, 6 cool-down.
+  - Attack pressed in M0 -> M20 (one frame) -> M30 with MILLA.F = 2; attack held: G counts to 40 (sound 422 at G 1),
+    the cube appears at p + 42 (A = 1, anim 10, sound 415, RV m_attack_hold). Releasing before G = 40 cancels.
+  - Held at MILLA's image action point - 15 along the skin angle (int coordinates). Carry top speed C = 4; jumping
+    from M30 gives M1 with F kept (RV m_super_air).
+  - Throw (attack pressed): X = cos(O)(5Q + B), Y = -sin(O)(5Q + B), gravity 0.25 (cap 15), sound 417; dropped when
+    hurt (3Q + B). It bursts (A = 3, sound 416, 21 frames, invisible 40x40 hitbox) on background, solid / obstacle
+    objects, enemies or monitors. The flying cube itself does no damage.
+  - Burst damage (H - 1) + max(DIFF, 1) = 4 on Normal, knock-back 0.75 x the cube's velocity, no hit-stop (RV
+    m_turr_throw: Turretus 8 -> 4 -> defeated).
+- **Barrier Shield M31 (RE + RV):** special held with the cube parked and F <= 0. Arc anim 11, sound 420; Up / Down aim
+  +-45; Left / Right turn her; no D-pad acceleration, shared ground friction + 0.2/frame (RV m_shield_walk /
+  m_shield_decay). **It neither blocks nor reflects projectiles in v1.21.5 (RV m_shield_pellet: a pellet hurts her
+  through it).**
+- **Shield Burst (RE + RV):** releasing special: A = 5, anim 8 (cone), sound 418, hits while F < 3 for 4 on Normal
+  (RV m_turr_burst: two hits, defeated), then A = 6 and M31 ends when anim 8 has finished; the shield is usable again
+  11 frames later.
+- **Super Shield / beam / recoil (RE + RV):** special held while the cube is held (2213, any state): sound 421, anim 2;
+  release: the beam (anim 5, 160x64, sound 419, 6 per hit on Normal every frame of the beam gated by the enemy's C),
+  camera shake 4, **recoil B -= 7Q** (Q = facing on the last shield frame), aimed up G = max(G + 5, 5), aimed down
+  G = min(G - 5, -5) and L = 0. The aim is read on the release frame (RV m_super_down: Down released with special ->
+  neutral shot). Recoil decays by the shared friction + 0.2 on the ground, air drag in the air; walls stop it (RV
+  m_wall_recoil: B = +7 into the wall, X unchanged, no clipping). Matched frame by frame: ground, aimed up / down,
+  air neutral / down, into a wall.
+- **Animation details (RV):** a finished one-shot keeps its id and last frame ("playing" is false); the frame counter
+  carries over an animation change and a finishing update leaves it unchanged; Chowdren shows the nearest existing
+  direction (anim 0 has no direction 30: the cube-holding idle shows 31).
+- **Rocks / monitors (RE + RV):** the cube burst and the beam break BreakableRock(2) (sound 13, RV m_rock_throw /
+  m_rock_beam); the plain burst does not. The flying cube and the bursts open monitors.
+- **Dig M27 (RE + RV in Aqua Tunnel):** crouch + attack with MILLA.D = 1, which only the dig-zone events of Aqua Tunnel
+  1 / Relic Maze 1 set: **no digging in Dragon Valley** (crouch + attack does nothing there in the original). Trace
+  m_dig_at1 (FRAME=16) recorded the mash timing (A 20, -1/frame, +20 per press, B > 120 done, sounds 184/185).
+  The port implements the dig state; host tests enter it with the debug command `<f> DIGZONE 1`. Dig spots and their
+  rewards are level objects of stages that are not ported.
+- **Voices (RE loop_sound_* Milla branches):** hurt 179-182, die 178, dig 186/202-204, idle 205-207, select 186.
+- **HUD (RE):** GUIScoreTimeRings direction 4 (B box: cube / charging / lifting / dig icons, 2197-2201), energy fill
+  hidden; life icon GUIIcon direction 4.
+- **Not ported (RE, documented):** lifting and throwing monitors / fuel cans (2202-2205, 2230, 2233, 2246, 3135), the
+  shield-hit sound 315 path (2412), idle voice variants, alternative palettes (1566-1569).
 
 ## PC save files (reference for the VMU save; the port does not read or ship them)
 `file1..8.sav` and `records.dat` are Clickteam ArrayObject files (RV, parsed from the user's copies):

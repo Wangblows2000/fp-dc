@@ -138,3 +138,20 @@ because trace matching needs the same intermediate values, not only the same mov
 with a trace, the trace wins and the correction is listed in RE_NOTES "Session 10". Random choices (voices, claw pitch)
 use the port's own random numbers. Carol's sounds, VMU life icon, Time Attack records and file slots use the
 existing per-character fields; a file saved on the bike resumes on foot.
+**D-040 Milla is unlocked and starts at Dragon Valley.** The original locks her until records.dat (2, 42) >= 2 and sends
+her Classic / Adventure game to Aqua Tunnel 1 (frame 16, RE 799), which is not ported. The port shows her on character
+select (voice 186) and starts her at DV1 like the others; Time Attack works as for Lilac. Revisit when Aqua Tunnel is
+ported.
+**D-041 Overlays with <= 15 colours are 4 bpp.** Lilac's hair, Carol's tail, Milla's tail and her cube / shield bank use
+16-entry blocks in the character's palette group (palettize --pal4 per group). Host renders of Lilac, Carol and the bike
+in DV1-DV4 are pixel-identical before and after; Flycast VRAM free +300 KB with Lilac.
+**D-042 Milla's cube is not an object in G.o.** PlayerReflect_463 is a single reused instance driven only by Milla's
+events; the port keeps it in milla.inc (static state, ticked and collided at the frame start like update_objects /
+test_collisions_20) and exposes its hitbox to combat.c / objects.c. Rotated hitboxes (beam, shield) are tested per
+pixel only inside the overlap rectangle (performance: a full scan cost 300 ms in one Flycast frame).
+**D-043 Dig zones are level data of stages not ported.** The dig state M27 is implemented and verified against the
+Aqua Tunnel trace timing; in DV the original never sets MILLA.D, so crouch + attack does nothing (also in the port).
+Host tests enter a zone with `<f> DIGZONE 1`.
+**D-044 Milla's monitor lifting is not ported.** Attack while standing on a monitor (2246) lifts it in the original; the
+port charges a cube instead. Listed in HANDOFF.
+

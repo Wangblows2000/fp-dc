@@ -89,3 +89,21 @@ omits mirrored dir-16 animations.
   232 387 409-414). The game loads the shared set at boot and one character group per level (D-037).
 - Measured (Flycast load log, VRAM free after load): DV1 Lilac 1790 → 2238 KB, Carol 958 → 1981 KB; DV2 Lilac
   955 → 1403 KB, Carol 123 → 1147 KB (before → after the splits).
+
+## Session 11: Milla's assets and the 4 bpp overlays
+- `tools/build_level.sh` also writes `milla2.*` (PlayerSkinMilla_461: every animation index and every direction that is
+  not a pixel mirror of direction - 16, named `a<index>`, `a<index>_l` (16) or `a<index>_d<dir>`; plus `dig` (the
+  PlayerDig_464 mound) and `hudm` (her HUD panel, GUIScoreTimeRings direction 4); an `ACT1` section with each image's
+  action point), `millatail.*` (tail), `millafx.*` (PlayerReflect_463: cube, shield arc, bursts, beam) and `pal2m.pal`
+  (palettize `'^milla' --gid=2 '--pal4=0:^millatail|^millafx'`).
+- **4 bpp overlays (D-041):** banks with <= 15 colours become PAL4 blocks at the start of the character's palette group
+  2: Lilac's hair (`--pal4=2:^lilachair`), Carol's tail, Milla's tail and cube bank. palettize.py takes several
+  `--pal4=<group>:<regex>` options (one set of 16-colour blocks per group).
+- Split atlases now also for Lilac's banks (lilac2 1024x512 -> 1024x256 + 512x256, lilachair 512x512 -> 512x256 +
+  256x128) and Milla's (milla2 1024x1024 -> 1024x512 + 512x512, millafx 512x256 -> 512x128 + 256x128).
+- Sounds: convert_sfx.sh IDS adds 170 178-186 202-207 244 415-422; the game's Milla group (SND_MILLA) loads at level
+  load; 186 (her select voice) is in the shared set.
+- Measured (Flycast, VRAM free after load): DV1 Lilac 2238 -> 2541 KB, Carol 1981 KB, Milla 2181 KB; DV2 Lilac
+  1403 -> 1707 KB, Carol 1147 -> 1179 KB, Milla 1347 KB. Sound RAM largest free block: Lilac 380 KB, Carol 351 KB,
+  Milla 375 KB.
+

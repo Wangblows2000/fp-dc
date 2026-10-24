@@ -14,7 +14,7 @@
 - [ ] 1 px vertical seam seen in Flycast near screen x 240 in DV1 (tile edge under the 1.5x scale?)
 
 ## Front end / presentation
-- [ ] GALLERY; Milla (Carol playable since session 10)
+- [ ] GALLERY (Carol playable since session 10, Milla since session 11)
 - [ ] Card/transition timings from a higher-rate capture
 
 ## Platform
