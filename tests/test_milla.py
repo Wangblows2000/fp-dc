@@ -40,6 +40,11 @@ play = [x for x in r if x['mode'] == 1]
 check('select_milla_plays', bool(play) and play[-1]['chr'] == 4, 'chr %s' % (play[-1]['chr'] if play else None))
 check('select_milla_voice_186', 186 in sounds(r))
 
+# Time Attack with Milla: character select (Down to Milla), stage select -> Dragon Valley -> DV1 as Milla
+r, _ = run('40 42 S\n200 201 D\n220 221 J\n320 321 D\n330 331 J\n470 471 J\n490 491 D\n520 521 J\n630 631 J\n', 820, {})
+play = [x for x in r if x['mode'] == 1]
+check('time_attack_as_milla', bool(play) and play[-1]['chr'] == 4)
+
 # energy: +0.5 / frame (1664), the meter is hidden
 r, _ = run('', 140, {**M, 'FP_ENERGY': '50'})
 d = [b['en'] - a['en'] for a, b in zip(r[100:], r[101:])]
