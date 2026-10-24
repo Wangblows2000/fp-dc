@@ -32,7 +32,7 @@ static int add_on, add_pass;   /* add_pass: replaying an additive sprite */
 void r_set_additive(int on) { add_on = on; }
 /* Fades: r_fade() queues a translucent black quad; everything drawn after it in the same frame is
  * deferred and replayed in the translucent list on top of the fade (PVR lists are submitted once). */
-typedef struct { int kind; const tex_t *t; int u, v, uw, vh, flip; float a[8]; uint32_t argb; int inv, add; } dcmd_t;
+typedef struct { int kind; const tex_t *t; int u, v, uw, vh, flip; float a[8]; uint32_t argb; int inv, add; float z; } dcmd_t;
 #define NDQ 640
 static dcmd_t dq[NDQ]; static int ndq, overlay, in_tr;
 static pvr_poly_hdr_t col_hdr_tr, col_hdr_mul;
@@ -168,7 +168,7 @@ void r_end(void) {
 void r_fade(float alpha) {
     if (alpha <= 0) return;
     if (alpha > 1) alpha = 1;
-    if (ndq < NDQ) { dcmd_t *c = &dq[ndq++]; c->kind = 2; c->argb = ((uint32_t)(alpha * 255) << 24); }
+    if (ndq < NDQ) { dcmd_t *c = &dq[ndq++]; c->kind = 2; c->argb = ((uint32_t)(alpha * 255) << 24); c->z = zc; zc += 0.0001f; }
     overlay = 1;
 }
 static int inv_pass;          /* 0 normal, 1 / 2 invert passes (replay) */
@@ -199,7 +199,7 @@ static void bars(void) {          /* letterbox: opaque black over anything drawn
 void r_sprite(const tex_t *t, int u, int v, int uw, int vh, float x, float y, float w, float h, int flip, uint32_t argb) {
     if (t->id < 0 || t->id >= ntex) return;
     if ((overlay || invert_on || add_on || (argb >> 24) < 0xff) && !in_tr) {   /* translucent / additive / flash: TR list */
-        if (ndq < NDQ) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 0, t, u, v, uw, vh, flip, { x, y, w, h }, argb, invert_on, add_on }; }
+        if (ndq < NDQ) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 0, t, u, v, uw, vh, flip, { x, y, w, h }, argb, invert_on, add_on, zc }; zc += 0.0001f; }
         return;
     }
     if (x + w < 0 || y + h < 0 || x >= SCREEN_W || y >= SCREEN_H) return;
@@ -219,7 +219,7 @@ void r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float 
                   float angle, int flip, uint32_t argb) {
     if (t->id < 0 || t->id >= ntex) return;
     if ((overlay || invert_on || add_on || (argb >> 24) < 0xff) && !in_tr) {
-        if (ndq < NDQ) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 1, t, u, v, uw, vh, flip, { px, py, hx, hy, angle, rscale }, argb, invert_on, add_on }; }
+        if (ndq < NDQ) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 1, t, u, v, uw, vh, flip, { px, py, hx, hy, angle, rscale }, argb, invert_on, add_on, zc }; zc += 0.0001f; }
         return;
     }
     if (flip) hx = uw - 1 - hx;                    /* the mirrored image's hotspot (texture u reversed below) */
@@ -248,14 +248,14 @@ void r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float 
 /* darkening rectangle (Chowdren blend 20, GeneralWater): dst = dst * (1 - rgb); translucent list, src x 0 + dst x (1 - src colour) */
 void r_tint(float x, float y, float w, float h, uint32_t rgb) {
     if (x + w < 0 || y + h < 0 || x >= SCREEN_W || y >= SCREEN_H || w <= 0 || h <= 0) return;
-    if (!in_tr) { if (ndq < NDQ) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 4, NULL, 0, 0, 0, 0, 0, { x, y, w, h }, rgb | 0xff000000, 0, 0 }; } return; }
+    if (!in_tr) { if (ndq < NDQ) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 4, NULL, 0, 0, 0, 0, 0, { x, y, w, h }, rgb | 0xff000000, 0, 0, zc }; zc += 0.0001f; } return; }
     pvr_prim(&col_hdr_mul, sizeof col_hdr_mul); cur_hdr = -3;
     quad(x * SX + OFF_X, y * SY + OFF_Y, (x + w) * SX + OFF_X, (y + h) * SY + OFF_Y, 0, 0, 0, 0, rgb | 0xff000000);
 }
 void r_rect(float x, float y, float w, float h, uint32_t argb) {
     if (x + w < 0 || y + h < 0 || x >= SCREEN_W || y >= SCREEN_H) return;
     if (overlay && !in_tr) {
-        if (ndq < NDQ) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 3, NULL, 0, 0, 0, 0, 0, { x, y, w, h }, argb, 0, 0 }; }
+        if (ndq < NDQ) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 3, NULL, 0, 0, 0, 0, 0, { x, y, w, h }, argb, 0, 0, zc }; zc += 0.0001f; }
         return;
     }
     if (cur_hdr != -1) { pvr_prim(in_tr ? &col_hdr_tr : &col_hdr, sizeof col_hdr); cur_hdr = -1; }
@@ -263,11 +263,13 @@ void r_rect(float x, float y, float w, float h, uint32_t argb) {
 }
 
 static void replay(void) {
+    float ztop = zc;
     for (int i = 0; i < ndq; i++) {
         dcmd_t *c = &dq[i];
+        zc = c->z;                                     /* the depth it had when it was drawn (not the end of the frame) */
         if ((c->kind == 0 || c->kind == 1) && c->inv) {
             for (inv_pass = 1; inv_pass <= 2; inv_pass++) {
-                cur_hdr = -2;                                  /* force the pass header */
+                cur_hdr = -2; zc = c->z;                                  /* force the pass header */
                 cur_oargb = inv_pass == 1 ? 0x00ffffff : 0;
                 uint32_t col = inv_pass == 1 ? (c->argb & 0xff000000) : (c->argb | 0x00ffffff);
                 if (c->kind == 0) r_sprite(c->t, c->u, c->v, c->uw, c->vh, c->a[0], c->a[1], c->a[2], c->a[3], c->flip, col);
@@ -288,4 +290,5 @@ static void replay(void) {
         case 4: r_tint(c->a[0], c->a[1], c->a[2], c->a[3], c->argb); break;
         }
     }
+    zc = ztop;                                         /* the letterbox bars go above everything again */
 }

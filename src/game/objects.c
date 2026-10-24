@@ -723,15 +723,16 @@ void objects_draw(int pass) {
         if (o->type == OT_WLOG && o->st == 0) continue;                                    /* emerging behind the waterfall (layer 0) */
         uint32_t col = (o->type == OT_CARD && (o->fl & 2)) ? 0x80ffffff : 0xffffffff;     /* 2573: already collected */
         if (o->type == OT_WF_BACK) col = 0x9cffffff;                                        /* RE create_waterfallback: blend alpha 0x9c */
-        if (o->type == OT_WF_FRONT) col = 0x60ffffff;                                       /* texture shader (0x20): approximated by alpha (INFERRED) */
+        int addv = o->type == OT_WF_FRONT;                                                  /* RE create_waterfallfront_1037: set_shader(0x20) = additive (spec_water §6) */
         int inv = boss_flash(o);
         if (inv) r_set_invert(1);
         if (o->hidden) { if (inv) r_set_invert(0); continue; }
+        if (addv) r_set_additive(1);
         if (o->scale != 0 && o->scale != 1.f) r_set_scale(o->scale);
         if (o->ang != 0 || (o->scale != 0 && o->scale != 1.f)) frame_draw_rot(o->an.b, anim_frame(&o->an), sx, sy, o->ang, o->flip, col);
         else frame_draw(o->an.b, anim_frame(&o->an), sx, sy, o->flip, col);
         if (o->type >= OT_MON_WOOD && o->type <= OT_MON_WATER) shield_preview_draw(o, sx, sy);
-        r_set_scale(1.f);
+        r_set_scale(1.f); r_set_additive(0);
         if (inv) r_set_invert(0);
     }
     if (pass == 1) combat_draw_shields(1);           /* visible slash shields, behind Lilac */
