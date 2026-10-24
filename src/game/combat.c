@@ -135,7 +135,8 @@ static void shield_creators(player_t *p) {
 int enemy_type(int t) {
     return t == OT_GANSEKI || t == OT_TURRETUS || t == OT_DRAGONFLY || t == OT_FLOUNDER || t == OT_CACTEON || t == OT_SPOREPOD ||
            t == OT_WR_WEAK || t == OT_TD_BODY || t == OT_SNAKE_BODY || t == OT_SNAKE_HIT || t == OT_BBOULDER ||
-           t == OT_FIREFLY || t == OT_SLIME;   /* Aqua Tunnel Q20 (spec_at_enemies) */
+           t == OT_FIREFLY || t == OT_SLIME ||   /* Aqua Tunnel Q20 (spec_at_enemies) */
+           t == OT_IW_HEADF || t == OT_CH_BALL;   /* Iron Worm head (from 4206), Chomper lure (spec_ironworm / spec_chomper) */
 }
 static int candidates[MAX_OBJS], ncand;
 
@@ -326,7 +327,7 @@ void combat_frame(player_t *p) {
         if ((!(o->fl & F_DEFEATED) && o->c == 1) || (o->fl & F_DEFEATED)) o->inv = 0;           /* 2763 */
         if (o->A <= 0 && !(o->fl & F_DEFEATED)) {                                                /* 2764 */
             G.kills++;                   /* test/trace counter only (no counterpart in the original) */
-            snd_play_orig(23, 220, 128); o->fl |= F_DEFEATED; o->A = 0; o->ky -= 3; if (o->type != OT_FIREFLY && o->type != OT_SLIME) o->st = o->type == OT_DRAGONFLY ? 5 : 3;   /* AT: their own 4111 / 4127 set D (the patrol still runs once, spec_at_enemies 1.5)*/
+            snd_play_orig(23, 220, 128); o->fl |= F_DEFEATED; o->A = 0; o->ky -= 3; if (o->type != OT_FIREFLY && o->type != OT_SLIME && o->type != OT_IW_HEADF && o->type != OT_CH_BALL) o->st = o->type == OT_DRAGONFLY ? 5 : 3;   /* AT: their own 4111 / 4127 set D (the patrol still runs once, spec_at_enemies 1.5)*/
         }
         if ((o->fl & F_DEFEATED) && o->absorbed > 0) { o->absorbed--; obj_drop_crystal(o->x, o->y, o->absorbed); }   /* 2766 */
         if ((o->fl & F_DEFEATED) && (o->type == OT_TD_BODY || (o->fl & F_NOFLY))) continue;                             /* 5282: flag 16, no fly-away */

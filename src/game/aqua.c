@@ -493,9 +493,13 @@ void aqua_spring(obj_t *o, player_t *p) {
 /* ================================================================ MonitorBomb_535 / MonitorCrate_364 (spec_at_gimmicks_a 5) */
 /* bomb: fl bit 8 armed (0x100), bit 7 beep latch (0x80); tm = F fuse. Explosion = OT_BOMBX (MonitorIcon frame 9):
  * area (x - 8, y - 4) .. (x + 40, y + 36), rises 1 px/frame, A = age, 32 frames */
-static void bomb_explode(float x, float y, int age0) {
+static void blast(float x, float y, int age0) {
     obj_t *e = obj_alloc();
     if (e) { e->type = OT_BOMBX; e->alive = 1; e->x = x; e->y = y; e->A = age0; e->an.b = NULL; e->st = 0; e->layer = 2; }
+}
+void aqua_blast(float x, float y) { blast(x, y, 0); }   /* a MonitorIcon forced to frame 9 (AT4 bubbles 4628 / 4630) */
+static void bomb_explode(float x, float y, int age0) {
+    blast(x, y, age0);
     obj_drop_crystal(x + 16, y + 16, 0);                                                          /* 3250 / 3251: one crystal up (INFERRED speed) */
 }
 void aqua_monitor_broken(const obj_t *m) { if (m->type == OT_MON_BOMB) bomb_explode(m->x, m->y, 1); }   /* generic break path (2627: A 1 on its first frame) */
@@ -573,7 +577,9 @@ static void boss_camera(player_t *p) {                          /* 3.2: 4198/419
         break;
     }
 }
-void aqua_release_camera(void) { cam_locked = 0; camera_normal_bounds(); G.cam_m2 = 1; }   /* 4451 (Chomper defeat) */
+void aqua_release_camera(void) { cam_locked = 0; camera_normal_bounds(); G.cam_m2 = 1; }
+void aqua_release_camera_keep(void) { camera_normal_bounds(); G.cam_m2 = 1; }   /* worm head landing: CAM.M 2, U 0, the trigger flag stays on */
+int aqua_cam_locked(void) { return cam_locked; }   /* 4451 (Chomper defeat) */
 
 static void checkpoint(int g4, float x, float y) {              /* g4 / g5 / g6 + loop_cp_16 (restart values) */
     G.at_g4 = g4; G.at_g5 = x; G.at_g6 = y;
@@ -671,6 +677,7 @@ void aqua_spawn(void) {
         }
     }
     aqua_gim_spawn();
+    aqua_boss_spawn();
 }
 
 void aqua_update(player_t *p) {
@@ -680,6 +687,7 @@ void aqua_update(player_t *p) {
     jelly_frame(p);                          /* 4067-4069 (after the platforms) */
     bricks_frame(p);                         /* 4070-4077 */
     aqua_gim_post(p);                        /* 4078-4100 (aqua_gim.c) */
+    aqua_boss_update(p);                     /* Iron Worm 4200-4237, Chomper 4410-4463, Chomper Snake 4600-4660 (aqua_boss.c) */
     fireflies_frame();                       /* 4101-4113 */
     slimes_frame(p);                         /* 4114-4129 */
     bursts_timer();                          /* 4130-4133 */
@@ -693,7 +701,7 @@ void aqua_update(player_t *p) {
 
 int aqua_obj_update(obj_t *o, player_t *p) {
     (void)p;
-    if (aqua_gim_obj(o)) return 1;                 /* aqua_gim.c: run in the platform block */
+    if (aqua_gim_obj(o) || aqua_boss_obj(o)) return 1;                 /* aqua_gim.c: run in the platform block */
     switch (o->type) {
     case OT_DIGSPOT: case OT_FIREFLY: case OT_SLIME: case OT_WHISPMAKER: case OT_ABRICK: case OT_ABRICK2:
     case OT_SLIMEBURST: case OT_WHISP: case OT_ABPIECE: case OT_WJET: case OT_WJET_R: case OT_WJET_B: case OT_WJET_MAKER:

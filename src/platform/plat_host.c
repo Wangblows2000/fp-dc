@@ -174,6 +174,7 @@ static void apply_dbg(int f, int tp) {
         if (dbg[i].k == 'E') p->energy = dbg[i].a;
         if (dbg[i].k == 'D' && !player_invincible(p)) player_hurt(p, p->x + dbg[i].a);   /* test hit from dx */
         if (dbg[i].k == 'H') p->hp = (int)dbg[i].a;
+        if (dbg[i].k == 'B') for (int k = 0; k < G.nobjs; k++) { obj_t *o = &G.o[k]; if (o->alive && (o->type == OT_IW_HEAD || o->type == OT_IW_HEADF || o->type == OT_CH_HEAD || o->type == OT_SN_HEAD)) o->A = dbg[i].a; }
         if (dbg[i].k == 'Z') p->mD = (int)dbg[i].a;
         if (dbg[i].k == 'I') p->invuln = (int)dbg[i].a;      /* test: Milla inside a dig zone (MILLA.D, set by other stages' zone events) */
         if (dbg[i].k == 'P') for (int k = 0; k < G.nobjs; k++) if (G.o[k].alive && G.o[k].type == OT_PBLOCK1) { G.o[k].x = dbg[i].a + 41; G.o[k].y = dbg[i].b; break; }   /* port x = original x + 41 */
@@ -217,6 +218,7 @@ int main(int argc, char **argv) {
             if (sscanf(line, "%d HP %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'H', fx, 0 }; continue; }
             if (sscanf(line, "%d DIGZONE %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'Z', fx, 0 }; continue; }
             if (sscanf(line, "%d SETV others E %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'I', fx, 0 }; continue; }   /* tracer command: invulnerability timer */
+            if (sscanf(line, "%d BOSSHP %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'B', fx, 0 }; continue; }   /* host test: AT boss HP */
             if (sscanf(line, "%d MON %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'M', fx, 0 }; continue; }
             if (sscanf(line, "%d PB %f %f", &ff, &fx, &fy) == 3 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'P', fx, fy }; continue; }   /* first pushable block to original (x, y) */
             if (sscanf(line, "%d %d %31s", &script[nscript].a, &script[nscript].b, btn) == 3)
@@ -280,7 +282,7 @@ int main(int argc, char **argv) {
           if (tk) { const char *q = tk; int t, x0, nn;
             while (sscanf(q, "%d:%d%n", &t, &x0, &nn) == 2) {
                 for (int i = 0; i < G.nobjs; i++) { const obj_t *o = &G.o[i];
-                    if (o->alive && o->type == t && (x0 < 0 || (int)o->ox == x0))
+                    if (o->alive && (o->type == t || (t == OT_IW_HEAD && o->type == OT_IW_HEADF)) && (x0 < 0 || (int)o->ox == x0))
                         printf("ob %d %d %d x %.2f y %.2f st %d A %.2f dir %d an %d fr %d fl %x a0 %.3f a1 %.3f a2 %.3f a3 %.3f a4 %.3f fx %.2f fy %.2f bd %d\n", cur_frame, t, x0, o->x, o->y, o->st, o->A, o->dir,
                                o->an.b ? o->an.anim : -1, o->an.frame, o->fl, o->av[0], o->av[1], o->av[2], o->av[3], o->av[4], o->fx, o->fy, o->bd); }
                 q += nn; if (*q == ',') q++; else break; } } }
