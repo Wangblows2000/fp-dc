@@ -8,7 +8,9 @@ R=${4:-1}
 cd /home/claude/fpdc
 RESTART_CMDS=()
 if [ "$R" = 1 ]; then
-  RESTART_CMDS=(-ex 'break *0x9fcb7a' -ex continue -ex 'call ((void(*)(void*,int))0x9fc8c0)((void*)0x285ec60, '${FRAME:-20}')' -ex 'delete')
+  # CHAR=<n>: set global value 1 (character: 0 Lilac, 2 Carol, 3 Carol on the bike, 4 Milla) before the restart
+  CH=(); [ -n "$CHAR" ] && CH=(-ex "set {double}(*(long*)0x285ec68 + 8) = $CHAR")
+  RESTART_CMDS=(-ex 'break *0x9fcb7a' -ex continue "${CH[@]}" -ex 'call ((void(*)(void*,int))0x9fc8c0)((void*)0x285ec60, '${FRAME:-20}')' -ex 'delete')
 fi
 timeout 3000 gdb -q -batch -p $PID "${RESTART_CMDS[@]}" \
   -ex "set \$script=\"$1\"" -ex "set \$out=\"$2\"" -ex "set \$nframes=$3" -ex "set \$restart=$R" \

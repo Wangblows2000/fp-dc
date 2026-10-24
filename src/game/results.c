@@ -100,7 +100,11 @@ int results_update(player_t *p) {
         if (R.svB >= 120) for (int k = 0; k < R.svE && R.bonus1 > 0; k++) { R.bonus1--; R.total++; }                 /* 4581 loop_tally_19 */
         if (R.bonus1 <= 0) {                                                  /* 4584 / 4585 */
             R.svA = 2; snd_play_orig(16, 220, 128); R.ac4_flash = 32;
-            if (G.file_slot >= 0 && G.file_slot < SAVE_FILES && !G.time_attack) SV.file[G.file_slot].crystals = (uint16_t)(R.total > 65535 ? 65535 : R.total);
+            if (G.file_slot >= 0 && G.file_slot < SAVE_FILES && !G.time_attack) {
+                save_file_t *f = &SV.file[G.file_slot];
+                f->crystals = (uint16_t)(R.total > 65535 ? 65535 : R.total);
+                f->used = 1; f->character = (uint8_t)G.character; f->mode = (uint8_t)G.file_mode;   /* SaveData y8 / y12 */
+            }
         }
     }
     if (R.svA == 2) {
@@ -110,7 +114,7 @@ int results_update(player_t *p) {
             R.saved = 1;
             cards_commit();
             if (G.time_attack) {
-                save_rec_t *r = &SV.rec[1][G.character < SAVE_CHARS ? G.character : 0];
+                save_rec_t *r = &SV.rec[1][chr_slot(G.character)];
                 if (!r->time || (uint32_t)R.time_frames < r->time) { r->time = (uint32_t)R.time_frames; r->crystals = (uint16_t)G.stage_crystals; }
             }
             save_store();

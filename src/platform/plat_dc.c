@@ -127,7 +127,7 @@ void plat_poll_input(input_t *in) {
 }
 
 /* ------------------------------------------------------------- audio */
-#define MAX_SFX 96
+#define MAX_SFX 160
 static sfxhnd_t sfx[MAX_SFX];
 static int nsfx;
 

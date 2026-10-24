@@ -348,19 +348,18 @@ static void chsel_enter(void) {
     for (int i = 0; hide[i]; i++) for (int k = 0; (o = ui_find(s, hide[i], k)); k++) o->vis = 0;
     if (C.slot[2]) C.slot[2]->vis = 0;                       /* RE 809/810: Spade and Torque slots */
     if (C.slot[4]) C.slot[4]->vis = 0;
-    /* RE start 7: Milla locked until records (2,42) >= 2 (fresh save: locked); the port has only Lilac, so
-     * Carol and Milla are both shown locked (padlock = Character3 anim 5) and cannot be chosen */
-    if (C.name[1]) C.name[1]->vis = 0;
+    /* RE start 7: Milla locked until records (2,42) >= 2 (fresh save: locked); Milla is not ported, so she stays locked
+     * (padlock = Character3 anim 5). Lilac and Carol are playable (session 10). */
     if (C.name[2]) C.name[2]->vis = 0;
     if (C.ch[2]) ui_obj_select(s, C.ch[2], 5, 0);
     if (C.ch[1]) ui_obj_select(s, C.ch[1], 0, 0);
-    C.cur = 0;                                               /* start cursor from global 1 (Lilac = 0) */
+    C.cur = chr_is_carol(G.character) ? 1 : 0;               /* RE start 5: initial cursor from global 1 (2 or 3 -> 1) */
     tiles_start(); wipe.on = 0;
     cam_x = 320 - 213; cam_y = 0;                            /* RE 801: display centre x 320 */
     if (fe_mode <= 0) music_play("bgm/m_menu1.adp");         /* start: only if channel 31 is silent (RV) */
     else music_play("bgm/m_results.adp");                    /* RE/RV: Classic / Adventure play m_results here */
 }
-static int chsel_locked(int c) { return c == 1 || c == 3; }  /* Carol (port: not playable), Milla (records) */
+static int chsel_locked(int c) { return c == 3; }            /* Milla (records; not ported) */
 static void chsel_update(const input_t *now) {
     const input_t *in = &C.prev;
     uint32_t p = in->pressed;
@@ -389,9 +388,10 @@ static void chsel_update(const input_t *now) {
         if (C.shake > 0) C.shake--;
         if (C.confirm && C.cur < 5 && !chsel_locked(C.cur)) {                            /* RE 782 */
             snd_play_orig(63, 230, 128); C.main = 0; C.chosen = 1; C.timer = 0;
-            G.character = 0;
-            snd_play_orig(220, 255, 128);                                                 /* Lilac's voice; Character1 anim 7 */
-            if (C.ch[0]) ui_obj_select(&s_scr, C.ch[0], 7, 0);
+            /* RE 4.3.9 + run-once voice: cursor 0 -> G1 0, sound 220, Character1 anim 7; cursor 1 -> G1 2, sound 221, Character2 anim 7 */
+            G.character = C.cur == 1 ? CHR_CAROL : CHR_LILAC;
+            snd_play_orig(C.cur == 1 ? 221 : 220, 255, 128);
+            if (C.ch[C.cur == 1 ? 1 : 0]) ui_obj_select(&s_scr, C.ch[C.cur == 1 ? 1 : 0], 7, 0);
         } else if ((C.confirm && C.cur == 5) || ((p & BTN_ATTACK) && C.cur == 5)) {      /* RE 783 RETURN */
             snd_play_orig(56, 230, 128); C.main = 0; music_stop(); wipe_start(); C.exit_to = 3;
         } else if ((p & BTN_ATTACK) && C.cur != 5) { snd_play_orig(64, 220, 128); C.cur = 5; if (C.ret) C.ret->shz = 4; C.shake += 7; }
@@ -427,24 +427,10 @@ static void chsel_draw(void) {
     if (ck) ck->dy = -C.checkA;
     for (int k = 0; k < 5; k++) if (C.slot[k]) ui_obj_select(s, C.slot[k], 0, (C.main || C.chosen) && C.cur == k ? 1 : 0);   /* RE 752/753 */
     int alt = C.shake > 30;                                                              /* RE 767/768 */
-    if (C.ch[0] && !C.chosen) ui_obj_select(s, C.ch[0], 0, alt ? 8 : 0);
-    if (C.ch[1]) ui_obj_select(s, C.ch[1], 0, alt ? 8 : 0);
+    if (C.ch[0] && !(C.chosen && G.character == CHR_LILAC)) ui_obj_select(s, C.ch[0], 0, alt ? 8 : 0);
+    if (C.ch[1] && !(C.chosen && G.character == CHR_CAROL)) ui_obj_select(s, C.ch[1], 0, alt ? 8 : 0);
     if (C.cursor) C.cursor->vis = 0;
-    /* Carol: not playable in the port -> her portrait dimmed (vertex colour: same result on PVR and the
-     * soft renderer; a translucent rect would land in the PVR TR list after the padlock) and the padlock
-     * image over it (DECISIONS D-020) */
-    int carol_vis = C.ch[1] ? C.ch[1]->vis : 0;
-    if (C.ch[1] && C.ch[2]) C.ch[1]->vis = 0;
     ui_draw(s, cam_x, cam_y, 0, 3);
-    if (C.ch[1] && C.ch[2]) {
-        ui_obj_t *lk = C.ch[2];
-        C.ch[1]->vis = carol_vis;
-        ui_draw_obj(s, C.ch[1], cam_x, cam_y, 0xff505050);
-        float dx = lk->dx, dy = lk->dy;
-        lk->dx = C.ch[1]->x + C.ch[1]->dx - lk->x; lk->dy = C.ch[1]->y + C.ch[1]->dy - lk->y;
-        ui_draw_obj(s, lk, cam_x, cam_y, 0xffffffff);
-        lk->dx = dx; lk->dy = dy;
-    }
     fe_text(12, 220, "A: Select");
     fe_text(SCREEN_W - 12 - 9 * 8, 220, "B: Return");
     if (C.cursor && C.cur == 5 && C.main) {
@@ -470,10 +456,11 @@ void fe_update(const input_t *in) {
         if (ex == HUB_EXIT_TIME_ATTACK) { fe_mode = 0; if (scr_load(0) == 0) { set_state(FE_CHSEL); chsel_enter(); } }
         if (ex == HUB_EXIT_NEW_CLASSIC) { fe_mode = 1; fe_new_file(1); if (scr_load(0) == 0) { set_state(FE_CHSEL); chsel_enter(); } }
         if (ex == HUB_EXIT_NEW_ADVENTURE) {   /* original: frame 81 (opening cutscene, not ported) -> DV1 */
-            fe_mode = 2; fe_new_file(0); fe_unload(); game_start_adventure("dv1", 0);
+            fe_mode = 2; fe_new_file(0); G.character = CHR_LILAC; fe_unload(); game_start_adventure("dv1", 0);
         }
         if (ex == HUB_EXIT_CONTINUE) {        /* original: frame 8 (stage from the save); the port has Dragon Valley only */
             fe_mode = SV.file[hub_selected_file()].mode ? 1 : 2; G.file_slot = hub_selected_file();
+            G.character = SV.file[hub_selected_file()].character == CHR_CAROL_BIKE ? CHR_CAROL : SV.file[hub_selected_file()].character;
             fe_unload(); game_start_adventure("dv1", 0);
         }
         break;

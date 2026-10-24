@@ -8,10 +8,10 @@
 #include <string.h>
 #include "../fp.h"
 
-phys_w_t phys_w = { PHYS_ACC_DRY, PHYS_TOP_DRY, PHYS_GRAV_DRY, PHYS_JUMP_DRY, PHYS_JUMP_CUT_DRY, 0.0334, 0.2 };
+phys_w_t phys_w = { PHYS_ACC_DRY, PHYS_TOP_DRY, PHYS_GRAV_DRY, PHYS_JUMP_DRY, PHYS_JUMP_CUT_DRY, 0.0334, 0.2, 15.0 };
 void phys_set_water(int h) {
-    if (h) phys_w = (phys_w_t){ 0.056875, 4.0, 0.15, 6.0, 2.0, 0.0217, 0.12 };    /* 1545 / 1548 */
-    else phys_w = (phys_w_t){ PHYS_ACC_DRY, PHYS_TOP_DRY, PHYS_GRAV_DRY, PHYS_JUMP_DRY, PHYS_JUMP_CUT_DRY, 0.0334, 0.2 };   /* 1543 / 1547 */
+    if (h) phys_w = (phys_w_t){ 0.056875, 4.0, 0.15, 6.0, 2.0, 0.0217, 0.12, 15.0 };    /* 1545 / 1548 (no character test) */
+    else phys_w = (phys_w_t){ PHYS_ACC_DRY, PHYS_TOP_DRY, PHYS_GRAV_DRY, PHYS_JUMP_DRY, PHYS_JUMP_CUT_DRY, 0.0334, 0.2, chr_is_carol(G.character) ? 12.0 : 15.0 };   /* 1543 / 1555 Carol (D 12) / 1547 */
 }
 
 #define WB 2700.0
