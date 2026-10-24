@@ -12,7 +12,7 @@ static int GT(void) { return G.frame + aqua_gt_off; }
 static const input_t *cur_in;
 void aqua_set_input(const input_t *in) { cur_in = in; }
 
-static int gate_closed_latch = 1, plate_latch, mblock_latch, wplate_latch, pipe_ch = -1;
+static int wplate_latch, pipe_ch = -1;
 static double pgaF;
 static void set_ens(obj_t *o, const char *name) {
     int a = ens_anim(name);
@@ -23,7 +23,7 @@ static double c_cos(double d) { double m = fmod(d, 360.); if (m < 0) m += 360; r
 static double c_sin(double d) { double m = fmod(d, 360.); if (m < 0) m += 360; return (m == 180. || m == 0.) ? 0. : fd_sin(d / 57.29577951308232); }
 
 static int PY_(const player_t *p) { return (int)floor(p->y - ORIG_REF_DY); }   /* PLAYER.y (Player_326 at int Y) */
-static int is_box(int t) { return t == OT_ABPLAT || t == OT_CRUSH_H || t == OT_CRUSH_H2 || t == OT_SWPLAT || t == OT_RAFT; }
+static int is_box(int t) { return t == OT_ABPLAT || t == OT_ABPLAT2 || t == OT_CRUSH_H || t == OT_CRUSH_H2 || t == OT_SWPLAT || t == OT_RAFT; }
 /* a placed player sensor (mask rows) overlapping the object: box objects use the image rect, others the (rotated) mask */
 static int sens_hit(int s, const obj_t *o) {
     int ox, oy, h; const signed char *a, *b;
@@ -56,9 +56,8 @@ static void path_init(obj_t *o, double B, double C, double F, double Gm, double 
 static void swing_spawn(void);
 void aqua_gim_spawn(void) {
     static int reg;
-    if (!reg) { reg = 1; snap_register(&gate_closed_latch, sizeof gate_closed_latch); snap_register(&plate_latch, sizeof plate_latch);
-                snap_register(&mblock_latch, sizeof mblock_latch); snap_register(&wplate_latch, sizeof wplate_latch); snap_register(&pgaF, sizeof pgaF); }
-    gate_closed_latch = 1; plate_latch = mblock_latch = wplate_latch = 0; pgaF = 0;
+    if (!reg) { reg = 1; snap_register(&wplate_latch, sizeof wplate_latch); snap_register(&pgaF, sizeof pgaF); }
+    wplate_latch = 0; pgaF = 0;
     if (pipe_ch >= 0) { snd_loop_stop(pipe_ch); pipe_ch = -1; }
     int a = at(); if (!a) return;
     int npipe = 0, ncog = 0;
@@ -66,18 +65,14 @@ void aqua_gim_spawn(void) {
         obj_t *o = &G.o[i];
         if (!o->alive) continue;
         switch (o->type) {
-        case OT_ABPLAT: set_ens(o, a == 1 ? "abplat" : "abplat2"); break;               /* 731 (AT1) / 803 (AT2, AT4) */
+        case OT_ABPLAT: set_ens(o, "abplat"); break;                                      /* 731 (AT1) */
+        case OT_ABPLAT2: set_ens(o, "abplat2"); break;                                    /* 803 (AT2, AT4) */
         case OT_COLLAPSE: set_ens(o, "collapse"); o->av[0] = o->av[1] = 0; o->st = 0; o->av[3] = o->av[4] = 0; o->ang = 0; break;
-        case OT_DOOR: o->type = OT_SDOOR; set_ens(o, "sdoor"); o->c = 0; o->layer = 2; o->fl = 0; break;   /* SwitchDoor_770: B = layer + 1 */
-        case OT_PPLATE: o->type = OT_APLATE; set_ens(o, "aplate"); o->fl = 0; o->hidden = 0; break;
-        case OT_WALLPLATE: o->type = OT_WPLATE_AT; set_ens(o, "wplate"); o->fl = 0; o->hidden = 0; break;
-        case OT_SDOOR2: set_ens(o, "sdoor2"); o->c = 0; o->layer = 2; o->fl = 0; break;
-        case OT_MBLOCK: set_ens(o, "mblock"); o->fl = 0; o->hidden = 0; break;
+        case OT_WPLATE_AT: set_ens(o, "wallplate"); o->fl = 0; o->hidden = 0; break;
+        case OT_CRUSH_H:                                                                     /* LevelCrusher1_847: horizontal slab */
+            o->layer = 2; set_ens(o, "crushh");
+            o->av[0] = o->x; o->av[1] = -128; o->av[2] = 128; o->av[3] = 40; o->av[4] = 1; break;
         case OT_CRUSH_V:
-            if (a == 3) {                                                                    /* LevelCrusher1_847: horizontal slab */
-                o->type = OT_CRUSH_H; o->layer = 2; set_ens(o, "crushh");
-                o->av[0] = o->x; o->av[1] = -128; o->av[2] = 128; o->av[3] = 40; o->av[4] = 1; break;
-            }
             set_ens(o, "crushv");                                                            /* 4374 / 4375: layer-2 copy drawn, layer-3 copy collides */
             if (o->layer < 2) o->type = OT_CRUSH_VIS; else o->hidden = 1;
             path_init(o, 0, 0, 1, 96, 0); break;
@@ -86,10 +81,10 @@ void aqua_gim_spawn(void) {
         case OT_PIPEHUB: set_ens(o, "pipehub"); break;
         case OT_PIPECOG: set_ens(o, "pipecog"); o->par = ncog++; o->ang = 0; break;      /* paired with the pipe of the same index (INFERRED, U2) */
         case OT_BEAM: set_ens(o, "beam"); o->ang = 0; break;
-        case OT_AXEL1: case OT_AXEL2:                                                        /* AT3 845 / 846: bobbing (F 2, G 80; 846 E 180) */
-            if (a != 3) { o->alive = 0; break; }
-            set_ens(o, o->type == OT_AXEL1 ? "axel1b" : "axel2b"); o->c = 10;
-            path_init(o, 0, 0, 2, 80, o->type == OT_AXEL2 ? 180 : 0); break;
+        case OT_AXEL1: case OT_AXEL2: o->alive = 0; break;                                  /* 680 / 737 come from the makers only */
+        case OT_AXEL1P: case OT_AXEL2P:                                                      /* AT3 845 / 846: bobbing (F 2, G 80; 846 E 180) */
+            set_ens(o, o->type == OT_AXEL1P ? "axel1b" : "axel2b"); o->c = 10;
+            path_init(o, 0, 0, 2, 80, o->type == OT_AXEL2P ? 180 : 0); break;
         case OT_AXMAKER1: case OT_AXMAKER2: o->an.b = NULL; break;                          /* invisible */
         case OT_SCROLLBRICK: set_ens(o, "scrollbrick"); o->av[0] = o->x; o->av[1] = 0; break;   /* 4690: A = x (scrolls in the boss phase only) */
         case OT_SLIMEFLOOR:
@@ -101,11 +96,11 @@ void aqua_gim_spawn(void) {
         case OT_FISHSTATUE: set_ens(o, "fishstatue"); o->layer = 3; break;                   /* 4361: re-linked in front (INFERRED: over Lilac) */
         }
     }
-    if (a == 2 || a == 3) swing_spawn();
+    swing_spawn();
 }
 
 /* ================================================================ generic path / dip / carry (Q12, Q13) */
-static int q13(int t) { return t == OT_CRUSH_V || t == OT_CRUSH_VIS || t == OT_AXEL1 || t == OT_AXEL2; }
+static int q13(int t) { return t == OT_CRUSH_V || t == OT_CRUSH_VIS || t == OT_AXEL1 || t == OT_AXEL2 || t == OT_AXEL1P || t == OT_AXEL2P; }
 static void path_step(void) {                       /* 3270-3272, 3283-3289, 2989 */
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i];
@@ -125,8 +120,9 @@ static void path_step(void) {                       /* 3270-3272, 3283-3289, 298
 static void carry(player_t *p) {                    /* 4061: G >= 0, S_BB 1 px lower on a q13 platform with flag 6 off */
     if (!(p->vy >= 0 || p->ground)) return;
     double MY = p->y - ORIG_REF_DY;
-    for (int t = OT_CRUSH_V; t <= OT_AXEL2; t++) {
-        if (t != OT_CRUSH_V && t != OT_AXEL1 && t != OT_AXEL2) continue;
+    static const int Q13[] = { OT_CRUSH_V, OT_AXEL1, OT_AXEL1P, OT_AXEL2, OT_AXEL2P };   /* q13 order: Crusher1, Axel1, Axel2 */
+    for (unsigned q = 0; q < sizeof Q13 / sizeof Q13[0]; q++) {
+        int t = Q13[q];
         int k = mv_sensor_obj(p->x, MY + 1, p->N, SENSOR_BOTTOMBIG, t);
         if (k < 0 || (G.o[k].fl & 0x40)) continue;
         p->x += G.o[k].av[2]; p->y += G.o[k].dir;
@@ -175,50 +171,11 @@ static void collapse_frame(player_t *p) {
     }
 }
 
-/* ================================================================ 3.1 AT1 plates -> doors, gate (4093-4100) */
-static int aqua_worm_on(const obj_t *pl) { return aqua_worm_on_plate(pl); }   /* 4095: MinibossIronWorm on a plate (the worm: aqua boss code) */
-static void at1_plates(player_t *p) {
-    int any_s = 0, any_w = 0, pressed = 0;
-    for (int i = 0; i < G.nobjs; i++) { obj_t *o = &G.o[i]; if (!o->alive || o->type != OT_APLATE) continue; if (sens_hit(SENS_BOTTOMBIG, o)) any_s = 1; if (aqua_worm_on(o)) any_w = 1; }
-    for (int i = 0; i < G.nobjs; i++) {
-        obj_t *o = &G.o[i]; if (!o->alive || o->type != OT_APLATE) continue;
-        if (!any_s && !any_w) { o->hidden = 0; o->fl &= ~1; }                                        /* 4093 */
-        if (p->ground && (sens_hit(SENS_BOTTOMBIG, o) || aqua_worm_on(o))) { o->hidden = 1; o->fl |= 1; }   /* 4094 / 4095 */
-        if (o->fl & 1) pressed = 1;
-    }
-    if (pressed && !plate_latch) snd_play_orig(49, 220, 128);                                      /* 4096 once */
-    plate_latch = pressed;
-    for (int i = 0; i < G.nobjs; i++) {
-        obj_t *d = &G.o[i]; if (!d->alive) continue;
-        if (d->type == OT_SDOOR && ((pressed && d->c < 224) || (d->c > 0 && d->c < 224))) { d->c += 4; d->x -= 4; d->layer = 1; d->fl |= 1; }   /* 4097: layer 2, not solid */
-        if (d->type == OT_SDOOR2) {
-            if (pressed && d->c < 128) { d->y += 4; d->c += 4; d->layer = 1; d->fl |= 1; }       /* 4098 */
-            else if (!pressed && !any_s && !any_w && d->c > 0) { d->y -= 4; d->c -= 4; }          /* 4099 */
-            int closed = d->c <= 0;
-            if (closed && !gate_closed_latch) { d->layer = 2; d->fl &= ~1; }                       /* 4100 once */
-            gate_closed_latch = closed;
-        }
-    }
-}
-
-/* ================================================================ 3.2 AT2 Milla block -> doors (4362-4364) */
-static void at2_mblock(player_t *p) {
-    int pressed = 0;
-    for (int i = 0; i < G.nobjs; i++) {
-        obj_t *o = &G.o[i]; if (!o->alive || o->type != OT_MBLOCK) continue;
-        if (p->ground && player_cube_hits(o)) { o->hidden = 1; o->fl |= 1; }                        /* 4362 (permanent) */
-        if (o->fl & 1) pressed = 1;
-    }
-    if (pressed && !mblock_latch) { mblock_latch = 1; snd_play_orig(49, 220, 128); }              /* 4363 */
-    for (int i = 0; i < G.nobjs; i++) {
-        obj_t *d = &G.o[i];
-        if (d->alive && d->type == OT_SDOOR && ((pressed && d->c < 224) || (d->c > 0 && d->c < 224))) { d->c += 4; d->x -= 4; d->layer = 1; d->fl |= 1; }   /* 4364 */
-    }
-}
+/* 3.1 / 3.2 plates, the Milla block and the doors: src/game/switches.c (session 13) */
 
 /* ================================================================ 3.3 wall plates + 6 pipes (4365-4371, 4507-4510) */
 static void wallplates_pipes(player_t *p) {
-    int a = at(), pressed = 0, M = orig_M(p);
+    int pressed = 0, M = orig_M(p), auto_y = level_cur()->pipe_auto_y;
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i]; if (!o->alive || o->type != OT_WPLATE_AT) continue;
         o->hidden = 0; o->fl &= ~1;                                                                  /* 4365 */
@@ -230,7 +187,7 @@ static void wallplates_pipes(player_t *p) {
     int started = 0;
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i]; if (!o->alive || o->type != OT_PIPE) continue;
-        int go = o->st == 0 && (pressed || (a == 3 && p->y - ORIG_REF_DY > 2900 && o->av[0] <= -90));   /* 4368 / 4507 */
+        int go = o->st == 0 && (pressed || (auto_y && p->y - ORIG_REF_DY > auto_y && o->av[0] <= -90));   /* 4368 / 4507 (AT3: level data pipe_auto_y 2900) */
         if (go) { o->st = 1; o->dir = -o->dir; started = 1; }
     }
     if (started) { if (pipe_ch >= 0) snd_loop_stop(pipe_ch); pipe_ch = snd_loop_orig(62, 200, 0); }   /* sound 62 (looping, INFERRED) */
@@ -286,22 +243,20 @@ static void axel_new(int t, const obj_t *mk) {
 }
 static void axel_speed(obj_t *o) { o->c = o->av[0] == 180 ? 10 : (int)(10 + 15 * fabs(c_sin(o->av[0]))); }
 static void axels(player_t *p) {
-    int a = at(), PY = PY_(p), M = orig_M(p);
-    if (a == 3) {                                                                                     /* 4519, 4090, inline 846 */
-        for (int i = 0; i < G.nobjs; i++) {
-            obj_t *o = &G.o[i]; if (!o->alive || (o->type != OT_AXEL1 && o->type != OT_AXEL2)) continue;
-            o->fl &= ~0x41; axel_speed(o);
-            if (o->y < PY) o->fl |= 0x41;
-        }
-        return;
+    int PY = PY_(p), M = orig_M(p);
+    for (int i = 0; i < G.nobjs; i++) {                                                               /* placed (AT3): 4519, 4090, inline 846 */
+        obj_t *o = &G.o[i]; if (!o->alive || (o->type != OT_AXEL1P && o->type != OT_AXEL2P)) continue;
+        o->fl &= ~0x41; axel_speed(o);
+        if (o->y < PY) o->fl |= 0x41;
     }
     obj_t *m1 = first_of(OT_AXMAKER1), *m2 = first_of(OT_AXMAKER2);
-    if (GT() % 60 == 0) { if (a == 1 && m1) axel_new(OT_AXEL1, m1); if (m2) axel_new(OT_AXEL2, m2); }   /* 4084 / 4551 (U5: GT phase) */
+    if (!m1 && !m2 && !first_of(OT_AXEL1) && !first_of(OT_AXEL2)) return;
+    if (GT() % 60 == 0) { if (m1) axel_new(OT_AXEL1, m1); if (m2) axel_new(OT_AXEL2, m2); }       /* 4084 / 4551 (U5: GT phase) */
     for (int i = 0; i < G.nobjs; i++) {                                                               /* 4085 */
         obj_t *o = &G.o[i]; if (!o->alive || (o->type != OT_AXEL1 && o->type != OT_AXEL2)) continue;
         o->fl &= ~0x41; o->oy += o->type == OT_AXEL1 ? 2 : -2; axel_speed(o);
         if (o->type == OT_AXEL1 && o->y > G.lvl.h) o->alive = 0;                                      /* 4086 */
-        if (o->type == OT_AXEL2 && o->y < (a == 1 ? 320 : 0)) o->alive = 0;                          /* 4087 / 4552 */
+        if (o->type == OT_AXEL2 && o->y < level_cur()->axel2_top) o->alive = 0;                     /* 4087 / 4552: level data (AT1 320, AT4 0) */
     }
     int bg = M != 10 && p->ground && sens_bg(SENS_BOTTOMBIG);
     int tx, ty; mv_sensor_pos(SENS_TOPBIG, &tx, &ty);
@@ -329,11 +284,11 @@ static void swing_part(int t, const obj_t *sp, double C, double D, double F, int
 }
 static void swing_spawn(void) {
     pgaF = 0;
-    double wl = at() == 2 ? 1200 : 1e9;                                                               /* ML.B (AT3: no water) */
+    double wl = level_cur()->water ? level_cur()->water : 1e9;                                        /* ML.B (AT3: no water) */
     int n = G.nobjs;
     for (int i = 0; i < n; i++) {
-        obj_t *s = &G.o[i]; if (!s->alive || (s->type != OT_SWSPAWN1 && s->type != OT_SWSPAWN2)) continue;
-        int links = s->type == OT_SWSPAWN2 ? 6 : at() == 2 ? 8 : 6; double D = s->type == OT_SWSPAWN2 ? 220 : 180;   /* ctor A, B */
+        obj_t *s = &G.o[i]; if (!s->alive || (s->type != OT_SWSPAWN1 && s->type != OT_SWSPAWN1B && s->type != OT_SWSPAWN2)) continue;
+        int links = s->type == OT_SWSPAWN1 ? 8 : 6; double D = s->type == OT_SWSPAWN2 ? 220 : 180;   /* ctor A, B: 824 8 links, 848 / 2 6 */
         double d = s->y + 72 - wl, F = d < 0 ? 0.04 : d <= 1 ? 0.04 - 0.015 * d : 0.025;
         swing_part(OT_SWBASE, s, 0, D, F, links);                                                     /* 4336 */
         for (int k = 0; k < links; k++) swing_part(OT_SWCHAIN, s, 16 * (k + 1), D, F, links);        /* 4334 */
@@ -400,13 +355,16 @@ void aqua_gim_post(player_t *p) {
     if (!a) return;
     path_step();                             /* 3270-3289 */
     carry(p);                                /* 4061 */
-    if (a == 2 || a == 3) swings(p);         /* 4357-4360 */
-    if (a != 3) collapse_frame(p);           /* 4078-4083 */
-    if (a == 1) at1_plates(p);               /* 4093-4100 */
-    if (a == 2) { at2_mblock(p); wallplates_pipes(p); beams(p); }   /* 4362-4373 */
-    if (a == 3) { wallplates_pipes(p); crushers_h(p); }               /* 4366, 4507-4518 */
-    if (a != 2) axels(p);                    /* 4084-4092 / 4519 / 4551-4552 */
-    if (a == 4) slime_raft(p);               /* 4553-4559 */
+    /* session 13: every pass runs on every level and acts only on its own object types (the act tests are gone; the
+     * order is the one each act used) */
+    swings(p);                               /* 4357-4360 (AT2, AT3) */
+    collapse_frame(p);                       /* 4078-4083 */
+    switches_update(p, 1);                   /* 4093-4100, 4362-4364 (src/game/switches.c, levels with switch_late) */
+    wallplates_pipes(p);                     /* 4365-4371, 4507-4510 */
+    beams(p);                                /* 4372 / 4373 */
+    crushers_h(p);                           /* 4511-4518 */
+    axels(p);                                /* 4084-4092 / 4519 / 4551-4552 */
+    slime_raft(p);                           /* 4553-4559 */
     dip(p);                                  /* 3303-3307 */
 }
-int aqua_gim_obj(obj_t *o) { return o->type >= OT_ABPLAT && o->type <= OT_EXPL01; }
+int aqua_gim_obj(obj_t *o) { return (o->type >= OT_ABPLAT && o->type <= OT_EXPL01) || (o->type >= OT_ABPLAT2 && o->type <= OT_SWSPAWN1B); }

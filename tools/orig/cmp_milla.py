@@ -13,7 +13,7 @@ Exact-frame counts per field are printed; exit 1 if any sequence has a position/
 """
 import csv, os, subprocess, sys
 
-ROOT = '/home/claude/fpdc'
+ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))   # this script's checkout
 SHIFT = 2
 
 def load(path):

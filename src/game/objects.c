@@ -93,7 +93,7 @@ void objects_spawn(void) {
     layers_refresh(&G.p);
     bosses_spawn();
     aqua_spawn();
-    wlogs_spawn(); dv3_switch_spawn(); tunnels_reset(); shields_reset(); water_reset();
+    wlogs_spawn(); dv3_switch_spawn(); switches_spawn(); tunnels_reset(); shields_reset(); water_reset();
     /* 3566 / 3567: 12 logs per bridge at (bx + 16k, by + 56), A = k, B = base y */
     int nb = G.nobjs;
     for (int b = 0; b < nb; b++) {
@@ -138,7 +138,7 @@ void objects_plat_pretick(int n) {
 void objects_platforms(player_t *p) {
     if (aqua_level()) { aqua_platforms(p); return; }   /* Aqua Tunnel: its own platform block (src/game/aqua_gim.c) */
     /* DV3 gimmick blocks (5131-5234) run with the platforms, before Lilac's movement */
-    wlogs_update(p); dv3_switch_update(p); trunks_update(p); bamboo_update(p); pplate_update(p);
+    wlogs_update(p); dv3_switch_update(p); trunks_update(p); bamboo_update(p); switches_update(p, 0);
     double MY = p->y - ORIG_REF_DY;
     int PX = (int)p->x, PY = (int)MY;
     for (int i = 0; i < G.nobjs; i++) {
@@ -629,7 +629,7 @@ void objects_update(void) {
          * update_objects, then events) */
         if (o->type == OT_PELLET && o->born == G.frame) continue;
         if (o->type == OT_PELLET) pellet_move(o);                 /* update_objects: movement, then animation */
-        anim_tick(&o->an, (o->type == OT_AXEL1 || o->type == OT_AXEL2) ? o->c : -1);   /* AT axels: speed set by 4085 / 4519 */
+        anim_tick(&o->an, (o->type == OT_AXEL1 || o->type == OT_AXEL2 || o->type == OT_AXEL1P || o->type == OT_AXEL2P) ? o->c : -1);   /* AT axels: speed set by 4085 / 4519 */
         act[i] = 1;
     }
     /* test_collisions: enemies absorb free crystals (col_3_13 + 1290 + 2546) */
@@ -847,11 +847,11 @@ int obj_in_group(int type, int grp) {
                               type == OT_PIPE || type == OT_PIPEHUB || type == OT_BEAM || type == OT_SLIMEFLOOR || type == OT_RAFT;   /* spec_at_gimmicks_b 0 */
     case OBJGRP_OBSTACLE: case OBJGRP_OBSTACLE_ALL:
         return type == OT_LADDERTOP || type == OT_LOG || type == OT_PLAT_VALLEY || type == OT_PLAT_MOVE2 || type == OT_PLAT_MOVE3 || type == OT_GEYSER || type == OT_RSPRING_UL || type == OT_FLOATPLAT || type == OT_WLOG || type == OT_SPINLOG_MASK || type == OT_RSPRING_UR ||
-               type == OT_ABPLAT || type == OT_AXEL1 || type == OT_AXEL2 || type == OT_SWPLAT;
+               type == OT_ABPLAT || type == OT_ABPLAT2 || type == OT_AXEL1 || type == OT_AXEL2 || type == OT_AXEL1P || type == OT_AXEL2P || type == OT_SWPLAT;
     case OBJGRP_NOEDGE: return type == OT_LADDERTOP || type == OT_LOG || type == OT_PLAT_VALLEY || type == OT_PLAT_MOVE2 || type == OT_PLAT_MOVE3 || type == OT_MONITOR || type == OT_MON_RINGS || type == OT_MON_1UP || type == OT_MON_INVINC || type == OT_SPIKES || type == OT_SPRING || type == OT_SPRING_UL ||
                                type == OT_SPRING_UR || type == OT_SPRING_R || type == OT_GEYSER || type == OT_RSPRING_UL || type == OT_SPIKES_L || type == OT_SPIKES_R || type == OT_SPIKES_D || type == OT_MON_KEYSTONE || type == OT_FLOATPLAT || type == OT_PBLOCK2 || type == OT_PBLOCK1 || (type >= OT_MON_WOOD && type <= OT_MON_WATER) ||
                                type == OT_MON_BOMB || type == OT_MON_CRATE || (type >= OT_RSPRING_U && type <= OT_RSPRING_UR) ||
-                               type == OT_ABPLAT || type == OT_AXEL1 || type == OT_AXEL2 || type == OT_SWPLAT;
+                               type == OT_ABPLAT || type == OT_ABPLAT2 || type == OT_AXEL1 || type == OT_AXEL2 || type == OT_AXEL1P || type == OT_AXEL2P || type == OT_SWPLAT;
     default: return 0;
     }
 }
@@ -922,7 +922,7 @@ static int sensor_hit_any(int grp, int type, int ox, int oy, const signed char *
         if (o->ang != 0) { if (rows_hit_rot(o, f, ox, oy, x0, x1, h)) return i; continue; }   /* AT rotated masks */
         if (ox > bx + f->w || ox + 27 < bx || oy >= by + f->h || oy + h <= by) continue;
         if (o->type == OT_LOG || o->type == OT_WLOG || o->type == OT_PBLOCK2 || o->type == OT_PBLOCK1 || o->type == OT_ROCK || o->type == OT_ABRICK || o->type == OT_ABRICK2 || (o->type >= OT_RSPRING_U && o->type <= OT_RSPRING_UR) ||
-            o->type == OT_ABPLAT || o->type == OT_CRUSH_H || o->type == OT_CRUSH_H2 || o->type == OT_SWPLAT || o->type == OT_RAFT) {   /* initialize_active(true): collision box = image rect (rock: RV spiralb timing) */
+            o->type == OT_ABPLAT || o->type == OT_ABPLAT2 || o->type == OT_CRUSH_H || o->type == OT_CRUSH_H2 || o->type == OT_SWPLAT || o->type == OT_RAFT) {   /* initialize_active(true): collision box = image rect (rock: RV spiralb timing) */
             for (int j = 0; j < h; j++) {
                 int y = oy + j;
                 if (x1[j] < x0[j] || y < by || y >= by + f->h) continue;

@@ -290,8 +290,6 @@ void dv3_switch_spawn(void) {
         if (o->type == OT_WALLPLATE) { ens(o, "wallplate"); o->st = 0; }
         if (o->type == OT_TRAPDOOR) { ens(o, "trapdoor"); o->c = 0; o->ang = 0; }
         if (o->type == OT_BOULDER) { ens(o, "boulder"); o->fx = o->x; o->fy = o->y; o->vx = 0; o->vy = 0; o->fl = 0; o->c = 0; }
-        if (o->type == OT_PPLATE) { ens(o, "pplate"); o->st = 0; }
-        if (o->type == OT_DOOR) { ens(o, "door"); o->c = 0; o->layer = 1; }   /* RV plate_f90 (DV2): drawn behind the layer-2 ground, so the sunk door shows only its top */
         if (o->type == OT_TRUNK) { ens(o, "trunk"); o->dir = 0; o->fx = 0; o->vx = 0; }
         if (o->type >= OT_BAM1 && o->type <= OT_BAM4) { static const char *bn[4] = { "bam1", "bam2", "bam3", "bam4" }; ens(o, bn[o->type - OT_BAM1]); o->st = 0; o->tm = 0; o->fx = 0; o->dir = 1; }
     }
@@ -420,35 +418,7 @@ void bamboo_update(player_t *p) {
     }
 }
 
-static void pb_box(const obj_t *b, int *x1, int *y1, int *x2, int *y2);
-/* ---- pressure plate + door (5182-5186): pressed while Lilac stands on it or a resting pushable block overlaps it */
-static int pplate_latch;
-void pplate_update(player_t *p) {
-    obj_t *pl = first_type(OT_PPLATE), *d = first_type(OT_DOOR);
-    if (!pl) return;
-    /* 4971 (RE): a q14 block (pushable blocks) that is resting (flag 4; port: fl 0x10) and overlaps the plate presses
-     * it, exactly like Lilac on it. PushableBlock2 never gets flag 4 (spec_dv3 §4), so only PushableBlock1 counts.
-     * Port deviation (D-036, by request): in DV2 the 48 px block cannot enter the plate's pit (RV o2 sweep: it always
-     * rests on the ledges at Y 1137, 28 px above the plate, and never presses it), so a resting block counts when it
-     * covers the plate from up to PB_PLATE_REACH px above, as if its weight bore down on the switch. */
-    enum { PB_PLATE_REACH = 32 };
-    int pressed = 0;
-    for (int i = 0; i < G.nobjs && !pressed; i++) {
-        const obj_t *b = &G.o[i];
-        if (!b->alive || (b->type != OT_PBLOCK1 && b->type != OT_PBLOCK2) || !(b->fl & 0x10)) continue;
-        int x1, y1, x2, y2; pb_box(b, &x1, &y1, &x2, &y2);
-        pressed = obj_rect_hit(pl, x1, y1, x2, y2 + PB_PLATE_REACH);
-    }
-    if (p->ground && sensor_on(pl, SENS_BOTTOMBIG)) pressed = 1;                                /* 4973 */
-    for (int i = 0; i < G.nobjs && !pressed; i++)                                               /* 4972: a parked bike holds it */
-        if (G.o[i].alive && G.o[i].type == OT_PBIKE && obj_obj_hit(&G.o[i], pl)) pressed = 1;
-    pl->hidden = pressed;                                   /* 5182 shows the plate each frame; 4971/4973 hide it while pressed */
-    if (pressed && !pplate_latch) { pplate_latch = 1; snd_play_orig(49, 220, 128); }          /* 5183 */
-    if (!d) return;
-    if (pressed && d->c < 128) { d->y += 8; d->c += 8; }   /* 5184: RV plate3 (DV2): the door sinks 8 px/frame (top stays in view) */
-    int under = p->x >= d->x - 15 && p->x <= d->x + 47 && MVY(p) > d->y && MVY(p) <= d->y + 128 + 31;   /* 5185 */
-    if (!pressed && d->c > 0 && !under) { d->y -= 2; d->c -= 2; }                              /* 5186: rises back 2 px/frame */
-}
+/* the pressure plate + door (5182-5186) moved to src/game/switches.c (session 13) */
 
 /* ---- keystones (ObjectKeystone_429; RE build/re/spec_keystones.md). av: 0 F (base y, 0 = not initialised),
  * 1 H (x), 2 B (rise speed), 3 I (x step), 4 A (homing percent); st = G (homing), tm = E (taken / spin) */
@@ -646,7 +616,7 @@ void spinlogs_update(player_t *p) {
 /* ---- pushable block (PushableBlock1_493, 2711-2735). D = o->dir, flags o->fl: 0x08 active, 0x10 resting;
  * av: 1 = B (push-sound timer), 4 = E (dust), 5 = F (fall speed), 7 = H (crush cooldown). Box X-21..X+27, Y-41..Y+7. */
 static int obst(int x, int y) { return solid_at(&G.lvl, (float)x, (float)y); }
-static void pb_box(const obj_t *b, int *x1, int *y1, int *x2, int *y2) { *x1 = (int)b->x - 21; *y1 = (int)b->y - 41; *x2 = (int)b->x + 27; *y2 = (int)b->y + 7; }
+void pblock_box(const obj_t *b, int *x1, int *y1, int *x2, int *y2) { *x1 = (int)b->x - 21; *y1 = (int)b->y - 41; *x2 = (int)b->x + 27; *y2 = (int)b->y + 7; }
 void pblocks_update(player_t *p) {
     int any = 0;
     p->push_s = p->push_s > 0 ? p->push_s - 1 : 0;                                          /* 2711 */
@@ -656,9 +626,9 @@ void pblocks_update(player_t *p) {
         any = 1;
         if (b->dir == 0) b->fl &= ~0x10;                                                     /* 2712 */
         if (b->fl & 0x08) {                                                                  /* 2713: 1269-1271 */
-            int x1, y1, x2, y2; pb_box(b, &x1, &y1, &x2, &y2);
-            if (obst(x2 - 1, y2 - 2) || obst(x2 - 1, y1)) { b->x -= 1; pb_box(b, &x1, &y1, &x2, &y2); }
-            if (obst(x1, y2 - 2) || obst(x1, y1)) { b->x += 1; pb_box(b, &x1, &y1, &x2, &y2); }
+            int x1, y1, x2, y2; pblock_box(b, &x1, &y1, &x2, &y2);
+            if (obst(x2 - 1, y2 - 2) || obst(x2 - 1, y1)) { b->x -= 1; pblock_box(b, &x1, &y1, &x2, &y2); }
+            if (obst(x1, y2 - 2) || obst(x1, y1)) { b->x += 1; pblock_box(b, &x1, &y1, &x2, &y2); }
             int mx = (x1 + x2) / 2;
             /* 1271 (partly read, U7/U11): RV pblock_dv2 shows a resting block keeps its Y (no bob): lifted only when
              * its bottom row is inside the ground, resting (flag 4) when the row below is solid */
@@ -676,7 +646,7 @@ void pblocks_update(player_t *p) {
             for (int i = 0; i < G.nobjs; i++) {
                 obj_t *b = &G.o[i];
                 if (!b->alive || b->type != OT_PBLOCK1 || !(b->fl & 0x10)) continue;
-                int x1, y1, x2, y2; pb_box(b, &x1, &y1, &x2, &y2);
+                int x1, y1, x2, y2; pblock_box(b, &x1, &y1, &x2, &y2);
                 if (!box_sensor(side > 0 ? SENS_RIGHTBIG : SENS_LEFTBIG, (float)x1, (float)y1, (float)x2, (float)y2)) continue;
                 int ex = side > 0 ? x2 : x1 - 1;
                 if (!obst(ex, y2 - 2) && !obst(ex, y1)) b->dir = side;
@@ -693,7 +663,7 @@ void pblocks_update(player_t *p) {
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *b = &G.o[i];
         if (!b->alive || b->type != OT_PBLOCK1) continue;
-        int x1, y1, x2, y2; pb_box(b, &x1, &y1, &x2, &y2);
+        int x1, y1, x2, y2; pblock_box(b, &x1, &y1, &x2, &y2);
         if (b->dir && (b->fl & 0x10)) b->av[4] += 1;                                         /* 2721 */
         if (b->av[4] > 2 && (b->fl & 0x10)) { obj_effect((float)(x1 + rand() % (x2 - x1)), (float)y2, "dust"); b->av[4] = 0; }   /* 2722 */
         if (b->dir && (b->fl & 0x10) && b->av[1] < 2) snd_play_orig(43, 160, 128);           /* 2723 (play while not playing: INFERRED from B) */

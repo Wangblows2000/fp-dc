@@ -31,6 +31,8 @@ static void stsel_enter(void) {
         if (idx >= 0 && idx < 13) T.icon[idx] = o;
     }
     for (int i = 0; i < 13; i++) if (T.icon[i]) { T.iv[i] = T.ix[i] = T.icon[i]->x; T.iw[i] = T.iy[i] = T.icon[i]->y; }
+    { ui_obj_t *lk = ui_find(s, "lockedback", 0); int win = lk && lk->an.b ? anim_frame(&lk->an)->w : 272;   /* preview window = the lock panel (272 px) */
+      for (int i = 0; i < s->nobj; i++) if (!strncmp(s->o[i].cls, "bg", 2) && strstr(s->o[i].cls, "layer")) s->o[i].tilew = win; }   /* INFERRED: strips narrower than the window repeat */
     T.name = ui_find(s, "stagename", 0); T.cursor = ui_find(s, "crystalcursor", 0); T.ret = ui_find(s, "return", 0);
     T.start = ui_find(s, "start", 0); T.yes = ui_find(s, "yes", 0); T.mahjong = ui_find(s, "mahjong", 0); T.title = ui_find(s, "stageselect", 0);
     if (T.name) { T.nv = T.nx = T.name->x; T.nw = T.ny = T.name->y; }

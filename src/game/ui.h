@@ -15,6 +15,8 @@ typedef struct {
     float dx, dy;                 /* runtime offset (menu animation) */
     float shz; int shx, shy, shhome;   /* row shake (RE 328/329): Z, recorded home, offset applied when drawn */
     animator_t an;
+    uint16_t rw, rh; uint32_t c1, c2;   /* kind 2: solid quick backdrop (size, top / bottom colour) */
+    int tilew;                    /* > 0: the image repeats horizontally over this width (stage-select preview strips) */
 } ui_obj_t;
 typedef struct ui_scene_s { int w, h, nobj; ui_obj_t *o; ui_banks_t *banks; } ui_scene_t;
 

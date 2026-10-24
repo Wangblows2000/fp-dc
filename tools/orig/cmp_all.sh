@@ -3,7 +3,7 @@
 # usage: cmp_all.sh [sequence names...]   (frames 50..FR, default 200)
 # Start state comes from the original trace's frame 0 (X, energy, petals) so that sequences recorded
 # after the 2026-10-22 D-Bus fix (Lilac at X 0, not 68.715 after the intro walk) line up.
-cd /home/claude/fpdc
+cd "$(dirname "$0")/../.."
 FR=${FR:-200}
 mkdir -p build/fpdc_traces
 pass=0; fail=0
