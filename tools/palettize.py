@@ -33,20 +33,25 @@ def main():
         if fmt != 0:
             raise SystemExit('%s: not ARGB1555 (already converted?)' % f)
         return (w, h, sw, sh, struct.unpack_from('<%dH' % (w * h), raw, 16))
-    p4files, p4g, blocks, p4key = [], None, [], {}
-    if pal4:
-        p4g = int(pal4[0][0]); rx4 = re.compile(pal4[0][1])
-        p4files = [f for f in files if rx4.search(f)]
-        keyof = lambda f: re.sub(r'_\d+\.tex$', '', f)
+    # several --pal4 options may name different groups; each group gets its own 16-colour blocks (session 11: the
+    # 4-colour hair / tail / shield overlays become 4 bpp in the character's group 2)
+    p4files, p4grp, blocks, p4key = [], {}, {}, {}
+    keyof = lambda f: re.sub(r'_\d+\.tex$', '', f)
+    for g4, rx4 in pal4:
+        g4 = int(g4); rx4 = re.compile(rx4); blocks.setdefault(g4, [])
+        mine = [f for f in files if rx4.search(f) and f not in p4files]
         kcols = {}
-        for f in p4files:
-            t = load(f); kcols.setdefault(keyof(f), set()).update(q for q in t[4] if q & 0x8000)
+        for f in mine:
+            t = load(f); kcols.setdefault(keyof(f), set()).update(q for q in t[4] if q & 0x8000); p4grp[f] = g4
         for k in sorted(kcols, key=lambda k: -len(kcols[k])):
             if len(kcols[k]) > 15: raise SystemExit('%s: %d colours > 15 (pal4)' % (k, len(kcols[k])))
-            b = next((i for i, bc in enumerate(blocks) if len(bc | kcols[k]) <= 15), None)
-            if b is None: blocks.append(set()); b = len(blocks) - 1
-            blocks[b] |= kcols[k]; p4key[k] = b
-        files = [f for f in files if f not in p4files]
+            bl = blocks[g4]
+            b = next((i for i, bc in enumerate(bl) if len(bc | kcols[k]) <= 15), None)
+            if b is None: bl.append(set()); b = len(bl) - 1
+            bl[b] |= kcols[k]; p4key[k] = b
+        p4files += mine
+    files = [f for f in files if f not in p4files]
+    nblk = lambda g: 16 * len(blocks.get(g, []))
     members = [[f for f in files if rx.search(f)] for rx in groups]
     texs = {f: load(f) for m in members for f in m}
     cols = [set(p for f in m for p in texs[f][4] if p & 0x8000) for m in members]
@@ -58,12 +63,12 @@ def main():
             c = set(p for p in texs[f][4] if p & 0x8000)
             cand = [g for g in range(len(groups)) if not groups[g].search('lilac2.tex')]   # Lilac's palette stays fixed (resident banks)
             order = sorted(cand, key=lambda g: len(cols[g] | c))
-            g = next((g for g in order if len(cols[g] | c) <= 255 - (16 * len(blocks) if g == p4g else 0)), None)
+            g = next((g for g in order if len(cols[g] | c) <= 255 - nblk(g)), None)
             if g is None:
                 # no room: keep the most used colours that fit, map the rest to the nearest kept colour (RGB555
                 # distance). Reported in the build log; only rare near-duplicate shades are merged.
-                g = min(cand, key=lambda g: len(cols[g]) + (16 * len(blocks) if g == p4g else 0))
-                room = 255 - len(cols[g]) - (16 * len(blocks) if g == p4g else 0)
+                g = min(cand, key=lambda g: len(cols[g]) + nblk(g))
+                room = 255 - len(cols[g]) - nblk(g)
                 hist = {}
                 for q in texs[f][4]:
                     if q & 0x8000 and q not in cols[g]: hist[q] = hist.get(q, 0) + 1
@@ -84,17 +89,19 @@ def main():
         if len(cols[g]) > 255:
             raise SystemExit('group %d (%s): %d colours > 255' % (g, rx.pattern, len(cols[g])))
         pre = []
-        if g == p4g:
-            for b, bc in enumerate(blocks):
+        if blocks.get(g):
+            bl = blocks[g]
+            for b, bc in enumerate(bl):
                 ent = [0] + sorted(bc); ent += [0] * (16 - len(ent)); pre += ent
-            bidx = [{c: i for i, c in enumerate(pre[16 * b:16 * b + 16]) if i} for b in range(len(blocks))]
-            for f in p4files:
+            bidx = [{c: i for i, c in enumerate(pre[16 * b:16 * b + 16]) if i} for b in range(len(bl))]
+            mine = [f for f in p4files if p4grp[f] == g]
+            for f in mine:
                 w, h, sw, sh, px = load(f)
                 b = p4key[keyof(f)]; m = bidx[b]
                 nib = [m.get(q, 0) if q & 0x8000 else 0 for q in px]
                 data = bytes(nib[i] | (nib[i + 1] << 4) for i in range(0, len(nib), 2))
-                open(os.path.join(d, f), 'wb').write(b'FPTX' + struct.pack('<6H', w, h, 3, sw, sh, g * 16 + b) + data)
-            print('pal4 group %d: %d textures, %d blocks' % (g, len(p4files), len(blocks)))
+                open(os.path.join(d, f), 'wb').write(b'FPTX' + struct.pack('<6H', w, h, 3, sw, sh, (g if gid is None else gid) * 16 + b) + data)
+            print('pal4 group %d: %d textures, %d blocks' % (g, len(mine), len(bl)))
         pal = (pre if pre else [0]) + sorted(cols[g])
         if len(pal) > 256: raise SystemExit('group %d: %d entries > 256 with the pal4 blocks' % (g, len(pal)))
         index = {c: i for i, c in enumerate(pal) if i >= len(pre) or not pre}

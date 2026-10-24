@@ -20,6 +20,7 @@ VT = {'mv': 0x20b2910, 'player': 0x20b6f30, 'skin': 0x20b7890}   # vtable+0x10 o
 # Carol (CHAR=2 / 3 in run_trace.sh): her skin replaces the sash skin; tail / bike skin logged as extras
 if os.environ.get('CHAR') in ('2', '2.0'): VT['skin'] = 0x20bd570      # PlayerSkinCarol_449
 if os.environ.get('CHAR') in ('3', '3.0'): VT['skin'] = 0x20bdc50      # PlayerSkinCarolBike_460
+if os.environ.get('CHAR') in ('4', '4.0'): VT['skin'] = 0x20bdcf0      # PlayerSkinMilla_461 (session 11)
 # optional HUD/gameplay objects dumped when present (vtable+0x10): alterables A-Z + x scale + image id
 XVT = {'en': 0x20aa470, 'life': 0x20aa510, 'others': 0x20aa3d0, 'turr': 0x20d65d0, 'cam': 0x20bbbd0,
        'hair': 0x20bc5d0, 'sp1': 0x20b68f0, 'sp2': 0x20b9c30, 'sp3': 0x20b9cd0, 'sp4': 0x20b9d70, 'sp5': 0x20b3c70, 'plat3': 0x20dab50}   # plat3 = LevelMovingPlatform3_948; hair = PlayerSkinSashHair_424 (Lilac's hair overlay)
@@ -27,6 +28,8 @@ XVT = {'en': 0x20aa470, 'life': 0x20aa510, 'others': 0x20aa3d0, 'turr': 0x20d65d
 # "name=0xvtable#i" picks the i-th live instance (heap address order) instead of the last one (multi-instance classes)
 if os.environ.get('CHAR') in ('2', '3', '2.0', '3.0'):
     XVT.update({'ctail': 0x20bd4d0, 'bike': 0x20bdbb0})   # PlayerSkinCarolTail_448, ObjectBike_459
+if os.environ.get('CHAR') in ('4', '4.0'):
+    XVT.update({'mtail': 0x20bdd90, 'refl': 0x20bde30, 'dig': 0x20bded0})   # PlayerSkinMillaTail_462, PlayerReflect_463, PlayerDig_464
 XVT_IDX = {}
 for _kv in os.environ.get('XVT_EXTRA', '').split(','):
     if '=' in _kv:
@@ -78,7 +81,7 @@ def build_imgmap():
     import re, subprocess
     out = subprocess.run(['nm', '/home/claude/fprun/bin64/Chowdren'], capture_output=True, text=True).stdout
     for l in out.splitlines():
-        skin_cls = {'2': 'playerskincarol_449', '2.0': 'playerskincarol_449', '3': 'playerskincarolbike_460', '3.0': 'playerskincarolbike_460'}.get(os.environ.get('CHAR', ''), 'playerskinsash_341')
+        skin_cls = {'2': 'playerskincarol_449', '2.0': 'playerskincarol_449', '3': 'playerskincarolbike_460', '3.0': 'playerskincarolbike_460', '4': 'playerskinmilla_461', '4.0': 'playerskinmilla_461'}.get(os.environ.get('CHAR', ''), 'playerskinsash_341')
         m = re.match(r'([0-9a-f]+) [bBdD] (?:_ZL\d+)?images_' + skin_cls + r'_(\d+)_(\d+)$', l)
         if m:
             base = int(m.group(1), 16); a, d = int(m.group(2)), int(m.group(3))

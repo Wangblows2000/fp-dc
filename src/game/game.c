@@ -52,7 +52,7 @@ static void bank_free(bank_t *b) { free(b->act); free(b->frames); free(b->anims)
 static uint32_t chr_crc[8];      /* skin .tex/.spr, overlay .tex/.spr, bike .tex/.spr, second atlases of the resident character banks */
 static int chr_resident, chr_resident_who = -1;
 /* the playing character's bank files: Lilac lilac2 + lilachair; Carol carol2 + caroltail + carolbike (+ pal2c.pal) */
-static const char *const CHR_FILES[2][8] = { { "lilac2.tex", "lilac2.spr", "lilachair.tex", "lilachair.spr", 0, 0, 0, 0 },
+static const char *const CHR_FILES[2][8] = { { "lilac2.tex", "lilac2.spr", "lilachair.tex", "lilachair.spr", "lilac2_2.tex", "lilachair_2.tex", 0, 0 },
                                              { "carol2.tex", "carol2.spr", "caroltail.tex", "caroltail.spr", "carolbike.tex", "carolbike.spr",
                                                "carol2_2.tex", "carolbike_2.tex" } };   /* _2: split atlases (tools/import_frame.py) */
 
@@ -105,8 +105,8 @@ int game_load_level(const char *dir) {
         if (i == 2 && who == 1) snprintf(nm, sizeof nm, "%s/pal2c.pal", dir); else snprintf(nm, sizeof nm, "%s/pal%d.pal", dir, i);
         bad |= pal_load_file(nm) < 0;
     }
-    if (keep) { LP.nskip += who ? 8 : 4; LP.skip_bytes += (uint64_t)G.lilac.tex.w * G.lilac.tex.h + (uint64_t)G.hair.tex.w * G.hair.tex.h + (uint64_t)G.bike.tex.w * G.bike.tex.h
-                                           + (uint64_t)G.lilac.tex2.w * G.lilac.tex2.h + (uint64_t)G.bike.tex2.w * G.bike.tex2.h; }
+    if (keep) { LP.nskip += who ? 8 : 6; LP.skip_bytes += (uint64_t)G.lilac.tex.w * G.lilac.tex.h + (uint64_t)G.hair.tex.w * G.hair.tex.h + (uint64_t)G.bike.tex.w * G.bike.tex.h
+                                           + (uint64_t)G.lilac.tex2.w * G.lilac.tex2.h + (uint64_t)G.hair.tex2.w * G.hair.tex2.h + (uint64_t)G.bike.tex2.w * G.bike.tex2.h; }
     else {
         snprintf(nm, sizeof nm, "%s/%s", dir, who ? "carol2" : "lilac2"); bad |= bank_load(&G.lilac, nm) < 0;
         snprintf(nm, sizeof nm, "%s/%s", dir, who ? "caroltail" : "lilachair"); if (bank_load(&G.hair, nm) < 0) plat_log("no overlay bank\n");
