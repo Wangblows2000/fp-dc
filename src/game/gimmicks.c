@@ -291,7 +291,7 @@ void dv3_switch_spawn(void) {
         if (o->type == OT_TRAPDOOR) { ens(o, "trapdoor"); o->c = 0; o->ang = 0; }
         if (o->type == OT_BOULDER) { ens(o, "boulder"); o->fx = o->x; o->fy = o->y; o->vx = 0; o->vy = 0; o->fl = 0; o->c = 0; }
         if (o->type == OT_PPLATE) { ens(o, "pplate"); o->st = 0; }
-        if (o->type == OT_DOOR) { ens(o, "door"); o->c = 0; }
+        if (o->type == OT_DOOR) { ens(o, "door"); o->c = 0; o->layer = 1; }   /* RV plate_f90 (DV2): drawn behind the layer-2 ground, so the sunk door shows only its top */
         if (o->type == OT_TRUNK) { ens(o, "trunk"); o->dir = 0; o->fx = 0; o->vx = 0; }
         if (o->type >= OT_BAM1 && o->type <= OT_BAM4) { static const char *bn[4] = { "bam1", "bam2", "bam3", "bam4" }; ens(o, bn[o->type - OT_BAM1]); o->st = 0; o->tm = 0; o->fx = 0; o->dir = 1; }
     }
@@ -420,17 +420,32 @@ void bamboo_update(player_t *p) {
     }
 }
 
-/* ---- pressure plate + door (5182-5186): pressed only while Lilac stands on it */
+static void pb_box(const obj_t *b, int *x1, int *y1, int *x2, int *y2);
+/* ---- pressure plate + door (5182-5186): pressed while Lilac stands on it or a resting pushable block overlaps it */
 static int pplate_latch;
 void pplate_update(player_t *p) {
     obj_t *pl = first_type(OT_PPLATE), *d = first_type(OT_DOOR);
     if (!pl) return;
-    int pressed = p->ground && sensor_on(pl, SENS_BOTTOMBIG);                                  /* 4973 */
+    /* 4971 (RE): a q14 block (pushable blocks) that is resting (flag 4; port: fl 0x10) and overlaps the plate presses
+     * it, exactly like Lilac on it. PushableBlock2 never gets flag 4 (spec_dv3 §4), so only PushableBlock1 counts.
+     * Port deviation (D-036, by request): in DV2 the 48 px block cannot enter the plate's pit (RV o2 sweep: it always
+     * rests on the ledges at Y 1137, 28 px above the plate, and never presses it), so a resting block counts when it
+     * covers the plate from up to PB_PLATE_REACH px above, as if its weight bore down on the switch. */
+    enum { PB_PLATE_REACH = 32 };
+    int pressed = 0;
+    for (int i = 0; i < G.nobjs && !pressed; i++) {
+        const obj_t *b = &G.o[i];
+        if (!b->alive || (b->type != OT_PBLOCK1 && b->type != OT_PBLOCK2) || !(b->fl & 0x10)) continue;
+        int x1, y1, x2, y2; pb_box(b, &x1, &y1, &x2, &y2);
+        pressed = obj_rect_hit(pl, x1, y1, x2, y2 + PB_PLATE_REACH);
+    }
+    if (p->ground && sensor_on(pl, SENS_BOTTOMBIG)) pressed = 1;                                /* 4973 */
+    pl->hidden = pressed;                                   /* 5182 shows the plate each frame; 4971/4973 hide it while pressed */
     if (pressed && !pplate_latch) { pplate_latch = 1; snd_play_orig(49, 220, 128); }          /* 5183 */
     if (!d) return;
-    if (pressed && d->c < 128) { d->y -= 8; d->c += 8; }                                       /* 5184 */
+    if (pressed && d->c < 128) { d->y += 8; d->c += 8; }   /* 5184: RV plate3 (DV2): the door sinks 8 px/frame (top stays in view) */
     int under = p->x >= d->x - 15 && p->x <= d->x + 47 && MVY(p) > d->y && MVY(p) <= d->y + 128 + 31;   /* 5185 */
-    if (!pressed && d->c > 0 && !under) { d->y += 2; d->c -= 2; }                              /* 5186 */
+    if (!pressed && d->c > 0 && !under) { d->y -= 2; d->c -= 2; }                              /* 5186: rises back 2 px/frame */
 }
 
 /* ---- keystones (ObjectKeystone_429; RE build/re/spec_keystones.md). av: 0 F (base y, 0 = not initialised),
