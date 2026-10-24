@@ -40,7 +40,9 @@ static void cube_set_anim(int idx, int restart) {     /* Chowdren set_animation:
 static int cube_playing(int idx) { return cube.anim == idx && cube.playing; }
 static void cube_tick(void) {               /* update_objects: the cube's animation advances before the events */
     if (!cube.an.b) return;
+    int acc0 = cube.an.acc, done0 = cube.an.done;
     anim_tick(&cube.an, -1);
+    if (cube.an.done && !done0) cube.an.acc = acc0;   /* RV m_super_ground: the finishing update leaves the counter as it was */
     if (cube.an.done) cube.playing = 0;          /* RV m_shield_tap: a finished one-shot keeps its id and last frame, "playing" is false */
 }
 static void milla_cube_reset(void) {
@@ -60,7 +62,7 @@ static void m_action_point(const player_t *p, double *ax, double *ay) {
     if (!f || !p->an.b->act) { *ax = x; *ay = y; return; }
     int i = (int)(f - p->an.b->frames);
     int axl = p->an.b->act[2 * i], ayl = p->an.b->act[2 * i + 1];
-    *ax = draw_flip ? x + (f->w - f->hx) - 1 - axl : x - f->hx + axl;
+    *ax = draw_flip ? x + f->hx - axl : x - f->hx + axl;   /* mirrored art: hotspot w - 1 - hx, action point w - 1 - ax */
     *ay = y - f->hy + ayl;
 }
 
@@ -246,7 +248,7 @@ static void milla_group_main(player_t *p, const input_t *in) {
     if (cube.A == 0 && p->mF == 2) {                                                         /* 2208: forming sparkle (anim 7) */
         cube_set_anim(7, 0); cube.vis = 1;
         double ax, ay, a = p->rot / 57.29577951308232; m_action_point(p, &ax, &ay);
-        cube.x = (float)(ax + fd_sin(a) * -15); cube.y = (float)(ay + fd_cos(a) * -15); cube.ang = (float)p->rot;
+        cube.x = (float)(int)(ax + fd_sin(a) * -15); cube.y = (float)(int)(ay + fd_cos(a) * -15); cube.ang = (float)p->rot;
     }
     if (p->mF == 2 && p->mG == 40 && cube.A == 0) {                                          /* 2209: the cube appears */
         cube.A = 1; cube_set_anim(0, 1); cube_set_anim(10, 1);
@@ -256,7 +258,7 @@ static void milla_group_main(player_t *p, const input_t *in) {
     if (p->mF == 0 && cube.A == 1) cube.A = 2;                                               /* 2211 */
     if (cube.A == 1) {                                                                       /* 2212: held at MILLA's action point */
         double ax, ay, a = p->rot / 57.29577951308232; m_action_point(p, &ax, &ay);
-        cube.vis = 1; cube.x = (float)(ax + fd_sin(a) * -15); cube.y = (float)(ay + fd_cos(a) * -15); cube.ang = (float)p->rot;
+        cube.vis = 1; cube.x = (float)(int)(ax + fd_sin(a) * -15); cube.y = (float)(int)(ay + fd_cos(a) * -15); cube.ang = (float)p->rot;
         cube.X = o_cos(O) * (3 * Q + B); cube.Y = -o_sin(O) * (3 * Q + B);
     }
     if (sh && cube.A == 1) {                                                                 /* 2213: super shield (any state) */
@@ -266,7 +268,7 @@ static void milla_group_main(player_t *p, const input_t *in) {
     }
     if (cube.A == 2) {                                                                       /* 2214: flight */
         cube.x = (float)(int)(cube.x + cube.X); cube.y = (float)(int)(cube.y + cube.Y);
-        cube.Y = fmin(cube.Y + 0.25, 15.0); cube.vis = 1; if (cube.anim != 0 && cube.anim != 10) cube_set_anim(0, 0);
+        cube.Y = fmin(cube.Y + 0.25, 15.0); cube.vis = 1; if (!cube_playing(10)) cube_set_anim(0, 0);   /* RV m_turr_throw: anim 0 in flight */
         if (cube.x < 0 || cube.x > G.lvl.w || cube.y < 0 || cube.y > G.lvl.h) cube.A = 0;   /* 2215 */
     }
     if (cube.A == 2) {                                                                       /* 2216: an enemy */
@@ -285,7 +287,7 @@ static void milla_group_main(player_t *p, const input_t *in) {
     if (cube.A == 5 && !cube_playing(5) && cube.anim != 8) cube_set_anim(8, 1);             /* 2223 */
     if (cube.A == 5 && cube_playing(5)) { cube.F = 0; cube.H = 6; }                         /* 2224 */
     if (cube.A == 5) {                                                                       /* 2225: follows Milla */
-        cube.x = (float)(px + o_sin(O) * -12); cube.y = (float)(py + o_cos(O) * -12); cube.F += 0.5;
+        cube.x = (float)(int)(px + o_sin(O) * -12); cube.y = (float)(int)(py + o_cos(O) * -12); cube.F += 0.5;
     }
     if (cube.A == 5 && !cube_playing(8) && !cube_playing(5)) { cube.A = 6; cube.F = 0; cube.vis = 0; }   /* 2226 */
     if (cube.A == 6) cube.F += 1;                                                            /* 2227 */
@@ -360,7 +362,7 @@ static void milla_group_carry(player_t *p, const input_t *in) {
     if (p->mF == 0) p->mF = 1;                                                               /* 2274 */
     p->mC4 = 1; p->mE = 100;                                                                 /* 2275: C = 4, E = 100 */
     if (p->mF == 2 && !(in->held & BTN_ATTACK) && p->mG < 40) { set_state(p, ST_NORMAL); p->m1 = 0; p->mF = 0; p->mC4 = 0; }   /* 2276 */
-    if (p->ground && (in->pressed & BTN_JUMP) && p->state == ST_MCARRY) { m_jump(p); }   /* 2277: jump, M1 (F kept) */
+    if (p->ground && (in->pressed & BTN_JUMP) && p->state == ST_MCARRY) { m_jump(p); set_state(p, ST_NORMAL); p->m1 = 1; }   /* 2277: jump, M = 1 (F kept; 2203 returns to M30 after the landing) */
 }
 
 /* ---- M31 shield group 0x21a34 ---- */
@@ -381,7 +383,7 @@ static void milla_group_shield(player_t *p, const input_t *in) {
         else { cube.C = -45 * Q; m_aim = 4 * (1 - L) + 2; }                                  /* 2284 */
         p->cY = 20;                                                                          /* 2285 */
         cube.dir = Q > 0 ? 0 : 16; cube.C += p->rot; cube.ang = (float)fmod(cube.C + 720, 360);
-        cube.x = (float)(px + o_sin(p->O) * -12); cube.y = (float)(py + o_cos(p->O) * -12); cube.vis = 1; cube.Gq = Q;
+        cube.x = (float)(int)(px + o_sin(p->O) * -12); cube.y = (float)(int)(py + o_cos(p->O) * -12); cube.vis = 1; cube.Gq = Q;
     }
     if (!(in->held & BTN_SPECIAL) && cube.A == 4) {
         int super = cube_playing(2);
@@ -418,6 +420,8 @@ static void milla_groups(player_t *p, const input_t *in, int st0) {
         }
     }
     milla_group_main(p, in);
+    /* a state group runs when its flag is on (M at 1680-1721 = st0) and, RE (e.g. event 2274), every event of it also
+     * tests the current M: an earlier event that changed M this frame stops the group */
     if (st0 == ST_MATK && p->state == ST_MATK) milla_group_m20(p, in);
     if (st0 == ST_FLOAT && p->state == ST_FLOAT) milla_group_float(p, in);
     if (st0 == ST_DIG && p->state == ST_DIG) milla_group_dig(p, in);
@@ -522,7 +526,7 @@ static void milla_anim(player_t *p) {
 }
 
 int player_milla_hud(void) { return m_hud; }
-void player_milla_dbg(double v[7]) { v[0] = cube.A; v[1] = cube.x; v[2] = cube.y; v[3] = cube.C; v[4] = cube.F; v[5] = cube.anim; v[6] = m_res_dir; }
+void player_milla_dbg(double v[7]) { v[0] = cube.A; v[1] = cube.x; v[2] = cube.y; v[3] = cube.C; v[4] = cube.F; v[5] = cube.anim * 100 + cube.an.frame + (cube.playing ? 0.5 : 0); v[6] = m_res_dir; }
 
 /* the cube is drawn in front of MILLA (anim 11 arc / 2 / 5 / 8 rotated by C) */
 static void milla_draw_cube(void) {

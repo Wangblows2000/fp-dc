@@ -348,18 +348,17 @@ static void chsel_enter(void) {
     for (int i = 0; hide[i]; i++) for (int k = 0; (o = ui_find(s, hide[i], k)); k++) o->vis = 0;
     if (C.slot[2]) C.slot[2]->vis = 0;                       /* RE 809/810: Spade and Torque slots */
     if (C.slot[4]) C.slot[4]->vis = 0;
-    /* RE start 7: Milla locked until records (2,42) >= 2 (fresh save: locked); Milla is not ported, so she stays locked
-     * (padlock = Character3 anim 5). Lilac and Carol are playable (session 10). */
-    if (C.name[2]) C.name[2]->vis = 0;
-    if (C.ch[2]) ui_obj_select(s, C.ch[2], 5, 0);
+    /* RE start 7: Milla is locked until records (2,42) >= 2. The port does not keep that record and unlocks her
+     * (session 11, D-040), like Carol: Character3 shows her portrait (anim 0) instead of the padlock (anim 5). */
+    if (C.ch[2]) ui_obj_select(s, C.ch[2], 0, 0);
     if (C.ch[1]) ui_obj_select(s, C.ch[1], 0, 0);
-    C.cur = chr_is_carol(G.character) ? 1 : 0;               /* RE start 5: initial cursor from global 1 (2 or 3 -> 1) */
+    C.cur = chr_is_carol(G.character) ? 1 : chr_is_milla(G.character) ? 3 : 0;   /* RE start 5: initial cursor from global 1 */
     tiles_start(); wipe.on = 0;
     cam_x = 320 - 213; cam_y = 0;                            /* RE 801: display centre x 320 */
     if (fe_mode <= 0) music_play("bgm/m_menu1.adp");         /* start: only if channel 31 is silent (RV) */
     else music_play("bgm/m_results.adp");                    /* RE/RV: Classic / Adventure play m_results here */
 }
-static int chsel_locked(int c) { return c == 3; }            /* Milla (records; not ported) */
+static int chsel_locked(int c) { (void)c; return 0; }        /* Milla unlocked in the port (D-040) */
 static void chsel_update(const input_t *now) {
     const input_t *in = &C.prev;
     uint32_t p = in->pressed;
@@ -389,9 +388,9 @@ static void chsel_update(const input_t *now) {
         if (C.confirm && C.cur < 5 && !chsel_locked(C.cur)) {                            /* RE 782 */
             snd_play_orig(63, 230, 128); C.main = 0; C.chosen = 1; C.timer = 0;
             /* RE 4.3.9 + run-once voice: cursor 0 -> G1 0, sound 220, Character1 anim 7; cursor 1 -> G1 2, sound 221, Character2 anim 7 */
-            G.character = C.cur == 1 ? CHR_CAROL : CHR_LILAC;
-            snd_play_orig(C.cur == 1 ? 221 : 220, 255, 128);
-            if (C.ch[C.cur == 1 ? 1 : 0]) ui_obj_select(&s_scr, C.ch[C.cur == 1 ? 1 : 0], 7, 0);
+            G.character = C.cur == 1 ? CHR_CAROL : C.cur == 3 ? CHR_MILLA : CHR_LILAC;
+            snd_play_orig(C.cur == 1 ? 221 : C.cur == 3 ? 186 : 220, 255, 128);          /* G1 4 -> sound 186, Character3 anim 7 */
+            { int k = C.cur == 1 ? 1 : C.cur == 3 ? 2 : 0; if (C.ch[k]) ui_obj_select(&s_scr, C.ch[k], 7, 0); }
         } else if ((C.confirm && C.cur == 5) || ((p & BTN_ATTACK) && C.cur == 5)) {      /* RE 783 RETURN */
             snd_play_orig(56, 230, 128); C.main = 0; music_stop(); wipe_start(); C.exit_to = 3;
         } else if ((p & BTN_ATTACK) && C.cur != 5) { snd_play_orig(64, 220, 128); C.cur = 5; if (C.ret) C.ret->shz = 4; C.shake += 7; }
@@ -429,6 +428,7 @@ static void chsel_draw(void) {
     int alt = C.shake > 30;                                                              /* RE 767/768 */
     if (C.ch[0] && !(C.chosen && G.character == CHR_LILAC)) ui_obj_select(s, C.ch[0], 0, alt ? 8 : 0);
     if (C.ch[1] && !(C.chosen && G.character == CHR_CAROL)) ui_obj_select(s, C.ch[1], 0, alt ? 8 : 0);
+    if (C.ch[2] && !(C.chosen && G.character == CHR_MILLA)) ui_obj_select(s, C.ch[2], 0, alt ? 8 : 0);
     if (C.cursor) C.cursor->vis = 0;
     ui_draw(s, cam_x, cam_y, 0, 3);
     fe_text(12, 220, "A: Select");
