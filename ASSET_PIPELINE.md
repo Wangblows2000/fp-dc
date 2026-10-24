@@ -73,3 +73,19 @@ Session 7 disc steps (after conversion): `tools/twiddle_disc.py` (PAL8 → FPTX 
 `tools/pack_disc.py` (FPK1 packs, LZ4 per entry; needs `pip install lz4 --break-system-packages`) → `tools/pad_disc.py`
 (pad every file to 32 bytes). `tools/import_frame.py` crops gan_/explosion anims and the lilac2/lilachair banks and
 omits mirrored dir-16 animations.
+
+## Session 10: Carol's assets
+- `tools/build_level.sh` writes, per level: `carol2.*` (PlayerSkinCarol, every animation index as `a<index>`, plus the
+  Carol-only objects: attack shields `sh<dir>` (ShieldInstaShield anim 4, extra directions a21_d1/d17 and a0_d4/d20),
+  the parked bike `pbike` (uncropped: it collides with its image box), `bdebris`, `bdust`), `caroltail.*` (tail
+  overlay), `carolbike.*` (bike-riding skin) and `pal2c.pal` (Carol's palette for bank 2, made by
+  `palettize.py ... '^carol' --gid=2`; it replaces Lilac's pal2 while Carol plays). The fuel can (`fuel`, OT 158), the
+  jump pads (`jpad`, `jpad_lit`, `jpad_blk`) and the white burst (`wburst`) are in `<lv>_obj`.
+- **Split atlases (D-038):** carol2 (content 1024x574) is written as 1024x512 + `carol2_2.tex` 256x256; carolbike
+  (1024x328) as 1024x256 + `carolbike_2.tex` 512x256; `dv1_obj`-`dv3_obj` (1024x552) as 1024x512 + `_obj_2.tex`
+  256x256. Frames in the second atlas carry v | 0x8000 (same loader path as the large `_ens` banks). Carol's textures
+  per level: 1.6 MB → 1.0 MB; object banks DV1-DV3: 1 MB → 576 KB.
+- Sounds: `tools/audio/convert_sfx.sh` IDS adds 6 (skid) and Carol's ids (33 61 113-122 126 128 133 139-141 154 159-162
+  232 387 409-414). The game loads the shared set at boot and one character group per level (D-037).
+- Measured (Flycast load log, VRAM free after load): DV1 Lilac 1790 → 2238 KB, Carol 958 → 1981 KB; DV2 Lilac
+  955 → 1403 KB, Carol 123 → 1147 KB (before → after the splits).

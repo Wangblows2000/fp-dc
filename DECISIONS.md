@@ -69,8 +69,8 @@ The recovered dead-zone camera also decides which enemies are active (Turretus c
 
 **D-020 Front end follows the original's console layout; content limits are shown, not hidden.**
 - **Console variant:** the original has a built-in console variant (global G[32] = 1). It hides QUIT, Screen size, Controls and Sensitivity. Those options make no sense on a Dreamcast pad, so the port uses this variant.
-- **Characters and stages:** only Lilac and Dragon Valley exist in the port.
-  - Carol and Milla appear on character select but are locked.
+- **Characters and stages:** Lilac, Carol (since session 10, D-039) and Dragon Valley exist in the port.
+  - Milla appears on character select but is locked.
   - The Time Attack list shows every stage, but only Dragon Valley can be started. Shang Mu (where the cursor starts) plays the refusal sound.
 - **Port shortcuts:**
   - GALLERY plays the move sound only.
@@ -116,3 +116,25 @@ original test still runs in the same order, so results are identical (cmp_all an
 `make FP_PERF_BASELINE=1` builds the old full scan for A/B measurements.
 **D-035 Piece atlases after the first are at most 1024x512** (tools/import_frame.py; up to MAX_ATLAS = 4). Saves
 256-512 KB of VRAM per DV level; host renders of the four levels are pixel-identical.
+**D-036 A resting pushable block presses the DV2 plate from up to 32 px above (port deviation, by request).** RE 4971
+presses the plate when a resting q14 block overlaps it, but in DV2 the block cannot enter the plate's pit (original
+sweep: it always rests on the ledges 28 px above), so in the original only the player can press it. The brief asked
+for the block to activate it; the port counts a block covering the plate from up to 32 px above. Door motion is the
+original's (RV plate3). Tests dv2_block_presses_plate, dv2_door_sinks_when_pressed.
+**D-037 Sounds are loaded per character (supersedes D-031's "everything at boot").** With Carol's ~30 samples the
+boot set reached 1812 KB and overflowed AICA RAM (the ARM stopped with CPUUndefinedException in Flycast). Boot loads
+the shared set; `snd_group_load()` swaps in the playing character's group at level load (slots reused,
+`snd_unload`). Largest free sound RAM block: 389 KB with Lilac, 351 KB with Carol. New character sounds go into
+`SND_LILAC` / `SND_CAROL` in game.c and into convert_sfx.sh.
+**D-038 Banks split into two atlases when that saves VRAM.** tools/import_frame.py packs a half-height first atlas and
+a small second one (`<name>_2.tex`, frames v | 0x8000, drawn through bank_draw / bank_frame_tex) when the content
+height is just over a power of two: carol2 1 MB → 576 KB, carolbike 512 → 384 KB, and the DV1-DV3 object banks
+1 MB → 576 KB (Carol's fuel can and pads had pushed them from under 512 rows to 552). Applies to Carol's banks and the
+level `_obj`/`_ens` banks; Lilac's skin and hair banks need no split. Host renders of Lilac and Carol in DV1-DV4 are
+pixel-identical before and after.
+**D-039 Carol is a full character, matched to original traces.** Her events run in the original's in-frame order
+(carol.inc, carol_bike.inc) and keep the original's counters (OTHERS.Y as cY, PSC.L shared by the kick and the pads),
+because trace matching needs the same intermediate values, not only the same moves. Where the static RE disagreed
+with a trace, the trace wins and the correction is listed in RE_NOTES "Session 10". Random choices (voices, claw pitch)
+use the port's own random numbers. Carol's sounds, VMU life icon, Time Attack records and file slots use the
+existing per-character fields; a file saved on the bike resumes on foot.

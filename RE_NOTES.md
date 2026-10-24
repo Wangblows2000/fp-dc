@@ -203,7 +203,7 @@ Method: `tools/re/member_map.py` (gdb) maps each frame's member offsets to objec
   - Music and SFX volume step by 10.
   - OKAY writes the settings (records.dat in the original; the VMU save in the port).
 - **Character select (spec_charselect.md):**
-  - Lilac, Carol and Milla rows. The port shows Carol and Milla locked with the padlock overlay (D-020) and the move sound when you try them.
+  - Lilac, Carol and Milla rows. Since session 10 Lilac and Carol are playable; Milla stays locked with the padlock overlay and the move sound when you try her.
   - Choosing Lilac plays 63 + her voice 220, then a 20-frame timer, then the wipe (56).
   - Exits: Time Attack → stage select (5); Classic/Adventure → dispatcher → DV1; RETURN → hub.
 - **Time Attack stage select (spec_stageselect.md):**
@@ -335,6 +335,95 @@ Method: `tools/re/member_map.py` (gdb) maps each frame's member offsets to objec
   12 on the break frame (traces mon and inv, DV1 crystal monitors; RE Frames::event_func_2623 plays 307 for the whole
   monitor group, so the invincibility monitor shares it). Rock break = 13 (spiral_dv1). Attack hit on a monitor 21.
 - **BGM:** ChowdrenAudio loops whole files (no loop points, SD); the port's ADPCM seam fix is D-033.
+
+## Session 10: Carol (specs build/re/spec_carol_moves.md, spec_carol_combat.md, spec_carol_bike.md; port src/characters/carol.inc, carol_bike.inc)
+Carol is MV.A = 2 on foot and MV.A = 3 on the motorbike. Everything below is RE from the executable and was then
+checked against original traces (53 scripts in tests/orig_carol, CSVs in build/orig_traces/carol, compared by
+tools/orig/cmp_carol.py) unless it is marked INFERRED. The user's PC saves unlock Carol in the original; they were used
+only to run the original from /home/claude/fprun_user (the port never reads them).
+
+**Trace alignment (harness rules, RV):** port row f is compared with original row f + 2 (port frame f = original
+logic frame f + 1). Animation frames: port row f against original row f + 3, because the port ticks the animation at
+the end of its frame. Original sound frame F = port frame F − 1. Script `a b KEY` holds the key for frames a..b−1, so
+`100 100 X` sends nothing (use ≥ 2 frames).
+
+**Identity and constants (RE 1555/1543, 1560-1563):**
+
+| | on foot | on the bike |
+|---|---|---|
+| C top run speed | 5 | 8 (10 with nitro) |
+| D speed cap | 12 (15 under water) | 15 |
+| E acceleration | 0.07375 | 0.06 with a direction held, 0.00575 idle, 0.36 during nitro (RV; the RE table alone gave 0.00575) |
+| I gravity | 0.25 | 0.3 |
+| jump | −7, release cap −3, sound 8 | same, sound 232 |
+| energy | +0.25/frame outside M44 (1663) | same |
+
+**OTHERS.Y drives Carol's animations.** The port keeps a copy (`p->cY`) and selects animations from it (2426-2470):
+force_speed persists until restore_speed (2490 runs while Y is not in {1, 2, 8, 15, 26, 40}); force_frame(6) is
+clamped to the animation's frame count; on the bike the bike skin's speeds are restored except M32 (100) and the pad
+hop (35). Carol's tail and her on-foot skin (PSC) keep animating while hidden on the bike, and PSC's frame times the
+claw, kick and wall events (`carol_skin_frame`).
+
+**Moves (RE, all traced):**
+- Pounce (her air move): B = ±max(|B|, 5) toward the facing side, Y = 24, M = 0, sounds 154 (+ voice 133 with a
+  10 s cooldown); while Y = 24 |B| ≥ 6 every frame. From the crouch: B = 8Q, G = −3. Re-pounce after a cancel is
+  allowed (c_pounce_chain).
+- Wild Claw combo (M20, skin anims 25/26/29, sounds 410-412 + 50 % voice), big slash after a pounce/roll/ball jump
+  (shield dir 30/14, sound 414). Shields: counter 200 at creation, the first update advances two frames, lifetime =
+  number of images (RV c_claw_hit2).
+- Wild Kick (M44, special held, energy ≥ 20): energy −1.5/frame while L ≤ 20, shields on skin frames 2/5/7, kick E
+  reads 2, 10-frame recovery.
+- Roll (M6) from Down at |B| ≥ 2; roll jump keeps the speed rules (S = 1); S = 0 only in the roll and in a kick started
+  from the roll (1862/1863 set S = 1).
+- Wall cling M47 (1771/1793/1905, 2173-2183): 2177 lets go when the toward-wall direction is NOT held (that branch
+  needs A = 2, so the bike only lets go at the floor or at the wall end); grab sound 33 on PSC frame 1, once; wall
+  jump B = −3Q, G = −7, sound 117.
+- M1 converts Y 0-2/4-7/40 to 3; landing sound 161 only on the M1 landing (1807); skid Y = 6 from the 2nd skid frame,
+  sound 6 (shared with Lilac).
+
+**Bike (RE + RV):**
+- Fuel can (ObjectFuel, OT_FUEL 158): touching it on foot mounts at once (sound 126); the pick-up runs after the
+  movement and the animation events. A can restores the bike's 3 hit points.
+- Engine: samples 159 (ch 9) and 160 (ch 10) looping; ch10 = 22000 + 7000·rev Hz, ch9 vol max(0, 100 − 20·rev),
+  ch10 vol clamp(60·rev); starts the frame after A = 3. Rev on the wall follows G before the climb. Skid loops 162.
+- Air jump M32 (sounds 232 + 409): 2167 caps G = min(G, 1 − BSK.B) while BSK.B > 2; PAV_B.O is reset only in the
+  grounded M0 group (1741).
+- Nitro: special + a direction on the ground: B ≥ 10, sound 387, G timer decremented before the end test, no clamp.
+- Ram (2738/2739): |B| > 5 into an enemy, enemy A −= |0.25B| + 1, sound 24, cooldown K = 3.
+- Dismount (crouch + jump, 1828) leaves a parked bike (OT_PBIKE 159) that collides with its whole image box; falling
+  onto it remounts (2109, sound 126, keeps its damage). Third hit wrecks it (1285: C ≤ 1 tested before the decrement):
+  explosion, sound 29, 4 debris.
+- Item pick-ups while riding use the position before the move.
+- Exhaust (2129): EffectsDust01 every 8th frame standing / 4th moving, not in water or nitro. Its constructor (RE
+  create_effectsdust01_369) sets blend alpha 0x74, a random direction of 32 (one cross_seed step) and BallMovement
+  speed 9 (1.125 px/frame). The port drew these puffs from the wrong atlas (invisible) until session 10's fix.
+
+**Jump pads (ObjectJumppad, M48 2184-2196, 4931-4949):** the first M48 frame still moves with the jump; in flight G
+gets gravity; on a pad G = 0.25 and a 2 px push-out; PSC.L is both the kick counter and the pad count; the launch keeps
+Y = 23 (M40 sets 40 on the next frame). Lilac on a pad: it goes dark and two crystals pop out (4944, 3275).
+
+**Sound groups (port, Flycast RV):** 1812 KB of samples at boot overflowed AICA RAM (ARM CPUUndefinedException). A
+shared set loads at boot and one character group at level load: Lilac 9 21 31 174 176 288-290 314 396 405 + 16 voices;
+Carol 33 61 113-122 126 128 133 139-141 154 159-162 232 387 409-414. Largest free block after loading: 389 KB (Lilac),
+351 KB (Carol).
+
+**Still INFERRED or not ported:** stopping sample 413 at the kick end; claw pitch; DV4 block pad 5356; the 2443 Y12
+timer (33 frames); bored-idle variants; spin-shield angle; debris direction; monitor smash on the bike through
+attack_kind; a few bike-skin animations without original data. Random voice/pitch choices differ (the port's random
+seed is not synced with the original).
+
+## PC save files (reference for the VMU save; the port does not read or ship them)
+`file1..8.sav` and `records.dat` are Clickteam ArrayObject files (RV, parsed from the user's copies):
+`"CNC ARRAY\0"`, u16 2, u16 0, i32 X, Y, Z, i32 flags (5 = numeric + base 1), then X·Y·Z int32 (x fastest).
+- `file<n>.sav`: X 3, Y 99, Z 1 (1218 bytes). Column x1 holds the file fields read by the hub (spec_hub_menu_file §6.4):
+  y1 lives, y4 crystals, y5 stage progress (StageIDList index), y6 play time in ms (> 0 = file exists), y7 deaths,
+  y8 character (0 Lilac, 2 Carol, 4 Milla in these files), y9 crystal counter, y12 mode (0 Adventure, 1 Classic).
+  Column x3 holds blocks of 5 rows from y11 on: time in ms, a count, and a small number per stage (INFERRED meaning:
+  best time, crystals, deaths per stage).
+- `records.dat`: X 20, Y 100, Z 1 (8030 bytes): options and records (y35 + 1 = default difficulty; x2 y42 decides the
+  opening cutscene).
+- The port's FPDC.SAV keeps the same per-file fields in 515 bytes (lives, crystals, stage, time, deaths, character,
+  mode); a per-stage record block like column x3 would fit the remaining VMU blocks if it is ever needed.
 
 ## Loading pipeline (session 7, measured with src/game/loadprof.c)
 Per load the profiler logs: heap (mallinfo), largest free VRAM, and time in open / read / texture upload / sfx / decode /

@@ -193,7 +193,7 @@ Every level, front-end and boot load runs behind a black loading screen with Obj
 | Title menu | 3 (cam 43,0) | fe_hub.c title_events | 63/64 | 380-392, console layout | GALLERY inert; QUIT hidden (console) |
 | File / mode select | 3 (cam 43,240) | file_events, delete_events | 63/64/56 | 393-437 | Adventure skips the cutscene; continue starts DV1 |
 | Options | 3 (cam 523,0) | options_events | 63/64 | 464-511 | Controls / screen size / sensitivity hidden (console); SFX volume display-only on host |
-| Character select | 6 | frontend.c FE_CHSEL | 63, 220, 56 | spec_charselect | Carol and Milla locked (port rule) |
+| Character select | 6 | frontend.c FE_CHSEL | 63, 220, 56 | spec_charselect | Lilac and Carol playable (session 10); Milla locked |
 | TA stage select | 5 | fe_stsel.inc | 63/64/56 | spec_stageselect | only Dragon Valley startable; BG parallax drift not ported; confirm 3 frames late |
 | Pause | 20 (DV1) | game.c pause_* | 63/64/56 | 4878-4881, 4296-4305, 3551 | QUIT from Classic → hub |
 
@@ -228,3 +228,23 @@ cork, cam, res, draw = game_draw incl. wait, submit = list submission, wait = pv
 the stream thread), `frame_avg` and `vblanks N per 600 frames` (pvr_get_vbl_count: 600 = no frame missed), then up to 8
 missed-vblank frames with their own update/draw split. Times are timer_us_gettime64 (emulated time in Flycast).
 Demo discs print `demo f` every 600 frames (console output is slow; the report frame is excluded from the pacing).
+
+## Session 10: Carol (port: src/characters/carol.inc, carol_bike.inc, player.c; src/game/combat.c, game.c)
+- Characters: CHR_LILAC 0, CHR_CAROL 2, CHR_CAROL_BIKE 3 (= the original's MV.A). Host `FP_CHAR=<id>`, demo discs
+  `CHAR <id>`; character select sets G.character; a file slot saved on the bike starts on foot (hub).
+- States: ST_CLAW 17 (M20), ST_WILDKICK 18 (M44), ST_WALL 19 (M47), ST_PAD 20 (M48), ST_BIKEAIR 21 (M32); the pounce
+  is ST_NORMAL with cY = 24, the roll is ST_ROLL (M6). `player_orig_m()` maps back to the original M for traces.
+- Player fields: cY (OTHERS.Y), cL/cA (PSC.L / PSC.A: kick counter, pad count, combo index), bikeB (BSK.B), bikeC
+  (bike hit points 3), c_pavO (PAV_B.O), pad* (pad ride), item_ovr (pre-move pick-up position).
+- Objects: OT_FUEL 158 (jerry can), OT_PBIKE 159 (parked bike); pads are created by pads_spawn() from per-level
+  tables (PADS_DV2/DV3/DV4) in objects_spawn.
+- Banks: carol2 (skin, palette pal2c.pal replaces bank 2), caroltail (overlay), carolbike (BSK + pbike + effects);
+  carol2 and carolbike have second atlases (`_2.tex`).
+- Event order per frame (Carol): energy → movement (bike_phys after water) → state switch (claw/kick/wall/bikeair/pad)
+  → fuel_events → pads_events → Carol group (timers, bike_events, 2432, roll ball, Y9/Y13) → animation (cY → anim,
+  tail, PSC) → engine update.
+- Sounds: loaded per character at level load (`snd_group_load`); bike engine through `snd_loop_start/set/end`
+  (DC: snd_sfx_play_ex looping + AICA_CH_CMD_UPDATE for volume/frequency).
+- Traces: tests/orig_carol/*.txt (c_ on foot DV1, b_ on the bike DV1, c_jumppad_dv2 DV2), CSVs build/orig_traces/carol,
+  compared by tools/orig/cmp_carol.py (V=1 prints the first mismatching frame per field). Host CSV columns added:
+  M, cY, cA, cL, cS, aname, inv, hafr, sacc, hacc, rev; host f-line adds chr, bike, bc, oy.
