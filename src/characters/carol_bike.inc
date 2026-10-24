@@ -241,32 +241,21 @@ static void fuel_events(player_t *p) {
 }
 
 /* ---- jump pads (ObjectJumppad_539 / 1104): configuration (3564 + 4950-4957 / 5169-5180 / 5355-5366) ---- */
-typedef struct { short x, y, A, B, D, E; } padcfg_t;
-static const padcfg_t PADS_DV2[] = { {2736,1144,0,0,0,1}, {2936,992,1,90,0,0}, {2912,688,2,180,0,0}, {3176,688,3,180,1,0},
-    {3400,1416,4,0,0,1}, {3400,1224,5,180,0,0}, {3728,1224,6,180,0,0}, {4032,1224,7,180,1,0} };
-static const padcfg_t PADS_DV3[] = { {7408,2200,0,90,0,1}, {7072,1952,1,270,0,0}, {7344,1952,2,90,1,0}, {680,1776,3,0,0,1},
-    {744,1528,4,90,0,0}, {256,1328,5,270,0,0}, {520,1064,6,0,0,0}, {776,1064,7,0,0,0}, {128,1704,8,270,0,1}, {384,1776,9,0,1,0},
-    {4736,2104,10,0,0,1}, {4904,1920,11,180,0,0}, {5136,2104,12,0,0,0}, {5408,1864,13,180,0,0}, {5664,1712,14,180,1,0} };
-static const padcfg_t PADS_DV4[] = { {4040,2296,0,0,0,1}, {4368,2152,1,180,0,0}, {4616,2160,2,0,0,0}, {4864,2168,3,180,0,0},
-    {5136,2152,4,180,0,0}, {5296,2152,5,0,0,0}, {5504,2176,6,90,0,0}, {5344,2096,7,270,0,0}, {5344,2000,8,270,1,0},
-    {10120,2134,9,-45,0,1}, {10400,2024,10,180,0,0}, {10432,1992,11,270,1,0} };   /* pad 9: B = -4.5 (stored x10) */
+/* the per-pad configuration (index A, angle B, chain end D, lit E) is level data: level_def_t.pads (src/game/levels.c) */
 #define PAD_A(o) ((o)->st)
 #define PAD_D(o) ((o)->tm)
 #define PAD_E(o) ((o)->av[0])
 #define PAD_F(o) ((o)->av[1])
 static double pad_B(const obj_t *o) { return o->av[2]; }
 void pads_spawn(void) {
-    const padcfg_t *t = NULL; int n = 0;
-    if (!strcmp(G.lvdir, "dv2")) { t = PADS_DV2; n = sizeof PADS_DV2 / sizeof *t; }
-    else if (!strcmp(G.lvdir, "dv3")) { t = PADS_DV3; n = sizeof PADS_DV3 / sizeof *t; }
-    else if (!strcmp(G.lvdir, "dv4")) { t = PADS_DV4; n = sizeof PADS_DV4 / sizeof *t; }
+    const padcfg_t *t = level_cur()->pads; int n = level_cur()->npads;
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i];
         if (!o->alive || o->type != OT_JUMPPAD) continue;
         o->st = -1; o->tm = 0; memset(o->av, 0, sizeof o->av);
         for (int k = 0; k < n; k++) if (t[k].x == (int)o->x && t[k].y == (int)o->y) {
-            o->st = t[k].A; o->tm = t[k].D; o->av[0] = t[k].E; o->av[2] = t[k].B == -45 ? -4.5 : t[k].B;
-            o->dir = !strcmp(G.lvdir, "dv4") && (t[k].A == 0 || t[k].A == 9);  /* DV4 block pads (anim 7) */
+            o->st = t[k].A; o->tm = t[k].D; o->av[0] = t[k].E; o->av[2] = t[k].B;
+            o->dir = t[k].blk;                                                   /* DV4 block pads (anim 7) */
         }
         if (o->st < 0) o->alive = o->x >= 0 && o->y >= 0 ? 1 : 0;           /* DV1's single pad is off the map (inert) */
         o->layer = 2;

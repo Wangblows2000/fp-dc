@@ -47,7 +47,6 @@ static int orig_M(const player_t *p) { return player_orig_m(p); }
 static double pB(const player_t *p) { return p->ground ? p->gsp : p->vx; }
 
 /* ================================================================ spawn */
-static int at(void) { return aqua_level(); }
 static void path_init(obj_t *o, double B, double C, double F, double Gm, double E0) {
     o->ox = o->x; o->oy = o->y;                     /* 3565: I = X, J = Y */
     o->av[0] = 0; o->av[1] = E0; o->av[3] = B; o->av[4] = C; o->av[5] = F; o->av[6] = Gm;
@@ -59,7 +58,6 @@ void aqua_gim_spawn(void) {
     if (!reg) { reg = 1; snap_register(&wplate_latch, sizeof wplate_latch); snap_register(&pgaF, sizeof pgaF); }
     wplate_latch = 0; pgaF = 0;
     if (pipe_ch >= 0) { snd_loop_stop(pipe_ch); pipe_ch = -1; }
-    int a = at(); if (!a) return;
     int npipe = 0, ncog = 0;
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i];
@@ -349,10 +347,8 @@ static void slime_raft(player_t *p) {
  * pass, not in objects_platforms(): a4_raft, a1_plates, a3_crusher, a2_beam and a2_crusher only match that way (the raft
  * starts, the door moves, the pillar carries on the frame the sensors first reach them). The RE call order puts these
  * events before the movement call; the port's frame boundary differs from that (see RE_NOTES session 12). */
-void aqua_platforms(player_t *p) { (void)p; }
 void aqua_gim_post(player_t *p) {
-    int a = at();
-    if (!a) return;
+    if (!objects_have_from(OT_DIGSPOT)) return;   /* nothing of this family placed (Dragon Valley) */
     path_step();                             /* 3270-3289 */
     carry(p);                                /* 4061 */
     /* session 13: every pass runs on every level and acts only on its own object types (the act tests are gone; the

@@ -483,9 +483,9 @@ static int sbb_on_type(int type) {                       /* S_BB overlaps any in
     for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == type && sens_on_obj(SENS_BOTTOMBIG, &G.o[i])) return i;
     return -1;
 }
-static int q27_type(void) {                              /* QualifierList +0x22210: spiral mask (DV1/DV2), ball tunnel (DV3) */
-    if (!strcmp(G.lvdir, "dv1") || !strcmp(G.lvdir, "dv2")) return OT_SPIRAL_MASK;
-    if (!strcmp(G.lvdir, "dv3")) return OT_BALLTUNNEL;
+static int q27_type(void) {                              /* QualifierList +0x22210: spiral mask (DV1/DV2), ball tunnel (DV3): whichever the level places */
+    if (objects_have(OT_SPIRAL_MASK)) return OT_SPIRAL_MASK;
+    if (objects_have(OT_BALLTUNNEL)) return OT_BALLTUNNEL;
     return -1;
 }
 static struct { int g40, g41, g42, g43, g44, push_prev11, skinL; } TN;
@@ -577,8 +577,8 @@ void spiral_front_draw(void) {
 /* ---- spinning logs (DV2, 4980-4986). Log: av[0] = A (spin), dir = direction 0..31; mask: av[0] = A (sink).
  * ML.C = ML.B + 3 cos(1.5 t), ML.B = 2700 (5109 / 4270; t = the global counter, offset INFERRED 0) */
 void spinlogs_update(player_t *p) {
-    if (strcmp(G.lvdir, "dv2")) return;
-    double MLC = 2700 + 3 * c_cos(fmod(1.5 * G.frame, 360.));
+    if (!objects_have(OT_SPINLOG)) return;                                                 /* any level that places spinning logs */
+    double MLC = (level_cur()->water ? level_cur()->water : 2700) + 3 * c_cos(fmod(1.5 * G.frame, 360.));   /* ML.B = the level's water line */
     int L = p->ground, on_mask = 0;
     for (int i = 0; i < G.nobjs; i++) {                                                  /* 4980 */
         obj_t *o = &G.o[i];

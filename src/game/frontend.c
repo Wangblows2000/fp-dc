@@ -417,7 +417,7 @@ static void chsel_update(const input_t *now) {
         wipe.on = 0;
         if (C.exit_to == 3) { set_state(FE_HUB); hub_enter(); }
         else if (C.exit_to == 5) { if (scr_load(1) == 0) { set_state(FE_STSEL); stsel_enter(); } }
-        else { const char *lv = chr_is_milla(G.character) ? "at1" : "dv1"; fe_unload(); game_start_adventure(lv, 0); }   /* RE 799: Classic with G1 == 4 -> frame 16 (Aqua Tunnel 1) */
+        else { const char *lv = level_route_start(G.character); fe_unload(); game_start_adventure(lv, 0); }   /* RE 799: the character's first stage (levels.c) */
     }
 }
 static void chsel_draw(void) {
@@ -456,12 +456,12 @@ void fe_update(const input_t *in) {
         if (ex == HUB_EXIT_TIME_ATTACK) { fe_mode = 0; if (scr_load(0) == 0) { set_state(FE_CHSEL); chsel_enter(); } }
         if (ex == HUB_EXIT_NEW_CLASSIC) { fe_mode = 1; fe_new_file(1); if (scr_load(0) == 0) { set_state(FE_CHSEL); chsel_enter(); } }
         if (ex == HUB_EXIT_NEW_ADVENTURE) {   /* original: frame 81 (opening cutscene, not ported) -> DV1 */
-            fe_mode = 2; fe_new_file(0); G.character = CHR_LILAC; fe_unload(); game_start_adventure("dv1", 0);
+            fe_mode = 2; fe_new_file(0); G.character = CHR_LILAC; fe_unload(); game_start_adventure(level_route_start(CHR_LILAC), 0);
         }
         if (ex == HUB_EXIT_CONTINUE) {        /* original: frame 8 (stage from the save); the port has Dragon Valley only */
             fe_mode = SV.file[hub_selected_file()].mode ? 1 : 2; G.file_slot = hub_selected_file();
             G.character = SV.file[hub_selected_file()].character == CHR_CAROL_BIKE ? CHR_CAROL : SV.file[hub_selected_file()].character;
-            fe_unload(); game_start_adventure(chr_is_milla(G.character) ? "at1" : "dv1", 0);   /* Milla's route starts at Aqua Tunnel (RE 799) */
+            fe_unload(); game_start_adventure(level_route_start(G.character), 0);   /* the route's first stage (RE 799; the saved stage is not used yet) */
         }
         break;
     }

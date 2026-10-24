@@ -524,6 +524,11 @@ void   enemies_absorb_crystals(void);
 /* src/game/aqua.c (Aqua Tunnel, session 12) */
 int    aqua_level(void);                      /* act 1-4 in Aqua Tunnel, else 0 */
 /* level definitions (src/game/levels.c): per-act data read by the shared code */
+typedef struct { short x, y, A; float B; short D, E, blk; } padcfg_t;   /* Carol's jump pad at (x, y): index A, angle B, chain end D, lit E, block pad */
+typedef struct { short x0, x1, y0, y1; } zone_t;                        /* a box in original MV coordinates (x0..x1, y0..y1 inclusive) */
+typedef struct { short x0, x1, g4, x, y; } cpzone_t;                    /* checkpoint: x0 < X < x1 and g4 below -> g4 / g5 / g6 = g4, x, y */
+typedef struct { short g4_max, lock_x, lock_ymin, lock_ymax, l, t, r, b, unlock_x, unlock_y; } camzone_t;   /* boss camera lock (see levels.c) */
+typedef struct { short x0, x1, y0, y1; signed char who, jelly; } killbox_t;   /* items removed at the act start: who 0 all, 1 not Milla, 2 Milla */
 typedef struct {
     const char *dir; int frame, stage, act, nacts;   /* data dir, original frame index, stage record index (Time Attack icon E), act n of nacts */
     const char *music, *music_cp;                    /* stage music; after checkpoint g4 >= 10 (AT2 after the Chomper) */
@@ -534,19 +539,33 @@ typedef struct {
     /* per-level parameters of shared objects (the original sets them in that frame's events) */
     int axel2_top;                                   /* AxelPlatform2 (made by AxelPlatformMaker2) removed above this Y (AT1 4087 320, AT4 4552 0) */
     int pipe_auto_y;                                 /* > 0: the rotating pipes also turn back when MV.Y > this (AT3 4507: 2900) */
-    int plate_rule, switch_late;                     /* switches.c: pressure-plate rule (0 DV 4971-4973, 1 AT1 4093-4096), pass after the movement */
+    const padcfg_t *pads; int npads;                 /* Carol's jump pads (ObjectJumppad_539 / 1104: 3564 + DV2 4950-4957, DV3 5169-5180, DV4 5355-5366) */
+    const zone_t *dig_zones; int ndig_zones;         /* Milla's dig zones: MILLA.D = 1 inside (AT1 4171-4182; 3313 clears it) */
+    int plate_rule, switch_late;
+    /* stage flow (the frame's own events; spec_at_flow): checkpoints, the boss camera, act-start item sets, bounds */
+    int checkpoints;                                 /* 1: start / restart rule 2955-2957 + 3578 with the global values g4 / g5 / g6 (no floor snap, walk-in from x -32) */
+    int start_fall;                                  /* a fresh start drops in with the fall pose OTHERS.Y 3 (AT1 4307 / 4308) */
+    const cpzone_t *cps; int ncps;
+    const camzone_t *boss_cam;
+    const killbox_t *kills; int nkills;
+    int cam_right;                                   /* normal right camera bound E (sign X + 213); 0 = the frame width */
+    int cam_cp10_left, cam_cp10_pad;                 /* once g4 >= 10 (AT2's Chomper beaten): C = left, E = width + pad */
+    const short *sfx; int nsfx;                      /* the stage's own sound ids (loaded with the level, D-047) */
+    int monitor_hop;                                 /* 2605: a monitor hops when bumped from below (D-051: AT only, DV keeps its traced behaviour) */                     /* switches.c: pressure-plate rule (0 DV 4971-4973, 1 AT1 4093-4096), pass after the movement */
 } level_def_t;
 const level_def_t *level_def(const char *dir), *level_cur(void);
-const char *level_first_of_stage(int stage), *level_next(const char *dir);
-void   aqua_platforms(player_t *p);           /* AT platform / gimmick block before Lilac's movement (aqua_gim.c) */
+const char *level_first_of_stage(int stage), *level_next(const char *dir), *level_route_start(int character);
+int objects_have(int type), objects_have_from(int type);
+void level_flow_spawn(void), level_flow_frame(const player_t *p), level_camera_bounds(void), level_release_camera(int keep_trigger);
+int  level_cam_locked(void);   /* a placed object of this engine type (of any type >= this) exists in the level (set at spawn) */
 void   aqua_gim_spawn(void), aqua_set_input(const input_t *in), aqua_gim_post(player_t *p);
 int    aqua_gim_obj(obj_t *o);                /* 1: an aqua_gim.c type (no generic object code) */
 int    obj_px(const obj_t *o, int wx, int wy); /* world pixel of an object's current (rotated) mask */
 int    mon_type(int t), mon_thrown(const obj_t *m);   /* src/game/monitors.c (spec_milla_monitor_carry) */
 obj_t *mon_pick(int sensor, int need_b_pos, int need_rest);
 void   monitors_frame(player_t *p);
-void   aqua_boss_spawn(void), aqua_boss_update(player_t *p), aqua_boss_draw_hud(void), aqua_blast(float x, float y), aqua_release_camera_keep(void);
-int    aqua_boss_obj(const obj_t *o), aqua_worm_on_plate(const obj_t *pl), aqua_cam_locked(void);
+void   aqua_boss_spawn(void), aqua_boss_update(player_t *p), aqua_boss_draw_hud(void), aqua_blast(float x, float y);
+int    aqua_boss_obj(const obj_t *o), aqua_worm_on_plate(const obj_t *pl);
 extern int aqua_snake_kill_frame;
 int    mv_sensor_pos(int s, int *x, int *y);  /* placed sensor position (Chowdren x, y) */
 void   aqua_spawn(void), aqua_pre(player_t *p), aqua_update(player_t *p);
@@ -554,7 +573,7 @@ int    aqua_obj_update(obj_t *o, player_t *p);
 int    aqua_dig_hint(void), aqua_obj_alpha(const obj_t *o);
 void   aqua_jelly_box(const obj_t *o, float *x0, float *y0, float *x1, float *y1), aqua_monitor_broken(const obj_t *m), aqua_maker_start(void);
 void   aqua_spring(obj_t *o, player_t *p);
-void   aqua_camera_bounds(void), aqua_release_camera(void), aqua_prerun(int n);
+void   aqua_prerun(int n);
 extern int aqua_gt_off;
 /* src/game/gimmicks.c */
 void   spikes_update(obj_t *o, player_t *p), rspring_update(obj_t *o, player_t *p);

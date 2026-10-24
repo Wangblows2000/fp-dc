@@ -22,10 +22,11 @@ static void level_start(void) {
     float stx = 0, sty = 0;
     for (int i = 0; i < G.lvl.nobj; i++)
         if (G.lvl.objs[i].type == OT_START) { G.p.spawn_x = stx = G.lvl.objs[i].x; G.p.spawn_y = sty = G.lvl.objs[i].y; }
-    int at = aqua_level();
+    const level_def_t *L = level_cur();
+    int at = L->checkpoints;                                        /* levels with the g4 / g5 / g6 start rule (level data) */
     if (at) {                                                       /* RE 2955-2957 (spec_at_flow 1.4 / 1.5): no floor snap */
         if (strcmp(G.at_dir, G.lvdir) && !G.act_carry) G.at_g4 = 1;   /* a fresh start of this act */
-        if (at == 1 && G.at_g4 < 1) G.at_g4 = 1;                    /* 4307 */
+        if (L->start_fall && G.at_g4 < 1) G.at_g4 = 1;              /* 4307 */
         snprintf(G.at_dir, sizeof G.at_dir, "%s", G.lvdir);
         if (G.act_carry) G.at_g4 = -1;                              /* 3578: act change -> walk-in from x -32 */
         if (G.at_g4 <= 0) { G.p.spawn_x = -32; G.p.spawn_y = sty + 16 + ORIG_REF_DY; }
@@ -38,7 +39,7 @@ static void level_start(void) {
     }
     /* crystals, lives, energy persist across restarts (RV: debug restart kept them) */
     player_reset(&G.p, G.p.spawn_x, G.p.spawn_y);
-    if (at) { G.p.ground = 0; G.p.face = 1; if (at == 1 && G.at_g4 == 1) G.p.cY = 3; }   /* L = 0 (2955-2957); AT1 fall pose OTHERS.Y 3 (4308) */
+    if (at) { G.p.ground = 0; G.p.face = 1; if (L->start_fall && G.at_g4 == 1) G.p.cY = 3; }   /* L = 0 (2955-2957); AT1 fall pose OTHERS.Y 3 (4308) */
     objects_spawn();
     results_reset();
     G.clear_t = 0; G.act_in = 0; G.act_fade = 0; G.frame = 0; G.card_t = 0; G.paused = 0;
@@ -105,7 +106,7 @@ static int chr_crcs(const char *dir, int who, uint32_t c[8]) {
     return 0;
 }
 
-static void snd_stage_load(int at);
+static void snd_stage_load(const short *ids, int n);
 /* every level lives in its own data dir (own palettes + Lilac bank; tools/build_level.sh) */
 int game_load_level(const char *dir) {
     uint32_t want_crc[8];
@@ -114,10 +115,10 @@ int game_load_level(const char *dir) {
     int keep = chr_resident && chr_resident_who == who && chr_crcs(dir, who, want_crc) == 0 && !memcmp(want_crc, chr_crc, sizeof chr_crc);
     if (keep) level_free(); else game_unload_all();
     loading_begin(dir);                            /* silent loading screen (src/game/loading.c) */
-    int at_stage = !strncmp(dir, "at", 2);
-    if (!at_stage) snd_stage_load(0);              /* free another stage's set first (D-047) */
+    const level_def_t *ld = level_def(dir);
+    if (!ld->nsfx) snd_stage_load(NULL, 0);        /* free another stage's set first (D-047) */
     snd_group_load(who);                           /* the character's own sounds (sound RAM holds one set) */
-    snd_stage_load(at_stage);                      /* Aqua Tunnel's own sounds */
+    snd_stage_load(ld->sfx, ld->nsfx);             /* the stage's own sounds (level data) */
     snprintf(G.lvdir, sizeof G.lvdir, "%s", dir);
     int bad = 0;
     char nm[48];
@@ -240,17 +241,21 @@ static int snd_group = -1;
 /* Aqua Tunnel (session 12, D-047): the stage's own sounds load with an AT act and are freed for every other stage, like
  * the character groups (sound RAM cannot hold every stage's set): pipes 62, bombs 172/173, jets 240, crate 278, dig 306,
  * shields 308/316, Iron Worm 242/55/69, Chomper / snake 69/99/251/252 */
-static const int SND_AT[] = { 55, 62, 69, 99, 172, 173, 240, 242, 251, 252, 278, 306, 308, 316 };
-static int snd_at_on = -1;
-static void snd_stage_load(int at) {
+/* the stage's own sound group (level_def_t.sfx, D-047): sound RAM holds one stage set besides the shared and character sets */
+static const short *snd_stage_cur; static int snd_stage_n = -1;
+static void snd_stage_load(const short *ids, int n) {
     char nm[48];
-    if (snd_at_on == at) return;
-    for (int i = 0; i < (int)(sizeof SND_AT / sizeof *SND_AT); i++) {
-        int id = SND_AT[i];
-        if (!at && snd_handle[id] >= 0) { snd_unload(snd_handle[id]); snd_handle[id] = -1; }
-        if (at && snd_handle[id] < 0) { snprintf(nm, sizeof nm, "sfx/s%d.wav", id); snd_handle[id] = snd_load(nm); loading_tick(); }
+    if (snd_stage_n >= 0 && snd_stage_cur == ids && snd_stage_n == n) return;
+    for (int i = 0; i < (snd_stage_n > 0 ? snd_stage_n : 0); i++) {          /* free the previous stage's set first */
+        int id = snd_stage_cur[i], keep = 0;
+        for (int k = 0; k < n; k++) keep |= ids[k] == id;
+        if (!keep && snd_handle[id] >= 0) { snd_unload(snd_handle[id]); snd_handle[id] = -1; }
     }
-    snd_at_on = at;
+    snd_stage_cur = ids; snd_stage_n = n;
+    for (int i = 0; i < n; i++) {
+        int id = ids[i];
+        if (snd_handle[id] < 0) { snprintf(nm, sizeof nm, "sfx/s%d.wav", id); snd_handle[id] = snd_load(nm); loading_tick(); }
+    }
 }
 static int in_group(const int *g, int n, int id) { for (int i = 0; i < n; i++) if (g[i] == id) return 1; return 0; }
 uint32_t prof_acc[PS_N], prof_max[PS_N];
@@ -363,7 +368,7 @@ void game_dev_select(void) {
 void camera_reset(void) {
     const player_t *p = &G.p;
     G.cam_nC = 0; G.cam_nE = (float)G.lvl.w; G.cam_m2 = 0;
-    aqua_camera_bounds();                                          /* AT per-act normal bounds (spec_at_flow 3.1) */
+    level_camera_bounds();                                         /* per-level normal bounds (levels.c, spec_at_flow 3.1) */
     G.cam.A = p->x; G.cam.B = p->y - 14.f; G.cam.W = G.cam.G = G.cam.H = G.cam.S = G.cam.T = G.cam.N = G.cam.O = 0;
     G.cam.V = p->ground; G.cam.U = 0; G.cam.M3 = 0; G.cam.minC = 0; G.cam.cine = 0;
     float C = G.cam_nC, E = fminf(G.cam_nE, (float)G.lvl.w), D = 0, F = (float)G.lvl.h;
@@ -495,7 +500,7 @@ static void next_act(void) {
     /* RE (events 4526 / 5047): no stage card on an act change; a 32-frame fade from black while Lilac,
      * placed 50 px left of the start marker, walks in at B = 3 with no control; then control returns */
     G.card_t = CARD_DONE; G.act_in = 1; G.act_fade = 248;
-    if (!aqua_level()) G.p.x = G.p.spawn_x - 50;                 /* AT: x = -32 absolute (2955), level_start */
+    if (!level_cur()->checkpoints) G.p.x = G.p.spawn_x - 50;     /* checkpoint levels: x = -32 absolute (2955), level_start */
     G.p.face = 1;
     camera_reset(); camera_update();
 }
@@ -603,7 +608,7 @@ void game_update(const input_t *in) {
         double wb = level_cur()->walkin_still ? 0 : 3;
         if (G.p.ground) G.p.gsp = wb; else G.p.vx = wb;
         G.act_fade = G.act_fade - 8 < 0 ? 0 : G.act_fade - 8;
-        if (++G.act_in > 32) { G.act_in = 0; G.act_fade = 0; if (aqua_level()) G.at_g4 = 1; }  /* RE 5047 / 4404 / 4597: control returns at A >= 32, g4 = 1 */
+        if (++G.act_in > 32) { G.act_in = 0; G.act_fade = 0; if (level_cur()->checkpoints) G.at_g4 = 1; }  /* RE 5047 / 4404 / 4597: control returns at A >= 32, g4 = 1 */
     }
     if (G.clear_t) {                              /* RE 3311: grounded, B = max(B, 2), facing right */
         G.p.face = 1;

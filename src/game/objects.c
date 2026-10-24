@@ -6,6 +6,10 @@
 #include <stdlib.h>
 #include "../fp.h"
 
+static uint8_t have_type[32];   /* bit per engine type placed on the map (objects_spawn) */
+int objects_have(int type) { return (unsigned)type < 256 && (have_type[type >> 3] >> (type & 7) & 1); }
+int objects_have_from(int type) { for (int t = type; t < 256; t++) if (have_type[t >> 3] >> (t & 7) & 1) return 1; return 0; }
+
 static int A_EXPLODE = -1;
 /* recovered sequences (tools/import_frame.py) */
 static int A_TURR[6] = { -1, -1, -1, -1, -1, -1 };   /* idle, idle_l, shoot, shoot_l, off, off_l */
@@ -88,6 +92,9 @@ void objects_spawn(void) {
             if (A_GAN[1] >= 0) anim_set(&o->an, &G.objs, A_GAN[1]);
         }
     }
+    memset(have_type, 0, sizeof have_type);                 /* types placed on the map (objects_have; off-map templates do not count) */
+    for (int i = 0; i < G.lvl.nobj; i++) { const lvobj_t *lo = &G.lvl.objs[i];
+        if (lo->type < 256 && lo->x >= 0 && lo->y >= 0) have_type[lo->type >> 3] |= (uint8_t)(1 << (lo->type & 7)); }
     cards_spawn_all();
     pads_spawn();                                 /* jump pads: index, angle, chain end, lit (spec_carol_bike C2) */
     layers_refresh(&G.p);
@@ -136,7 +143,7 @@ void objects_plat_pretick(int n) {
     }
 }
 void objects_platforms(player_t *p) {
-    if (aqua_level()) { aqua_platforms(p); return; }   /* Aqua Tunnel: its own platform block (src/game/aqua_gim.c) */
+    /* every level: the passes act on their own types (Aqua Tunnel's own platform block is aqua_gim_post, after the movement) */
     /* DV3 gimmick blocks (5131-5234) run with the platforms, before Lilac's movement */
     wlogs_update(p); dv3_switch_update(p); trunks_update(p); bamboo_update(p); switches_update(p, 0);
     double MY = p->y - ORIG_REF_DY;
