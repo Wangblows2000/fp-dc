@@ -12,15 +12,16 @@ Native Dreamcast (KallistiOS) port of Freedom Planet. A custom C engine plays da
   Milla traces: `CHAR=4` (any frame; `FRAME=16` = Aqua Tunnel 1 for the dig); `<f> SETV others E 9999` makes her
   invulnerable (the host understands the same line). `tools/orig/start_orig.sh` → `tools/orig/route_dv1.sh` → `FRAME=<20 dv1 / 21 dv2 / 22 dv3 / 23 dv4> tools/orig/run_trace.sh <script> <out.csv> <frames>`. `XVT_EXTRA="name=0x<vtable+0x10>#<instance>"` logs extra objects. A teleport far from the start can be blocked by the camera bounds (sensors are clamped to them).
 - Trace scripts: `<f> TP x y`, `<f> EN v`, `<f> HP v`, `<a> <b> KEYS` (a 1-frame range sends nothing; use ≥ 2 frames).
-- Host-only debug script commands: `<f> MON <type>` (shield monitor ahead of Lilac), `<f> HURT <dx>`.
+- Host-only debug script commands: `<f> MON <type>` (shield monitor ahead of Lilac), `<f> HURT <dx>`, `<f> BOSSHP v` (AT boss HP).
+- Aqua Tunnel traces: `FRAME=16..19 CHAR=4`; run_trace.sh clears the AT checkpoint globals (`CP=keep` keeps them).
 - User PC: `C:\Users\wobbles\Desktop\Freedom Planet` (read-only input); deliverables go to its `fpdc\` subfolder.
 
 ## Pipeline
 See ASSET_PIPELINE.md (levels, UI, font, audio). Then:
 ```sh
-for l in "21 dv1" "22 dv2" "23 dv3" "24 dv4"; do set -- $l; tools/build_level.sh $1 $2 converted2; done
-make -C host && python3 tests/test_gameplay.py && python3 tests/test_frontend.py && python3 tests/test_carol.py && python3 tests/test_milla.py
-Q=1 tools/orig/cmp_all.sh && python3 tools/orig/cmp_carol.py && FR=295 python3 tools/orig/cmp_milla.py   # against the original's traces
+for l in "21 dv1" "22 dv2" "23 dv3" "24 dv4" "17 at1" "18 at2" "19 at3" "20 at4"; do set -- $l; tools/build_level.sh $1 $2 converted2; done
+make -C host && python3 tests/test_gameplay.py && python3 tests/test_frontend.py && python3 tests/test_carol.py && python3 tests/test_milla.py && python3 tests/test_aqua.py
+Q=1 tools/orig/cmp_all.sh && python3 tools/orig/cmp_carol.py && FR=295 python3 tools/orig/cmp_milla.py && python3 tools/orig/cmp_at.py   # against the original's traces
 source /opt/toolchains/dc/kos/environ.sh && make && make cdi        # build/fpdc.cdi (~300 MB)
 make cdi DEMO=tests/play/<route>.txt CDI=build/fpdc_demo.cdi        # verification disc: scripted input ("LEVEL dv1" line starts the act)
 ```
@@ -74,6 +75,40 @@ BUILD_AND_TEST_LOG "Session 11". Specs (build/re, not committed): spec_milla_mov
   pushables, the bike and the player's foot sensor do).
 - **VRAM:** 4 bpp overlays and split atlases for Lilac's banks (+300 KB free with Lilac in DV1).
 
+## Session 12 (2026-10-24): Aqua Tunnel
+Brief: port Aqua Tunnel (frames 16-19, frame_17..20.json, at1..at4) end to end for Milla. Details: RE_NOTES
+"Session 12", RUNTIME_MAP "Session 12", ASSET_PIPELINE "Session 12", DECISIONS D-045 to D-051, BUILD_AND_TEST_LOG
+"Session 12". Specs (build/re, not committed): at_inventory.md, spec_at_flow.md, spec_at_enemies.md,
+spec_at_gimmicks_a.md, spec_at_gimmicks_b.md, spec_ironworm.md, spec_chomper.md, spec_chompersnake.md,
+spec_milla_monitor_carry.md.
+- **Routes (D-046, reverses D-040):** only Milla reaches Aqua Tunnel: Classic / Adventure / Continue start at AT1, and
+  her Time Attack shows the AT icon in Dragon Valley's slot. Lilac and Carol keep DV (host-tested through every AT act).
+- **Stage:** the four acts with their parallax, water, music per checkpoint, act transitions (walk-in from x -32, AT3
+  top exit, AT4 through the results and raft exit), checkpoints, camera bounds and boss locks.
+- **Objects:** fireflies, slimes, whisps, aqua bricks, bomb / crate monitors, water jets and current, jelly and red
+  springs, dig spots, every gimmick of spec_at_gimmicks_b (platforms, plates / doors / gate, Milla block, wall plates +
+  pipes, beam, crushers, axels, swings, slime floor, rafts), the Iron Worm, the Chomper and the Chomper Snake.
+- **Milla:** monitor lifting / carrying / throwing (D-051), dig rewards live in AT1.
+- Traces: tests/orig_at (37 scripts), `python3 tools/orig/cmp_at.py`; host tests tests/test_aqua.py.
+
+## Aqua Tunnel: verified vs approximated
+- **Matched to original traces (RV, cmp_at, Milla):** slimes and their bursts, fireflies in the current, water jet from
+  the left, jelly jump / charge, red springs right / up-right / up, bomb walk, AT2 aqua brick platforms, AT1 plates +
+  floor doors, arena gate, axel makers and platforms, rotating pipes (wall plate push), rafts, slime floor damage,
+  collapsing platform walked onto, Iron Worm wake → emergence → spit cycle (exact), Chomper cycle and swallow (exact),
+  Chomper Snake raft ride → lunge / dive / home and the bomb catch (head exact).
+- **Traced with known differences:** collapsing platform triggered by a TP + jelly launch (port early); AT2 crusher
+  landing 3 frames late; spinning beam and AT3 slabs (a few frames); red spring left (decay); harness artifacts
+  (a1_jet_right TP into the jet, a2_reddown / a2_bomb_stand AT2 intro, a1_crate, a1_jelly_hold_right ceiling frame,
+  a1_start_right push at the widened jelly).
+- **RE only (no trace yet):** Chomper bites and defeat, snake hits / defeat / results / raft exit, Iron Worm defeat and
+  slam, Milla block, AT3 swings / axels, beam crush, the thrown-monitor flight (traces recording), AT1 dig rewards
+  except spot 0.
+- **INFERRED:** rotated mask collision model, card-frame object events (only the worm chain is pre-advanced), music
+  fade length at the Chomper's defeat, raft carry during the AT4 exit, draw order of slime over the snake, acid/rock
+  edge latches, shade drift.
+- **Not ported:** AT4 results voices and victory pose, Spade's hitboxes (not playable), the DV shade puff name bug.
+
 ## Milla: verified vs approximated
 - **Matched to original traces (RV):** walking / running, jump and release cut, float (start, rise, meter, end, refloat,
   walk-off, springs incl. Down), cube charge / cancel / appear / carry / throw / burst timing, shield (walk, decay,
@@ -83,20 +118,19 @@ BUILD_AND_TEST_LOG "Session 11". Specs (build/re, not committed): spec_milla_mov
   beam's first hit is 1 frame early; flap-sound cadence (frame-time timer in the original).
 - **RE only:** shield on springs / ladders, dig rewards (spots of Aqua Tunnel / Relic Maze), float under water (blocked
   by the swim rule), recoil under a ceiling (no low ceiling found near the DV1 start).
-- **Not ported:** lifting / throwing monitors and fuel cans (D-044), Aqua Tunnel / Relic Maze themselves (Milla's
-  Classic route starts there in the original: D-040), alternative palettes, idle voice variants.
+- **Not ported:** fuel cans for Milla, Relic Maze, alternative palettes, idle voice variants. (Monitor lifting and
+  Aqua Tunnel: session 12.)
 
 ## Latest verified
-- host-test: gameplay 72/72, front end 30/30, Carol 19/19, Milla 33/33. original-trace vs host: cmp_all 76/76, strict
-  11311/11377 (99.4%, unchanged); cmp_carol 53 traces, 43 exact in X/Y/B/G; cmp_milla 41 traces, 36 exact.
-- emulator (Flycast, session 11 build): Milla DV1 at 603 / 602 vblanks per 600 frames after the boot window (float,
-  cube, shields, beam); VRAM free after load DV1 Lilac 2541 / Carol 1981 / Milla 2181 KB, DV2 1707 / 1179 / 1347 KB; no
-  AICA crash with any sound group. **Emulator only; nothing measured on real hardware.**
+- host-test: gameplay 72/72, front end 30/30, Carol 19/19, Milla 33/33, Aqua 19/19. original-trace vs host: cmp_all
+  76/76, strict 11311/11377 (99.4 %, unchanged); cmp_carol 43/53; cmp_milla 37/42; cmp_at 21/35 exact.
+- emulator (Flycast, session 12 build, Milla): AT1-AT4 at 602-603 vblanks per 600 frames; VRAM free AT1 2570, AT2 1672,
+  AT3 3347, AT4 2816 KB; sound RAM 324 KB free. **Emulator only; nothing measured on real hardware.**
 
 ## Next actions
 1. Real hardware: run the session 11 disc and read the `perf:`/`prof` lines over serial (or watch for stutter); listen
    to Carol's and Milla's sounds and the bike engine loop.
-2. Milla: monitor lifting (2202-2205, 2230, 2233, 2246); Aqua Tunnel 1 as her first stage (dig spots, D-040).
+2. Aqua Tunnel traces still missing (TODO "Aqua Tunnel"): Chomper bites / defeat, snake hits / defeat, worm kill.
 3. Carol traces still to record: under water, the 3-hit wreck, death with the bike, DV3/DV4 pads (incl. the DV4 block
    pad 5356), bored idles; sync the original's cross_seed in the tracer to compare random voices.
 4. Flycast shows a +2.5 ms frame period about once per second in every scene; confirm on hardware whether it exists.
@@ -121,7 +155,7 @@ BUILD_AND_TEST_LOG "Session 11". Specs (build/re, not committed): spec_milla_mov
   is INFERRED from the DV1 rocks; the DV4 exit is RE-only (no original trace).
 - **INFERRED:** water tint extent (drawn full width below the surface, also over left foreground rocks); shield carry-over
   between acts; spinning-log phase (global counter offset); breath bubbles' SKIN condition; stage-select confirm timing.
-- **Not ported:** gallery, the original's game-over card, enemies' own water splashes, Milla's monitor lifting.
+- **Not ported:** gallery, the original's game-over card, enemies' own water splashes.
 
 ## Safety
 Never write to the user's game folders. extracted/, converted*/, build/, docs/reference/, tools/audio/wav2adpcm are gitignored. Never commit game data or decompiled output (`git ls-files` check before commits).
