@@ -30,6 +30,7 @@ void results_begin(int pathB) {
     memset(&R, 0, sizeof R);
     R.on = 1; R.pathB = pathB; R.signB = 179;
     R.time_frames = G.frame;
+    if (pathB == 2 && aqua_snake_kill_frame >= 0) R.time_frames = aqua_snake_kill_frame;   /* AT4: 4641 stopped the timer at the kill */
     R.bonus2 = G.keystones;
 }
 
@@ -55,6 +56,7 @@ input_t results_input(const input_t *in) {
     input_t none = {0};
     (void)in;
     if (!R.on) return *in;
+    if (R.pathB == 2) return none;                                       /* AT4 (4564 / 4588-4592): moved by results_update */
     if (R.pathB || R.wipe) { none.held = BTN_RIGHT; }                     /* 5388 CTRL.D = 1; wipe keeps her running */
     return none;                                                         /* 4561 CTRL.M = 1 (input locked) */
 }
@@ -63,7 +65,7 @@ input_t results_input(const input_t *in) {
 int results_update(player_t *p) {
     if (!R.on) {
         /* 5381 path B: X > frame width - 50 moving right (DV4 only) */
-        if (act_of(G.lvdir) >= 4 && p->x > G.lvl.w - 50 && (p->ground ? p->gsp : p->vx) > 0 && !serp_active()) results_begin(1);
+        if (act_of(G.lvdir) >= 4 && !aqua_level() && p->x > G.lvl.w - 50 && (p->ground ? p->gsp : p->vx) > 0 && !serp_active()) results_begin(1);
         return 0;
     }
     R.t++;
@@ -120,8 +122,21 @@ int results_update(player_t *p) {
             save_store();
         }
     }
+    if (R.pathB == 2) {                                                       /* AT4 (spec_at_flow 2.4): 4564 stand, exit group 4588-4592 */
+        if (R.signB >= 150 && R.svD < 150) { if (p->ground) p->gsp = 0; else p->vx = 0; }
+        if (R.svD >= 150) {
+            obj_t *raft = NULL; for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == OT_RAFT) { raft = &G.o[i]; break; }
+            float x2 = raft ? raft->x + 80 : (float)G.lvl.w;                        /* get_box_index(2): 160-px box, hotspot 80 */
+            if (p->x < x2 - 32) { p->face = 1; if (p->ground) p->gsp = 3; else p->vx = 3; }   /* 4588 */
+            else {                                                                  /* 4589: the raft moves on with her (INFERRED carry) */
+                if (p->ground) p->gsp = 0; else p->vx = 0;
+                if (raft) { raft->x += 4; p->x += 4; }
+                if (!R.wipe && p->x >= 7024) { R.wipe = 1; R.wipe_f = 0; R.wipe_x = -(SCREEN_W + 120); snd_play_orig(56, 230, 128); }   /* 4590 */
+            }
+        }
+    }
     /* 5382 / 5383 wipe: path B at D >= 150; path A when Lilac passes the right edge afterwards */
-    if (!R.wipe && R.svD >= 150 && (R.pathB || p->x > G.lvl.w - 50)) {
+    if (!R.wipe && R.pathB != 2 && R.svD >= 150 && (R.pathB || p->x > G.lvl.w - 50)) {
         R.wipe = 1; R.wipe_f = 0; R.wipe_x = -(SCREEN_W + 120); snd_play_orig(56, 230, 128);
     }
     if (R.wipe) {

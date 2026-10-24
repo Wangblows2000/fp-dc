@@ -110,6 +110,7 @@ static int chr_crcs(const char *dir, int who, uint32_t c[8]) {
     return 0;
 }
 
+static void snd_stage_load(int at);
 /* every level lives in its own data dir (own palettes + Lilac bank; tools/build_level.sh) */
 int game_load_level(const char *dir) {
     uint32_t want_crc[8];
@@ -118,7 +119,10 @@ int game_load_level(const char *dir) {
     int keep = chr_resident && chr_resident_who == who && chr_crcs(dir, who, want_crc) == 0 && !memcmp(want_crc, chr_crc, sizeof chr_crc);
     if (keep) level_free(); else game_unload_all();
     loading_begin(dir);                            /* silent loading screen (src/game/loading.c) */
+    int at_stage = !strncmp(dir, "at", 2);
+    if (!at_stage) snd_stage_load(0);              /* free another stage's set first (D-047) */
     snd_group_load(who);                           /* the character's own sounds (sound RAM holds one set) */
+    snd_stage_load(at_stage);                      /* Aqua Tunnel's own sounds */
     snprintf(G.lvdir, sizeof G.lvdir, "%s", dir);
     int bad = 0;
     char nm[48];
@@ -235,9 +239,24 @@ static const int SND_CAROL[] = { 33, 61, 113, 114, 115, 116, 117, 118, 119, 120,
                                  159, 160, 161, 162, 232, 387, 409, 410, 411, 412, 413, 414 };
 /* Milla (session 11; RE loop_sound_* Milla branches, spec_milla_*): hurt 179-182, die 178, float 244 + flaps 170, dig
  * 183-185, dig voices 186 / 202-204, idle voices 205-207, cube / shield 415-422 */
-static const int SND_MILLA[] = { 170, 178, 179, 180, 181, 182, 183, 184, 185, 202, 203, 204, 205, 206, 207, 244,
+static const int SND_MILLA[] = { 170, 178, 179, 180, 181, 182, 183, 184, 185, 201, 202, 203, 204, 205, 206, 207, 244,
                                  415, 416, 417, 418, 419, 420, 421, 422 };
 static int snd_group = -1;
+/* Aqua Tunnel (session 12, D-047): the stage's own sounds load with an AT act and are freed for every other stage, like
+ * the character groups (sound RAM cannot hold every stage's set): pipes 62, bombs 172/173, jets 240, crate 278, dig 306,
+ * shields 308/316, Iron Worm 242/55/69, Chomper / snake 69/99/251/252 */
+static const int SND_AT[] = { 55, 62, 69, 99, 172, 173, 240, 242, 251, 252, 278, 306, 308, 316 };
+static int snd_at_on = -1;
+static void snd_stage_load(int at) {
+    char nm[48];
+    if (snd_at_on == at) return;
+    for (int i = 0; i < (int)(sizeof SND_AT / sizeof *SND_AT); i++) {
+        int id = SND_AT[i];
+        if (!at && snd_handle[id] >= 0) { snd_unload(snd_handle[id]); snd_handle[id] = -1; }
+        if (at && snd_handle[id] < 0) { snprintf(nm, sizeof nm, "sfx/s%d.wav", id); snd_handle[id] = snd_load(nm); loading_tick(); }
+    }
+    snd_at_on = at;
+}
 static int in_group(const int *g, int n, int id) { for (int i = 0; i < n; i++) if (g[i] == id) return 1; return 0; }
 uint32_t prof_acc[PS_N], prof_max[PS_N];
 static const char *VOICES[] = { "lilac_attack0", "lilac_attack1", "lilac_attack2", "lilac_attack3", "lilac_uppercut0",
@@ -826,6 +845,7 @@ void game_draw(void) {
     hud_draw();
     water_draw_hud();
     serp_draw_hud();
+    aqua_boss_draw_hud();
     results_draw();
     card_draw();
     pause_draw();

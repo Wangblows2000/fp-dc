@@ -220,7 +220,7 @@ enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_MON_INVINC = 4, OT_MON
        OT_SDOOR = 210, OT_APLATE = 211, OT_WPLATE_AT = 212 /* AT retypes of SwitchDoor_770 / PressurePlate_769 / WallPlate_831 */, OT_EXPL01 = 213,
        /* AT bosses (src/game/aqua_boss.c): spec_ironworm.md, spec_chomper.md, spec_chompersnake.md */
        OT_IW_HEAD = 214, OT_IW_SEG = 215, OT_IW_BASE = 216, OT_CH_HEAD = 217, OT_CH_TAIL = 218, OT_CH_BALL = 219, OT_CH_MOUTH = 220,
-       OT_SN_HEAD = 221, OT_SN_SEG = 222, OT_SN_MOUTH = 223, OT_ACID = 224, OT_ROCK_AT = 225, OT_BUBBLE = 226 /* runtime */ };
+       OT_SN_HEAD = 221, OT_SN_SEG = 222, OT_SN_MOUTH = 223, OT_ACID = 224, OT_ROCK_AT = 225, OT_BUBBLE = 226 /* runtime */, OT_IW_HEADF = 227 /* the worm head once emerged (Q20 on layer 3) */ };
 
 #define MAX_ATLAS 4
 typedef struct {
@@ -523,6 +523,9 @@ void   aqua_platforms(player_t *p);           /* AT platform / gimmick block bef
 void   aqua_gim_spawn(void), aqua_set_input(const input_t *in), aqua_gim_post(player_t *p);
 int    aqua_gim_obj(obj_t *o);                /* 1: an aqua_gim.c type (no generic object code) */
 int    obj_px(const obj_t *o, int wx, int wy); /* world pixel of an object's current (rotated) mask */
+void   aqua_boss_spawn(void), aqua_boss_update(player_t *p), aqua_boss_draw_hud(void), aqua_blast(float x, float y), aqua_release_camera_keep(void);
+int    aqua_boss_obj(const obj_t *o), aqua_worm_on_plate(const obj_t *pl), aqua_cam_locked(void);
+extern int aqua_snake_kill_frame;
 int    mv_sensor_pos(int s, int *x, int *y);  /* placed sensor position (Chowdren x, y) */
 void   aqua_spawn(void), aqua_pre(player_t *p), aqua_update(player_t *p);
 int    aqua_obj_update(obj_t *o, player_t *p);

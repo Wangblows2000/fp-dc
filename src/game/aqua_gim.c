@@ -176,7 +176,7 @@ static void collapse_frame(player_t *p) {
 }
 
 /* ================================================================ 3.1 AT1 plates -> doors, gate (4093-4100) */
-static int aqua_worm_on(const obj_t *pl) { (void)pl; return 0; }   /* 4095: MinibossIronWorm on a plate (the worm: aqua boss code) */
+static int aqua_worm_on(const obj_t *pl) { return aqua_worm_on_plate(pl); }   /* 4095: MinibossIronWorm on a plate (the worm: aqua boss code) */
 static void at1_plates(player_t *p) {
     int any_s = 0, any_w = 0, pressed = 0;
     for (int i = 0; i < G.nobjs; i++) { obj_t *o = &G.o[i]; if (!o->alive || o->type != OT_APLATE) continue; if (sens_hit(SENS_BOTTOMBIG, o)) any_s = 1; if (aqua_worm_on(o)) any_w = 1; }
