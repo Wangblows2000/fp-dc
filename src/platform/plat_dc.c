@@ -23,6 +23,7 @@ static uint32_t prev_held;
 static struct { int a, b; uint32_t m; } *demo; static int ndemo, demo_frame, demo_on;
 static char demo_level[8];
 int demo_letterbox = -1;
+static struct { int f; float x, y; } demo_tp[16]; static int ndemo_tp;   /* verification: "<f> TP x y" */
 const char *plat_start_level(void) { return demo_level[0] ? demo_level : NULL; }
 static void demo_load(void) {
     size_t sz; char *t = plat_read_raw("demo.txt", &sz);
@@ -32,6 +33,7 @@ static void demo_load(void) {
     while (p < end && ndemo < 8192) {
         int a, b, n = 0; char btn[16];
         char line[64]; size_t k = 0; while (p < end && *p != '\n' && k < sizeof line - 1) line[k++] = *p++; line[k] = 0; if (p < end) p++;
+        { int tf; float tx, ty; if (sscanf(line, "%d TP %f %f", &tf, &tx, &ty) == 3 && ndemo_tp < 16) { demo_tp[ndemo_tp].f = tf; demo_tp[ndemo_tp].x = tx; demo_tp[ndemo_tp].y = ty; ndemo_tp++; continue; } }
         if (!strncmp(line, "LETTERBOX ", 10)) { demo_letterbox = line[10] - '0'; continue; }   /* verification: presentation mode */
         if (!strncmp(line, "LEVEL ", 6)) { size_t L = strlen(line + 6); if (L > 0 && L < sizeof demo_level) memcpy(demo_level, line + 6, L + 1); continue; }
         if (sscanf(line, "%d %d %15s%n", &a, &b, btn, &n) == 3) {
@@ -96,6 +98,7 @@ void plat_poll_input(input_t *in) {
     maple_device_t *dev = demo_on ? NULL : maple_enum_type(0, MAPLE_FUNC_CONTROLLER);
     if (demo_on) {
         for (int i = 0; i < ndemo; i++) if (demo_frame >= demo[i].a && demo_frame < demo[i].b) held |= demo[i].m;
+        for (int i = 0; i < ndemo_tp; i++) if (demo_frame == demo_tp[i].f) { G.p.x = demo_tp[i].x; G.p.y = demo_tp[i].y + ORIG_REF_DY; G.p.vx = G.p.vy = G.p.gsp = 0; }
         if (demo_frame % 60 == 0)
             printf("demo f %d mode %d lv %s x %.2f y %.2f hp %d lives %d\n", demo_frame, G.mode, G.lvdir, G.p.x, G.p.y, G.p.hp, G.p.lives);
         demo_frame++;
