@@ -49,9 +49,9 @@ check('at3_top_exit_loads_at4', loads(out)[-1:] == ['at4'], str(loads(out)))
 
 # ---- bosses (aqua_boss.c): the worm head lands on the arena plate and holds the gate open; the snake's death runs the
 # results and the raft exit back to the front end; the Chomper swallows and spits out (LIFE.B 10 = 2 half-petals)
-_, out = run('55 SETV others E 99999\n60 TP 11760 866\n100 130 R\n400 BOSSHP 0\n', 800, dict(M, FP_LEVEL='at1', FP_TRACK='227:11967,211:11592,185:11488'), raw=True)
+_, out = run('55 SETV others E 99999\n60 TP 11760 866\n100 130 R\n400 BOSSHP 0\n', 800, dict(M, FP_LEVEL='at1', FP_TRACK='227:11967,95:11592,185:11488'), raw=True)
 obs = [l.split() for l in out.splitlines() if l.startswith('ob ')]
-head = [o for o in obs if o[2] == '227']; plate = [o for o in obs if o[2] == '211']; gate = [o for o in obs if o[2] == '185']
+head = [o for o in obs if o[2] == '227']; plate = [o for o in obs if o[2] == '95']; gate = [o for o in obs if o[2] == '185']
 check('worm_defeat_head_lands', head and head[-1][9] == '9', ' '.join(head[-1][4:10]) if head else 'none')
 check('worm_head_holds_plate', plate and plate[-1][19] == '1', ' '.join(plate[-1][17:20]) if plate else 'none')
 check('worm_gate_open', gate and float(gate[-1][7]) > 896 + 100, ' '.join(gate[-1][4:8]) if gate else 'none')

@@ -274,7 +274,7 @@ void player_bounce(player_t *p, double vy) { if (!p->ground && p->vy > 0) p->vy 
  * (vertical: vy -10.75, vx kept; diagonal: (+-9, -8.75)); the original's spring state (M40, skin anim 14)
  * lasts until the apex, then the fall animation; normal gravity and air drag apply */
 static void spring_state(player_t *p, double vx, double vy) {
-    p->ground = 0; p->N = p->O = 0; p->vy = -vy; if (vx) { p->vx = vx; p->face = vx > 0 ? 1 : -1; }
+    p->ground = 0; p->N = p->O = 0; p->vy = -vy; if (vx) p->vx = vx;   /* RV spring_yellow_upleft / m_hang_dv1: MV.Q (facing) is not changed by a spring */
     p->jumping = 0; p->cyclone_used = 0; p->boost_used = 0; p->springing = 1;
     if (p->state != ST_BOOST) p->state = ST_NORMAL;
     p->cY = 40; p->m1 = 0;          /* M40 (Carol: the M0 air rules, OTHERS.Y 40) */
@@ -938,6 +938,7 @@ void player_update(player_t *p, const input_t *in) {
         p->x = p->hang_x; p->y = p->hang_y + 32 + ORIG_REF_DY; p->vx = 0; if (p->vy > PHYS_MAXFALL) p->vy = PHYS_MAXFALL; p->vy += PHYS_GRAV;
         if (in->pressed & BTN_JUMP) { p->state = ST_NORMAL; p->vx = 0; p->vy = -4.5; p->jumping = 0; p->m1 = 1; p->cY = 3; }   /* RV a1_jelly_charge: G -4.5, M1, no jump sound */
         else if (in->pressed & BTN_DOWN) { p->state = ST_NORMAL; p->vy = 0; p->y += 1; }                                                     /* INFERRED */
+        if (is_milla()) { if (p->state == ST_HANG) p->cY = 41; milla_anim(p); return; }   /* RE 2461: OTHERS.Y 41 -> Milla skin anim 15 (the hang), with her tail */
         set_anim(p, A_HANG); anim_tick(&p->an, -1); if (hair.b) anim_tick(&hair, -1);
         return;
     }

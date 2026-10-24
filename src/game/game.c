@@ -50,18 +50,13 @@ static void level_start(void) {
 
 /* stage music per level dir (RE/RV: the original's play_music loops: m_stage1 frame index 20,
  * m_stage1b 21-22, m_boss 23 = DV4) */
-const char *level_music(const char *dir) {
-    /* RE: Frames::loop_play_music_N_<frame index> strings: 20 m_stage1, 21/22 m_stage1b, 23 m_boss;
-     * Aqua Tunnel (session 12, tools/re/bgm_refs.py): 16 m_stage0, 17/18 m_stage0b, 19 m_boss2 (boss start) */
-    if (!strcmp(dir, "dv1")) return "bgm/m_stage1.adp";
-    if (!strcmp(dir, "at1")) return "bgm/m_stage0.adp";
-    if (!strcmp(dir, "at2")) return G.at_g4 >= 10 ? "bgm/m_stage0b.adp" : "bgm/m_stage0.adp";   /* loop_play_music_5_17 (4330) */
-    if (!strncmp(dir, "at", 2)) return "bgm/m_stage0b.adp";
-    return "bgm/m_stage1b.adp";
+const char *level_music(const char *dir) {   /* level data (levels.c): loop_play_music_N_<frame index> */
+    const level_def_t *d = level_def(dir);
+    return d->music_cp && G.at_g4 >= 10 ? d->music_cp : d->music;
 }
 /* the stage's icon frame E on the Time Attack list = its record row (RE spec_stageselect: 0 Aqua Tunnel, 1 Dragon Valley) */
-int stage_rec_index(const char *dir) { return !strncmp(dir, "at", 2) ? 0 : 1; }
-int act_of(const char *dir) { return dir[2] - '0'; }
+int stage_rec_index(const char *dir) { return level_def(dir)->stage; }
+int act_of(const char *dir) { return level_def(dir)->act; }
 
 static void bank_free(bank_t *b) { free(b->act); free(b->frames); free(b->anims); free(b->seq); free(b->mbits); free(b->moff); memset(b, 0, sizeof *b); }
 
@@ -478,11 +473,11 @@ void camera_update(void) {
 
 static void next_act(void) {
     char d[8]; snprintf(d, sizeof d, "%s", G.lvdir);
-    int a = act_of(d);
     if (cards_commit()) save_store();             /* cards collected this act: one VMU write at the act change, never mid-stage */
     /* DV4 ends with the Serpentine boss and then the results (events 5385 / 4560-4589); the boss is not
      * ported, so the end of DV4 goes straight to the results. Time Attack plays every act as well. */
-    if (a >= 4) {
+    const char *nx = level_next(d);
+    if (!nx) {
         G.mode = MODE_RESULTS; G.res_t = 0; G.res_time = G.frame; music_play("bgm/m_clear.adp");
         if (G.time_attack) {                          /* Time Attack record (stage list order: 0 Shang Mu Academy, 1 Dragon Valley) */
             save_rec_t *r = &SV.rec[stage_rec_index(G.lvdir)][chr_slot(G.character)];
@@ -490,7 +485,7 @@ static void next_act(void) {
         }
         return;
     }
-    d[2] = (char)('0' + a + 1);
+    snprintf(d, sizeof d, "%s", nx);
     /* RV (DV1 -> DV2 traces): petals, lives, crystals, energy and the timer carry over (globals) */
     int frame = G.frame, hp = G.p.hp; double energy = G.p.energy;
     G.act_carry = 1;
@@ -605,7 +600,7 @@ void game_update(const input_t *in) {
     PROF(PS_PLAYER, player_update(&G.p, pin));
     PROF(PS_LAYERS, layers_update(&G.p));         /* RE 1613-1616 + 3031/3032: loop collision layer */
     if (G.act_in) {                               /* RE 4526: B = 3 every frame for 32 frames (AT2 4403: B = 0) */
-        double wb = !strcmp(G.lvdir, "at2") ? 0 : 3;
+        double wb = level_cur()->walkin_still ? 0 : 3;
         if (G.p.ground) G.p.gsp = wb; else G.p.vx = wb;
         G.act_fade = G.act_fade - 8 < 0 ? 0 : G.act_fade - 8;
         if (++G.act_in > 32) { G.act_in = 0; G.act_fade = 0; if (aqua_level()) G.at_g4 = 1; }  /* RE 5047 / 4404 / 4597: control returns at A >= 32, g4 = 1 */
@@ -638,7 +633,7 @@ void game_update(const input_t *in) {
     if (G.mus_resume_t > 0 && --G.mus_resume_t == 0)
         music_play(G.p.invinc ? "bgm/m_invincibility.adp" : level_music(G.lvdir));
     if (G.p.invinc && G.p.invuln == 0) { G.p.invinc = 0; music_play(level_music(G.lvdir)); }
-    if (G.clear_t && !strcmp(G.lvdir, "at3") && G.p.y - ORIG_REF_DY >= 380) { }   /* AT3 4523 / inline: the fade pauses below y 380 */
+    if (G.clear_t && level_cur()->exit_max_y && G.p.y - ORIG_REF_DY >= level_cur()->exit_max_y) { }   /* AT3 4523 / inline: the fade pauses below y 380 */
     else if (G.clear_t) {                              /* RE 3310 / 3578: fade +4 per frame; at 255 next frame */
         int a = G.clear_t == 1 ? 0 : G.clear_t;     /* fade object created with alpha 0 */
         if (a != 255 && a < 128) a = 2 * (a >> 1) + 2;                       /* RE 2905: +2 while < 128 */
@@ -649,8 +644,8 @@ void game_update(const input_t *in) {
     /* RE (events 4135 / 5045): the act ends when Lilac passes X > frame width - 50 moving right; DV4 runs the
      * results instead (5381 / 5576, src/game/results.c) */
     { int rr; PROF(PS_RES, rr = results_update(&G.p)); if (rr) return; }
-    { int at3 = !strcmp(G.lvdir, "at3");                       /* AT3 4521: also MV.Y < 380 */
-      if (act_of(G.lvdir) < 4 && !G.clear_t && !G.act_in && G.p.x > G.lvl.w - 50 && (G.p.ground ? G.p.gsp : G.p.vx) > 0 && (!at3 || G.p.y - ORIG_REF_DY < 380)) G.clear_t = 1; }
+    { const level_def_t *ld = level_cur();                    /* AT3 4521: also MV.Y < 380 (exit_max_y) */
+      if (level_next(G.lvdir) && !G.clear_t && !G.act_in && G.p.x > G.lvl.w - 50 && (G.p.ground ? G.p.gsp : G.p.vx) > 0 && (!ld->exit_max_y || G.p.y - ORIG_REF_DY < ld->exit_max_y)) G.clear_t = 1; }
 }
 
 static void draw_parallax(void) { par_draw(G.frame); }
@@ -769,13 +764,7 @@ void hud_draw(void) {
     hud_number(mm > 99 ? 99 : mm, 2, 343, 8 + hud_dy);
     hud_number(ss, 2, 369, 8 + hud_dy);
     hud_number(cs % 100, 2, 395, 8 + hud_dy);
-    /* DV4 boss hit tally (guibosshealth value, 3 -> 0; port presentation): bottom right of the 426x240 view, with the
-     * timer's margins (right edge 11 px in, 8 px from the edge). It does not slide with the HUD (shown mid-fight only). */
-    { int k; extern int serp4_hud(int *k);
-      if (serp4_hud(&k) && k >= 0 && k <= 9 && hud_anim[5] >= 0) {
-          const frame_t *f = &G.objs.frames[G.objs.seq[G.objs.anims[hud_anim[5]].first + k]];
-          hud_number(k, 1, SCREEN_W - 11 - 10, SCREEN_H - 8 - f->h);
-      } }
+    /* no boss counter: the original shows none in Dragon Valley (RE 5478, guiboss A never set); the session-10 hit tally was removed (session 13) */
     char buf[32];
 
 #ifdef FP_PROFILE
@@ -797,7 +786,8 @@ static void card_draw(void) {
     float rise2 = t < CARD_RISE1 ? 1.f : t < CARD_RISE2 ? 1.f - (float)(t - CARD_RISE1) / (CARD_RISE2 - CARD_RISE1) : 0.f;
     float out = t < CARD_OUT0 ? 0.f : (float)(t - CARD_OUT0) / (CARD_DONE - CARD_OUT0);
     rise1 *= rise1; rise2 *= rise2;                /* decelerating rise */
-    hud_img_hot(6, 0, 213 - out * 300, ys + rise1 * 100);         /* "STAGE 1": Dragon Valley is stage 1 */
+    { int alt = (chr_is_carol(G.character) || chr_is_milla(G.character)) && hud_anim[6] >= 0 && G.objs.anims[hud_anim[6]].count > 1;   /* Thermal Base: STAGE 7 for Carol / Milla (spec_stage_cards) */
+      hud_img_hot(6, alt, 213 - out * 300, ys + rise1 * 100); }   /* "STAGE n" and the name: chosen per level by the importer (STAGE_CARDS) */
     if (t >= CARD_RISE1) hud_img_hot(7, 0, 213 + out * 300, yn + rise2 * 80);
 }
 

@@ -80,6 +80,34 @@ ENGINE_TYPES = {
     'waterfallback': 139, 'waterfallfront': 140, 'waterfallfront2': 141, 'waterfallfront3': 142, 'waterfallfront4': 143,   # EnemyGansekiJr_835 (RE build/re/spec_ganseki.md)     # LadderTop_428: invisible obstacle at the top of each ladder (RE spec_ladder.md)
 }
 
+# Fusion object identity is class + handle: a class name used by two objects with different handles (a separate object
+# per stage, with its own constructor values and events) gets its own engine type, so the runtime never has to test the
+# level to tell them apart (session 13 generalisation rule, RE_NOTES "Reusable objects"). Keys: (class, handle).
+ENGINE_TYPES_ID = {
+    ('switchdoor', 770): 210,            # SwitchDoor_770 (AT1 / AT2: slides left); DV's 997 / 1066 sink (96)
+    ('switchwallplate', 831): 212,       # SwitchWallPlate_831 (AT2 / AT3: turns the pipes); DV3's 1029 (93) drops the boulder
+    ('aquabrickplatform', 803): 228,     # AquaBrickPlatform_803 (AT2 / AT4); 731 (AT1) = 183
+    ('levelcrusher1', 847): 188,         # LevelCrusher1_847: AT3's horizontal slab; 808 (AT2) = the vertical crusher 187
+    ('levelaxelplatform1', 845): 229,    # LevelAxelPlatform1_845 / 2_846: AT3's placed bobbing platforms; 680 / 737 are made by
+    ('levelaxelplatform2', 846): 230,    #   the AxelPlatformMakers (AT1 / AT4) and stay 194 / 195
+    ('gimmickswingspawner1', 848): 231,  # GimmickSwingSpawner1_848 (AT3: 6 links); 824 (AT2: 8 links) = 198
+}
+def engine_type(cls, handle): return ENGINE_TYPES_ID.get((cls, handle), ENGINE_TYPES.get(cls))
+
+# stage title card per stage (RE build/re/spec_stage_cards.md): (first frame index, last, LevelCardIntro2 name frame,
+# LevelCardIntro3 "STAGE n" frame, alternative STAGE frame for Carol / Milla or None). on_frame_N = index + 1.
+STAGE_CARDS = [(16, 19, 3, 0, None), (20, 23, 0, 0, None), (24, 28, 1, 1, None), (29, 34, 2, 2, None), (35, 38, 4, 3, None),
+               (39, 43, 5, 4, None), (44, 49, 6, 5, 6), (50, 55, 8, 6, None), (56, 58, 7, 5, None), (59, 64, 10, 7, None)]
+def stage_card(n):   # n = on_frame number -> (name frame, [stage frames]); Final Dreadnought 65-72: ROUND 1-4 two frames each
+    i = n - 1
+    if 65 <= i <= 72: return 11 + (i - 65) // 2, [8]
+    for a, b, nm, st, alt in STAGE_CARDS:
+        if a <= i <= b: return nm, [st] + ([alt] if alt is not None else [])
+    return 0, [0]
+
+# stage frames with water (MasterLevel A = 1: DV2 5109, DV3 5314, AT1 4309, AT2 4478, AT4 4685): air meter + water effects
+WATER_FRAMES = (22, 23, 17, 18, 20)
+
 # ---- Aqua Tunnel (session 12, src/game/aqua.c; specs build/re/spec_at_*.md)
 AT_ENS = [('objectdigspot_779', 0, '0', 'digspot'), ('guiweaponslot_426', 7, '0', 'dighint')] + \
          [('enemyfirefly_749', 0, d, 'ff%s' % d) for d in ('0', '1', '2', '16', '17', '18')] + \
@@ -99,7 +127,7 @@ AT_ENS = [('objectdigspot_779', 0, '0', 'digspot'), ('guiweaponslot_426', 7, '0'
           # spec_at_gimmicks_b.md
           ('aquabrickplatform_731', 0, '0', 'abplat'), ('aquabrickplatform_803', 0, '0', 'abplat2'), ('collapsingplatform_732', 0, '0', 'collapse'),
           ('switchdoor_770', 0, '0', 'sdoor'), ('switchdoor2_777', 0, '0', 'sdoor2'), ('switchmillablock_784', 0, '0', 'mblock'),
-          ('switchwallplate_831', 0, '0', 'wplate'), ('switchpressureplate_769', 0, '0', 'aplate'), ('levelcrusher1_808', 0, '0', 'crushv'),
+          ('levelcrusher1_808', 0, '0', 'crushv'),   # wall / pressure plates: the shared 'wallplate' / 'pplate' entries (session 13)
           ('levelcrusher1_847', 0, '0', 'crushh'), ('levelcrusher2_851', 0, '0', 'crushh2'), ('gimmickrotatingpipe_828', 0, '0', 'pipe'),
           ('gimmickrotatingpipebase_782', 0, '0', 'pipehub'), ('gimmickrotatingpipebase2_783', 0, '0', 'pipecog'),
           ('objectspinningbeam_806', 0, '0', 'beam'), ('levelaxelplatform1_680', 0, '0', 'axel1'), ('levelaxelplatform1_845', 0, '0', 'axel1b'),
@@ -346,7 +374,7 @@ def main():
             pieces.append({'img': b['image'], 'x': o['x'], 'y': o['y'], 'layer': o['layer'] or 0, 'layer0': o['layer0'], 'scroll08': invisible_extra, 'col': col,
                            'box': box, 'invisible': invisible, 'cls': o['cls']})
         else:
-            t = ENGINE_TYPES.get(o['cls'])
+            t = engine_type(o['cls'], o['id'])
             if t is None:
                 skipped[o['cls']] = skipped.get(o['cls'], 0) + 1; continue
             objs.append({'type': t, 'x': o['x'], 'y': o['y'], 'cls': key, 'layer': o['layer'] or 0})
@@ -475,23 +503,23 @@ def main():
            ('hud_icon_m', [507]),                               # guiicon direction 4: Milla (session 11)
            ('hud_clock', an['guitimer_536']['anims'][0]['0']['frames']),
            ('hud_digits', an['guilives_425']['images'][:10]),   # counter digits 0-9 (lives/crystals/timer)
-           ('card_stage', an['levelcardintro3_684']['anims'][0]['0']['frames'][:1]),   # "STAGE 1" (Dragon Valley is stage 1)
-           ('card_name', an['levelcardintro2_683']['anims'][0]['0']['frames'][:1]),    # "Dragon Valley"
+           ('card_stage', [an['levelcardintro3_684']['anims'][0]['0']['frames'][k] for k in stage_card(n)[1]]),   # "STAGE n" (frame 1: Carol / Milla variant, Thermal Base)
+           ('card_name', [an['levelcardintro2_683']['anims'][0]['0']['frames'][stage_card(n)[0]]]),    # the stage name (STAGE_CARDS)
            ('card_fade', [129]), ('card_gameover', [27]),
            ('pause', an['guipause_347']['anims'][0]['0']['frames']),               # Paused banner + options
-           ] + ([('hud_air', an['guiair_700']['images'])] if n in (22, 23) else []) + ([('res_complete', an['levelcardactclear1_864']['anims'][7]['0']['frames']),  # "Stage Complete!" build-in
+           ] + ([('hud_air', an['guiair_700']['images'])] if n in WATER_FRAMES else []) + ([('res_complete', an['levelcardactclear1_864']['anims'][7]['0']['frames']),  # "Stage Complete!" build-in
            ('res_results', [955]), ('res_panel', [10860]), ('res_rows', an['levelcardactclear3_866']['anims'][7]['0']['frames']),   # 6-frame reveal (RE 4570-4573)
            ('res_bar', [10844, 10660]),
            ('res_complete_t', [-8005]), ('res_panel_t', [-10860]), ('res_bar_t', [-10844, -10660]),   # alpha-87 layers (RV screenshots)
            ('res_digits', an['totalbonus_870']['images'][:10]),
-           ('res_small', an['levelcardbonus3_869']['images'][:10])] if n == 24 else [])   # results: DV4 only
+           ('res_small', an['levelcardbonus3_869']['images'][:10])] if any(o['cls'] == 'levelcardactclear1' for o in fr['objects']) else [])   # results: every frame that places the clear card (DV4, AT4, later stages)
     for nm, frames in HUD:
         bank['anims'].append({'name': nm, 'frames': frames, 'speed': 0, 'loop': -1, 'back_to': 0})
     write_bank2(src, bank, out, report)
     # ---- enemies / bosses / gimmicks bank (cropped; their collision uses masks relative to the hotspot)
     placed = {o['cls'].rsplit('_', 1)[0] for o in fr['objects']}
     if any(o['cls'].startswith('monitor') and o['cls'].endswith('shield') and o['x'] >= 0 for o in fr['objects']): placed.add('shieldmonitor_onmap')
-    if n in (22, 23, 17, 18, 20): placed.add('water_level')   # DV2 / DV3: MasterLevel A = 1 (5109 / 5314); AT1 / AT2 / AT4 (4309 / 4478 / 4685)
+    if n in WATER_FRAMES: placed.add('water_level')   # DV2 / DV3: MasterLevel A = 1 (5109 / 5314); AT1 / AT2 / AT4 (4309 / 4478 / 4685)
     ens = {'name': name + '_ens', 'anims': [], 'keep_box': set()}
     for e in ENS:
         cls, ai, dk, nm = e[:4]

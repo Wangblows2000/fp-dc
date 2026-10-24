@@ -15,7 +15,7 @@ Sounds: original frame F = port frame F-1. Exit 1 if any trace has a player posi
 """
 import csv, os, subprocess, sys
 
-ROOT = '/home/claude/fpdc'
+ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))   # this script's checkout
 SHIFT = 2
 
 def load(path): return list(csv.DictReader(open(path)))

@@ -65,7 +65,7 @@ input_t results_input(const input_t *in) {
 int results_update(player_t *p) {
     if (!R.on) {
         /* 5381 path B: X > frame width - 50 moving right (DV4 only) */
-        if (act_of(G.lvdir) >= 4 && !aqua_level() && p->x > G.lvl.w - 50 && (p->ground ? p->gsp : p->vx) > 0 && !serp_active()) results_begin(1);
+        if (level_cur()->edge_results && p->x > G.lvl.w - 50 && (p->ground ? p->gsp : p->vx) > 0 && !serp_active()) results_begin(1);
         return 0;
     }
     R.t++;

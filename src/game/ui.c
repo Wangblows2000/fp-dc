@@ -43,6 +43,12 @@ int ui_load(ui_scene_t *s, const char *file, ui_banks_t *banks) {
         o->layer = d[off + 28]; o->kind = d[off + 29]; o->nent = d[off + 30];
         int nent = o->nent;
         off += 32;
+        if (o->kind == 2) {                                   /* solid quick backdrop: w, h, colours */
+            if (off + 12 > sz) { free(d); return -1; }
+            o->rw = rd16(d + off); o->rh = rd16(d + off + 2);
+            o->c1 = (uint32_t)rd16(d + off + 4) | ((uint32_t)rd16(d + off + 6) << 16); o->c2 = (uint32_t)rd16(d + off + 8) | ((uint32_t)rd16(d + off + 10) << 16);
+            off += 12; o->vis = 1; continue;
+        }
         if (o->nent > UI_MAX_ENT) o->nent = UI_MAX_ENT;
         if (off + (size_t)nent * 6 > sz) { free(d); return -1; }
         for (int k = 0; k < nent; k++, off += 6) {
@@ -116,6 +122,16 @@ void ui_draw(ui_scene_t *s, float camx, float camy, int lmin, int lmax) {
         for (int i = 0; i < s->nobj; i++) {
             ui_obj_t *o = &s->o[i];
             if (o->layer != l) continue;
+            if (o->kind == 2) {                               /* solid quick backdrop (a mask panel, e.g. around the stage-select preview) */
+                if (!o->vis) continue;
+                float x = o->x - camx + o->dx, y = o->y - camy + o->dy;
+                if (o->c1 == o->c2) r_rect(x, y, o->rw, o->rh, o->c1);
+                else for (int k = 0; k < 8; k++) {             /* vertical gradient in 8 bands */
+                    uint32_t c = 0xff000000; for (int sh = 0; sh < 24; sh += 8) { int a = (o->c1 >> sh) & 255, b = (o->c2 >> sh) & 255; c |= (uint32_t)(a + (b - a) * k / 7) << sh; }
+                    r_rect(x, y + o->rh * k / 8.f, o->rw, o->rh / 8.f + 1, c);
+                }
+                continue;
+            }
             /* Fusion quick backdrops repeat their pattern across the frame; the original title panels
              * show the 320-wide sky/sea repeated across the whole view */
             if (o->kind == 0 && (!strncmp(o->cls, "quickbackdrop", 13) || !strncmp(o->cls, "backgroundsystembox", 19)) && o->vis && o->an.b) {
@@ -126,6 +142,14 @@ void ui_draw(ui_scene_t *s, float camx, float camy, int lmin, int lmax) {
                     for (float x = x0; x < SCREEN_W; x += f->w) { o->dx = x - (o->x - camx); ui_draw_obj(s, o, camx, camy, 0xffffffff); }
                     o->dx = dx;
                     continue;
+                }
+            }
+            if (o->tilew > 0 && o->vis && o->an.b) {            /* repeat the strip across its window (the masks on the next layer clip it) */
+                const frame_t *f = anim_frame(&o->an);
+                if (f && f->w > 0) {
+                    float dx = o->dx;
+                    for (int x = 0; x < o->tilew; x += f->w) { o->dx = dx + x; ui_draw_obj(s, o, camx, camy, 0xffffffff); }
+                    o->dx = dx; continue;
                 }
             }
             ui_draw_obj(s, o, camx, camy, 0xffffffff);

@@ -303,7 +303,7 @@ int serp_active(void) { return SN.active && !SN.done; }
 
 /* ================================================================ DV4 boss (RE: build/re/spec_dv4_boss_events.md) */
 static struct {
-    int setup, P1, P2, P3, hbr, stun, exit, K, hud;
+    int setup, P1, P2, P3, hbr, stun, exit, K;
     double A, B, C, D, E, F, G, H, J, Kr, L, M, R, V, W; int flag3, flag4, fire_latch;
     /* hitbox */ double hG, hI, hF;
     /* bounce ball (BossBounceMode_1089): BallMovement speed 40 */
@@ -416,7 +416,6 @@ void serp4_update(player_t *p) {
                 if (w && wa >= 0) { w->type = OT_EXPLODE; w->alive = 1; w->x = b->x; w->y = SN.gy[0] + 24; w->layer = 3; anim_set(&w->an, &G.ens, wa); }
             }
         }
-        if (S4.B == 12 && S4.A > 65) S4.hud = 1;                                     /* 5478 (GUIB.A condition U-G1 dropped) */
         if (S4.B == 12 && S4.A > 150) {
             if (S4.K > 1) {                                                          /* 5479 / 5480: odd segments revive */
                 if (hb) hb->hidden = 1;
@@ -685,13 +684,12 @@ int serp4_input(uint32_t *held) {
     return 1;
 }
 int serp4_flash(void) { return SN.level == 4 ? S4.flash : 0; }
-int serp4_hud(int *k) { *k = S4.K; return SN.level == 4 && S4.hud && SN.active && !S4.exit; }
 int serp_progress(void) { return (SN.done ? 200 : 0) + (SN.level == 4 ? (3 - S4.K) * 100 + (S4.exit ? 100 : 0) : 0); }
 
 void serp_draw_hud(void) {
     /* The guiboss "BOSS" bar is not drawn: RE 5478 shows guiboss and its counter only when guiboss alterable A > 0,
-     * and nothing in DV4 sets A (spec_dv4_boss_events U-G1), so the final game never shows it. The hit tally
-     * (guibosshealth value K) is kept by request and drawn by hud_draw() at the bottom right. */
+     * and nothing in DV4 sets A (spec_dv4_boss_events U-G1), so the final game never shows it. No hit tally either
+     * (removed in session 13 by request: K stays the boss's internal hit count). */
     int f = serp4_flash();
     if (f > 0) r_rect(0, 0, SCREEN_W, SCREEN_H, ((uint32_t)f << 24) | 0xffffff);   /* 5547 white levelcardfade */
 }

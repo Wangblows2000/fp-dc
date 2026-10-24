@@ -13,6 +13,8 @@ Output (game data, gitignored):
   <name>_<frame>.ui         scene: 'FPU1' u16 w, h, nobj, nbanks; per object:
                               char cls[24]; s16 x, y; u8 layer, kind (0 backdrop, 1 active), nent, pad;
                               nent x { u8 anim, u8 dir, u8 bank, u8 pad; u16 bank_anim }
+                            kind 2 (a solid-colour quick backdrop, no image): nent 0, then u16 w, h; u32 argb1, argb2
+                              (vertical gradient end colour, = argb1 when flat)
 """
 import json, os, struct, sys
 from PIL import Image
@@ -48,6 +50,13 @@ def main():
         if '+' in v:
             f, k = v.split('+', 1); extra.setdefault(int(f), []).append(k)
     an = json.load(open(os.path.join(frames_dir, 'anims.json')))
+    bd = json.load(open(os.path.join(frames_dir, 'backdrops.json')))
+    def solid(key):   # Fusion quick backdrop without an image: size 0x4c / 0x50, colour bytes 0xc4-0xc7 (R G B A), gradient 0xc8 = 1 -> 0xcc-0xcf
+        e = bd.get(key)
+        if not e or e.get('image') is not None or '0xc4' not in e.get('fields', {}): return None
+        f = e['fields']; c1 = (255 << 24) | (f.get('0xc4', 0) << 16) | (f.get('0xc5', 0) << 8) | f.get('0xc6', 0)
+        c2 = (255 << 24) | (f.get('0xcc', 0) << 16) | (f.get('0xcd', 0) << 8) | f.get('0xce', 0) if f.get('0xc8') == 1 else c1
+        return (f.get('0x4c', 0), f.get('0x50', 0), c1, c2)
     os.makedirs(out, exist_ok=True)
     scenes, groups = [], []          # groups: (key, frames, speed, loop, back_to)
     gindex = {}
@@ -71,7 +80,10 @@ def main():
             elif e.get('images'):
                 ents.append((0, 0, [i for i in e['images'] if i is not None], 0, -1, 0))
             ents = ents[:MAX_ENT]
-            if not ents: continue
+            if not ents:
+                sb = solid(key) if o.get('kind') == 'bg' else None
+                if sb: objs.append((o['cls'], o['x'] if o['x'] is not None else -1000, o['y'] if o['y'] is not None else -1000, o['layer'], 2, sb))
+                continue
             refs = []
             for ai, dk, ids, sp, lp, bt in ents:
                 gk = (tuple(ids), sp, lp, bt)
@@ -130,6 +142,9 @@ def main():
     for fno, w, h, objs in scenes:
         d = bytearray(b'FPU1' + struct.pack('<4H', w, h, len(objs), len(banks)))
         for cls, x, y, layer, kind, refs in objs:
+            if kind == 2:
+                d += cls.encode()[:23].ljust(24, b'\0') + struct.pack('<2h4B', x, y, layer, 2, 0, 0) + struct.pack('<2H2I', *refs)
+                continue
             refs = [r for r in refs if r[2] not in dropped]
             d += cls.encode()[:23].ljust(24, b'\0') + struct.pack('<2h4B', x, y, layer, kind, len(refs), 0)
             for ai, dk, gi in refs:

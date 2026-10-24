@@ -217,10 +217,13 @@ enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_MON_INVINC = 4, OT_MON
        OT_PIPE = 190, OT_PIPEHUB = 191, OT_PIPECOG = 192, OT_BEAM = 193, OT_AXEL1 = 194, OT_AXEL2 = 195, OT_AXMAKER1 = 196, OT_AXMAKER2 = 197,
        OT_SWSPAWN1 = 198, OT_SWSPAWN2 = 199, OT_SWBASE = 200, OT_SWCHAIN = 201, OT_SWPLAT = 202, OT_SCROLLBRICK = 203, OT_SLIMEFLOOR = 204,
        OT_RAFT = 205, OT_TREEOVL = 206, OT_FISHSTATUE = 207, OT_CRUSH_VIS = 208 /* layer-2 drawn copy */, OT_SLIMEF_VIS = 209,
-       OT_SDOOR = 210, OT_APLATE = 211, OT_WPLATE_AT = 212 /* AT retypes of SwitchDoor_770 / PressurePlate_769 / WallPlate_831 */, OT_EXPL01 = 213,
+       OT_SDOOR = 210 /* SwitchDoor_770 */, /* 211: unused since session 13 (AT plates are OT_PPLATE, src/game/switches.c) */ OT_WPLATE_AT = 212 /* SwitchWallPlate_831 */, OT_EXPL01 = 213,
        /* AT bosses (src/game/aqua_boss.c): spec_ironworm.md, spec_chomper.md, spec_chompersnake.md */
        OT_IW_HEAD = 214, OT_IW_SEG = 215, OT_IW_BASE = 216, OT_CH_HEAD = 217, OT_CH_TAIL = 218, OT_CH_BALL = 219, OT_CH_MOUTH = 220,
-       OT_SN_HEAD = 221, OT_SN_SEG = 222, OT_SN_MOUTH = 223, OT_ACID = 224, OT_ROCK_AT = 225, OT_BUBBLE = 226 /* runtime */, OT_IW_HEADF = 227 /* the worm head once emerged (Q20 on layer 3) */ };
+       OT_SN_HEAD = 221, OT_SN_SEG = 222, OT_SN_MOUTH = 223, OT_ACID = 224, OT_ROCK_AT = 225, OT_BUBBLE = 226 /* runtime */, OT_IW_HEADF = 227 /* the worm head once emerged (Q20 on layer 3) */,
+       /* session 13: one engine type per Fusion object (class + handle), so no code tests the level to tell them apart */
+       OT_ABPLAT2 = 228 /* AquaBrickPlatform_803 */, OT_AXEL1P = 229, OT_AXEL2P = 230 /* placed LevelAxelPlatform1_845 / 2_846 (AT3) */,
+       OT_SWSPAWN1B = 231 /* GimmickSwingSpawner1_848 */ };
 
 #define MAX_ATLAS 4
 typedef struct {
@@ -503,7 +506,7 @@ int    serp_hidden(const obj_t *o), serp_active(void);
 void   serp_fireball_update(obj_t *f, player_t *p);
 void   chase_spawn(void), chase_update(player_t *p), chase_chunk_update(obj_t *d), chase_end(void);
 int    chase_running(void);
-int    boss_progress(void), serp_progress(void), serp4_input(uint32_t *held), serp4_flash(void), serp4_hud(int *k);
+int    boss_progress(void), serp_progress(void), serp4_input(uint32_t *held), serp4_flash(void);
 void   serp_draw_hud(void);
 int    par_load(const char *dir), par_count(void);
 void   par_free(void), par_update(void), par_draw(int gframe);
@@ -520,6 +523,21 @@ void   spore_update(obj_t *o, player_t *p);
 void   enemies_absorb_crystals(void);
 /* src/game/aqua.c (Aqua Tunnel, session 12) */
 int    aqua_level(void);                      /* act 1-4 in Aqua Tunnel, else 0 */
+/* level definitions (src/game/levels.c): per-act data read by the shared code */
+typedef struct {
+    const char *dir; int frame, stage, act, nacts;   /* data dir, original frame index, stage record index (Time Attack icon E), act n of nacts */
+    const char *music, *music_cp;                    /* stage music; after checkpoint g4 >= 10 (AT2 after the Chomper) */
+    int water;                                       /* MasterLevel B water line, 0 = dry */
+    int walkin_still;                                /* 1: B = 0 during the 32-frame walk-in after an act change (AT2 4403), else B = 3 (5047) */
+    int exit_max_y;                                  /* > 0: the act also needs MV.Y below this to end (AT3 top exit) */
+    int edge_results;                                /* last act: the results start at the right edge too (DV4 5381) */
+    /* per-level parameters of shared objects (the original sets them in that frame's events) */
+    int axel2_top;                                   /* AxelPlatform2 (made by AxelPlatformMaker2) removed above this Y (AT1 4087 320, AT4 4552 0) */
+    int pipe_auto_y;                                 /* > 0: the rotating pipes also turn back when MV.Y > this (AT3 4507: 2900) */
+    int plate_rule, switch_late;                     /* switches.c: pressure-plate rule (0 DV 4971-4973, 1 AT1 4093-4096), pass after the movement */
+} level_def_t;
+const level_def_t *level_def(const char *dir), *level_cur(void);
+const char *level_first_of_stage(int stage), *level_next(const char *dir);
 void   aqua_platforms(player_t *p);           /* AT platform / gimmick block before Lilac's movement (aqua_gim.c) */
 void   aqua_gim_spawn(void), aqua_set_input(const input_t *in), aqua_gim_post(player_t *p);
 int    aqua_gim_obj(obj_t *o);                /* 1: an aqua_gim.c type (no generic object code) */
@@ -561,7 +579,8 @@ int    player_core_nov(player_t *p);      /* one movement pass with MV.U = 0 */
 void   cards_spawn_all(void), card_update(obj_t *o, player_t *p);
 int    cards_commit(void), cards_taken_now(void), card_recorded(int id);
 void   wlogs_spawn(void), wlogs_update(const player_t *p), dv3_switch_spawn(void), dv3_switch_update(player_t *p);
-void   trunks_update(player_t *p), bamboo_update(player_t *p), pplate_update(player_t *p);
+void   trunks_update(player_t *p), bamboo_update(player_t *p), pblock_box(const obj_t *b, int *x1, int *y1, int *x2, int *y2);
+void   switches_spawn(void), switches_update(player_t *p, int late);   /* src/game/switches.c: plates, Milla block, doors */
 int  mv_sensor_rows(int s, int *ox, int *oy, const signed char **x0, const signed char **x1, int *h);
 enum { SENS_MAIN = 0, SENS_LEFTBIG = 2, SENS_RIGHTBIG = 4, SENS_TOPBIG = 6, SENS_BOTTOMBIG = 8 };
 void player_hitstop(player_t *p, int k);
