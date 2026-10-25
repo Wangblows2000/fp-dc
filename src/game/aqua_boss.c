@@ -601,6 +601,7 @@ static void sn_frame(player_t *p) {
         if (sn->A <= 0 && !sn_killed) { sn_killed = 1; music_stop(); aqua_snake_kill_frame = G.frame; }   /* 4641 */
         if (sn_killed && !sn_results) {
             double *O = &sn->av[7]; *O += 1; sn->av[3] = 0;                                    /* 4642 */
+            if (*O == 1) ach_boss_finish();                                                    /* 4663-4671 (h20 inline): O == 1 (RE) */
             if (*O <= 40 || (*O > 40 && *O < 120 && GT() % 6 == 0)) {                          /* 4643 / 4644 */
                 obj_effect(sn->x - 40 + R(81), sn->y - 40 + R(81), "explosion06");
                 static const int S[3] = { 311, 98, 99 }; snd_play_orig(S[R(3)], 220, 128);

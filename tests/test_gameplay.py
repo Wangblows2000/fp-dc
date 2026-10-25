@@ -131,7 +131,8 @@ walk = [x for x in r if x.get('act') == 2][:33]
 check('act_walk_in_b3', walk and all(abs(x['gsp'] - 3) < 1e-9 or abs(x['vx'] - 3) < 1e-9 for x in walk[1:32]), 'walk-in frames %d' % len(walk))
 # DV4 path B (5381): the results overlay starts at X > width - 50, tally state A = 2 at C = 220 with no crystals,
 # the wipe after D = 150 (RV dv4_results: entry f72, A = 2 at f292, wipe f441, next frame f493)
-r = run('5 TP 16000 2280\n20 700 R\n', 520, env={'FP_LEVEL': 'dv4'})
+# session 16: the run earns "Dragon Valley Speedrunner" (43), so the achievement pop-up (frame 9) waits for A after the wipe
+r = run('5 TP 16000 2280\n20 700 R\n540 541 J\n', 600, env={'FP_LEVEL': 'dv4'})
 st = [x.get('res', 0) for x in r]
 f_on = next((x['f'] for x in r if x.get('res', 0) > 0), None); f_a2 = next((x['f'] for x in r if x.get('res', 0) == 3), None)
 f_wipe = next((x['f'] for x in r if x.get('res', 0) >= 11), None)
@@ -293,7 +294,7 @@ check('water_drowns_after_62s', at(r, 3600)['air'] == 28 and at(r, 3790)['st'] =
 # DV4 boss defeat (spec_dv4_boss_events 5547-5578; FP_SN_AUTOKILL deals the hits): the head rises up the shaft and explodes on
 # the surface, the cinematic camera stays there (normal camera group off), Lilac rises as the boost ball (anim 7) at
 # 10 px/frame, resumes physics at y < 1230 in M6, lands on the surface, then the results run and Relic Maze follows (Classic)
-r = run(open(os.path.join(HERE, 'play', 'dv4_to_boss.txt')).read(), 4700, {'FP_LEVEL': 'dv4', 'FP_SN_AUTOKILL': '1'})
+r = run(open(os.path.join(HERE, 'play', 'dv4_to_boss.txt')).read() + '4560 4561 J\n', 4700, {'FP_LEVEL': 'dv4', 'FP_SN_AUTOKILL': '1'})   # A: the achievement pop-up (session 16)
 rise = [x for x in r if x['gnd'] == 0 and x['y'] - 14 < 1300 and x['x'] > 12500 and x['x'] < 13300]
 land = [x for x in r if x['gnd'] == 1 and abs(x['y'] - 14 - 1260) < 8 and x['x'] > 12500 and x['x'] < 13300]
 view = [x for x in r if x['res'] >= 1]

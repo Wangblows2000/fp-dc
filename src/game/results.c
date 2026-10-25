@@ -20,7 +20,7 @@ static struct {
     int hud, ac1, ac1_t, panel, ac3, ac3_t, bonus1_on, bonus2_on, time_on, total_on, ac4_flash;
     int bonus1, bonus2, total, time_frames, tally_snd;
     int wipe, wipe_f; float wipe_x;
-    int saved;
+    int saved, ach_done;
     int end_req; uint32_t s_held, s_prev;   /* path 3: stage end requested by the boss script; its scripted input */
 } R;
 
@@ -72,10 +72,36 @@ input_t results_input(const input_t *in) {
     return none;                                                         /* 4561 CTRL.M = 1 (input locked) */
 }
 
+/* achievements at ScoreValues D = 149, one frame before the records save (session 16, RE build/re/spec_achievements.md
+ * 2.1: DV4 5580 / 5579, RM5 7119 / 7115, AT4 4662 / 4661): Card Collector (all 10 cards of the stage, taken at any time)
+ * and the stage speedrunner (ML.Z = the whole stage time <= the limit). Any mode (Time Attack too), any character, no
+ * difficulty test (RE). Per stage index s (level_def_t.stage): 0 Aqua Tunnel, 1 Dragon Valley, 2 Relic Maze. */
+static const struct { int stage, card_base, cards_ach, time_ach; uint32_t limit_ms; } ACH_STAGE[] = {
+    { 1, 1, 23, 43, 300000 }, { 2, 11, 24, 44, 480000 }, { 0, 21, 25, 45, 300000 },
+};
+static void ach_results(void) {
+    cards_commit();                                    /* this run's cards count (the port commits them at D = 150, after 149) */
+    int s = level_cur()->stage;
+    uint32_t ms = (uint32_t)((uint64_t)R.time_frames * 1000 / FPS);
+#ifdef FP_HOST_ENV
+    printf("ach results stage %d ms %u\n", s, (unsigned)ms);   /* host tests (tests/test_achievements.py) */
+#endif
+    for (unsigned i = 0; i < sizeof ACH_STAGE / sizeof ACH_STAGE[0]; i++) {
+        if (ACH_STAGE[i].stage != s) continue;
+        int all = 1;
+        for (int c = 0; c < 10; c++) all &= save_card_has(ACH_STAGE[i].card_base + c);
+        if (all) ach_earn(ACH_STAGE[i].cards_ach);
+        if (ms <= ACH_STAGE[i].limit_ms) ach_earn(ACH_STAGE[i].time_ach);
+    }
+}
+
 static int stage_end(void) {
     int ta = G.time_attack;
     R.on = 0;
     music_stop();
+    /* frame 8 -> 9 (RE + RV, spec_achievements 1): an earned, unannounced achievement shows the "Unlocked!" pop-up after the
+     * results wipe, before the next stage / menu; the pop-up continues to the same place afterwards (frontend.c) */
+    if (ach_pending() && fe_enter_ach_popup(ta, !ta && level_route_next(level_cur()->stage) != NULL) == 0) return 1;
     if (!ta && game_next_stage()) return 1;                                    /* Classic: frame 8 routes to the next stage (DV / AT -> RM) */
     fe_enter_from_stage(ta);
     return 1;
@@ -126,6 +152,7 @@ int results_update(player_t *p) {
     if (R.svA == 2) {
         if (R.ac4_flash > 0) R.ac4_flash--;
         if (R.svD < 150) R.svD++;                                             /* 4586 */
+        if (R.svD == 149 && !R.ach_done) { R.ach_done = 1; ach_results(); }  /* the D = 149 achievement events (once) */
         if (R.svD == 150 && !R.saved) {                                       /* 5394 records save / 5395 hide */
             R.saved = 1;
             cards_commit();

@@ -58,8 +58,8 @@ check('worm_gate_open', gate and float(gate[-1][7]) > 896 + 100, ' '.join(gate[-
 rows, out = run('60 TP 6340 1186\n61 75 R\n', 420, dict(M, FP_LEVEL='at2'), raw=True)
 st = [int(r['st']) for r in rows]
 check('chomper_swallows_and_spits', 28 in st and rows[-1]['hp'] == 12, 'hp %s held %d' % (rows[-1]['hp'], st.count(28)))
-_, out = run('60 TP 4952 254\n60 SETV others E 99999\n950 BOSSHP 0\n', 2000, dict(M, FP_LEVEL='at4'), raw=True)
-check('snake_defeat_results_exit', loads(out)[-2:] == ['at4', 'rm1'], str(loads(out)))   # Classic routing: AT -> RM (session 14)
+_, out = run('60 TP 4952 254\n60 SETV others E 99999\n950 BOSSHP 0\n1950 1951 J\n', 2000, dict(M, FP_LEVEL='at4'), raw=True)   # A: the achievement pop-up (session 16)
+check('snake_defeat_results_exit', [l for l in loads(out) if l not in ('frontend', 'gal')][-2:] == ['at4', 'rm1'], str(loads(out)))   # Classic routing: AT -> RM (session 14)
 
 # ---- Lilac and Carol through every act (host only; they never reach AT through the menus): no crash, the act plays
 for ch, nm in (('0', 'lilac'), ('2', 'carol')):
