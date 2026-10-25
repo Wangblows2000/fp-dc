@@ -349,6 +349,21 @@ enum { OT_FNA_FIRST = 560, OT_FN_DSEG = 560 /* GimmickDragonTunnel1_1734 (sub 0)
        OT_FN_TLIGHT = 600 /* LevelTrollyCarLight_1812 / Light2_1813 */, OT_FN_LOOP0 = 601 /* Layer0Loop/0Loop2/0Loop3/0Block */,
        OT_FN_LOOP1 = 602 /* Layer1Loop/1Loop2/1Loop3 */, OT_FN_STAR = 603 /* BGStar_16 */, OT_FN_PARAM = 604 /* importer: per-act constant (x value, y key) */,
        OT_FN_DUST = 605 /* runtime: EffectsDust01_369 behind the boost blocks */, OT_FNA_LAST = 605 };
+/* Fortune Night's final boss, the Panther (session 17, src/game/fn_panther.c, build/re/spec_fn_bosses.md F / G / X; tools/import_frame.py
+ * FN_PANTHER): placed objects 860-891 by (class, handle), runtime 892-898 */
+enum { OT_FNP_FIRST = 860, OT_FNP_VALUES = 860 /* BossPantherValues_2023 */, OT_FNP_HEAD = 861 /* _2013 */, OT_FNP_JAW = 862 /* _2014 */,
+       OT_FNP_FCAN = 863 /* FrontCannon_2015 */, OT_FNP_BCAN = 864 /* BackCannon_2038 */, OT_FNP_RIDER = 865 /* Rider_2039 (A6) / _2009 (A5) */,
+       OT_FNP_SHF = 866 /* ShoulderF_2019 */, OT_FNP_SHF2 = 867 /* ShoulderF2_2020 */, OT_FNP_HIP = 868 /* HipF_2016 */, OT_FNP_KNEE = 869 /* KneeF_2017 */,
+       OT_FNP_LEGFL = 870 /* _2018 */, OT_FNP_LEGFR = 871 /* _2022 */, OT_FNP_FOOTFL = 872 /* _2012 */, OT_FNP_FOOTFR = 873 /* _2021 */,
+       OT_FNP_RIBS = 874 /* Ribs_2011 x7 */, OT_FNP_TAIL = 875 /* Tail_2010 x6 */, OT_FNP_HIT = 876 /* Hitbox_2043 (Q20) */, OT_FNP_LASER = 877 /* _2047 */,
+       OT_FNP_TARGET = 878 /* _2044 */, OT_FNP_GLOW = 879 /* BossChargeGlow_2042 */, OT_FNP_WHEEL = 880 /* BossPantherWheel_2052 */,
+       OT_FNP_FLOOR = 881 /* ScrollingFloor_2037 (Q7) */, OT_FNP_SPEEDBACK = 882 /* EffectSpeedBack_2049 */, OT_FNP_PLANE = 883 /* PlanePlatform_2054 */,
+       OT_FNP_ASSIST = 884 /* PlayerAssist_2045 */, OT_FNP_AOFF = 885 /* PlayerAssistOffense_2048 */, OT_FNP_ADEF = 886 /* PlayerAssistDefense_2046 */,
+       OT_FNP_APROJ = 887 /* PlayerAssistProjectile_2051 */, OT_FNP_SHIP1 = 888 /* Ship1_2024 */, OT_FNP_SHIP2 = 889 /* Ship2_2025 (A5 timeline B) */,
+       OT_FNP_CABLE = 890 /* ShipCable_2026 */, OT_FNP_CABLE2 = 891 /* ShipCable2_2027 */,
+       OT_FNP_PLASMA = 892 /* runtime: BossPlasmaShot_2040 */, OT_FNP_MISSILE = 893 /* BossMissile_2041 */, OT_FNP_RBULLET = 894 /* BossRapidBullet_1866 */,
+       OT_FNP_WARN = 895 /* EffectWarning_1528 */, OT_FNP_SLINE = 896 /* EffectSpeedLine_2050 */, OT_FNP_SHIELD = 897 /* ShieldSerpentine_1872 (the rider's) */,
+       OT_FNP_INSTA = 898 /* the partner's strike */, OT_FNP_LAST = 899 };
 /* Fortune Night stage flow (session 17, src/game/fn_flow.c, build/re/spec_fn_flow.md): runtime objects of the stage script.
  * 512-559 FN enemies, 560-799 FN gimmicks, 800-899 FN bosses (other modules); 900-909 the flow. */
 /* Fortune Night bosses and minibosses (session 17, src/game/fn_boss.c, build/re/spec_fn_bosses.md Parts A-E / X): 800-859.
@@ -841,6 +856,9 @@ typedef struct {
 const char *level_music_slot(int slot);              /* the current act's music for a play_music(slot) of its scripts (NULL: none) */
 void level_lock_markers(void);                       /* CAM.M = 1: the boss bounds of the CameraLimitBoss markers (as placed / moved) */
 int  game_timer(void);                               /* the stage timer in frames (stopped while G.timer_stop) */
+/* src/game/fn_panther.c (FN5 intro / chase, FN6 Panther fight, post-boss scene; spec_fn_bosses F / G) */
+void   fn_panther_spawn(void), fn_panther_frame(player_t *p), fn_panther_draw(int pass);   /* draw: objects_draw passes 0-2, 3 = front fades */
+int    fn_panther_q20(int type), fn_panther_input(uint32_t *held), fn_panther_on(void);   /* Q20 hitbox; the scripted pad (floor auto-run) */
 /* src/game/fn_flow.c (Fortune Night stage script, stage index 3, spec_fn_flow) */
 void   fn_flow_spawn(void), fn_flow_frame(player_t *p);
 /* src/game/fn_boss.c (Fortune Night bosses, spec_fn_bosses A-E): spawn, the test_collisions handlers (before combat), the per-object
@@ -936,6 +954,8 @@ float camera_bound_C(void), camera_bound_E(void);
 const char *level_music(const char *dir);
 void   r_set_scale(float s);           /* following rotated sprites scaled around the hotspot (Active scale) */
 float  r_get_scale(void);
+void   r_set_xscale(float s);          /* an extra x scale for the following rotated sprites (Active::set_x_scale) */
+float  r_get_xscale(void);
 void camera_reset(void);
 void objects_pretick(int n);
 void hud_draw(void);

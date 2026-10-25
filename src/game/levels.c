@@ -128,10 +128,14 @@ static const short SFX_FN2[] = { 33, 134, 164, 371, 171, 167, 143, 163, 260, 430
 static const short SFX_FN3[] = { 33, 134, 164, 371, 171, 167, 61, 143, 187, 188, 430, 243, 127, 219,
                                  62, 70, 75, 168, 169, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 317 };
 static const short SFX_FN45[] = { 33, 134, 164, 371, 171, 167, 143, 187, 188, 430, 127, 219, 231,
-                                  208, 212, 216, 217, 218, 223, 224, 225, 226, 227, 228, 229, 230, 249, 428 };
+                                  208, 212, 216, 217, 218, 223, 224, 225, 226, 227, 228, 229, 230, 249, 428,
+                                  126, 193 };   /* + the FN5 Panther chase (fn_panther.c): 8413 white burst 126 (a Carol id), 8407 taunt 193 (242 KB) */
 #define SFX_FN4 SFX_FN45
 #define SFX_FN5 SFX_FN45
-static const short SFX_FN6[] = { 134 };   /* + the bosses (fn_boss.c; 11025 Hz) */
+/* FN6: flow 134 + the Panther fight (fn_panther.c, spec_fn_bosses G.11): explosion 99, white burst 126, assist strike 137,
+ * plasma 165 / 166 / 191 / 436, rapid fire 193 / 194, back cannon 195 / 254 / voices 258 (Lilac) / 259, missiles 169 / 200,
+ * laser 256 / 257, defeat 261, Milla's platform 219 (228 KB at 11025 Hz) */
+static const short SFX_FN6[] = { 134, 99, 126, 137, 165, 166, 169, 191, 193, 194, 195, 200, 219, 254, 256, 257, 258, 259, 261, 436 };
 /* Fortune Night bosses (fn_boss.c, spec_fn_bosses C / E): FN3 beam chase (7794 window, 7797 / 7798 / 7810 zones, 7800 / 7801
  * floors at A >= 4, Floor2 pieces at MV.B) and samurai (7815 lock, 8040 / 8048 music, 8045 y 512, turrets 8047 / 8048); FN5
  * samurai (8422 g4 < 3, 8424 CAM.D 336, no music; 8473 turret; its 8045 copy's y is not in the spec: home y + 16, INFERRED) */
