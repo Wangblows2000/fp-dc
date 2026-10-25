@@ -141,19 +141,22 @@ spec_records_saves.md.
   Aqua Tunnel: session 12.)
 
 ## Latest verified
-- host-test: gameplay 72/72, front end 30/30, Carol 19/19, Milla 33/33, Aqua 19/19. original-trace vs host: cmp_all
-  76/76, strict 11311/11377 (99.4 %, unchanged); cmp_carol 43/53; cmp_milla 37/42; cmp_at 21/35 exact.
-- emulator (Flycast, session 12 build, Milla): AT1-AT4 at 602-603 vblanks per 600 frames; VRAM free AT1 2570, AT2 1672,
-  AT3 3347, AT4 2816 KB; sound RAM 324 KB free. **Emulator only; nothing measured on real hardware.**
+- host-test: gameplay 72/72, front end 30/30, Carol 19/19, Milla 33/33, Aqua 19/19, levels 23/23, saves 19/19.
+  original-trace vs host (identical per trace to the session-12 HEAD): cmp_all 76/76, strict 11311/11377 (99.4 %);
+  cmp_carol 43/53; cmp_milla 38/43 (incl. m_hang_dv1); cmp_at 21/35 exact. RV-file: the save model holds on the
+  user's five PC files and records.dat (tests/check_user_saves.py, 23/23, read in place).
+- emulator (Flycast, session 13): every act at 602-603 vblanks per 600 frames (DV4 602 after the boulder fix); VRAM
+  free AT1 2542, AT2 1644, AT3 3347, AT4 2308, DV1 2541, DV2 1707 (Milla 1347), DV3 1949, DV4 1960 KB; menus and results
+  translucent as on the host. **Emulator only; nothing measured on real hardware.**
 
 ## Next actions
-1. Real hardware: run the session 11 disc and read the `perf:`/`prof` lines over serial (or watch for stutter); listen
-   to Carol's and Milla's sounds and the bike engine loop.
-2. Aqua Tunnel traces still missing (TODO "Aqua Tunnel"): Chomper bites / defeat, snake hits / defeat, worm kill.
-3. Carol traces still to record: under water, the 3-hit wreck, death with the bike, DV3/DV4 pads (incl. the DV4 block
-   pad 5356), bored idles; sync the original's cross_seed in the tracer to compare random voices.
-4. Flycast shows a +2.5 ms frame period about once per second in every scene; confirm on hardware whether it exists.
-5. Trace the DV4 boss exit in the original; finish the consecutive DV1→DV4 route search.
+1. Real hardware: the session 13 disc; read the `perf:`/`prof` lines, check the translucent menus / results (D-060)
+   and that no stage stutters.
+2. Original traces for the RE-only items (TODO "Session 13" / "Aqua Tunnel"): AT card numbering, a story clear across
+   frame 8 (save writes), Chomper / snake / worm defeats.
+3. Next stage: follow ASSET_PIPELINE "Adding a level" and RE_NOTES "Reusable objects and levels"; OBJECTS.md shows
+   which classes are already ported.
+4. Carol traces still to record (under water, wreck, DV3/DV4 pads), the DV4 boss exit trace, the DV1→DV4 route search.
 
 ## Carol: verified vs approximated
 - **Matched to original traces (RV, cmp_carol, 53 traces):** on-foot movement, pounce chains, roll and roll jump, crouch

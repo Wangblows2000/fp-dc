@@ -331,7 +331,9 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
 - **UI (ui.c / ui.h):** kind 2 = solid quick backdrop (w, h, colours); kind 3 = translucent layer of the object before
   it (alpha in the header pad byte; it copies the owner's position, frame, visibility, tiling); `tilew` (preview strips
   repeat across the window), `tileh` (the checker layer wraps vertically).
-- **Host:** `<f> LOAD <dir>` (a fresh start of another level in the same run), `FP_CARD_DBG` (prints the card images of
+- **Renderer (render_pvr.c):** translucent-list headers use PVR_TXRENV_MODULATEALPHA (D-060). objects.c `obj_obj_hit`
+  computes each rotated object's cos / sin once per test (the DV4 boulder vs the tunnel walls).
+- **Host:** `<f> LOAD <dir>` (a fresh start of another level in the same run), `FP_FRAME_US=n` (frames whose update exceeds n us), `FP_CARD_DBG` (prints the card images of
   each load), `FP_DUMP_OBJDEFS` (registry per type), `FP_TA` / `FP_FILE` / `FP_FILE_NEW` (save tests).
 - **Tests:** tests/test_levels.py (cards, load orders, restart, hang animations, results panels, registry vs importer,
   next acts, checkpoint), tests/test_saves.py (records, files, progress, cards, conversion, CRC).

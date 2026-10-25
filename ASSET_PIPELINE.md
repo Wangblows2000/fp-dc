@@ -157,7 +157,7 @@ omits mirrored dir-16 animations.
    objects take; RE from the frame's start event and its object events) and its STAGE_CARDS row if the stage is new.
 4. Budgets, checked in Flycast with a demo disc (`make cdi DEMO=... `, `load[<dir>]` and `prof` lines): VRAM free after
    load ≥ 1 MB with the heaviest character (Milla), sound RAM largest free block ≥ 256 KB with the stage group,
-   600-frame windows at 602-603 vblanks (the two extra are the profiler's own print). If VRAM is short: move the
+   600-frame windows at 602-603 vblanks (every scene shows the same 2-3 extra; INFERRED: the profiler's own report). If VRAM is short: move the
    largest sprite bank's rarely drawn classes behind ENS_WITH parents, then let palettize put ≤ 15-colour banks in 4 bpp
    blocks (`--pal4`).
 5. Regenerate OBJECTS.md, run the host suites and the trace comparers, and add the level to the TA / route tables if the
