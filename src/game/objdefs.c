@@ -523,6 +523,39 @@ static const objdef_t DEFS[] = {
     { OT_FN_STAR,       0,                                     NULL         }, /* bgstar_16 */
     { OT_FN_PARAM,      0,                                     NULL         }, /* - (importer: per-act constants) */
     { OT_FN_DUST,       0,                                     NULL         }, /* - (EffectsDust01_369) */
+    /* Fortune Night bosses (fn_boss.c, spec_fn_bosses A-E; sprites set by fn_boss_spawn). OD_HIDDEN: the constructor's
+     * set_visible(0) (shown by the encounter's events) */
+    { OT_FN_UFO,          OD_HIDDEN,                           NULL         }, /* minibossufo_1772 (Q20) */
+    { OT_FN_UFO_PIECE,    OD_HIDDEN,                           NULL         }, /* minibossufo2_1773 */
+    { OT_FN_UFO_HATCH,    OD_HIDDEN,                           NULL         }, /* minibossufohatch1_1770 / hatch2_1771 */
+    { OT_FN_UFO_BEAM,     OD_HIDDEN,                           NULL         }, /* minibossufobeam_1769 */
+    { OT_FN_UFO_BORDER,   OD_HIDDEN,                           NULL         }, /* minibossufoborder_1768 (marker) */
+    { OT_FN_UFO_DEBRIS,   0,                                   NULL         }, /* minibossufodebris_1875 */
+    { OT_FN_DOZER,        0,                                   NULL         }, /* minibossbulldozer_1746 (Q20) */
+    { OT_FN_DOZER_ARM,    0,                                   NULL         }, /* minibossbulldozerarm_1747 */
+    { OT_FN_DOZER_CLAW,   OD_BOXCOL,                           NULL         }, /* minibossbulldozerclaw_1750 (box collision) */
+    { OT_FN_DOZER_DOOR,   0,                                   NULL         }, /* minibossbulldozerdoor_1745 (Q20) */
+    { OT_FN_DOZER_WHEEL,  0,                                   NULL         }, /* minibossbulldozerwheel1_1748 / wheel2_1749 */
+    { OT_FN_DOZER_HITBOX, OD_SOLID|OD_HIDDEN,                  NULL         }, /* minibossbulldozerhitbox_1752 (Q7) */
+    { OT_FN_LIMITER,      OD_HIDDEN,                           NULL         }, /* minibosslimiter_1751 (marker) */
+    { OT_FN_BOOMERANG,    0,                                   NULL         }, /* - (MinibossBoomerang_1753) */
+    { OT_FN_DOZER_DEBRIS, 0,                                   NULL         }, /* - (MinibossBulldozerDebris_1754) */
+    { OT_FN_SERP,         OD_HIDDEN,                           NULL         }, /* npcserpentine_945 (FN3 boss) */
+    { OT_FN_SERP_ARM,     OD_HIDDEN,                           NULL         }, /* bossserpentinearm_1865 */
+    { OT_FN_SERP_HIT,     OD_HIDDEN,                           NULL         }, /* bossserphitbox_1873 (Q20) */
+    { OT_FN_SERP_FLOOR,   OD_HIDDEN|OD_BOXCOL,                 NULL         }, /* bossserpfloorcheck_1869 (box) */
+    { OT_FN_SERP_SHIELD,  OD_HIDDEN,                           NULL         }, /* shieldserpentine_1872 */
+    { OT_FN_CHARGE_GLOW,  OD_HIDDEN,                           NULL         }, /* bosschargeglow_1868 */
+    { OT_FN_WARNING,      0,                                   NULL         }, /* - (EffectWarning_1528) */
+    { OT_FN_WARNING2,     0,                                   NULL         }, /* - (EffectWarning2_1895) */
+    { OT_FN_RAPIDBULLET,  0,                                   NULL         }, /* - (BossRapidBullet_1866) */
+    { OT_FN_MISSILE,      0,                                   NULL         }, /* - (BossMissile_1867) */
+    { OT_FN_SAMU,         0,                                   NULL         }, /* minibosssamu_1890 (Q20) */
+    { OT_FN_SAMU_HAND,    0,                                   NULL         }, /* minibosssamulefthand_1888 / righthand_1889 */
+    { OT_FN_SAMU_WHEEL,   0,                                   NULL         }, /* minibosssamuwheel_1886 */
+    { OT_FN_SAMU_PROBE,   OD_HIDDEN,                           NULL         }, /* minibosssamufloorcheck_1891 */
+    { OT_FN_SAMU_DEBRIS,  0,                                   NULL         }, /* - (MinibossSamuDebris_1892) */
+    { OT_FN_BOSSGATE,     OD_SOLID,                            NULL         }, /* bossgate_1894 / _2030 (Q7) */
     /* Fortune Night Panther (fn_panther.c, spec_fn_bosses G.1; sprites set by fn_panther_spawn). The scrolling floor is the
      * arena's floor (Q7 box: the frame's floor backdrops start at x 672, outside the 640-wide arena; RV T-G1: the player
      * stands at feet y 280 = its top); the plane platform carries Milla (Q8 / Q9, INFERRED from 8524-8527) */

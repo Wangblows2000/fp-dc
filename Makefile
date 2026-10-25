@@ -13,7 +13,11 @@ OBJS += src/game/fn_gimb.o   # Fortune Night acts 4-5 gimmicks
 OBJS += src/game/rm_claw.o   # RM3 Claw sequence
 OBJS += src/game/fn_flow.o   # Fortune Night stage flow
 OBJS += src/game/fn_enemy.o   # Fortune Night enemies
+<<<<<<< HEAD
 OBJS += src/game/fn_panther.o   # Fortune Night Panther (FN5 chase, FN6 boss)
+=======
+OBJS += src/game/fn_boss.o   # Fortune Night bosses
+>>>>>>> master
 
 FP_GAME ?= /mnt/user-data/uploads/Freedom Planet
 # BGM: music tracks put on the disc (default: the whole ADPCM library). Lean disc with only the

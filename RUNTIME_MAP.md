@@ -454,3 +454,17 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
 - Hooks for the boss module: level_lock_markers / level_release_camera, level_music_slot, player_bike_off(p, park),
   results_begin_boss (FN6 row: group voice 8545, wipe 8546-8549), G.cam_nD / cam_nF, par_set_drift, fn_flow_panther_view.
 - Host: row fields `g4` (act-start mode) and `tm` (stage timer); script `<f> RESBOSS` (results_begin_boss now).
+
+## Session 17: Fortune Night bosses (port: src/game/fn_boss.c; tests/test_fn_bosses.py)
+- **Types 800-859** (fp.h): UFO set 800-805, bulldozer 810-818, Serpentine 820-829, samurai 840-845; reused: OT_FN_BFLOOR /
+  LAMP / COLUMN / RAMP (fn_gima.c), OT_WR_BARRIER, OT_FN_LASER / OT_FN_STURRET (fn_enemy.c), OT_FLAME (relic.c),
+  OT_BOMBX (aqua_blast). Importer: FN_BOSS block (FNBOSS_TYPES_ID only in json 30-32 / 34, FNBOSS_SUB, rows fb_* / fs_*).
+- **Hooks (one line each):** objects.c fn_boss_spawn / fn_boss_pre (test_collisions handlers, before combat) / per-object
+  dispatch / draw (UFO rig order: lights behind the hull while sin B < 0, y-scaled beam, additive glow); game.c
+  fn_boss_frame after fn_gimb_frame and fn_boss_input (CTRL.M during the escape); combat.c fn_boss_q20.
+- **Level data:** level_def_t.fnb (fnboss_t): FN3 chase window / zones / cut A / Floor2 MV.B, samurai lock / music / CAM.D /
+  g4 limit / wreck y / turrets (FN3, FN5). Flow interfaces used: level_lock_markers, level_release_camera,
+  level_music_slot(4 / 6), music_fade, CK_FN3 / CM_FN3 (class sets and markers by character).
+- **Sounds:** SFX_FN += 62 70 75 165 166 168 169 191-200 317 (11025 Hz; convert_sfx.sh).
+- **Host:** BOSSHP sets the bulldozer, the Serpentine hitbox and the samurai (not the UFO); the `ob` line adds a5-a7, c, hd,
+  lay, ang; FP_DBG_FNB prints the boss camera bounds per frame.
