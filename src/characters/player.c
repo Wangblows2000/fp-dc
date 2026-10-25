@@ -20,15 +20,17 @@ enum { A_IDLE, A_WALK, A_RUN, A_FASTRUN, A_JUMP, A_LOOKUP, A_CROUCH, A_SKID, A_A
        A_PUSH, A_CLIMB, A_CLIMBDOWN, A_CLIMBOVER, A_CATCH, A_CORK, A_CORK2, A_SWIM, A_SHAKE,
        /* Carol only (playerskincarol_449 indices, spec_carol_moves 5.1): wall cling, pounce, claw swings, Wild Kick,
         * jump-pad hold, bike mount pose, air rising (Y = 40, G < 0) */
-       A_C_WALL, A_C_POUNCE, A_C_CLAW0, A_C_CLAW1, A_C_CLAW2, A_C_KICK, A_C_PADHOLD, A_C_MOUNT, A_C_RISE, A_COUNT };
+       A_C_WALL, A_C_POUNCE, A_C_CLAW0, A_C_CLAW1, A_C_CLAW2, A_C_KICK, A_C_PADHOLD, A_C_MOUNT, A_C_RISE,
+       A_HANGMOVE,   /* OTHERS.Y 42 -> skin 17 (RE 2462): shimmying along a Fortune Night clothesline (fn_gima.c) */
+       A_COUNT };
 /* names = tools/import_frame.py LILAC (runtime-verified playerskinsash_341 animation numbers) */
 static const char *anim_names[A_COUNT] = { "idle", "walk", "run", "fastrun", "jump", "lookup", "crouch",
     "skid", "attack", "airatk", "uppercut", "dkwind", "divekick", "cyclone", "charge", "boost", "hurt", "defeat", "crouchatk", "spring", "hang",
-    "push", "climb", "climbdown", "climbover", "catch", "cork", "cork2", "swim", "shake", 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    "push", "climb", "climbdown", "climbover", "catch", "cork", "cork2", "swim", "shake", 0, 0, 0, 0, 0, 0, 0, 0, 0, "hangmove" };
 /* Carol: the original forces the same index on her skin as on Lilac's for each animation code OTHERS.Y (events
  * 2426-2470), except the fast run (Lilac 23, Carol 2) and Y = 43; her bank names them a<index> (tools/import_frame.py) */
 static const signed char carol_idx[A_COUNT] = { 0, 1, 2, 2, 24, 11, 10, 16, 25, 25, 28, 13, 19, 18, 7, 13, 8, 38, 30, 14, 15,
-    12, 9, 35, 36, 33, 32, 31, 39, 27, 13, 28, 25, 26, 29, 21, 30, 20, 14 };
+    12, 9, 35, 36, 33, 32, 31, 39, 27, 13, 28, 25, 26, 29, 21, 30, 20, 14, 17 };
 static int anim_r[A_COUNT], anim_l[A_COUNT], hair_r[A_COUNT], hair_l[A_COUNT], bike_r[A_COUNT], bike_l[A_COUNT];
 static int cur_anim = -1;
 static animator_t hair;          /* PlayerSkinSashHair_424: follows the skin's animation id (RV) */
@@ -104,6 +106,7 @@ static void player_anims_init(void) {
         }
         if (!anim_names[i]) { anim_r[i] = anim_r[A_IDLE]; anim_l[i] = anim_l[A_IDLE]; hair_r[i] = hair_r[A_IDLE]; hair_l[i] = hair_l[A_IDLE]; continue; }
         anim_r[i] = bank_anim(&G.lilac, anim_names[i]);
+        if (anim_r[i] < 0 && i == A_HANGMOVE) { anim_r[i] = anim_r[A_HANG]; anim_l[i] = anim_l[A_HANG]; hair_r[i] = hair_r[A_HANG]; hair_l[i] = hair_l[A_HANG]; continue; }   /* banks built before session 17 */
         snprintf(nm, sizeof nm, "%s_l", anim_names[i]);
         anim_l[i] = bank_anim(&G.lilac, nm);
         if (anim_r[i] < 0) { plat_log("lilac anim %s missing\n", anim_names[i]); anim_r[i] = 0; }
@@ -111,6 +114,7 @@ static void player_anims_init(void) {
         snprintf(nm, sizeof nm, "h_%s", anim_names[i]); hair_r[i] = G.hair.nanims ? bank_anim(&G.hair, nm) : -1;
         snprintf(nm, sizeof nm, "h_%s_l", anim_names[i]); hair_l[i] = G.hair.nanims ? bank_anim(&G.hair, nm) : -1;
         /* (hair_l < 0: mirrored) */
+        if (i == A_HANGMOVE && hair_r[i] < 0) { hair_r[i] = hair_r[A_HANG]; hair_l[i] = hair_l[A_HANG]; }   /* no hair animation 17: the hang's (INFERRED) */
     }
 }
 
@@ -252,6 +256,7 @@ int player_orig_m(const player_t *p) {
     case ST_HANG: return 41; case ST_CORK: return 45; case ST_LADDER: return 46; case ST_SHAKE: return 12; case ST_HELD: return 43;
     case ST_WILDKICK: return 44; case ST_WALL: return 47; case ST_PAD: return 48; case ST_BIKEAIR: return 32;
     case ST_CART: return 90; case ST_SIT: return 39;   /* Relic Maze hand-car / chair (relic_gimb.c) */
+    case ST_HPIPE: return 38;                           /* Fortune Night half-pipe (fn_gima.c) */
     default: return -1;
     }
 }
@@ -964,8 +969,8 @@ void player_update(player_t *p, const input_t *in) {
         p->x = p->hang_x; p->y = p->hang_y + 32 + ORIG_REF_DY; p->vx = 0; if (p->vy > PHYS_MAXFALL) p->vy = PHYS_MAXFALL; p->vy += PHYS_GRAV;
         if (in->pressed & BTN_JUMP) { p->state = ST_NORMAL; p->vx = 0; p->vy = -4.5; p->jumping = 0; p->m1 = 1; p->cY = 3; }   /* RV a1_jelly_charge: G -4.5, M1, no jump sound */
         else if (in->pressed & BTN_DOWN) { p->state = ST_NORMAL; p->vy = 0; p->y += 1; }                                                     /* INFERRED */
-        if (is_milla()) { if (p->state == ST_HANG) p->cY = 41; milla_anim(p); return; }   /* RE 2461: OTHERS.Y 41 -> Milla skin anim 15 (the hang), with her tail */
-        set_anim(p, A_HANG); anim_tick(&p->an, -1); if (hair.b) anim_tick(&hair, -1);
+        if (is_milla()) { if (p->state == ST_HANG && p->cY != 42) p->cY = 41; milla_anim(p); return; }   /* RE 2461: OTHERS.Y 41 -> Milla skin anim 15 (the hang), with her tail; 42: the shimmy (2462) */
+        set_anim(p, p->cY == 42 ? A_HANGMOVE : A_HANG); anim_tick(&p->an, -1); if (hair.b) anim_tick(&hair, -1);
         return;
     }
     switch (p->state) {
@@ -1105,6 +1110,11 @@ void player_update(player_t *p, const input_t *in) {
         else air_move(p, in, 0, PHYS_GRAV);
         break;
     case ST_LADDER: ladder_frame(p, in); break;
+    case ST_HPIPE:    /* M38 (Fortune Night half-pipes, fn_gima.c 7538-7542): the movement block and its speed rules (1621-1651 are not in
+                       * the M0 group, RE) without the M0 group (no jump / attack: INFERRED, spec_fn_gimmicks_a U5); 1891: OTHERS.Y 46 unless 45 */
+        if (p->cY != 45) p->cY = 46;
+        if (p->ground) ground_move(p, in, 1, 1); else air_move(p, in, 1, PHYS_GRAV);
+        break;
     case ST_CORK: cork_move(p); break;                /* M45 (gimmicks.c) */
     case ST_ROLL: roll_move(p, in); break;            /* M6 */
     case ST_LADDERIN: ladderin_frame(p, in); break;
@@ -1221,6 +1231,7 @@ void player_update(player_t *p, const input_t *in) {
     case ST_PUSH: a = A_PUSH; break;
     case ST_SHAKE: a = A_SHAKE; if (cur_anim != A_SHAKE) { set_anim(p, a); anim_restart(&p->an); if (hair.b) anim_restart(&hair); } break;   /* OTHERS.Y 25 -> skin 27 */
     case ST_CORK: a = (p->cork_e > 0.25 && p->cork_e < 1.5) ? A_CORK2 : A_CORK; break;   /* 4715/4716: OTHERS.Y 46 / 45 */
+    case ST_HPIPE: a = p->cY == 45 ? A_CORK : A_CORK2; break;                            /* M38: OTHERS.Y 45 / 46 (the same skin animations 32 / 31) */
     case ST_LADDERIN: a = A_CLIMBOVER; break;
     case ST_LADDER:   /* 2456-2467; 2497: climb speed int(|G| * 10) (frozen when still) */
         if (p->lad_y == 28) a = A_CLIMBOVER;
