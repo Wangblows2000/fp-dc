@@ -392,7 +392,7 @@ static void caravan_drive(player_t *p) {
     }
     if (e && DEFEATED(e) && e->dir == 0) {                                         /* 6272 / 6273 */
         obj_t *h = O(C.hit);
-        if (h && h->A > 0) h->A = 0;                                               /* RecordData[2][19] (U7): not modelled */
+        if (h && h->A > 0) { h->A = 0; ach_earn(19); }                             /* RecordData[2][19]: the Claw still alive (RE 6272) */
         obj_effect(e->x - 12, e->y, "blast"); camera_shake(3);                     /* MonitorIcon frame 9 */
         C.g_wreck = 1; e->dir = 8; set_s(e, S_ENGINEW);
         if (b) b->av[5] = 0;

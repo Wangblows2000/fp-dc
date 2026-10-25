@@ -9,6 +9,7 @@
  * random eligible enemy each, at most one hit per frame (K), then the shared enemy events 2761-2767.
  * A plain jump never damages an enemy. Hits give no rebound, energy or score. */
 #include <math.h>
+#include <stdio.h>
 #include <string.h>
 #include "../fp.h"
 
@@ -366,4 +367,28 @@ void combat_draw_shields(int behind) {
         int k = o->tm < a->count ? o->tm : a->count - 1;
         frame_draw(b, &b->frames[b->seq[a->first + k]], floorf(o->x - G.camx), floorf(o->y - G.camy), 0, 0xffffffff);
     }
+}
+
+/* ---- achievements 10-17 (session 16; RE build/re/spec_achievements.md 2.1 / 3: DV4 5581-5589, AT4 4663-4671, RM5
+ * 7120-7128). Called on every frame of the boss's finish moment (no latch in the original; ach_earn is idempotent) and
+ * tests the player's state on that frame. MV.A = the character global (3 on the bike), MV.M = player_orig_m(). */
+void ach_boss_finish(void) {
+    const player_t *p = &G.p;
+    int M = player_orig_m(p), A = p->bike ? CHR_CAROL_BIKE : G.character, slash = 0;
+    for (int i = 0; i < G.nobjs; i++) {                       /* 5583 / 5584: a ShieldInstaShield_407 with direction 30 or 14 */
+        const obj_t *o = &G.o[i];                             /* (Carol's big slash, carol.inc 2137) */
+        if (o->alive && o->type == OT_SHIELD && (sdef(o)->dir == 30 || sdef(o)->dir == 14)) slash = 1;
+    }
+    int cube = player_cube_state();
+#ifdef FP_HOST_ENV
+    printf("ach finish M %d A %d slash %d cube %d beam %d\n", M, A, slash, cube, player_cube_beam());   /* host tests */
+#endif
+    if (A == CHR_LILAC && M == 21) ach_earn(10);              /* Rising Slash */
+    if (A == CHR_LILAC && M == 26) ach_earn(11);              /* Dragon Cyclone */
+    if (M == 5) ach_earn(12);                                 /* Dragon Boost (no A test, RE) */
+    if (M == 20 && slash) ach_earn(13);                       /* Wild Claw */
+    if (M == 44) ach_earn(14);                                /* Wild Kick */
+    if (A == CHR_CAROL_BIKE) ach_earn(15);                    /* Motorcycle */
+    if (cube == 3) ach_earn(16);                              /* Phantom Block: PlayerReflect_463 A == 3 */
+    if (cube == 5 && player_cube_beam()) ach_earn(17);        /* Super Shield Burst: cube A == 5 and anim 5 playing */
 }

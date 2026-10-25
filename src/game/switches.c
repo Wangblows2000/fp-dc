@@ -21,7 +21,7 @@
 #include <string.h>
 #include "../fp.h"
 
-static struct { int dv_click, at_click, mblock_click, gate_closed; } SW;
+static struct { int dv_click, at_click, mblock_click, gate_closed, skipE, skip_once; } SW;   /* skipE / skip_once: SwitchDoor E and the 5099 latch */
 
 static void ens_set(obj_t *o, const char *name) { int a = ens_anim(name); if (a >= 0) anim_set(&o->an, &G.ens, a); else o->an.b = NULL; }
 static int box_sensor(int s, float x0, float y0, float x1, float y1) {   /* a sensor mask overlapping a box */
@@ -118,7 +118,7 @@ void switches_update(player_t *p, int late) {
         if (o->fl & 1) pressed_m = 1;
     }
     if (pressed_m && !SW.mblock_click) { SW.mblock_click = 1; snd_play_orig(49, 220, 128); }       /* 4363 */
-    int pressed = pressed_p || pressed_m;
+    int pressed = pressed_p || pressed_m, door1 = 1;
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *d = &G.o[i]; if (!d->alive) continue;
         switch (d->type) {
@@ -128,6 +128,18 @@ void switches_update(player_t *p, int late) {
             int rise = L->rmg ? L->rmg->door_rise : 0;                                              /* RM4 6431 (level data): 8 px, no under-check */
             if (!pressed && d->c > 0 && rise) { int r = d->c < rise ? d->c : rise; d->y -= r; d->c -= r; }
             else if (!pressed && d->c > 0 && !under) { d->y -= 2; d->c -= 2; }                      /* rises back 2 px/frame */
+            if (L->door_skip_ach && door1) {
+                /* "Lilac the Switch Skipper" (session 16, build/re/spec_achievements.md 4.1). RE 5098: with G4 < 2, the first frame
+                 * that MV.X is in (door x + 32, door x + 128) and MV.Y below the door's top sets E = 1, then E counts to 10; RE 5099:
+                 * 0 < E < 10 while the plate is not pressed -> records x2 y18 (no character test, RE). INFERRED: the layer x / y
+                 * offsets are 0, the counter keeps running once started (else-branch of 5098), and the reading itself (the door
+                 * top is above her only while it is (nearly) closed, so walking through the opened door does not count). */
+                door1 = 0;
+                double mx = p->x, my = p->y - ORIG_REF_DY;
+                if (G.at_g4 < 2 && mx > d->x + 32 && mx < d->x + 128 && my > d->y) { if (SW.skipE == 0) SW.skipE = 1; else if (SW.skipE < 10) SW.skipE++; }
+                else if (SW.skipE > 0 && SW.skipE < 10) SW.skipE++;
+                if (SW.skipE > 0 && SW.skipE < 10 && !pressed_p && !SW.skip_once) { SW.skip_once = 1; ach_earn(L->door_skip_ach); }
+            }
             break; }
         case OT_SDOOR:                                                                              /* 4097 / 4364: layer 2, not solid */
             if ((pressed && d->c < 224) || (d->c > 0 && d->c < 224)) { d->c += 4; d->x -= 4; d->layer = 1; d->fl |= 1; }

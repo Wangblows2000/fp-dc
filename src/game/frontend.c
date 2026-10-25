@@ -13,7 +13,7 @@
 #include "../fp.h"
 #include "ui.h"
 
-enum { FE_PRESS, FE_HUB, FE_CHSEL, FE_STSEL, FE_GAL };
+enum { FE_PRESS, FE_HUB, FE_CHSEL, FE_STSEL, FE_GAL, FE_ACH };   /* FE_ACH: the achievement pop-up after a stage (frame index 9) */
 
 static ui_banks_t b_title, b_scr, b_font;         /* b_scr: the character select, the stage select or the gallery bank */
 static ui_scene_t s_press, s_hub, s_scr;
@@ -83,7 +83,7 @@ static int scr_load(int which) {
 static void gal_release(void);
 static void fe_unload(void) {
     if (!fe_loaded) return;
-    if (fe_state == FE_GAL) gal_release();
+    if (fe_state == FE_GAL || fe_state == FE_ACH) gal_release();
     if (scr_loaded >= 0) { ui_free(&s_scr); ui_banks_free(&b_scr); scr_loaded = -1; }
     ui_free(&s_press); ui_free(&s_hub);
     ui_banks_free(&b_title); ui_banks_free(&b_font);
@@ -485,6 +485,16 @@ static void chsel_draw(void) {
 /* ---- Gallery (frame index 10 = on_frame_11): fe_gallery.inc */
 #include "fe_gallery.inc"
 
+/* session 16: a stage ended with an earned, unannounced achievement (results.c stage_end): the pop-up first, then on */
+int fe_enter_ach_popup(int time_attack, int next_stage) {
+    game_unload_all();
+    if (fe_load() < 0) return -1;
+    G.mode = MODE_FRONTEND;
+    if (scr_load(2) < 0) { fe_unload(); return -1; }      /* no gallery data: the stage flow goes on without the pop-up */
+    set_state(FE_ACH); achpop_enter(time_attack ? 1 : next_stage ? 2 : 0);
+    return 0;
+}
+
 void fe_update(const input_t *in) {
     G.frame++; fe_t++;
     if (fe_dev_select_check(in)) { fe_unload(); game_dev_select(); return; }
@@ -519,12 +529,13 @@ void fe_update(const input_t *in) {
     case FE_CHSEL: chsel_update(in); break;
     case FE_STSEL: stsel_update(in); break;
     case FE_GAL: gal_update(in); break;
+    case FE_ACH: achpop_update(in); break;
     }
 }
 
 /* trace helper (host tests): the original frame index this screen corresponds to, and its cursor */
 void fe_trace_info(int *idx, int *cur) {
-    *idx = fe_state == FE_PRESS ? 2 : fe_state == FE_HUB ? 3 : fe_state == FE_CHSEL ? 6 : fe_state == FE_GAL ? 10 : 5;
+    *idx = fe_state == FE_PRESS ? 2 : fe_state == FE_HUB ? 3 : fe_state == FE_CHSEL ? 6 : fe_state == FE_GAL ? 10 : fe_state == FE_ACH ? 9 : 5;
     *cur = fe_state == FE_HUB ? hub_cursor() : fe_state == FE_CHSEL ? C.cur : fe_state == FE_STSEL ? T.A : fe_state == FE_GAL ? Y.A * 100 + Y.D : 0;
 }
 
@@ -536,6 +547,7 @@ void fe_draw(void) {
     case FE_CHSEL: chsel_draw(); break;
     case FE_STSEL: stsel_draw(); break;
     case FE_GAL: gal_draw(); break;
+    case FE_ACH: achpop_draw(); break;
     }
     r_end();
 }

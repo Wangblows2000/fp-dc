@@ -577,6 +577,7 @@ void serp4_update(player_t *p) {
     /* stunned / retreat / final defeat (0x22349, 5531-5566) */
     if (S4.stun && hb) {
         S4.V = hd->x; S4.W = hd->y; hd->x = hb->x; hd->y = hb->y; S4.hG += 1;          /* 5531 */
+        if (S4.K == 0 && S4.hG == 1 && (hb->fl & F_DEFEATED)) ach_boss_finish();      /* 5581-5589: health 0, hitbox flag 6, G == 1 (RE) */
         if (!(S4.hI == 1 && hb->ky < -8)) chain_follow(hd, S4.V, S4.W);                /* 5532 (bodies freeze in the shaft flight) */
         if (hd->an.anim == ens_anim("sh_stun")) for (int h = 1; h <= SN.nseg; h++) { obj_t *b = seg(h); if (b) set_ens(b, hd->an.frame == 0 ? "sb_fly8" : "sb_fly"); }   /* 5533 / 5534 */
         if (S4.hG <= 60) {

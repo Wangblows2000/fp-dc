@@ -577,6 +577,33 @@ STAGE 2". Labels as everywhere: RE read from code, RV original trace, INFERRED r
   INFERRED in the port: type-3 tracks loop, DATA panel cursor, dimmed header alpha, pop-up as an overlay (frame 9 not
   ported), save on leave only when something changed. UNKNOWN items in spec_gallery 9.
 
+## Session 16: achievements (spec build/re/spec_achievements.md; port: RUNTIME_MAP "Session 16")
+- **Implemented (RE conditions from the spec; host-tested, not traced in the original unless marked):**
+  - 10-17 boss finishes, DV4 (5581-5589) / AT4 (4663-4671) / RM5 (7120-7128) at the finish moment: Lilac M21 (10), M26 (11),
+    any M5 (12, no A test), M20 with a big-slash shield dir 14 / 30 (13), M44 (14), MV.A 3 (15), cube A 3 (16), cube A 5 with
+    anim 5 (17). The player state is read on the finish frame (RE); whether a boost kill still reads M5 there is UNKNOWN
+    (trace `dv4_finish_boost` advised).
+  - 18 Switch Skipper (DV2 5098 / 5099): **INFERRED reading** (spec 4.1): zone (door x + 32, door x + 128), MV.Y below the
+    door's top, G4 < 2, plate not pressed, within 10 frames of entering; layer offsets taken as 0, no character test (RE).
+    Host: a teleport past the closed door earns it, the plate / block route through the opened door does not. Not traced.
+  - 19 Claw Bypass (6272), 33 Rolling Stones (5453-5460), 34 Push Block KO (5955), 35 All Bone, No Brain (7117, after the
+    7116 decrement), 38 Treasure Hunter (4189, AT1 / RM1 spots), 42 Milla Unlocked! (7118, any character / mode).
+  - 36 Preemptive Strike I (6900): the port's arm hitboxes do take hits during the intro (L 61, the fight group is already
+    on: Lilac's attacks lower Hitbox2 there, host), so the check is live; reaching A <= 0 on both arms in that window by
+    play is not demonstrated (host test uses the cheat).
+  - 23 / 24 / 25 Card Collector and 43 / 44 / 45 speedrunners at results D = 149 (5580 / 7119 / 4662, 5579 / 7115 / 4661):
+    the port commits this run's cards first (it saves them at D = 150). Thresholds <= 300000 / 480000 / 300000 ms of the
+    stage time (host: 300000 ms earns, 300016 does not). Any mode incl. Time Attack, any character, no difficulty test.
+  - Pop-up: after the results wipe, before the next stage / menu (RE frame 8 -> 9, RV it waits for input). The port writes
+    the records once after the last page (the original saves on each page: INFERRED deviation, same data); its layout and
+    black background are INFERRED (frame 9's scene is not ported).
+- **Unresolved / out of scope (need unported stages or the ending):** 1-3 (FD4 results per character), 4-6 (FD4 results,
+  file totals), 7-9 (Shang Mu targets), 20 / 21 / 41 (Fortune Night), 22 (Boost Perfectionist, frame index 60), 26-32
+  (other stages' Card Collector; the gallery entry already awards them once those cards exist), 37 (Prince Dail), 39
+  (Spade ledge), 40 (Freefaller), 46-56 (other stages' speedrunners, thresholds in the spec 2.2), y57 (hidden).
+  Achievements earned mid-stage and then left by pause QUIT / game over stay at 1 until the next stage end or the gallery
+  announces them (the original's frame 8 check would too; the quit route is not traced).
+
 ## PC save files (reference for the VMU save; the port does not read or ship them)
 `file1..8.sav` and `records.dat` are Clickteam ArrayObject files (RV, parsed from the user's copies):
 `"CNC ARRAY\0"`, u16 2, u16 0, i32 X, Y, Z, i32 flags (5 = numeric + base 1), then X·Y·Z int32 (x fastest).

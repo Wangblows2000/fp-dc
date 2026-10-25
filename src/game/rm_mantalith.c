@@ -290,7 +290,7 @@ static void intro_events(player_t *p) {
         *L = 62; G.cam_m2 = 1; G.cam.M3 = 0; G.cam_nC = fminf(MT.limL, G.camx); G.cam_nE = MT.limR;
     }
     if (*L == 62) { MT.timer_off = 0; MT.g_intro = 0; }                        /* 6898 HUD (not ported) / 6899 */
-    /* 6900: records[2][36] achievement (not ported) */
+    if (MT.hit[0]->A <= 0 && MT.hit[1]->A <= 0) ach_earn(36);                /* 6900 (group 0x22514): both arm weak points A <= 0 (RE) */
 }
 
 /* ===================================================================================================== 6902-7017 */
@@ -600,6 +600,7 @@ static void defeat_events(player_t *p) {
         obj_effect((float)(hd->x - 40 + R(81)), (float)(hd->y - 40 + R(81)), "explosion06");
         MT.hAnim = 8; MT.horn8 = 1; H_('I') = I = I + 1;
     }
+    if (I == 2) { ach_earn(42); ach_boss_finish(); }                           /* 7118 (42, any character / mode) + 7120-7128: head I == 2 (RE) */
     if (G.frame % 4 == 0 && I >= 60 && B_('D') <= MT.limB) obj_effect((float)(hd->x - 40 + R(81)), (float)(hd->y - 40 + R(81)), "explosion06");   /* 7062 */
     if (G.frame % 5 == 0 && I >= 60 && B_('D') <= MT.limB) { static const int S[3] = { 311, 98, 99 }; snd_play_orig(S[R(3)], 220, 128); }   /* 7063: "sound_explode" + rand(3) */
     /* 7064: the limbs droop (limits partly UNKNOWN: INFERRED) */
@@ -705,8 +706,7 @@ static void results_events(player_t *p) {
     if (t == 1) voice_play_once(G.character == CHR_LILAC ? "lilac_woohoo" : chr_is_carol(G.character) ? "carol_feelmypower" : chr_is_milla(G.character) ? "milla_yay" : "");
     if (t == 40 && G.character == CHR_LILAC) voice_play_once("lilac_howitsdone");
     if (t == 36 && chr_is_milla(G.character)) voice_play_once("milla_superdog");
-    /* 7119 (ScoreValues D == 149, once per act): records[2][24] when the RM cards 11-20 are all taken, and 7115 [2][44] (stage
-     * time <= 8 min) are achievement records: not ported (the cards themselves are saved by results.c at D = 150, 5394) */
+    /* 7119 / 7115 (ScoreValues D == 149): achievements 24 (RM cards 11-20) and 44 (stage time <= 8 min): results.c ach_results() */
     if (!MT.g_post && results_tally_done()) { MT.g_post = 1; G.cam_m2 = 0; }   /* 6594: group 0x22510 on (no wipe) */
     if (!MT.g_post) return;
     uint32_t held = 0;
