@@ -25,11 +25,14 @@ static void level_start(void) {
     const level_def_t *L = level_cur();
     int at = L->checkpoints;                                        /* levels with the g4 / g5 / g6 start rule (level data) */
     if (at) {                                                       /* RE 2955-2957 (spec_at_flow 1.4 / 1.5): no floor snap */
-        if (strcmp(G.at_dir, G.lvdir) && !G.act_carry) G.at_g4 = 1;   /* a fresh start of this act */
+        if (strcmp(G.at_dir, G.lvdir) && !G.act_carry && !G.keep_g4) G.at_g4 = 1;   /* a fresh start of this act (a death target act keeps g4: RM2 -> RM1) */
         if (L->start_fall && G.at_g4 < 1) G.at_g4 = 1;              /* 4307 */
         snprintf(G.at_dir, sizeof G.at_dir, "%s", G.lvdir);
         if (G.act_carry) G.at_g4 = -1;                              /* 3578: act change -> walk-in from x -32 */
-        if (G.at_g4 <= 0) { G.p.spawn_x = -32; G.p.spawn_y = sty + 16 + ORIG_REF_DY; }
+        const entry_t *en = G.at_g4 <= 0 ? level_entry(G.prev_dir) : NULL;   /* per-act entry (spec_rm_flow 6.2) */
+        G.walk_b = en ? en->walk_b : L->walkin_still ? 0 : 3;
+        if (en) { G.p.spawn_x = en->x; G.p.spawn_y = en->y + ((G.stage_flags & 1) ? en->y_flag1 : 0) + ORIG_REF_DY; }
+        else if (G.at_g4 <= 0) { G.p.spawn_x = -32; G.p.spawn_y = sty + 16 + ORIG_REF_DY; }
         else if (G.at_g4 == 1) { G.p.spawn_x = stx + 16; G.p.spawn_y = sty + 16 + ORIG_REF_DY; }
         else { G.p.spawn_x = G.at_g5; G.p.spawn_y = G.at_g6 + ORIG_REF_DY; }
     } else {
@@ -39,7 +42,7 @@ static void level_start(void) {
     }
     /* crystals, lives, energy persist across restarts (RV: debug restart kept them) */
     player_reset(&G.p, G.p.spawn_x, G.p.spawn_y);
-    if (at) { G.p.ground = 0; G.p.face = 1; if (L->start_fall && G.at_g4 == 1) G.p.cY = 3; }   /* L = 0 (2955-2957); AT1 fall pose OTHERS.Y 3 (4308) */
+    if (at) { G.p.ground = 0; G.p.face = G.walk_b < 0 ? -1 : 1; if (L->start_fall && G.at_g4 == 1) G.p.cY = 3; }   /* L = 0 (2955-2957); AT1 fall pose OTHERS.Y 3 (4308) */
     objects_spawn();
     results_reset();
     G.clear_t = 0; G.act_in = 0; G.act_fade = 0; G.frame = 0; G.card_t = 0; G.paused = 0;
@@ -356,11 +359,26 @@ void game_save_stage_end(uint32_t time_ms) {
 
 /* from the front end: character/stage chosen */
 void game_start_adventure(const char *dir, int time_attack) {
-    G.time_attack = time_attack; G.at_g4 = 1; G.at_dir[0] = 0;
+    G.time_attack = time_attack; G.at_g4 = 1; G.at_dir[0] = 0; G.prev_dir[0] = 0; G.stage_flags = 0; G.exit_to = NULL; G.exit_b = 0;
     G.p.energy_init = 0;                       /* fresh run: lives/crystals reset by player_reset */
     G.stage_crystals = 0; G.keystones = 0; G.stage_deaths = 0;
     G.mode = MODE_PLAY;
     if (game_load_level(dir) < 0) { fe_enter(); return; }
+}
+
+/* Classic: the next stage of the route after the results (RE frame 8 routing; lives, shield and the crystal counter carry,
+ * spec_records_saves 3; the stage's crystals / deaths / keystones and the timer start again). 0: no next stage ported. */
+int game_next_stage(void) {
+    const char *nx = level_route_next(level_cur()->stage);
+    if (!nx) return 0;
+    G.at_g4 = 1; G.at_dir[0] = 0; G.prev_dir[0] = 0; G.stage_flags = 0; G.exit_to = NULL; G.exit_b = 0;
+    G.stage_crystals = 0; G.keystones = 0; G.stage_deaths = 0;
+    G.mode = MODE_PLAY;
+    G.stage_carry = 1;
+    int r = game_load_level(nx);
+    G.stage_carry = 0;
+    if (r < 0) { fe_enter(); return 1; }
+    return 1;
 }
 
 /* developer level select: reachable only from the title screen (L+R within 2 s, frontend.c) */
@@ -498,12 +516,14 @@ static void next_act(void) {
     if (cards_commit()) save_store();             /* cards collected this act: one VMU write at the act change, never mid-stage */
     /* DV4 ends with the Serpentine boss and then the results (events 5385 / 4560-4589); the boss is not
      * ported, so the end of DV4 goes straight to the results. Time Attack plays every act as well. */
-    const char *nx = level_next(d);
+    const char *nx = G.exit_to ? G.exit_to : level_next(d);
+    G.exit_to = NULL; G.exit_b = 0;
     if (!nx) {
         G.mode = MODE_RESULTS; G.res_t = 0; G.res_time = G.frame; music_play("bgm/m_clear.adp");
         game_save_stage_end((uint32_t)((uint64_t)G.frame * 1000 / FPS)); save_store();   /* a last act without a results sequence */
         return;
     }
+    snprintf(G.prev_dir, sizeof G.prev_dir, "%s", d);           /* the act left (entries by source act) */
     snprintf(d, sizeof d, "%s", nx);
     /* RV (DV1 -> DV2 traces): petals, lives, crystals, energy and the timer carry over (globals) */
     int frame = G.frame, hp = G.p.hp; double energy = G.p.energy;
@@ -515,7 +535,7 @@ static void next_act(void) {
      * placed 50 px left of the start marker, walks in at B = 3 with no control; then control returns */
     G.card_t = CARD_DONE; G.act_in = 1; G.act_fade = 248;
     if (!level_cur()->checkpoints) G.p.x = G.p.spawn_x - 50;     /* checkpoint levels: x = -32 absolute (2955), level_start */
-    G.p.face = 1;
+    G.p.face = G.walk_b < 0 ? -1 : 1;
     camera_reset(); camera_update();
 }
 
@@ -549,7 +569,8 @@ static void pause_update(const input_t *in) {
                 int crystals = G.act_crystals, frame = G.frame;
                 music_stop(); snd_stop_all();
                 G.pause_sel = 1;
-                { char d[8]; snprintf(d, sizeof d, "%s", G.lvdir); game_load_level(d); }
+                { char d[8]; snprintf(d, sizeof d, "%s", level_cur()->death_to ? level_cur()->death_to : G.lvdir);   /* RM2: loop_restart_25 -> RM1 */
+                  snprintf(G.prev_dir, sizeof G.prev_dir, "%s", G.lvdir); G.keep_g4 = 1; game_load_level(d); G.keep_g4 = 0; }
                 G.p.lives = lives; G.p.crystals = crystals; G.frame = frame;
                 G.act_lives = lives;
             } else {                                /* QUIT: loop_return_0 -> frame 7 dispatcher; RV: Time Attack -> stage select */
@@ -619,12 +640,15 @@ void game_update(const input_t *in) {
     PROF(PS_PLAYER, player_update(&G.p, pin));
     PROF(PS_LAYERS, layers_update(&G.p));         /* RE 1613-1616 + 3031/3032: loop collision layer */
     if (G.act_in) {                               /* RE 4526: B = 3 every frame for 32 frames (AT2 4403: B = 0) */
-        double wb = level_cur()->walkin_still ? 0 : 3;
+        double wb = level_cur()->checkpoints ? G.walk_b : level_cur()->walkin_still ? 0 : 3;   /* the entry's B (RM1 from RM2: -3, 5827) */
         if (G.p.ground) G.p.gsp = wb; else G.p.vx = wb;
         G.act_fade = G.act_fade - 8 < 0 ? 0 : G.act_fade - 8;
         if (++G.act_in > 32) { G.act_in = 0; G.act_fade = 0; if (level_cur()->checkpoints) G.at_g4 = 1; }  /* RE 5047 / 4404 / 4597: control returns at A >= 32, g4 = 1 */
     }
-    if (G.clear_t) {                              /* RE 3311: grounded, B = max(B, 2), facing right */
+    if (G.clear_t && G.exit_b) {                  /* RM1 inline / RM2 5918: grounded, B = 2 / -2 toward the exit */
+        G.p.face = G.exit_b > 0 ? 1 : -1;
+        if (G.p.ground) G.p.gsp = G.exit_b;
+    } else if (G.clear_t) {                       /* RE 3311: grounded, B = max(B, 2), facing right */
         G.p.face = 1;
         if (G.p.ground && G.p.gsp < 2) G.p.gsp = 2;
     }
@@ -635,9 +659,12 @@ void game_update(const input_t *in) {
         if (lives < 1) { music_stop(); snd_stop_all(); fe_enter_from_stage(G.time_attack); return; }   /* game over (card not ported) */
         music_stop(); snd_stop_all();
         G.stage_deaths++;                                                   /* SaveData x3 y3 (RE 1966 / 1985) */
-        { char d[8]; snprintf(d, sizeof d, "%s", G.lvdir); if (game_load_level(d) < 0) { fe_enter(); return; } }
+        { char d[8]; snprintf(d, sizeof d, "%s", level_cur()->death_to ? level_cur()->death_to : G.lvdir);   /* RM2: loop_death_25 -> RM1, g4 kept */
+          snprintf(G.prev_dir, sizeof G.prev_dir, "%s", G.lvdir); G.keep_g4 = 1; int r = game_load_level(d); G.keep_g4 = 0;
+          if (r < 0) { fe_enter(); return; } }
         G.p.lives = lives; G.p.crystals = crystals; G.frame = frame; G.act_lives = lives; G.keystones = ks; G.stage_crystals = sc;
         G.card_t = CARD_DONE;
+        if (G.at_g4 < 0) { G.act_in = 1; G.act_fade = 248; }               /* landed by an entry (RM2 death before X 100) */
         return;
     }
     PROF(PS_GIMMICK, {
@@ -665,7 +692,8 @@ void game_update(const input_t *in) {
      * results instead (5381 / 5576, src/game/results.c) */
     { int rr; PROF(PS_RES, rr = results_update(&G.p)); if (rr) return; }
     { const level_def_t *ld = level_cur();                    /* AT3 4521: also MV.Y < 380 (exit_max_y) */
-      if (level_next(G.lvdir) && !G.clear_t && !G.act_in && G.p.x > G.lvl.w - 50 && (G.p.ground ? G.p.gsp : G.p.vx) > 0 && (!ld->exit_max_y || G.p.y - ORIG_REF_DY < ld->exit_max_y)) G.clear_t = 1; }
+      const exit_t *ex = (!G.clear_t && !G.act_in && (!ld->exit_max_y || G.p.y - ORIG_REF_DY < ld->exit_max_y)) ? level_exit_check(&G.p) : NULL;
+      if (ex) { G.clear_t = 1; G.exit_to = ex->to; G.exit_b = ex->fade_b; } }   /* level data exits (RM1 5813 / 5814, RM2 5916, RM3 6193) */
 }
 
 static void draw_parallax(void) { par_draw(G.frame); }

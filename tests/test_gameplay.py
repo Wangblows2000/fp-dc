@@ -135,7 +135,7 @@ r = run('5 TP 16000 2280\n20 700 R\n', 520, env={'FP_LEVEL': 'dv4'})
 st = [x.get('res', 0) for x in r]
 f_on = next((x['f'] for x in r if x.get('res', 0) > 0), None); f_a2 = next((x['f'] for x in r if x.get('res', 0) == 3), None)
 f_wipe = next((x['f'] for x in r if x.get('res', 0) >= 11), None)
-check('dv4_end_results', f_on and f_a2 and f_wipe and f_a2 - f_on == 220 and f_wipe - f_a2 == 149 and r[-1]['mode'] == 0,
+check('dv4_end_results', f_on and f_a2 and f_wipe and f_a2 - f_on == 220 and f_wipe - f_a2 == 149 and r[-1]['mode'] == 1 and r[-1].get('act') == 1,   # Classic: on to Relic Maze 1 (frame 8 routing, session 14)
       'on %s A2 %s wipe %s mode %d' % (f_on, f_a2, f_wipe, r[-1]['mode']))
 
 # 8 recovered animations are driven by state (idle -> run anim index changes, frames advance)
@@ -292,14 +292,14 @@ check('water_drowns_after_62s', at(r, 3600)['air'] == 28 and at(r, 3790)['st'] =
 
 # DV4 boss defeat (spec_dv4_boss_events 5547-5578; FP_SN_AUTOKILL deals the hits): the head rises up the shaft and explodes on
 # the surface, the cinematic camera stays there (normal camera group off), Lilac rises as the boost ball (anim 7) at
-# 10 px/frame, resumes physics at y < 1230 in M6, lands on the surface, then the results run and the menu follows
+# 10 px/frame, resumes physics at y < 1230 in M6, lands on the surface, then the results run and Relic Maze follows (Classic)
 r = run(open(os.path.join(HERE, 'play', 'dv4_to_boss.txt')).read(), 4700, {'FP_LEVEL': 'dv4', 'FP_SN_AUTOKILL': '1'})
 rise = [x for x in r if x['gnd'] == 0 and x['y'] - 14 < 1300 and x['x'] > 12500 and x['x'] < 13300]
 land = [x for x in r if x['gnd'] == 1 and abs(x['y'] - 14 - 1260) < 8 and x['x'] > 12500 and x['x'] < 13300]
 view = [x for x in r if x['res'] >= 1]
 check('dv4_exit_rises_to_surface', bool(rise) and bool(land), '%d air / %d grounded frames on the surface' % (len(rise), len(land)))
 check('dv4_exit_camera_on_surface', bool(land) and land[0]['cy'] < 1300 and land[0]['y'] - land[0]['cy'] > 0 and land[0]['y'] - land[0]['cy'] < 240, str(land[0]['cy'] if land else None))
-check('dv4_exit_results_then_menu', bool(view) and max(x['res'] for x in r) >= 3 and r[-1]['mode'] == 0)
+check('dv4_exit_results_then_rm1', bool(view) and max(x['res'] for x in r) >= 3 and r[-1]['mode'] == 1 and r[-1].get('act') == 1)   # Classic routing: DV -> RM (session 14)
 
 # Break sounds (RV original traces mon / inv / spiral_dv1; RE Frames::event_func_2623): a monitor plays 307 + 12, a rock 13.
 # None of them may play 80/81/82, which are Lilac's own hurt set (RV: hurt = 25 + one of 80/81/82).

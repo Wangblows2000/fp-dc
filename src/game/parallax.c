@@ -4,7 +4,8 @@
  * (vl, vt = view left / top). The box is A * (trunc(427 / A) + 2) wide and B tall; the image tiles inside it.
  * DV2 / DV4 switch pieces 0/1 and 8/9 at view top 1360 (5101 / 5102); piece9's 1080-row strip holds 3 water frames
  * (5094: C = y0 + {-360, 0, -360, -720}[(t / 8) % 4]); the water surface (5103-5105) is a 1x96 strip stretched to
- * the view width at y 2700, 61 % opacity. Images are split into power-of-two chunks (4 bpp, tools/palettize.py). */
+ * the view width at y 2700, 61 % opacity. Relic Maze (spec_rm_flow 4): RM4 / RM5 wrap in y (flag 8); RM3's sky set (flag 64) is
+ * destroyed once the player is below y 2400. Images are split into power-of-two chunks (4 bpp, tools/palettize.py). */
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -71,7 +72,12 @@ bad:
     return -1;
 }
 
-void par_update(void) { for (int i = 0; i < npc; i++) PC[i].F += PC[i].G; }   /* 3541 (once per gameplay frame) */
+void par_update(void) {
+    for (int i = 0; i < npc; i++) {
+        PC[i].F += PC[i].G;                                                   /* 3541 (once per gameplay frame) */
+        if ((PC[i].flags & 64) && G.p.y - ORIG_REF_DY > 2400) PC[i].flags |= 128;           /* RM3 6298: the sky set is destroyed below y 2400 (until the act reloads) */
+    }
+}
 
 static void draw_image(int ii, int x, int y, int clipy0, int clipy1) {
     for (int k = 0; k < IMG[ii].n; k++) {
@@ -95,6 +101,7 @@ void par_draw(int gframe) {
         const ppiece_t *p = &PC[i];
         if ((p->flags & 1) && vt >= 1360) continue;      /* 5101 / 5102 */
         if ((p->flags & 2) && vt < 1360) continue;
+        if (p->flags & 128) continue;                     /* destroyed (RM3 6298) */
         if ((p->flags & 16) && vl >= 7544) continue;     /* AT2 4398 / 4399 (at exactly 7544 the first frame's choice: left set) */
         if ((p->flags & 32) && vl <= 7544) continue;
         int A = p->bw, ih = IMG[p->img].h, iw = IMG[p->img].w;   /* box width (AT4 piece6_853: 400 for a 384-px image) */

@@ -137,6 +137,7 @@ int results_update(player_t *p) {
             int ta = G.time_attack;
             R.on = 0;
             music_stop();
+            if (!ta && game_next_stage()) return 1;                            /* Classic: frame 8 routes to the next stage (DV / AT -> RM) */
             fe_enter_from_stage(ta);
             return 1;
         }

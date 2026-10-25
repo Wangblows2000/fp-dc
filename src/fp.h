@@ -404,6 +404,11 @@ typedef struct {
     uint32_t prof_update_us, prof_draw_us;
     int at_g4; float at_g5, at_g6;  /* Aqua Tunnel act-start mode g4 (-1 act change, 1 fresh, 2..9 checkpoint, 10 AT2 after the Chomper) and restart X / MV.Y (spec_at_flow 1.4 / 6.1) */
     char at_dir[8];
+    /* stage flow (session 14, spec_rm_flow 6.2): MasterLevel flags kept across acts and deaths of one stage (0x1 RM1 lower
+     * half, 0x2 / 0x4 RM2 tasks done), the exit taken (target act, fade B), the act left, the entry's facing / walk-in B */
+    int stage_flags, exit_b, walk_b, keep_g4, stage_carry;
+    const char *exit_to;
+    char prev_dir[8];
     float cam_nC, cam_nE;          /* normal camera bounds C / E (U = 0): 0 / width in DV; AT per act (spec_at_flow 3.1) */
     int cam_m2;                    /* CAM.M = 2: camera returns to the player (loop_camera_mode2) */
     int orig_moves;                 /* 1: down-kick / uppercut exactly as the original (comparisons); 0: port's momentum change */
@@ -418,6 +423,7 @@ void game_start_adventure(const char *dir, int time_attack);
 void game_dev_select(void);
 int  fe_enter(void);
 int  fe_enter_from_stage(int time_attack);
+int  game_next_stage(void);   /* Classic: load the route's next stage after the results (1: done) */
 /* hub (frame index 3: title menu / file select / mode select / options), src/game/fe_hub.c */
 enum { HUB_EXIT_TIME_ATTACK = 1, HUB_EXIT_QUIT, HUB_EXIT_NEW_ADVENTURE, HUB_EXIT_NEW_CLASSIC, HUB_EXIT_CONTINUE };
 struct ui_scene_s;
@@ -539,9 +545,15 @@ int    aqua_level(void);                      /* act 1-4 in Aqua Tunnel, else 0 
 typedef struct { short x, y, A; float B; short D, E, blk; } padcfg_t;   /* Carol's jump pad at (x, y): index A, angle B, chain end D, lit E, block pad */
 typedef struct { short x0, x1, y0, y1; } zone_t;
 enum { DIG_NONE, DIG_KEYSTONE_MON, DIG_CRYSTALS, DIG_PETAL, DIG_WOOD_MON };   /* dig spot rewards (spec_milla_moves 6) */                        /* a box in original MV coordinates (x0..x1, y0..y1 inclusive) */
-typedef struct { short x0, x1, g4, x, y; } cpzone_t;                    /* checkpoint: x0 < X < x1 and g4 below -> g4 / g5 / g6 = g4, x, y */
+typedef struct { short x0, x1, g4, x, y, ymin; signed char nosnap; } cpzone_t;   /* checkpoint: x0 < X < x1 (and MV.Y > ymin when set) and g4 below -> g4 / g5 / g6 = g4, x, y (nosnap: no restart snapshot, RM2 5924) */
+/* act exits (spec_rm_flow 6.2): edge 1 = right (X > W + x, B > 0), -1 = left (X < x, B < 0); ymin < MV.Y < ymax unless both 0;
+ * the first match wins; during the fade a grounded player gets B = fade_b (0: the DV / AT rule B = max(B, 2), 3311) */
+typedef struct { signed char edge, fade_b; short x, ymin, ymax; const char *to; } exit_t;
+/* act entries after an act change (g4 < 0): from act `from` (NULL: any) the player is placed at MV (x, y), + y_flag1 when
+ * stage flag 0x1 is set, facing `face`, and walks in at B = walk_b for 32 frames */
+typedef struct { const char *from; short x, y, y_flag1; signed char face, walk_b; } entry_t;
 typedef struct { short g4_max, lock_x, lock_ymin, lock_ymax, l, t, r, b, unlock_x, unlock_y; } camzone_t;   /* boss camera lock (see levels.c) */
-typedef struct { short x0, x1, y0, y1; signed char who, jelly; } killbox_t;   /* items removed at the act start: who 0 all, 1 not Milla, 2 Milla */
+typedef struct { short x0, x1, y0, y1; signed char who, jelly; } killbox_t;   /* items removed at the act start: who 0 all, 1 not Milla, 2 Milla, 3 all but Lilac, 4 all but Carol on foot (RM2 6013 / 6014) */
 typedef struct {
     const char *dir; int frame, stage, act, nacts;   /* data dir, original frame index, stage record index (Time Attack icon E), act n of nacts */
     const char *music, *music_cp;                    /* stage music; after checkpoint g4 >= 10 (AT2 after the Chomper) */
@@ -566,10 +578,18 @@ typedef struct {
     int cam_cp10_left, cam_cp10_pad;                 /* once g4 >= 10 (AT2's Chomper beaten): C = left, E = width + pad */
     const short *sfx; int nsfx;                      /* the stage's own sound ids (loaded with the level, D-047) */
     int card_first;                                  /* first card id of the act (ObjectCodec_430; 0 = none): DV 1 / 5 / 7 / 8, AT 21 / 24 / 27 / 28 */
+    /* session 14 (spec_rm_flow 6.2): exits / entries other than the right edge, a death / restart target act, stage flag
+     * 0x1 = (MV.Y > flag1_y) every frame, crystals only on the first visit (RM1: removed when g4 is not 0 / 1) */
+    const exit_t *exits; int nexits;
+    const entry_t *entries; int nentries;
+    const char *death_to;
+    int flag1_y, crystals_once;
     int monitor_hop;                                 /* 2605: a monitor hops when bumped from below (D-051: AT only, DV keeps its traced behaviour) */                     /* switches.c: pressure-plate rule (0 DV 4971-4973, 1 AT1 4093-4096), pass after the movement */
 } level_def_t;
 const level_def_t *level_def(const char *dir), *level_cur(void);
-const char *level_first_of_stage(int stage), *level_next(const char *dir), *level_route_start(int character);
+const char *level_first_of_stage(int stage), *level_next(const char *dir), *level_route_start(int character), *level_route_next(int stage);
+const exit_t *level_exit_check(const player_t *p);
+const entry_t *level_entry(const char *from);
 int objects_have(int type), objects_have_from(int type);
 void game_save_stage_end(uint32_t time_ms);
 /* object registry (src/game/objdefs.c): properties of each engine type shared by every level */

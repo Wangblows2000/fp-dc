@@ -253,10 +253,18 @@ PAR_IMG = {'levelparallaxpiece0_491': 16032, 'levelparallaxpiece1_891': 3030, 'l
            'levelparallaxpiece8_837': 8305, 'levelparallaxpiece9_842': 3482, 'levelparallaxpiece7_836': 4868,
            'levelparallaxpiece10_843': 3028, 'levelparallaxpiece6_844': 2532, 'levelparallaxpiece8_850': 8305,
            'levelparallaxpiece7_849': 4868, 'levelparallaxpiece6_853': 4866, 'levelparallaxpiece9_855': 687,
-           'levelparallaxpiece10_873': 3028}
+           'levelparallaxpiece10_873': 3028,
+           # Relic Maze (session 14, RE spec_rm_flow 4): RM1 / RM3 sky set 0r-4r, RM2 its own 3r / 4r, RM3 / RM4 caves, RM5
+           'levelparallaxpiece0r_1112': 12345, 'levelparallaxpiece1r_1133': 12347, 'levelparallaxpiece2r_1134': 12324,
+           'levelparallaxpiece3r_1137': 12325, 'levelparallaxpiece4r_1138': 12326, 'levelparallaxpiece3r_1220': 2250,
+           'levelparallaxpiece4r_1221': 3335, 'levelparallaxpiece6_1349': 3383, 'levelparallaxpiece7_1350': 3426,
+           'levelparallaxpiece9_1351': 1990, 'levelparallaxpiece6_1452': 3383, 'levelparallaxpiece7_1453': 3426,
+           'levelparallaxpiece9_1454': 1990, 'levelparallaxpiece6_1531': 2058, 'levelparallaxpiece7_1532': 1601}
+# piece5_1309 (RM3 layer 3, the caravan-chase foreground, spec_rm_flow 4) is not exported: shown only during the Claw chase
 PAR_BOXH = {'levelparallaxpiece6_897': 160, 'levelparallaxpiece13_1068': 1024, 'levelparallaxpiece13_1092': 820,
             'levelparallaxpiece6_678': 800, 'levelparallaxpiece2_676': 960, 'levelparallaxpiece5_677': 1105,
-            'levelparallaxpiece8_837': 1105, 'levelparallaxpiece9_842': 1105, 'levelparallaxpiece7_836': 1105, 'levelparallaxpiece10_843': 1105}
+            'levelparallaxpiece8_837': 1105, 'levelparallaxpiece9_842': 1105, 'levelparallaxpiece7_836': 1105, 'levelparallaxpiece10_843': 1105,
+            'levelparallaxpiece6_1349': 720, 'levelparallaxpiece7_1350': 720, 'levelparallaxpiece9_1351': 1600}   # RM3 (spec_rm_flow 4)
 PAR_BOXW = {'levelparallaxpiece6_853': 400}          # box wider than its image (AT4 screen-fixed backdrop)
 PAR_WRAPY = {18, 19, 20}                             # AT3 / AT4 frames (json 19, 20): 4532 / 4527 wrap in both axes; AT2 json 18 has none (see below)
 # D, E, G (RE 5110 / 5315 / 5603; DV1's start events not read: the same table is used, INFERRED)
@@ -266,7 +274,15 @@ PAR_DEG = {491: (.99, .94, 0), 891: (.98, .93, 0), 893: (.95, .91, 0), 894: (.96
            1068: (.15, .15, 0), 1092: (.15, .15, 0),
            678: (.75, .75, 0), 676: (.55, .55, 0), 677: (.40, .40, 0), 837: (.60, .60, 0), 842: (.50, .50, 0), 836: (.40, .40, 0),
            843: (.30, .30, 0), 844: (.50, .50, 0), 850: (.45, .45, 0), 849: (.40, .40, 0), 853: (1.0, 1.0, 0), 855: (.70, .70, 0),
-           873: (.30, .30, 0)}
+           873: (.30, .30, 0),
+           # Relic Maze (spec_rm_flow 4; 5842 / 6370 / 3559)
+           1112: (.99, .94, 0), 1133: (.95, .92, 0), 1134: (.85, .85, 0), 1137: (.40, .40, 0), 1138: (.37, .36, 0),
+           1220: (.40, .40, 0), 1221: (.37, .36, 0), 1349: (.85, .85, 0), 1350: (.60, .60, 0), 1351: (.30, .30, 0),
+           1452: (.85, .85, 0), 1453: (.60, .60, 0), 1454: (.30, .30, 0), 1531: (.85, .85, 0), 1532: (.60, .60, 0)}
+PAR_DEG_FRAME = {(27, 1112): (1.0, .94, 0)}          # the same handle with RM3's own D (RE spec_rm_flow 4)
+PAR_SKY_BELOW = {27: (1112, 1133, 1134, 1137, 1138)} # RM3 6298: destroyed once the player is below y 2400 (one way)
+# layers scrolling at 0.8 (RE Layer::init): Aqua Tunnel and RM1-RM4 layer 1, RM5 layer 0 (spec_rm_flow 2.4); json frame
+SCROLL08 = {17: 1, 18: 1, 19: 1, 20: 1, 25: 1, 26: 1, 27: 1, 28: 1, 29: 0}
 
 def pow2_split(n, cap=1024):
     out, r = [], n
@@ -302,12 +318,13 @@ def export_parallax(fr, src, name, out):
                     x += cw
                 y += ch
             imgidx[img] = len(images); images.append((im.width, im.height, chunks))
-        D, E, G = PAR_DEG.get(o['id'], (.5, .5, 0))
+        D, E, G = PAR_DEG_FRAME.get((fr['frame'], o['id']), PAR_DEG.get(o['id'], (.5, .5, 0)))
         flags = 0
         if has_switch and o['id'] in (491, 891): flags |= 1        # shown while view top < 1360 (5101/5102)
         if has_switch and o['id'] in (1006, 1005): flags |= 2      # shown while view top >= 1360
         if o['id'] == 1005: flags |= 4                             # piece9: water frames (5094)
-        if fr['frame'] in (19, 20): flags |= 8                     # AT3 / AT4: wrap in y too (4532 / 4527)
+        if fr['frame'] in (19, 20, 28, 29): flags |= 8             # AT3 / AT4, RM4 / RM5: wrap in y too (4532 / 4527)
+        if o['id'] in PAR_SKY_BELOW.get(fr['frame'], ()): flags |= 64   # RM3 6298: gone once the player is below y 2400
         if fr['frame'] == 18 and o['id'] in (677, 676): flags |= 16    # AT2 (4398 / 4399): shown while view left < 7544
         if fr['frame'] == 18 and o['id'] in (836, 837, 842, 843): flags |= 32   # shown while view left > 7544
         iw, ih = images[imgidx[img]][0], images[imgidx[img]][1]
@@ -369,7 +386,7 @@ def main():
             col = 0 if ac is None else {9: 1, 8: 1, 11: 3}.get(ac, 0)
             box = ac == 9
             invisible = b['fields'].get('0x5f') == 0 and '0x5c' in b['fields']
-            if LMAP and o['layer0'] == 1: invisible_extra = 2       # AT layer 1 scrolls at 0.8 (RE Layer::init, spec_at_flow 4.1)
+            if SCROLL08.get(n) == o['layer0']: invisible_extra = 2   # the frame's 0.8 layer (RE Layer::init, spec_at_flow 4.1, spec_rm_flow 2.4)
             else: invisible_extra = 0
             pieces.append({'img': b['image'], 'x': o['x'], 'y': o['y'], 'layer': o['layer'] or 0, 'layer0': o['layer0'], 'scroll08': invisible_extra, 'col': col,
                            'box': box, 'invisible': invisible, 'cls': o['cls']})
