@@ -400,3 +400,20 @@ Labels: original-trace (RV), RE, host-test, emulator (Flycast, emulated time). *
   assembly stall (float vs double compare), Eye Golem trigger fallback box, fireball burst on spawn, registry test for
   types >= 256, duplicate stage sounds.
 - **DC build:** 0 warnings. **Emulator only; nothing measured on real hardware.**
+
+## Session 15 (2026-10-25): bug fixes, Gallery, unlock cheat
+- **Focused host checks per fix:** damage via the front end (New Game / Time Attack / direct / after another level)
+  for Lilac, Carol, bike Carol, Milla: hit by the DV1 turret pellet; Casual via the file screen: no damage (expected,
+  RE). RM1 switch column renders bricks (host render) and rises 160 px when the plate is pushed; RM1 gates open with
+  flags 0x2 / 0x4; RM2 basement plate opens 0x4; RM1 → RM2 upper and lower entries pass the gate and it closes behind
+  (host and Flycast demo); HUD icons for the four character slots (host render).
+- **Original traces:** an RM1 → RM2 trace lost the objects at the frame change (tracer limitation); a direct frame-25
+  restart does not reproduce the walk-in (see RE_NOTES "Session 15").
+- **Full host suites (after the gallery merge, the largest change):** gameplay, frontend, carol, milla, aqua, levels,
+  saves, rm_gimmicks_b, rm_claw, rm_mantalith, gallery: 0 failures; trace comparers identical to the baseline.
+- **Flycast (session 15 discs):** cheat by demo input → "cheat: all unlocked" and the 1-up jingle; gallery after the
+  cheat (Card Collector pop-ups, face-down cards, flip, Title Screen music card, Lilac artwork full screen), VRAM free
+  3167 KB in the gallery. Note: the harness's xdotool key taps are too short for the cheat (the sequence then never
+  completes); per-frame demo input works. DC build 0 warnings. **Emulator only; not run on real hardware.**
+- **Release disc:** all 58 music tracks are on the disc now (gallery music cards), so the CDI is larger than the lean
+  session-13/14 discs.

@@ -390,3 +390,16 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
 - **Host trace:** `gal ...` lines (entry dumps of cards / dirs / achievements / rows, card writes, plays, art load / free, marks,
   deletes, saves); tests/test_gallery.py.
 
+
+## Session 15: fixes and cheat (gallery: see "Session 15: Gallery" above)
+- **objdefs.c OD_HIDDEN:** placed objects (objects_spawn) and relic_gima.c runtime spawns start with o->hidden = 1
+  (collision unchanged). Types: OT_COLFRONT, OT_WR_BARRIER, OT_SPIRAL_FRONT, OT_SPINLOG_MASK.
+- **objects.c:** the bank-extent caches (8-entry and per-slot) are cleared when the objects reset (G.ens / G.objs keep
+  their address across levels).
+- **relic_gima.c gates():** create gates use a per-gate bit (`gates_created >> k`) and wait for PX > gate x + 28.
+- **frontend.c:** options (difficulty, music volume, letterbox) are taken from SV only on the first fe_load of the boot.
+  Cheat: cheat_step() on FE_PRESS and on the hub title menu (hub_on_title), cheat_music() returns to m_title /
+  m_menu2 after 240 frames; save.c save_unlock_all() (progress = 15 for 4 slots, 100 cards, achievements 1-3 = 2).
+- **game.c:** HUD life icon index 17 (hud_icon_cb, image 395) for Carol on foot and on the bike; VMU life icon 2.
+- **Host:** `<f> FLAGS v` sets G.stage_flags. Tests: test_frontend cheat_* (sequence, timeout, reset, title menu, save
+  bytes), test_gallery.py.

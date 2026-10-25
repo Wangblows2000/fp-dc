@@ -556,6 +556,27 @@ STAGE 2". Labels as everywhere: RE read from code, RV original trace, INFERRED r
   pause during the RM5 scene, Mantalith sounds 147 / 214 / 215 (D-063), monitor breaking by the Mantalith's arms.
   **Carol / Milla result voices are 1-second placeholders** (the voice files available here are placeholders).
 
+## Session 15: bug fixes, gallery (spec build/re/fe/spec_gallery.md; port src/game/fe_gallery.inc)
+- **Invisible-at-creation classes (RE):** constructors that call set_visible(0) include SwitchColumnFront1_1157 (RM1
+  column collision box; image 43 is a solid 176×224 green placeholder), MinibossBarrier_969 (gate / arena wall; the
+  railings are the visual), SpiralTunnelFront, SpinningLogMask, and many markers / sensors (list in the session-15 scan of
+  build/re/create_*.c). The port marks the ported ones with registry flag OD_HIDDEN.
+- **guiicon_346 directions (RE anims):** 0 Lilac (311), 1 image 112 (not Carol), 2 and 3 Carol on foot / on the bike
+  (395), 4 Milla (507), 5 image 5116. The direction is MV.A.
+- **Difficulty (RE 2414):** on Casual (global 12 = 3) the hurt event never runs: no damage. Global 12 is shared by the
+  options and the file screen and is not reloaded from records during a session.
+- **RM2 entrance gates:** 5922 / 5923 create the gate at (116, 336) / (116, 1424) at fade A ≥ 32; the walk-in speed
+  remains UNKNOWN (spec_rm_flow 1.3). Original trace attempt (session 15): restarting frame 25 directly does not
+  reproduce the walk-in (player placed at x 155, controllable from frame 3), and the tracer cannot follow a frame change
+  from RM1, so it is still unverified. The port creates the gate once the player is past it (INFERRED).
+- **Gallery (RE + RV, spec_gallery):** one screen with CARDS (10×10, one row per stage, each card unlocks one music
+  track, voice / sound or artwork; records x20 0 / 1 face down / 2 opened), ACHIEVEMENTS (56, drawn at state ≥ 2) and
+  DATA (delete records / cards / achievements on leave). Unlock rule: each card by its own id; 14 type-3 cards (44, 63,
+  82, 89, 90, 92-100) need achievement 1, 2 or 3. Card Collector (achievements 23-32): on entry, a complete row sets 1,
+  saves and shows the pop-up, which sets 2. User's records.dat (RV): all 100 cards taken, 95 opened, 55/56 achievements.
+  INFERRED in the port: type-3 tracks loop, DATA panel cursor, dimmed header alpha, pop-up as an overlay (frame 9 not
+  ported), save on leave only when something changed. UNKNOWN items in spec_gallery 9.
+
 ## PC save files (reference for the VMU save; the port does not read or ship them)
 `file1..8.sav` and `records.dat` are Clickteam ArrayObject files (RV, parsed from the user's copies):
 `"CNC ARRAY\0"`, u16 2, u16 0, i32 X, Y, Z, i32 flags (5 = numeric + base 1), then X·Y·Z int32 (x fastest).

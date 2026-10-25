@@ -50,6 +50,14 @@
 - [ ] Unlock and achievement records (7119, 6900, 7116 / 7117; D-065)
 - [ ] Fortune Night (frame 29) and later stages: RM5 currently ends at the front end
 
+## Session 15
+- [x] Casual difficulty kept across front-end reloads (the "damage" report); RM1 switch column; RM2 entrance gates;
+      Carol's life icon; Gallery; title cheat
+- [ ] Original trace of the RM1 → RM2 walk-in (tracer must follow a frame change) to replace D-070
+- [ ] Other set_visible(0) classes: audit when they are ported (list in RE_NOTES "Session 15")
+- [ ] RM2 basement darkness: drawn as an opaque grey box with a black surround; shader 20 (U4) unknown
+- [ ] Real voices for 15 gallery sound cards (placeholders from /home/claude/fprun)
+
 ## Front end / presentation
 - [x] GALLERY (session 15: fe_gallery.inc, test_gallery.py)
 - [ ] Card/transition timings from a higher-rate capture
