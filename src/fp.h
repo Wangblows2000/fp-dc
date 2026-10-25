@@ -69,7 +69,7 @@ int    plat_save_write(const void *data, size_t size);
 int    plat_save_read(void *data, size_t max);
 /* src/game/save.c: options, 8 files, Time Attack records (memory card) */
 #define SAVE_FILES 8
-#define SAVE_STAGES 16
+#define SAVE_STAGES 15                 /* the original's stage index s 0..14 (StageIDList) */
 #define SAVE_CHARS 4
 /* Character ids are the original's global value 1 (spec_charselect): 0 Lilac, 1 Spade, 2 Carol, 3 Carol on the bike,
  * 4 Milla, 5 Torque. chr_slot(): index for per-character tables (records, VMU/HUD life icons): Lilac, Carol, Milla, other. */
@@ -77,18 +77,30 @@ enum { CHR_LILAC = 0, CHR_CAROL = 2, CHR_CAROL_BIKE = 3, CHR_MILLA = 4 };
 static inline int chr_slot(int g1) { return g1 == 2 || g1 == 3 ? 1 : g1 == 4 ? 2 : g1 == 0 ? 0 : 3; }
 static inline int chr_is_carol(int g1) { return g1 == 2 || g1 == 3; }
 static inline int chr_is_milla(int g1) { return g1 == 4; }
-#define SAVE_CARD_ACTS 4
-typedef struct { uint8_t used, character, difficulty, mode, stage, lives, petals; uint16_t crystals, deaths; uint32_t time; } save_file_t;
-typedef struct { uint32_t time; uint16_t crystals; } save_rec_t;   /* time in frames, 0 = no record */
+#define SAVE_CARDS 100                 /* card ids 1..100 (records.dat x20) */
+/* Save v3 (session 13, build/re/spec_records_saves.md): everything is indexed by the original's stage index s (0 Aqua
+ * Tunnel, 1 Dragon Valley, 2 Relic Maze ... 14 Shang Mu; level_def_t.stage), so every current and future stage has its
+ * slot without a format change. Times in ms (ML.Z), as the original. */
+typedef struct { uint32_t time; uint16_t crystals; uint8_t deaths; } save_stage_t;   /* SaveData x3 y(6+5s..8+5s): last clear of s */
 typedef struct {
-    uint8_t difficulty, music_volume, sfx_volume, sensitivity, unlocked;
+    uint8_t used, character, mode, last_stage;   /* y6 > 0, y8 G1, y12 (0 Adventure, 1 Classic), y5 last completed s (0xff none) */
+    uint8_t lives, shield; uint16_t counter;     /* y1, y3, y9: carried into the next stage */
+    save_stage_t stage[SAVE_STAGES];             /* totals (y4 crystals, y6 time, y7 deaths) are sums of these (RE 954) */
+} save_file_t;
+typedef struct { uint32_t time; uint16_t crystals; } save_rec_t;   /* records.dat x(3+J) y(2s+1) best time ms (0 none), y(2s+2) best crystals */
+typedef struct {
+    uint8_t difficulty, music_volume, sfx_volume, sensitivity;
+    uint8_t letterbox;                 /* port: 1 = 16:9 picture letterboxed on the 4:3 frame; 0 = 426x240 fills the 4:3 frame */
     save_file_t file[SAVE_FILES];
     save_rec_t rec[SAVE_STAGES][SAVE_CHARS];
-    /* save v2 (port additions; a v1 file loads with these at their defaults) */
-    uint8_t letterbox;                 /* 1: 16:9 picture letterboxed on the 4:3 frame; 0: 426x240 fills the 4:3 frame */
-    uint16_t card_bits[SAVE_CARD_ACTS];/* in-stage cards collected, one bit per card placement, DV1..DV4 */
+    uint8_t progress[SAVE_CHARS];      /* records x1 y(40+J): furthest completed stage s + 1 per character (0 = none) */
+    uint8_t cards[(SAVE_CARDS + 7) / 8];   /* records x20: card id n taken = bit n - 1 */
 } save_t;
-int    save_card_total(void);
+int    save_card_total(void), save_card_has(int id);
+void   save_card_set(int id);
+uint32_t save_file_time(const save_file_t *f);
+int    save_file_crystals(const save_file_t *f), save_file_deaths(const save_file_t *f);
+void   save_stage_end(int s, int character, uint32_t time_ms, int crystals, int deaths, int story, int file_slot);
 /* src/physics/fmath.c: portable trig (identical results on host and DC) */
 double fd_sin(double x), fd_cos(double x), fd_atan(double x), fd_atan2(double y, double x);
 /* src/game/snap.c: state snapshots for the host route search */
@@ -385,7 +397,8 @@ typedef struct {
     int pause_a, pause_wipe_f, frame_draw_t; float pause_wipe_x;   /* pause menu (GUIPause.A, wipe) */
     int act_lives, act_crystals, act_keystones, act_stage_crystals;  /* RE 4311/4312: lives / crystals at act start (restart restores them) */
     int stage_crystals, keystones;  /* MasterLevel J (crystals this stage, results Bonus1) / O (keystones, Bonus2) */
-    int character, file_slot, file_mode, deaths;   /* file being played (-1 none), 0 Adventure / 1 Classic */
+    int stage_deaths;               /* SaveData x3 y3: deaths this stage (RE 1966 / 1985), saved with the stage block */
+    int character, file_slot, file_mode, file_new;   /* file being played (-1 none), 0 Adventure / 1 Classic; file_new: replace the slot at the first stage end */
     int character_pad;              /* 0 Lilac, 1 Carol, 2 Carol (bike), 3 Milla (life icon order); only Lilac is playable */
     struct { int jump, crystal, hit, explode, attack, hurt, boost; } sfx;
     uint32_t prof_update_us, prof_draw_us;
@@ -440,7 +453,6 @@ void voice_play(const char *name);
 void plat_quit(void);
 void r_fade(float alpha);      /* full-screen black overlay with alpha (translucent list) */
 int  game_load_level(const char *dir);   /* unloads the current level first */
-int  stage_rec_index(const char *dir);   /* Time Attack record row: 0 Aqua Tunnel, 1 Dragon Valley */
 void game_update(const input_t *in);
 void game_draw(void);
 void player_reset(player_t *p, double x, double y);
@@ -551,11 +563,13 @@ typedef struct {
     int cam_right;                                   /* normal right camera bound E (sign X + 213); 0 = the frame width */
     int cam_cp10_left, cam_cp10_pad;                 /* once g4 >= 10 (AT2's Chomper beaten): C = left, E = width + pad */
     const short *sfx; int nsfx;                      /* the stage's own sound ids (loaded with the level, D-047) */
+    int card_first;                                  /* first card id of the act (ObjectCodec_430; 0 = none): DV 1 / 5 / 7 / 8, AT 21 / 24 / 27 / 28 */
     int monitor_hop;                                 /* 2605: a monitor hops when bumped from below (D-051: AT only, DV keeps its traced behaviour) */                     /* switches.c: pressure-plate rule (0 DV 4971-4973, 1 AT1 4093-4096), pass after the movement */
 } level_def_t;
 const level_def_t *level_def(const char *dir), *level_cur(void);
 const char *level_first_of_stage(int stage), *level_next(const char *dir), *level_route_start(int character);
 int objects_have(int type), objects_have_from(int type);
+void game_save_stage_end(uint32_t time_ms);
 /* object registry (src/game/objdefs.c): properties of each engine type shared by every level */
 enum { OD_SOLID = 1, OD_OBSTACLE = 2, OD_NOEDGE = 4, OD_BOXCOL = 8 };
 typedef struct { uint16_t type, flags; const char *ens; } objdef_t;
@@ -600,7 +614,7 @@ void   obj_throw_petal(float x, float y);
 extern int objects_mon_ghost;           /* RE 1581: monitors non-solid for the sensors (M5 / M6) */
 int    player_core_nov(player_t *p);      /* one movement pass with MV.U = 0 */
 void   cards_spawn_all(void), card_update(obj_t *o, player_t *p);
-int    cards_commit(void), cards_taken_now(void), card_recorded(int id);
+int    cards_commit(void), card_recorded(int id);
 void   wlogs_spawn(void), wlogs_update(const player_t *p), dv3_switch_spawn(void), dv3_switch_update(player_t *p);
 void   trunks_update(player_t *p), bamboo_update(player_t *p), pblock_box(const obj_t *b, int *x1, int *y1, int *x2, int *y2);
 void   switches_spawn(void), switches_update(player_t *p, int late);   /* src/game/switches.c: plates, Milla block, doors */

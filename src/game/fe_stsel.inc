@@ -17,7 +17,7 @@ static struct {
     float bgB;
 } T;
 
-static int stsel_progress(void) { return 0; }              /* RecordData(1, 40): stages beyond DV are not in the port */
+static int stsel_progress(void) { int p = SV.progress[chr_slot(G.character)]; return p ? p - 1 : 0; }   /* RecordData x1 y(40+J): furthest completed stage s */
 /* Dragon Valley for Lilac / Carol; Aqua Tunnel for Milla (session 12: RE 623 puts AT (E 0) in DV's slot for G1 = 1 / 4) */
 static int stage_playable(int e) { return chr_is_milla(G.character) ? e == 0 : e == 1; }
 
@@ -177,7 +177,7 @@ static void stsel_draw(void) {
     if (T.ret) T.ret->dx = T.retx - T.ret->x;
     /* record box (RE 665-667): hidden for Shang Mu (D == 0); "TIME --:--:--" without a time */
     int cs = chr_slot(G.character);                          /* RE 657 / 658: the record column of the selected character */
-    uint32_t ms = sel_e < SAVE_STAGES ? (uint32_t)((uint64_t)SV.rec[sel_e][cs].time * 1000 / 60) : 0;
+    uint32_t ms = sel_e < SAVE_STAGES ? SV.rec[sel_e][cs].time : 0;   /* ms (records x(3+J) y(2E+1)) */
     int crys = sel_e < SAVE_STAGES ? SV.rec[sel_e][cs].crystals : 0;
     int box = T.main && T.D != 0;
     for (int i = 0; i < 9; i++) if (T.rec[i]) T.rec[i]->vis = box;

@@ -42,19 +42,19 @@ static const short SFX_AT[] = { 55, 62, 69, 99, 172, 173, 240, 242, 251, 252, 27
 static const level_def_t LEVELS[] = {
     /* Dragon Valley: frame index 20-23 (RE loop_play_music_N_20..23), water DV2 / DV3 (5109 / 5314), DV4 results at the
      * right edge (5381) as well as after the boss */
-    { DV("dv1", 20, 1, "bgm/m_stage1.adp") },
-    { DV("dv2", 21, 2, "bgm/m_stage1b.adp"), .water = 2700, .pads = PADS_DV2, .npads = N_(PADS_DV2) },
-    { DV("dv3", 22, 3, "bgm/m_stage1b.adp"), .water = 2700, .pads = PADS_DV3, .npads = N_(PADS_DV3) },
-    { DV("dv4", 23, 4, "bgm/m_stage1b.adp"), .edge_results = 1, .pads = PADS_DV4, .npads = N_(PADS_DV4) },
+    { DV("dv1", 20, 1, "bgm/m_stage1.adp"), .card_first = 1 },
+    { DV("dv2", 21, 2, "bgm/m_stage1b.adp"), .card_first = 5, .water = 2700, .pads = PADS_DV2, .npads = N_(PADS_DV2) },
+    { DV("dv3", 22, 3, "bgm/m_stage1b.adp"), .card_first = 7, .water = 2700, .pads = PADS_DV3, .npads = N_(PADS_DV3) },
+    { DV("dv4", 23, 4, "bgm/m_stage1b.adp"), .card_first = 8, .edge_results = 1, .pads = PADS_DV4, .npads = N_(PADS_DV4) },
     /* Aqua Tunnel: frame index 16-19 (tools/re/bgm_refs.py: 16 m_stage0, 17/18 m_stage0b; AT2 after the Chomper (g4 >=
      * 10, 4330) m_stage0b), water 1200 / 1200 / none / 1480 (4309 / 4478 / 4530 / 4685), AT2 walk-in B = 0 (4403), AT3
      * ends at the top (4521: MV.Y < 380), AT4 results through the boss only (4652) */
-    { AT("at1", 16, 1, "bgm/m_stage0.adp"), .water = 1200, .axel2_top = 320, .dig_zones = DIGZ_AT1, .ndig_zones = N_(DIGZ_AT1),
+    { AT("at1", 16, 1, "bgm/m_stage0.adp"), .card_first = 21, .water = 1200, .axel2_top = 320, .dig_zones = DIGZ_AT1, .ndig_zones = N_(DIGZ_AT1),
       .start_fall = 1, .cps = CP_AT1, .ncps = N_(CP_AT1), .boss_cam = &CAM_AT1, .kills = KILL_AT1, .nkills = N_(KILL_AT1), .cam_right = 12480 + 213 },
-    { AT("at2", 17, 2, "bgm/m_stage0.adp"), .walkin_still = 1, .music_cp = "bgm/m_stage0b.adp", .water = 1200,
+    { AT("at2", 17, 2, "bgm/m_stage0.adp"), .card_first = 24, .walkin_still = 1, .music_cp = "bgm/m_stage0b.adp", .water = 1200,
       .cps = CP_AT2, .ncps = N_(CP_AT2), .boss_cam = &CAM_AT2, .kills = KILL_AT2, .nkills = N_(KILL_AT2), .cam_cp10_left = 6144 - 213, .cam_cp10_pad = 50 },
-    { AT("at3", 18, 3, "bgm/m_stage0b.adp"), .exit_max_y = 380, .pipe_auto_y = 2900, .cam_right = 856 + 213 },
-    { AT("at4", 19, 4, "bgm/m_stage0b.adp"), .water = 1480, .cps = CP_AT4, .ncps = N_(CP_AT4), .boss_cam = &CAM_AT4, .cam_right = 7424 + 213 },
+    { AT("at3", 18, 3, "bgm/m_stage0b.adp"), .card_first = 27, .exit_max_y = 380, .pipe_auto_y = 2900, .cam_right = 856 + 213 },
+    { AT("at4", 19, 4, "bgm/m_stage0b.adp"), .card_first = 28, .water = 1480, .cps = CP_AT4, .ncps = N_(CP_AT4), .boss_cam = &CAM_AT4, .cam_right = 7424 + 213 },
 };
 static const level_def_t DEFAULT = { .dir = "", .frame = -1, .stage = -1, .act = 1, .nacts = 1, .music = "bgm/m_stage1.adp" };
 

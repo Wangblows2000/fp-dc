@@ -74,7 +74,7 @@ int results_update(player_t *p) {
     if (R.signB >= 150 && R.t == 1) {                                         /* 4563 */
         music_play("bgm/m_clear.adp");
         R.bonus1 = G.stage_crystals;
-        R.total = (G.file_slot >= 0 && G.file_slot < SAVE_FILES && !G.time_attack) ? SV.file[G.file_slot].crystals : 0;
+        R.total = (G.file_slot >= 0 && G.file_slot < SAVE_FILES && !G.time_attack) ? save_file_crystals(&SV.file[G.file_slot]) : 0;   /* TotalCrystals = the file's total (y4) */
     }
     if (R.signB >= 180 && !R.ac1) { R.ac1 = 1; R.ac1_t = 0; }                 /* 4565 */
     if (R.ac1) {
@@ -102,11 +102,6 @@ int results_update(player_t *p) {
         if (R.svB >= 120) for (int k = 0; k < R.svE && R.bonus1 > 0; k++) { R.bonus1--; R.total++; }                 /* 4581 loop_tally_19 */
         if (R.bonus1 <= 0) {                                                  /* 4584 / 4585 */
             R.svA = 2; snd_play_orig(16, 220, 128); R.ac4_flash = 32;
-            if (G.file_slot >= 0 && G.file_slot < SAVE_FILES && !G.time_attack) {
-                save_file_t *f = &SV.file[G.file_slot];
-                f->crystals = (uint16_t)(R.total > 65535 ? 65535 : R.total);
-                f->used = 1; f->character = (uint8_t)G.character; f->mode = (uint8_t)G.file_mode;   /* SaveData y8 / y12 */
-            }
         }
     }
     if (R.svA == 2) {
@@ -115,10 +110,7 @@ int results_update(player_t *p) {
         if (R.svD == 150 && !R.saved) {                                       /* 5394 records save / 5395 hide */
             R.saved = 1;
             cards_commit();
-            if (G.time_attack) {
-                save_rec_t *r = &SV.rec[stage_rec_index(G.lvdir)][chr_slot(G.character)];
-                if (!r->time || (uint32_t)R.time_frames < r->time) { r->time = (uint32_t)R.time_frames; r->crystals = (uint16_t)G.stage_crystals; }
-            }
+            game_save_stage_end((uint32_t)((uint64_t)R.time_frames * 1000 / FPS));   /* records, file block, progress (save.c) */
             save_store();
         }
     }
