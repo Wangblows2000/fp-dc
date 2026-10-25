@@ -93,6 +93,7 @@ void objects_spawn(void) {
     aqua_spawn();
     relic_spawn();
     relic_gima_spawn();
+    rmboss_spawn();
     wlogs_spawn(); dv3_switch_spawn(); switches_spawn(); tunnels_reset(); shields_reset(); water_reset();
     /* 3566 / 3567: 12 logs per bridge at (bx + 16k, by + 56), A = k, B = base y */
     int nb = G.nobjs;

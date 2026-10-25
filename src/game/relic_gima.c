@@ -424,8 +424,6 @@ static void clocks(void) {                            /* 5920: ML.Z = the stage 
     }
 }
 
-int relic_boss_clear_type(int t) { (void)t; return 0; }   /* golem parts (6039): the boss module adds its types */
-
 /* ================================================================ hooks */
 void relic_gima_spawn(void) {
     memset(loop_ch, -1, sizeof loop_ch); wp_latch = 0; col_C_sound = 0; gates_created = 0; blight_alpha = -1;
