@@ -53,7 +53,7 @@ G="/mnt/user-data/uploads/Freedom Planet/game"          # read-only copy of the 
 python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui title 3 4 3+titlestar_53   # press start (+ runtime title stars) + hub
 python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui chsel 7      # character select
 python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui stsel 12     # Time Attack stage select
-python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui tasel 6 -x '^bg(1[0-9]|[4-9])layer'   # Time Attack stage select (frame index 5): previews of the ported stages only (bg1 AT, bg2 DV, bg3 RM), to fit one atlas
+python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui tasel 6 -x '^bg(1[0-9]|[5-9])layer'   # Time Attack stage select (frame index 5): previews of the ported stages only (bg1 AT, bg2 DV, bg3 RM, bg4 FN), to fit one atlas (169 images, 1024)
 python3 tools/import_loading.py build/frames extracted/linux/images converted2/ui        # loading-screen crystal bank
 python3 tools/make_vmu_icons.py extracted/linux/images converted2/ui                     # VMU LCD frames (crystal, 12 character portraits) + save icon
 python3 tools/import_font.py "$G/Data/font.bmp" converted2/ui                             # 8x20 original font
@@ -156,7 +156,7 @@ omits mirrored dir-16 animations.
   - Images whose semi-transparent pixels share one alpha are split into an opaque part and a translucent layer (kind
     3, drawn with that vertex alpha): ARGB1555 / PAL8 keep 1 bit of alpha, so this is how the menus' 135-alpha bar and
     the 87-alpha record panel survive (the same idea as the level importer's negative-id layers).
-  - Groups left unused by a split are not packed. Rebuild: `chsel 7`, `stsel 12`, `tasel 6 -x '^bg(1[0-9]|[4-9])layer'`.
+  - Groups left unused by a split are not packed. Rebuild: `chsel 7`, `stsel 12`, `tasel 6 -x '^bg(1[0-9]|[5-9])layer'` (session 17: bg4 = Fortune Night kept).
 - **tools/object_catalog.py** writes OBJECTS.md (every engine type, classes, registry flags, implementation, placement).
 
 ### Adding a level (every new act; the generalisation rule of RE_NOTES "Reusable objects and levels")
@@ -205,3 +205,19 @@ tools/audio/convert_gallery.sh extracted/linux/audio "$G/Data/voices" /home/clau
 - Memory (gallery open): VRAM title bank 2 MB + font 32 KB + gallery bank 1 MB (it replaces the 2 MB character-select /
   stage-select bank in the shared screen slot) + one artwork <= 128 KB; sound RAM s443 6 KB resident + one clip <= 56 KB.
 
+
+## Session 17: Fortune Night flow (parallax, Time Attack preview, stage sounds)
+- Levels: `for l in "30 fn1" "31 fn2" "32 fn3" "33 fn4" "34 fn5" "35 fn6"; do set -- $l; tools/build_level.sh $1 $2 converted2; done`
+  (build into a private converted2 overlay when several agents share the data dir: the tmp dir `<dir>.tmp` is shared).
+- tools/import_frame.py: FN parallax (PAR_IMG / PAR_DEG with the drift G / PAR_DEG_FRAME for FN6's 1629 / 1640 / PAR_BOXH
+  1630 = 120, spec_fn_flow 4); SCROLL08 json 30-35 -> layer 1 (0.8); NPCSerpentine_945 anims (FN_FLOW_ENS, json 32 only);
+  PAR_STARS (a star set composed into one image attached to its sky piece, parallax flag 1024; empty: fn_gima.c draws the
+  FN BGStars as objects).
+- Palette budget: FN's parallax images have 16-108 colours (4 bpp needs <= 15). palettize.py leaves such a --pal4 set in
+  ARGB1555 and the new tools/par_top.py (run by build_level.sh, a no-op elsewhere) makes it PAL8 in the free top of the
+  character group 2 (entries 139..255, written into pal2 / pal2c / pal2m): lossless up to 117 colours, otherwise median-cut
+  (FN1-FN3 143 -> 117, FN4 / FN5 147 -> 117; FN6 34 lossless). Lilac's resident banks keep their bytes. The level piece /
+  object / enemy groups were already over budget in FN2 / FN4 (lossy ens merges reported by palettize, unchanged).
+- UI: `tasel 6 -x '^bg(1[0-9]|[5-9])layer'` keeps the Fortune Night preview strips bg4layer1-4 (one 1024 atlas).
+- Sounds: SFX_FN = {61, 134} (flow; 61 is a Carol-group id, the stage loader now leaves an id of the current character group
+  alone); convert_sfx.sh converts the results group voice group/teamlilac_madeit.ogg -> teamlilac_madeit.wav (11025 Hz).

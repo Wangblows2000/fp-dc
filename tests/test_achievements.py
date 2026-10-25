@@ -113,7 +113,7 @@ r = Run(MT, 4800, {'FP_LEVEL': 'rm5', 'FP_CHAR': '0'})
 check('rm5_finish_moment_once_42', len(r.finish) == 1 and 42 in r.earned and not set(r.earned) & FIN, '%s %s' % (r.earned, r.finish))
 check('rm5_speedrunner_44', 44 in r.earned and r.results and r.results[0][0] == 2 and r.results[0][1] <= 480000, str(r.results))
 check('rm5_no_preemptive_after_intro', 36 not in r.earned)
-check('rm5_popup_to_menu', r.has('gal popup enter 2 next 0') and r.has('gal toast 42') and r.idx[4799] == 9, str([e for _, e in r.ev if 'popup' in e]))
+check('rm5_popup_then_fn1', r.has('gal popup enter 2 next 2') and r.has('gal toast 42') and r.idx[4799] == 9, str([e for _, e in r.ev if 'popup' in e]))
 # 36 (6900): both arm weak points at A <= 0 while the intro group runs (L 61: the fight group is already on, the arms take
 # hits: Lilac's attacks lower Hitbox2 during the intro); the cheat zeroes both arms in the intro
 r = Run('30 TP 2690 500\n30 SETV others E 99999\n40 520 R\n' + ''.join('%d %d X\n' % (f, f + 2) for f in range(570, 790, 8)), 800,
