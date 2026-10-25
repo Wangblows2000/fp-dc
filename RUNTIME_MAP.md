@@ -431,3 +431,12 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
 - **Host trace:** `ach earn k`, `ach finish M A slash cube beam`, `ach results stage s ms t`, `gal popup enter n next x`,
   `gal toast k` / `gal toast done`. tests/test_achievements.py; test_gameplay dv4_end_results / dv4_exit and test_aqua
   snake_defeat press A on the pop-up (their runs earn a speedrunner achievement).
+
+## Session 16: renderer, importer, VMU
+- **render_pvr.c:** OFF_X 0.25, OFF_Y 60.25 (letterbox) / 0.25; letterbox bars at fixed 60 px. r_rect: alpha 0 draws
+  nothing, alpha < 255 goes to the translucent list (dcmd kind 3) and keeps its alpha there.
+- **tools/import_frame.py:** backdrop pieces (drawn and collision) at the instance x, y (hx = hy = 0).
+- **objects.c:** obj_launch_crystal / obj_throw_petal / throw_items (and Serpentine petals) set layer 2.
+- **relic_gima.c relic_gima_draw_overlay():** 8 rings × 4 rects, ring k alpha = blight_alpha × (1 − k/8), 85 × 48 px.
+- **vmu.c vmuscr_char(character):** frame = ncrystal + {Lilac 0, Carol 1, Milla 2} × 4 + (tick / 360) % 4; called from
+  game_update in MODE_PLAY and on the file select (fe_hub.c hub_vmu_file_char). vmu_lcd.bin: 6 crystal + 12 portraits.

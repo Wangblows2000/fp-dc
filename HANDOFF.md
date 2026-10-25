@@ -128,6 +128,27 @@ spec_rm_golems, spec_rm_claw, spec_rm_mantalith, rm_inventory.
   Mantalith sounds 147 / 214 / 215 not ported; INFERRED items in RE_NOTES. An agent published a private working page
   (spec_rm_enemies) during research; it is still in the user's artifacts (delete only if the user asks).
 
+## Session 16 (2026-10-25): hardware seams, RM3 chase, petals, vignette, VMU portraits, achievements
+Details: RE_NOTES / RUNTIME_MAP "Session 16", DECISIONS D-073 to D-078, BUILD_AND_TEST_LOG "Session 16". Spec:
+build/re/spec_achievements.md (not committed).
+- **Tile seams (hardware report):** quad edges landed exactly on PVR sample points (vertical offset 0, x1.5 scale), so
+  the first texel row could be sampled from the atlas row above. Screen offsets are now 0.25 px on both axes (D-073).
+  Not verified on hardware yet (Flycast never showed the seam).
+- **RM3 truck and the yellow diamond:** backdrop pieces were offset by their image hotspot; Chowdren's Backdrop::draw
+  adds the hotspot back before draw_image subtracts it (RE), so backdrops sit at the instance x, y. Fixes the truck
+  vs its wheels (RV screenshot of the original) and its roof collision: PushableBlock3 rests on it, can be pushed onto
+  the engine and wrecks it (D-074). Also moves AT columns, teeter axles and RM3/RM4 shafts by their hotspots.
+- **Life petals / crystals thrown** by monitors, the wood shield, enemies and Serpentine were created on layer 0
+  (behind the terrain); now the play layer.
+- **RM2 basement:** black screen-edge vignette (40 % inward, alpha follows the original's depth fade). r_rect on the DC
+  now honours alpha (translucent rects had been opaque) (D-075).
+- **VMU screen:** the character's four file-select portraits (FileSaveSlotCharacter_109), 6 s each by the logic tick,
+  in stages and on the file select; no lives count; save file unchanged (D-076).
+- **Achievements:** tracked for everything reachable in the ported stages (bosses 10-17, 18 INFERRED, 19, Card
+  Collector 23-25, 33-36, 38, 42, speedrunners 43-45) with the original's "Unlocked!" pop-up after the results (D-077).
+- **Earth-shield magnet:** not reproduced (the pull stops on the frame the shield breaks); waiting for the user's
+  details (keystones always home in, RE 2556). No change.
+
 ## Session 15 (2026-10-25): bug fixes, Gallery, unlock cheat
 Brief: damage, DV/RM rising platform, Carol's icon, the two door gates, Gallery from card progression, title cheat.
 Details: RE_NOTES "Session 15", RUNTIME_MAP "Session 15", ASSET_PIPELINE "Session 15: Gallery", DECISIONS D-068 to
@@ -184,11 +205,12 @@ D-072, BUILD_AND_TEST_LOG "Session 15". Spec: build/re/fe/spec_gallery.md (not c
   Aqua Tunnel: session 12.)
 
 ## Latest verified
-- host-test (session 15, final code): gameplay, front end (incl. 6 cheat checks), Carol, Milla, Aqua, levels, saves
-  (v4), rm_gimmicks_b, rm_claw, rm_mantalith, gallery: all 0 failures; original-trace comparers unchanged.
-- emulator (Flycast, session 15 disc): the cheat (demo input) unlocks and saves; the gallery opens (VRAM free 3167 KB),
-  cards flip, a music card plays, the art view shows Lilac's artwork; RM1 → RM2 walk-in passes the entrance gate. RM
-  act figures from session 14 stand (602-605 vblanks). **Emulator only; nothing measured on real hardware.**
+- host-test (session 16, final code): gameplay, front end (VMU portraits for 4 character slots), Carol, Milla, Aqua,
+  levels, saves, rm_gimmicks_b, rm_claw, rm_mantalith, gallery, achievements: all 0 failures; trace comparers
+  unchanged after the importer change (all 13 levels rebuilt).
+- emulator (Flycast, session 16): RM3 truck aligned (matches the original's screenshot), RM2 basement vignette graded
+  (after the r_rect fix), VMU portraits on the Flycast VMU, title menu unchanged. **Seam fix not verifiable in
+  Flycast; nothing measured on real hardware.**
 
 ## Next actions
 1. Real hardware: the session 14 disc; read the `perf:` / `prof` lines in RM3 / RM4 (the lowest VRAM and the heaviest

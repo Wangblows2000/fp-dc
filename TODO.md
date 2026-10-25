@@ -50,6 +50,12 @@
 - [ ] Unlock and achievement records (7119, 6900, 7116 / 7117; D-065)
 - [ ] Fortune Night (frame 29) and later stages: RM5 currently ends at the front end
 
+## Session 16
+- [x] Seams (offsets), RM3 truck / diamond, thrown petals' layer, basement vignette, VMU portraits, achievements
+- [ ] Verify the seam fix on real hardware
+- [ ] Earth-shield magnet report: waiting for a reproduction (D-078)
+- [ ] Achievements needing unported stages (spec_achievements out-of-scope list); 18 Switch Skipper needs a trace
+
 ## Session 15
 - [x] Casual difficulty kept across front-end reloads (the "damage" report); RM1 switch column; RM2 entrance gates;
       Carol's life icon; Gallery; title cheat

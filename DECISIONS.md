@@ -287,3 +287,24 @@ of frame 9. Only Card Collector and the cheat's 1-3 are set by the port.
 **D-072 Unlock cheat in final builds.** Left x3 then Right x3 on the title screen or title menu (1 s per step, other
 input resets). It writes only through the save's own fields (progress, cards, achievements 1-3) and save_store, so a
 save made with it is an ordinary v4 save.
+
+## Session 16
+
+**D-073 Quarter-pixel screen offsets on the DC.** Quad edges no longer coincide with sample points for either PVR
+sampling convention; tiling stays watertight because shared edges stay identical. Hardware verification pending.
+
+**D-074 Backdrop pieces are placed at the instance position (RE Backdrop::draw).** One importer rule for every level;
+it corrects the RM3 caravan (and its roof collision, which the RM3 wreck puzzle needs) and shifts the few other
+backdrops whose images carry a hotspot.
+
+**D-075 Basement darkness is a black edge vignette (user request) instead of the original's light image** (shader 20
+UNKNOWN). Alpha still follows the original's depth rule, so its scope and clean-up are the original's.
+
+**D-076 VMU LCD shows rotating file-select portraits without lives** (user request). Uses the logic tick; the save file
+and its icon are unchanged.
+
+**D-077 Achievements follow spec_achievements; the pop-up waits for a confirm as the original's frame 9 (RV).**
+Achievements needing unported stages are listed as out of scope; 18 Switch Skipper is an INFERRED reading.
+
+**D-078 Earth-shield magnet left as is.** The reported persisting pull could not be reproduced; no change without a
+reproduction.

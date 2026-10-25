@@ -417,3 +417,15 @@ Labels: original-trace (RV), RE, host-test, emulator (Flycast, emulated time). *
   completes); per-frame demo input works. DC build 0 warnings. **Emulator only; not run on real hardware.**
 - **Release disc:** all 58 music tracks are on the disc now (gallery music cards), so the CDI is larger than the lean
   session-13/14 discs.
+
+## Session 16 (2026-10-25): seams, RM3 chase, petals, vignette, VMU, achievements
+- **Focused checks:** RM3 truck render vs the original's screenshot (RV, after the importer fix); host run of the RM3
+  sequence: the block rests on the truck, pushing right drops it on the engine (engine A 0, direction 8, m_outdoor);
+  basement vignette on the host (pixel ramp 0 → full over 85 px) and on Flycast (after the r_rect alpha fix); VMU
+  portraits for characters 0 / 2 / 3 / 4 (test_frontend vmu_portraits_*, rotation every 360 updates); earth shield:
+  pull stops when it breaks and never starts without it (host, DV2).
+- **Milestone suites (importer change; achievements merge):** gameplay, frontend, carol, milla, aqua, levels, saves,
+  rm_gimmicks_b, rm_claw, rm_mantalith, gallery, achievements: 0 failures; trace comparers unchanged.
+- **Original runs:** RM3 truck screenshot (FRAME=26, TP 6600 440). An AT1 attempt did not start (tracer timeout).
+- **Flycast:** title menu, RM3 truck, RM2 vignette, VMU portraits; DC build 0 warnings. **The seam fix and the rest
+  are emulator-only; nothing was run on real hardware.**
