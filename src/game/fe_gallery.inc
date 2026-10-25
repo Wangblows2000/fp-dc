@@ -158,9 +158,10 @@ static void gal_dump(void) {                             /* host trace of what t
 #endif
 }
 
-static void gal_enter(void) {
+/* the gallery scene's objects and text (also used by the stage-end pop-up, FE_ACH below) */
+static void gal_bind(void) {
     memset(&Y, 0, sizeof Y);
-    Y.D = -1; Y.art = -1; Y.panel = -1; Y.voice_h = -1; Y.retv = 52; Y.art_tex.id = -1;   /* RE start: cursor on the header (RV "CARDS") */
+    Y.D = -1; Y.art = -1; Y.panel = -1; Y.voice_h = -1; Y.snd443 = -1; Y.retv = 52; Y.art_tex.id = -1;   /* RE start: cursor on the header (RV "CARDS") */
     ui_scene_t *s = &s_scr; ui_obj_t *o;
     for (int i = 0; i < s->nobj; i++) { s->o[i].vis = 1; s->o[i].dx = s->o[i].dy = 0; s->o[i].shz = 0; s->o[i].shx = s->o[i].shy = 0; }
     for (int k = 0; (o = ui_find(s, "mapicon", k)); k++) {          /* 100 cards: x 238 + 24c, y 115 + 40r, id = 10r + c + 1 */
@@ -176,14 +177,60 @@ static void gal_enter(void) {
     Y.cursor = ui_find(s, "crystalcursor", 0); Y.selector = ui_find(s, "cardselector", 0);
     Y.data[0] = ui_find(s, "return2", 0); Y.data[1] = ui_find(s, "return3", 0); Y.data[2] = ui_find(s, "return4", 0); Y.data[3] = ui_find(s, "return5", 0);
     Y.sparkle = ui_find(s, "sparkle5", 0); Y.burst = ui_find(s, "effectswhiteburst", 0); Y.officer = ui_find(s, "npcstofficer", 0);
+    gal_text_load();
+}
+
+/* ---- the achievement pop-up: the original's frame index 9 (frame_10.json; RE 975-978, spec_achievements 1), shared by
+ * the gallery's Card Collector entry (RE 992) and the stage end (FE_ACH: frame 8 -> 9 after the results). Up to 3 value-1
+ * achievements per page (MenuSequence.A < 3), each written 2 as its page is filled (RE order); "CONTINUE" waits for a
+ * confirm press: RV, the original stayed on frame 9 for > 7 s without input. One records save after the last page (the
+ * original saves on every page's confirm: same data, fewer memory-card writes, INFERRED deviation). Layout INFERRED. */
+static void pop_begin(void) {
+    Y.ntoast = 0; Y.toast_i = 0; Y.toast_t = 0;
+    for (int k = 1; k <= SAVE_ACH; k++) if (save_ach(k) == 1) Y.toast[Y.ntoast++] = k;
+}
+static int pop_step(int confirm) {                       /* 1: the last page was confirmed (written and saved) */
+    if (!Y.ntoast) return 1;
+    if (Y.toast_t == 0) {
+        snd_play_orig(100, 255, 128); gal_trace("toast %d", Y.toast[Y.toast_i]);
+        for (int k = Y.toast_i; k < Y.toast_i + 3 && k < Y.ntoast; k++) save_ach_set(Y.toast[k], 2);
+    }
+    Y.toast_t++;
+    if (Y.toast_t > 30 && confirm) {                     /* a press in the first 30 frames is ignored (INFERRED: no carry-over) */
+        Y.toast_i += 3; Y.toast_t = 0;
+        if (Y.toast_i >= Y.ntoast) { Y.ntoast = 0; save_store(); gal_trace("toast done"); return 1; }
+    }
+    return 0;
+}
+static void pop_draw(void) {
+    ui_scene_t *s = &s_scr;
+    int n = Y.ntoast - Y.toast_i < 3 ? Y.ntoast - Y.toast_i : 3;
+    float y0 = 60;
+    r_rect(48, y0 - 8, SCREEN_W - 96, 60 + 40.f * n, 0xe0000000);
+    fe_text(SCREEN_W / 2 - 4 * 8, y0 - 4, "UNLOCKED");
+    for (int k = 0; k < n; k++) {
+        int a = Y.toast[Y.toast_i + k];
+        ui_obj_t *o = Y.ach[a];
+        if (o) {
+            ui_obj_select(s, o, 0, 0); ui_obj_frame(o, a);
+            const frame_t *f = anim_frame(&o->an);
+            if (f) frame_draw(o->an.b, f, 60 + f->hx, y0 + 22 + 40 * k + f->hy, 0, 0xffffffff);
+        }
+        fe_text(100, y0 + 28 + 40 * k, GAL_NAME(a));
+    }
+    if (Y.toast_t > 30) fe_text(SCREEN_W / 2 - 4 * 8, y0 + 26 + 40.f * n, "CONTINUE");
+}
+
+static void gal_enter(void) {
+    gal_bind();
+    ui_scene_t *s = &s_scr; ui_obj_t *o;
     if ((o = ui_find(s, "ringsparkle", 0))) o->vis = 0;               /* idle twinkles (RE 1027): not ported */
     for (int k = 0; (o = ui_find(s, "fadein", k)); k++) o->vis = 0;   /* drawn by tiles_draw */
     for (int k = 0; (o = ui_find(s, "checkerpattern", k)); k++) o->tileh = 1;   /* the side columns repeat down the view */
-    gal_text_load();
     Y.snd443 = snd_load("gal/s443.wav");
     /* RE start event + loop_check_a_10 (992): Card Collector for every stage row whose 10 cards are all taken; the
      * original saves and shows frame 9 (the "UNLOCKED" pop-up), which announces every value-1 achievement (-> 2) and
-     * saves again. The port shows that pop-up as an overlay before the gallery takes input (INFERRED layout). */
+     * saves again. The port shows that pop-up (pop_*) as an overlay before the gallery takes input. */
     int any = 0;
     for (int i = 0; i < 10; i++) {
         if (save_ach(23 + i) != 0) continue;
@@ -192,7 +239,7 @@ static void gal_enter(void) {
         if (all) { save_ach_set(23 + i, 1); any = 1; gal_trace("ach %d earned", 23 + i); }
     }
     if (any) save_store();
-    for (int k = 1; k <= SAVE_ACH; k++) if (save_ach(k) == 1) Y.toast[Y.ntoast++] = k;
+    pop_begin();
     tiles_start_layout(112, 14, 96); wipe.on = 0;                  /* FadeIn_146 x112: 14 x 8 tiles from (96,0) */
     cam_x = 320 - 213; cam_y = 0;                                   /* RV: view centre x 320 */
     music_stop();
@@ -267,15 +314,7 @@ static void gal_update(const input_t *now) {
     if (!Y.input && !Y.leaving && !Y.ntoast) { if (tiles_step()) Y.input = 1; }      /* RE 1007: FADEIN -> INPUT */
     else if (Y.ntoast && !Y.leaving) {                                                  /* the "UNLOCKED" pop-up (frame 9) */
         if (tiles_left) tiles_step();
-        else {
-            if (Y.toast_t == 0) { snd_play_orig(100, 255, 128); gal_trace("toast %d", Y.toast[Y.toast_i]); }
-            Y.toast_t++;
-            if (Y.toast_t >= 150 || (Y.toast_t > 30 && jump)) {                       /* 3 per page; A skips (INFERRED) */
-                for (int k = Y.toast_i; k < Y.toast_i + 3 && k < Y.ntoast; k++) save_ach_set(Y.toast[k], 2);
-                Y.toast_i += 3; Y.toast_t = 0;
-                if (Y.toast_i >= Y.ntoast) { Y.ntoast = 0; save_store(); gal_trace("toast done"); Y.input = 1; jump = 0; }
-            }
-        }
+        else if (pop_step(jump)) { Y.input = 1; jump = 0; }                             /* waits for confirm (RV), no auto-advance */
     }
     /* RE 1028: the scroll group eases 1/8 per frame; Return_110 follows the header */
     Y.sv = (7 * Y.sv + gal_target()) / 8;
@@ -442,22 +481,31 @@ static void gal_draw(void) {
         int w = Y.art_tex.srcw, h = Y.art_tex.srch;
         r_sprite(&Y.art_tex, 0, 0, w, h, 322 - w / 2 - cam_x, -cam_y, (float)w, (float)h, 0, 0xffffffff);
     }
-    if (Y.ntoast && !tiles_left) {                                                       /* frame 9 "UNLOCKED" pop-up, up to 3 entries (INFERRED layout) */
-        int n = Y.ntoast - Y.toast_i < 3 ? Y.ntoast - Y.toast_i : 3;
-        float y0 = 60;
-        r_rect(48, y0 - 8, SCREEN_W - 96, 36 + 40.f * n, 0xe0000000);
-        fe_text(SCREEN_W / 2 - 4 * 8, y0 - 4, "UNLOCKED");
-        for (int k = 0; k < n; k++) {
-            int a = Y.toast[Y.toast_i + k];
-            ui_obj_t *o = Y.ach[a];
-            if (o) {
-                ui_obj_select(s, o, 0, 0); ui_obj_frame(o, a);
-                const frame_t *f = anim_frame(&o->an);
-                if (f) frame_draw(o->an.b, f, 60 + f->hx, y0 + 22 + 40 * k + f->hy, 0, 0xffffffff);
-            }
-            fe_text(100, y0 + 28 + 40 * k, GAL_NAME(a));
-        }
-    }
+    if (Y.ntoast && !tiles_left) pop_draw();                                           /* frame 9 "UNLOCKED" pop-up, up to 3 entries */
     if (!Y.input && !Y.leaving && tiles_left) tiles_draw(s);
     wipe_draw();
+}
+
+/* ---- FE_ACH: the pop-up after a stage (frame index 8 -> 9 -> 8; RE + RV spec_achievements 1). Entered by results.c
+ * stage_end() when an achievement is at 1; the screen is black under the pop-up (INFERRED: frame 9's own backdrop is not
+ * ported) and silent (the stage end stopped the music). Afterwards the stage flow continues where it would have gone:
+ * the route's next stage (Classic / Adventure), the Time Attack stage select, or the title menu. */
+static int ap_next;                                      /* 0 title menu, 1 Time Attack stage select, 2 the route's next stage */
+static void achpop_enter(int next) {
+    gal_bind(); pop_begin(); ap_next = next;
+    cam_x = 107; cam_y = 0;
+    gal_trace("popup enter %d next %d", Y.ntoast, next);
+}
+static void achpop_update(const input_t *now) {
+    uint32_t p = Y.prev.pressed;                         /* one frame of input latency, as the other screens */
+    Y.prev = *now;
+    if (!pop_step(p & (BTN_JUMP | BTN_START))) return;
+    gal_release();
+    if (ap_next == 2) { fe_unload(); if (!game_next_stage()) fe_enter_from_stage(0); return; }
+    if (ap_next == 1 && scr_load(1) == 0) { fe_mode = 0; set_state(FE_STSEL); stsel_enter(); return; }
+    set_state(FE_HUB); hub_enter();
+}
+static void achpop_draw(void) {
+    r_rect(0, 0, SCREEN_W, SCREEN_H, 0xff000000);
+    if (Y.ntoast) pop_draw();
 }

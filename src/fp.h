@@ -107,6 +107,11 @@ int    save_card_state(int id);              /* gallery: records x20 value 0 not
 void   save_card_open(int id, int open);     /* gallery: Open writes 2, Close Card writes 1 (the taken bit is kept) */
 int    save_ach(int k);                      /* achievement k = 1..56: 0 / 1 / 2 */
 void   save_ach_set(int k, int v);
+/* session 16 (build/re/spec_achievements.md): achievement k earned in play (RE "set 1" / "max 1": 0 -> 1, an announced
+ * 2 is kept). No memory-card write: the stage end save (results D = 150) and the pop-up's write of 2 persist it. */
+void   ach_earn(int k);
+int    ach_pending(void);                    /* any achievement at 1 (earned, not announced): the pop-up shows after the stage */
+void   ach_boss_finish(void);                /* 10-17: the finishing move, on each frame of the boss's finish moment (combat.c) */
 void   save_unlock_all(void);                /* title cheat: progress + cards + achievements 1-3 (save.c) */
 uint32_t save_file_time(const save_file_t *f);
 int    save_file_crystals(const save_file_t *f), save_file_deaths(const save_file_t *f);
@@ -491,6 +496,7 @@ void game_start_adventure(const char *dir, int time_attack);
 void game_dev_select(void);
 int  fe_enter(void);
 int  fe_enter_from_stage(int time_attack);
+int  fe_enter_ach_popup(int time_attack, int next_stage);   /* session 16: frame index 9 after a stage (achievement pop-up), then on */
 int  game_next_stage(void);   /* Classic: load the route's next stage after the results (1: done) */
 /* hub (frame index 3: title menu / file select / mode select / options), src/game/fe_hub.c */
 enum { HUB_EXIT_TIME_ATTACK = 1, HUB_EXIT_QUIT, HUB_EXIT_NEW_ADVENTURE, HUB_EXIT_NEW_CLASSIC, HUB_EXIT_CONTINUE, HUB_EXIT_GALLERY };
@@ -514,6 +520,7 @@ void snd_loop_stop(int ch);
 void pads_spawn(void);
 /* Milla's cube (src/characters/milla.inc, spec_milla_combat): state A (-1 when Milla is not playing) and its hitbox */
 int    player_cube_state(void);
+int    player_cube_beam(void);               /* Milla's cube A == 5 with animation 5 playing (the Super Shield beam; achievement 17) */
 int    player_cube_hits(const obj_t *e);
 int    player_cube_breaks_rock(const obj_t *o);
 int    player_cube_opens_monitor(const obj_t *o);
@@ -716,6 +723,7 @@ typedef struct {
     int walkin_purge;                                /* RM1 5826: during a walk-in every EnemyIris completely inside the view goes */
     const warp_t *warps; int nwarps;       /* RM2 5925: in the zone while the axle turns -> the flag, gates open */
     int nobike;                                      /* RM3 6198: Carol (MV.A = 3) enters without the bike (g1 = 2) */
+    int door_skip_ach;                               /* session 16: achievement for entering the zone right of the SwitchDoor while it is closed (DV2 5098 / 5099: 18) */
     int monitor_hop;                                 /* 2605: a monitor hops when bumped from below (D-051: AT only, DV keeps its traced behaviour) */                     /* switches.c: pressure-plate rule (0 DV 4971-4973, 1 AT1 4093-4096), pass after the movement */
 } level_def_t;
 const level_def_t *level_def(const char *dir), *level_cur(void);

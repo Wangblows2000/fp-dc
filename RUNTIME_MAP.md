@@ -403,3 +403,31 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
 - **game.c:** HUD life icon index 17 (hud_icon_cb, image 395) for Carol on foot and on the bike; VMU life icon 2.
 - **Host:** `<f> FLAGS v` sets G.stage_flags. Tests: test_frontend cheat_* (sequence, timeout, reset, title menu, save
   bytes), test_gallery.py.
+
+## Session 16: achievements (spec build/re/spec_achievements.md; port save.c, results.c, combat.c, fe_gallery.inc)
+- **Helper (save.c):** `ach_earn(k)` = records x2 y(k) 0 -> 1 (RE "set 1" / "max 1": an announced 2 is kept); no VMU write.
+  `ach_pending()` = any achievement at 1. Persisted by the existing writes: the results' D = 150 save (5394) and the pop-up.
+- **Hooks (RE event, port place):**
+  - 10-17 `ach_boss_finish()` (combat.c) on each frame of the boss finish moment: DV4 serpentine.c after 5531
+    (`S4.K == 0 && S4.hG == 1`, hitbox defeated), AT4 aqua_boss.c after 4642 (`O == 1`), RM5 rm_mantalith.c
+    defeat_events() at head `I == 2`. It reads MV.A (`G.character`, 3 on the bike), MV.M (`player_orig_m`), a live OT_SHIELD
+    with direction 14 / 30 (Carol's big slash) and Milla's cube (`player_cube_state()`, `player_cube_beam()` = A 5 + anim 5).
+  - 42 at the same RM5 moment (7118); 36 rm_mantalith.c intro_events() (6900: both arm hitboxes A <= 0 while the intro
+    group runs); 35 relic_boss.c after the 7116 decrement (gem defeated, HEAD B > 0); 34 relic_boss.c ge_frame() 5955 block
+    hit; 19 rm_claw.c 6272 (Claw hitbox A > 0 when the engine is wrecked); 33 chase.c 5453-5460 respawn branch; 38 aqua.c
+    dig_events() (dug spot, AT1 and RM1); 18 switches.c OT_DOOR (level_def_t.door_skip_ach = 18 on DV2: the 5098 E counter
+    and the 5099 test, SW.skipE / skip_once).
+  - 23-25 / 43-45 results.c `ach_results()` at ScoreValues D = 149 (once): `cards_commit()` first, then per stage index
+    (DV 1: cards 1-10, 23, 43, 300000 ms; RM 2: 11-20, 24, 44, 480000; AT 0: 21-30, 25, 45, 300000) on
+    `R.time_frames * 1000 / FPS`. Any mode, any character.
+- **Pop-up (frame 8 -> 9):** results.c stage_end(): `ach_pending()` -> `fe_enter_ach_popup(ta, next)` (frontend.c): the
+  game is unloaded, the front end and the gallery screen bank (scr_load(2)) are loaded, state FE_ACH (fe_trace_info index 9).
+  fe_gallery.inc `gal_bind()` (scene objects + text, shared with gal_enter) and `pop_begin / pop_step / pop_draw` (shared
+  with the gallery's Card Collector entry): 3 per page, sound 100, each page's entries written 2 when shown, "CONTINUE"
+  waits for A / Start (presses in the first 30 frames ignored), one save_store() after the last page. Then: the route's next
+  stage (`fe_unload(); game_next_stage()`), the Time Attack stage select, or the title menu, as stage_end() would have gone.
+  Black background, no music. If the gallery data cannot load, the stage flow goes on without it (the gallery announces
+  pending ones later). The gallery's own pop-up now waits for confirm too (the 150-frame auto-advance is gone).
+- **Host trace:** `ach earn k`, `ach finish M A slash cube beam`, `ach results stage s ms t`, `gal popup enter n next x`,
+  `gal toast k` / `gal toast done`. tests/test_achievements.py; test_gameplay dv4_end_results / dv4_exit and test_aqua
+  snake_defeat press A on the pop-up (their runs earn a speedrunner achievement).

@@ -122,7 +122,7 @@ static void dig_events(player_t *p) {
         if (!s->alive || s->type != OT_DIGSPOT) continue;
         if (player_on_spot(p, s) && (GT() % 30) > 14) dig_hint = 1;                      /* 4184 */
         if (!(s->fl & 1) && p->state == ST_DIG && p->mfl1 && player_on_spot(p, s)) s->fl |= 1;   /* 4185 */
-        if (s->fl & 1) dig_reward(s, p);                                                     /* 4189-4194 */
+        if (s->fl & 1) { ach_earn(38); dig_reward(s, p); }                                   /* 4189-4194; 4189 records x2 y38 (RE) */
     }
 }
 

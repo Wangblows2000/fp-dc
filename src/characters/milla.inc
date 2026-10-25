@@ -226,6 +226,7 @@ static int cube_hits_obj(const obj_t *e) {
     return 0;
 }
 int player_cube_state(void) { return is_milla() ? cube.A : -1; }
+int player_cube_beam(void) { return is_milla() && cube.A == 5 && cube_playing(5); }   /* achievement 17 (RE 5589 / 4671 / 7128) */
 int player_cube_hits(const obj_t *e) { return is_milla() ? cube_hits_obj(e) : 0; }
 /* rocks (4761 / 4762 / 5369): a bursting cube (A = 3) or the beam (anim 5) breaks them */
 int player_cube_breaks_rock(const obj_t *o) {

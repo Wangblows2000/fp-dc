@@ -99,7 +99,7 @@ static const level_def_t LEVELS[] = {
     /* Dragon Valley: frame index 20-23 (RE loop_play_music_N_20..23), water DV2 / DV3 (5109 / 5314), DV4 results at the
      * right edge (5381) as well as after the boss */
     { DV("dv1", 20, 1, "bgm/m_stage1.adp"), .card_first = 1 },
-    { DV("dv2", 21, 2, "bgm/m_stage1b.adp"), .card_first = 5, .water = 2700, .pads = PADS_DV2, .npads = N_(PADS_DV2) },
+    { DV("dv2", 21, 2, "bgm/m_stage1b.adp"), .card_first = 5, .door_skip_ach = 18, .water = 2700, .pads = PADS_DV2, .npads = N_(PADS_DV2) },
     { DV("dv3", 22, 3, "bgm/m_stage1b.adp"), .card_first = 7, .water = 2700, .pads = PADS_DV3, .npads = N_(PADS_DV3) },
     { DV("dv4", 23, 4, "bgm/m_stage1b.adp"), .card_first = 8, .edge_results = 1, .pads = PADS_DV4, .npads = N_(PADS_DV4) },
     /* Aqua Tunnel: frame index 16-19 (tools/re/bgm_refs.py: 16 m_stage0, 17/18 m_stage0b; AT2 after the Chomper (g4 >=

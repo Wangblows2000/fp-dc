@@ -147,9 +147,9 @@ static void ge_frame(player_t *p) {
     if (!active) return;                                                          /* 5927 / 5928: the golem freezes outside the zone */
     ge_camera(p);
     if (e->alive && !DEFEATED(e) && GE.phase < 3) {
-        for (int i = 0; i < G.nobjs; i++) {                                       /* 5955: the pushable block crushes the eye (records x2 y34: not ported) */
+        for (int i = 0; i < G.nobjs; i++) {                                       /* 5955: the pushable block crushes the eye; records x2 y34 (RE) */
             obj_t *b = &G.o[i];
-            if (b->alive && (b->type == OT_PBLOCK1 || b->type == OT_PBLOCK2) && obj_obj_hit(b, e)) { e->A -= 100; b->av[5] = 0; break; }
+            if (b->alive && (b->type == OT_PBLOCK1 || b->type == OT_PBLOCK2) && obj_obj_hit(b, e)) { e->A -= 100; b->av[5] = 0; ach_earn(34); break; }
         }
     }
     if (GE.phase == 0) {                                                          /* dormant (0x2240e) */
@@ -487,6 +487,7 @@ static void bg_frame(player_t *p) {
             if (BG.p6[k]) bg_dirsprite(BG.p6[k], "bgp6");
         }
         if (hd) { hd->ang = (float)hd->av[0]; bg_dirsprite(hd, "bghead"); if (hd->av[1] > 0) hd->av[1]--; }   /* 7116 */
+        if (hd && DEFEATED(g) && hd->av[1] > 0) ach_earn(35);                    /* 7117: gem flag 6 and HEAD B > 0 (its own strike, 6842) (RE) */
         bg_dirsprite(s, "bgp5");
         if (DEFEATED(g)) {                                                        /* 6849: the skeleton flies apart */
             s->fl |= 1; s->kx = g->kx / 2; g->fl &= ~F_NOFLY;                  /* the gem flies (2765) */
@@ -514,7 +515,7 @@ static void bg_frame(player_t *p) {
             if (o->c >= 2) o->fl &= ~0x40;                                        /* 6857: rests as scenery */
         }
         if (BG.pillarD < 88) { bg_pillars(2); BG.pillarD += 2; }                  /* 6858 */
-        else if (BG.pillarD == 88) { BG.pillarD = 90; rails_to_crystals(); BG.phase = 4; }   /* 6859 (records x2 y35: not ported) */
+        else if (BG.pillarD == 88) { BG.pillarD = 90; rails_to_crystals(); BG.phase = 4; }   /* 6859 (records x2 y35 is 7117, above) */
     }
 }
 static void shocks(player_t *p) {                                                  /* 7113 / 7114: BallMovement 50 (6.25 px / frame) */
