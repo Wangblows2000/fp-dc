@@ -337,3 +337,27 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
   each load), `FP_DUMP_OBJDEFS` (registry per type), `FP_TA` / `FP_FILE` / `FP_FILE_NEW` (save tests).
 - **Tests:** tests/test_levels.py (cards, load orders, restart, hang animations, results panels, registry vs importer,
   next acts, checkpoint), tests/test_saves.py (records, files, progress, cards, conversion, CRC).
+
+## Session 14: Relic Maze (port: src/game/relic.c, relic_gima.c, relic_gimb.c, relic_boss.c, rm_claw.c, rm_mantalith.c; levels.c, game.c)
+- **Level rows (levels.c):** rm1-rm5 = frames 24-28, stage 2, cards 11-20, music m_stage2 / m_stage2b. Row fields added
+  this session: `exits` (exit_t: edge, Y band, target, walk-off B), `entries` (entry_t by source act), `death_to`,
+  `flag1_y`, `crystals_once`, `wplate_cyclone`, `gates` / `flagclears`, `breakout` / `breakout_flag`, `rooms`
+  (camroom_t: camera bounds per room), `warps` (warp_t), `walkin_purge`, `rmg` (pillar zones, pads base, door return,
+  basement x), `pads`, `nobike`, `plate_rule` 2 (radio). SFX_RM = the RM stage sound group (D-047 / D-063).
+- **G fields:** `stage_flags` (ML 0x1 / 0x2 / 0x4), `exit_to`, `exit_b`, `walk_b`, `keep_g4`, `stage_carry`,
+  `prev_dir` (the act just left, chooses the entry), `input_lock`, `warp`, `cam_nF`.
+- **Frame order (game.c):** objects_platforms → aqua_pre → player_update (inside objects_sense_snapshot(1/0)) →
+  layers → walk-in / exit walk → objects_update (relic_gima pre / post, golems, rocks, iris purge via relic_frame) →
+  aqua_update → relic_frame → relic_gimb_frame → rm_claw_frame; Mantalith via rm_mantalith_frame / _draw hooks. Exits
+  and warps are checked after the update; at clear_t == 255 a warp or next_act runs.
+- **Type ranges:** 232-245 enemies, 246-292 acts 1-2, 300-336 acts 3-5 (member index in lvobj anim), 350-371 golems
+  and markers, 400-449 Claw, 450-499 Mantalith; MAX_OT 512 (presence bits, registry, group tables).
+- **Results:** results_begin_boss (path 3, any boss: stage time stopped at the kill), results_tally_done /
+  results_frames / results_script_input / results_request_end; voice_play_once (two slots, freed at the stage end).
+- **Front end:** Continue starts the stage after the file's last completed stage with its lives / shield / crystal
+  counter (frame 8 routing); the TA list gets Relic Maze from the level table (stage_playable) with the progress lock.
+- **objects.c helpers (D-067):** objects_sense_snapshot(on) (packed sensor prefilter), objects_alive_type(t)
+  (superset of alive types, rebuilt on slot changes and each objects_update).
+- **Host:** `FP_TRACK=type:spawnx` (now tm / vx / vy), BOSSHP for golems, Claw hitbox and Mantalith head / arms,
+  `FP_DBG_OBJS`, `FP_TRACE_SND`, `FP_DBG_BG`. Tests: tests/test_rm_gimmicks_b.py, test_rm_claw.py, test_rm_mantalith.py,
+  RM cases in test_gameplay / test_aqua.

@@ -15,10 +15,12 @@ frames_dir = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, 'build', '
 out = sys.argv[2] if len(sys.argv) > 2 else os.path.join(ROOT, 'OBJECTS.md')
 
 fp = open(os.path.join(ROOT, 'src', 'fp.h')).read()
-a = fp.index('enum { OT_START = 1'); body = re.sub(r'/\*.*?\*/', '', fp[a:fp.index('};', a)], flags=re.S)
+fp_nc = re.sub(r'/\*.*?\*/', '', fp, flags=re.S)   # every OT_ enum (the main one plus the per-file ranges >= 232)
+body = '\n'.join(m.group(1) for m in re.finditer(r'enum\s*\{([^}]*)\}', fp_nc) if 'OT_' in m.group(1))
 name = {}
-for m in re.finditer(r'(OT_[A-Z0-9_]+)\s*=\s*(\d+)', body): name.setdefault(int(m.group(2)), m.group(1))
-enum_val = {v: k for k, v in name.items()}
+for m in re.finditer(r'(OT_[A-Z0-9_]+)\s*=\s*(\d+)', body):
+    if not m.group(1).endswith(('_FIRST', '_LAST')): name.setdefault(int(m.group(2)), m.group(1))
+enum_val = {m.group(1): int(m.group(2)) for m in re.finditer(r'(OT_[A-Z0-9_]+)\s*=\s*(\d+)', body)}
 
 defs = {}
 for m in re.finditer(r'\{ (OT_[A-Z0-9_]+)(?: \+ (\d+))?,\s+([A-Z_|0-9]+),\s+(NULL|"[^"]*")\s+\}', open(os.path.join(ROOT, 'src', 'game', 'objdefs.c')).read()):

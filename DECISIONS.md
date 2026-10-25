@@ -232,3 +232,35 @@ damage, defeat and results are unchanged.
 **D-060 The PVR translucent list uses MODULATEALPHA.** With MODULATE the vertex alpha was ignored on the DC, so the
 port's vertex-alpha translucency (menus, results panels, cards, whisps, shield particles) only existed on the host
 renderer. Alpha 255 draws are identical; Flycast now matches the host and the original's screenshots.
+
+## Session 14 (Relic Maze)
+
+**D-061 Stage flow is level data.** Exits (edge + Y band → target act, with the walk-off speed), entries chosen by the
+source act, death / restart targets (RM2 → RM1 with g4 kept), stage flags (ML 0x1 / 0x2 / 0x4), flag-cleared gates,
+checkpoints, room camera bounds and room warps (RM5 labyrinth 6731-6750) are fields of the level rows in
+src/game/levels.c. game.c reads them; no shared code tests a level name (RE_NOTES "Reusable objects and levels").
+
+**D-062 One engine type range per module; families share a type.** relic.c 232-245 (enemies), relic_gima.c 246-292
+(acts 1-2 gimmicks), relic_gimb.c 300-336 (acts 3-5), relic_boss.c 350-371 (golems), rm_claw.c 400-449, rm_mantalith.c
+450-499; MAX_OT = 512. Fusion objects with identical rules (e.g. GimmickMovingPillar1/2/3) share one type and carry
+their member index in the lvobj anim field (importer RMB_SUB). Each module owns its registry block in objdefs.c.
+
+**D-063 Relic Maze stage sounds at 11025 Hz.** With Milla's sound group and the 64 KB music stream buffer the RM set
+at 22 kHz exhausted AICA RAM in Flycast ("no chunks big enough", then a crash); KOS also limits an sfx to 65534
+samples. The stage set (SFX_RM, only ids outside the global set, D-047) is converted at 11025 Hz (convert_sfx.sh LOW
+list). Mantalith sounds 147, 214 and 215 are left out (their calls are silent). Global sounds are unchanged.
+
+**D-064 Classic routing only.** DV4 / AT4 results continue to RM1 and RM5 ends at the front end (Fortune Night is not
+ported). The RM5 Adventure dialog cutscene (group 0x22517) is not played; the Classic path (6865) always runs.
+
+**D-065 Unlock records are not written.** The RM5 card-unlock record (7119), achievement records (6900, 7116 / 7117)
+and the gallery are not ported; cards, records, files and progress use the shared v3 save (D-057). The Time Attack
+entry for Relic Maze follows the original's progress lock (RE 641-643) and becomes selectable once the stage is cleared.
+
+**D-066 Camera after the Eye Golem (INFERRED).** At the Eye Golem's defeat the boss lock is released to the act's
+bounds (5982 intent); the original may keep it (trace T3 of spec_rm_golems).
+
+**D-067 Sensor and pass prefilters (performance, results unchanged).** Player-phase sensor queries reject far objects
+from a packed x / y / reach copy (objects_sense_snapshot; superset with 64 px slack, rebuilt per phase and on slot
+changes); enemy_type is a per-type table; the Aqua Tunnel passes run only when one of their types is alive
+(objects_alive_type). Relic Maze places dig spots, so the AT pass block used to scan every slot ten times a frame.

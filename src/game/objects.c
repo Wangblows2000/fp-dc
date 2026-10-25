@@ -17,6 +17,17 @@ static int A_GAN[10] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };   /* Ganseki:
 static int A_PELLET = -1, A_EXPLODE2 = -1, A_SPARKLE = -1, A_HEART = -1, A_CRYSTAL = -1, A_PETAL = -1;
 
 static unsigned obj_gen = 1;   /* bumped whenever a slot is (re)allocated or retyped: invalidates the sensor candidates */
+/* superset of the types alive now: rebuilt when a slot is allocated / retyped (obj_gen) and at every objects_update, so a
+ * pass can skip its full slot scan when none of its types exists (a type that died since stays set until then) */
+static uint8_t alive_bits[MAX_OT / 8]; static unsigned alive_gen, alive_stamp, upd_stamp = 1;
+int objects_alive_type(int t) {
+    if (alive_gen != obj_gen || alive_stamp != upd_stamp) {
+        memset(alive_bits, 0, sizeof alive_bits);
+        for (int i = 0; i < G.nobjs; i++) { unsigned u = (unsigned)G.o[i].type; if (G.o[i].alive && u < MAX_OT) alive_bits[u >> 3] |= (uint8_t)(1 << (u & 7)); }
+        alive_gen = obj_gen; alive_stamp = upd_stamp;
+    }
+    return (unsigned)t < MAX_OT && (alive_bits[t >> 3] >> (t & 7) & 1);
+}
 static obj_t *alloc_obj(void) {
     for (int i = 0; i < MAX_OBJS; i++)
         if (!G.o[i].alive) { if (i >= G.nobjs) G.nobjs = i + 1; memset(&G.o[i], 0, sizeof G.o[i]); obj_gen++; return &G.o[i]; }
@@ -643,6 +654,7 @@ static int side_sensor_break(const player_t *p, const obj_t *o) {
 }
 
 void objects_update(void) {
+    upd_stamp++;
     player_t *p = &G.p;
     float px0 = p->x - 7, px1 = p->x + 7, py0 = p->y - 30, py1 = p->y;
     int dead = p->hp <= 0;
@@ -914,6 +926,24 @@ static int bank_extent(const bank_t *b) {
     ext_b[next_b] = b; ext_m[next_b] = m; next_b = (next_b + 1) & 7;
     return m;
 }
+static const bank_t *ext_slot_b[MAX_OBJS]; static short ext_slot_m[MAX_OBJS];
+/* Player-phase snapshot (objects_sense_snapshot): per candidate list, a packed copy of x / y / reach so the ~80 sensor
+ * queries of player_update reject far objects without touching their obj_t (one SH4 cache miss each: ~3-5 ms a frame
+ * in RM4). Superset filter only: reach = 2x the bank extent + SNAP_SLACK px for objects moved during the phase; every
+ * remaining candidate runs the unchanged tests on the live obj_t, in slot order. Rebuilt on obj_gen changes. */
+#define SNAP_SLACK 64
+static int snap_on; static unsigned snap_stamp, snap_gen[NGRP + 1], snap_epoch[NGRP + 1]; static int snap_n[NGRP + 1];
+static short snap_x[NGRP + 1][MAX_OBJS], snap_y[NGRP + 1][MAX_OBJS], snap_m[NGRP + 1][MAX_OBJS];
+void objects_sense_snapshot(int on) { snap_on = on; snap_stamp++; }
+static void snap_build(int L) {
+    for (int c = 0; c < ncand[L]; c++) {
+        int i = cand[L][c]; const obj_t *o = &G.o[i]; int m = 0;
+        if (o->alive && o->an.b) { if (ext_slot_b[i] != o->an.b) { ext_slot_b[i] = o->an.b; ext_slot_m[i] = (short)bank_extent(o->an.b); } m = ext_slot_m[i] * 2; }
+        float x = o->x, y = o->y; if (x < -30000) x = -30000; if (x > 30000) x = 30000; if (y < -30000) y = -30000; if (y > 30000) y = 30000;
+        snap_x[L][c] = (short)x; snap_y[L][c] = (short)y; snap_m[L][c] = (short)(m + 2 + SNAP_SLACK + 1);
+    }
+    snap_n[L] = ncand[L]; snap_gen[L] = obj_gen; snap_epoch[L] = snap_stamp;
+}
 static int sensor_hit_any(int grp, int type, int ox, int oy, const signed char *x0, const signed char *x1, int h) {
     cand_refresh();
     /* group query: that group's list; type query: the any-group list if the type is in one, else every slot */
@@ -923,14 +953,22 @@ static int sensor_hit_any(int grp, int type, int ox, int oy, const signed char *
 #endif
     int n = L >= 0 ? ncand[L] : G.nobjs;
     const short *cl = L >= 0 ? cand[L] : NULL;
+    const short *qx = NULL, *qy = NULL, *qm = NULL;
+    if (snap_on && L >= 0) {
+        if (snap_epoch[L] != snap_stamp || snap_gen[L] != obj_gen || snap_n[L] != ncand[L]) snap_build(L);
+        qx = snap_x[L]; qy = snap_y[L]; qm = snap_m[L];
+    }
     for (int c = 0; c < n; c++) {
+        if (qx) { int m = qm[c]; if (qx[c] < ox - m || qx[c] > ox + 27 + m || qy[c] < oy - m || qy[c] > oy + h + m) continue; }
         int i = cl ? cl[c] : c;
         const obj_t *o = &G.o[i];
         if (!o->alive || !o->an.b || (type >= 0 ? o->type != type : !(L >= 0 ? (grp_bits[o->type] >> grp & 1) : in_group(o->type, grp)))) continue;
         if ((grp == OBJGRP_OBSTACLE || grp == OBJGRP_SOLID) && (o->fl & 1)) continue;   /* flag 0: ignored (4738 platforms; loop layers 3025/3026) */
         if (grp == OBJGRP_SOLID && objects_mon_ghost && (o->type == OT_MONITOR || o->type == OT_MON_RINGS || o->type == OT_MON_1UP ||
                                                           o->type == OT_MON_INVINC || o->type == OT_MON_KEYSTONE || o->type == OT_ROCK || (o->type >= OT_MON_WOOD && o->type <= OT_MON_WATER))) continue;   /* 1581 (RV spiral_dv1: rocks too) */
-        { int m = bank_extent(o->an.b) * (o->ang != 0 ? 2 : 1) + 2;   /* cheap reject before the frame lookup (same result) */
+        if (ext_slot_b[i] != o->an.b) { ext_slot_b[i] = o->an.b; ext_slot_m[i] = (short)bank_extent(o->an.b); }   /* per-slot cache: the 8-entry
+                                                                                                    * bank cache thrashed in RM (many banks) */
+        { int m = ext_slot_m[i] * (o->ang != 0 ? 2 : 1) + 2;   /* cheap reject before the frame lookup (same result) */
           if (o->x < ox - m || o->x > ox + 27 + m || o->y < oy - m || o->y > oy + h + m) continue; }
         const frame_t *f = anim_frame(&o->an);
         int bx = (int)floorf(o->x) - (o->flip ? f->w - f->hx : f->hx), by = (int)floorf(o->y) - f->hy;

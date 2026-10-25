@@ -516,6 +516,46 @@ globals 4-6 before a restart (`CP=keep` keeps them): stale checkpoints had pollu
 - **Milla in AT (RE 799 / 623-625, D-046):** Classic / Adventure / Continue start at AT1; the Time Attack AT icon
   replaces DV for her only. Dig zones and rewards of spec_milla_moves §6 are live in AT1.
 
+## Session 14: Relic Maze (specs build/re/spec_rm_flow.md, spec_rm_enemies.md, spec_rm_gimmicks_a.md, spec_rm_gimmicks_b.md, spec_rm_golems.md, spec_rm_claw.md, spec_rm_mantalith.md, rm_inventory.md; port src/game/relic.c, relic_gima.c, relic_gimb.c, relic_boss.c, rm_claw.c, rm_mantalith.c)
+Frame indices 24-28 (frame_25..29.json, handle_frame_25..29), stage s = 2, cards 11-20, title card "Relic Maze /
+STAGE 2". Labels as everywhere: RE read from code, RV original trace, INFERRED reasoned.
+
+- **Routing (RE, spec_rm_flow 1.1):** frame 8 sends Classic DV4 (ML.Q 3) and AT4 (ML.Q 11) to RM1 with g4 = 0, so
+  Lilac / Carol arrive from Dragon Valley and Milla from Aqua Tunnel. RM1 right edge: MV.Y <= 260 or >= 420 → RM2,
+  the middle band → RM3 (blocked by barriers until ML 0x2 and 0x4, set in RM2). RM2 left edge (X < 80, B < 0) → RM1 at
+  its right edge; RM2 death / restart → RM1 (loop_death_25). RM3 X > W + 20 → RM4; RM4 gateway (wall plate) → RM5;
+  RM5 Mantalith → results → frame 8. The graph is the same for every character (no G1 / MV.A test on routing).
+- **Per character (RE 1.6):** RM2 6013 / 6014 remove the other character's crystal set; RM3 6198 takes bike-Carol off
+  the bike; 6374 destroys the hand-car unless Milla (**the mine-cart ride is Milla's**); 6202 starts the Claw sequence
+  only for MV.A != 4 (**the Claw is Lilac / Carol only**, INFERRED from the group chain whose only entry is 6202); the
+  golems and the Mantalith are for everyone; RM5 results voices per character (6589-6592).
+- **Music (RE 3):** m_stage2 from RM1 (kept across act changes: no command at g4 = -1); RM3 switches to m_stage2b at
+  g4 >= 10, m_chase / m_outdoor in the Claw sequence; RM4 / RM5 m_stage2b; RM5 m_trouble (Adventure only), m_boss
+  for the Mantalith.
+- **Enemies (RE, spec_rm_enemies):** iris (hunts, dives; contact only while diving), slug + fire sprites (contact never
+  hurts), hopper + spores, extractor head / base + rocks / sparks, fire spitter + flames / shell, sentinel + spikes,
+  pots (take every shared hit). Shared rules through combat.c (enemy_type, F_ARMOURED 0x20, defeated 0x40).
+- **Gimmicks acts 1-2 (RE, spec_rm_gimmicks_a):** relic panels and pieces, RM2 flip panels, fireball spawners / turrets
+  (BallMovement speed / 8 px a frame), hanging bars (path platforms as hang handles), hanging switches → moving floors,
+  elevators, rolling platform + wheel, spin ball, basement plates (a third plate rule: radio buttons), axle tunnel,
+  clock, maze gates and break-out, RM2 loops and layer switching, RM1 wall plate → switch column, ruins, dig hole.
+- **Gimmicks acts 3-5 (RE, spec_rm_gimmicks_b):** hanging switch → moving pillars, rising swing, pickaxe trap, spinny
+  cup, elevator, Milla's hand-car and track switches, rolling cave and drill platforms, ruins, RM4 gateway exit, RM5
+  light stones, wall plates, spike ceiling, crush boxes, chair; Carol's RM jump pads (6092-6095).
+- **Bosses:** RM2 Eye Golem and RM5 Bone Golem (spec_rm_golems: blocks fall, eye / core assembly, step counter, flame
+  and shot attacks, shockwaves 10 damage, defeat); RM3 Claw (spec_rm_claw: shrine scene, corridor destruction, caravan
+  ride, hover / shoot / lunge, engine wreck); RM5 Kingdom Stone scene and Mantalith (spec_rm_mantalith: skeleton rig of
+  16 beads, swipes, slam, bites, combo and high jumps, five head defeats, boss results path, post-results scene).
+- **INFERRED in the port:** the camera release after the Eye Golem (D-066); Mantalith death clock, limb-droop limits,
+  knee angles, arm amplitudes, debris speeds, ruin offsets, face-crack image, voice timings, Lilac's post-results boost
+  (jump + auto-run) and Carol's wall pounce; the RM5 room warp fade for a right exit (B > 0); Spade's identity.
+- **UNKNOWN (trace to settle):** shockwave ageing during the Bone Golem: spec_rm_golems reads B as rising only in the
+  Mantalith group (7055, so golem waves never expire), spec_rm_mantalith reads 7112 as a second, ungrouped +1. The port
+  follows the golem spec (waves leave the level). Others: gimmicks_b U1-U10, claw U1-U8, records[2][36] condition.
+- **Not ported:** the RM5 Adventure dialog cutscene (D-064), achievement / unlock records (D-065), HUD slide and timer
+  pause during the RM5 scene, Mantalith sounds 147 / 214 / 215 (D-063), monitor breaking by the Mantalith's arms.
+  **Carol / Milla result voices are 1-second placeholders** (the voice files available here are placeholders).
+
 ## PC save files (reference for the VMU save; the port does not read or ship them)
 `file1..8.sav` and `records.dat` are Clickteam ArrayObject files (RV, parsed from the user's copies):
 `"CNC ARRAY\0"`, u16 2, u16 0, i32 X, Y, Z, i32 flags (5 = numeric + base 1), then X·Y·Z int32 (x fastest).

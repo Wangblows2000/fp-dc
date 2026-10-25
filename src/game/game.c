@@ -670,7 +670,7 @@ void game_update(const input_t *in) {
     aqua_set_input(pin);                          /* AT swings read CTRL.K (4357) */
     PROF(PS_PLAT, objects_platforms(&G.p));       /* RE: platform/bridge events run before Lilac's movement */
     aqua_pre(&G.p);                               /* Aqua Tunnel: dig zones (3313, 4171-4182) */
-    PROF(PS_PLAYER, player_update(&G.p, pin));
+    objects_sense_snapshot(1); PROF(PS_PLAYER, player_update(&G.p, pin)); objects_sense_snapshot(0);
     PROF(PS_LAYERS, layers_update(&G.p));         /* RE 1613-1616 + 3031/3032: loop collision layer */
     if (G.act_in) {                               /* RE 4526: B = 3 every frame for 32 frames (AT2 4403: B = 0) */
         double wb = level_cur()->checkpoints ? G.walk_b : level_cur()->walkin_still ? 0 : 3;   /* the entry's B (RM1 from RM2: -3, 5827) */
