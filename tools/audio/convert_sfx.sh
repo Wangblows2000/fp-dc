@@ -31,6 +31,11 @@ R0=$RATE; RATE=11025; for v in ca/carol_feelmypower mi/milla_yay mi/milla_superd
 # 134 (already in IDS / LOW above); the FN6 results group voice (8545, everyone) loads on demand, half rate like the others
 # Fortune Night bosses (fn_boss.c): UFO 168 / 169, bulldozer 165 / 166, Serpentine 191-200 / 317 (62 / 70 / 75 are RM ids), half rate
 for i in 165 166 168 169 191 192 193 194 195 196 197 198 199 200 317; do R0=$RATE; RATE=11025; conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; RATE=$R0; done
+# Fortune Night enemies / gimmicks (fn_enemy.c, fn_gima.c, fn_gimb.c): per-act groups SFX_FNA / SFX_FNB in levels.c, half rate
+for i in 127 143 163 164 167 171 187 188 208 212 216 217 218 223 224 225 226 227 228 229 230 231 243 249 371 428 430; do R0=$RATE; RATE=11025; conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; RATE=$R0; done
+# Fortune Night Panther (fn_panther.c, SFX_FN6; 165-200 above, 99 / 126 / 219 in IDS): assist strike 137, back cannon 254,
+# laser 256 / 257, voices 258 / 259, defeat 261, plasma 436, half rate
+for i in 137 254 256 257 258 259 261 436; do R0=$RATE; RATE=11025; conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; RATE=$R0; done
 R0=$RATE; RATE=11025; conv "$VOX/eng/group/teamlilac_madeit.ogg" "$OUT/teamlilac_madeit.wav"; RATE=$R0
 rm -rf "$TMP"
 awk -F, 'NR>1{s+=$4} END {printf "%d sounds, %.1f KB\n", NR-1, s/1024}' "$OUT/sfx_manifest.csv"
