@@ -445,6 +445,7 @@ void keystone_update(obj_t *k, player_t *p) {
         k->y = (float)(int)(k->av[0] + sn); k->x = (float)(int)k->av[1];
     }
     if (k->av[2] < 0 && !k->st && k->tm == 0) { k->av[0] += k->av[2]; k->av[2] = fmin(k->av[2] + 0.1, 0); k->av[1] += k->av[3]; }   /* 2554 */
+    else if (k->av[2] > 0 && !k->st && k->tm == 0) { k->av[0] += k->av[2]; k->av[2] = fmax(k->av[2] - 0.1, 0); k->av[1] += k->av[3]; }   /* 2555 (FN gachapon keystones, B = 2) */
     int px = (int)floor(p->x), py = (int)floor(p->y - ORIG_REF_DY);
     if (!k->st && k->tm == 0 && k->av[2] == 0 && fabsf(k->y - py) <= 119 && fabsf(k->x - px) <= 119) k->st = 1;          /* 2556 magnet */
     if (k->st) {                                                      /* 2557 homing */

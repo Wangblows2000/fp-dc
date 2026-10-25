@@ -690,6 +690,7 @@ void game_update(const input_t *in) {
     aqua_update(&G.p);                            /* Aqua Tunnel per-frame events (src/game/aqua.c) */
     relic_frame(&G.p);                            /* Relic Maze enemies' shared passes (src/game/relic.c) */
     relic_gimb_frame(&G.p);                       /* Relic Maze acts 3-5 gimmicks (src/game/relic_gimb.c) */
+    fn_gima_frame(&G.p);                          /* Fortune Night acts 1-3 gimmicks (src/game/fn_gima.c) */
     rm_claw_frame(&G.p);                          /* RM3 Claw sequence events 6196-6350 (src/game/rm_claw.c) */
     if (G.p.state == 6 /* ST_DEAD */ && G.p.dead_t > 120) {     /* death: the act restarts with one life less (RE 1972 / loop_death_13) */
         int lives = G.p.lives - 1, crystals = G.act_crystals, frame = G.frame, ks = G.act_keystones, sc = G.act_stage_crystals;
