@@ -402,11 +402,11 @@ void game_dev_select(void) {
 #define CAM_HY 120.f
 void camera_reset(void) {
     const player_t *p = &G.p;
-    G.cam_nC = 0; G.cam_nE = (float)G.lvl.w; G.cam_m2 = 0;
+    G.cam_nC = 0; G.cam_nE = (float)G.lvl.w; G.cam_nF = (float)G.lvl.h; G.cam_m2 = 0;
     level_camera_bounds();                                         /* per-level normal bounds (levels.c, spec_at_flow 3.1) */
     G.cam.A = p->x; G.cam.B = p->y - 14.f; G.cam.W = G.cam.G = G.cam.H = G.cam.S = G.cam.T = G.cam.N = G.cam.O = 0;
     G.cam.V = p->ground; G.cam.U = 0; G.cam.M3 = 0; G.cam.minC = 0; G.cam.cine = 0;
-    float C = G.cam_nC, E = fminf(G.cam_nE, (float)G.lvl.w), D = 0, F = (float)G.lvl.h;
+    float C = G.cam_nC, E = fminf(G.cam_nE, (float)G.lvl.w), D = 0, F = fminf(G.cam_nF, (float)G.lvl.h);
     if (G.cam.A < C + CAM_HX) G.cam.A = C + CAM_HX;
     if (G.cam.A > E - CAM_HX) G.cam.A = E - CAM_HX;
     if (G.cam.B < D + CAM_HY) G.cam.B = D + CAM_HY;
@@ -433,7 +433,7 @@ void camera_update(void) {
         if (G.cam.bD < G.cam.lD) G.cam.bD = fminf(G.cam.lD, G.cam.bD + 2.f);
         if (G.cam.bF > G.cam.lF) G.cam.bF = fmaxf(G.cam.lF, G.cam.bF - 2.f);
     }
-    float C = fmaxf(G.cam.minC, G.cam_nC), E = G.cam_nE, D = 0, F = (float)G.lvl.h;
+    float C = fmaxf(G.cam.minC, G.cam_nC), E = G.cam_nE, D = 0, F = fminf(G.cam_nF, (float)G.lvl.h);
     if (G.cam.U == 1) { C = G.cam.bC; E = G.cam.bE; D = G.cam.bD; F = G.cam.bF; }
     if (G.cam_m2 && !G.cam.cine) {                       /* loop_camera_mode2: back to Player_326 (spec_at_flow 3.2) */
         float Bsp = p->ground ? p->gsp : p->vx, Gsp = p->ground ? 0.f : p->vy;
@@ -687,14 +687,16 @@ void game_update(const input_t *in) {
         if (a != 255 && a < 128) a = 2 * (a >> 1) + 2;                       /* RE 2905: +2 while < 128 */
         if (a != 255) a = 2 * (a >> 1) + 4 > 255 ? 255 : 2 * (a >> 1) + 4;  /* RE 3310: +4 */
         G.clear_t = a ? a : 1;
-        if (G.clear_t == 255) { next_act(); return; }
+        if (G.clear_t == 255) { if (G.warp) { level_warp_do(&G.p, (const warp_t *)G.warp); G.warp = NULL; } else next_act(); return; }   /* RM5 room warp: same act */
     }
     /* RE (events 4135 / 5045): the act ends when Lilac passes X > frame width - 50 moving right; DV4 runs the
      * results instead (5381 / 5576, src/game/results.c) */
     { int rr; PROF(PS_RES, rr = results_update(&G.p)); if (rr) return; }
     { const level_def_t *ld = level_cur();                    /* AT3 4521: also MV.Y < 380 (exit_max_y) */
       const exit_t *ex = (!G.clear_t && !G.act_in && (!ld->exit_max_y || G.p.y - ORIG_REF_DY < ld->exit_max_y)) ? level_exit_check(&G.p) : NULL;
-      if (ex) { G.clear_t = 1; G.exit_to = ex->to; G.exit_b = ex->fade_b; } }   /* level data exits (RM1 5813 / 5814, RM2 5916, RM3 6193) */
+      if (ex) { G.clear_t = 1; G.exit_to = ex->to; G.exit_b = ex->fade_b; }
+      const warp_t *w = (!G.clear_t && !G.act_in) ? level_warp_check(&G.p) : NULL;
+      if (w) { G.clear_t = 1; G.warp = w; G.exit_b = w->dir < 0 ? -2 : 2; G.input_lock = 1; } }   /* RM5 6731 / 6733: fade, B toward the exit, no control */   /* level data exits (RM1 5813 / 5814, RM2 5916, RM3 6193) */
 }
 
 static void draw_parallax(void) { par_draw(G.frame); }

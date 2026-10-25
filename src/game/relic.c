@@ -449,6 +449,8 @@ void relic_frame(player_t *p) {
     rmboss_frame(p);                                                            /* golems (relic_boss.c), after the shared combat rules */
     if (!objects_have_from(OT_IRIS) && !objects_have(OT_ROCK_AT)) return;
     rocks_at_frame(p);                                                          /* 4230-4232 (extractor rocks) */
+    if (G.act_in && level_cur()->walkin_purge)                                  /* RM1 5826 (spec_rm_enemies 1.6: those fully in view) */
+        for (int i = 0; i < G.nobjs; i++) { obj_t *o = &G.o[i]; if (o->alive && o->type == OT_IRIS && obj_near_view(o, 0)) o->alive = 0; }
     for (int i = 0; i < G.nobjs; i++) {                                         /* col_3_24: Milla's shield breaks rocks */
         obj_t *r = &G.o[i];
         if (r->alive && r->type == OT_ROCK_AT && !(r->fl & 1) && r->tm > 10 && cube_on(r)) rock_at_break(r);

@@ -64,6 +64,12 @@ static const gate_t GATES_RM2[] = { { 0x2, OT_WR_RAIL, 116, 336, -32768, 1000, 1
                                     { 0x4, OT_RAIL2, 0, 0, 0, 0, 0 } };                                                      /* 5926 */
 static const flagclear_t CLEAR_RM2[] = { { 0x2, 0, 3499, 0, 1199 }, { 0x4, 22, 1937, 1600, 3189 } };                        /* 6039 / 6040 */
 static const zone_t BREAKOUT_RM2 = { 587, 824, 2328, 2566 };
+static const camroom_t ROOMS_RM5[] = { { -32768, 900, 840, 1096, 768, 1480, -1 }, { -32768, 32767, 1095, 1608, 896, 1480, 1 },   /* 6745 / 6746, 6747 (a railing left) */
+                                        { -32768, 32767, 1095, 1608, 1280, 1480, 0 }, { -32768, 32767, 1608, 32767, 1280, 2888, -1 } };   /* 6748, 6750 */
+static const warp_t WARPS_RM5[] = { { -32768, 79, -32768, 1096, -1, 1024, 1816, -1, -3, -3, 704 },   /* 6731 + 6734 */
+                                    { -32768, 79, 1095, 32767, -1, 704, 920, -1, -3, -3, 704 },      /* 6731 + 6735 */
+                                    { 654, 900, 840, 1096, 1, 0, 1432, 1, 3, -2, 0 },                 /* 6740 (the fade trigger for a right exit INFERRED: B > 0) */
+                                    { 974, 32767, 1608, 1864, 1, 0, 920, 1, 3, -2, 0 } };             /* 6743 */
 static const short SFX_RM[] = { 54, 55, 59, 60, 62, 67, 70, 77, 101, 110, 135, 213, 219, 306, 426 };   /* not in the global set (D-047): enemies, gimmicks, flow */
 
 static const short SFX_AT[] = { 55, 62, 69, 99, 172, 173, 240, 242, 251, 252, 278, 306, 308, 316 };
@@ -92,7 +98,7 @@ static const level_def_t LEVELS[] = {
      * m_stage2b), cards 11 / 14 / 17 / 18 / 20, no water. RM5's Mantalith and its results are not ported yet: the act's
      * right edge ends the stage. */
     { RM("rm1", 24, 1, "bgm/m_stage2.adp"), .card_first = 11, .exits = EX_RM1, .nexits = N_(EX_RM1), .entries = EN_RM1, .nentries = N_(EN_RM1),
-      .cps = CP_RM1, .ncps = N_(CP_RM1), .flag1_y = 340, .crystals_once = 1, .wplate_cyclone = 1, .gates = GATES_RM1, .ngates = N_(GATES_RM1),
+      .cps = CP_RM1, .ncps = N_(CP_RM1), .flag1_y = 340, .crystals_once = 1, .wplate_cyclone = 1, .walkin_purge = 1, .gates = GATES_RM1, .ngates = N_(GATES_RM1),
       .dig_zones = DIGZ_RM1, .ndig_zones = N_(DIGZ_RM1), .dig_rewards = DIGR_RM1, .ndig_rewards = N_(DIGR_RM1) },
     { RM("rm2", 25, 2, "bgm/m_stage2.adp"), .card_first = 14, .exits = EX_RM2, .nexits = N_(EX_RM2), .entries = EN_RM2, .nentries = N_(EN_RM2),
       .cps = CP_RM2, .ncps = N_(CP_RM2), .death_to = "rm1", .kills = KILL_RM2, .nkills = N_(KILL_RM2), .plate_rule = 2, .pads = PADS_RM2, .npads = N_(PADS_RM2),
@@ -100,7 +106,8 @@ static const level_def_t LEVELS[] = {
     { RM("rm3", 26, 3, "bgm/m_stage2.adp"), .card_first = 17, .music_cp = "bgm/m_stage2b.adp", .exits = EX_RM3, .nexits = N_(EX_RM3),
       .entries = EN_RM3, .nentries = N_(EN_RM3), .cps = CP_RM3, .ncps = N_(CP_RM3), .cam_right = 12288 + 50 },
     { RM("rm4", 27, 4, "bgm/m_stage2b.adp"), .card_first = 18, .cps = CP_RM4, .ncps = N_(CP_RM4) },
-    { RM("rm5", 28, 5, "bgm/m_stage2b.adp"), .card_first = 20, .entries = EN_RM5, .nentries = N_(EN_RM5), .cam_right = 9600 + 50, .edge_results = 1 },
+    { RM("rm5", 28, 5, "bgm/m_stage2b.adp"), .card_first = 20, .entries = EN_RM5, .nentries = N_(EN_RM5), .cam_right = 9600 + 50, .edge_results = 1,
+      .rooms = ROOMS_RM5, .nrooms = N_(ROOMS_RM5), .warps = WARPS_RM5, .nwarps = N_(WARPS_RM5) },
 };
 static const level_def_t DEFAULT = { .dir = "", .frame = -1, .stage = -1, .act = 1, .nacts = 1, .music = "bgm/m_stage1.adp" };
 
@@ -169,11 +176,36 @@ const entry_t *level_entry(const char *from) {
 /* Classic route after a stage (RE frame 8, spec_records_saves 1 / spec_rm_flow 1.1): Aqua Tunnel (s 0) and Dragon Valley
  * (s 1) -> Relic Maze (s 2); later stages are not ported (NULL: back to the front end) */
 const char *level_route_next(int stage) { return stage == 0 || stage == 1 ? level_first_of_stage(2) : NULL; }
+/* RM5 labyrinth warps (spec_rm_flow 2.5): the player is in a warp zone moving its way */
+const warp_t *level_warp_check(const player_t *p) {
+    const level_def_t *L = level_cur();
+    double B = p->ground ? p->gsp : p->vx, X = p->x, Y = p->y - ORIG_REF_DY;
+    for (int k = 0; k < L->nwarps; k++) {
+        const warp_t *w = &L->warps[k];
+        if (X > w->x0 && X <= w->x1 && Y > w->y0 && Y < w->y1 && (w->dir < 0 ? B < 0 : B > 0)) return w;
+    }
+    return NULL;
+}
+void level_warp_do(player_t *p, const warp_t *w) {   /* 6734-6743: a new 32-frame walk-in at the target, then 6599 (g4 = 1) */
+    p->x = w->tx; p->y = w->ty + ORIG_REF_DY; p->ground = 0; p->vx = p->vy = 0; p->gsp = 0; p->face = w->face;
+    G.at_g4 = w->g4; G.walk_b = w->walk_b; G.clear_t = 0; G.exit_b = 0; G.input_lock = 0;
+    G.act_in = 1; G.act_fade = 248;
+    camera_reset(); if (w->walkin_E > 0) G.cam_nE = w->walkin_E;   /* 6597 */
+    camera_update();
+}
 /* normal camera bounds (spec_at_flow 3.1): C = 0, E = cam_right or the frame width; after g4 >= 10 the AT2 values */
 void level_camera_bounds(void) {
     const level_def_t *L = level_cur();
     if (L->cam_cp10_pad && G.at_g4 >= 10) { G.cam_nC = (float)L->cam_cp10_left; G.cam_nE = (float)G.lvl.w + L->cam_cp10_pad; }
     else if (L->cam_right) G.cam_nE = (float)L->cam_right;
+    if (L->nrooms) {                                                /* RM5 6745-6750: room bounds (the last matching row wins) */
+        double X = G.p.x, Y = G.p.y - ORIG_REF_DY;
+        int rails = 0; for (int i = 0; i < G.nobjs && !rails; i++) if (G.o[i].alive && G.o[i].type == OT_WR_RAIL) rails = 1;
+        for (int k = 0; k < L->nrooms; k++) {
+            const camroom_t *r = &L->rooms[k];
+            if (X > r->x0 && X <= r->x1 && Y > r->y0 && Y < r->y1 && (r->rails < 0 || r->rails == rails)) { G.cam_nE = r->E; G.cam_nF = r->F; }
+        }
+    }
 }
 void level_release_camera(int keep_trigger) { if (!keep_trigger) cam_locked = 0; camera_normal_bounds(); G.cam_m2 = 1; }
 static void checkpoint(int g4, float x, float y) {                  /* g4 / g5 / g6 + loop_cp_16 (restart values) */
@@ -184,6 +216,7 @@ static void checkpoint(int g4, float x, float y) {                  /* g4 / g5 /
  * release: X < unlock_x and Y < unlock_y; a zone with g4_max does nothing once g4 >= g4_max) */
 void level_flow_frame(const player_t *p) {
     const level_def_t *L = level_cur();
+    if (L->nrooms && !G.act_in) level_camera_bounds();                       /* RM5 group 0x2250b: room bounds every frame (not during a walk-in: 6597) */
     double X = p->x;
     for (int k = 0; k < L->ncps; k++) {
         const cpzone_t *c = &L->cps[k];
