@@ -198,8 +198,14 @@ for ch, nm in CHARS:
     wh = obs_of(obs, GWHEEL, 832)
     sts = [o['st'] for o in wh]
     check('gachapon_cycle_%s' % nm, all(s in sts for s in (1, 2, 3, 4)) and 187 in sounds(rows) and 188 in sounds(rows), str(sorted(set(sts))))
-    e = next((o['a3'] for o in wh if o['st'] == 3), None)
-    check('gachapon_prizes_%s' % nm, e == 7 and sounds(rows).count(15) == 8, 'E %s, sound 15 x %d' % (e, sounds(rows).count(15)))
+    # the stopping sector depends on the shared RNG (spin time 20 + rand(20)): check the payout matches whichever sector it is
+    # (E 0: petal every 10 GT, E 2 / 6: crystal every 7 GT, else: a keystone each D % 10 == 0 -> 8 over D 0..79)
+    e = next((int(o['a3']) for o in wh if o['st'] == 3), None)
+    kc = [len(obs_of(obs, OT_KEYSTONE, None, f)) for f in range(60, 420)]
+    n15, ks = sounds(rows).count(15), max(kc) > kc[0]                       # keystones paid out (beyond those placed)
+    want = (11, 12) if e in (2, 6) else (8,)
+    check('gachapon_prizes_%s' % nm, e is not None and 0 <= e < 8 and n15 in want and ks == (e not in (0, 2, 6)),
+          'E %s, sound 15 x %d, keystones %s' % (e, n15, ks))
 
 # ---- 13. fireworks (FN1 launcher (3816, 825), layer 1): shown when below the view near her, rises 6 px a frame, after 40 frames
 # bursts into 2 x 32 particles (sound 430) and is gone
