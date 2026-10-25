@@ -310,11 +310,17 @@ static void spark_frame(obj_t *o, player_t *p) {
 
 /* ================================================================ EnemyFireSpitter_1307, MinibossFlame_1264, shell (spec 5)
  * av[0] D walk sign, tm E fire timer, fl 0x04 shell made (flag 2) */
-static void flame_new(float x, float y, double C, double E) {
+obj_t *relic_flame_new(float x, float y, double C, double D) {                 /* MinibossFlame_1264: A, B = x, y; C, D speed */
     obj_t *f = spawn(OT_FLAME, "flame", x, y);
+    if (!f) return NULL;
+    f->av[0] = x; f->av[1] = y; f->av[2] = C; f->av[3] = D;
+    return f;
+}
+static void flame_new(float x, float y, double C, double E) {
+    obj_t *f = relic_flame_new(x, y, C, 0);
     if (!f) return;
-    f->av[0] = x; f->av[1] = y; f->av[2] = C; f->av[3] = 0; f->av[4] = E;
-    f->ang = (float)(90 * R(4));                                                /* angle Random-4 x 90 */
+    f->av[4] = E;
+    f->ang = (float)(90 * R(4));                                                /* the spitter's: angle Random-4 x 90 (the golem's stays 0) */
 }
 static void fspitter_frame(obj_t *o, player_t *p) {
     (void)p;
@@ -358,7 +364,7 @@ static void fspitter_frame(obj_t *o, player_t *p) {
 static void flame_frame(obj_t *o, player_t *p) {
     o->x = (float)(int)o->av[0]; o->y = (float)(int)o->av[1]; o->av[0] += o->av[2]; o->av[1] += o->av[3];   /* 5983 / 6351 */
     if (o->an.done) { o->alive = 0; return; }                                   /* object flag 0x8 (U4: destroy at the end, INFERRED) */
-    if (!(o->fl & 1) && o->an.frame <= 7 && p->shield != 2 && csens_hit(p, o) && r_hurt(p, 5)) p->tint = 30;   /* 5984 / 6352 / 7111 (burn tint) */
+    if (!(o->fl & 1) && o->an.frame <= 7 && p->shield != 2 && csens_hit(p, o) && r_hurt(p, 5)) { p->tint = 30; p->tint_argb = 0xffffa080; }   /* 5984 / 6352 / 7111: burn tint, blend 0x80a0ff (BGR) */
     if (o->an.frame < 8) break_monitors_on(o);                                  /* col_13_25 / col_15_26 */
 }
 
@@ -413,7 +419,7 @@ static void pot_frame(obj_t *o) {
 }
 
 /* ================================================================ hooks */
-int relic_keeps_state(int t) { return t >= OT_IRIS && t <= OT_BLUEPOT; }
+int relic_keeps_state(int t) { return (t >= OT_IRIS && t <= OT_BLUEPOT) || relic_boss_keeps(t); }
 void relic_spawn(void) {
     int nhead = 0, heads[16];
     for (int i = 0; i < G.nobjs; i++) {
@@ -440,6 +446,7 @@ void relic_spawn(void) {
 }
 void relic_frame(player_t *p) {
     relic_gima_post(p);                                                         /* acts 1-2 gimmicks (relic_gima.c) */
+    rmboss_frame(p);                                                            /* golems (relic_boss.c), after the shared combat rules */
     if (!objects_have_from(OT_IRIS) && !objects_have(OT_ROCK_AT)) return;
     rocks_at_frame(p);                                                          /* 4230-4232 (extractor rocks) */
     for (int i = 0; i < G.nobjs; i++) {                                         /* col_3_24: Milla's shield breaks rocks */
@@ -452,7 +459,9 @@ void relic_frame(player_t *p) {
     }
 }
 int relic_obj_update(obj_t *o, player_t *p) {
-    if (o->type >= OT_RAIL2) return relic_gima_obj(o, p);
+    if (o->type >= OT_GEYE && o->type <= OT_CAMLIM_B) return rmboss_obj(o, p);
+    if (o->type >= OT_RAIL2 && o->type <= OT_LL1L02) return relic_gima_obj(o, p);
+    if (o->type > OT_LL1L02) return 0;
     switch (o->type) {
     case OT_IRIS: if (DEFEATED(o)) iris_dead(o); else iris_frame(o, p); return 1;
     case OT_SLUG: if (DEFEATED(o)) { o->st = 4; set_a(o, "sl_dead"); } else slug_frame(o, p); return 1;   /* 5763 / 5764 */

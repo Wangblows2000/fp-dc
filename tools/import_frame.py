@@ -91,6 +91,11 @@ ENGINE_TYPES = {
     'switchcolumnback1': 278, 'switchcolumnback2': 279, 'breakableruins': 280, 'digspothole': 282, 'layerchangeswitch2': 283,
     'levellayer001': 285, 'levellayer002': 286, 'levellayer015': 287, 'levellayer02': 288, 'levellayer101': 289,
     'levellayer116': 290, 'levellayer1loop01': 291, 'levellayer1loop02': 292,
+    # Relic Maze golems (spec_rm_golems.md; src/game/relic_boss.c) and the boss camera limit markers
+    'minibossgolem': 350, 'minibossgolem2': 351, 'minibossgolempiece1': 352, 'minibossgolempiece2': 353, 'minibossbonegolem': 357,
+    'minibossbonegolempiece5': 358, 'minibossbonegolempiece3': 359, 'minibossbonegolempiece': 360, 'minibossbonegolempiece6': 361,
+    'minibossbonegolemneck1': 362, 'minibossbonegolemneck2': 363, 'minibossbonegolemneck3': 364, 'minibossbonegolemneck4': 365,
+    'minibossbonegolemhead': 366, 'cameralimitbossleft': 368, 'cameralimitbossright': 369, 'cameralimitbosstop': 370, 'cameralimitbossbottom': 371,
     'waterfallback': 139, 'waterfallfront': 140, 'waterfallfront2': 141, 'waterfallfront3': 142, 'waterfallfront4': 143,   # EnemyGansekiJr_835 (RE build/re/spec_ganseki.md)     # LadderTop_428: invisible obstacle at the top of each ladder (RE spec_ladder.md)
 }
 
@@ -203,13 +208,22 @@ RM_ENS += [('minibossrailing2_1204', 0, '0', 'rail2'), ('gimmickrelicpanelpiece_
      ('layerchangeswitch2_1241', 0, '0', 'lsw2'), ('levellayer001_1211', 0, '0', 'll001'), ('levellayer002_1212', 0, '0', 'll002'), ('levellayer015_1217', 0, '0', 'll015'),
      ('levellayer02_1236', 0, '0', 'll02'), ('levellayer101_1213', 0, '0', 'll101'), ('levellayer116_1233', 0, '0', 'll116'), ('levellayer1loop01_1215', 0, '0', 'll1l01'),
      ('levellayer1loop02_1216', 0, '0', 'll1l02')]
-RM_ENS_WITH = {'gimmickrelicpanelpiece_1193': ('gimmickrelicpanel',), 'gimmickfireball_1192': ('gimmickfireballspawner',), 'effectember_1025': ('gimmickfireballspawner',),
-               'breakableruinspiece_1203': ('breakableruins',), 'monitorearthshield_442': ('objectdigspot',), 'minibossrailing2_1204': ('minibossrailing2', 'minibossbarrier'),'enemyfiresprite_1189': ('enemyslug',), 'enemyspark_1200': ('enemyextractorhead',), 'enemyrock_1194': ('enemyextractorhead',),
+RM_ENS += [('minibossgolem_1259', 0, '0', 'geye'), ('minibossgolem_1259', 0, '8', 'geye_open'), ('minibossgolem_1259', 7, '0', 'geye_opening'),
+    ('minibossgolem2_1258', 0, '0', 'glid0'), ('minibossgolem2_1258', 0, '1', 'glid1'), ('minibossgolempiece1_1257', 0, '0', 'gp1'), ('minibossgolempiece2_1256', 0, '0', 'gp2'),
+    ('badnikgolemshot_1260', 0, '0', 'gshot'), ('badnikgolemshot_1260', 4, '0', 'gshot_pop'), ('badnikgolemshot2_1261', 0, '0', 'gshot2'),
+    ('minibossbonegolem_1567', 0, '0', 'bgcore'), ('minibossbonegolemneck1_1571', 0, '0', 'bgn1'), ('minibossbonegolemneck2_1572', 0, '0', 'bgn2'),
+    ('minibossbonegolemneck3_1573', 0, '0', 'bgn3'), ('hazardshockwave_1576', 0, '0', 'shock'), ('hazardshockwave_1576', 0, '16', 'shock_l')] + \
+    [(c, 0, d, nm + {'0': '', '16': '_l', '24': '_24'}[d]) for c, nm, ds in (('minibossbonegolemneck4_1574', 'bgn4', ('0', '16')), ('minibossbonegolemhead_1575', 'bghead', ('0', '16')),
+     ('minibossbonegolempiece3_1566', 'bgp3', ('0', '16')), ('minibossbonegolempiece_1568', 'bgpc', ('0', '16')), ('minibossbonegolempiece5_1570', 'bgp5', ('0', '16', '24')),
+     ('minibossbonegolempiece6_1569', 'bgp6', ('0', '16', '24'))) for d in ds]
+RM_ENS_WITH = {'badnikgolemshot_1260': ('minibossgolem',), 'badnikgolemshot2_1261': ('minibossgolem',), 'hazardshockwave_1576': ('minibossbonegolem',),
+               'enemyrock_1194': ('enemyextractorhead', 'minibossgolem'), 'gimmickrelicpanelpiece_1193': ('gimmickrelicpanel',), 'gimmickfireball_1192': ('gimmickfireballspawner',), 'effectember_1025': ('gimmickfireballspawner',),
+               'breakableruinspiece_1203': ('breakableruins',), 'monitorearthshield_442': ('objectdigspot',), 'minibossrailing2_1204': ('minibossrailing2', 'minibossbarrier'),'enemyfiresprite_1189': ('enemyslug',), 'enemyspark_1200': ('enemyextractorhead',),
                'enemyrock_1290': ('enemyextractorhead',), 'enemyfirespitterbase_1313': ('enemyfirespitter',),
                'minibossflame_1264': ('enemyfirespitter', 'minibossgolem'), 'enemysentinelspike_1475': ('enemysentinel',)}
 # rows exported only in these frames (json number): the creator's own events name the handle per frame (RM1 5793 rock
 # 1194, RM3 / RM4 6175 rock 1290); the pots share names (one image set per level)
-ENS_FRAMES = {'enemyrock_1194': {25}, 'enemyrock_1290': {27, 28}}
+ENS_FRAMES = {'enemyrock_1194': {25, 26}, 'enemyrock_1290': {27, 28}}   # RM2: the golem's debris rocks (5972 / 5976)
 AT_ENS_WITH = {'enemyrock_776': ('minibossironworm',), 'minibossacid_774': ('minibossironworm', 'minibosschomper', 'bosschompersnake'),
                'bossbubblebomb_862': ('bosschompersnake',), 'effectshade_436': ('minibosschomper', 'bosschompersnake'),
                'levelaxelplatform1_680': ('axelplatformmaker1',), 'levelaxelplatform2_737': ('axelplatformmaker2',),

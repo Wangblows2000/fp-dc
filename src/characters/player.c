@@ -875,6 +875,7 @@ void player_update(player_t *p, const input_t *in) {
     if (p->ground) p->roll_ball = 0;
     if (p->invuln) p->invuln--;
     if (p->tint > 0 && p->state != ST_DEAD) p->tint--;   /* 2513 (not in M9) / 2514 */
+    if (p->tint <= 0) p->tint_argb = 0;
     if (p->state == ST_HELD) {                    /* M43 (1715 -> 1923/1924): no movement, L = 1, ball pose; placed by aqua_boss.c (4435) */
         p->ground = 1; p->gsp = 0; p->vx = 0; p->vy = 0; p->N = 0; p->O = 0;
         set_anim(p, A_CHARGE); anim_tick(&p->an, -1); if (hair.b) anim_tick(&hair, -1);
@@ -1225,10 +1226,10 @@ void player_update(player_t *p, const input_t *in) {
 void player_draw(const player_t *p) {
     if (p->invuln && !p->invinc && !spk.on && (p->invuln & 4) && p->state != ST_HURT) { fx_draw(); return; }   /* invincibility: no blink (INFERRED) */
     /* the sprite hotspot (= rotation centre) is the movement object's position: p->y - ORIG_REF_DY */
-    if (hair.b && !p->bike) frame_draw_rot(hair.b, anim_frame(&hair), floor(p->x - G.camx), floor(p->y - ORIG_REF_DY - G.camy), p->rot, hair_flip, p->tint > 0 ? 0xff80ff80 : 0xffffffff);
+    if (hair.b && !p->bike) frame_draw_rot(hair.b, anim_frame(&hair), floor(p->x - G.camx), floor(p->y - ORIG_REF_DY - G.camy), p->rot, hair_flip, p->tint > 0 ? (p->tint_argb ? p->tint_argb : 0xff80ff80) : 0xffffffff);
     const frame_t *f = anim_frame(&p->an);
     double hxp = p->x, hyp = p->y - ORIG_REF_DY;   /* RE 1517: the skin sits at (int X, int Y) */
-    frame_draw_rot(p->an.b, f, floor(hxp - G.camx), floor(hyp - G.camy), p->rot, draw_flip, p->tint > 0 ? 0xff80ff80 : 0xffffffff);   /* set_blend_color(0x80ff80) */
+    frame_draw_rot(p->an.b, f, floor(hxp - G.camx), floor(hyp - G.camy), p->rot, draw_flip, p->tint > 0 ? (p->tint_argb ? p->tint_argb : 0xff80ff80) : 0xffffffff);   /* set_blend_color(0x80ff80) */
     if (is_milla()) milla_draw_cube();
     fx_draw();
 }

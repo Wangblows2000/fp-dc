@@ -249,7 +249,11 @@ enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_MON_INVINC = 4, OT_MON
        OT_MFLOOR1 = 267, OT_MFLOOR2 = 268, OT_MFLOOR3 = 269, OT_RPLAT = 270, OT_RWHEEL = 271, OT_SPINBALL = 272, OT_CLOCK1 = 273, OT_CLOCK2 = 274,
        OT_AXLE = 275, OT_BLIGHT = 276, OT_COLFRONT = 277, OT_COLBACK1 = 278, OT_COLBACK2 = 279, OT_RUINS = 280, OT_RUINPIECE = 281 /* runtime */,
        OT_DIGHOLE = 282, OT_LAYER_SW2 = 283, OT_WPLATE_RM = 284,
-       OT_LL001 = 285, OT_LL002 = 286, OT_LL015 = 287, OT_LL02 = 288, OT_LL101 = 289, OT_LL116 = 290, OT_LL1L01 = 291, OT_LL1L02 = 292 };
+       OT_LL001 = 285, OT_LL002 = 286, OT_LL015 = 287, OT_LL02 = 288, OT_LL101 = 289, OT_LL116 = 290, OT_LL1L01 = 291, OT_LL1L02 = 292,
+       /* Relic Maze golems (session 14, src/game/relic_boss.c, spec_rm_golems.md) */
+       OT_GEYE = 350, OT_GLID = 351, OT_GP1 = 352, OT_GP2 = 353, OT_GSHOT = 354 /* runtime */, OT_BGCORE = 357, OT_BGSPINE = 358,
+       OT_BGP3 = 359, OT_BGPC = 360, OT_BGP6 = 361, OT_BGN1 = 362, OT_BGN2 = 363, OT_BGN3 = 364, OT_BGN4 = 365, OT_BGHEAD = 366,
+       OT_SHOCK = 367 /* runtime */, OT_CAMLIM_L = 368, OT_CAMLIM_R = 369, OT_CAMLIM_T = 370, OT_CAMLIM_B = 371 /* CameraLimitBoss markers */ };
 
 #define MAX_ATLAS 4
 typedef struct {
@@ -362,6 +366,7 @@ typedef struct {
     double mA, mB, mE; int mC, mD, mF, mG, mH, mfl1, mfl10, mN, nol, mC4; double skinI;
     int air;                      /* RE OTHERS.J: air counter (water) */
     int tint;                     /* RE OTHERS.R: AT acid / slime green tint timer (100; 2513 counts down, 2514 resets the colour) */
+    uint32_t tint_argb;           /* its blend colour (0: the AT green 0x80ff80; RM burn 0x80a0ff, golem shot 0xff80ff; session 14) */
     int water, y26, cyc_block, drown;   /* RE OTHERS.H; OTHERS.Y = 26 swim code; OTHERS.P < 3 after leaving water; drowned (M10) */
 } player_t;
 
@@ -565,6 +570,10 @@ int    relic_gima_obj(obj_t *o, player_t *p), relic_boss_clear_type(int type);
 void   obj_hang_try(obj_t *o, player_t *p);       /* a hang handle (OD_HANG): the grab (4064-4066) */
 int    relic_obj_update(obj_t *o, player_t *p);   /* 1: a relic.c type (handled) */
 int    relic_keeps_state(int type);               /* its own events set D on defeat (2764 leaves st) */
+obj_t *relic_flame_new(float x, float y, double C, double D);
+int    relic_boss_keeps(int type), relic_is_gate_pillar(const obj_t *o);
+void   rmboss_spawn(void), rmboss_frame(player_t *p);
+int    rmboss_obj(obj_t *o, player_t *p);
 void   rock_at_new(float x, float y), rock_at_break(obj_t *r), rocks_at_frame(player_t *p);   /* EnemyRock (aqua_boss.c), shared */
 /* level definitions (src/game/levels.c): per-act data read by the shared code */
 typedef struct { short x, y, A; float B; short D, E, blk; } padcfg_t;   /* Carol's jump pad at (x, y): index A, angle B, chain end D, lit E, block pad */

@@ -288,6 +288,27 @@ static const objdef_t DEFS[] = {
     { OT_LL116,         OD_SOLID|OD_LAYER1,                    "ll116"      }, /* levellayer116 (mask) */
     { OT_LL1L01,        OD_SOLID|OD_LAYER1,                    "ll1l01"     }, /* levellayer1loop01 (mask) */
     { OT_LL1L02,        OD_SOLID|OD_LAYER1,                    "ll1l02"     }, /* levellayer1loop02 (mask) */
+    /* Relic Maze golems (spec_rm_golems: q8 obstacle + q9 for the eye, leg blocks and the spine) */
+    { OT_GEYE,          OD_OBSTACLE|OD_NOEDGE,                 NULL         }, /* minibossgolem */
+    { OT_GLID,          0,                                     NULL         }, /* minibossgolem2 */
+    { OT_GP1,           OD_OBSTACLE|OD_NOEDGE,                 NULL         }, /* minibossgolempiece1 */
+    { OT_GP2,           OD_OBSTACLE|OD_NOEDGE,                 NULL         }, /* minibossgolempiece2 */
+    { OT_GSHOT,         0,                                     NULL         }, /* - */
+    { OT_BGCORE,        OD_BOXCOL,                             NULL         }, /* minibossbonegolem */
+    { OT_BGSPINE,       OD_OBSTACLE|OD_NOEDGE|OD_BOXCOL,       NULL         }, /* minibossbonegolempiece5 */
+    { OT_BGP3,          OD_BOXCOL,                             NULL         }, /* minibossbonegolempiece3 */
+    { OT_BGPC,          OD_BOXCOL,                             NULL         }, /* minibossbonegolempiece */
+    { OT_BGP6,          OD_BOXCOL,                             NULL         }, /* minibossbonegolempiece6 */
+    { OT_BGN1,          0,                                     NULL         }, /* minibossbonegolemneck1 */
+    { OT_BGN2,          0,                                     NULL         }, /* minibossbonegolemneck2 */
+    { OT_BGN3,          0,                                     NULL         }, /* minibossbonegolemneck3 */
+    { OT_BGN4,          0,                                     NULL         }, /* minibossbonegolemneck4 */
+    { OT_BGHEAD,        0,                                     NULL         }, /* minibossbonegolemhead */
+    { OT_SHOCK,         0,                                     NULL         }, /* - */
+    { OT_CAMLIM_L,      0,                                     NULL         }, /* cameralimitbossleft */
+    { OT_CAMLIM_R,      0,                                     NULL         }, /* cameralimitbossright */
+    { OT_CAMLIM_T,      0,                                     NULL         }, /* cameralimitbosstop */
+    { OT_CAMLIM_B,      0,                                     NULL         }, /* cameralimitbossbottom */
     { OT_IRIS,          0,                                     NULL         }, /* enemyiris (relic.c) */
     { OT_SLUG,          0,                                     NULL         }, /* enemyslug */
     { OT_HOPPER,        0,                                     NULL         }, /* enemyhopper */
