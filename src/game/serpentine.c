@@ -389,7 +389,7 @@ void serp4_update(player_t *p) {
         obj_t *b = &G.o[i];
         if (!b->alive || b->type != OT_BBOULDER) continue;
         if (b->fl & F_DEFEATED) {                                                     /* 5474 / 5475 */
-            if (b->scale > 0.85f) { obj_t *pt = obj_alloc(); if (pt) { pt->type = OT_ITEM_FLY; pt->st = OT_PETAL; pt->alive = 1; pt->x = b->x; pt->y = b->y; pt->vx = 0; pt->vy = -3; anim_set(&pt->an, &G.objs, bank_anim(&G.objs, "objectpetal_355")); } }
+            if (b->scale > 0.85f) { obj_t *pt = obj_alloc(); if (pt) { pt->type = OT_ITEM_FLY; pt->st = OT_PETAL; pt->alive = 1; pt->layer = 2; pt->x = b->x; pt->y = b->y; pt->vx = 0; pt->vy = -3; anim_set(&pt->an, &G.objs, bank_anim(&G.objs, "objectpetal_355")); } }
             static const int ox[4] = { -10, -10, 10, 10 }, oy[4] = { -10, 10, 10, -10 };
             for (int k = 0; k < 4; k++) { double vx = b->kx - 2 + cross_rand(4), vy = b->ky - 4 + cross_rand(4); piece_at(b->x + ox[k], b->y + oy[k], vx, vy); }
             snd_play_orig(13, 220, 128); b->alive = 0; continue;
