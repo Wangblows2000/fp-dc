@@ -686,7 +686,7 @@ void game_update(const input_t *in) {
     G.frame++;
     input_t none = {0}, rin = results_input(in), sin_ = {0};
     const input_t *pin = (G.clear_t || G.act_in || G.input_lock) ? &none : results_on() ? &rin : in;   /* act end / walk-in / results: no control (RE) */
-    { static uint32_t sprev; uint32_t h; if (serp4_input(&h) || rm_claw_input(&h) || fn_boss_input(&h)) { sin_.held = h; sin_.pressed = h & ~sprev; sprev = h; pin = &sin_; } else sprev = 0; }   /* DV4 boss exit (5547 lock, 5573-5577) */
+    { static uint32_t sprev; uint32_t h = pin->held; if (serp4_input(&h) || rm_claw_input(&h) || fn_boss_input(&h) || fn_panther_input(&h)) { sin_.held = h; sin_.pressed = h & ~sprev; sprev = h; pin = &sin_; } else sprev = 0; }   /* DV4 boss exit (5547 lock, 5573-5577) */
     PROF(PS_PAR, par_update());                   /* RE 3541: parallax drift */
     aqua_set_input(pin);                          /* AT swings read CTRL.K (4357) */
     PROF(PS_PLAT, objects_platforms(&G.p));       /* RE: platform/bridge events run before Lilac's movement */
@@ -717,6 +717,7 @@ void game_update(const input_t *in) {
     fn_boss_frame(&G.p);                          /* Fortune Night bosses (src/game/fn_boss.c) */
     rm_claw_frame(&G.p);                          /* RM3 Claw sequence events 6196-6350 (src/game/rm_claw.c) */
     fn_flow_frame(&G.p);                          /* Fortune Night stage script (src/game/fn_flow.c) */
+    fn_panther_frame(&G.p);                       /* FN5 chase / FN6 Panther (src/game/fn_panther.c) */
     if (G.p.state == 6 /* ST_DEAD */ && G.p.dead_t > 120) {     /* death: the act restarts with one life less (RE 1972 / loop_death_13) */
         int lives = G.p.lives - 1, crystals = G.act_crystals, frame = G.frame, ks = G.act_keystones, sc = G.act_stage_crystals;
         if (lives < 1) { music_stop(); snd_stop_all(); fe_enter_from_stage(G.time_attack); return; }   /* game over (card not ported) */
@@ -975,6 +976,7 @@ void game_draw(void) {
     card_draw();
     pause_draw();
     rm_mantalith_draw(1);                         /* RM5 end: its LevelCardFade flashes / fades (rm_mantalith.c) */
+    fn_panther_draw(3);                           /* FN6 post-boss white fade (fn_panther.c) */
     if (G.clear_t) r_fade(G.clear_t / 255.f);     /* act end: fade object alpha (RE 3310) */
     if (G.act_in && G.act_fade) r_fade(G.act_fade / 255.f);   /* act start: fade from black (RE 4526) */
     r_end();

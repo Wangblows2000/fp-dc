@@ -556,6 +556,48 @@ static const objdef_t DEFS[] = {
     { OT_FN_SAMU_PROBE,   OD_HIDDEN,                           NULL         }, /* minibosssamufloorcheck_1891 */
     { OT_FN_SAMU_DEBRIS,  0,                                   NULL         }, /* - (MinibossSamuDebris_1892) */
     { OT_FN_BOSSGATE,     OD_SOLID,                            NULL         }, /* bossgate_1894 / _2030 (Q7) */
+    /* Fortune Night Panther (fn_panther.c, spec_fn_bosses G.1; sprites set by fn_panther_spawn). The scrolling floor is the
+     * arena's floor (Q7 box: the frame's floor backdrops start at x 672, outside the 640-wide arena; RV T-G1: the player
+     * stands at feet y 280 = its top); the plane platform carries Milla (Q8 / Q9, INFERRED from 8524-8527) */
+    { OT_FNP_VALUES,    OD_HIDDEN,                             NULL         }, /* bosspanthervalues_2023 (controller) */
+    { OT_FNP_HEAD,      0,                                     NULL         }, /* bosspantherhead_2013 */
+    { OT_FNP_JAW,       0,                                     NULL         }, /* bosspantherjaw_2014 */
+    { OT_FNP_FCAN,      0,                                     NULL         }, /* bosspantherfrontcannon_2015 */
+    { OT_FNP_BCAN,      0,                                     NULL         }, /* bosspantherbackcannon_2038 */
+    { OT_FNP_RIDER,     0,                                     NULL         }, /* bosspantherrider_2039 / _2009 */
+    { OT_FNP_SHF,       0,                                     NULL         }, /* bosspanthershoulderf_2019 */
+    { OT_FNP_SHF2,      0,                                     NULL         }, /* bosspanthershoulderf2_2020 */
+    { OT_FNP_HIP,       0,                                     NULL         }, /* bosspantherhipf_2016 */
+    { OT_FNP_KNEE,      0,                                     NULL         }, /* bosspantherkneef_2017 */
+    { OT_FNP_LEGFL,     0,                                     NULL         }, /* bosspantherlegfl_2018 */
+    { OT_FNP_LEGFR,     0,                                     NULL         }, /* bosspantherlegfr_2022 */
+    { OT_FNP_FOOTFL,    0,                                     NULL         }, /* bosspantherfootfl_2012 */
+    { OT_FNP_FOOTFR,    0,                                     NULL         }, /* bosspantherfootfr_2021 */
+    { OT_FNP_RIBS,      0,                                     NULL         }, /* bosspantherribs_2011 */
+    { OT_FNP_TAIL,      0,                                     NULL         }, /* bosspanthertail_2010 */
+    { OT_FNP_HIT,       OD_HIDDEN,                             NULL         }, /* bosspantherhitbox_2043 (Q20, invisible) */
+    { OT_FNP_LASER,     OD_HIDDEN,                             NULL         }, /* bosspantherlaser_2047 (drawn by fn_panther.c) */
+    { OT_FNP_TARGET,    OD_HIDDEN,                             NULL         }, /* bosspanthertarget_2044 */
+    { OT_FNP_GLOW,      OD_HIDDEN,                             NULL         }, /* bosschargeglow_2042 (drawn by fn_panther.c) */
+    { OT_FNP_WHEEL,     OD_HIDDEN,                             NULL         }, /* bosspantherwheel_2052 (drawn by fn_panther.c) */
+    { OT_FNP_FLOOR,     OD_SOLID|OD_BOXCOL,                    NULL         }, /* scrollingfloor_2037 */
+    { OT_FNP_SPEEDBACK, OD_HIDDEN,                             NULL         }, /* effectspeedback_2049 (drawn by fn_panther.c) */
+    { OT_FNP_PLANE,     OD_OBSTACLE|OD_NOEDGE|OD_BOXCOL|OD_HIDDEN, NULL     }, /* planeplatform_2054 */
+    { OT_FNP_ASSIST,    OD_HIDDEN,                             NULL         }, /* playerassist_2045 (the plane) */
+    { OT_FNP_AOFF,      OD_HIDDEN,                             NULL         }, /* playerassistoffense_2048 */
+    { OT_FNP_ADEF,      OD_HIDDEN,                             NULL         }, /* playerassistdefense_2046 (not ported: U-G3) */
+    { OT_FNP_APROJ,     OD_HIDDEN,                             NULL         }, /* playerassistprojectile_2051 (not ported: U-G3) */
+    { OT_FNP_SHIP1,     0,                                     NULL         }, /* ship1_2024 (FN5 decor) */
+    { OT_FNP_SHIP2,     0,                                     NULL         }, /* ship2_2025 (FN5 decor, timeline B) */
+    { OT_FNP_CABLE,     0,                                     NULL         }, /* shipcable_2026 */
+    { OT_FNP_CABLE2,    0,                                     NULL         }, /* shipcable2_2027 */
+    { OT_FNP_PLASMA,    0,                                     NULL         }, /* - (BossPlasmaShot_2040) */
+    { OT_FNP_MISSILE,   0,                                     NULL         }, /* - (BossMissile_2041) */
+    { OT_FNP_RBULLET,   0,                                     NULL         }, /* - (BossRapidBullet_1866) */
+    { OT_FNP_WARN,      0,                                     NULL         }, /* - (EffectWarning_1528) */
+    { OT_FNP_SLINE,     0,                                     NULL         }, /* - (EffectSpeedLine_2050) */
+    { OT_FNP_SHIELD,    0,                                     NULL         }, /* - (ShieldSerpentine_1872, the rider's) */
+    { OT_FNP_INSTA,     0,                                     NULL         }, /* - (the partner's ShieldInstaShield) */
 };
 static objdef_t BY_TYPE[MAX_OT];
 static int built;

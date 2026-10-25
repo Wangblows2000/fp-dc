@@ -144,6 +144,7 @@ static int enemy_type_list(int t) {
            fn_enemy_q20(t) ||                       /* Fortune Night Q20 (fn_enemy.c, spec_fn_enemies 0) */
            fn_boss_q20(t) ||                        /* Fortune Night bosses: UFO, bulldozer + door, Serpentine hitbox, samurai (fn_boss.c) */
            rm_claw_enemy(t) ||                      /* RM3 Claw set: Shrine3, BossClawHitbox, CaravanEngine (rm_claw.c) */
+           fn_panther_q20(t) ||                     /* FN6: the panther hitbox (fn_panther.c) */
            fn_gima_enemy(t);                        /* Fortune Night: lampposts, boost blocks (fn_gima.c) */
 }
 /* per-type table of the list above (called for every slot several times a frame: the chain of compares cost ~1 ms in RM) */
