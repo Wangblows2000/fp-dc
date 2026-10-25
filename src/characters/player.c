@@ -124,7 +124,7 @@ void player_reset(player_t *p, double x, double y) {
     (void)init;
     player_anims_init();
     int crystals = p->crystals, lives = p->lives;
-    int sh = G.act_carry ? p->shield : 0, shc = p->shield_c;   /* OTHERS is global: the shield carries over an act change (INFERRED) */
+    int sh = (G.act_carry || G.stage_carry) ? p->shield : 0, shc = p->shield_c;   /* OTHERS is global: the shield carries over an act change (INFERRED) */
     double energy = p->energy; int init_energy = p->energy_init;
     double sx = p->spawn_x, sy = p->spawn_y;
     *p = (player_t){0};
