@@ -257,6 +257,7 @@ int player_orig_m(const player_t *p) {
     case ST_WILDKICK: return 44; case ST_WALL: return 47; case ST_PAD: return 48; case ST_BIKEAIR: return 32;
     case ST_CART: return 90; case ST_SIT: return 39;   /* Relic Maze hand-car / chair (relic_gimb.c) */
     case ST_HPIPE: return 38;                           /* Fortune Night half-pipe (fn_gima.c) */
+    case ST_DANCE: return 50;                          /* FN5 dance (fn_gimb.c) */
     default: return -1;
     }
 }
@@ -808,7 +809,16 @@ static int push_wants(const player_t *p, const input_t *in) {
 void player_pose(player_t *p, int idx, int dir, int speed) {
     player_anims_init();
     if (is_milla()) { milla_set_anim(p, idx, dir); anim_tick(&p->an, speed); if (hair.b) anim_tick(&hair, speed); psc = p->an; return; }
-    if (!is_carol()) { p->face = dir > 8 && dir < 24 ? -1 : 1; set_anim(p, idx == 1 ? A_WALK : idx == 10 ? A_CROUCH : A_IDLE); }
+    char pn[16]; snprintf(pn, sizeof pn, "a%d_d%d", idx, dir);
+    int pa = dir % 16 ? bank_anim(&G.lilac, pn) : -1;                       /* other directions: 'a<idx>_d<dir>' rows (FN poses, fn_gimb.c) */
+    if (pa >= 0 && !(is_carol() && p->bike)) {
+        if (p->an.b != &G.lilac || p->an.anim != pa) anim_set(&p->an, &G.lilac, pa);
+        draw_flip = 0; cur_anim = -1;
+        snprintf(pn, sizeof pn, is_carol() ? "a%d_d%d" : "h_a%d_d%d", idx, dir);
+        int h = G.hair.nanims ? bank_anim(&G.hair, pn) : -1;
+        if (h >= 0) { if (hair.b != &G.hair || hair.anim != h) anim_set(&hair, &G.hair, h); hair_flip = 0; } else hair.b = NULL;
+    }
+    else if (!is_carol()) { p->face = dir > 8 && dir < 24 ? -1 : 1; set_anim(p, idx == 1 ? A_WALK : idx == 10 ? A_CROUCH : A_IDLE); }
     else {
         int left = dir > 8 && dir < 24, carol = is_carol();
         const bank_t *sk = p->bike && G.bike.nanims ? &G.bike : &G.lilac;
@@ -911,6 +921,7 @@ void player_update(player_t *p, const input_t *in) {
         player_sync_sensors(p);
         return;
     }
+    if ((p->state == ST_SIT || p->state == ST_DANCE) && fn_gimb_player(p, in)) return;   /* M39 restroom / M50 dance (fn_gimb.c) */
     if ((p->state == ST_CART || p->state == ST_SIT) && relic_gimb_player(p, in)) return;   /* M90 / M39: their own groups (relic_gimb.c) */
     /* RV energy meter (GUIEnergy_127 alt A): -3/frame while boosting, -0.25/frame in the cyclone, else
      * +0.4/frame up to 100 (state at the start of the frame) */

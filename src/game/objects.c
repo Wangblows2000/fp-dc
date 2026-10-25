@@ -107,6 +107,7 @@ void objects_spawn(void) {
     relic_gima_spawn();
     rmboss_spawn();
     relic_gimb_spawn();                           /* Relic Maze acts 3-5 gimmicks (src/game/relic_gimb.c) */
+    fn_gimb_spawn();                              /* Fortune Night acts 4-5 gimmicks (src/game/fn_gimb.c) */
     rm_claw_spawn();                              /* RM3 Claw sequence (src/game/rm_claw.c) */
     rm_mantalith_spawn();                         /* RM5 end (rm_mantalith.c) */
     fn_enemy_spawn();                             /* Fortune Night enemies (src/game/fn_enemy.c) */
@@ -162,6 +163,7 @@ void objects_platforms(player_t *p) {
     if (objects_have(OT_TRUNK)) trunks_update(p);
     if (objects_have(OT_BAM1)) bamboo_update(p);
     switches_update(p, 0);
+    fn_gimb_pre(p);                               /* Fortune Night acts 4-5: air balloons 8104-8113 (before the hang hold) */
     relic_gima_pre(p);                            /* Relic Maze acts 1-2: rolling platform, hanging switch / mover, moving handles */
     if (!objects_have(OT_PLAT_VALLEY) && !objects_have(OT_PLAT_MOVE2) && !objects_have(OT_PLAT_MOVE3) && !objects_have(OT_GEYSER) && !objects_have(OT_BRIDGE)) return;
     double MY = p->y - ORIG_REF_DY;

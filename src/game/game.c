@@ -713,6 +713,7 @@ void game_update(const input_t *in) {
     relic_frame(&G.p);                            /* Relic Maze enemies' shared passes (src/game/relic.c) */
     relic_gimb_frame(&G.p);                       /* Relic Maze acts 3-5 gimmicks (src/game/relic_gimb.c) */
     fn_gima_frame(&G.p);                          /* Fortune Night acts 1-3 gimmicks (src/game/fn_gima.c) */
+    fn_gimb_frame(&G.p);                          /* Fortune Night acts 4-5 gimmicks (src/game/fn_gimb.c) */
     rm_claw_frame(&G.p);                          /* RM3 Claw sequence events 6196-6350 (src/game/rm_claw.c) */
     fn_flow_frame(&G.p);                          /* Fortune Night stage script (src/game/fn_flow.c) */
     if (G.p.state == 6 /* ST_DEAD */ && G.p.dead_t > 120) {     /* death: the act restarts with one life less (RE 1972 / loop_death_13) */
@@ -949,11 +950,13 @@ void game_draw(void) {
     draw_parallax();
     draw_pieces(0, 1);
     objects_draw(0);
+    fn_gimb_draw_back();                          /* FN: carousel rings, A5 disco light (back of the play layer) */
     draw_pieces(2, 2);
     objects_draw(1);
     water_draw_front();
     player_draw(&G.p);
     shields_draw(&G.p);
+    fn_gimb_draw_front();                         /* FN: restroom doors / pole-pod shells over the player */
     spiral_front_draw();
     water_draw_tint();
     draw_pieces(3, 3);
