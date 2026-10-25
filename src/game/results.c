@@ -8,7 +8,10 @@
  * Path B (5381): Lilac passes the right edge first -> she keeps running right (5388) and the wipe follows D = 150.
  * Path A (5576): the boss exit starts it; the wipe runs when Lilac passes the right edge after D = 150 (5382).
  * Path 3 (results_begin_boss, e.g. RM5 7083 Sign.B = 179): any boss starts it with its own stopped time; no wipe: the
- * boss's post-results script moves the player (results_script_input) and ends the stage (results_request_end). */
+ * boss's post-results script moves the player (results_script_input) and ends the stage (results_request_end).
+ * Level data (session 17, Fortune Night 6): res_voice = a results voice for everyone at the 4563 point (8545); res_wipe = path
+ * 3 ends with the shared wipe after D = 150 (8546 wipe group on, 8547 sound 56 + LevelCardFade2 / FadeEdge, 8549 F > 50 ->
+ * frame 8) instead of a boss script's request. */
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -78,6 +81,7 @@ input_t results_input(const input_t *in) {
  * difficulty test (RE). Per stage index s (level_def_t.stage): 0 Aqua Tunnel, 1 Dragon Valley, 2 Relic Maze. */
 static const struct { int stage, card_base, cards_ach, time_ach; uint32_t limit_ms; } ACH_STAGE[] = {
     { 1, 1, 23, 43, 300000 }, { 2, 11, 24, 44, 480000 }, { 0, 21, 25, 45, 300000 },
+    { 3, 31, 26, 46, 480000 },   /* Fortune Night (FN6 8789: cards 31-40 -> 26; 8788 / inline: 46 with ML.Z <= 480000 ms) */
 };
 static void ach_results(void) {
     cards_commit();                                    /* this run's cards count (the port commits them at D = 150, after 149) */
@@ -120,6 +124,7 @@ int results_update(player_t *p) {
         music_play("bgm/m_clear.adp");
         R.bonus1 = G.stage_crystals;
         R.total = (G.file_slot >= 0 && G.file_slot < SAVE_FILES && !G.time_attack) ? save_file_crystals(&SV.file[G.file_slot]) : 0;   /* TotalCrystals = the file's total (y4) */
+        if (level_cur()->res_voice) voice_play_once(level_cur()->res_voice);   /* FN6 8545 (MV.A != 1: everyone in the port), channel 27 */
     }
     if (R.signB >= 180 && !R.ac1) { R.ac1 = 1; R.ac1_t = 0; }                 /* 4565 */
     if (R.ac1) {
@@ -175,6 +180,9 @@ int results_update(player_t *p) {
     }
     if (R.end_req) return stage_end();                                       /* path 3: the boss script's fade ended */
     /* 5382 / 5383 wipe: path B at D >= 150; path A when Lilac passes the right edge afterwards */
+    if (!R.wipe && R.pathB == 3 && level_cur()->res_wipe && R.svD >= 150) {      /* FN6 8546 / 8547 */
+        R.wipe = 1; R.wipe_f = 0; R.wipe_x = -(SCREEN_W + 120); snd_play_orig(56, 230, 128);
+    }
     if (!R.wipe && R.pathB != 2 && R.pathB != 3 && R.svD >= 150 && (R.pathB || p->x > G.lvl.w - 50)) {
         R.wipe = 1; R.wipe_f = 0; R.wipe_x = -(SCREEN_W + 120); snd_play_orig(56, 230, 128);
     }

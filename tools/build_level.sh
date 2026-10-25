@@ -17,6 +17,9 @@ python3 tools/palettize.py "$T/milla" '^milla' --gid=2 '--pal4=0:^millatail|^mil
 python3 tools/palettize.py "$T" "^${N}_p[0-9]" '_par[0-9]' '^lilac' '_obj' '--flex=_ens' '--pal4=1:_p[xw]' '--pal4=2:^lilachair'
 mv "$T/carol/"*.tex "$T/" && rmdir "$T/carol"
 mv "$T/milla/"*.tex "$T/" && rmdir "$T/milla"
+# parallax sets with more than 15 colours per image (left in ARGB1555 by palettize, Fortune Night): PAL8 in the free top of
+# the character group 2 (pal2 / pal2c / pal2m); no-op for every other level (session 17)
+python3 tools/par_top.py "$T" "^${N}_p[xw]"
 rm -rf "$O/$N" && mv "$T" "$O/$N"
 cp converted/sfx_*.wav "$O"/ 2>/dev/null || true
 cp converted/stage1.pcm "$O"/ 2>/dev/null || true

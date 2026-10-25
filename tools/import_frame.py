@@ -339,6 +339,11 @@ ENS = [('enemydragonfly_942', a, d, nm + ('' if d == '0' else '_l')) for a, nm i
       [('bubblenumbers_405', 0, d, 'bnum%s' % d) for d in ('0', '1', '2', '3', '4', '5')] + \
       AT_ENS + RM_ENS
 ENS += MT_ENS   # RM5 end (rm_mantalith.c)
+# Fortune Night flow (session 17, src/game/fn_flow.c): NPCSerpentine_945 in FN3's exit pass (7715 anim 9, 7719 15, 7720 11),
+# json frame 32 only (the class is placed in other stages too)
+FN_FLOW_ENS = [('npcserpentine_945', a, '0', nm) for a, nm in ((0, 'fnserp_idle'), (9, 'fnserp_dash'), (15, 'fnserp_brake'), (11, 'fnserp_taunt'))]
+ENS += FN_FLOW_ENS
+ENS_FRAMES['npcserpentine_945'] = {32}
 ENS_WITH = {**AT_ENS_WITH, **RM_ENS_WITH, 'guiweaponslot_426': ('objectdigspot',), 'enemysporeprojectile_1022': ('enemysporepod', 'enemyhopper'), 'objectkeystone_429': ('enemysporepod', 'enemyturretus', 'monitorkeystone', 'enemyhopper', 'enemyfirespitter', 'enemysentinel', 'enemyextractorhead'),
             'effectsdebris_427': ('enemysporepod', 'bossserpentinehead', 'objectdigspot', 'objectpot', 'objectbluepot', 'enemyhopper', 'enemyfirespitter', 'enemysentinel'), 'effectsexplosion06_435': ('minibosswretchnidbase', 'minibosstredd', 'bossserpentinehead', 'monitorbomb', 'minibossironworm', 'bosschompersnake', 'enemyextractorhead'),
             'effectsshade_436': ('enemygansekijr', 'enemydragonfly', 'enemystarflounder', 'enemycacteon', 'enemyiris', 'enemyslug'),
@@ -447,14 +452,21 @@ PAR_IMG = {'levelparallaxpiece0_491': 16032, 'levelparallaxpiece1_891': 3030, 'l
            'levelparallaxpiece4r_1221': 3335, 'levelparallaxpiece6_1349': 3383, 'levelparallaxpiece7_1350': 3426,
            'levelparallaxpiece9_1351': 1990, 'levelparallaxpiece6_1452': 3383, 'levelparallaxpiece7_1453': 3426,
            'levelparallaxpiece9_1454': 1990, 'levelparallaxpiece6_1531': 2058, 'levelparallaxpiece7_1532': 1601,
-           'levelparallaxpiece5_1309': 12333}
+           'levelparallaxpiece5_1309': 12333,
+           # Fortune Night (session 17, RE spec_fn_flow 4): FN1-FN3 / FN6 night sky set, FN2's own piece5, FN4 / FN5 mall set
+           'levelparallaxpiece0a_1629': 3626, 'levelparallaxboat1_1640': 1040, 'levelparallaxpiece1_1630': 3613,
+           'levelparallaxpiece3_1633': 3625, 'levelparallaxpiece2_1632': 3473, 'levelparallaxpiece4_1634': 187,
+           'levelparallaxpiece5_1635': 3611, 'levelparallaxpiece5_1802': 3612, 'levelparallaxcar_1725': 7698,
+           'levelparallaxpiece2_1631': 7053, 'levelparallaxpiece0m_1897': 3653, 'levelparallaxpiece1_1898': 4358,
+           'levelparallaxpiece2_1899': 4369}
 # piece5_1309 (RM3 layer 3, the caravan-chase foreground, spec_rm_flow 4 / spec_rm_claw 6): exported with flags 256 (layer 3:
 # drawn in front of the player, par_draw_front) + 512 (hidden until rm_claw.c shows it at 6256); D = E = 0 (never written)
 PAR_FRONT = {(27, 1309)}
 PAR_BOXH = {'levelparallaxpiece6_897': 160, 'levelparallaxpiece13_1068': 1024, 'levelparallaxpiece13_1092': 820,
             'levelparallaxpiece6_678': 800, 'levelparallaxpiece2_676': 960, 'levelparallaxpiece5_677': 1105,
             'levelparallaxpiece8_837': 1105, 'levelparallaxpiece9_842': 1105, 'levelparallaxpiece7_836': 1105, 'levelparallaxpiece10_843': 1105,
-            'levelparallaxpiece6_1349': 720, 'levelparallaxpiece7_1350': 720, 'levelparallaxpiece9_1351': 1600}   # RM3 (spec_rm_flow 4)
+            'levelparallaxpiece6_1349': 720, 'levelparallaxpiece7_1350': 720, 'levelparallaxpiece9_1351': 1600,   # RM3 (spec_rm_flow 4)
+            'levelparallaxpiece1_1630': 120}   # FN (spec_fn_flow 4): a 320 x 120 box over the 240-high image (its top half shows)
 PAR_BOXW = {'levelparallaxpiece6_853': 400, 'levelparallaxpiece5_1309': 384}          # box wider than its image (AT4 screen-fixed backdrop)
 PAR_WRAPY = {18, 19, 20}                             # AT3 / AT4 frames (json 19, 20): 4532 / 4527 wrap in both axes; AT2 json 18 has none (see below)
 # D, E, G (RE 5110 / 5315 / 5603; DV1's start events not read: the same table is used, INFERRED)
@@ -468,11 +480,19 @@ PAR_DEG = {491: (.99, .94, 0), 891: (.98, .93, 0), 893: (.95, .91, 0), 894: (.96
            # Relic Maze (spec_rm_flow 4; 5842 / 6370 / 3559)
            1112: (.99, .94, 0), 1133: (.95, .92, 0), 1134: (.85, .85, 0), 1137: (.40, .40, 0), 1138: (.37, .36, 0),
            1220: (.40, .40, 0), 1221: (.37, .36, 0), 1349: (.85, .85, 0), 1350: (.60, .60, 0), 1351: (.30, .30, 0),
-           1452: (.85, .85, 0), 1453: (.60, .60, 0), 1454: (.30, .30, 0), 1531: (.85, .85, 0), 1532: (.60, .60, 0), 1309: (0, 0, 0)}
-PAR_DEG_FRAME = {(27, 1112): (1.0, .94, 0)}          # the same handle with RM3's own D (RE spec_rm_flow 4)
+           1452: (.85, .85, 0), 1453: (.60, .60, 0), 1454: (.30, .30, 0), 1531: (.85, .85, 0), 1532: (.60, .60, 0), 1309: (0, 0, 0),
+           # Fortune Night (spec_fn_flow 4: FN1 inline, FN2 / FN3 7472, FN4 inline, FN5 8318; G = the drift per frame, 3541)
+           1629: (.99, .94, 0), 1640: (.99, .94, -.25), 1630: (.90, .90, 0), 1633: (.88, .88, 0), 1632: (.80, .80, 0),
+           1634: (.70, .70, 0), 1635: (.65, .65, 0), 1802: (.65, .65, 0), 1725: (.40, .505, -4), 1631: (.40, .50, 0),
+           1897: (.99, .94, 0), 1898: (.72, .72, 0), 1899: (.60, .70, 0)}
+PAR_DEG_FRAME = {(27, 1112): (1.0, .94, 0),          # the same handle with RM3's own D (RE spec_rm_flow 4)
+                 (35, 1629): (.99, .94, -.1), (35, 1640): (.99, .94, -.35)}   # FN6's drifting sky (inline, spec_fn_flow 4)
+# BGStar_16 (FN1-FN3, FN6; spec_fn_flow 4): 7471 stores A = x, B = y, C = the instance index and forces frame C; 7466 puts
+# every star at (piece0a.x + A, piece0a.y + B) each frame. Exported as one composed image attached to that piece (flag 1024)
+PAR_STARS = {'bgstar_16': 1629}
 PAR_SKY_BELOW = {27: (1112, 1133, 1134, 1137, 1138)} # RM3 6298: destroyed once the player is below y 2400 (one way)
 # layers scrolling at 0.8 (RE Layer::init): Aqua Tunnel and RM1-RM4 layer 1, RM5 layer 0 (spec_rm_flow 2.4); json frame
-SCROLL08 = {17: 1, 18: 1, 19: 1, 20: 1, 25: 1, 26: 1, 27: 1, 28: 1, 29: 0}
+SCROLL08 = {17: 1, 18: 1, 19: 1, 20: 1, 25: 1, 26: 1, 27: 1, 28: 1, 29: 0, 30: 1, 31: 1, 32: 1, 33: 1, 34: 1, 35: 1}   # FN (json 30-35): layer 1 (spec_fn_flow 2.4)
 
 def pow2_split(n, cap=1024):
     out, r = [], n
@@ -483,7 +503,7 @@ def pow2_split(n, cap=1024):
         out.append(p); r -= p
     return out
 
-def export_parallax(fr, src, name, out):
+def export_parallax(fr, src, name, out, an=None):
     """<name>_par.bin + chunk textures <name>_px<img>_<k>.tex (ARGB1555; palettize --pal4 converts them)"""
     pieces, images, ntex = [], [], 0
     imgidx = {}
@@ -520,6 +540,25 @@ def export_parallax(fr, src, name, out):
         if (fr['frame'], o['id']) in PAR_FRONT: flags |= 256 | 512                # layer-3 piece, hidden until shown (RM3 piece5)
         iw, ih = images[imgidx[img]][0], images[imgidx[img]][1]
         pieces.append((imgidx[img], D, E, G, o['y'], PAR_BOXW.get(key, iw), PAR_BOXH.get(key, ih), flags, o['id']))
+    stars = [o for o in fr['objects'] if '%s_%d' % (o['cls'], o['id']) in PAR_STARS and o['x'] is not None]
+    if stars:
+        parent = PAR_STARS['%s_%d' % (stars[0]['cls'], stars[0]['id'])]
+        fl = an['%s_%d' % (stars[0]['cls'], stars[0]['id'])]['anims'][0]['0']['frames']
+        ims = [(o['x'], o['y']) + load_img(src, fl[k % len(fl)]) for k, o in enumerate(stars)]   # C = the instance index (json order, INFERRED)
+        x0 = min(x - hx for x, y, im, hx, hy in ims); y0 = min(y - hy for x, y, im, hx, hy in ims)
+        x1 = max(x - hx + im.width for x, y, im, hx, hy in ims); y1 = max(y - hy + im.height for x, y, im, hx, hy in ims)
+        comp = Image.new('RGBA', (x1 - x0, y1 - y0))
+        for x, y, im, hx, hy in ims: comp.alpha_composite(im, (x - hx - x0, y - hy - y0))
+        chunks, cy = [], 0
+        for ch in pow2_split(comp.height):
+            cx = 0
+            for cw in pow2_split(comp.width):
+                sub = comp.crop((cx, cy, min(cx + cw, comp.width), min(cy + ch, comp.height)))
+                write_tex(sub, os.path.join(out, '%s_px%d_%d.tex' % (name, len(images), len(chunks))))
+                chunks.append((cx, cy, sub.width, sub.height)); cx += cw
+            cy += ch
+        images.append((comp.width, comp.height, chunks))
+        pieces.append((len(images) - 1, 0., 0., 0., parent, x0, y0, 1024, stars[0]['id']))   # y0 = the parent's handle, (bw, bh) = offset
     d = bytearray(b'FPPX' + struct.pack('<4H', len(images), len(pieces), 1 if water else 0, 1))   # version 1: + the piece's handle
     for w, h, chunks in images:
         d += struct.pack('<3H', w, h, len(chunks))
@@ -782,7 +821,7 @@ def main():
     # parallax (RE + RV: build/re/spec_parallax.md): layer-0 SystemBox pieces, tiled, moved every frame by
     # sx = fmod(trunc(D*vl + F - vl), A), sy = trunc(E*vt + C) - vt. Images are split into power-of-two chunks
     # (each <= 16 colours: palettize --pal4 makes them 4 bpp with one 16-entry block per image).
-    par = export_parallax(fr, src, name, out)
+    par = export_parallax(fr, src, name, out, an)
     report.append('parallax pieces: %s' % par)
 
     # ---- Lilac (playerskinsash_341) from recovered animation tables, both facings

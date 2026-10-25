@@ -307,9 +307,9 @@ int main(int argc, char **argv) {
         apply_dbg(cur_frame + 2, 1);
         const player_t *p = &G.p;
         double mdd[7]; player_milla_dbg(mdd);
-        printf("f %d x %.2f y %.2f gsp %.3f vx %.3f vy %.3f gnd %d ang %.3f st %d hp %d cr %d k %d an %d fr %d rot %.2f en %.2f lv %d face %d mode %d sel %d cx %.1f cy %.1f act %d res %d sh %d shc %d air %d chr %d bike %d bc %d oy %d rA %d rx %.1f ry %.1f me %.2f mh %d mm %d ma %.1f mb %.1f\n",
+        printf("f %d x %.2f y %.2f gsp %.3f vx %.3f vy %.3f gnd %d ang %.3f st %d hp %d cr %d k %d an %d fr %d rot %.2f en %.2f lv %d face %d mode %d sel %d cx %.1f cy %.1f act %d res %d sh %d shc %d air %d chr %d bike %d bc %d oy %d rA %d rx %.1f ry %.1f me %.2f mh %d mm %d ma %.1f mb %.1f g4 %d tm %d\n",
                cur_frame, p->x, p->y, p->gsp, p->vx, p->vy, p->ground, p->N, p->state, p->hp, p->crystals, G.kills, p->an.anim, p->an.frame,
-               p->rot, p->energy, p->lives, p->face, G.mode, G.in_select, G.camx, G.camy, G.lvdir[0] ? G.lvdir[2] - '0' : 0, results_state(), p->shield, p->shield_c, p->air, G.character, p->bike, p->bikeC, p->cY, player_cube_state(), mdd[1], mdd[2], p->mE, player_milla_hud(), player_orig_m(p), p->mA, p->mB);
+               p->rot, p->energy, p->lives, p->face, G.mode, G.in_select, G.camx, G.camy, G.lvdir[0] ? G.lvdir[2] - '0' : 0, results_state(), p->shield, p->shield_c, p->air, G.character, p->bike, p->bikeC, p->cY, player_cube_state(), mdd[1], mdd[2], p->mE, player_milla_hud(), player_orig_m(p), p->mA, p->mB, G.at_g4, game_timer());   /* g4: the act-start mode; tm: the stage timer (session 17) */
         { static const char *tk; static int tk_init; if (!tk_init) { tk_init = 1; tk = getenv("FP_TRACK"); }   /* "type:spawnx,..." per-frame object dump */
           if (tk) { const char *q = tk; int t, x0, nn;
             while (sscanf(q, "%d:%d%n", &t, &x0, &nn) == 2) {
