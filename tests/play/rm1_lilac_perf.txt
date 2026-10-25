@@ -1,0 +1,3 @@
+CHAR 0
+LEVEL rm1
+60 900 R
