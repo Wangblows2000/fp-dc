@@ -420,6 +420,32 @@ static const objdef_t DEFS[] = {
     { OT_MT_CHOMP,      0,                                     NULL         }, /* - (BossChomp_1599) */
     { OT_MT_RUIN,       0,                                     NULL         }, /* - (BreakableRuins_1450, post-results) */
     { OT_MT_RPIECE,     0,                                     NULL         }, /* - (BreakableRuinsPiece_1451) */
+    /* Fortune Night enemies (fn_enemy.c, spec_fn_enemies 0; sprites set by fn_enemy_spawn; none is in Q7 / Q8 / Q19) */
+    { OT_FN_COIL,       OD_HIDDEN,                             "fc_base"    }, /* enemycoil_1742 (invisible pivot) */
+    { OT_FN_COILHEAD,   0,                                     "fc_head"    }, /* enemycoilhead_1743 (Q20) */
+    { OT_FN_COILP1,     0,                                     "fc_p1"      }, /* enemycoilpiece1_1738 */
+    { OT_FN_COILP2,     0,                                     "fc_p2"      }, /* enemycoilpiece2_1740 */
+    { OT_FN_COILP3,     0,                                     "fc_p3"      }, /* enemycoilpiece3_1739 */
+    { OT_FN_COILP4,     0,                                     "fc_p4"      }, /* enemycoilpiece4_1741 */
+    { OT_FN_COILFLIP,   OD_HIDDEN,                             "fc_flip"    }, /* enemycoilflip_1759 (marker) */
+    { OT_FN_TPOLE,      0,                                     "ft_pole"    }, /* enemytrafficle_1760 */
+    { OT_FN_TLIGHT1,    0,                                     "ft_l1"      }, /* enemytrafficle1_1761 (Q20) */
+    { OT_FN_TLIGHT2,    0,                                     "ft_l2"      }, /* enemytrafficle2_1762 (Q20) */
+    { OT_FN_TLIGHT3,    0,                                     "ft_l3"      }, /* enemytrafficle3_1763 (Q20) */
+    { OT_FN_STURRET,    OD_HIDDEN,                             "st_fly"     }, /* enemysuperturretus_1833 (Q20) */
+    { OT_FN_FCANNON,    0,                                     "fk_idle"    }, /* enemyflarecannon_1808 (Q20) */
+    { OT_FN_ROLLER,     0,                                     "ro_idle_l"  }, /* enemyroller_1934 (Q20) */
+    { OT_FN_SHELL,      0,                                     "gs_idle_l"  }, /* enemyghettoshell_1988 (Q20) */
+    { OT_FN_DUSTER,     0,                                     "du_body"    }, /* enemyduster_1938 (Q20) */
+    { OT_FN_DARM2,      0,                                     "du_arm2"    }, /* enemydusterarm2_1935 */
+    { OT_FN_DARM1,      0,                                     "du_arm1"    }, /* enemydusterarm1_1936 */
+    { OT_FN_DMOUTH,     0,                                     "du_mouth"   }, /* enemydustermouth_1937 */
+    { OT_FN_BALLOON,    0,                                     "bl_float"   }, /* enemyballoon_1945 (Q20) */
+    { OT_FN_PIGEON,     0,                                     "pg_sit"     }, /* pigeon_1641 (decor) */
+    { OT_FN_FBURST,     0,                                     "fk_burst"   }, /* effectflareburst_1810 (off-map template) */
+    { OT_FN_LASER,      0,                                     NULL         }, /* - (EnemyLaser_1781) */
+    { OT_FN_FLARE,      0,                                     NULL         }, /* - (EnemyFlare_1809) */
+    { OT_FN_WAVE,       0,                                     NULL         }, /* - (EnemySoundwave_1989) */
     /* Fortune Night acts 1-3 gimmicks (fn_gima.c, spec_fn_gimmicks_a 0.1 / 0.3; sprites set by fn_gima_spawn). Flag 0 (fl bit 0) drops a
      * solid / obstacle instance from the sensor tests: dragon masks (7199), arch base (7225), half-pipe walls (7535), loop layers */
     { OT_FN_DSEG,       0,                                     NULL         }, /* gimmickdragontunnel1_1734 / tunnel2_1733 (Q13) */
@@ -455,7 +481,6 @@ static const objdef_t DEFS[] = {
     { OT_FN_GFRONT,     0,                                     NULL         }, /* gachaponfront_1854 */
     { OT_FN_SIGN,       0,                                     NULL         }, /* signstop_1698 / signyield_1697 */
     { OT_FN_LAMP,       0,                                     NULL         }, /* lamppostfront_1791 (Q20) */
-    { OT_FN_PIGEON,     OD_BOXCOL,                             NULL         }, /* pigeon_1641 */
     { OT_FN_STROBE,     0,                                     NULL         }, /* strobelight_1857 */
     { OT_FN_LSIGN,      0,                                     NULL         }, /* largesign1/2/3 */
     { OT_FN_COLUMN,     OD_SOLID|OD_BOXCOL,                    NULL         }, /* largecolumn_1864 / largecolumn2_1874 (A3 Q7; boss-driven) */

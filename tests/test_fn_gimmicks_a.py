@@ -2,7 +2,7 @@
 """Host tests for the Fortune Night gimmicks of acts 1-3 (src/game/fn_gima.c, build/re/spec_fn_gimmicks_a.md): dragon tunnels,
 ferris wheels, gold platforms, rolling arches, boost blocks, breakable walls / floors (per-character breakers, the bomb blast),
 lantern bridges, clotheslines, vertical half-pipes (state M38), teeter-totters, the trolley car, gachapons, fireworks, signs,
-lampposts, pigeons, lanterns, strobes, stars, the FN chair and the FN1 / FN3 jump pads. Integration checks of the recovered
+lampposts, lanterns, strobes, stars, the FN chair and the FN1 / FN3 jump pads. Integration checks of the recovered
 rules (no original trace of Fortune Night exists yet); positions are the levels' own placements (frame data).
 usage: test_fn_gimmicks_a.py [data_dir]   (default: converted2)"""
 import subprocess, sys, os, tempfile
@@ -12,8 +12,8 @@ DATA = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, '..', 'converted
 # engine types (src/fp.h, Fortune Night gimmicks block 560-605)
 DSEG, DHEAD, DMASK, FCAR, FSPOKE, GOLD, ARCHBASE, ARCH, ARCHWHEEL, BOOST, BFLAME = 560, 562, 563, 565, 566, 567, 568, 569, 570, 571, 572
 LBRIDGE, HPIPE, TEETER, BWALL, BWPIECE, BFLOOR, BFPIECE, FWLAUNCH, FWPART, CLOTHES = 574, 575, 576, 577, 578, 579, 580, 581, 582, 583
-PLANTERN, FLANTERN, GWHEEL, GFRONT, SIGN, LAMP, PIGEON, STROBE, TROLLEY, TPLAT, TLIGHT, LOOP0, LOOP1, STAR = \
-    586, 587, 588, 590, 591, 592, 593, 594, 598, 599, 600, 601, 602, 603
+PLANTERN, FLANTERN, GWHEEL, GFRONT, SIGN, LAMP, STROBE, TROLLEY, TPLAT, TLIGHT, LOOP0, LOOP1, STAR = \
+    586, 587, 588, 590, 591, 592, 594, 598, 599, 600, 601, 602, 603
 OT_KEYSTONE, OT_RM_IDLESW, OT_RM_CHAIR = 146, 301, 336
 ST_HANG, ST_PAD, ST_SIT, ST_HPIPE = 11, 20, 30, 31
 CHARS = ((0, 'lilac'), (2, 'carol'), (4, 'milla'))
@@ -53,7 +53,7 @@ r = subprocess.run([BIN, DATA, '1', '-'], capture_output=True, text=True, env={*
 grp = {int(t[1]): [int(v) for v in t[2:]] for t in (l.split() for l in r.stdout.splitlines()) if t and t[0] == 'grp'}
 check('registry_q8_q9_platforms', all(grp[t][1] and grp[t][2] and not grp[t][0] for t in (GOLD, FCAR, DMASK, TPLAT, 561)), str({t: grp[t] for t in (GOLD, FCAR, DMASK, TPLAT, 561)}))
 check('registry_q7_solids', all(grp[t][0] for t in (ARCHBASE, LBRIDGE, HPIPE, TEETER, BWALL, BFLOOR, LOOP0, LOOP1, 596, 597)), str({t: grp[t][0] for t in (ARCHBASE, LBRIDGE, HPIPE, TEETER, BWALL, BFLOOR)}))
-check('registry_every_fn_type_defined', all(grp[t][5] for t in range(560, 606)), str([t for t in range(560, 606) if not grp[t][5]]))
+check('registry_every_fn_type_defined', all(grp[t][5] for t in range(560, 606) if t != 593), str([t for t in range(560, 606) if t != 593 and not grp[t][5]]))   # 593 unused (pigeons: fn_enemy.c)
 
 # ---- 1. dragon tunnel (FN1 dragon at (5424, 1376), 7198-7204): segments x = I + Q, Q < 752 (wrap), masks solid only next to a
 # segment, the head on segment R = 13 (s + 1) - 1, conveyor +4 a frame on the back of a Tunnel1 dragon (every character)
@@ -208,8 +208,7 @@ fw = obs_of(obs, FWLAUNCH, 3816)
 check('firework_rises_and_bursts', fw and any(o['y'] == 825 for o in fw) and min(o['y'] for o in fw) < 825 - 200 and 430 in sounds(rows) and not obs_of(obs, FWLAUNCH, 3816, 139), '')
 check('firework_particles', len(obs_of(obs, FWPART, None, 110)) >= 64 and len(obs_of(obs, FWPART, None, 139)) < len(obs_of(obs, FWPART, None, 110)), '')
 
-# ---- 14. decor: the sign spins when passed at |B| >= 5 (A = floor(10 |B|), decays to 20), the lamppost breaks (23 + 134) and goes,
-# pigeons fly off (243), paper lanterns in sync, stars follow the sky, strobes swing
+# ---- 14. decor: the sign spins when passed at |B| >= 5 (A = floor(10 |B|), decays to 20), the lamppost breaks (23 + 134) and goes, paper lanterns in sync, stars follow the sky, strobes swing
 _, obs, _ = run('fn1', 0, '60 TP 2250 1110\n' + INV + '62 200 R\n', 200, '%d:2392' % SIGN)
 sg = obs_of(obs, SIGN, 2392)
 check('sign_spins_when_passed', sg and max(o['a0'] for o in sg) >= 49 and max(o['fr'] for o in sg) > 3, 'max A %.0f' % max(o['a0'] for o in sg) if sg else '')
@@ -217,9 +216,6 @@ for ch, nm, keys in ((0, 'lilac', '96 98 X\n'), (2, 'carol', '96 98 X\n'), (4, '
     rows, obs, _ = run('fn1', ch, '60 TP 4570 1300\n' + INV + '62 64 R\n90 100 J\n' + keys, 300, '%d:4584' % LAMP)
     lp = obs_of(obs, LAMP, 4584)
     check('lamppost_breaks_%s' % nm, 134 in sounds(rows) and 23 in sounds(rows) and any(o['fl'] & 0x40 for o in lp) and not obs_of(obs, LAMP, 4584, 299), '')
-rows, obs, _ = run('fn1', 0, '60 TP 1000 250\n' + INV, 120, '%d:1028' % PIGEON)
-pg = [o for o in obs_of(obs, PIGEON, 1028) if o['f'] > 60]
-check('pigeons_fly_off', pg and any(o['st'] == 1 for o in pg) and min(o['y'] for o in pg) < 200 and 243 in sounds(rows), '')
 _, obs, _ = run('fn1', 0, '', 100, '%d:-1,%d:-1' % (PLANTERN, STAR))
 fr = {o['fr'] for o in obs_of(obs, PLANTERN, None, 99)}
 check('paper_lanterns_in_sync', len(fr) == 1, str(fr))

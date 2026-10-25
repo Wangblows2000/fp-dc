@@ -2,7 +2,8 @@
  * gold platforms, rolling arches, boost blocks (+ flames / turn markers / dust), breakable walls and floors (bomb blast, boost
  * blocks, per-character breakers), lantern bridges, clotheslines (hang M41 + shimmy), vertical half-pipes (player state M38),
  * teeter-totters, the FN2 trolley car (+ platforms / lights / loop sound), gachapon machines (the RM hanging switch drives them),
- * fireworks, decor with logic (spinning signs, breakable lampposts, pigeons, paper / floating lanterns, strobe lights, stars).
+ * fireworks, decor with logic (spinning signs, breakable lampposts, paper / floating lanterns, strobe lights, stars; the pigeons are
+ * fn_enemy.c's).
  * Reused elsewhere: the chair (relic_gimb.c, type 336), the hanging switch + rope (relic_gimb.c 301 / relic_gima.c 264), the
  * loop-layer pieces (registry OD_LAYER0 / 1, gimmicks.c layers_refresh), monitors / springs / spikes / pads (shared code, the
  * pads' values in levels.c).
@@ -624,31 +625,6 @@ static void lamps(player_t *p) {                 /* 7268-7271 (+ the shared Q20 
         if (o->av[0] >= 2) o->alive = 0;                                       /* 7271 */
     }
 }
-static void pigeons(player_t *p) {               /* 7349-7358: st D (0 idle, 1 flying, 2..10 away), tm C, av[0] A, av[1] B, av[2] / av[3] home */
-    obj_t *o;
-    EACH(OT_FN_PIGEON, o) {
-        if (o->st == 0) {
-            int left = (o->dir & 16) != 0;
-            if (++o->tm >= (int)o->av[4]) {                                    /* 7349 / 7350: peck every 80-140 frames */
-                static const int PD[4] = { 0, 1, 16, 17 };
-                int d = PD[cross_rand(4)]; o->dir = d; o->tm = 0; o->av[4] = 80 + cross_rand(61);
-                char nm[16]; snprintf(nm, sizeof nm, "fnpigeon7_%d", d); restart_s(o, nm);
-            } else if (o->an.done && o->an.b && !anim_is(o, left ? "fnpigeon0_16" : "fnpigeon0")) set_s(o, left ? "fnpigeon0_16" : "fnpigeon0");
-            int X = (int)PX(p), Y = (int)PY(p);
-            if (!dead(p) && abs(X - (int)o->x) <= 59 && Y >= o->y - 19 && Y <= o->y + 59) {   /* 7351 / 7352: fly away from her */
-                int sgn = X <= o->x ? 1 : -1;
-                o->av[0] = sgn * (4 + cross_rand(3)); o->av[1] = fabs(o->av[0]) - 7; o->st = 1; o->av[2] = o->x; o->av[3] = o->y;
-                o->dir = sgn > 0 ? 0 : 16; set_s(o, sgn > 0 ? "fnpigeon1_0" : "fnpigeon1_16"); snd_play_orig(243, 220, 128);
-            }
-        } else if (o->st == 1) {
-            o->av[1] = fmax(o->av[1] - 0.05, -12); o->x += (float)o->av[0]; o->y += (float)o->av[1];   /* 7355 */
-            if (o->y < -100) { o->st = 2; o->hidden = 1; o->x = (float)o->av[2]; o->y = (float)o->av[3]; }   /* 7356 */
-        } else {
-            if (GT % 30 == 0 && o->st < 10) o->st += 1;                        /* 7357 */
-            if (o->st == 10 && !near_view(o, 50)) { o->st = 0; o->hidden = 0; set_s(o, (o->dir & 16) ? "fnpigeon0_16" : "fnpigeon0"); }   /* 7358 */
-        }
-    }
-}
 static void paper_lanterns(void) {               /* 7257 / 7670: frame = fmod(1000 T / 150, 4), all in sync (T: the stage time in s) */
     obj_t *o; int f = (int)((G.frame * 1000.0 / FPS) / 150) % 4;
     EACH(OT_FN_PLANTERN, o) { o->an.frame = f; o->an.acc = 0; }
@@ -774,7 +750,6 @@ void fn_gima_spawn(void) {
       EACH(OT_FN_GWHEEL, o) { obj_t *sw = nth(OT_RM_IDLESW, o->tm); o->av[4] = sw ? (double)(sw - G.o) : -1; if (sw) sw->x = o->x + 80; } }   /* 7681: the switch at its wheel + (80, -80) (y = its rest A) */
     EACH(OT_FN_SIGN, o) set_sk(o, "fnsign%d", o->par & 1);
     EACH(OT_FN_LAMP, o) { set_s(o, "fnlamp"); o->A = 1; o->bd = 0; }           /* ctor A 1 (Q20 HP); contact never hurts */
-    EACH(OT_FN_PIGEON, o) { set_s(o, "fnpigeon0"); o->av[4] = 80 + cross_rand(61); }
     { int n = NLS[OT_FN_STROBE - RT0], k = 0; EACH(OT_FN_STROBE, o) { set_s(o, "fnstrobe"); o->av[0] = fmod(130.0 * (n - 1 - k++), 360); o->hidden = 1; } }   /* additive: fn_gima_draw */
     EACH(OT_FN_LSIGN, o) set_sk(o, "fnlsign%d", o->par & 3);
     EACH(OT_FN_COLUMN, o) set_sk(o, "fncolumn%d", o->par & 1);
@@ -807,7 +782,6 @@ void fn_gima_frame(player_t *p) {
     paper_lanterns();                            /* 7257 */
     signs(p);                                    /* 7258-7267 */
     lamps(p);                                    /* 7268-7271 */
-    pigeons(p);                                  /* 7349-7358 */
     fireworks(p);                                /* 7359-7365 */
     trolley(p);                                  /* 7529-7534 */
     halfpipes(p);                                /* 7535-7542 */

@@ -11,7 +11,7 @@ if ! xdpyinfo -display $DISP >/dev/null 2>&1; then
   (setsid Xvfb $DISP -screen 0 852x480x24 </dev/null >/dev/null 2>&1 8>&- 9>&- &)   # no inherited lock fds (flock 9)
   for i in $(seq 50); do xdpyinfo -display $DISP >/dev/null 2>&1 && break; timeout 0.2 tail -f /dev/null; done
 fi
-kill -9 $(pgrep -x Chowdren) $(pgrep -x gdb) 2>/dev/null
+kill -9 $(pgrep -x Chowdren) 2>/dev/null   # not gdb: other runs may be attached elsewhere
 cd $RUN
 # no D-Bus in the VM: without this SDL forks dbus-launch every frame (51k forks, traces crawl)
 export DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent
