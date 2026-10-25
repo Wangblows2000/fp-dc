@@ -35,7 +35,7 @@ def main():
         return (w, h, sw, sh, struct.unpack_from('<%dH' % (w * h), raw, 16))
     # several --pal4 options may name different groups; each group gets its own 16-colour blocks (session 11: the
     # 4-colour hair / tail / shield overlays become 4 bpp in the character's group 2)
-    p4files, p4grp, blocks, p4key = [], {}, {}, {}
+    p4files, p4grp, blocks, p4key, p4wide = [], {}, {}, {}, []
     keyof = lambda f: re.sub(r'_\d+\.tex$', '', f)
     for g4, rx4 in pal4:
         g4 = int(g4); rx4 = re.compile(rx4); blocks.setdefault(g4, [])
@@ -43,14 +43,20 @@ def main():
         kcols = {}
         for f in mine:
             t = load(f); kcols.setdefault(keyof(f), set()).update(q for q in t[4] if q & 0x8000); p4grp[f] = g4
+        wk = [k for k in kcols if len(kcols[k]) > 15]
+        if wk:
+            # session 17 (Fortune Night's parallax: 16-108 colours per image): too many colours for 4 bpp blocks, so the
+            # whole set of this option is left as ARGB1555 for tools/par_top.py (PAL8 in the free top of the character
+            # palette group, build_level.sh). Levels whose keys fit are unchanged (this was an error before).
+            print('%s: %d colours > 15: the --pal4 set (%d textures) is left for par_top.py' % (wk[0], len(kcols[wk[0]]), len(mine)))
+            p4wide.append((g4, mine)); kcols = {}; mine = []
         for k in sorted(kcols, key=lambda k: -len(kcols[k])):
-            if len(kcols[k]) > 15: raise SystemExit('%s: %d colours > 15 (pal4)' % (k, len(kcols[k])))
             bl = blocks[g4]
             b = next((i for i, bc in enumerate(bl) if len(bc | kcols[k]) <= 15), None)
             if b is None: bl.append(set()); b = len(bl) - 1
             bl[b] |= kcols[k]; p4key[k] = b
         p4files += mine
-    files = [f for f in files if f not in p4files]
+    files = [f for f in files if f not in p4files and not any(f in wide for g4, wide in p4wide)]
     nblk = lambda g: 16 * len(blocks.get(g, []))
     members = [[f for f in files if rx.search(f)] for rx in groups]
     texs = {f: load(f) for m in members for f in m}

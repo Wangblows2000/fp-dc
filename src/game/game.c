@@ -26,7 +26,7 @@ static void level_start(void) {
     int at = L->checkpoints;                                        /* levels with the g4 / g5 / g6 start rule (level data) */
     if (at) {                                                       /* RE 2955-2957 (spec_at_flow 1.4 / 1.5): no floor snap */
         if (strcmp(G.at_dir, G.lvdir) && !G.act_carry && !G.keep_g4) G.at_g4 = 1;   /* a fresh start of this act (a death target act keeps g4: RM2 -> RM1) */
-        if (L->start_fall && G.at_g4 < 1) G.at_g4 = 1;              /* 4307 */
+        if ((L->start_fall || L->start_card) && G.at_g4 < 1) G.at_g4 = 1;   /* 4307 (AT1 with its fall pose; FN1 the card only) */
         snprintf(G.at_dir, sizeof G.at_dir, "%s", G.lvdir);
         if (G.act_carry) G.at_g4 = -1;                              /* 3578: act change -> walk-in from x -32 */
         const entry_t *en = G.at_g4 <= 0 ? level_entry(G.prev_dir) : NULL;   /* per-act entry (spec_rm_flow 6.2) */
@@ -35,6 +35,7 @@ static void level_start(void) {
         else if (G.at_g4 <= 0) { G.p.spawn_x = -32; G.p.spawn_y = sty + 16 + ORIG_REF_DY; }
         else if (G.at_g4 == 1) { G.p.spawn_x = stx + 16; G.p.spawn_y = sty + 16 + ORIG_REF_DY; }
         else { G.p.spawn_x = G.at_g5; G.p.spawn_y = G.at_g6 + ORIG_REF_DY; }
+        if (G.at_g4 <= 0 && L->walkin_minx && G.p.spawn_x < L->walkin_minx) G.p.spawn_x = (float)L->walkin_minx;   /* FN6 8550: X = max(X, 400) in the walk-in's first frame */
     } else {
     /* snap spawn to the floor below the start marker */
     float sy, a;
@@ -44,7 +45,9 @@ static void level_start(void) {
     player_reset(&G.p, G.p.spawn_x, G.p.spawn_y);
     if (at) { G.p.ground = 0; G.p.face = G.walk_b < 0 ? -1 : 1; if (L->start_fall && G.at_g4 == 1) G.p.cY = 3; }   /* L = 0 (2955-2957); AT1 fall pose OTHERS.Y 3 (4308) */
     objects_spawn();
+    fn_flow_spawn();                                                /* Fortune Night stage script (src/game/fn_flow.c; stage index 3 only) */
     results_reset();
+    G.exit_walk = 0; G.timer_stop = 0;
     G.clear_t = 0; G.act_in = 0; G.act_fade = 0; G.frame = 0; G.card_t = 0; G.paused = 0;
     G.pause_a = 0; G.pause_wipe_f = 0;
     G.act_lives = G.p.lives; G.act_crystals = G.p.crystals; G.act_keystones = G.keystones; G.act_stage_crystals = G.stage_crystals;   /* RE 4311/4312 (act-carry values are applied after this; see next_act) */
@@ -258,6 +261,11 @@ static const int SND_CAROL[] = { 33, 61, 113, 114, 115, 116, 117, 118, 119, 120,
 static const int SND_MILLA[] = { 170, 178, 179, 180, 181, 182, 183, 184, 185, 201, 202, 203, 204, 205, 206, 207, 244,
                                  415, 416, 417, 418, 419, 420, 421, 422 };
 static int snd_group = -1;
+static int in_group(const int *g, int n, int id);
+static int in_char_group(int id) {
+    return (snd_group == 0 && in_group(SND_LILAC, sizeof SND_LILAC / sizeof *SND_LILAC, id)) || (snd_group == 1 && in_group(SND_CAROL, sizeof SND_CAROL / sizeof *SND_CAROL, id)) ||
+           (snd_group == 2 && in_group(SND_MILLA, sizeof SND_MILLA / sizeof *SND_MILLA, id));
+}
 /* Aqua Tunnel (session 12, D-047): the stage's own sounds load with an AT act and are freed for every other stage, like
  * the character groups (sound RAM cannot hold every stage's set): pipes 62, bombs 172/173, jets 240, crate 278, dig 306,
  * shields 308/316, Iron Worm 242/55/69, Chomper / snake 69/99/251/252 */
@@ -265,9 +273,11 @@ static int snd_group = -1;
 static const short *snd_stage_cur; static int snd_stage_n = -1;
 static void snd_stage_load(const short *ids, int n) {
     char nm[48];
-    if (snd_stage_n >= 0 && snd_stage_cur == ids && snd_stage_n == n) return;
+    /* the same set again: only reload what a character group change freed (session 17: a stage id can also be one of a
+     * character's own, e.g. FN's 61, Carol's) */
+    if (!(snd_stage_n >= 0 && snd_stage_cur == ids && snd_stage_n == n))
     for (int i = 0; i < (snd_stage_n > 0 ? snd_stage_n : 0); i++) {          /* free the previous stage's set first */
-        int id = snd_stage_cur[i], keep = 0;
+        int id = snd_stage_cur[i], keep = in_char_group(id);                  /* the current character's group keeps its own */
         for (int k = 0; k < n; k++) keep |= ids[k] == id;
         if (!keep && snd_handle[id] >= 0) { snd_unload(snd_handle[id]); snd_handle[id] = -1; }
     }
@@ -435,11 +445,11 @@ void game_dev_select(void) {
 #define CAM_HY 120.f
 void camera_reset(void) {
     const player_t *p = &G.p;
-    G.cam_nC = 0; G.cam_nE = (float)G.lvl.w; G.cam_nF = (float)G.lvl.h; G.cam_m2 = 0;
+    G.cam_nC = 0; G.cam_nD = 0; G.cam_nE = (float)G.lvl.w; G.cam_nF = (float)G.lvl.h; G.cam_m2 = 0;
     level_camera_bounds();                                         /* per-level normal bounds (levels.c, spec_at_flow 3.1) */
     G.cam.A = p->x; G.cam.B = p->y - 14.f; G.cam.W = G.cam.G = G.cam.H = G.cam.S = G.cam.T = G.cam.N = G.cam.O = 0;
     G.cam.V = p->ground; G.cam.U = 0; G.cam.M3 = 0; G.cam.minC = 0; G.cam.cine = 0;
-    float C = G.cam_nC, E = fminf(G.cam_nE, (float)G.lvl.w), D = 0, F = fminf(G.cam_nF, (float)G.lvl.h);
+    float C = G.cam_nC, E = fminf(G.cam_nE, (float)G.lvl.w), D = G.cam_nD, F = fminf(G.cam_nF, (float)G.lvl.h);
     if (G.cam.A < C + CAM_HX) G.cam.A = C + CAM_HX;
     if (G.cam.A > E - CAM_HX) G.cam.A = E - CAM_HX;
     if (G.cam.B < D + CAM_HY) G.cam.B = D + CAM_HY;
@@ -466,7 +476,7 @@ void camera_update(void) {
         if (G.cam.bD < G.cam.lD) G.cam.bD = fminf(G.cam.lD, G.cam.bD + 2.f);
         if (G.cam.bF > G.cam.lF) G.cam.bF = fmaxf(G.cam.lF, G.cam.bF - 2.f);
     }
-    float C = fmaxf(G.cam.minC, G.cam_nC), E = G.cam_nE, D = 0, F = fminf(G.cam_nF, (float)G.lvl.h);
+    float C = fmaxf(G.cam.minC, G.cam_nC), E = G.cam_nE, D = G.cam_nD, F = fminf(G.cam_nF, (float)G.lvl.h);
     if (G.cam.U == 1) { C = G.cam.bC; E = G.cam.bE; D = G.cam.bD; F = G.cam.bF; }
     if (G.cam_m2 && !G.cam.cine) {                       /* loop_camera_mode2: back to Player_326 (spec_at_flow 3.2) */
         float Bsp = p->ground ? p->gsp : p->vx, Gsp = p->ground ? 0.f : p->vy;
@@ -559,7 +569,7 @@ static void next_act(void) {
     snprintf(G.prev_dir, sizeof G.prev_dir, "%s", d);           /* the act left (entries by source act) */
     snprintf(d, sizeof d, "%s", nx);
     /* RV (DV1 -> DV2 traces): petals, lives, crystals, energy and the timer carry over (globals) */
-    int frame = G.frame, hp = G.p.hp; double energy = G.p.energy;
+    int frame = game_timer(), hp = G.p.hp; double energy = G.p.energy;   /* a stopped timer (FN3 7710) carries its stop value */
     G.act_carry = 1;
     if (game_load_level(d) < 0) { G.act_carry = 0; fe_enter(); return; }
     G.act_carry = 0;
@@ -577,12 +587,22 @@ static void next_act(void) {
  * loop_return_0; layout 4477). GUIPause.A = G.pause_a: 5 on opening, counts down to 3 (menu live) and from
  * 2 to 0 after closing; the cursor row (Crystal_447.A) is kept between pauses. */
 static int pause_frame(void) { return G.p.lives <= 1 ? 4 : 3; }   /* RE 4299/4300: RESTART greyed out */
+/* a death / restart target with a forced g4 (FN6 loop_death_34 / loop_restart_34: g4 = 2, frame index - 1 = FN5, placed at
+ * (g5, g6), FN5's last checkpoint). INFERRED: without a checkpoint of the target (g5 / g6 never set, e.g. a debug start in
+ * FN6; the original reappeared at the left edge, spec_fn_flow 1.5 UNKNOWN) the target starts fresh (g4 1) */
+static void death_g4(void) {
+    const level_def_t *L = level_cur();
+    if (!L->death_g4) return;
+    G.at_g4 = (G.at_g5 > 0 || G.at_g6 > 0) ? L->death_g4 : 1;
+}
+/* the stage timer (GUITimer; the timer group can be switched off by a stage script, FN3 7710) */
+int game_timer(void) { return G.timer_stop ? G.timer_stop - 1 : G.frame; }
 
 /* RE 4878: start edge, pause group active (after the title card, not during the act-end sequence),
  * menu closed (A == 0), player not dying */
 static int pause_try_open(const input_t *in) {
     if (!(in->pressed & BTN_START) || G.pause_a != 0) return 0;
-    if (G.card_t < CARD_DONE || G.clear_t || G.act_in || G.p.state == 6 /* ST_DEAD */ || G.p.hp <= 0) return 0;
+    if (G.card_t < CARD_DONE || G.clear_t || G.act_in || G.exit_walk || G.p.state == 6 /* ST_DEAD */ || G.p.hp <= 0) return 0;   /* FN3 7710: pause group off */
     G.paused = 1; G.pause_a = 5;
     music_pause(); snd_stop_all();                 /* Media::pause_samples: every channel, BGM (31) included */
     snd_play_orig(63, 230, 128);                   /* played after pausing, so it is heard */
@@ -603,7 +623,7 @@ static void pause_update(const input_t *in) {
                 music_stop(); snd_stop_all();
                 G.pause_sel = 1;
                 { char d[8]; snprintf(d, sizeof d, "%s", level_cur()->death_to ? level_cur()->death_to : G.lvdir);   /* RM2: loop_restart_25 -> RM1 */
-                  snprintf(G.prev_dir, sizeof G.prev_dir, "%s", G.lvdir); G.keep_g4 = 1; game_load_level(d); G.keep_g4 = 0; }
+                  snprintf(G.prev_dir, sizeof G.prev_dir, "%s", G.lvdir); death_g4(); G.keep_g4 = 1; game_load_level(d); G.keep_g4 = 0; }
                 G.p.lives = lives; G.p.crystals = crystals; G.frame = frame;
                 G.act_lives = lives;
             } else {                                /* QUIT: loop_return_0 -> frame 7 dispatcher; RV: Time Attack -> stage select */
@@ -674,12 +694,14 @@ void game_update(const input_t *in) {
     objects_sense_snapshot(1); PROF(PS_PLAYER, player_update(&G.p, pin)); objects_sense_snapshot(0);
     PROF(PS_LAYERS, layers_update(&G.p));         /* RE 1613-1616 + 3031/3032: loop collision layer */
     if (G.act_in) {                               /* RE 4526: B = 3 every frame for 32 frames (AT2 4403: B = 0) */
-        double wb = level_cur()->checkpoints ? G.walk_b : level_cur()->walkin_still ? 0 : 3;   /* the entry's B (RM1 from RM2: -3, 5827) */
-        if (G.p.ground) G.p.gsp = wb; else G.p.vx = wb;
+        const level_def_t *wl = level_cur();
+        double wb = wl->checkpoints ? G.walk_b : wl->walkin_still ? 0 : 3;   /* the entry's B (RM1 from RM2: -3, 5827) */
+        if (wl->walkin_minx && G.p.x < wl->walkin_minx) G.p.x = wl->walkin_minx;   /* FN6 8550: X = max(X, 400) */
+        if (!wl->walkin_free) { if (G.p.ground) G.p.gsp = wb; else G.p.vx = wb; }   /* FN6: no B event (its floor / plane modes move the player) */
         G.act_fade = G.act_fade - 8 < 0 ? 0 : G.act_fade - 8;
         if (++G.act_in > 32) { G.act_in = 0; G.act_fade = 0; if (level_cur()->checkpoints) G.at_g4 = 1; }  /* RE 5047 / 4404 / 4597: control returns at A >= 32, g4 = 1 */
     }
-    if (G.clear_t && G.exit_b) {                  /* RM1 inline / RM2 5918: grounded, B = 2 / -2 toward the exit */
+    if ((G.clear_t || G.exit_walk) && G.exit_b) { /* RM1 inline / RM2 5918: grounded, B = 2 / -2 toward the exit; FN3 6195 from 7710 on */
         G.p.face = G.exit_b > 0 ? 1 : -1;
         if (G.p.ground) G.p.gsp = G.exit_b;
     } else if (G.clear_t) {                       /* RE 3311: grounded, B = max(B, 2), facing right */
@@ -693,13 +715,14 @@ void game_update(const input_t *in) {
     fn_gima_frame(&G.p);                          /* Fortune Night acts 1-3 gimmicks (src/game/fn_gima.c) */
     fn_gimb_frame(&G.p);                          /* Fortune Night acts 4-5 gimmicks (src/game/fn_gimb.c) */
     rm_claw_frame(&G.p);                          /* RM3 Claw sequence events 6196-6350 (src/game/rm_claw.c) */
+    fn_flow_frame(&G.p);                          /* Fortune Night stage script (src/game/fn_flow.c) */
     if (G.p.state == 6 /* ST_DEAD */ && G.p.dead_t > 120) {     /* death: the act restarts with one life less (RE 1972 / loop_death_13) */
         int lives = G.p.lives - 1, crystals = G.act_crystals, frame = G.frame, ks = G.act_keystones, sc = G.act_stage_crystals;
         if (lives < 1) { music_stop(); snd_stop_all(); fe_enter_from_stage(G.time_attack); return; }   /* game over (card not ported) */
         music_stop(); snd_stop_all();
         G.stage_deaths++;                                                   /* SaveData x3 y3 (RE 1966 / 1985) */
         { char d[8]; snprintf(d, sizeof d, "%s", level_cur()->death_to ? level_cur()->death_to : G.lvdir);   /* RM2: loop_death_25 -> RM1, g4 kept */
-          snprintf(G.prev_dir, sizeof G.prev_dir, "%s", G.lvdir); G.keep_g4 = 1; int r = game_load_level(d); G.keep_g4 = 0;
+          snprintf(G.prev_dir, sizeof G.prev_dir, "%s", G.lvdir); death_g4(); G.keep_g4 = 1; int r = game_load_level(d); G.keep_g4 = 0;
           if (r < 0) { fe_enter(); return; } }
         G.p.lives = lives; G.p.crystals = crystals; G.frame = frame; G.act_lives = lives; G.keystones = ks; G.stage_crystals = sc;
         G.card_t = CARD_DONE;
@@ -734,6 +757,10 @@ void game_update(const input_t *in) {
     { const level_def_t *ld = level_cur();                    /* AT3 4521: also MV.Y < 380 (exit_max_y) */
       const exit_t *ex = (!G.clear_t && !G.act_in && (!ld->exit_max_y || G.p.y - ORIG_REF_DY < ld->exit_max_y)) ? level_exit_check(&G.p) : NULL;
       if (ex) { G.clear_t = 1; G.exit_to = ex->to; G.exit_b = ex->fade_b; }
+      if (ld->script_exit && !G.exit_walk && !G.clear_t && !G.act_in && G.p.x > G.lvl.w - 50) {   /* FN3 7710 (no B test): CTRL.M 1, Sign 0x2 -> 6195 */
+          G.exit_walk = 1; G.exit_b = 2; G.input_lock = 1; G.timer_stop = G.frame + 1;              /* timer group 0x2205a and pause group off */
+          if (G.p.state == ST_BOOST || G.p.state == ST_CHARGE) G.p.state = ST_NORMAL;               /* MV.M = 0 (INFERRED: only the boost states are left) */
+      }
       const warp_t *w = (!G.clear_t && !G.act_in) ? level_warp_check(&G.p) : NULL;
       if (w) { G.clear_t = 1; G.warp = w; G.exit_b = w->dir < 0 ? -2 : 2; G.input_lock = 1; } }   /* RM5 6731 / 6733: fade, B toward the exit, no control */   /* level data exits (RM1 5813 / 5814, RM2 5916, RM3 6193) */
 }
@@ -839,6 +866,7 @@ void hud_draw(void) {
     hud_dy = G.card_t >= CARD_DONE ? 0.f : G.card_t < CARD_OUT0 ? -40.f : -40.f + 40.f * (G.card_t - CARD_OUT0) / (CARD_DONE - CARD_OUT0);
     hud_dy += results_hud_dy();                                    /* RE 4561: slides up 80 px during the results */
     hud_dy += rm_claw_hud_dy();                                    /* RM3 6206 / 6258 (src/game/rm_claw.c) */
+    hud_dy += fn_flow_hud_dy();                                    /* FN3 7712 (src/game/fn_flow.c) */
     if (G.card_t < CARD_OUT0) return;
     /* energy meter: fill = guienergy alt A / 100 as x scale (RV en_xs); shine loop while full (RV en_img) */
     int full = p->energy >= PHYS_ENERGY_MAX;
@@ -860,7 +888,7 @@ void hud_draw(void) {
     hud_number(p->crystals < 0 ? 0 : p->crystals > 999 ? 999 : p->crystals, 3, 176, 8 + hud_dy);
     /* clock + stage timer mm:ss:cc (RV GUITimerM/S/Milli counters; colons are part of the clock image) */
     hud_img(4, 0, 322, 0 + hud_dy, -1);
-    int cs = G.frame * 100 / FPS, mm = cs / 6000, ss = cs / 100 % 60;
+    int cs = game_timer() * 100 / FPS, mm = cs / 6000, ss = cs / 100 % 60;
     hud_number(mm > 99 ? 99 : mm, 2, 343, 8 + hud_dy);
     hud_number(ss, 2, 369, 8 + hud_dy);
     hud_number(cs % 100, 2, 395, 8 + hud_dy);
