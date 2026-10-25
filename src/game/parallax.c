@@ -16,7 +16,7 @@
 #define PMAXCH 16
 #define PMAXPIECE 24
 typedef struct { int x, y, w, h; tex_t t; } pchunk_t;
-typedef struct { int img; float D, E, G; int y0, bw, bh, flags; double F; } ppiece_t;
+typedef struct { int img; float D, E, G; int y0, bw, bh, flags; double F; int handle; } ppiece_t;   /* handle: the Fusion object (file version 1) */
 static struct { int w, h, n; pchunk_t ch[PMAXCH]; } IMG[PMAXIMG];
 static ppiece_t PC[PMAXPIECE];
 static int nimg, npc, has_water, water_y;
@@ -39,7 +39,7 @@ int par_load(const char *dir) {
     uint8_t *d = plat_load_file(fn, &sz);
     if (!d) return -1;
     if (sz < 12 || memcmp(d, "FPPX", 4)) { free(d); return -1; }
-    int ni = rd16(d + 4), np = rd16(d + 6); has_water = rd16(d + 8);
+    int ni = rd16(d + 4), np = rd16(d + 6), ver = rd16(d + 10), rec = ver >= 1 ? 26 : 24; has_water = rd16(d + 8);
     size_t off = 12;
     if (ni > PMAXIMG || np > PMAXPIECE) { free(d); return -1; }
     for (int i = 0; i < ni; i++) {
@@ -53,11 +53,11 @@ int par_load(const char *dir) {
         }
         nimg = i + 1;
     }
-    for (int i = 0; i < np; i++, off += 24) {
-        if (off + 24 > sz) goto bad;
+    for (int i = 0; i < np; i++, off += rec) {
+        if (off + rec > sz) goto bad;
         PC[i].img = rd16(d + off); PC[i].D = rdf(d + off + 2); PC[i].E = rdf(d + off + 6); PC[i].G = rdf(d + off + 10);
         PC[i].y0 = rd32(d + off + 14); PC[i].bw = rd16(d + off + 18); PC[i].bh = rd16(d + off + 20); PC[i].flags = rd16(d + off + 22);
-        PC[i].F = 0;
+        PC[i].F = 0; PC[i].handle = ver >= 1 ? rd16(d + off + 24) : 0;
         if (PC[i].img >= nimg) goto bad;
         npc = i + 1;
     }
@@ -94,11 +94,20 @@ static void draw_image(int ii, int x, int y, int clipy0, int clipy1) {
 }
 
 int par_count(void) { return npc; }
+/* scripted pieces (RM3 Claw chase 6256 / 6257 / 6290, src/game/rm_claw.c): by Fusion handle, the drift G (F += G per
+ * frame) and the hidden flag 512 (a hidden piece is not drawn); flag 128 = destroyed */
+void par_set_drift(int handle, float g) { for (int i = 0; i < npc; i++) if (PC[i].handle == handle) PC[i].G = g; }
+void par_set_hidden(int handle, int hidden) { for (int i = 0; i < npc; i++) if (PC[i].handle == handle) PC[i].flags = (PC[i].flags & ~512) | (hidden ? 512 : 0); }
+void par_destroy(int handle) { for (int i = 0; i < npc; i++) if (PC[i].handle == handle) PC[i].flags |= 128; }
 
-void par_draw(int gframe) {
+static void draw_pieces_pass(int gframe, int front);
+void par_draw(int gframe) { draw_pieces_pass(gframe, 0); }
+void par_draw_front(void) { draw_pieces_pass(G.frame, 1); }   /* flag-256 pieces (frame layer 3, in front of the player) */
+static void draw_pieces_pass(int gframe, int front) {
     int vl = (int)G.camx, vt = (int)G.camy;
     for (int i = 0; i < npc; i++) {
         const ppiece_t *p = &PC[i];
+        if (((p->flags & 256) != 0) != front || (p->flags & 512)) continue;
         if ((p->flags & 1) && vt >= 1360) continue;      /* 5101 / 5102 */
         if ((p->flags & 2) && vt < 1360) continue;
         if (p->flags & 128) continue;                     /* destroyed (RM3 6298) */
@@ -121,6 +130,7 @@ void par_draw(int gframe) {
                 for (int tx = bx; tx < bx + A && tx < SCREEN_W; tx += iw)   /* the image tiles inside each box period */
                     draw_image(p->img, tx, ty, sy, y1);
     }
+    if (front) return;
     if (has_water) {                                      /* 5103-5105 */
         double C = (water_y - (vt + 120)) / 220.0;
         double sc = fmin(fabs(C), 2.0);

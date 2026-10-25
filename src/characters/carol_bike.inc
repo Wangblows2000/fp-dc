@@ -274,6 +274,11 @@ static int pad_sensor(const obj_t *o, int s) {
     int ox, oy, h; const signed char *a, *b;
     return o->an.b && mv_sensor_rows(s, &ox, &oy, &a, &b, &h) && obj_rows_hit(o, ox, oy, a, b, h);
 }
+/* the ride entry (4946's actions; also RM3 6242 / 6243, the scripted Claw-chase rides of rm_claw.c): M = 48 from this pad */
+void pad_ride_enter(player_t *p, obj_t *o) {
+    set_state(p, ST_PAD); p->padD = p->x; p->padE = p->y - ORIG_REF_DY; p->padC = PAD_A(o);
+    PAD_E(o) = -1; p->padfl &= ~(PADF_VOICE | PADF_OFF); p->padJ = 0;
+}
 /* pads after the state groups: Lilac's crystal pop (4944 / 3275 / 4945), Carol's entry (4946-4948 / 5364), re-arm 4949,
  * display 4943 */
 static void pads_events(player_t *p, const input_t *in) {
@@ -291,8 +296,7 @@ static void pads_events(player_t *p, const input_t *in) {
         if (carol && jp && p->state != ST_PAD && PAD_E(o) == 1 && PAD_D(o) == 0 &&
             (B == 0 ? pad_sensor(o, SENS_BOTTOMBIG) : B == -4.5 ? (!p->bike && pad_sensor(o, SENS_BOTTOMBIG)) :
                       (pad_sensor(o, SENS_RIGHTBIG) || pad_sensor(o, SENS_LEFTBIG)))) {                     /* 4946-4948 / 5364 */
-            set_state(p, ST_PAD); p->padD = p->x; p->padE = p->y - ORIG_REF_DY; p->padC = PAD_A(o);
-            PAD_E(o) = -1; p->padfl &= ~(PADF_VOICE | PADF_OFF); p->padJ = 0;
+            pad_ride_enter(p, o);
         }
         if (PAD_E(o) == -1 && p->state != ST_PAD) PAD_E(o) = 1;                                              /* 4949 */
         int want = o->dir ? ajb : PAD_E(o) == 1 ? ajl : ajp;                                                 /* 4943 */

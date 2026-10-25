@@ -93,6 +93,7 @@ void objects_spawn(void) {
     aqua_spawn();
     relic_spawn();
     relic_gima_spawn();
+    rm_claw_spawn();                              /* RM3 Claw sequence (src/game/rm_claw.c) */
     wlogs_spawn(); dv3_switch_spawn(); switches_spawn(); tunnels_reset(); shields_reset(); water_reset();
     /* 3566 / 3567: 12 logs per bridge at (bx + 16k, by + 56), A = k, B = base y */
     int nb = G.nobjs;
@@ -674,6 +675,7 @@ void objects_update(void) {
         float bx0, by0, bx1, by1;
         obj_box(o, &bx0, &by0, &bx1, &by1);
         int defeated = enemy_type(o->type) && (o->fl & 0x40);
+        if (o->type >= OT_SHRINE3 && o->type <= OT_CLAW_LAST && rm_claw_obj(o, p)) continue;   /* RM3 Claw set (src/game/rm_claw.c) */
         if (o->type >= OT_IRIS && relic_obj_update(o, p)) continue;                  /* Relic Maze enemies (src/game/relic.c) */
         if (o->type >= OT_DIGSPOT || o->type == OT_MON_KEYSTONE || o->type == OT_MON_WOOD) { if (aqua_obj_update(o, p)) continue; }   /* Aqua Tunnel objects (src/game/aqua.c) */
         switch (o->type) {

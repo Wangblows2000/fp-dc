@@ -302,6 +302,31 @@ static const objdef_t DEFS[] = {
     { OT_SSPIKE,        0,                                     NULL         }, /* - */
     { OT_FLAME,         0,                                     NULL         }, /* - */
     { OT_FSSHELL,       0,                                     NULL         }, /* - */
+    /* Relic Maze act 3 Claw sequence (rm_claw.c, spec_rm_claw.md 1; sprites set by rm_claw_spawn) */
+    { OT_SHRINE3,       0,                                     "shrine3"    }, /* shrine3 (Q20, armoured) */
+    { OT_CLAW,          0,                                     "claw0"      }, /* bossclaw */
+    { OT_CLAW_TALONS,   0,                                     "talons0"    }, /* bossclawtalons */
+    { OT_CLAW_LINK,     0,                                     "clink"      }, /* bossclawpiece1 */
+    { OT_CLAW_JOINT,    0,                                     "clink"      }, /* bossclawpiece4 */
+    { OT_CLAW_HITBOX,   0,                                     "clawhit"    }, /* bossclawhitbox (Q20) */
+    { OT_CLAW_BASE,     OD_SOLID,                              "clawbase"   }, /* bossclawbase (Q7) */
+    { OT_CLAW_BEAM,     0,                                     NULL         }, /* - (BossReflectoBeam_1321) */
+    { OT_CAR_ENGINE,    0,                                     "engine"     }, /* caravanengine (Q20) */
+    { OT_CAR_WHEEL,     OD_BOXCOL,                             "cwheel"     }, /* caravanwheel */
+    { OT_MERC,          0,                                     "merc"       }, /* npcmerc */
+    { OT_PBLOCK3,       OD_SOLID|OD_NOEDGE|OD_BOXCOL,          "pblock3"    }, /* pushableblock3 (Q7 Q9 Q14) */
+    { OT_CAR_GROUND,    OD_SOLID,                              "cground"    }, /* active_1338 (Q7, invisible) */
+    { OT_CAR_ROOF2,     OD_OBSTACLE|OD_NOEDGE|OD_BOXCOL,       "croof2"     }, /* levelfloatingplatform2 (Q8 Q9, invisible) */
+    { OT_CAR_ROOF3,     OD_OBSTACLE|OD_NOEDGE|OD_BOXCOL,       "croof3"     }, /* levelfloatingplatform3 (Q8 Q9, invisible) */
+    { OT_BGWALL,        0,                                     "bgwall"     }, /* backgroundwall (layer 1) */
+    { OT_BGWALL2,       0,                                     "bgwall2"    }, /* backgroundwall2 (layer 1) */
+    { OT_COLUMN1,       0,                                     "column1"    }, /* breakablecolumn1 */
+    { OT_COLUMN2,       0,                                     "column2"    }, /* breakablecolumn2 */
+    { OT_RELICWALL,     0,                                     "relicwall"  }, /* breakablerelicwall */
+    { OT_RELICDEBRIS,   0,                                     NULL         }, /* - (BreakableRelicWallDebris_1297) */
+    { OT_SHRINE2,       0,                                     "shrine2"    }, /* shrine2_1296 */
+    { OT_ALTPATH,       OD_SOLID,                              "altpath"    }, /* rmalternatepath_1426 (Q7; Lilac / Carol) */
+    { OT_ALTPATH2,      OD_SOLID|OD_BOXCOL,                    "altpath2"   }, /* rmalternatepath2_1438 (Q7 box; Milla) */
 };
 static objdef_t BY_TYPE[MAX_OT];
 static int built;

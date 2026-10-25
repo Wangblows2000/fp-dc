@@ -59,12 +59,19 @@ static const zone_t DIGZ_RM1[] = { { -12, 1186, 966, 1173 }, { 3455, 4489, 692, 
                                    { 1207, 1620, 1109, 1226 }, { 6539, 6653, 487, 620 } };
 static const signed char DIGR_RM1[] = { DIG_EARTH_MON, DIG_CRYSTALS, DIG_OPEN_HOLE, DIG_KEYSTONE_MON };
 static const padcfg_t PADS_RM2[] = { {3264,432,0,90,0,1,0}, {3264,224,1,90,0,0,0}, {3264,32,2,90,1,0,0}, {800,608,3,0,0,1,0}, {664,384,4,270,0,0,0}, {992,40,5,180,1,0,0} };
+/* RM3 jump pads (spread index A newest first: pad 0 = the last in the frame JSON). 0-7 on the Claw corridor floor (y 512:
+ * Carol's scripted rides 6242-6245, src/game/rm_claw.c); 6096-6101: pad 8 D 1 B 270, pads with x > 10400 anim 7 (block),
+ * pad 9 E 1, pad 11 B 270, pad 12 B 150, pad 13 D 1 B 270 (spec_rm_gimmicks_b 18) */
+static const padcfg_t PADS_RM3[] = { {1120,512,0,0,0,0,0}, {1488,512,1,0,0,0,0}, {1856,512,2,0,0,0,0}, {2224,512,3,0,0,0,0},
+    {2592,512,4,0,0,0,0}, {2960,512,5,0,0,0,0}, {3336,512,6,0,0,0,0}, {3656,512,7,0,0,0,0}, {3800,320,8,270,1,0,0},
+    {11256,2984,9,0,0,1,1}, {11080,2840,10,0,0,0,1}, {10840,3000,11,270,0,0,1}, {10944,2792,12,150,0,0,1}, {10576,2872,13,270,1,0,1} };
 static const gate_t GATES_RM1[] = { { 0x2, OT_WR_RAIL, 0, 0, 0, 0, 0 }, { 0x4, OT_RAIL2, 0, 0, 0, 0, 0 } };   /* 5832 / 5833 */
 static const gate_t GATES_RM2[] = { { 0x2, OT_WR_RAIL, 116, 336, -32768, 1000, 1 }, { 0x4, OT_RAIL2, 116, 1424, 1000, 32767, 1 },   /* 5922 / 5923 */
                                     { 0x4, OT_RAIL2, 0, 0, 0, 0, 0 } };                                                      /* 5926 */
 static const flagclear_t CLEAR_RM2[] = { { 0x2, 0, 3499, 0, 1199 }, { 0x4, 22, 1937, 1600, 3189 } };                        /* 6039 / 6040 */
 static const zone_t BREAKOUT_RM2 = { 587, 824, 2328, 2566 };
-static const short SFX_RM[] = { 54, 55, 59, 60, 62, 67, 70, 77, 101, 110, 135, 213, 219, 306, 426 };   /* not in the global set (D-047): enemies, gimmicks, flow */
+static const short SFX_RM[] = { 54, 55, 59, 60, 62, 67, 70, 77, 101, 110, 135, 213, 219, 306, 426,
+                                68, 73, 96, 99, 149, 312 };   /* not in the global set (D-047): enemies, gimmicks, flow; RM3 Claw sequence (spec_rm_claw 10) */
 
 static const short SFX_AT[] = { 55, 62, 69, 99, 172, 173, 240, 242, 251, 252, 278, 306, 308, 316 };
 #define N_(a) (int)(sizeof a / sizeof a[0])
@@ -98,7 +105,8 @@ static const level_def_t LEVELS[] = {
       .cps = CP_RM2, .ncps = N_(CP_RM2), .death_to = "rm1", .kills = KILL_RM2, .nkills = N_(KILL_RM2), .plate_rule = 2, .pads = PADS_RM2, .npads = N_(PADS_RM2),
       .gates = GATES_RM2, .ngates = N_(GATES_RM2), .flagclears = CLEAR_RM2, .nflagclears = N_(CLEAR_RM2), .breakout = &BREAKOUT_RM2, .breakout_flag = 0x4 },
     { RM("rm3", 26, 3, "bgm/m_stage2.adp"), .card_first = 17, .music_cp = "bgm/m_stage2b.adp", .exits = EX_RM3, .nexits = N_(EX_RM3),
-      .entries = EN_RM3, .nentries = N_(EN_RM3), .cps = CP_RM3, .ncps = N_(CP_RM3), .cam_right = 12288 + 50 },
+      .entries = EN_RM3, .nentries = N_(EN_RM3), .cps = CP_RM3, .ncps = N_(CP_RM3), .cam_right = 12288 + 50,
+      .pads = PADS_RM3, .npads = N_(PADS_RM3), .nobike = 1 },
     { RM("rm4", 27, 4, "bgm/m_stage2b.adp"), .card_first = 18, .cps = CP_RM4, .ncps = N_(CP_RM4) },
     { RM("rm5", 28, 5, "bgm/m_stage2b.adp"), .card_first = 20, .entries = EN_RM5, .nentries = N_(EN_RM5), .cam_right = 9600 + 50, .edge_results = 1 },
 };

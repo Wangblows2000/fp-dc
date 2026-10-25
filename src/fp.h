@@ -250,6 +250,12 @@ enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_MON_INVINC = 4, OT_MON
        OT_AXLE = 275, OT_BLIGHT = 276, OT_COLFRONT = 277, OT_COLBACK1 = 278, OT_COLBACK2 = 279, OT_RUINS = 280, OT_RUINPIECE = 281 /* runtime */,
        OT_DIGHOLE = 282, OT_LAYER_SW2 = 283, OT_WPLATE_RM = 284,
        OT_LL001 = 285, OT_LL002 = 286, OT_LL015 = 287, OT_LL02 = 288, OT_LL101 = 289, OT_LL116 = 290, OT_LL1L01 = 291, OT_LL1L02 = 292 };
+/* Relic Maze act 3 Claw sequence (rm_claw.c) */
+enum { OT_SHRINE3 = 400, OT_CLAW = 401, OT_CLAW_TALONS = 402, OT_CLAW_LINK = 403, OT_CLAW_JOINT = 404, OT_CLAW_HITBOX = 405,
+       OT_CLAW_BASE = 406, OT_CLAW_BEAM = 407 /* runtime */, OT_CAR_ENGINE = 408, OT_CAR_WHEEL = 409, OT_MERC = 410, OT_PBLOCK3 = 411,
+       OT_CAR_GROUND = 412, OT_CAR_ROOF2 = 413, OT_CAR_ROOF3 = 414, OT_BGWALL = 415, OT_BGWALL2 = 416, OT_COLUMN1 = 417,
+       OT_COLUMN2 = 418, OT_RELICWALL = 419, OT_RELICDEBRIS = 420 /* runtime */, OT_SHRINE2 = 421,
+       OT_ALTPATH = 422, OT_ALTPATH2 = 423 /* RMAlternatePath_1426 / 2_1438: the route split 6203 / 6204 */, OT_CLAW_LAST = 449 };
 
 #define MAX_ATLAS 4
 typedef struct {
@@ -565,6 +571,16 @@ int    relic_gima_obj(obj_t *o, player_t *p), relic_boss_clear_type(int type);
 void   obj_hang_try(obj_t *o, player_t *p);       /* a hang handle (OD_HANG): the grab (4064-4066) */
 int    relic_obj_update(obj_t *o, player_t *p);   /* 1: a relic.c type (handled) */
 int    relic_keeps_state(int type);               /* its own events set D on defeat (2764 leaves st) */
+/* src/game/rm_claw.c (RM3 Claw sequence, spec_rm_claw.md): hooks next to the relic_* ones */
+void   rm_claw_spawn(void), rm_claw_frame(player_t *p);
+int    rm_claw_obj(obj_t *o, player_t *p);        /* 1: a Claw-set type (its rules run in rm_claw_frame) */
+int    rm_claw_enemy(int type);                   /* qualifier 20 members of the set (Shrine3, the hitbox, the engine) */
+int    rm_claw_input(uint32_t *held);             /* CTRL.M = 1 (6202-6257): the scripted pad */
+float  rm_claw_hud_dy(void);                      /* 6206 / 6258: HUD slid up during the shrine scene */
+void   rm_claw_draw_front(void);                  /* the white fade of the wreck (6281-6293) */
+void   par_set_drift(int handle, float g), par_set_hidden(int handle, int hidden), par_destroy(int handle), par_draw_front(void);
+void   music_fade(int frames, int fade_in);       /* fadeout_music / fadein_music over n frames (0: cancel) */
+void   pad_ride_enter(player_t *p, obj_t *pad);   /* Carol's jump-pad ride entry (4946's actions; carol_bike.inc) */
 void   rock_at_new(float x, float y), rock_at_break(obj_t *r), rocks_at_frame(player_t *p);   /* EnemyRock (aqua_boss.c), shared */
 /* level definitions (src/game/levels.c): per-act data read by the shared code */
 typedef struct { short x, y, A; float B; short D, E, blk; } padcfg_t;   /* Carol's jump pad at (x, y): index A, angle B, chain end D, lit E, block pad */
@@ -618,6 +634,7 @@ typedef struct {
     const gate_t *gates; int ngates;
     const flagclear_t *flagclears; int nflagclears;
     const zone_t *breakout; int breakout_flag;       /* RM2 5925: in the zone while the axle turns -> the flag, gates open */
+    int nobike;                                      /* RM3 6198: Carol (MV.A = 3) enters without the bike (g1 = 2) */
     int monitor_hop;                                 /* 2605: a monitor hops when bumped from below (D-051: AT only, DV keeps its traced behaviour) */                     /* switches.c: pressure-plate rule (0 DV 4971-4973, 1 AT1 4093-4096), pass after the movement */
 } level_def_t;
 const level_def_t *level_def(const char *dir), *level_cur(void);

@@ -618,13 +618,16 @@ void spinlogs_update(player_t *p) {
 /* ---- pushable block (PushableBlock1_493, 2711-2735). D = o->dir, flags o->fl: 0x08 active, 0x10 resting;
  * av: 1 = B (push-sound timer), 4 = E (dust), 5 = F (fall speed), 7 = H (crush cooldown). Box X-21..X+27, Y-41..Y+7. */
 static int obst(int x, int y) { return solid_at(&G.lvl, (float)x, (float)y); }
-void pblock_box(const obj_t *b, int *x1, int *y1, int *x2, int *y2) { *x1 = (int)b->x - 21; *y1 = (int)b->y - 41; *x2 = (int)b->x + 27; *y2 = (int)b->y + 7; }
+/* PushableBlock3_1287 (RM3, on the caravan truck; spec_rm_claw 8) is the same Q14 block with its own image: 48x48,
+ * hotspot (21, 30) -> box X-21..X+27, Y-30..Y+18 (PushableBlock1: hotspot (21, 41)) */
+static int pb_is(int t) { return t == OT_PBLOCK1 || t == OT_PBLOCK3; }
+void pblock_box(const obj_t *b, int *x1, int *y1, int *x2, int *y2) { int hy = b->type == OT_PBLOCK3 ? 30 : 41; *x1 = (int)b->x - 21; *y1 = (int)b->y - hy; *x2 = (int)b->x + 27; *y2 = (int)b->y + 48 - hy; }
 void pblocks_update(player_t *p) {
     int any = 0;
     p->push_s = p->push_s > 0 ? p->push_s - 1 : 0;                                          /* 2711 */
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *b = &G.o[i];
-        if (!b->alive || b->type != OT_PBLOCK1) continue;
+        if (!b->alive || !pb_is(b->type)) continue;
         any = 1;
         if (b->dir == 0) b->fl &= ~0x10;                                                     /* 2712 */
         if (b->fl & 0x08) {                                                                  /* 2713: 1269-1271 */
@@ -641,13 +644,13 @@ void pblocks_update(player_t *p) {
     if (!any) return;
     int M11 = p->state == ST_PUSH && p->state_t >= 1;      /* the push events run from the frame after the M11 entry (RV pblock_dv2) */
     if (M11) TN.skinL++;                                                                        /* 2714 */
-    if (!M11 && TN.push_prev11) { TN.skinL = 0; for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == OT_PBLOCK1) G.o[i].dir = 0; }   /* 2715 */
+    if (!M11 && TN.push_prev11) { TN.skinL = 0; for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && pb_is(G.o[i].type)) G.o[i].dir = 0; }   /* 2715 */
     TN.push_prev11 = M11;
     for (int side = 1; side >= -1; side -= 2) {                                             /* 2716/2717, 2718/2719 */
         if (M11 && p->face == side)
             for (int i = 0; i < G.nobjs; i++) {
                 obj_t *b = &G.o[i];
-                if (!b->alive || b->type != OT_PBLOCK1 || !(b->fl & 0x10)) continue;
+                if (!b->alive || !pb_is(b->type) || !(b->fl & 0x10)) continue;
                 int x1, y1, x2, y2; pblock_box(b, &x1, &y1, &x2, &y2);
                 if (!box_sensor(side > 0 ? SENS_RIGHTBIG : SENS_LEFTBIG, (float)x1, (float)y1, (float)x2, (float)y2)) continue;
                 int ex = side > 0 ? x2 : x1 - 1;
@@ -656,7 +659,7 @@ void pblocks_update(player_t *p) {
         int moved = 0;
         for (int i = 0; i < G.nobjs; i++) {
             obj_t *b = &G.o[i];
-            if (!b->alive || b->type != OT_PBLOCK1 || b->dir != side || !(b->fl & 0x10)) continue;
+            if (!b->alive || !pb_is(b->type) || b->dir != side || !(b->fl & 0x10)) continue;
             b->x += side; b->av[1] = 4; moved = 1;
         }
         if (moved) { p->x += side; TN.skinL = 0; player_sync_sensors(p); set_B(p, 0); p->push_s = 4; }
@@ -664,7 +667,7 @@ void pblocks_update(player_t *p) {
     if (TN.skinL == 40) { TN.skinL = 41; voice_play("lilac_cantmoveit"); }                        /* 2720 (voice choice INFERRED) */
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *b = &G.o[i];
-        if (!b->alive || b->type != OT_PBLOCK1) continue;
+        if (!b->alive || !pb_is(b->type)) continue;
         int x1, y1, x2, y2; pblock_box(b, &x1, &y1, &x2, &y2);
         if (b->dir && (b->fl & 0x10)) b->av[4] += 1;                                         /* 2721 */
         if (b->av[4] > 2 && (b->fl & 0x10)) { obj_effect((float)(x1 + rand() % (x2 - x1)), (float)y2, "dust"); b->av[4] = 0; }   /* 2722 */
