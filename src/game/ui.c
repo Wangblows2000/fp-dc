@@ -40,7 +40,8 @@ int ui_load(ui_scene_t *s, const char *file, ui_banks_t *banks) {
         if (off + 32 > sz) { free(d); return -1; }
         memcpy(o->cls, d + off, 24); o->cls[23] = 0;
         o->x = (int16_t)rd16(d + off + 24); o->y = (int16_t)rd16(d + off + 26);
-        o->layer = d[off + 28]; o->kind = d[off + 29]; o->nent = d[off + 30];
+        o->layer = d[off + 28]; o->kind = d[off + 29]; o->nent = d[off + 30]; o->alpha = d[off + 31];
+        if (o->kind == 3) { o->link = i - 1; while (o->link > 0 && s->o[o->link].kind == 3) o->link--; }
         int nent = o->nent;
         off += 32;
         if (o->kind == 2) {                                   /* solid quick backdrop: w, h, colours */
@@ -113,7 +114,8 @@ void ui_draw_obj(ui_scene_t *s, ui_obj_t *o, float camx, float camy, uint32_t ar
     const frame_t *f = anim_frame(&o->an);
     if (!f) return;
     /* backdrops are placed by their top-left corner (their image hot spots are not used) */
-    float hx = o->kind == 0 ? f->hx : 0, hy = o->kind == 0 ? f->hy : 0;
+    int kind = o->kind == 3 ? s->o[o->link].kind : o->kind;
+    float hx = kind == 0 ? f->hx : 0, hy = kind == 0 ? f->hy : 0;
     frame_draw(o->an.b, f, o->x - camx + o->dx + o->shx + hx, o->y - camy + o->dy + o->shy + hy, 0, argb);
 }
 
@@ -122,6 +124,14 @@ void ui_draw(ui_scene_t *s, float camx, float camy, int lmin, int lmax) {
         for (int i = 0; i < s->nobj; i++) {
             ui_obj_t *o = &s->o[i];
             if (o->layer != l) continue;
+            uint32_t col = 0xffffffff;
+            if (o->kind == 3) {                               /* translucent layer: follows its owner (position, frame, tiling) */
+                const ui_obj_t *w = &s->o[o->link];
+                o->dx = w->dx; o->dy = w->dy; o->shx = w->shx; o->shy = w->shy; o->vis = w->vis; o->tilew = w->tilew; o->tileh = w->tileh;
+                if (w->cur != o->cur) ui_obj_select(s, o, o->ent[w->cur].anim, o->ent[w->cur].dir);
+                o->an.frame = w->an.frame; o->hold = 1;
+                col = ((uint32_t)o->alpha << 24) | 0xffffff;
+            }
             if (o->kind == 2) {                               /* solid quick backdrop (a mask panel, e.g. around the stage-select preview) */
                 if (!o->vis) continue;
                 float x = o->x - camx + o->dx, y = o->y - camy + o->dy;
@@ -134,12 +144,12 @@ void ui_draw(ui_scene_t *s, float camx, float camy, int lmin, int lmax) {
             }
             /* Fusion quick backdrops repeat their pattern across the frame; the original title panels
              * show the 320-wide sky/sea repeated across the whole view */
-            if (o->kind == 0 && (!strncmp(o->cls, "quickbackdrop", 13) || !strncmp(o->cls, "backgroundsystembox", 19)) && o->vis && o->an.b) {
+            if ((o->kind == 0 || (o->kind == 3 && s->o[o->link].kind == 0)) && (!strncmp(o->cls + (o->kind == 3), "quickbackdrop", 13) || !strncmp(o->cls + (o->kind == 3), "backgroundsystembox", 19)) && o->vis && o->an.b) {
                 const frame_t *f = anim_frame(&o->an);
                 if (f && f->w > 0) {
                     float x0 = o->x - camx; while (x0 > 0) x0 -= f->w;
                     float dx = o->dx;
-                    for (float x = x0; x < SCREEN_W; x += f->w) { o->dx = x - (o->x - camx); ui_draw_obj(s, o, camx, camy, 0xffffffff); }
+                    for (float x = x0; x < SCREEN_W; x += f->w) { o->dx = x - (o->x - camx); ui_draw_obj(s, o, camx, camy, col); }
                     o->dx = dx;
                     continue;
                 }
@@ -148,10 +158,18 @@ void ui_draw(ui_scene_t *s, float camx, float camy, int lmin, int lmax) {
                 const frame_t *f = anim_frame(&o->an);
                 if (f && f->w > 0) {
                     float dx = o->dx;
-                    for (int x = 0; x < o->tilew; x += f->w) { o->dx = dx + x; ui_draw_obj(s, o, camx, camy, 0xffffffff); }
+                    for (int x = 0; x < o->tilew; x += f->w) { o->dx = dx + x; ui_draw_obj(s, o, camx, camy, col); }
                     o->dx = dx; continue;
                 }
             }
-            ui_draw_obj(s, o, camx, camy, 0xffffffff);
+            if (o->tileh && o->vis && o->an.b) {                /* a wrapping layer: copies one image height apart down the screen */
+                const frame_t *f = anim_frame(&o->an);
+                if (f && f->h > 0) {
+                    float dy = o->dy;
+                    for (int y = -f->h; y < SCREEN_H + f->h; y += f->h) { o->dy = dy + y; ui_draw_obj(s, o, camx, camy, col); }
+                    o->dy = dy; continue;
+                }
+            }
+            ui_draw_obj(s, o, camx, camy, col);
         }
 }

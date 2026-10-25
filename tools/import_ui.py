@@ -15,6 +15,8 @@ Output (game data, gitignored):
                               nent x { u8 anim, u8 dir, u8 bank, u8 pad; u16 bank_anim }
                             kind 2 (a solid-colour quick backdrop, no image): nent 0, then u16 w, h; u32 argb1, argb2
                               (vertical gradient end colour, = argb1 when flat)
+                            kind 3 (session 13): the translucent layer of the object before it (pad byte = its alpha),
+                              same entries; images with one semi-transparent alpha value are split in two
 """
 import json, os, struct, sys
 from PIL import Image
@@ -25,7 +27,25 @@ import title_credit
 MAX_ENT = 40
 ACT = {}
 
+TSPLIT, TLAYER = 1000000, 2000000   # synthetic image ids: <id> + TSPLIT = its opaque part, + TLAYER = its translucent layer
+def partial_alpha(im):
+    """the one alpha value of an image's semi-transparent pixels (None if it has none or several): ARGB1555 keeps 1 bit
+    of alpha, so such pixels are drawn as a second, opaque layer with that vertex alpha (session 13, like the level
+    importer's -id layers)"""
+    from collections import Counter
+    c = Counter(a for a in im.getchannel('A').getdata() if 0 < a < 255)
+    n = sum(c.values())
+    if n < 32: return None
+    a, k = c.most_common(1)[0]
+    return a if k >= 0.9 * n else None
+
 def load_img(src, i):
+    if i >= TLAYER or i >= TSPLIT:     # the opaque part / the translucent layer of image i (made opaque)
+        base, hx, hy = load_img(src, i - (TLAYER if i >= TLAYER else TSPLIT)); a = partial_alpha(base)
+        px = [(r, g, b, (255 if 0 < A < 255 else 0) if i >= TLAYER else (A if A in (0, 255) else 0)) for r, g, b, A in base.getdata()]
+        im = Image.new('RGBA', base.size); im.putdata(px)
+        ACT[i] = ACT[i - (TLAYER if i >= TLAYER else TSPLIT)]
+        return im, hx, hy
     im = Image.open(os.path.join(src, 'img_%d.png' % i)).convert('RGBA')
     if i == title_credit.IMAGE_ID: im = title_credit.patch(im)      # port credit (intentional change)
     m = [int(v, 0) for v in open(os.path.join(src, 'img_%d_meta.txt' % i)).read().split()]
@@ -91,6 +111,27 @@ def main():
                     gindex[gk] = len(groups); groups.append(gk)
                 refs.append((ai, dk, gindex[gk]))
             objs.append((o['cls'], o['x'] if o['x'] is not None else -1000, o['y'] if o['y'] is not None else -1000, o['layer'], 0 if o.get('kind') == 'bg' else 1, refs))
+        # semi-transparent images (one alpha value, e.g. the menus' bottom bar at 135, the record panel at 87): the
+        # object shows the opaque part and a companion object (kind 3, next in the list) the translucent layer
+        out_objs = []
+        for ob in objs:
+            out_objs.append(ob)
+            if ob[4] not in (0, 1): continue
+            ids = [i for _, _, gi in ob[5] for i in groups[gi][0]]
+            alphas = {i: partial_alpha(Image.open(os.path.join(src, 'img_%d.png' % i)).convert('RGBA')) for i in set(ids)}
+            al = [a for a in alphas.values() if a]
+            if not al: continue
+            split = {i for i, a in alphas.items() if a}
+            orefs, trefs = [], []
+            for ai, dk, gi in ob[5]:
+                ids_g, sp, lp, bt = groups[gi]
+                for tag, lst in ((TSPLIT, orefs), (TLAYER, trefs)):
+                    gk = (tuple(i + tag if i in split else i for i in ids_g) if tag == TSPLIT else tuple(i + TLAYER for i in ids_g), sp, lp, bt)
+                    if gk not in gindex: gindex[gk] = len(groups); groups.append(gk)
+                    lst.append((ai, dk, gindex[gk]))
+            out_objs[-1] = ob[:5] + (orefs,)
+            out_objs.append(('~' + ob[0], ob[1], ob[2], ob[3], 3, trefs, max(set(al), key=al.count)))
+        objs = out_objs
         scenes.append((fno, fr['width'], fr['height'], objs))
     # assign groups to atlases (whole sequences per atlas)
     imgs = {}
@@ -101,7 +142,9 @@ def main():
     def fits(ids):
         return pack([(i, imgs[i][0]) for i in ids], 1024) is not None
     dropped = set()
+    used = {gi for sc in scenes for ob in sc[3] if ob[4] != 2 for _, _, gi in ob[5]}
     for gi, g in enumerate(groups):
+        if gi not in used: continue                 # replaced by a split (opaque part + translucent layer)
         if not fits(list(dict.fromkeys(g[0]))):
             print('WARNING: group %d (%d images, e.g. img %d) exceeds one 1024x1024 atlas: dropped' % (gi, len(g[0]), g[0][0]))
             dropped.add(gi); continue
@@ -141,12 +184,13 @@ def main():
         print('bank %s: %d images, %d anims, atlas %d' % (bn, len(ids), len(gl), size))
     for fno, w, h, objs in scenes:
         d = bytearray(b'FPU1' + struct.pack('<4H', w, h, len(objs), len(banks)))
-        for cls, x, y, layer, kind, refs in objs:
+        for ob in objs:
+            cls, x, y, layer, kind, refs = ob[:6]
             if kind == 2:
                 d += cls.encode()[:23].ljust(24, b'\0') + struct.pack('<2h4B', x, y, layer, 2, 0, 0) + struct.pack('<2H2I', *refs)
                 continue
             refs = [r for r in refs if r[2] not in dropped]
-            d += cls.encode()[:23].ljust(24, b'\0') + struct.pack('<2h4B', x, y, layer, kind, len(refs), 0)
+            d += cls.encode()[:23].ljust(24, b'\0') + struct.pack('<2h4B', x, y, layer, kind, len(refs), ob[6] if kind == 3 else 0)   # kind 3: byte 31 = alpha
             for ai, dk, gi in refs:
                 bi, k = gloc[gi]
                 d += struct.pack('<4BH', ai, dk, bi, 0, k)

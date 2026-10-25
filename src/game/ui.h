@@ -17,6 +17,8 @@ typedef struct {
     animator_t an;
     uint16_t rw, rh; uint32_t c1, c2;   /* kind 2: solid quick backdrop (size, top / bottom colour) */
     int tilew;                    /* > 0: the image repeats horizontally over this width (stage-select preview strips) */
+    int link; uint8_t alpha;      /* kind 3: the owner object (the one before it) and the vertex alpha of this translucent layer */
+    int tileh;                    /* 1: the image repeats vertically over the screen (a layer that wraps in y: the menus' checker column) */
 } ui_obj_t;
 typedef struct ui_scene_s { int w, h, nobj; ui_obj_t *o; ui_banks_t *banks; } ui_scene_t;
 
