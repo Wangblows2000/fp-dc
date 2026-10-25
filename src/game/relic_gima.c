@@ -400,18 +400,24 @@ static void basement_light(player_t *p) {
         blight_alpha = (int)fmin(255, fmax(0, (Y - 1540) / 2));
     }
 }
-void relic_gima_draw_overlay(void) {                  /* the basement darkness (shader 20 UNKNOWN U4: a dark frame around a hole at the player, INFERRED) */
+void relic_gima_draw_overlay(void) {
+    /* RM2 basement darkness (5997: BasementLight on layer 5, blend byte = clamp((Y - 1540) / 2), shader 20 UNKNOWN U4).
+     * Session 16 (user request): a black vignette instead of the light image. Darkness fades in from the screen edges
+     * to 40 % of the way to the centre (85 px across, 48 px down) in 8 non-overlapping rings of decreasing alpha, all
+     * scaled by the original's blend byte, so the depth fade-in and the clean-up (alpha 0 above y 1540 / outside RM2)
+     * are unchanged. 32 untextured quads on the translucent list: no per-pixel work. */
     if (blight_alpha <= 0) return;
-    obj_t *o = first_of(OT_BLIGHT);
-    if (!o || !o->an.b) return;
-    const frame_t *f = anim_frame(&o->an);
-    float s = 4.f, w = f->w * s, h = f->h * s, x = floorf(o->x - G.camx) - f->hx * s, y = floorf(o->y - G.camy) - f->hy * s;
-    uint32_t a = (uint32_t)blight_alpha << 24;
-    frame_draw_scaled(o->an.b, f, x, y, w, h, a | 0xffffff);
-    if (y > 0) r_rect(0, 0, SCREEN_W, y, a);
-    if (y + h < SCREEN_H) r_rect(0, y + h, SCREEN_W, SCREEN_H - (y + h), a);
-    if (x > 0) r_rect(0, y, x, h, a);
-    if (x + w < SCREEN_W) r_rect(x + w, y, SCREEN_W - (x + w), h, a);
+    const int N = 8; const float DX = SCREEN_W * 0.5f * 0.40f, DY = SCREEN_H * 0.5f * 0.40f;
+    for (int k = 0; k < N; k++) {
+        float x0 = DX * k / N, x1 = DX * (k + 1) / N, y0 = DY * k / N, y1 = DY * (k + 1) / N;
+        float t = 1.f - (float)k / N;                              /* opaque black at the edge, linear to clear inward */
+        uint32_t a = (uint32_t)(blight_alpha * t + 0.5f); if (a == 0) continue;
+        uint32_t c = a << 24;
+        r_rect(x0, y0, SCREEN_W - 2 * x0, y1 - y0, c);                                   /* top band of the ring */
+        r_rect(x0, SCREEN_H - y1, SCREEN_W - 2 * x0, y1 - y0, c);                        /* bottom */
+        r_rect(x0, y1, x1 - x0, SCREEN_H - 2 * y1, c);                                   /* left */
+        r_rect(SCREEN_W - x1, y1, x1 - x0, SCREEN_H - 2 * y1, c);                        /* right */
+    }
 }
 static void clocks(void) {                            /* 5920: ML.Z = the stage time in ms */
     double Z = (double)G.frame * 1000.0 / FPS;
