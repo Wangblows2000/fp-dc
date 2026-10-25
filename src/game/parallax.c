@@ -16,7 +16,7 @@
 #include "../fp.h"
 
 #define PMAXIMG 24
-#define PMAXCH 24   /* FN piece5 (380 x 400): 18 power-of-two chunks */
+#define PMAXCH 32   /* FN piece5 (380 x 400): 18 power-of-two chunks; FN2 5_1802 (380 x 460): 30 */
 #define PMAXPIECE 24
 typedef struct { int x, y, w, h; tex_t t; } pchunk_t;
 typedef struct { int img; float D, E, G; int y0, bw, bh, flags; double F; int handle; } ppiece_t;   /* handle: the Fusion object (file version 1) */
