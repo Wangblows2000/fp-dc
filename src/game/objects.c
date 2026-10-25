@@ -110,6 +110,7 @@ void objects_spawn(void) {
     fn_gimb_spawn();                              /* Fortune Night acts 4-5 gimmicks (src/game/fn_gimb.c) */
     rm_claw_spawn();                              /* RM3 Claw sequence (src/game/rm_claw.c) */
     rm_mantalith_spawn();                         /* RM5 end (rm_mantalith.c) */
+    fn_enemy_spawn();                             /* Fortune Night enemies (src/game/fn_enemy.c) */
     wlogs_spawn(); dv3_switch_spawn(); switches_spawn(); tunnels_reset(); shields_reset(); water_reset();
     /* 3566 / 3567: 12 logs per bridge at (bx + 16k, by + 56), A = k, B = base y */
     int nb = G.nobjs;
@@ -681,6 +682,7 @@ void objects_update(void) {
     }
     /* test_collisions: enemies absorb free crystals (col_3_13 + 1290 + 2546) */
     enemies_absorb_crystals();
+    fn_enemy_pre(p);                                  /* Fortune Night: projectile collision handlers, 7282 / 7285 (fn_enemy.c) */
     /* Lilac's attacks and contact, shared enemy events (2731-2767) */
     combat_frame(p);
     /* minibosses / bosses (their event blocks follow the enemies') */
@@ -694,6 +696,7 @@ void objects_update(void) {
         obj_box(o, &bx0, &by0, &bx1, &by1);
         int defeated = enemy_type(o->type) && (o->fl & 0x40);
         if (o->type >= OT_SHRINE3 && o->type <= OT_CLAW_LAST && rm_claw_obj(o, p)) continue;   /* RM3 Claw set (src/game/rm_claw.c) */
+        if (o->type >= OT_FN_E_FIRST && o->type <= OT_FN_E_LAST && fn_enemy_obj(o, p)) continue;   /* Fortune Night enemies (src/game/fn_enemy.c) */
         if (o->type >= OT_IRIS && relic_obj_update(o, p)) continue;                  /* Relic Maze enemies (src/game/relic.c) */
         if (o->type >= OT_DIGSPOT || o->type == OT_MON_KEYSTONE || o->type == OT_MON_WOOD) { if (aqua_obj_update(o, p)) continue; }   /* Aqua Tunnel objects (src/game/aqua.c) */
         switch (o->type) {

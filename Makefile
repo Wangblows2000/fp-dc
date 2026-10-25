@@ -10,6 +10,7 @@ OBJS = src/platform/plat_dc.o src/renderer/render_pvr.o src/resources/assets.o \
 OBJS += src/game/relic_gimb.o   # Relic Maze acts 3-5 gimmicks
 OBJS += src/game/fn_gimb.o   # Fortune Night acts 4-5 gimmicks
 OBJS += src/game/rm_claw.o   # RM3 Claw sequence
+OBJS += src/game/fn_enemy.o   # Fortune Night enemies
 
 FP_GAME ?= /mnt/user-data/uploads/Freedom Planet
 # BGM: music tracks put on the disc (default: the whole ADPCM library). Lean disc with only the
