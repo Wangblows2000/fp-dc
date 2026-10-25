@@ -686,7 +686,7 @@ void game_update(const input_t *in) {
     G.frame++;
     input_t none = {0}, rin = results_input(in), sin_ = {0};
     const input_t *pin = (G.clear_t || G.act_in || G.input_lock) ? &none : results_on() ? &rin : in;   /* act end / walk-in / results: no control (RE) */
-    { static uint32_t sprev; uint32_t h; if (serp4_input(&h) || rm_claw_input(&h)) { sin_.held = h; sin_.pressed = h & ~sprev; sprev = h; pin = &sin_; } else sprev = 0; }   /* DV4 boss exit (5547 lock, 5573-5577) */
+    { static uint32_t sprev; uint32_t h; if (serp4_input(&h) || rm_claw_input(&h) || fn_boss_input(&h)) { sin_.held = h; sin_.pressed = h & ~sprev; sprev = h; pin = &sin_; } else sprev = 0; }   /* DV4 boss exit (5547 lock, 5573-5577) */
     PROF(PS_PAR, par_update());                   /* RE 3541: parallax drift */
     aqua_set_input(pin);                          /* AT swings read CTRL.K (4357) */
     PROF(PS_PLAT, objects_platforms(&G.p));       /* RE: platform/bridge events run before Lilac's movement */
@@ -714,6 +714,7 @@ void game_update(const input_t *in) {
     relic_gimb_frame(&G.p);                       /* Relic Maze acts 3-5 gimmicks (src/game/relic_gimb.c) */
     fn_gima_frame(&G.p);                          /* Fortune Night acts 1-3 gimmicks (src/game/fn_gima.c) */
     fn_gimb_frame(&G.p);                          /* Fortune Night acts 4-5 gimmicks (src/game/fn_gimb.c) */
+    fn_boss_frame(&G.p);                          /* Fortune Night bosses (src/game/fn_boss.c) */
     rm_claw_frame(&G.p);                          /* RM3 Claw sequence events 6196-6350 (src/game/rm_claw.c) */
     fn_flow_frame(&G.p);                          /* Fortune Night stage script (src/game/fn_flow.c) */
     if (G.p.state == 6 /* ST_DEAD */ && G.p.dead_t > 120) {     /* death: the act restarts with one life less (RE 1972 / loop_death_13) */

@@ -711,3 +711,33 @@ OBJECTS.md (tools/object_catalog.py) lists every type, its classes, registry fla
 - Not ported here (boss module): FN1 UFO lock / release, FN3 boss chains and their music (7726 / 7958 / 8048), FN5 samurai
   camera D 336, the panther intro / chase (8370-8419, uses fn_flow_panther_view / player_bike_off), FN6 fight modes, post-boss
   scene and 8785 (results_begin_boss). FN4's 5839 (g4 0 -> 1) has no port path (g4 is never 0 at an FN4 start).
+
+## Session 17: Fortune Night bosses (spec build/re/spec_fn_bosses.md A-E; port src/game/fn_boss.c)
+Static RE only (spec Part Z: no original run of these fights); host-tested (tests/test_fn_bosses.py). Labels as everywhere.
+- **FN1 UFO (A, every character):** armoured with C = 5 while G = 0 (7367); Player_326 on the CameraTriggerBoss column ->
+  CAM.M 1 to the limit markers (6984 / 824 / 7559 / 1831); G 0-5 exactly as 7377-7403 (pendulum on D / F, bob, hatches,
+  beam y-scale A to 12, 220 frames of L); the beam hurts 10 and cuts BreakableFloor1/2 (A >= 5 -> fn_gima_floor_hit, 13);
+  release at G 4 or when the player is 300 px below (7369); no music. INFERRED: the armour is cleared once G != 0 (no event
+  clears flag 5; the spec's summary reads armour only before the encounter).
+- **Bulldozer (B, FN1 / FN2):** J cycle drive / raise / stop (boomerang at L 50) / slam, limiters, the door (1 HP, armoured
+  while closed, one hit while open breaks it), boomerang through the broken door -100 / -200, defeat J 6-8 with 15
+  explosions, the MonitorIcon blast, 10 static crystals, the wreck. **E = +1, not the spec's -1 (INFERRED):** with -1 the
+  7433 formulas put wheel 1 at X + 38 (placed at X - 36), the exhaust in front and the arm swinging down when "raised";
+  with +1 every part matches its placement and the claw rises. UNKNOWN until T-B1. A plain hit on the body also takes HP.
+- **FN3 beam chase (C, everyone):** 7794 window / zones / floors at A >= 4 / lamppost are level data (level_def_t.fnb).
+- **Serpentine (D, Lilac only via the flow's CK_FN3):** lock 7811, trigger 7812 (16 x 288), m_midboss 7726, the UFO as his
+  ship at (9967, 8) with the beam wall (barriers moved there), states dash / shoot (3-laser fan, dir 3) / flame jump
+  (MinibossFlame) / shield + mortar / missile (Hard) / stagger (30 D thresholds, beam wall, boost); defeat 7866 and the whole
+  escape 7930-7960 (columns topple, crash at 13904, fadeout 600, walk back, m_stage3c, barriers at 13948, CAM.F 248).
+  INFERRED: one state at a time (the groups are not shown to overlap), the dash's stop OR (passed the player by 80 / the
+  arena edge / 90 frames), the beam's y-scale at 7819 (12), the probe rising out of a higher floor, his rise speed (4) and
+  the dash to the ship, the 199-after-198 delay (60 frames), the auto-run as a pad press + B floor.
+- **Samurai (E):** FN3 for Carol / Milla (armoured until 7815, CAM.M 1 between the moved markers), FN5 for everyone (8422
+  g4 < 3, CAM.D 336 and MV.Y >= 336, no music). Rig 7962-7964, intro descends (E += G with G 8 -> 0: the spec's "rises" is
+  read as the sign of E), hover, hand smash (floors under the hands break, Y -6), lasers, body charge (15 px/frame, wall
+  stop 17 / Z 8), defeat 8040-8050 (25 explosions, wreck rises, gates +4 px/frame to A 48, Super Turretus at A 24 / 48,
+  CAM.M 2, FN3 music fade 1500 + m_stage3c). **UNKNOWN U-E1 (attack selector, K timings): the port rotates charge /
+  smash / lasers every 90 hover frames (INFERRED).** FN5's 8045 stop y: home + 16 (INFERRED). FN3 samurai music: 7726
+  fires for it too (a UFO with G < 3 exists) - RE literal, UNKNOWN in the original (flow trace 10).
+- **Not ported:** EffectWarning2's off-screen missile tracker (7889-7891), the HUD slides (7821 / 7868), the timer stop
+  during the escape (0x2205a), the Adventure dialog / voice (7728-7791, 7955), the beam's rotation at G 3.
