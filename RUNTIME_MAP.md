@@ -440,3 +440,17 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
 - **relic_gima.c relic_gima_draw_overlay():** 8 rings × 4 rects, ring k alpha = blight_alpha × (1 − k/8), 85 × 48 px.
 - **vmu.c vmuscr_char(character):** frame = ncrystal + {Lilac 0, Carol 1, Milla 2} × 4 + (tick / 360) % 4; called from
   game_update in MODE_PLAY and on the file select (fe_hub.c hub_vmu_file_char). vmu_lcd.bin: 6 crystal + 12 portraits.
+
+## Session 17: Fortune Night flow (port: src/game/levels.c fn1-fn6, fn_flow.c, game.c, results.c; tests/test_fn_flow.py)
+- Rows: stage 3, frames 29-34, music m_stage3 / m_stage3b / m_boss (slots 4 / 6 / 7 per act: level_music_slot), cards 31 /
+  33 / 36 / 37 / 39 (FN6 none), checkpoints FN1 7700 / FN2 6520 / FN3 9536 / FN4 7670 / FN5 8430 (g4 2) + 10880 (g4 3),
+  camera E = sign.x + 213 (12205, 15133, 12205, 15501), FN4 / FN5 exit X > W + 20, FN3 scripted exit, FN6 fixed box C 224
+  D 0 E 960 F 311 (view (214, 71), RV) and walk-in X >= 400 without B, FN6 death / restart -> FN5 with g4 2.
+- FN3 exit (fn_flow.c): host-measured with the RV placement (15060, 190): Serpentine at 14560, brakes to 14910 (RV 14910),
+  taunts ~100 frames, passes, fade, FN4 282 frames after the trigger (RV 283); player walks to 15117 (RV). Sounds 17 + 134,
+  61, 6, 61. HUD up 2 px a frame (7712), timer and pause off, Carol off the bike (7711).
+- FN3 start: Lilac loses the samurai set (boss types 840-843) and the 8 MonitorBombs; Carol / Milla lose the Serpentine
+  parts (821-825) and get the limit markers at 10831 / 11441 / bottom 1424.
+- Hooks for the boss module: level_lock_markers / level_release_camera, level_music_slot, player_bike_off(p, park),
+  results_begin_boss (FN6 row: group voice 8545, wipe 8546-8549), G.cam_nD / cam_nF, par_set_drift, fn_flow_panther_view.
+- Host: row fields `g4` (act-start mode) and `tm` (stage timer); script `<f> RESBOSS` (results_begin_boss now).
