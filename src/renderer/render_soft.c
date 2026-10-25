@@ -119,23 +119,26 @@ void r_sprite(const tex_t *t, int u, int v, int uw, int vh, float x, float y, fl
 static float rscale = 1.f;
 void r_set_scale(float s) { rscale = s; }
 float r_get_scale(void) { return rscale; }
+static float rxscale = 1.f;   /* extra x scale (Active::set_x_scale, e.g. the Panther's laser) */
+void r_set_xscale(float s) { rxscale = s; }
+float r_get_xscale(void) { return rxscale; }
 void r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float py, float hx, float hy,
                   float angle, int flip, uint32_t argb) {
     if (t->id < 0 || t->id >= ntex) return;
     if (flip) hx = uw - 1 - hx;                    /* the mirrored image's hotspot */
-    if (angle == 0 && rscale == 1.f) { r_sprite(t, u, v, uw, vh, px - hx, py - hy, uw, vh, flip, argb); return; }
+    if (angle == 0 && rscale == 1.f && rxscale == 1.f) { r_sprite(t, u, v, uw, vh, px - hx, py - hy, uw, vh, flip, argb); return; }
     const uint16_t *pxl = texs[t->id].px; const uint8_t *ix = texs[t->id].idx;
     const uint16_t *pal = pals[texs[t->id].grp & 3];
     int tw = texs[t->id].w;
     float a = angle * 0.017453293f, c = cosf(a), s = sinf(a);
-    int r = (int)((uw > vh ? uw : vh) * 1.5f) + 1;
-    for (int sy = (int)py - r; sy <= (int)py + r; sy++) {
-        if (sy < 0 || sy >= SCREEN_H) continue;
-        for (int sx = (int)px - r; sx <= (int)px + r; sx++) {
-            if (sx < 0 || sx >= SCREEN_W) continue;
+    int r = (int)((uw * rxscale > vh ? uw * rxscale : vh) * 1.5f) + 1;
+    int y0 = (int)py - r < 0 ? 0 : (int)py - r, y1 = (int)py + r >= SCREEN_H ? SCREEN_H - 1 : (int)py + r;
+    int x0 = (int)px - r < 0 ? 0 : (int)px - r, x1 = (int)px + r >= SCREEN_W ? SCREEN_W - 1 : (int)px + r;
+    for (int sy = y0; sy <= y1; sy++) {
+        for (int sx = x0; sx <= x1; sx++) {
             float dx = sx + 0.5f - px, dy = sy + 0.5f - py;
             /* inverse of (x' = x c + y s, y' = -x s + y c) */
-            float lx = (dx * c - dy * s) / rscale + hx, ly = (dx * s + dy * c) / rscale + hy;
+            float lx = (dx * c - dy * s) / (rscale * rxscale) + hx, ly = (dx * s + dy * c) / rscale + hy;
             if (lx < 0 || ly < 0 || lx >= uw || ly >= vh) continue;
             int tu = u + (flip ? uw - 1 - (int)lx : (int)lx), tv = v + (int)ly;
             uint16_t col = ix ? pal[ix[tv * tw + tu]] : pxl[tv * tw + tu];
