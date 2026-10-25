@@ -228,3 +228,7 @@ since the textures keep 1 bit of alpha. The checker layer of the menus wraps ver
 **D-059 No boss hit tally on the HUD (supersedes the session-10 "hit tally bottom right").** The original shows no
 boss counter (GUIBoss is never visible, U-G1); the port's tally is removed at its source (serp4_hud). Boss logic,
 damage, defeat and results are unchanged.
+
+**D-060 The PVR translucent list uses MODULATEALPHA.** With MODULATE the vertex alpha was ignored on the DC, so the
+port's vertex-alpha translucency (menus, results panels, cards, whisps, shield particles) only existed on the host
+renderer. Alpha 255 draws are identical; Flycast now matches the host and the original's screenshots.

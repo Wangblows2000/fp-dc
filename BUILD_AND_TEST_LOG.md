@@ -362,10 +362,24 @@ Labels: original-trace (RV), RE, host-test, emulator (Flycast, emulated time). *
   rows 9+5s / 10+5s and the scratch rows are 0; records.dat is 20x100, its crystal records are at least every file's
   stage block for the file's character, the progress rows are stage indices.
 - **Visual checks (host renders, RV against original screenshots taken with tools/orig/goto_frame.sh):** AT1 card
-  "STAGE 1 / Aqua Tunnel", DV1 card "Dragon Valley" for all three characters; AT4 and DV4 results panels; Time Attack
+  "STAGE 1 / Aqua Tunnel" (the original's AT1 card, build/orig/orig_at1_card_s13.png, shows the same two images), DV1 card "Dragon Valley" for all three characters; AT4 and DV4 results panels; Time Attack
   previews for Lilac / Carol (Dragon Valley) and Milla (Aqua Tunnel) with padlocks only on locked slots; checker column
   and translucent bottom bar in Character Select and Stage Select match build/orig/orig_chsel_s13.png and
   orig_tasel_s13.png; HUD of DV1-DV4 for Lilac, Carol and Milla, DV4 Serpentine fight without a bottom-right counter.
+- **Performance (Flycast, lean disc, demo `LEVEL <act>` + hold right; 600-frame windows after the load window;
+  session-13 code before the last two fixes, DV4 again after the boulder fix):** vblanks per 600 frames AT1 603, AT2
+  603, AT3 602, AT4 603, DV1 603, DV2 603, DV3 603, DV4 604 → 602 after the fix, DV2 with Milla 602. VRAM free after
+  load: AT1 2542 (session 12: 2570), AT2 1644 (1672), AT3 3347 (3347), AT4 2308 (2816: the results images AT4 now
+  carries), DV1 2541, DV2 1707, DV3 1949, DV4 1960, DV2 Milla 1347 KB. Sound RAM largest free block: Lilac 380 KB,
+  Milla with the AT group 324 KB. The DV platform passes no longer run in AT (`plat` 470 → 2 us a frame in AT1).
+  Final code (both fixes in): AT2 603 and DV3 603 vblanks, VRAM free 1644 / 1949 KB, unchanged.
+- **Stutter found and fixed (emulator):** DV4 with the demo route had 16-25 ms update frames (frames 726-741, obj max
+  25.9 ms) when the chase boulder meets the tunnel walls: obj_obj_hit evaluated sin/cos per pixel of the rotated
+  boulder. Present in the session-12 HEAD too (HEAD demo disc: the same frames, same values). Cached per test: obj max
+  13 ms (a single frame), no cluster; that window 604 → 602 vblanks; traces identical.
+- **Translucency on the DC (emulator):** the translucent list ignored the vertex alpha (D-060); after the fix Flycast
+  shows the checker through the menus' bar (build/fc/s13_chsel.png, s13_tasel_dv.png) and translucent DV4 results panels
+  (r1-r4.png), matching the host renders.
 - **Bosses:** DV4 Serpentine (FP_SN_AUTOKILL) and AT4 Chomper Snake (BOSSHP 0) defeats run their results and exits in
   the host tests; the bosses are not beaten by normal play in automated tests (limitation, unchanged).
 - **DC build:** 0 warnings.
