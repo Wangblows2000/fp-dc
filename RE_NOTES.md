@@ -701,3 +701,13 @@ functional in the levels that place it. Concretely:
 5. **Evidence:** a reused object in a new level is checked against an original trace of that level when its events
    differ (e.g. the plate rule); otherwise its existing traces stand.
 OBJECTS.md (tools/object_catalog.py) lists every type, its classes, registry flags, implementation and placements.
+
+## Session 17: Fortune Night flow (spec build/re/spec_fn_flow.md with spec_fn_bosses.md Y; port src/game/fn_flow.c, levels.c)
+- RE as the spec; RV from the spec's probes (FN1 start, FN3 / FN4 / FN6 walk-ins, FN3 exit, FN5 checkpoint 3) matched by the
+  host (tests/test_fn_flow.py). Original screenshots this session (FN1, FN5, FN6 starts) match the port's parallax layout.
+- INFERRED in the port: 7716's "animation frame > 3" uses the port's animation clock (dash 6 frames after B 0, RV ~6);
+  the NPC is removed 1000 px past the frame; MV.M = 0 at 7710 only ends the boost / charge states; FN6 death without an FN5
+  checkpoint starts FN5 fresh; FN3 timer stop uses game_timer (the HUD shows the stopped value).
+- Not ported here (boss module): FN1 UFO lock / release, FN3 boss chains and their music (7726 / 7958 / 8048), FN5 samurai
+  camera D 336, the panther intro / chase (8370-8419, uses fn_flow_panther_view / player_bike_off), FN6 fight modes, post-boss
+  scene and 8785 (results_begin_boss). FN4's 5839 (g4 0 -> 1) has no port path (g4 is never 0 at an FN4 start).

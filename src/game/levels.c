@@ -100,13 +100,35 @@ static const padcfg_t PADS_FN3[] = { {5568,784,0,0,0,1,0}, {5888,640,1,90,0,0,0}
 static const padcfg_t PADS_RM5[] = { {352,2664,0,0,0,0,0}, {624,2632,1,0,1,0,0}, {1176,520,2,270,0,1,0}, {1176,216,3,270,1,0,0} };
 
 static const short SFX_AT[] = { 55, 62, 69, 99, 172, 173, 240, 242, 251, 252, 278, 306, 308, 316 };
+/* Fortune Night flow (session 17, RE spec_fn_flow 1-3, 9; RV where the spec says so). Checkpoints (FN1 7366, FN2 / FN4 inline,
+ * FN3 7818, FN5 8420 / 8421: the second one takes g4 to 3, so a restart there never re-arms the samurai 8422); FN4 / FN5 end
+ * at X > W + 20 (8295, B > 0); FN3 ends by its Serpentine pass (fn_flow.c, 7710-7725); FN6 deaths go to FN5 with g4 2 */
+static const cpzone_t CP_FN1[] = { { 7700, 11524, 2, 7700, 1500, 0, 0 } };
+static const cpzone_t CP_FN2[] = { { 6520, 11524, 2, 6520, 490, 0, 0 } };
+static const cpzone_t CP_FN3[] = { { 9800, 10000, 2, 9536, 360, 0, 0 } };
+static const cpzone_t CP_FN4[] = { { 7670, 7770, 2, 7670, 840, 0, 0 } };
+static const cpzone_t CP_FN5[] = { { 8430, 9430, 2, 8430, 608, 0, 0 }, { 10560, 11560, 3, 10880, 560, 0, 0 } };
+static const exit_t EX_FN45[] = { { 1, 0, 20, 0, 0, NULL } };
+/* FN3 start by character (8082 MV.A = 0 / 8083 MV.A != 0). The boss parts are the boss module's types (spec_fn_bosses Part X:
+ * 821-825 Serpentine arm / hitbox / floor check / shield / charge glow, 840-843 samurai body / hands / wheel / floor probe);
+ * Lilac also loses every MonitorBomb (FN3's 8 at y 336). Carol / Milla: the limit markers move around the samurai at
+ * (11136, 496), R = 65: left 11136 - 240 - 65, right 11136 + 240 + 65, bottom 1424 (the top marker is at 0 already). */
+static const classkill_t CK_FN3[] = { { 1, 840, 843 }, { 1, OT_MON_BOMB, OT_MON_BOMB }, { 2, 821, 825 } };
+static const markmove_t CM_FN3[] = { { 2, 10831, -32768, 11441, 1424 } };
+static const cambox_t BOX_FN6 = { 224, 0, 960, 311 };   /* 8553 / handle_frame_35 inline (RV at each frame start: C 224, D 0, E 960, F 311) */
+/* the stage's own sounds (D-047): flow 134 (7713, Serpentine's crash; RM's copy, 11025 Hz) and 61 (7716; in the port a Carol
+ * group id, so Lilac / Milla need it here). The enemy / gimmick / boss modules add theirs. */
+static const short SFX_FN[] = { 61, 134 };
 
 #define DV(d, f, n, mus) .dir = d, .frame = f, .stage = 1, .act = n, .nacts = 4, .music = mus
 #define AT(d, f, n, mus) .dir = d, .frame = f, .stage = 0, .act = n, .nacts = 4, .music = mus, .plate_rule = 1, .switch_late = 1, .monitor_hop = 1, .checkpoints = 1, .sfx = SFX_AT, .nsfx = N_(SFX_AT)
 /* Fortune Night enemies (fn_enemy.c, spec_fn_enemies): FN1 7346 flips the coils below y 1500 and has no laser-wall handler
  * (no col_21_29 in test_collisions_29); FN2 has no flare-wall handler (col_24_30); FN5's balloon gives a life (8349) */
 static const fnenemy_t FNE_FN1 = { 1500, 1, 0, 0 }, FNE_FN2 = { 0, 0, 1, 0 }, FNE_FN5 = { 0, 0, 0, 1 };
-#define FN(d, f, n, mus) .dir = d, .frame = f, .stage = 3, .act = n, .nacts = 6, .music = mus, .checkpoints = 1   /* Fortune Night (session 17, provisional: spec_fn_flow) */
+/* Fortune Night (session 17, spec_fn_flow 9.1): music slots 4 / 6 / 7 of the frame's loop table (tools/re/bgm_refs.py, 3) */
+#define FN(d, f, n, mus) .dir = d, .frame = f, .stage = 3, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_FN, .nsfx = N_(SFX_FN)
+#define FN_M123 .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage3.adp", .mus7 = "bgm/m_stage3.adp"
+#define FN_M45 .mus4 = "bgm/m_boss.adp", .mus6 = "bgm/m_stage3b.adp", .mus7 = "bgm/m_stage3b.adp"
 #define RM(d, f, n, mus) .dir = d, .frame = f, .stage = 2, .act = n, .nacts = 5, .music = mus, .checkpoints = 1, .sfx = SFX_RM, .nsfx = N_(SFX_RM)
 static const level_def_t LEVELS[] = {
     /* Dragon Valley: frame index 20-23 (RE loop_play_music_N_20..23), water DV2 / DV3 (5109 / 5314), DV4 results at the
@@ -139,13 +161,19 @@ static const level_def_t LEVELS[] = {
     { RM("rm4", 27, 4, "bgm/m_stage2b.adp"), .card_first = 18, .cps = CP_RM4, .ncps = N_(CP_RM4), .rmg = &RMG_RM4, .pads = PADS_RM4, .npads = N_(PADS_RM4) },
     { RM("rm5", 28, 5, "bgm/m_stage2b.adp"), .card_first = 20, .entries = EN_RM5, .nentries = N_(EN_RM5), .cam_right = 9600 + 50,
       .rmg = &RMG_RM5, .pads = PADS_RM5, .npads = N_(PADS_RM5), .rooms = ROOMS_RM5, .nrooms = N_(ROOMS_RM5), .warps = WARPS_RM5, .nwarps = N_(WARPS_RM5) },
-    /* Fortune Night: frame index 29-34 (session 17; rows provisional until spec_fn_flow is ported: music, cards, exits) */
-    { FN("fn1", 29, 1, "bgm/m_stage3.adp"), .card_first = 31, .fne = &FNE_FN1, .pads = PADS_FN1, .npads = N_(PADS_FN1) },
-    { FN("fn2", 30, 2, "bgm/m_stage3.adp"), .card_first = 33, .fne = &FNE_FN2 },
-    { FN("fn3", 31, 3, "bgm/m_stage3.adp"), .card_first = 36, .pads = PADS_FN3, .npads = N_(PADS_FN3) },
-    { FN("fn4", 32, 4, "bgm/m_stage3b.adp"), .card_first = 37, .wplate_cyclone = 1 },   /* 5677: the escalator plate takes M 26 too (fn_gimb.c) */
-    { FN("fn5", 33, 5, "bgm/m_stage3b.adp"), .card_first = 39, .fne = &FNE_FN5, .wplate_cyclone = 1, .fnb_disco = 1 },   /* + the disco light 8298-8303 (fn_gimb.c) */
-    { FN("fn6", 34, 6, "bgm/m_boss.adp"), .card_first = 40 },
+    /* Fortune Night: frame index 29-34 (session 17, spec_fn_flow; RV: g19 = 2, CAM.E = sign.x + 213 = 12205 / 15133 / 15501).
+     * FN1 always starts with the card (4307); FN2-FN5 walk in from x -32 at B 3 (4526 / 5047, RV FN3 / FN4); FN6 walks in
+     * clamped to X >= 400 without a B event (8550: its floor / plane modes move the player, RV) inside a fixed camera box;
+     * FN4 always restarts slot 5 (8326: the load-time music_play does, a different track). Cards 31-40 (RE counter starts). */
+    { FN("fn1", 29, 1, "bgm/m_stage3.adp"), FN_M123, .fne = &FNE_FN1, .pads = PADS_FN1, .npads = N_(PADS_FN1), .card_first = 31, .start_card = 1, .cps = CP_FN1, .ncps = N_(CP_FN1), .cam_right = 11992 + 213 },
+    { FN("fn2", 30, 2, "bgm/m_stage3.adp"), FN_M123, .fne = &FNE_FN2, .card_first = 33, .cps = CP_FN2, .ncps = N_(CP_FN2), .cam_right = 11992 + 213 },
+    { FN("fn3", 31, 3, "bgm/m_stage3.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage3c.adp", .mus7 = "bgm/m_trouble.adp", .card_first = 36, .pads = PADS_FN3, .npads = N_(PADS_FN3),
+      .cps = CP_FN3, .ncps = N_(CP_FN3), .cam_right = 14920 + 213, .script_exit = 1, .ckills = CK_FN3, .nckills = N_(CK_FN3), .cmarks = CM_FN3, .ncmarks = N_(CM_FN3) },
+    { FN("fn4", 32, 4, "bgm/m_stage3b.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage3b.adp", .mus7 = "bgm/m_stage3b.adp", .card_first = 37, .wplate_cyclone = 1,   /* 5677: the escalator plate takes M 26 too (fn_gimb.c) */
+      .cps = CP_FN4, .ncps = N_(CP_FN4), .exits = EX_FN45, .nexits = N_(EX_FN45), .cam_right = 11992 + 213 },
+    { FN("fn5", 33, 5, "bgm/m_stage3b.adp"), FN_M45, .fne = &FNE_FN5, .wplate_cyclone = 1, .fnb_disco = 1, .card_first = 39, .cps = CP_FN5, .ncps = N_(CP_FN5), .exits = EX_FN45, .nexits = N_(EX_FN45), .cam_right = 15288 + 213 },
+    { FN("fn6", 34, 6, "bgm/m_boss.adp"), .mus4 = "bgm/m_boss.adp", .mus6 = "bgm/m_boss.adp", .mus7 = "bgm/m_boss.adp", .walkin_minx = 400, .walkin_free = 1,
+      .cam_box = &BOX_FN6, .death_to = "fn5", .death_g4 = 2, .res_voice = "teamlilac_madeit", .res_wipe = 1 },
 };
 static const level_def_t DEFAULT = { .dir = "", .frame = -1, .stage = -1, .act = 1, .nacts = 1, .music = "bgm/m_stage1.adp" };
 
@@ -189,12 +217,47 @@ void level_flow_spawn(void) {
     }
     if (L->crystals_once && G.at_g4 != 0 && G.at_g4 != 1)                     /* RM1 start: a return or a checkpoint restart */
         for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == OT_CRYSTAL) G.o[i].alive = 0;
+    /* class sets and limit markers by character (FN3 8082: MV.A = 0, 8083: MV.A != 0; bike-Carol counts as != 0) */
+    int lilac = G.character == CHR_LILAC;
+    for (int k = 0; k < L->nckills; k++) {
+        const classkill_t *c = &L->ckills[k];
+        if ((c->who == 1) != lilac) continue;
+        for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type >= c->t0 && G.o[i].type <= c->t1) G.o[i].alive = 0;
+    }
+    for (int k = 0; k < L->ncmarks; k++) {
+        const markmove_t *m = &L->cmarks[k];
+        if ((m->who == 1) != lilac) continue;
+        for (int i = 0; i < G.nobjs; i++) {
+            obj_t *o = &G.o[i];
+            if (!o->alive) continue;
+            if (o->type == OT_CAMLIM_L && m->l != -32768) o->x = m->l;
+            if (o->type == OT_CAMLIM_R && m->r != -32768) o->x = m->r;
+            if (o->type == OT_CAMLIM_T && m->t != -32768) o->y = m->t;
+            if (o->type == OT_CAMLIM_B && m->b != -32768) o->y = m->b;
+        }
+    }
+}
+/* CAM.M = 1 to the CameraLimitBoss markers of the act (loop_camera_mode1: left x, top y, right x, bottom y), for stage scripts */
+void level_lock_markers(void) {
+    float l = 0, t = 0, r = (float)G.lvl.w, b = (float)G.lvl.h;
+    for (int i = 0; i < G.nobjs; i++) {
+        const obj_t *o = &G.o[i];
+        if (!o->alive) continue;
+        if (o->type == OT_CAMLIM_L) l = o->x; else if (o->type == OT_CAMLIM_R) r = o->x; else if (o->type == OT_CAMLIM_T) t = o->y; else if (o->type == OT_CAMLIM_B) b = o->y;
+    }
+    cam_locked = 1; camera_boss_bounds(l, t, r, b);
+}
+/* the act's track for play_music(slot) (the frame's loop table: 4 boss / midboss, 5 the stage, 6 / 7 per frame) */
+const char *level_music_slot(int slot) {
+    const level_def_t *L = level_cur();
+    return slot == 4 ? L->mus4 : slot == 5 ? L->music : slot == 6 ? L->mus6 : slot == 7 ? L->mus7 : NULL;
 }
 /* the exit the player is taking this frame (NULL: none); acts without an exit list use the right edge (4135 / 5045) */
 const exit_t *level_exit_check(const player_t *p) {
     static const exit_t RIGHT = { 1, 0, -50, 0, 0, NULL };
     const level_def_t *L = level_cur();
     double B = p->ground ? p->gsp : p->vx, Y = p->y - ORIG_REF_DY;
+    if (L->script_exit) return NULL;                                 /* FN3: no 5045 / 3578 (the stage script ends the act) */
     int n = L->nexits ? L->nexits : 1;
     for (int k = 0; k < n; k++) {
         const exit_t *e = L->nexits ? &L->exits[k] : &RIGHT;
@@ -211,9 +274,10 @@ const entry_t *level_entry(const char *from) {
     for (int k = 0; k < L->nentries; k++) if (!L->entries[k].from || (from && !strcmp(L->entries[k].from, from))) return &L->entries[k];
     return NULL;
 }
-/* Classic route after a stage (RE frame 8, spec_records_saves 1 / spec_rm_flow 1.1): Aqua Tunnel (s 0) and Dragon Valley
- * (s 1) -> Relic Maze (s 2); later stages are not ported (NULL: back to the front end) */
-const char *level_route_next(int stage) { return stage == 0 || stage == 1 ? level_first_of_stage(2) : NULL; }
+/* Classic route after a stage (RE frame 8, spec_records_saves 1 / spec_rm_flow 1.1 / spec_fn_flow 1.1): Aqua Tunnel (s 0) and
+ * Dragon Valley (s 1) -> Relic Maze (s 2) -> Fortune Night (s 3, MenuSequence.I = 2 -> frame 29 for every character); after
+ * Fortune Night frame 8 goes to Sky Battalion (frame 35), not ported (NULL: back to the front end) */
+const char *level_route_next(int stage) { return stage == 0 || stage == 1 ? level_first_of_stage(2) : stage == 2 ? level_first_of_stage(3) : NULL; }
 /* RM5 labyrinth warps (spec_rm_flow 2.5): the player is in a warp zone moving its way */
 const warp_t *level_warp_check(const player_t *p) {
     const level_def_t *L = level_cur();
@@ -236,6 +300,7 @@ void level_camera_bounds(void) {
     const level_def_t *L = level_cur();
     if (L->cam_cp10_pad && G.at_g4 >= 10) { G.cam_nC = (float)L->cam_cp10_left; G.cam_nE = (float)G.lvl.w + L->cam_cp10_pad; }
     else if (L->cam_right) G.cam_nE = (float)L->cam_right;
+    if (L->cam_box) { G.cam_nC = L->cam_box->C; G.cam_nD = L->cam_box->D; G.cam_nE = L->cam_box->E; G.cam_nF = L->cam_box->F; }   /* FN6 8553 */
     if (L->nrooms) {                                                /* RM5 6745-6750: room bounds (the last matching row wins) */
         double X = G.p.x, Y = G.p.y - ORIG_REF_DY;
         int rails = 0; for (int i = 0; i < G.nobjs && !rails; i++) if (G.o[i].alive && G.o[i].type == OT_WR_RAIL) rails = 1;
@@ -255,6 +320,7 @@ static void checkpoint(int g4, float x, float y) {                  /* g4 / g5 /
 void level_flow_frame(const player_t *p) {
     const level_def_t *L = level_cur();
     if (L->nrooms && !G.act_in) level_camera_bounds();                       /* RM5 group 0x2250b: room bounds every frame (not during a walk-in: 6597) */
+    if (L->cam_box) level_camera_bounds();                                   /* FN6 8553 + the inline tail of handle_frame_35: every frame */
     double X = p->x;
     for (int k = 0; k < L->ncps; k++) {
         const cpzone_t *c = &L->cps[k];
