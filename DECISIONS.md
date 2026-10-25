@@ -308,3 +308,18 @@ Achievements needing unported stages are listed as out of scope; 18 Switch Skipp
 
 **D-078 Earth-shield magnet left as is.** The reported persisting pull could not be reproduced; no change without a
 reproduction.
+
+## Session 17 (Fortune Night flow)
+
+**D-079 Fortune Night flow is level data plus one stage script.** New generic row fields (start_card, script_exit,
+walkin_minx / walkin_free, death_g4, cam_box, ckills / cmarks, mus4/6/7, res_voice / res_wipe); FN-only events (FN3's
+Serpentine pass 7710-7725, FN5 8371) live in src/game/fn_flow.c, attached by stage index 3. Classic RM5 -> FN1; FN6's results
+end at the front end (Sky Battalion not ported). FN6 deaths go to FN5 with g4 2; without an FN5 checkpoint (debug starts)
+FN5 starts fresh (INFERRED; the original's case is UNKNOWN).
+
+**D-080 FN parallax in the character palette group's free top (tools/par_top.py).** FN's backdrops cannot be 4 bpp and
+the other palette groups are full; group 2 has 117 free entries in every character palette. Reduced by median cut when
+needed (visible only as merged near shades).
+
+**D-081 The stage timer can stop (G.timer_stop, game_timer()).** FN3 7710 switches the timer group off for the exit pass;
+the stopped value carries into FN4.

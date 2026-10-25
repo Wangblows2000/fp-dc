@@ -5,7 +5,10 @@
  * DV2 / DV4 switch pieces 0/1 and 8/9 at view top 1360 (5101 / 5102); piece9's 1080-row strip holds 3 water frames
  * (5094: C = y0 + {-360, 0, -360, -720}[(t / 8) % 4]); the water surface (5103-5105) is a 1x96 strip stretched to
  * the view width at y 2700, 61 % opacity. Relic Maze (spec_rm_flow 4): RM4 / RM5 wrap in y (flag 8); RM3's sky set (flag 64) is
- * destroyed once the player is below y 2400. Images are split into power-of-two chunks (4 bpp, tools/palettize.py). */
+ * destroyed once the player is below y 2400. Images are split into power-of-two chunks (4 bpp, tools/palettize.py).
+ * Fortune Night (session 17, spec_fn_flow 4): the 16 BGStar_16 on layer 0 are placed every frame relative to piece0a (7466:
+ * x = piece.x + A, y = piece.y + B, INFERRED from the operands); the importer draws them into one image, exported as a piece
+ * with flag 1024: drawn once (no tiling) at the parent piece's position (handle in y0) + (bw, bh). */
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,7 +16,7 @@
 #include "../fp.h"
 
 #define PMAXIMG 24
-#define PMAXCH 16
+#define PMAXCH 24   /* FN piece5 (380 x 400): 18 power-of-two chunks */
 #define PMAXPIECE 24
 typedef struct { int x, y, w, h; tex_t t; } pchunk_t;
 typedef struct { int img; float D, E, G; int y0, bw, bh, flags; double F; int handle; } ppiece_t;   /* handle: the Fusion object (file version 1) */
@@ -100,6 +103,8 @@ void par_set_drift(int handle, float g) { for (int i = 0; i < npc; i++) if (PC[i
 void par_set_hidden(int handle, int hidden) { for (int i = 0; i < npc; i++) if (PC[i].handle == handle) PC[i].flags = (PC[i].flags & ~512) | (hidden ? 512 : 0); }
 void par_destroy(int handle) { for (int i = 0; i < npc; i++) if (PC[i].handle == handle) PC[i].flags |= 128; }
 
+int par_hidden(int handle) { for (int i = 0; i < npc; i++) if (PC[i].handle == handle) return (PC[i].flags & 512) != 0; return 0; }
+
 static void draw_pieces_pass(int gframe, int front);
 void par_draw(int gframe) { draw_pieces_pass(gframe, 0); }
 void par_draw_front(void) { draw_pieces_pass(G.frame, 1); }   /* flag-256 pieces (frame layer 3, in front of the player) */
@@ -113,6 +118,13 @@ static void draw_pieces_pass(int gframe, int front) {
         if (p->flags & 128) continue;                     /* destroyed (RM3 6298) */
         if ((p->flags & 16) && vl >= 7544) continue;     /* AT2 4398 / 4399 (at exactly 7544 the first frame's choice: left set) */
         if ((p->flags & 32) && vl <= 7544) continue;
+        if (p->flags & 1024) {                            /* FN BGStar set: once, at the parent piece (7466) */
+            const ppiece_t *q = NULL; for (int k = 0; k < npc && !q; k++) if (PC[k].handle == p->y0 && !(PC[k].flags & 1024)) q = &PC[k];
+            if (!q) continue;
+            int qx = (int)fmod(trunc(q->D * vl + q->F - vl), (double)q->bw), qy = (int)trunc(q->E * vt + q->y0) - vt;
+            draw_image(p->img, qx + p->bw, qy + p->bh, -32768, 32767);
+            continue;
+        }
         int A = p->bw, ih = IMG[p->img].h, iw = IMG[p->img].w;   /* box width (AT4 piece6_853: 400 for a 384-px image) */
         double C = p->y0;
         if (p->flags & 4) { static const int off[4] = { -360, 0, -360, -720 }; C += off[(gframe / 8) % 4]; }   /* 5094 */

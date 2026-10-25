@@ -11,6 +11,7 @@ OBJS += src/game/relic_gimb.o   # Relic Maze acts 3-5 gimmicks
 OBJS += src/game/fn_gima.o   # Fortune Night acts 1-3 gimmicks
 OBJS += src/game/fn_gimb.o   # Fortune Night acts 4-5 gimmicks
 OBJS += src/game/rm_claw.o   # RM3 Claw sequence
+OBJS += src/game/fn_flow.o   # Fortune Night stage flow
 OBJS += src/game/fn_enemy.o   # Fortune Night enemies
 
 FP_GAME ?= /mnt/user-data/uploads/Freedom Planet
