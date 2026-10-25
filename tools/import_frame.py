@@ -582,6 +582,45 @@ def fnb_pose_rows(entries, n, pre=''):
     return out
 ENGINE_TYPES_ID.update(FNB_TYPES_ID); ENS += FNB_ENS; ENS_FRAMES.update(FNB_ENS_FRAMES)
 for _k, _v in FNB_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v
+# ---- FN_PANTHER: the FN5 intro / chase and the FN6 Panther (build/re/spec_fn_bosses.md F / G / X; src/game/fn_panther.c). Types 860-891
+# mirror src/fp.h (OT_FNP_*), one per (class, handle); the rider is 2009 in FN5 and 2039 in FN6 (the rows below name 2039: the
+# placed handle's images are taken). Rows are exported for json frames 34 (FN5) and 35 (FN6) only; the runtime objects (plasma,
+# missile, rapid bullet, gun spark, speed line) ride with the values object.
+FNP_TYPES_ID = {('bosspanthervalues', 2023): 860, ('bosspantherhead', 2013): 861, ('bosspantherjaw', 2014): 862, ('bosspantherfrontcannon', 2015): 863,
+    ('bosspantherbackcannon', 2038): 864, ('bosspantherrider', 2039): 865, ('bosspantherrider', 2009): 865, ('bosspanthershoulderf', 2019): 866,
+    ('bosspanthershoulderf2', 2020): 867, ('bosspantherhipf', 2016): 868, ('bosspantherkneef', 2017): 869, ('bosspantherlegfl', 2018): 870,
+    ('bosspantherlegfr', 2022): 871, ('bosspantherfootfl', 2012): 872, ('bosspantherfootfr', 2021): 873, ('bosspantherribs', 2011): 874,
+    ('bosspanthertail', 2010): 875, ('bosspantherhitbox', 2043): 876, ('bosspantherlaser', 2047): 877, ('bosspanthertarget', 2044): 878,
+    ('bosschargeglow', 2042): 879, ('bosspantherwheel', 2052): 880, ('scrollingfloor', 2037): 881, ('effectspeedback', 2049): 882,
+    ('planeplatform', 2054): 883, ('playerassist', 2045): 884, ('playerassistoffense', 2048): 885, ('playerassistdefense', 2046): 886,
+    ('playerassistprojectile', 2051): 887, ('ship1', 2024): 888, ('ship2', 2025): 889, ('shipcable', 2026): 890, ('shipcable2', 2027): 891}
+FNP_ENS = [(c, a, d, nm) for c, a, d, nm in (
+    ('bosspantherhead_2013', 0, '0', 'fp_head'), ('bosspantherjaw_2014', 0, '0', 'fp_jaw'), ('bosspantherjaw_2014', 7, '0', 'fp_jaw7'),
+    ('bosspantherfrontcannon_2015', 0, '0', 'fp_fcan'), ('bosspantherbackcannon_2038', 0, '0', 'fp_bcan'), ('bosspantherbackcannon_2038', 0, '1', 'fp_bcan1'),
+    ('bosspantherrider_2039', 0, '0', 'fp_rider'), ('bosspantherrider_2039', 0, '1', 'fp_rider1'), ('bosspantherrider_2039', 0, '2', 'fp_rider2'),
+    ('bosspantherrider_2039', 12, '0', 'fp_rider12'), ('bosspantherrider_2039', 13, '0', 'fp_rider13'), ('bosspanthershoulderf_2019', 0, '0', 'fp_shf'),
+    ('bosspanthershoulderf2_2020', 0, '0', 'fp_shf2'), ('bosspantherhipf_2016', 0, '0', 'fp_hip'), ('bosspantherkneef_2017', 0, '0', 'fp_knee'),
+    ('bosspantherlegfl_2018', 0, '0', 'fp_legfl'), ('bosspantherlegfr_2022', 0, '0', 'fp_legfr'), ('bosspantherfootfl_2012', 0, '0', 'fp_footfl'),
+    ('bosspantherfootfr_2021', 0, '0', 'fp_footfr'), ('bosspantherfootfr_2021', 7, '0', 'fp_footfr7'), ('bosspantherfootfr_2021', 8, '0', 'fp_footfr8'),
+    ('bosspantherribs_2011', 0, '0', 'fp_rib'), ('bosspanthertail_2010', 0, '0', 'fp_tail'), ('bosspantherwheel_2052', 0, '0', 'fp_wheel'),
+    ('bosspantherhitbox_2043', 0, '0', 'fp_hit'), ('bosspantherlaser_2047', 0, '0', 'fp_laser'), ('bosspanthertarget_2044', 0, '0', 'fp_target'),
+    ('bosschargeglow_2042', 0, '0', 'fp_glow'), ('effectspeedback_2049', 0, '0', 'fp_sback'), ('effectspeedline_2050', 0, '0', 'fp_sline'),
+    ('bossplasmashot_2040', 0, '0', 'fp_plasma'), ('bossmissile_2041', 0, '0', 'fp_missile'), ('bossmissile_2041', 0, '16', 'fp_missile_l'),
+    ('bossmissile_2041', 8, '0', 'fp_mblast'), ('bossrapidbullet_1866', 0, '8', 'fp_rbul'), ('bossrapidbullet_1866', 0, '24', 'fp_rbul_d'),
+    ('shieldserpentine_1872', 0, '0', 'fp_shield'), ('effectwarning_1528', 0, '0', 'fp_warn'), ('effectgunspark_1887', 4, '0', 'fp_spark'),
+    ('scrollingfloor_2037', 0, '0', 'fp_floor'), ('planeplatform_2054', 0, '0', 'fp_plane'), ('playerassist_2045', 0, '0', 'fp_assist'),
+    ('playerassist_2045', 0, '1', 'fp_assist1'), ('playerassistoffense_2048', 0, '0', 'fp_aoff0'), ('playerassistoffense_2048', 0, '1', 'fp_aoff1'),
+    ('playerassistoffense_2048', 7, '0', 'fp_aoff7'), ('playerassistoffense_2048', 7, '1', 'fp_aoff7b'), ('playerassistdefense_2046', 0, '0', 'fp_adef'),
+    ('ship1_2024', 0, '0', 'fp_ship1'), ('ship2_2025', 0, '0', 'fp_ship2'), ('shipcable_2026', 0, '0', 'fp_cable'), ('shipcable2_2027', 0, '0', 'fp_cable2'))]
+FNP_ENS = [e + ((None, ('scrollingfloor',)) if e[3] in ('fp_jaw7', 'fp_rider1', 'fp_rider12', 'fp_rider13', 'fp_footfr7', 'fp_footfr8') else ()) for e in FNP_ENS]   # FN6-only rows of FN5 classes
+FNP_ENS_WITH = {c: ('scrollingfloor',) for c in ('bossplasmashot_2040', 'bossmissile_2041', 'bossrapidbullet_1866', 'effectgunspark_1887',
+    'effectspeedline_2050', 'effectsexplosion06_435', 'effectsdebris_427')}
+ENGINE_TYPES_ID.update(FNP_TYPES_ID); ENS += FNP_ENS   # FN_PANTHER
+FNP_A5 = ('head', 'jaw', 'rider', 'shoulderf', 'hipf', 'kneef', 'legf', 'footf', 'ribs', 'tail', 'ship', 'cable')   # the rig parts FN5 shows (the rest: FN6 only)
+ENS_FRAMES.update({e[0]: ({34, 35} if any(w in e[0] for w in FNP_A5) else {35}) for e in FNP_ENS
+                   if e[0] not in ENS_FRAMES and e[0] not in ('shieldserpentine_1872', 'bossrapidbullet_1866', 'effectgunspark_1887')})   # FN_PANTHER (shared A3 classes left open)
+ENS_FRAMES['effectwarning_1528'] = ENS_FRAMES.get('effectwarning_1528', set()) | {34, 35}   # FN_PANTHER: the mortar's ground warning (shared with RM5's row)
+for _k, _v in FNP_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # FN_PANTHER
 ENS_ONLY_WITH = {'guiweaponslot_426', 'effectswatersplash_379', 'bubblepatch_804', 'mediumbubble_805', 'generalwaterhorizon_377', 'bubblenumbers_405', 'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 # classes whose untrimmed image box matters (spring top edges RV, box-collision platforms/logs, invisible
 # sensors): their images are never cropped. Everything else in the object bank is cropped to its opaque pixels.

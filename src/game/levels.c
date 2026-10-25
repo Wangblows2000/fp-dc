@@ -118,7 +118,10 @@ static const markmove_t CM_FN3[] = { { 2, 10831, -32768, 11441, 1424 } };
 static const cambox_t BOX_FN6 = { 224, 0, 960, 311 };   /* 8553 / handle_frame_35 inline (RV at each frame start: C 224, D 0, E 960, F 311) */
 /* the stage's own sounds (D-047): flow 134 (7713, Serpentine's crash; RM's copy, 11025 Hz) and 61 (7716; in the port a Carol
  * group id, so Lilac / Milla need it here). The enemy / gimmick / boss modules add theirs. */
-static const short SFX_FN[] = { 61, 134 };
+static const short SFX_FN[] = { 61, 134,
+                                126, 193 };   /* FN5 panther chase (fn_panther.c: 8413 white burst 126, 8407 taunt 193) */
+/* FN6: the Panther fight (fn_panther.c, spec_fn_bosses G.11; the panther ids converted at 11025 Hz) + the flow ids */
+static const short SFX_FN6[] = { 61, 134, 99, 126, 137, 165, 166, 169, 191, 193, 194, 195, 200, 219, 254, 256, 257, 258, 259, 261, 436, 452 };
 
 #define DV(d, f, n, mus) .dir = d, .frame = f, .stage = 1, .act = n, .nacts = 4, .music = mus
 #define AT(d, f, n, mus) .dir = d, .frame = f, .stage = 0, .act = n, .nacts = 4, .music = mus, .plate_rule = 1, .switch_late = 1, .monitor_hop = 1, .checkpoints = 1, .sfx = SFX_AT, .nsfx = N_(SFX_AT)
@@ -126,7 +129,7 @@ static const short SFX_FN[] = { 61, 134 };
  * (no col_21_29 in test_collisions_29); FN2 has no flare-wall handler (col_24_30); FN5's balloon gives a life (8349) */
 static const fnenemy_t FNE_FN1 = { 1500, 1, 0, 0 }, FNE_FN2 = { 0, 0, 1, 0 }, FNE_FN5 = { 0, 0, 0, 1 };
 /* Fortune Night (session 17, spec_fn_flow 9.1): music slots 4 / 6 / 7 of the frame's loop table (tools/re/bgm_refs.py, 3) */
-#define FN(d, f, n, mus) .dir = d, .frame = f, .stage = 3, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_FN, .nsfx = N_(SFX_FN)
+#define FN(d, f, n, mus) .dir = d, .frame = f, .stage = 3, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = (n) == 6 ? SFX_FN6 : SFX_FN, .nsfx = (n) == 6 ? N_(SFX_FN6) : N_(SFX_FN)
 #define FN_M123 .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage3.adp", .mus7 = "bgm/m_stage3.adp"
 #define FN_M45 .mus4 = "bgm/m_boss.adp", .mus6 = "bgm/m_stage3b.adp", .mus7 = "bgm/m_stage3b.adp"
 #define RM(d, f, n, mus) .dir = d, .frame = f, .stage = 2, .act = n, .nacts = 5, .music = mus, .checkpoints = 1, .sfx = SFX_RM, .nsfx = N_(SFX_RM)
