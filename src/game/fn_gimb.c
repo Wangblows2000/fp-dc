@@ -26,7 +26,7 @@ static short LST[NRT][LMAX]; static short NLS[NRT];
 #define F2 0x2000
 #define F3 0x4000
 #define DEG 57.29577951308232
-#define FNB_ROLLER 525                                /* EnemyRoller_1934 (the enemies block's OT_FN_ROLLER): it plays the keys too (8208) */
+#define FNB_ROLLER OT_FN_ROLLER                       /* EnemyRoller_1934 (fn_enemy.c): it plays the keys too (8208) */
 
 static struct {
     int any, plate, plate0;                           /* a type of this block is placed; the escalator wall plate (slot), its last flag 0 */
@@ -200,7 +200,7 @@ void fn_gimb_spawn(void) {
     { int ks[4] = { 0 }; EACH(OT_FN_STILT, o) { set_sk(o, STILTN, o->par & 3); o->kx = o->x; o->tm = ks[o->par & 3]++; o->av[0] = (o->par == 0 || o->par == 3) ? 8 : -8; o->ang = (float)o->av[0]; } }   /* ctor A 8 / -8 / -8 / 8; 8321: B = x */
     EACH(OT_FN_MPLAT2, o) { set_s(o, "mplat2f"); path_init(o, 0, 0, 0, 1, 0, 8, 0, 0); }   /* ctor F 1 G 8 H 0: y = J + 8 cos E (spec 7) */
     EACH(OT_FN_TSPRING, o) set_s(o, "tspr");
-    k = 0; EACH(OT_FN_BALLOON, o) { set_s(o, "balloon"); o->tm = k++; }
+    k = 0; EACH(OT_FN_AIRBALLOON, o) { set_s(o, "balloon"); o->tm = k++; }
     k = 0; EACH(OT_FN_IBALLOON, o) { set_s(o, "iballoon"); o->tm = k++; }
     { int n = N(OT_FN_KEY); k = 0; EACH(OT_FN_KEY, o) { set_s(o, "key"); o->tm = (n - 1 - k++) % 8; } }   /* start: A = spread index mod 8 (newest first; RV fn4_keys: 0..7 left to right) */
     EACH(OT_FN_DISCOLIGHT, o) { S.dl = (int)(o - G.o); o->an.b = NULL; }
@@ -228,9 +228,9 @@ static void drop_balloon(player_t *p) {              /* 8111 / 8112: M = 40, G =
     p->state = ST_NORMAL; p->state_t = 0; p->ground = 0; p->vy = 0; p->vx = 0; p->springing = 1; p->cY = 40; p->m1 = 0; p->hang_obj = -1;
 }
 void fn_gimb_pre(player_t *p) {
-    if (!S.any || !N(OT_FN_BALLOON)) return;
+    if (!S.any || !N(OT_FN_AIRBALLOON)) return;
     obj_t *b, *ib;
-    EACH(OT_FN_BALLOON, b) {
+    EACH(OT_FN_AIRBALLOON, b) {
         double *A = &b->av[0], *B = &b->av[1], *D = &b->av[2];
         if (*B == 0) *B = b->y;                                                     /* 8104: home */
         if (!(b->fl & F1)) { b->y = (float)(*B + 8 * c_sin(*D)); *D = fmod(*D + 1.5, 360); }   /* 8105: +-8 px, 240 frames (RV fn4_balloon) */
