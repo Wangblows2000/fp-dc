@@ -602,8 +602,10 @@ PAR_DEG = {491: (.99, .94, 0), 891: (.98, .93, 0), 893: (.95, .91, 0), 894: (.96
 PAR_DEG_FRAME = {(27, 1112): (1.0, .94, 0),          # the same handle with RM3's own D (RE spec_rm_flow 4)
                  (35, 1629): (.99, .94, -.1), (35, 1640): (.99, .94, -.35)}   # FN6's drifting sky (inline, spec_fn_flow 4)
 # BGStar_16 (FN1-FN3, FN6; spec_fn_flow 4): 7471 stores A = x, B = y, C = the instance index and forces frame C; 7466 puts
-# every star at (piece0a.x + A, piece0a.y + B) each frame. Exported as one composed image attached to that piece (flag 1024)
-PAR_STARS = {'bgstar_16': 1629}
+# every star at (piece0a.x + A, piece0a.y + B) each frame. A class listed here (class_handle: parent piece handle) is exported
+# as one composed image attached to that piece (flag 1024, parallax.c). Fortune Night's stars are objects of fn_gima.c
+# (OT_FN_STAR 603, merged first), so the table is empty: listing bgstar_16 here would draw them twice.
+PAR_STARS = {}
 PAR_SKY_BELOW = {27: (1112, 1133, 1134, 1137, 1138)} # RM3 6298: destroyed once the player is below y 2400 (one way)
 # layers scrolling at 0.8 (RE Layer::init): Aqua Tunnel and RM1-RM4 layer 1, RM5 layer 0 (spec_rm_flow 2.4); json frame
 SCROLL08 = {17: 1, 18: 1, 19: 1, 20: 1, 25: 1, 26: 1, 27: 1, 28: 1, 29: 0, 30: 1, 31: 1, 32: 1, 33: 1, 34: 1, 35: 1}   # FN (json 30-35): layer 1 (spec_fn_flow 2.4)

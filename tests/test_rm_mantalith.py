@@ -3,7 +3,7 @@
 (Lilac, Carol, Carol on the bike, Milla) leaving the labyrinth (6861) into the Kingdom Stone scene (0x22511), the Mantalith
 intro and fight, its defeat through the host cheat (BOSSHP 0 five times: arms and head), the results started by the boss
 (7083, results.c path 3), the story save written at D = 150 (5394: Relic Maze = stage index 2), the result voice
-(6589-6592) and the post-results scene ending the stage (7097 -> frame 8: no stage after RM is ported, so the front end).
+(6589-6592) and the post-results scene ending the stage (7097 -> frame 8: Classic continues to Fortune Night 1, session 17).
 usage: test_rm_mantalith.py [data_dir]   (default: converted2)"""
 import subprocess, sys, os, tempfile, struct
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -41,12 +41,12 @@ def check(name, cond, info=''):
     fails += 0 if cond else 1
 
 # TP just before the labyrinth exit (X > 2707), run right into the scene; then the cheat beats one phase every 400 frames
-SCRIPT = '30 TP 2690 500\n30 SETV others E 99999\n40 520 R\n' + ''.join('%d BOSSHP 0\n' % f for f in (1000, 1400, 1800, 2200, 2600))
+SCRIPT = '30 TP 2690 500\n30 SETV others E 99999\n40 520 R\n' + ''.join('%d BOSSHP 0\n' % f for f in (1000, 1400, 1800, 2200, 2600)) + '4900 4901 J\n'   # J: past the achievement pop-up
 VOICE = {'0': 'lilac_woohoo', '2': 'carol_feelmypower', '3': 'carol_feelmypower', '4': 'milla_yay'}
 with tempfile.TemporaryDirectory() as d:
     for ch, nm in (('0', 'lilac'), ('2', 'carol'), ('3', 'carolbike'), ('4', 'milla')):
         sv = os.path.join(d, 'save_%s.bin' % ch)
-        rows, mt, out = run(SCRIPT, 4800, {'FP_LEVEL': 'rm5', 'FP_CHAR': ch, 'FP_DBG_MT': '1', 'FP_TRACE_SID': '1',
+        rows, mt, out = run(SCRIPT, 5100, {'FP_LEVEL': 'rm5', 'FP_CHAR': ch, 'FP_DBG_MT': '1', 'FP_TRACE_SID': '1',
                                            'FP_FILE': '2', 'FP_FILE_NEW': '1', 'FP_SAVE': sv})
         grp = lambda m, k: m['grp'][k] == '1'
         scene = [m for m in mt if grp(m, 1)]
@@ -65,7 +65,7 @@ with tempfile.TemporaryDirectory() as d:
               'time %d ms last %d progress %s' % (f['stage'][2][0], f['last'], prog))
         post = [m for m in mt if grp(m, 5)]
         check('%s_post_results_scene' % nm, post and max(int(float(m['hJ'])) for m in post) >= 260, str(len(post)))
-        check('%s_stage_ended' % nm, rows and rows[-1]['mode'] == 0 and 'load[frontend]' in out, 'mode %s' % (rows[-1]['mode'] if rows else None))
+        check('%s_stage_ended_fn1' % nm, rows and rows[-1]['mode'] == 1 and [l for l in out.splitlines() if l.startswith('load[') and not l.startswith(('load[frontend]', 'load[gal]'))][-1].startswith('load[fn1]'), 'mode %s' % (rows[-1]['mode'] if rows else None))   # Classic: RM -> FN (frame 8, I = 2)
         if ch == '3': check('carolbike_leaves_the_bike', rows and rows[-200]['chr'] == 2 and rows[100]['chr'] == 3)
 
 print('%d failure(s)' % fails)
