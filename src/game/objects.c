@@ -355,7 +355,7 @@ static void throw_items(const obj_t *m, int type, int n) {
         obj_t *e = alloc_obj();
         if (!e) return;
         float ang = (float)(-150 + 120 * i / (n > 1 ? n - 1 : 1)) * 3.14159265f / 180.f;
-        e->type = OT_ITEM_FLY; e->st = type; e->alive = 1; e->x = m->x; e->y = m->y - 16;
+        e->type = OT_ITEM_FLY; e->st = type; e->alive = 1; e->layer = 2; e->x = m->x; e->y = m->y - 16;
         e->vx = 3.f * (float)fd_cos(ang); e->vy = 3.f * (float)fd_sin(ang) - 1.f;
         if (a >= 0) anim_set(&e->an, &G.objs, a);
     }
@@ -364,7 +364,7 @@ static void throw_items(const obj_t *m, int type, int n) {
 void obj_throw_petal(float x, float y) {
     obj_t *e = alloc_obj();
     if (!e) return;
-    e->type = OT_ITEM_FLY; e->st = OT_PETAL; e->alive = 1; e->x = x; e->y = y; e->vx = 0; e->vy = -3.f;
+    e->type = OT_ITEM_FLY; e->st = OT_PETAL; e->alive = 1; e->layer = 2; e->x = x; e->y = y; e->vx = 0; e->vy = -3.f;
     if (A_PETAL >= 0) anim_set(&e->an, &G.objs, A_PETAL);
 }
 /* 2766: one absorbed crystal per frame from a defeated enemy, fanned around straight up (spec_combat; the Pinball
@@ -374,7 +374,7 @@ void obj_launch_crystal(float x, float y, int d) {     /* a crystal thrown out i
     obj_t *e = alloc_obj();
     if (!e) return;
     double a = d * 11.25 / 57.29577951308232;
-    e->type = OT_ITEM_FLY; e->st = OT_CRYSTAL; e->alive = 1; e->x = x; e->y = y;
+    e->type = OT_ITEM_FLY; e->st = OT_CRYSTAL; e->alive = 1; e->layer = 2;   /* thrown items are created on the play layer (layer 0 drew them behind the decor) */ e->x = x; e->y = y;
     e->vx = 4.f * (float)fd_cos(a); e->vy = -4.f * (float)fd_sin(a);
     if (A_CRYSTAL >= 0) anim_set(&e->an, &G.objs, A_CRYSTAL);
 }
