@@ -582,6 +582,54 @@ def fnb_pose_rows(entries, n, pre=''):
     return out
 ENGINE_TYPES_ID.update(FNB_TYPES_ID); ENS += FNB_ENS; ENS_FRAMES.update(FNB_ENS_FRAMES)
 for _k, _v in FNB_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v
+# ---- FN_BOSS: Fortune Night bosses and minibosses (build/re/spec_fn_bosses.md A-E / X; src/game/fn_boss.c). Types 800-859 mirror
+# src/fp.h (OT_FNBOSS_FIRST..OT_FNBOSS_LAST); the lvobj anim field carries the sub id (FNBOSS_SUB) | instance layer << 8. The
+# classes are mapped only in FNBOSS_FRAMES (json 30-32, 34): NPCSerpentine_945 / ShieldSerpentine_1872 are placed in other
+# stages too. Every sprite row names its creator class (rows exported only where that boss is placed).
+FNBOSS_FRAMES = {30, 31, 32, 34}
+FNBOSS_TYPES_ID = {('minibossufo', 1772): 800, ('minibossufo2', 1773): 801, ('minibossufohatch1', 1770): 802, ('minibossufohatch2', 1771): 802,
+    ('minibossufobeam', 1769): 803, ('minibossufoborder', 1768): 804, ('minibossufodebris', 1875): 805,
+    ('minibossbulldozer', 1746): 810, ('minibossbulldozerarm', 1747): 811, ('minibossbulldozerclaw', 1750): 812, ('minibossbulldozerdoor', 1745): 813,
+    ('minibossbulldozerwheel1', 1748): 814, ('minibossbulldozerwheel2', 1749): 814, ('minibossbulldozerhitbox', 1752): 815, ('minibosslimiter', 1751): 816,
+    ('npcserpentine', 945): 820, ('bossserpentinearm', 1865): 821, ('bossserphitbox', 1873): 822, ('bossserpfloorcheck', 1869): 823,
+    ('shieldserpentine', 1872): 824, ('bosschargeglow', 1868): 825,
+    ('minibosssamu', 1890): 840, ('minibosssamulefthand', 1888): 841, ('minibosssamurighthand', 1889): 841, ('minibosssamuwheel', 1886): 842,
+    ('minibosssamufloorcheck', 1891): 843, ('bossgate', 1894): 845, ('bossgate', 2030): 845}
+FNBOSS_SUB = {'minibossufohatch2_1771': 1, 'minibossbulldozerwheel2_1749': 1, 'minibosssamurighthand_1889': 1, 'bossgate_2030': 1}
+_U, _D, _S, _M = ('minibossufo',), ('minibossbulldozer',), ('bossserphitbox',), ('minibosssamu',)
+FNBOSS_ENS = [(c, a, d, nm, None, w) for c, a, d, nm, w in (
+    ('minibossufo_1772', 0, '0', 'fb_ufo', _U), ('minibossufo_1772', 7, '0', 'fb_ufo7', _U), ('minibossufo_1772', 8, '0', 'fb_ufo8', _U),
+    ('minibossufo2_1773', 0, '0', 'fb_ufop', _U), ('minibossufohatch1_1770', 0, '0', 'fb_hatch0', _U), ('minibossufohatch2_1771', 0, '0', 'fb_hatch1', _U),
+    ('minibossufobeam_1769', 0, '0', 'fb_beam', _U), ('minibossufoborder_1768', 0, '0', 'fb_border', _U), ('minibossufodebris_1875', 0, '0', 'fb_ufodeb', _U),
+    ('minibossbulldozerwheel1_1748', 0, '16', 'fb_wheel0', _D), ('minibossbulldozerwheel2_1749', 0, '16', 'fb_wheel1', _D),
+    ('minibosslimiter_1751', 0, '0', 'fb_lim', _D), ('minibossboomerang_1753', 0, '0', 'fb_boom', _D),
+    ('bossserphitbox_1873', 0, '0', 'fb_shit', _S), ('bossserpfloorcheck_1869', 0, '0', 'fb_sprobe', _S), ('shieldserpentine_1872', 0, '0', 'fb_sshield', _S),
+    ('bosschargeglow_1868', 0, '0', 'fb_glow', _S), ('effectwarning2_1895', 0, '0', 'fb_warn2', _S),
+    ('bossrapidbullet_1866', 0, '8', 'fb_rb8', _S), ('bossrapidbullet_1866', 0, '24', 'fb_rb24', _S), ('bossmissile_1867', 0, '0', 'fb_mis', _S),
+    ('bossmissile_1867', 0, '16', 'fb_mis_l', _S), ('enemylaser_1781', 0, '3', 'fb_laser3', _S + _M), ('enemylaser_1781', 0, '0', 'fb_laser0', _S + _M),
+    ('npcserpentine_945', 12, '0', 'fs_12', _S), ('npcserpentine_945', 13, '0', 'fs_13', _S), ('npcserpentine_945', 9, '8', 'fs_9u', _S),
+    ('npcserpentine_945', 14, '1', 'fs_14', _S), ('npcserpentine_945', 14, '17', 'fs_14_l', _S),
+    ('minibosssamu_1890', 0, '0', 'fb_samu0', _M), ('minibosssamu_1890', 0, '16', 'fb_samu16', _M), ('minibosssamu_1890', 0, '24', 'fb_samu24', _M),
+    ('minibosssamu_1890', 8, '24', 'fb_samu8', _M), ('minibosssamu_1890', 9, '0', 'fb_samu9', _M), ('minibosssamulefthand_1888', 0, '0', 'fb_hand0', _M),
+    ('minibosssamulefthand_1888', 8, '0', 'fb_hand0_8', _M), ('minibosssamurighthand_1889', 0, '0', 'fb_hand1', _M), ('minibosssamurighthand_1889', 8, '0', 'fb_hand1_8', _M),
+    ('minibosssamuwheel_1886', 0, '0', 'fb_swheel', _M), ('minibosssamufloorcheck_1891', 0, '0', 'fb_sprobe2', _M), ('minibosssamudebris_1892', 0, '0', 'fb_sdeb', _M),
+    ('bossgate_1894', 0, '0', 'fb_gate0', _M), ('bossgate_2030', 0, '0', 'fb_gate1', _M),
+    # the bulldozer keeps direction 0 (E = -1 is never changed, RE): no direction-16 rows
+    ('minibossbulldozer_1746', 0, '0', 'fb_dz', _D), ('minibossbulldozer_1746', 8, '0', 'fb_dz8', _D), ('minibossbulldozer_1746', 10, '0', 'fb_dz10', _D),
+    ('minibossbulldozerarm_1747', 0, '0', 'fb_dzarm', _D), ('minibossbulldozerclaw_1750', 0, '0', 'fb_dzclaw', _D),
+    ('minibossbulldozerdoor_1745', 0, '0', 'fb_door', _D), ('minibossbulldozerdoor_1745', 7, '0', 'fb_door7', _D), ('minibossbulldozerdoor_1745', 8, '0', 'fb_door8', _D),
+    ('minibossbulldozerdoor_1745', 10, '0', 'fb_door10', _D), ('minibossbulldozerhitbox_1752', 0, '0', 'fb_dzhit', _D), ('minibossbulldozerhitbox_1752', 8, '0', 'fb_dzhit8', _D),
+    ('minibossbulldozerdebris_1754', 0, '0', 'fb_dzdeb', _D))] + \
+    [(c, a, d, nm + ('' if d == '0' else '_l'), None, w) for c, a, nm, w in (
+    ('npcserpentine_945', 0, 'fs_0', _S), ('npcserpentine_945', 6, 'fs_6', _S), ('npcserpentine_945', 7, 'fs_7', _S), ('npcserpentine_945', 8, 'fs_8', _S),
+    ('npcserpentine_945', 9, 'fs_9', _S), ('npcserpentine_945', 15, 'fs_15', _S), ('npcserpentine_945', 16, 'fs_16', _S)) for d in ('0', '16')] + \
+    [('bossserpentinearm_1865', 0, d, 'fb_sarm' + d, None, _S) for d in ('1', '2', '3', '17', '18', '19')]
+# (EffectWarning_1528 has the same three images as EffectWarning2_1895: the bank keeps one row per image set, fb_warn2 serves both)
+FNBOSS_ENS_WITH = {'minibossboomerang_1753': _D, 'minibossbulldozerdebris_1754': _D, 'effectwarning2_1895': _S,
+                   'bossrapidbullet_1866': _S, 'bossmissile_1867': _S, 'enemylaser_1781': _S + _M, 'minibossflame_1264': ('npcserpentine',),
+                   'minibosssamudebris_1892': _M, 'effectsexplosion06_435': _D + _M + _S + _U, 'effectsdust01_369': _D, 'effectsexplosion01_367': _S}
+ENGINE_TYPES_ID.update(FNBOSS_TYPES_ID); ENS += FNBOSS_ENS   # FN_BOSS
+for _k, _v in FNBOSS_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # FN_BOSS
 ENS_ONLY_WITH = {'guiweaponslot_426', 'effectswatersplash_379', 'bubblepatch_804', 'mediumbubble_805', 'generalwaterhorizon_377', 'bubblenumbers_405', 'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 # classes whose untrimmed image box matters (spring top edges RV, box-collision platforms/logs, invisible
 # sensors): their images are never cropped. Everything else in the object bank is cropped to its opaque pixels.
@@ -795,6 +843,7 @@ def main():
                 skipped[o['cls']] = skipped.get(o['cls'], 0) + 1; continue
             objs.append({'type': t, 'x': o['x'], 'y': o['y'], 'cls': key, 'layer': o['layer'] or 0})
 
+    objs = [o for o in objs if not (800 <= o['type'] < 860 and n not in FNBOSS_FRAMES)]   # FN_BOSS: its classes only in FN1-FN3 / FN5
     for o in objs: o['fna'] = FNA_SUB.get(o['cls'], 0) | FNA_FLAGS.get((o['cls'], n), 0) | (o['layer'] << 8)   # FN_GIMA (fn_gima.c)
     objs += [{'type': 604, 'x': v, 'y': k, 'cls': 'fnparam', 'layer': 0, 'fna': 0} for k, v in FNA_PARAMS.get(n, ())]   # FN_GIMA parameters
     # ---- piece atlases
@@ -1245,6 +1294,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         if 300 <= o['type'] < 350: a = RMB_SUB.get(o['cls'], 0)   # Relic Maze acts 3-5 families: the member index (relic_gimb.c)
         if 560 <= o['type'] < 680: a = o.get('fna', 0)            # FN_GIMA: member index | act flags | layer << 8 (fn_gima.c)
         if 680 <= o['type'] < 800: a = FNB_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # FN_GIMB (fn_gimb.c): member index | instance layer << 8
+        if 800 <= o['type'] < 860: a = FNBOSS_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # FN_BOSS (fn_boss.c): sub id | instance layer << 8
         d += struct.pack('<2H2i', o['type'], a, o['x'], o['y'])
     for t in table: d += t
     d += struct.pack('<%dH' % len(smap), *smap)
