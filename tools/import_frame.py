@@ -221,6 +221,30 @@ RM_ENS_WITH = {'badnikgolemshot_1260': ('minibossgolem',), 'badnikgolemshot2_126
                'breakableruinspiece_1203': ('breakableruins',), 'monitorearthshield_442': ('objectdigspot',), 'minibossrailing2_1204': ('minibossrailing2', 'minibossbarrier'),'enemyfiresprite_1189': ('enemyslug',), 'enemyspark_1200': ('enemyextractorhead',),
                'enemyrock_1290': ('enemyextractorhead',), 'enemyfirespitterbase_1313': ('enemyfirespitter',),
                'minibossflame_1264': ('enemyfirespitter', 'minibossgolem'), 'enemysentinelspike_1475': ('enemysentinel',)}
+# ---- Relic Maze act 3 Claw sequence (spec_rm_claw.md; src/game/rm_claw.c): engine types 400-449 (fp.h), sprites
+CLAW_TYPES = {'shrine3': 400, 'bossclaw': 401, 'bossclawtalons': 402, 'bossclawpiece1': 403, 'bossclawpiece4': 404,
+              'bossclawhitbox': 405, 'bossclawbase': 406, 'caravanengine': 408, 'caravanwheel': 409, 'npcmerc': 410,
+              'pushableblock3': 411, 'levelfloatingplatform2': 413, 'levelfloatingplatform3': 414, 'backgroundwall': 415,
+              'backgroundwall2': 416, 'breakablecolumn1': 417, 'breakablecolumn2': 418, 'breakablerelicwall': 419}
+CLAW_TYPES_ID = {('active', 1338): 412, ('shrine2', 1296): 421, ('rmalternatepath', 1426): 422, ('rmalternatepath2', 1438): 423}   # + the route split (6203 / 6204)   # Active_1338 (the road strip), Shrine2_1296 (RM5's 1588 is another object)
+CLAW_ENS = [('shrine3_1298', 0, '0', 'shrine3'), ('cameratriggerboss_389', 0, '0', 'camtrig')] + \
+    [('bossclaw_1288', 0, d, 'claw' + d) for d in ('0', '1', '2', '16', '17')] + [('bossclaw_1288', 7, d, 'claw%s_h' % d) for d in ('16', '17')] + \
+    [('bossclawtalons_1299', 0, d, 'talons' + d) for d in ('0', '1', '16', '17')] + \
+    [('bossclawpiece1_1300', 0, '0', 'clink'), ('bossclawpiece1_1300', 0, '4', 'clink_lit'), ('bossclawpiece1_1300', 7, '0', 'clink_h'),
+     ('bossclawhitbox_1320', 0, '0', 'clawhit'), ('bossclawbase_1319', 0, '0', 'clawbase'), ('bossclawbase_1319', 0, '8', 'clawbase_w'),
+     ('bossreflectobeam_1321', 0, '20', 'cbeam'), ('bossreflectobeam_1321', 0, '12', 'cbeam_up'),
+     ('caravanengine_1332', 0, '0', 'engine'), ('caravanengine_1332', 0, '8', 'engine_w'), ('caravanwheel_1308', 0, '0', 'cwheel'),
+     ('pushableblock3_1287', 0, '0', 'pblock3'), ('active_1338', 0, '0', 'cground'), ('levelfloatingplatform2_1311', 0, '0', 'croof2'),
+     ('levelfloatingplatform3_1403', 0, '0', 'croof3'), ('backgroundwall_1291', 0, '0', 'bgwall'), ('backgroundwall2_1304', 0, '0', 'bgwall2'),
+     ('breakablecolumn1_1293', 0, '0', 'column1'), ('breakablecolumn2_1294', 0, '0', 'column2'), ('breakablerelicwall_1295', 0, '0', 'relicwall'),
+     ('breakablerelicwalldebris_1297', 0, '0', 'relicdebris'), ('shrine2_1296', 0, '0', 'shrine2'), ('rmalternatepath_1426', 0, '0', 'altpath'),
+     ('rmalternatepath2_1438', 0, '0', 'altpath2')] + \
+    [('npcmerc_1329', a, d, nm + ('' if d == '0' else '_l')) for a, nm in ((0, 'merc'), (2, 'merc_run'), (5, 'merc_alarm'), (7, 'merc_jump'), (8, 'merc_fall')) for d in ('0', '16')]
+# children (merged into ENS_WITH: the parents are added to an existing entry's tuple)
+CLAW_ENS_WITH = {'bossreflectobeam_1321': ('bossclaw',), 'breakablerelicwalldebris_1297': ('breakablerelicwall',),
+                 'effectsdust_437': ('caravanengine',), 'breakableruinspiece_1203': ('backgroundwall',),
+                 'effectsexplosion06_435': ('bossclaw', 'caravanengine'), 'monitoricon_363': ('caravanengine',)}
+CLAW_ENS_FRAMES = {'cameratriggerboss_389': {27}, 'shrine2_1296': {27}}   # the trigger's box only where the Claw sequence uses it (DV4's stays imageless)
 # rows exported only in these frames (json number): the creator's own events name the handle per frame (RM1 5793 rock
 # 1194, RM3 / RM4 6175 rock 1290); the pots share names (one image set per level)
 ENS_FRAMES = {'enemyrock_1194': {25, 26}, 'enemyrock_1290': {27, 28}}   # RM2: the golem's debris rocks (5972 / 5976)
@@ -303,8 +327,8 @@ RMB_TYPES_ID = {
     ('levelhandcar', 1421): 311, ('levelhandcarhandle', 1420): 312, ('levelhandcartop', 1422): 312,
     ('levelhandcarfloor1', 1423): 313, ('levelhandcarfloor2', 1424): 313, ('levelhandcarfloor3', 1425): 313, ('levelminetrackswitch', 1419): 314,
     ('switchwallplate', 1149): 315, ('switchwallplate2', 1429): 315, ('switchwallplate', 1526): 315, ('switchwallplate', 1543): 315, ('switchwallplate2', 1578): 315,
-    ('levelfloatingplatform2', 1311): 317, ('levelfloatingplatform3', 1403): 317, ('levelmovingplatform01', 1389): 318, ('active', 1338): 319,
-    ('rmalternatepath', 1426): 320, ('rmalternatepath2', 1438): 320, ('gimmickrollingplatformcave', 1449): 321, ('gimmickrollingplatformcave2', 1447): 322,
+    ('levelmovingplatform01', 1389): 318, 
+    ('gimmickrollingplatformcave', 1449): 321, ('gimmickrollingplatformcave2', 1447): 322,
     ('gimmickdrillplatform', 1480): 323, ('breakableruins', 1450): 324, ('levelrmplatform', 1517): 325, ('gatewayfront', 1524): 326, ('gatewayfront2', 1525): 327,
     ('cavesoilcraterfront', 1379): 328, ('cavesoilcraterfront2', 1385): 328,
     ('levellayer001', 1441): 329, ('levellayer002', 1442): 329, ('levellayer015', 1443): 329, ('levellayer02', 1477): 329, ('levellayer03', 1494): 329,
@@ -351,6 +375,9 @@ ENGINE_TYPES_ID.update(RMB_TYPES_ID)
 ENS += RMB_ENS
 ENS_WITH.update(RMB_ENS_WITH)
 ENS_FRAMES.update(RMB_ENS_FRAMES)
+# Relic Maze act 3 Claw sequence (CLAW_* above): one merge line per table
+ENGINE_TYPES.update(CLAW_TYPES); ENGINE_TYPES_ID.update(CLAW_TYPES_ID); ENS += CLAW_ENS; ENS_FRAMES.update(CLAW_ENS_FRAMES)
+for _k, _v in CLAW_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v
 
 ENS_ONLY_WITH = {'guiweaponslot_426', 'effectswatersplash_379', 'bubblepatch_804', 'mediumbubble_805', 'generalwaterhorizon_377', 'bubblenumbers_405', 'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 # classes whose untrimmed image box matters (spring top edges RV, box-collision platforms/logs, invisible
@@ -388,13 +415,16 @@ PAR_IMG = {'levelparallaxpiece0_491': 16032, 'levelparallaxpiece1_891': 3030, 'l
            'levelparallaxpiece3r_1137': 12325, 'levelparallaxpiece4r_1138': 12326, 'levelparallaxpiece3r_1220': 2250,
            'levelparallaxpiece4r_1221': 3335, 'levelparallaxpiece6_1349': 3383, 'levelparallaxpiece7_1350': 3426,
            'levelparallaxpiece9_1351': 1990, 'levelparallaxpiece6_1452': 3383, 'levelparallaxpiece7_1453': 3426,
-           'levelparallaxpiece9_1454': 1990, 'levelparallaxpiece6_1531': 2058, 'levelparallaxpiece7_1532': 1601}
-# piece5_1309 (RM3 layer 3, the caravan-chase foreground, spec_rm_flow 4) is not exported: shown only during the Claw chase
+           'levelparallaxpiece9_1454': 1990, 'levelparallaxpiece6_1531': 2058, 'levelparallaxpiece7_1532': 1601,
+           'levelparallaxpiece5_1309': 12333}
+# piece5_1309 (RM3 layer 3, the caravan-chase foreground, spec_rm_flow 4 / spec_rm_claw 6): exported with flags 256 (layer 3:
+# drawn in front of the player, par_draw_front) + 512 (hidden until rm_claw.c shows it at 6256); D = E = 0 (never written)
+PAR_FRONT = {(27, 1309)}
 PAR_BOXH = {'levelparallaxpiece6_897': 160, 'levelparallaxpiece13_1068': 1024, 'levelparallaxpiece13_1092': 820,
             'levelparallaxpiece6_678': 800, 'levelparallaxpiece2_676': 960, 'levelparallaxpiece5_677': 1105,
             'levelparallaxpiece8_837': 1105, 'levelparallaxpiece9_842': 1105, 'levelparallaxpiece7_836': 1105, 'levelparallaxpiece10_843': 1105,
             'levelparallaxpiece6_1349': 720, 'levelparallaxpiece7_1350': 720, 'levelparallaxpiece9_1351': 1600}   # RM3 (spec_rm_flow 4)
-PAR_BOXW = {'levelparallaxpiece6_853': 400}          # box wider than its image (AT4 screen-fixed backdrop)
+PAR_BOXW = {'levelparallaxpiece6_853': 400, 'levelparallaxpiece5_1309': 384}          # box wider than its image (AT4 screen-fixed backdrop)
 PAR_WRAPY = {18, 19, 20}                             # AT3 / AT4 frames (json 19, 20): 4532 / 4527 wrap in both axes; AT2 json 18 has none (see below)
 # D, E, G (RE 5110 / 5315 / 5603; DV1's start events not read: the same table is used, INFERRED)
 PAR_DEG = {491: (.99, .94, 0), 891: (.98, .93, 0), 893: (.95, .91, 0), 894: (.96, .92, -.1), 895: (.92, .88, -.3),
@@ -407,7 +437,7 @@ PAR_DEG = {491: (.99, .94, 0), 891: (.98, .93, 0), 893: (.95, .91, 0), 894: (.96
            # Relic Maze (spec_rm_flow 4; 5842 / 6370 / 3559)
            1112: (.99, .94, 0), 1133: (.95, .92, 0), 1134: (.85, .85, 0), 1137: (.40, .40, 0), 1138: (.37, .36, 0),
            1220: (.40, .40, 0), 1221: (.37, .36, 0), 1349: (.85, .85, 0), 1350: (.60, .60, 0), 1351: (.30, .30, 0),
-           1452: (.85, .85, 0), 1453: (.60, .60, 0), 1454: (.30, .30, 0), 1531: (.85, .85, 0), 1532: (.60, .60, 0)}
+           1452: (.85, .85, 0), 1453: (.60, .60, 0), 1454: (.30, .30, 0), 1531: (.85, .85, 0), 1532: (.60, .60, 0), 1309: (0, 0, 0)}
 PAR_DEG_FRAME = {(27, 1112): (1.0, .94, 0)}          # the same handle with RM3's own D (RE spec_rm_flow 4)
 PAR_SKY_BELOW = {27: (1112, 1133, 1134, 1137, 1138)} # RM3 6298: destroyed once the player is below y 2400 (one way)
 # layers scrolling at 0.8 (RE Layer::init): Aqua Tunnel and RM1-RM4 layer 1, RM5 layer 0 (spec_rm_flow 2.4); json frame
@@ -456,13 +486,14 @@ def export_parallax(fr, src, name, out):
         if o['id'] in PAR_SKY_BELOW.get(fr['frame'], ()): flags |= 64   # RM3 6298: gone once the player is below y 2400
         if fr['frame'] == 18 and o['id'] in (677, 676): flags |= 16    # AT2 (4398 / 4399): shown while view left < 7544
         if fr['frame'] == 18 and o['id'] in (836, 837, 842, 843): flags |= 32   # shown while view left > 7544
+        if (fr['frame'], o['id']) in PAR_FRONT: flags |= 256 | 512                # layer-3 piece, hidden until shown (RM3 piece5)
         iw, ih = images[imgidx[img]][0], images[imgidx[img]][1]
-        pieces.append((imgidx[img], D, E, G, o['y'], PAR_BOXW.get(key, iw), PAR_BOXH.get(key, ih), flags))
-    d = bytearray(b'FPPX' + struct.pack('<4H', len(images), len(pieces), 1 if water else 0, 0))
+        pieces.append((imgidx[img], D, E, G, o['y'], PAR_BOXW.get(key, iw), PAR_BOXH.get(key, ih), flags, o['id']))
+    d = bytearray(b'FPPX' + struct.pack('<4H', len(images), len(pieces), 1 if water else 0, 1))   # version 1: + the piece's handle
     for w, h, chunks in images:
         d += struct.pack('<3H', w, h, len(chunks))
         for c in chunks: d += struct.pack('<4H', *c)
-    for (ii, D, E, G, y0, bw, bh, fl) in pieces: d += struct.pack('<H3fi3H', ii, D, E, G, y0, bw, bh, fl)
+    for (ii, D, E, G, y0, bw, bh, fl, hd) in pieces: d += struct.pack('<H3fi4H', ii, D, E, G, y0, bw, bh, fl, hd)
     if water:
         for img in (987, 1078):
             im, hx, hy = load_img(src, img)

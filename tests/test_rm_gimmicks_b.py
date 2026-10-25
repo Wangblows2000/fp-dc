@@ -12,6 +12,7 @@ DATA = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, '..', 'converted
 # engine types (src/fp.h, Relic Maze acts 3-5 block)
 PILLAR, IDLESW, RSWING, PICKAXE, CUP, ELEV2, CART, TSWITCH, WPLATE, ALTPATH, RCAVE, DRILL, RUINS, GATE2, LSBASE, LSDOOR, SCEIL = \
     300, 301, 303, 305, 308, 310, 311, 314, 315, 320, 321, 323, 324, 327, 331, 333, 334
+ALTPATH1, ALTPATH2 = 422, 423   # RMAlternatePath_1426 / 2_1438: owned by the Claw module (rm_claw.c, 6203 / 6204)
 OT_DOOR, OT_SPIKES, OT_HANG, OT_RSPRING_U, OT_JUMPPAD = 96, 7, 17, 174, 132
 ST_HELD, ST_CART, ST_SIT, ST_PAD = 28, 29, 30, 20
 
@@ -63,11 +64,13 @@ check('rm3_jump_off_handcar', any(r['mm'] == 90 for r in rows[150:199]) and all(
       'vy after jump %.2f' % min(r['vy'] for r in rows[200:215]))
 # 6374 / 6203 / 6204: the cart and switches exist only for Milla; the alternate paths split by character
 for ch, nm in ((0, 'lilac'), (2, 'carol')):
-    _, obs, _, _ = run('rm3', ch, '', 3, '%d:-1,%d:-1,%d:-1' % (CART, TSWITCH, ALTPATH))
+    _, obs, _, _ = run('rm3', ch, '', 3, '%d:-1,%d:-1,%d:-1,%d:-1' % (CART, TSWITCH, ALTPATH1, ALTPATH2))
     check('rm3_no_handcar_for_%s' % nm, not obs_of(obs, CART) and not obs_of(obs, TSWITCH), str(len(obs_of(obs, CART))))
-    check('rm3_altpath_kept_for_%s' % nm, [o['x'] for o in obs_of(obs, ALTPATH) if o['f'] == 1] == [832], str([o['x'] for o in obs_of(obs, ALTPATH) if o['f'] == 1]))
-_, obs, _, _ = run('rm3', 4, '', 3, '%d:-1' % ALTPATH)
-check('rm3_altpath2_for_milla', sorted(o['x'] for o in obs_of(obs, ALTPATH) if o['f'] == 1) == [1064, 1112, 1176], str([o['x'] for o in obs_of(obs, ALTPATH) if o['f'] == 1]))
+    alt = [o['x'] for o in obs_of(obs, ALTPATH1) + obs_of(obs, ALTPATH2) if o['f'] == 1]
+    check('rm3_altpath_kept_for_%s' % nm, alt == [832], str(alt))
+_, obs, _, _ = run('rm3', 4, '', 3, '%d:-1,%d:-1' % (ALTPATH1, ALTPATH2))
+alt = sorted(o['x'] for o in obs_of(obs, ALTPATH1) + obs_of(obs, ALTPATH2) if o['f'] == 1)
+check('rm3_altpath2_for_milla', alt == [1064, 1112, 1176], str(alt))
 
 # ---- 2. hanging switch -> pillars (RM3 5866-5868, 6353-6363): hang on the bar, it sinks 8 px, the left block moves 232 px down
 for ch, nm in ((0, 'lilac'), (2, 'carol'), (4, 'milla')):
@@ -159,8 +162,8 @@ check('rm5_chair_sits', sit and any(r['mm'] == 39 and r['x'] == 1085 for r in si
 check('rm5_chair_stand_up', all(r['st'] != ST_SIT for r in rows[152:159]), str([r['st'] for r in rows[150:160]]))
 
 # ---- 18. jump pads with RM handles (6092-6095): RM3 pad 9 (11256, 2984, lit): Lilac and the bike get the crystal pop,
-# Carol on foot rides (M48)
-for ch, nm, ride in ((0, 'lilac', 0), (2, 'carol', 1), (3, 'carol_bike', 0)):
+# Carol on foot rides (M48); Carol on the bike enters RM3 on foot (6198, rm_claw.c) and rides as well
+for ch, nm, ride in ((0, 'lilac', 0), (2, 'carol', 1), (3, 'carol_bike_dismounted', 1)):
     rows, _, _, _ = run('rm3', ch, '60 TP 11256 2960\n' + INV + '100 102 J\n', 160)
     pad = any(r['st'] == ST_PAD for r in rows[100:])
     check('rm3_pad_%s_%s' % ('ride' if ride else 'no_ride', nm), pad == bool(ride), 'pad state %s' % pad)
