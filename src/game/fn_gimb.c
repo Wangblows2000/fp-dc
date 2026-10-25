@@ -160,7 +160,7 @@ static void dip(player_t *p) {                       /* 3303 / 3304 / 3307 (Q12:
 }
 
 /* ================================================================ spawn */
-static const char *const LOOPN = "fnloop0_%d", *const STILTN = "stilt%d";
+static const char *const LOOPN = "fnloopb_%d", *const STILTN = "stilt%d";
 void fn_gimb_spawn(void) {
     static int reg;
     if (!reg) { reg = 1; snap_register(&S, sizeof S); }
@@ -191,7 +191,7 @@ void fn_gimb_spawn(void) {
     EACH(OT_FN_FOUNTAIN, o) set_sk(o, "fount%d", o->par & 1);
     EACH(OT_FN_WATERPLAT, o) set_s(o, "wplat");
     EACH(OT_FN_ROPE, o) set_s(o, "rope");
-    EACH(OT_FN_ROPEEND, o) set_s(o, "ropeend");
+    EACH(OT_FN_ROPEEND, o) set_s(o, "fnclstop");
     k = 0; EACH(OT_FN_TBAR, o) { set_s(o, "tbar"); o->av[0] = o->av[4] = o->x; o->tm = k++; }   /* start (A4 inline / A5 8319): A = F = x */
     k = 0; EACH(OT_FN_TSENS, o) { set_s(o, "tsens"); o->tm = k++; }
     k = 0; EACH(OT_FN_TWHEEL, o) { set_s(o, "twheel"); o->tm = k++; }
