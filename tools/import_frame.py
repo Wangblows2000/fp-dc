@@ -627,7 +627,7 @@ def main():
     masks = {}
     for p in pieces:
         if p['col'] not in (1, 2) or p['layer'] not in col_layers: continue
-        im, hx, hy = imgs[p['img']]
+        im, hx, hy = imgs[p['img']]; hx = hy = 0   # backdrops ignore the image hotspot (RE Backdrop::draw adds it, draw_image subtracts it)
         mk = (p['img'], p['box'])
         if mk not in masks:
             masks[mk] = b'\x01' * (im.width * im.height) if p['box'] else im.getchannel('A').point(lambda v: 1 if v >= ALPHA_MIN else 0).tobytes()
@@ -994,7 +994,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
     names = [a['name'] for a in bank['anims']]
     d = bytearray(b'FPL2' + struct.pack('<2I4H2HI', W, H, len(pieces), len(objs), natlas, len(table), TW, TH, 0))
     for p in pieces:
-        im, hx, hy = imgs[p['img']]
+        im, hx, hy = imgs[p['img']]; hx = hy = 0   # backdrop pieces: drawn at the instance x, y (RE Backdrop::draw)
         k, u, v = where[p['img']]
         d += struct.pack('<2i4H4B', p['x'] - hx, p['y'] - hy, u, v, im.width, im.height, k, p['layer'], p['col'], (1 if p['invisible'] else 0) | p.get('scroll08', 0))
     for o in objs:
