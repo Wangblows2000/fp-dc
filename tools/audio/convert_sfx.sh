@@ -27,5 +27,8 @@ for i in $IDS; do case "$LOW" in *" $i "*) R0=$RATE; RATE=11025; conv "$SRC/audi
 for v in "$VOX"/eng/li/lilac_*.ogg; do conv "$v" "$OUT/$(basename "$v" .ogg).wav"; done
 # Carol / Milla stage-clear voices (RM5 results 6590-6592; game.c voice_play_results loads them only for the results), half rate
 R0=$RATE; RATE=11025; for v in ca/carol_feelmypower mi/milla_yay mi/milla_superdog; do conv "$VOX/eng/$v.ogg" "$OUT/$(basename $v).wav"; done; RATE=$R0
+# Fortune Night (session 17): the stage group SFX_FN holds the flow ids 61 (a Carol id, needed by everyone at FN3's exit) and
+# 134 (already in IDS / LOW above); the FN6 results group voice (8545, everyone) loads on demand, half rate like the others
+R0=$RATE; RATE=11025; conv "$VOX/eng/group/teamlilac_madeit.ogg" "$OUT/teamlilac_madeit.wav"; RATE=$R0
 rm -rf "$TMP"
 awk -F, 'NR>1{s+=$4} END {printf "%d sounds, %.1f KB\n", NR-1, s/1024}' "$OUT/sfx_manifest.csv"
