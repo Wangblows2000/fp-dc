@@ -590,8 +590,35 @@ def main():
     # ---- piece atlases
     ids = sorted({p['img'] for p in pieces})
     imgs = {i: load_img(src, i) for i in ids}
-    remaining = list(ids); atlases = []; where = {}
-    while remaining:
+    # colour-aware split (session 17, Fortune Night): the pieces of a level share one 256-entry palette group unless the
+    # palettizer spills whole atlases to another group. When the images need more colours than one group holds, they
+    # are partitioned greedily into colour sets of at most PIECE_COLS colours (ARGB1555, as written) and each set gets
+    # its own atlas(es), so palettize.py can move an atlas whole to a group with room. Levels that fit are unchanged.
+    PIECE_COLS = 240
+    def cols555(im):
+        return {argb1555(bytes(px)) for px in im.getdata() if px[3] >= 128}
+    for i in ids:                                  # a single image with more colours than a set: reduce it (lossy, reported)
+        c = cols555(imgs[i][0])
+        if len(c) > PIECE_COLS:
+            im, hx, hy = imgs[i]; a = im.getchannel('A')
+            q = im.convert('RGB').quantize(PIECE_COLS - 8, method=Image.Quantize.MEDIANCUT).convert('RGBA'); q.putalpha(a)
+            imgs[i] = (q, hx, hy)
+            report.append('piece image %d: %d colours reduced to %d (palette limit)' % (i, len(c), len(cols555(q))))
+    ccache = {i: cols555(imgs[i][0]) for i in ids}
+    allc = set().union(*ccache.values()) if ids else set()
+    if len(allc) > PIECE_COLS:
+        sets = []
+        for i in sorted(ids, key=lambda i: -len(ccache[i])):
+            best = min(((len(sc | ccache[i]) - len(sc), k) for k, (sc, _) in enumerate(sets) if len(sc | ccache[i]) <= PIECE_COLS), default=None)
+            if best is None: sets.append((set(ccache[i]), [i]))
+            else: sets[best[1]][0].update(ccache[i]); sets[best[1]][1].append(i)
+        order = [sorted(m) for _, m in sets]
+        report.append('pieces: %d colours, split into %d colour sets %s' % (len(allc), len(order), [len(sc) for sc, _ in sets]))
+    else:
+        order = [list(ids)]
+    remaining = []; atlases = []; where = {}
+    while order or remaining:
+        if not remaining: remaining = order.pop(0)
         k = len(atlases)
         # the first atlas is up to 1024x1024; later ones at most 1024x512 (task 48: a 1024x1024 second atlas was
         # often only ~55-65 % used, wasting 384-512 KB of VRAM per level; the renderer takes up to MAX_ATLAS = 4)
@@ -605,7 +632,7 @@ def main():
                 else: hi = mid
             take = remaining[:lo]; pos = cap(take) if take else None
         if not take: raise SystemExit('piece too large for the atlas')
-        if len(take) == len(remaining):          # last atlas: the smallest power-of-two height that holds the rest
+        if len(take) == len(remaining) and not order:   # last atlas: the smallest power-of-two height that holds the rest
             for hh in (128, 256, 512):
                 p2 = pack([(i, imgs[i][0]) for i in take], 1024, hh)
                 if p2: pos = p2; break
