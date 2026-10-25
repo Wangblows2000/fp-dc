@@ -22,8 +22,8 @@ Native Dreamcast (KallistiOS) port of Freedom Planet. A custom C engine plays da
 ## Pipeline
 See ASSET_PIPELINE.md (levels, UI, font, audio). Then:
 ```sh
-for l in "21 dv1" "22 dv2" "23 dv3" "24 dv4" "17 at1" "18 at2" "19 at3" "20 at4"; do set -- $l; tools/build_level.sh $1 $2 converted2; done
-make -C host && for t in gameplay frontend carol milla aqua levels saves; do python3 tests/test_$t.py; done
+for l in "21 dv1" "22 dv2" "23 dv3" "24 dv4" "17 at1" "18 at2" "19 at3" "20 at4" "25 rm1" "26 rm2" "27 rm3" "28 rm4" "29 rm5"; do set -- $l; tools/build_level.sh $1 $2 converted2; done
+make -C host && for t in gameplay frontend carol milla aqua levels saves rm_gimmicks_b rm_claw rm_mantalith; do python3 tests/test_$t.py; done
 Q=1 tools/orig/cmp_all.sh && python3 tools/orig/cmp_carol.py && FR=295 python3 tools/orig/cmp_milla.py && python3 tools/orig/cmp_at.py   # against the original's traces
 source /opt/toolchains/dc/kos/environ.sh && make && make cdi        # build/fpdc.cdi (~300 MB)
 make cdi DEMO=tests/play/<route>.txt CDI=build/fpdc_demo.cdi        # verification disc: scripted input ("LEVEL dv1" line starts the act)
@@ -110,6 +110,24 @@ spec_records_saves.md.
 - **Saves:** v3, stage-indexed (records in ms for every stage, files with per-stage blocks, progress, 100 cards), one
   write at each stage end; Aqua Tunnel cards are collected and saved.
 
+## Session 14 (2026-10-25): Relic Maze
+Brief: RM1-RM5 for Lilac, Carol and Milla (DV → RM, AT → RM), every gimmick, enemy and boss, Milla's mine-cart route,
+cards / checkpoints / results / music / SFX, Time Attack entry, saves; keep hardware compatibility. Details: RE_NOTES
+"Session 14", RUNTIME_MAP "Session 14", ASSET_PIPELINE "Session 14", DECISIONS D-061 to D-067, BUILD_AND_TEST_LOG
+"Session 14", OBJECTS.md. Specs (build/re, not committed): spec_rm_flow, spec_rm_enemies, spec_rm_gimmicks_a / _b,
+spec_rm_golems, spec_rm_claw, spec_rm_mantalith, rm_inventory.
+- **Flow:** level rows rm1-rm5 with data-driven exits, entries, death targets, stage flags, gates, room bounds and warps
+  (D-061); Classic DV4 / AT4 results continue into RM1; RM5 ends at the front end (D-064). Continue resumes a file at
+  the stage after its last completed one.
+- **Content:** src/game/relic.c (enemies, pots), relic_gima.c (acts 1-2), relic_gimb.c (acts 3-5, Milla's hand-car,
+  RM4 gateway, RM5 light stones / spike ceiling / chair), relic_boss.c (Eye Golem RM2, Bone Golem RM5), rm_claw.c (RM3
+  Claw sequence, Lilac / Carol), rm_mantalith.c (Kingdom Stone scene, Mantalith, boss results, post-results).
+- **Audio / memory:** RM stage sounds at 11025 Hz (D-063) after Flycast ran out of sound RAM with Milla / Carol.
+- **Performance (D-067):** sensor / enemy / AT-pass prefilters took RM4 Carol from 636-643 to 603-605 vblanks.
+- **Gaps:** Carol / Milla result voices are placeholders; Adventure cutscene, unlock / achievement records and
+  Mantalith sounds 147 / 214 / 215 not ported; INFERRED items in RE_NOTES. An agent published a private working page
+  (spec_rm_enemies) during research; it is still in the user's artifacts (delete only if the user asks).
+
 ## Aqua Tunnel: verified vs approximated
 - **Matched to original traces (RV, cmp_at, Milla):** slimes and their bursts, fireflies in the current, water jet from
   the left, jelly jump / charge, red springs right / up-right / up, bomb walk, AT2 aqua brick platforms, AT1 plates +
@@ -141,22 +159,20 @@ spec_records_saves.md.
   Aqua Tunnel: session 12.)
 
 ## Latest verified
-- host-test: gameplay 72/72, front end 30/30, Carol 19/19, Milla 33/33, Aqua 19/19, levels 23/23, saves 19/19.
-  original-trace vs host (identical per trace to the session-12 HEAD): cmp_all 76/76, strict 11311/11377 (99.4 %);
-  cmp_carol 43/53; cmp_milla 38/43 (incl. m_hang_dv1); cmp_at 21/35 exact. RV-file: the save model holds on the
-  user's five PC files and records.dat (tests/check_user_saves.py, 23/23, read in place).
-- emulator (Flycast, session 13): every act at 602-603 vblanks per 600 frames (DV4 602 after the boulder fix); VRAM
-  free AT1 2542, AT2 1644, AT3 3347, AT4 2308, DV1 2541, DV2 1707 (Milla 1347), DV3 1949, DV4 1960 KB; menus and results
-  translucent as on the host. **Emulator only; nothing measured on real hardware.**
+- host-test (session 14): gameplay, front end, Carol, Milla, Aqua, levels, saves, rm_gimmicks_b, rm_claw, rm_mantalith
+  all 0 failures; original-trace comparers unchanged from the session-start baseline (cmp_all / cmp_carol / cmp_milla /
+  cmp_at as in session 13). RV-file save model unchanged (tests/check_user_saves.py).
+- emulator (Flycast, session 14): every RM act at 602-605 vblanks per 600 frames after its load window (RM4 Carol 605
+  worst); VRAM free RM1 2917, RM2 2388, RM3 1494 (Milla 1134), RM4 1053, RM5 2060 KB; session-13 figures for DV / AT
+  stand. **Emulator only; nothing measured on real hardware.**
 
 ## Next actions
-1. Real hardware: the session 13 disc; read the `perf:`/`prof` lines, check the translucent menus / results (D-060)
-   and that no stage stutters.
-2. Original traces for the RE-only items (TODO "Session 13" / "Aqua Tunnel"): AT card numbering, a story clear across
-   frame 8 (save writes), Chomper / snake / worm defeats.
-3. Next stage: follow ASSET_PIPELINE "Adding a level" and RE_NOTES "Reusable objects and levels"; OBJECTS.md shows
-   which classes are already ported.
-4. Carol traces still to record (under water, wreck, DV3/DV4 pads), the DV4 boss exit trace, the DV1→DV4 route search.
+1. Real hardware: the session 14 disc; read the `perf:` / `prof` lines in RM3 / RM4 (the lowest VRAM and the heaviest
+   object load) and check sound in RM with Milla / Carol.
+2. Original traces for the RM RE-only items (TODO "Relic Maze"): golems, Claw, Mantalith, hand-car, RM5 warps, the Eye
+   Golem camera (D-066), shockwave ageing.
+3. Real Carol / Milla result voices; then the next stage (Fortune Night, frame 29) via ASSET_PIPELINE "Adding a level".
+4. Older items: AT card numbering, a story clear across frame 8, Chomper / snake / worm defeats, Carol traces.
 
 ## Carol: verified vs approximated
 - **Matched to original traces (RV, cmp_carol, 53 traces):** on-foot movement, pounce chains, roll and roll jump, crouch

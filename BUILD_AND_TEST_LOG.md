@@ -383,3 +383,20 @@ Labels: original-trace (RV), RE, host-test, emulator (Flycast, emulated time). *
 - **Bosses:** DV4 Serpentine (FP_SN_AUTOKILL) and AT4 Chomper Snake (BOSSHP 0) defeats run their results and exits in
   the host tests; the bosses are not beaten by normal play in automated tests (limitation, unchanged).
 - **DC build:** 0 warnings.
+
+## Session 14 (2026-10-25): Relic Maze
+- **Host tests:** gameplay, frontend, carol, milla, aqua, levels, saves: 0 failures after each merge and after the
+  performance change; original-trace comparers identical to the session-start baseline (no diff lines);
+  test_rm_gimmicks_b, test_rm_claw, test_rm_mantalith 0 failures (the Mantalith test runs Lilac, Carol on foot, Carol
+  on the bike and Milla through the scene, fight, defeat via BOSSHP, results, story save and stage end). Full suites
+  were run only for large changes (merges, the collision prefilter), as asked.
+- **Performance (Flycast, lean demo disc, `LEVEL <act>` + hold right, 600-frame windows; the first window includes
+  the load):** vblanks per 600 frames after the load window, final code: RM1 Lilac 602-603, RM1 Milla 602-603,
+  RM2 Carol 603, RM3 Lilac 603, RM3 Milla 603 (was 609-621), RM4 Carol 603-605 (was 636-643: player 6.9 → 3.5 ms
+  after D-067), RM5 Lilac 603, RM5 Milla 603. VRAM free after load: RM1 2917 (Milla 2556), RM2 Carol 2388, RM3 1494
+  (Milla 1134), RM4 Carol 1053, RM5 2060 (Milla 1700) KB. Sound RAM largest free block: Lilac 380 KB, Milla 324 KB.
+- **Fixed during the session (emulator):** Flycast crashed in RM with Milla / Carol (sound RAM: "no chunks big enough
+  for alloc(65408)", then an Xbyak fault); the RM stage group at 11025 Hz fixed it (D-063). Host-side fixes: Bone Golem
+  assembly stall (float vs double compare), Eye Golem trigger fallback box, fireball burst on spawn, registry test for
+  types >= 256, duplicate stage sounds.
+- **DC build:** 0 warnings. **Emulator only; nothing measured on real hardware.**
