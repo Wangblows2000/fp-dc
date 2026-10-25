@@ -521,12 +521,22 @@ def main():
     if any(o['cls'].startswith('monitor') and o['cls'].endswith('shield') and o['x'] >= 0 for o in fr['objects']): placed.add('shieldmonitor_onmap')
     if n in WATER_FRAMES: placed.add('water_level')   # DV2 / DV3: MasterLevel A = 1 (5109 / 5314); AT1 / AT2 / AT4 (4309 / 4478 / 4685)
     ens = {'name': name + '_ens', 'anims': [], 'keep_box': set()}
+    placed_handles = {}
+    for o in fr['objects']: placed_handles.setdefault(o['cls'], set()).add(o['id'])
     for e in ENS:
         cls, ai, dk, nm = e[:4]
         base = cls.rsplit('_', 1)[0]
         if cls in ENS_ONLY_WITH:                     # off-map templates do not count (shields: only with an on-map shield monitor)
             if not any(w in placed for w in ENS_WITH.get(cls, ())): continue
         elif base not in placed and not any(w in placed for w in ENS_WITH.get(cls, ())): continue
+        # the frame's own object (class + handle): when the row names a handle this frame does not place but the frame
+        # places the class under another handle (another stage's object: its own images), the sprite comes from the
+        # placed handle (session 14; e.g. AT4's spikes 671, DV3's wall plate 1029 and door 1066, RM's spikes 1106-1109)
+        hs = placed_handles.get(base, set())
+        if hs and int(cls.rsplit('_', 1)[1]) not in hs:
+            for h2 in sorted(hs):
+                try: an['%s_%d' % (base, h2)]['anims'][ai][dk]; cls = '%s_%d' % (base, h2); break
+                except (KeyError, IndexError, TypeError): pass
         try: d = an[cls]['anims'][ai][dk]
         except (KeyError, IndexError, TypeError): report.append('  ens: missing %s anim %d dir %s' % (cls, ai, dk)); continue
         fr_ = d['frames'][e[4]] if len(e) > 4 else d['frames']
