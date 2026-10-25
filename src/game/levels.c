@@ -88,6 +88,15 @@ static const pillarzone_t PIL_RM4[] = { { 4411, 4458, 658, 894, 144 }, { 4459, 4
     { 4557, 4604, 659, 895, 96 }, { 4604, 4651, 661, 897, 80 } };
 static const rmgim_t RMG_RM3 = { PIL_RM3, N_(PIL_RM3), 0, 1, 0 }, RMG_RM4 = { PIL_RM4, N_(PIL_RM4), 8, 1, 0 }, RMG_RM5 = { NULL, 0, 0, 1, 1608 };
 static const padcfg_t PADS_RM4[] = { {368,632,0,0,0,0,0}, {496,392,1,0,0,0,0}, {560,632,2,0,1,0,0}, {1656,912,3,0,0,0,0}, {1472,688,4,270,1,0,0} };
+/* Fortune Night pads (ObjectJumpPad_1529; spec_fn_gimmicks_a 16: A = spread newest first, RE 4950 / 7186-7196 (FN1), 4950 / 4951 / 7649 /
+ * 4954 / 7650-7654 / 5365 / 7655-7663 (FN3)); FN2's only pad is an off-map template (inert) */
+static const padcfg_t PADS_FN1[] = { {3880,1328,0,0,0,1,0}, {3944,1008,1,90,1,0,0}, {3464,1032,2,0,0,1,0}, {3520,744,3,270,0,0,0}, {3584,440,4,270,1,0,0},
+    {7528,1072,6,90,0,1,0}, {7208,952,7,180,1,0,0}, {10472,704,8,90,0,1,0}, {10472,416,9,90,0,0,0}, {10472,128,10,90,1,0,0},
+    {7656,1168,11,270,0,1,0}, {7784,1016,12,270,0,0,0}, {7912,728,13,270,1,0,0} };
+static const padcfg_t PADS_FN3[] = { {5568,784,0,0,0,1,0}, {5888,640,1,90,0,0,0}, {5632,640,2,270,1,0,0}, {7312,1088,4,0,0,1,0}, {7792,1088,5,0,1,0,0},
+    {9504,800,6,0,0,1,0}, {9568,424,7,180,0,0,0}, {9984,464,8,90,0,0,0}, {9856,752,9,270,0,0,0}, {10176,712,10,180,0,0,0}, {10752,752,11,90,0,0,0},
+    {10400,520,12,180,0,0,0}, {10496,800,13,0,0,0,0}, {10368,656,14,270,0,0,0}, {10720,616,15,180,0,0,0}, {11360,616,16,180,1,0,0},
+    {10656,800,17,0,0,1,0}, {10656,616,18,180,0,0,0}, {11360,616,19,180,1,0,0} };
 static const padcfg_t PADS_RM5[] = { {352,2664,0,0,0,0,0}, {624,2632,1,0,1,0,0}, {1176,520,2,270,0,1,0}, {1176,216,3,270,1,0,0} };
 
 static const short SFX_AT[] = { 55, 62, 69, 99, 172, 173, 240, 242, 251, 252, 278, 306, 308, 316 };
@@ -113,6 +122,9 @@ static const short SFX_FN[] = { 61, 134 };
 
 #define DV(d, f, n, mus) .dir = d, .frame = f, .stage = 1, .act = n, .nacts = 4, .music = mus
 #define AT(d, f, n, mus) .dir = d, .frame = f, .stage = 0, .act = n, .nacts = 4, .music = mus, .plate_rule = 1, .switch_late = 1, .monitor_hop = 1, .checkpoints = 1, .sfx = SFX_AT, .nsfx = N_(SFX_AT)
+/* Fortune Night enemies (fn_enemy.c, spec_fn_enemies): FN1 7346 flips the coils below y 1500 and has no laser-wall handler
+ * (no col_21_29 in test_collisions_29); FN2 has no flare-wall handler (col_24_30); FN5's balloon gives a life (8349) */
+static const fnenemy_t FNE_FN1 = { 1500, 1, 0, 0 }, FNE_FN2 = { 0, 0, 1, 0 }, FNE_FN5 = { 0, 0, 0, 1 };
 /* Fortune Night (session 17, spec_fn_flow 9.1): music slots 4 / 6 / 7 of the frame's loop table (tools/re/bgm_refs.py, 3) */
 #define FN(d, f, n, mus) .dir = d, .frame = f, .stage = 3, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_FN, .nsfx = N_(SFX_FN)
 #define FN_M123 .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage3.adp", .mus7 = "bgm/m_stage3.adp"
@@ -153,13 +165,13 @@ static const level_def_t LEVELS[] = {
      * FN1 always starts with the card (4307); FN2-FN5 walk in from x -32 at B 3 (4526 / 5047, RV FN3 / FN4); FN6 walks in
      * clamped to X >= 400 without a B event (8550: its floor / plane modes move the player, RV) inside a fixed camera box;
      * FN4 always restarts slot 5 (8326: the load-time music_play does, a different track). Cards 31-40 (RE counter starts). */
-    { FN("fn1", 29, 1, "bgm/m_stage3.adp"), FN_M123, .card_first = 31, .start_card = 1, .cps = CP_FN1, .ncps = N_(CP_FN1), .cam_right = 11992 + 213 },
-    { FN("fn2", 30, 2, "bgm/m_stage3.adp"), FN_M123, .card_first = 33, .cps = CP_FN2, .ncps = N_(CP_FN2), .cam_right = 11992 + 213 },
-    { FN("fn3", 31, 3, "bgm/m_stage3.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage3c.adp", .mus7 = "bgm/m_trouble.adp", .card_first = 36,
+    { FN("fn1", 29, 1, "bgm/m_stage3.adp"), FN_M123, .fne = &FNE_FN1, .pads = PADS_FN1, .npads = N_(PADS_FN1), .card_first = 31, .start_card = 1, .cps = CP_FN1, .ncps = N_(CP_FN1), .cam_right = 11992 + 213 },
+    { FN("fn2", 30, 2, "bgm/m_stage3.adp"), FN_M123, .fne = &FNE_FN2, .card_first = 33, .cps = CP_FN2, .ncps = N_(CP_FN2), .cam_right = 11992 + 213 },
+    { FN("fn3", 31, 3, "bgm/m_stage3.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage3c.adp", .mus7 = "bgm/m_trouble.adp", .card_first = 36, .pads = PADS_FN3, .npads = N_(PADS_FN3),
       .cps = CP_FN3, .ncps = N_(CP_FN3), .cam_right = 14920 + 213, .script_exit = 1, .ckills = CK_FN3, .nckills = N_(CK_FN3), .cmarks = CM_FN3, .ncmarks = N_(CM_FN3) },
     { FN("fn4", 32, 4, "bgm/m_stage3b.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage3b.adp", .mus7 = "bgm/m_stage3b.adp", .card_first = 37,
       .cps = CP_FN4, .ncps = N_(CP_FN4), .exits = EX_FN45, .nexits = N_(EX_FN45), .cam_right = 11992 + 213 },
-    { FN("fn5", 33, 5, "bgm/m_stage3b.adp"), FN_M45, .card_first = 39, .cps = CP_FN5, .ncps = N_(CP_FN5), .exits = EX_FN45, .nexits = N_(EX_FN45), .cam_right = 15288 + 213 },
+    { FN("fn5", 33, 5, "bgm/m_stage3b.adp"), FN_M45, .fne = &FNE_FN5, .card_first = 39, .cps = CP_FN5, .ncps = N_(CP_FN5), .exits = EX_FN45, .nexits = N_(EX_FN45), .cam_right = 15288 + 213 },
     { FN("fn6", 34, 6, "bgm/m_boss.adp"), .mus4 = "bgm/m_boss.adp", .mus6 = "bgm/m_boss.adp", .mus7 = "bgm/m_boss.adp", .walkin_minx = 400, .walkin_free = 1,
       .cam_box = &BOX_FN6, .death_to = "fn5", .death_g4 = 2, .res_voice = "teamlilac_madeit", .res_wipe = 1 },
 };

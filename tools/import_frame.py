@@ -415,6 +415,120 @@ ENGINE_TYPES.update(CLAW_TYPES); ENGINE_TYPES_ID.update(CLAW_TYPES_ID); ENS += C
 for _k, _v in CLAW_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v
 
 for _k, _v in MT_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # RM5 end (rm_mantalith.c)
+# ---- FN_ENEMIES: Fortune Night enemies (spec_fn_enemies.md 13; src/game/fn_enemy.c), engine types 512-559 (fp.h FN enemy
+# block). Facing sets: '' direction 0, '_l' 16. A 6th element = rows exported only when one of those classes is placed
+# (the keystone directions and debris frames of the FN crashes: other stages' banks stay unchanged)
+FN_ENEMY_TYPES = {'enemycoil': 512, 'enemycoilhead': 513, 'enemycoilpiece1': 514, 'enemycoilpiece2': 515, 'enemycoilpiece3': 516,
+    'enemycoilpiece4': 517, 'enemycoilflip': 518, 'enemytrafficle': 519, 'enemytrafficle1': 520, 'enemytrafficle2': 521, 'enemytrafficle3': 522,
+    'enemysuperturretus': 523, 'enemyflarecannon': 524, 'enemyroller': 525, 'enemyghettoshell': 526, 'enemyduster': 527, 'enemydusterarm2': 528,
+    'enemydusterarm1': 529, 'enemydustermouth': 530, 'enemyballoon': 531, 'pigeon': 532, 'effectflareburst': 533}
+FN_ENEMY_KS = ('enemycoilhead', 'enemysuperturretus', 'enemyflarecannon')
+FN_ENEMY_ENS = [(c, a, '0', nm) for c, a, nm in (
+    ('enemycoil_1742', 0, 'fc_base'), ('enemycoilhead_1743', 0, 'fc_head'), ('enemycoilhead_1743', 7, 'fc_zap'), ('enemycoilhead_1743', 8, 'fc_chg'),
+    ('enemycoilhead_1743', 10, 'fc_post'), ('enemycoilhead_1743', 11, 'fc_hdead'), ('enemycoilpiece1_1738', 0, 'fc_p1'), ('enemycoilpiece2_1740', 0, 'fc_p2'),
+    ('enemycoilpiece3_1739', 0, 'fc_p3'), ('enemycoilpiece4_1741', 0, 'fc_p4'), ('enemycoilflip_1759', 0, 'fc_flip'), ('enemytrafficle_1760', 0, 'ft_pole'),
+    ('enemyflarecannon_1808', 0, 'fk_idle'), ('enemyflarecannon_1808', 7, 'fk_fire'), ('enemyflarecannon_1808', 8, 'fk_dead'), ('enemyflare_1809', 0, 'fk_flare'),
+    ('enemyflare_1809', 7, 'fk_fall'), ('enemyflare_1809', 8, 'fk_blast'), ('effectflareburst_1810', 4, 'fk_burst'), ('enemyduster_1938', 0, 'du_body'),
+    ('enemydusterarm2_1935', 0, 'du_arm2'), ('enemydusterarm1_1936', 0, 'du_arm1'), ('enemydustermouth_1937', 0, 'du_mouth'),
+    ('enemyballoon_1945', 0, 'bl_float'), ('enemyballoon_1945', 8, 'bl_pop'))] + \
+    [(c, a, d, nm + ('' if d == '0' else '_l')) for c, a, nm in (
+    ('enemytrafficle1_1761', 0, 'ft_l1'), ('enemytrafficle2_1762', 0, 'ft_l2'), ('enemytrafficle3_1763', 0, 'ft_l3'), ('enemysuperturretus_1833', 0, 'st_fly'),
+    ('enemysuperturretus_1833', 7, 'st_shoot'), ('enemysuperturretus_1833', 8, 'st_dead'), ('enemysuperturretus_1833', 10, 'st_brake'),
+    ('enemyroller_1934', 0, 'ro_idle'), ('enemyroller_1934', 1, 'ro_roll'), ('enemyroller_1934', 7, 'ro_jump'), ('enemyroller_1934', 8, 'ro_dead'),
+    ('enemyroller_1934', 10, 'ro_land'), ('enemyghettoshell_1988', 0, 'gs_idle'), ('enemyghettoshell_1988', 8, 'gs_dead'), ('enemyghettoshell_1988', 10, 'gs_blast'),
+    ('enemysoundwave_1989', 0, 'gs_wave'), ('pigeon_1641', 0, 'pg_sit'), ('pigeon_1641', 1, 'pg_fly'), ('pigeon_1641', 7, 'pg_peck')) for d in ('0', '16')] + \
+    [('enemytrafficle%d_%d' % (k, 1760 + k), 8, '0', 'ft_l%d_dead' % k) for k in (1, 2, 3)] + [('enemylaser_1781', 0, d, 'ft_laser' + d) for d in ('0', '1', '2')] + \
+    [('pigeon_1641', 7, d, 'pg_peck' + d) for d in ('1', '17')] + [('objectkeystone_429', 0, d, 'keystone' + d, None, (c,)) for d, c in (('2', 'enemycoilhead'), ('3', 'enemyflarecannon'), ('4', 'enemysuperturretus'))] + \
+    [('effectsdebris_427', 0, '0', 'debris_fnh', slice(41, 45), ('enemycoilhead',)), ('effectsdebris_427', 0, '0', 'debris_fns', slice(57, 61), ('enemyghettoshell',))]
+FN_ENEMY_ENS_WITH = {'enemylaser_1781': ('enemytrafficle1', 'enemytrafficle2', 'enemytrafficle3'), 'enemyflare_1809': ('enemyflarecannon',),
+    'effectflareburst_1810': ('enemyflarecannon',), 'enemysoundwave_1989': ('enemyghettoshell',), 'objectkeystone_429': FN_ENEMY_KS + ('enemyghettoshell',),
+    'effectsdebris_427': FN_ENEMY_KS + ('enemyghettoshell',), 'effectsexplosion06_435': ('enemyghettoshell', 'enemyduster'),
+    'effectshade_436': ('enemytrafficle1', 'enemytrafficle2', 'enemytrafficle3', 'enemyroller')}
+ENGINE_TYPES.update(FN_ENEMY_TYPES); ENS += FN_ENEMY_ENS   # FN_ENEMIES
+for _k, _v in FN_ENEMY_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # FN_ENEMIES
+
+# ---- FN_GIMA: Fortune Night gimmicks, acts 1-3 (build/re/spec_fn_gimmicks_a.md; src/game/fn_gima.c). Types 560-605 mirror
+# src/fp.h (OT_FNA_FIRST..OT_FNA_LAST). Families share a type; the lvobj anim field carries the member index (FNA_SUB, bits
+# 0-5), per-frame instance flags (FNA_FLAGS, bits 6-7: the act's own event copies) and the instance layer (bits 8-15).
+# Reused here by class + handle: the FN chair 1797 = the RM chair type 336 (relic_gimb.c chairs, RE 7272 ~ 6585), the
+# gachapon hanging switch 1268 = 301 (already in RMB_TYPES_ID) and its rope 1850 = 264 (ENGINE_TYPES 'gimmickhangingswitch').
+FNA_TYPES_ID = {
+    ('gimmickdragontunnel1', 1734): 560, ('gimmickdragontunnel2', 1733): 560, ('gimmickdragontunnel1', 1860): 561,
+    ('gimmickdragontunnelhead', 1737): 562, ('gimmickdragontunnelhead2', 1783): 562,
+    ('gimmickdragontunnelmask1', 1798): 563, ('gimmickdragontunnelmask2', 1799): 563,
+    ('dragontunnelhide1', 1782): 564, ('dragontunnelhide2', 1859): 564, ('dragontunnelhide3', 1787): 564,
+    ('levelferriswheel1', 1774): 565, ('levelferriswheel2', 1775): 565, ('levelferriswheel3', 1776): 565, ('levelferriswheel4', 1777): 565,
+    ('levelferriswheelpiece', 1778): 566, ('goldplatform1', 1684): 567, ('goldplatform2', 1685): 567, ('goldplatform3', 1720): 567,
+    ('gimmickrollingarchbase', 1659): 568, ('gimmickrollingarch', 1661): 569, ('gimmickrollingarch2', 1663): 570,
+    ('gimmickboostblock', 1728): 571, ('gimmickboostblockflame', 1731): 572, ('gimmickboostblockturn', 1730): 573,
+    **{('gimmicklanternbridge%d' % k, 1667 + k): 574 for k in range(1, 9)},
+    ('gimmickverticalhalfpipe1', 1828): 575, ('gimmickverticalhalfpipe2', 1829): 575, ('gimmickverticalhalfpipe3', 1830): 575,
+    ('gimmickverticalhalfpipe4', 1838): 575, ('gimmickverticalhalfpipe5', 1839): 575, ('gimmickverticalhalfpipe6', 1840): 575,
+    ('gimmickteetertotter', 1831): 576, ('breakablewall', 1637): 577, ('breakablefloor1', 1766): 579, ('breakablefloor2', 1767): 579,
+    ('fireworklauncher', 1735): 581, ('gimmickclothesline2', 1702): 583, ('gimmickhanginglongsensor2', 1703): 584, ('flag', 1701): 585,
+    ('paperlantern', 527): 586, ('floatinglantern', 1846): 587, ('gachaponwheel', 1851): 588, ('gachapondoor', 1852): 589,
+    ('gachaponfront', 1854): 590, ('signstop', 1698): 591, ('signyield', 1697): 591, ('lamppostfront', 1791): 592,
+    ('strobelight', 1857): 594, ('largesign1', 1755): 595, ('largesign2', 1757): 595, ('largesign3', 1849): 595, ('largesign3', 1893): 595,
+    ('largecolumn', 1864): 596, ('largecolumn2', 1874): 596, ('ramp1', 1870): 597, ('ramp2', 1871): 597,
+    ('leveltrollycar', 1803): 598, ('leveltrolleyplatform', 1806): 599, ('leveltrolleyplatform2', 1807): 599,
+    ('leveltrollycarlight', 1812): 600, ('leveltrollycarlight2', 1813): 600,
+    ('layer0loop', 1708): 601, ('layer0loop2', 1711): 601, ('layer0loop3', 1856): 601, ('layer0block', 1884): 601,
+    ('layer1loop', 1713): 602, ('layer1loop2', 1712): 602, ('layer1loop3', 1719): 602, ('bgstar', 16): 603,
+    ('objectchair', 1797): 336}
+FNA_SUB = {'gimmickdragontunnel2_1733': 1, 'gimmickdragontunnelhead2_1783': 1, 'gimmickdragontunnelmask2_1799': 1,
+           'dragontunnelhide2_1859': 1, 'dragontunnelhide3_1787': 2, 'levelferriswheel2_1775': 1, 'levelferriswheel3_1776': 2,
+           'levelferriswheel4_1777': 3, 'goldplatform2_1685': 1, 'goldplatform3_1720': 2, 'breakablefloor2_1767': 1,
+           'signyield_1697': 1, 'largesign2_1757': 1, 'largesign3_1849': 2, 'largesign3_1893': 3, 'largecolumn2_1874': 1, 'ramp2_1871': 1,
+           'leveltrolleyplatform2_1807': 1, 'leveltrollycarlight2_1813': 1, 'layer0loop2_1711': 1, 'layer0loop3_1856': 2,
+           'layer0block_1884': 3, 'layer1loop2_1712': 1, 'layer1loop3_1719': 2,
+           **{'gimmicklanternbridge%d_%d' % (k, 1667 + k): k - 1 for k in range(1, 9)},
+           **{'gimmickverticalhalfpipe%d_%d' % (k, h): k - 1 for k, h in ((1, 1828), (2, 1829), (3, 1830), (4, 1838), (5, 1839), (6, 1840))}}
+# per-act event copies (RE): 0x40 = this half-pipe wall is only solid in M38 (A2 7535 / 7536: hp2; A3 7703 / 7704: hp2 and hp5);
+# 0x80 = entering at hp1 also needs B < 0 (A3 7705). Keys (class_handle, json frame).
+FNA_FLAGS = {('gimmickverticalhalfpipe2_1829', 31): 0x40, ('gimmickverticalhalfpipe2_1829', 32): 0x40, ('gimmickverticalhalfpipe5_1839', 32): 0x40,
+             ('gimmickverticalhalfpipe1_1828', 32): 0x80}
+# per-act constants as parameter objects (type 604 at x = value, y = key): key 1 = the floating lanterns' start X (MV.X >, A2 group
+# +0x2262c from 7589's gate, A3 7792)
+FNA_PARAMS = {31: ((1, 8060),), 32: ((1, 4400),)}
+FNA_ENS = [(c, 0, '0', nm) for c, nm in (
+    ('gimmickdragontunnel1_1734', 'fndseg0'), ('gimmickdragontunnel2_1733', 'fndseg1'), ('gimmickdragontunnel1_1860', 'fndsegp'),
+    ('gimmickdragontunnelhead_1737', 'fndhead0'), ('gimmickdragontunnelhead2_1783', 'fndhead1'),
+    ('gimmickdragontunnelmask1_1798', 'fndmask0'), ('gimmickdragontunnelmask2_1799', 'fndmask1'),
+    ('dragontunnelhide1_1782', 'fndhide0'), ('dragontunnelhide2_1859', 'fndhide1'), ('dragontunnelhide3_1787', 'fndhide2'),
+    ('levelferriswheel1_1774', 'fnfcar0'), ('levelferriswheel2_1775', 'fnfcar1'), ('levelferriswheel3_1776', 'fnfcar2'),
+    ('levelferriswheel4_1777', 'fnfcar3'), ('levelferriswheelpiece_1778', 'fnfspoke'),
+    ('goldplatform1_1684', 'fngold0'), ('goldplatform2_1685', 'fngold1'), ('goldplatform3_1720', 'fngold2'),
+    ('gimmickrollingarchbase_1659', 'fnarchbase'), ('gimmickrollingarch_1661', 'fnarch'), ('gimmickrollingarch2_1663', 'fnarchwheel'),
+    ('gimmickboostblock_1728', 'fnboost'), ('gimmickboostblockturn_1730', 'fnbturn'),
+    ('gimmickteetertotter_1831', 'fnteeter0'), ('breakablewall_1637', 'fnbwall'), ('breakablewallpiece_1638', 'fnbwpiece'),
+    ('breakablefloor1_1766', 'fnbfloor0'), ('breakablefloor2_1767', 'fnbfloor1'), ('breakablefloorpiece_1764', 'fnbfpiece'),
+    ('fireworklauncher_1735', 'fnfwl'), ('fireworkparticle_1736', 'fnfwp'), ('gimmickclothesline2_1702', 'fnclothes'),
+    ('gimmickhanginglongsensor2_1703', 'fnclstop'), ('flag_1701', 'fnflag'), ('paperlantern_527', 'fnplantern'),
+    ('floatinglantern_1846', 'fnflantern'), ('gachaponwheel_1851', 'fngwheel0'),
+    ('gachapondoor_1852', 'fngdoor'), ('gachaponfront_1854', 'fngfront0'), ('signstop_1698', 'fnsign0'), ('signyield_1697', 'fnsign1'),
+    ('lamppostfront_1791', 'fnlamp'), ('strobelight_1857', 'fnstrobe'),
+    ('largesign1_1755', 'fnlsign0'), ('largesign2_1757', 'fnlsign1'), ('largesign3_1849', 'fnlsign2'), ('largesign3_1893', 'fnlsign3'),
+    ('largecolumn_1864', 'fncolumn0'), ('largecolumn2_1874', 'fncolumn1'), ('ramp1_1870', 'fnramp0'), ('ramp2_1871', 'fnramp1'),
+    ('leveltrolleyplatform_1806', 'fntplat0'), ('leveltrolleyplatform2_1807', 'fntplat1'),
+    ('leveltrollycarlight_1812', 'fntlight0'), ('leveltrollycarlight2_1813', 'fntlight1'),
+    ('layer0loop_1708', 'fnloop0_0'), ('layer0loop2_1711', 'fnloop0_1'), ('layer0loop3_1856', 'fnloop0_2'), ('layer0block_1884', 'fnloop0_3'),
+    ('layer1loop_1713', 'fnloop1_0'), ('layer1loop2_1712', 'fnloop1_1'), ('layer1loop3_1719', 'fnloop1_2'), ('bgstar_16', 'fnstar'))] + \
+    [('gimmicklanternbridge%d_%d' % (k, 1667 + k), 0, d, 'fnlb%d_%s' % (k - 1, d)) for k in range(1, 9) for d in ('0', '1')] + \
+    [('gimmickverticalhalfpipe%d_%d' % (k, h), 0, '0', 'fnhpipe%d' % (k - 1)) for k, h in ((1, 1828), (2, 1829), (3, 1830), (4, 1838), (5, 1839), (6, 1840))] + \
+    [('gimmickboostblock_1728', 7, d, 'fnboost7_' + d) for d in ('0', '8', '16', '24')] + \
+    [('gimmickboostblockflame_1731', 0, d, 'fnbflame' + d) for d in ('0', '8', '16', '24')] + \
+    [('gimmickteetertotter_1831', 0, '16', 'fnteeter16'), ('fireworkparticle_1736', 7, '0', 'fnfwp7'), ('lamppostfront_1791', 8, '0', 'fnlamp8'),
+     ('gachaponwheel_1851', 0, '1', 'fngwheel1'), ('gachaponwheel_1851', 0, '2', 'fngwheel2'), ('gachaponwheel_1851', 0, '4', 'fngwheel4'),
+     ('gachaponfront_1854', 0, '1', 'fngfront1'), ('effectsdust01_369', 4, '0', 'fndust'), ('effectsdebris_427', 0, '0', 'fnlampdeb', slice(61, 66))] + \
+    [('objectkeystone_429', 0, str(d), 'fnks%d' % d) for d in (1, 2, 3, 4)] + \
+    [('objectjumppad_1529', 0, '0', 'jpad_rm'), ('objectjumppad_1529', 0, '1', 'jpad_rm_lit')]   # FN's pad handle: its own images (carol_bike.inc)
+FNA_ENS_IMG = [('leveltrollycar_1803', 'fntrolley', [6914])]   # SystemBox (no animation table): its image as a one-frame row
+FNA_ENS_WITH = {'breakablewallpiece_1638': ('breakablewall',), 'breakablefloorpiece_1764': ('breakablefloor1', 'breakablefloor2'),
+                'fireworkparticle_1736': ('fireworklauncher',), 'effectsdust01_369': ('gimmickboostblock',),
+                'effectsdebris_427': ('lamppostfront',), 'objectkeystone_429': ('gachaponwheel',)}
+FNA_ENS_FRAMES = {'objectjumppad_1529': {30, 31, 32}}
+ENGINE_TYPES_ID.update(FNA_TYPES_ID); ENS += FNA_ENS; ENS_FRAMES.update(FNA_ENS_FRAMES)
+for _k, _v in FNA_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v
 ENS_ONLY_WITH = {'guiweaponslot_426', 'effectswatersplash_379', 'bubblepatch_804', 'mediumbubble_805', 'generalwaterhorizon_377', 'bubblenumbers_405', 'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 # classes whose untrimmed image box matters (spring top edges RV, box-collision platforms/logs, invisible
 # sensors): their images are never cropped. Everything else in the object bank is cropped to its opaque pixels.
@@ -626,6 +740,8 @@ def main():
                 skipped[o['cls']] = skipped.get(o['cls'], 0) + 1; continue
             objs.append({'type': t, 'x': o['x'], 'y': o['y'], 'cls': key, 'layer': o['layer'] or 0})
 
+    for o in objs: o['fna'] = FNA_SUB.get(o['cls'], 0) | FNA_FLAGS.get((o['cls'], n), 0) | (o['layer'] << 8)   # FN_GIMA (fn_gima.c)
+    objs += [{'type': 604, 'x': v, 'y': k, 'cls': 'fnparam', 'layer': 0, 'fna': 0} for k, v in FNA_PARAMS.get(n, ())]   # FN_GIMA parameters
     # ---- piece atlases
     ids = sorted({p['img'] for p in pieces})
     imgs = {i: load_img(src, i) for i in ids}
@@ -800,6 +916,7 @@ def main():
     for e in ENS:
         cls, ai, dk, nm = e[:4]
         if cls in ENS_FRAMES and n not in ENS_FRAMES[cls]: continue
+        if len(e) > 5 and not any(w in placed for w in e[5]): continue   # rows tied to their creators (FN_ENEMIES)
         base = cls.rsplit('_', 1)[0]
         if cls in ENS_ONLY_WITH:                     # off-map templates do not count (shields: only with an on-map shield monitor)
             if not any(w in placed for w in ENS_WITH.get(cls, ())): continue
@@ -814,8 +931,10 @@ def main():
                 except (KeyError, IndexError, TypeError): pass
         try: d = an[cls]['anims'][ai][dk]
         except (KeyError, IndexError, TypeError): report.append('  ens: missing %s anim %d dir %s' % (cls, ai, dk)); continue
-        fr_ = d['frames'][e[4]] if len(e) > 4 else d['frames']
+        fr_ = d['frames'][e[4]] if len(e) > 4 and e[4] is not None else d['frames']
         ens['anims'].append({'name': nm, 'frames': fr_, 'speed': d['max_speed'], 'loop': d['loop'], 'back_to': d['back_to']})
+    for cls, nm, frames in FNA_ENS_IMG:   # FN_GIMA: SystemBox images (one frame, no animation table)
+        if cls.rsplit('_', 1)[0] in placed: ens['anims'].append({'name': nm, 'frames': frames, 'speed': 0, 'loop': -1, 'back_to': 0})
     if ens['anims']: write_bank2(src, ens, out, report)
     report.append('ens bank: %s' % [a['name'] for a in ens['anims']])
     # parallax (RE + RV: build/re/spec_parallax.md): layer-0 SystemBox pieces, tiled, moved every frame by
@@ -832,7 +951,7 @@ def main():
              ('dkwind', 7), ('divekick', 19), ('cyclone', 18), ('charge', 7), ('boost', 13),
              ('hurt', 8), ('defeat', 38), ('crouchatk', 30), ('spring', 14), ('hang', 15),
              ('push', 12), ('climb', 9), ('climbdown', 35), ('climbover', 36), ('catch', 33),
-             ('cork', 32), ('cork2', 31), ('swim', 39), ('shake', 27)]   # cork: RV cork_dv1 (M45, OTHERS.Y 45 -> skin 32, 46 -> 31); RV push_wall / ladder_* traces, RE events 2456-2467
+             ('cork', 32), ('cork2', 31), ('swim', 39), ('shake', 27), ('hangmove', 17)]   # hangmove: OTHERS.Y 42 (RE 2462; FN clotheslines 7207 / 7208)   # cork: RV cork_dv1 (M45, OTHERS.Y 45 -> skin 32, 46 -> 31); RV push_wall / ladder_* traces, RE events 2456-2467
     la = an['playerskinsash_341']['anims']
     lb = {'name': 'lilac2', 'anims': []}
     def mirrored(d0, d16):
@@ -1067,6 +1186,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         a = names.index(o['cls'][:15]) if o['cls'][:15] in names else (o.get('par_index', 0xffff) if 20 <= o['type'] < 28 else 0xffff)
         if 139 <= o['type'] <= 143 or o['type'] in (169, 170, 187, 204): a = o.get('layer', 2)   # waterfalls, AT water jets / crushers / slime floor: the instance's layer
         if 300 <= o['type'] < 350: a = RMB_SUB.get(o['cls'], 0)   # Relic Maze acts 3-5 families: the member index (relic_gimb.c)
+        if 560 <= o['type'] < 680: a = o.get('fna', 0)            # FN_GIMA: member index | act flags | layer << 8 (fn_gima.c)
         d += struct.pack('<2H2i', o['type'], a, o['x'], o['y'])
     for t in table: d += t
     d += struct.pack('<%dH' % len(smap), *smap)
