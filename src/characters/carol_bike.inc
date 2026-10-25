@@ -278,7 +278,12 @@ static int pad_sensor(const obj_t *o, int s) {
  * display 4943 */
 static void pads_events(player_t *p, const input_t *in) {
     int carol = chr_is_carol(G.character), jp = (in->pressed & BTN_JUMP) != 0;
-    int ajp = bank_anim(&G.objs, "jpad"), ajl = bank_anim(&G.objs, "jpad_lit"), ajb = bank_anim(&G.objs, "jpad_blk");
+    if (level_cur()->rmg && level_cur()->rmg->pad_bike_pop) carol = carol && !p->bike;   /* RM 6092-6095 (level data): the bike pops, only Carol on foot rides */
+    const bank_t *pb = &G.objs;
+    int ajp = bank_anim(&G.objs, "jpad"), ajl = bank_anim(&G.objs, "jpad_lit"), ajb = bank_anim(&G.objs, "jpad_blk"), ajbl = -1;
+    if (ens_anim("jpad_rm") >= 0) {                                                       /* RM handles 1402 / 1529: their own images (_ens bank) */
+        pb = &G.ens; ajp = ens_anim("jpad_rm"); ajl = ens_anim("jpad_rm_lit"); ajb = ens_anim("jpad_rm7"); ajbl = ens_anim("jpad_rm7_lit");
+    }
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i];
         if (!o->alive || o->type != OT_JUMPPAD || PAD_A(o) < 0) continue;
@@ -295,8 +300,8 @@ static void pads_events(player_t *p, const input_t *in) {
             PAD_E(o) = -1; p->padfl &= ~(PADF_VOICE | PADF_OFF); p->padJ = 0;
         }
         if (PAD_E(o) == -1 && p->state != ST_PAD) PAD_E(o) = 1;                                              /* 4949 */
-        int want = o->dir ? ajb : PAD_E(o) == 1 ? ajl : ajp;                                                 /* 4943 */
-        if (want >= 0 && (o->an.b != &G.objs || o->an.anim != want)) anim_set(&o->an, &G.objs, want);
+        int want = o->dir ? (PAD_E(o) == 1 && ajbl >= 0 ? ajbl : ajb) : PAD_E(o) == 1 ? ajl : ajp;          /* 4943 */
+        if (want >= 0 && (o->an.b != pb || o->an.anim != want)) anim_set(&o->an, pb, want);
         o->ang = (float)B;
     }
 }

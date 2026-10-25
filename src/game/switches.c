@@ -110,7 +110,9 @@ void switches_update(player_t *p, int late) {
         case OT_DOOR: {                                                                             /* 5184-5186 */
             if (pressed && d->c < 128) { d->y += 8; d->c += 8; }          /* RV plate3 (DV2): sinks 8 px/frame (top stays in view) */
             int under = p->x >= d->x - 15 && p->x <= d->x + 47 && p->y - ORIG_REF_DY > d->y && p->y - ORIG_REF_DY <= d->y + 128 + 31;
-            if (!pressed && d->c > 0 && !under) { d->y -= 2; d->c -= 2; }                           /* rises back 2 px/frame */
+            int rise = L->rmg ? L->rmg->door_rise : 0;                                              /* RM4 6431 (level data): 8 px, no under-check */
+            if (!pressed && d->c > 0 && rise) { int r = d->c < rise ? d->c : rise; d->y -= r; d->c -= r; }
+            else if (!pressed && d->c > 0 && !under) { d->y -= 2; d->c -= 2; }                      /* rises back 2 px/frame */
             break; }
         case OT_SDOOR:                                                                              /* 4097 / 4364: layer 2, not solid */
             if ((pressed && d->c < 224) || (d->c > 0 && d->c < 224)) { d->c += 4; d->x -= 4; d->layer = 1; d->fl |= 1; }

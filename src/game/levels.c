@@ -52,10 +52,23 @@ static const cpzone_t CP_RM2[] = { { 100, 32767, 2, 6360, 256, 0, 1 } };       /
 static const cpzone_t CP_RM3[] = { { 7400, 8360, 10, 8352, 2669, 2000, 0 } };     /* 6296 -> loop_next_act_26 (Y > 2000) */
 static const cpzone_t CP_RM4[] = { { 4330, 5330, 2, 4330, 830, 0, 0 } };
 static const killbox_t KILL_RM2[] = { { 2915, 3204, 281, 584, 3, 0 }, { 3219, 3265, 327, 621, 4, 0 } };   /* 6013 / 6014 */
-static const short SFX_RM[] = { 40, 51, 62, 76, 110, 135 };
+#define N_(a) (int)(sizeof a / sizeof a[0])
+static const short SFX_RM[] = { 40, 51, 62, 76, 110, 135, 75, 111, 260, 262 };   /* + relic_gimb.c: pickaxe 75, light stone 111, hand-car 260, elevator 262 */
+/* Relic Maze acts 3-5 gimmicks (relic_gimb.c, spec_rm_gimmicks_b): moving-pillar zones (RE 6379-6385 / 6527-6531: box origin
+ * in [x0, x1) x [y0, y1) -> travel C), jump pads (6096-6101 / 6429 / 6430 / 6570-6576; index = spread index, newest first;
+ * RM3 pads 0-7 belong to the Claw chase, pads with x > 10400 show anim 7; RM4: no lit start pad, U8), door return, basement */
+static const pillarzone_t PIL_RM3[] = { { 10811, 10905, 2245, 2736, -116 }, { 10905, 10955, 2248, 2739, -100 }, { 10953, 11003, 2246, 2737, -84 },
+    { 11000, 11050, 2246, 2737, -68 }, { 11354, 11404, 2230, 2721, 136 }, { 11403, 11453, 2230, 2721, 88 }, { 11452, 11502, 2228, 2719, 40 } };
+static const pillarzone_t PIL_RM4[] = { { 4411, 4458, 658, 894, 144 }, { 4459, 4506, 658, 894, 128 }, { 4508, 4555, 660, 896, 112 },
+    { 4557, 4604, 659, 895, 96 }, { 4604, 4651, 661, 897, 80 } };
+static const rmgim_t RMG_RM3 = { PIL_RM3, N_(PIL_RM3), 0, 1, 0 }, RMG_RM4 = { PIL_RM4, N_(PIL_RM4), 8, 1, 0 }, RMG_RM5 = { NULL, 0, 0, 1, 1608 };
+static const padcfg_t PADS_RM3[] = { {1120,512,0,0,0,0,0}, {1488,512,1,0,0,0,0}, {1856,512,2,0,0,0,0}, {2224,512,3,0,0,0,0}, {2592,512,4,0,0,0,0},
+    {2960,512,5,0,0,0,0}, {3336,512,6,0,0,0,0}, {3656,512,7,0,0,0,0}, {3800,320,8,270,1,0,0}, {11256,2984,9,0,0,1,1}, {11080,2840,10,0,0,0,1},
+    {10840,3000,11,270,0,0,1}, {10944,2792,12,150,0,0,1}, {10576,2872,13,270,1,0,1} };
+static const padcfg_t PADS_RM4[] = { {368,632,0,0,0,0,0}, {496,392,1,0,0,0,0}, {560,632,2,0,1,0,0}, {1656,912,3,0,0,0,0}, {1472,688,4,270,1,0,0} };
+static const padcfg_t PADS_RM5[] = { {352,2664,0,0,0,0,0}, {624,2632,1,0,1,0,0}, {1176,520,2,270,0,1,0}, {1176,216,3,270,1,0,0} };
 
 static const short SFX_AT[] = { 55, 62, 69, 99, 172, 173, 240, 242, 251, 252, 278, 306, 308, 316 };
-#define N_(a) (int)(sizeof a / sizeof a[0])
 
 #define DV(d, f, n, mus) .dir = d, .frame = f, .stage = 1, .act = n, .nacts = 4, .music = mus
 #define AT(d, f, n, mus) .dir = d, .frame = f, .stage = 0, .act = n, .nacts = 4, .music = mus, .plate_rule = 1, .switch_late = 1, .monitor_hop = 1, .checkpoints = 1, .sfx = SFX_AT, .nsfx = N_(SFX_AT)
@@ -84,9 +97,11 @@ static const level_def_t LEVELS[] = {
     { RM("rm2", 25, 2, "bgm/m_stage2.adp"), .card_first = 14, .exits = EX_RM2, .nexits = N_(EX_RM2), .entries = EN_RM2, .nentries = N_(EN_RM2),
       .cps = CP_RM2, .ncps = N_(CP_RM2), .death_to = "rm1", .kills = KILL_RM2, .nkills = N_(KILL_RM2) },
     { RM("rm3", 26, 3, "bgm/m_stage2.adp"), .card_first = 17, .music_cp = "bgm/m_stage2b.adp", .exits = EX_RM3, .nexits = N_(EX_RM3),
-      .entries = EN_RM3, .nentries = N_(EN_RM3), .cps = CP_RM3, .ncps = N_(CP_RM3), .cam_right = 12288 + 50 },
-    { RM("rm4", 27, 4, "bgm/m_stage2b.adp"), .card_first = 18, .cps = CP_RM4, .ncps = N_(CP_RM4) },
-    { RM("rm5", 28, 5, "bgm/m_stage2b.adp"), .card_first = 20, .entries = EN_RM5, .nentries = N_(EN_RM5), .cam_right = 9600 + 50, .edge_results = 1 },
+      .entries = EN_RM3, .nentries = N_(EN_RM3), .cps = CP_RM3, .ncps = N_(CP_RM3), .cam_right = 12288 + 50,
+      .rmg = &RMG_RM3, .pads = PADS_RM3, .npads = N_(PADS_RM3) },
+    { RM("rm4", 27, 4, "bgm/m_stage2b.adp"), .card_first = 18, .cps = CP_RM4, .ncps = N_(CP_RM4), .rmg = &RMG_RM4, .pads = PADS_RM4, .npads = N_(PADS_RM4) },
+    { RM("rm5", 28, 5, "bgm/m_stage2b.adp"), .card_first = 20, .entries = EN_RM5, .nentries = N_(EN_RM5), .cam_right = 9600 + 50, .edge_results = 1,
+      .rmg = &RMG_RM5, .pads = PADS_RM5, .npads = N_(PADS_RM5) },
 };
 static const level_def_t DEFAULT = { .dir = "", .frame = -1, .stage = -1, .act = 1, .nacts = 1, .music = "bgm/m_stage1.adp" };
 
