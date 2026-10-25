@@ -99,6 +99,15 @@ static void pbikes_wreck(void) {
         o->alive = 0;                                                        /* 2113 */
     }
 }
+/* a stage script takes Carol off the bike (session 17: FN3 7711 / FN6 8763 MV.A 3 -> 2, g1 2; FN5 8383 also leaves an
+ * ObjectBike at her: park). The engine loop stops. */
+void player_bike_off(player_t *p, int park) {
+    if (!p->bike) return;
+    bike_set(p, 0);
+    player_engine_stop();
+    if (park) pbike_create(p, 0);
+    p->nitroF = 0; p->nitroG = 0;
+}
 static void bike_wreck(player_t *p) {                                       /* 1285 / 2111: MV.A = 2, G1 = 2, wrecked bike at PLAYER */
     if (!p->bike) return;
     bike_set(p, 0);

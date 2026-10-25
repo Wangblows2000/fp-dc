@@ -304,6 +304,9 @@ enum { OT_MT_FIRST = 450, OT_MT_STONE = 450, OT_MT_SPADE = 451, OT_MT_HOOK = 452
        OT_MT_HEAD = 471, OT_MT_HEAD2 = 472, OT_MT_HEAD3 = 473, OT_MT_ARM6 = 474, OT_MT_ARM3 = 475, OT_MT_HIT1 = 476, OT_MT_HIT2 = 477,
        OT_MT_WARN = 478, OT_MT_DEBRIS = 479, OT_MT_SLASH = 480, OT_MT_CHOMP = 481, OT_MT_RUIN = 482, OT_MT_RPIECE = 483 /* runtime 479-483 */,
        OT_MT_LAST = 483 };
+/* Fortune Night stage flow (session 17, src/game/fn_flow.c, build/re/spec_fn_flow.md): runtime objects of the stage script.
+ * 512-559 FN enemies, 560-799 FN gimmicks, 800-899 FN bosses (other modules); 900-909 the flow. */
+enum { OT_FN_SERPNPC = 900 /* NPCSerpentine_945 in FN3's exit pass (7710-7725), created by the script */, OT_FN_FLOW_LAST = 909 };
 
 #define MAX_ATLAS 4
 typedef struct {
@@ -484,6 +487,9 @@ typedef struct {
     float cam_nC, cam_nE;          /* normal camera bounds C / E (U = 0): 0 / width in DV; AT per act (spec_at_flow 3.1) */
     float cam_nF;                  /* normal bottom bound F (the frame height; RM5 labyrinth rooms, session 14) */
     int cam_m2;                    /* CAM.M = 2: camera returns to the player (loop_camera_mode2) */
+    float cam_nD;                  /* normal top bound D (0; a fixed camera box per act, FN6 8553; FN5 8424 sets 336) */
+    int exit_walk;                 /* scripted exit started (FN3 7710: CTRL.M 1, walk at B = exit_b while grounded; the stage script starts the fade) */
+    int timer_stop;                /* stage timer stopped (timer group off, FN3 7710): frame + 1 at the stop, 0 = running (game_timer) */
     int orig_moves;                 /* 1: down-kick / uppercut exactly as the original (comparisons); 0: port's momentum change */
 } game_t;
 
@@ -675,6 +681,12 @@ typedef struct { short flag, x0, x1, y0, y1; } flagclear_t;
 typedef struct { short x0, x1, y0, y1, E, F; signed char rails; } camroom_t;
 typedef struct { short x0, x1, y0, y1; signed char dir; short tx, ty; signed char face, walk_b, g4; short walkin_E; } warp_t;   /* act start with the flag set: the area's items / gates go (RM2 6039 / 6040) */
 typedef struct { short g4_max, lock_x, lock_ymin, lock_ymax, l, t, r, b, unlock_x, unlock_y; } camzone_t;   /* boss camera lock (see levels.c) */
+/* session 17 (spec_fn_flow 9.2): engine types removed at the act start by a character test (who 1: MV.A = 0 Lilac only,
+ * 2: MV.A != 0, i.e. Carol, bike-Carol, Milla; FN3 8082 / 8083); types t0..t1 inclusive */
+typedef struct { signed char who; short t0, t1; } classkill_t;
+/* CameraLimitBoss markers moved at the act start by the same character test (8083: around the samurai); -32768 = unchanged */
+typedef struct { signed char who; short l, t, r, b; } markmove_t;
+typedef struct { short C, D, E, F; } cambox_t;   /* fixed camera bounds every frame (FN6 8553 + the inline end of handle_frame_35) */
 typedef struct { short x0, x1, y0, y1; signed char who, jelly; } killbox_t;   /* items removed at the act start: who 0 all, 1 not Milla, 2 Milla, 3 all but Lilac, 4 all but Carol on foot (RM2 6013 / 6014) */
 /* Relic Maze acts 3-5 gimmicks (relic_gimb.c, spec_rm_gimmicks_b): per-act values of shared objects (level_def_t.rmg) */
 typedef struct { short x0, x1, y0, y1, C; } pillarzone_t;   /* moving pillars with their box origin in [x0, x1) x [y0, y1) travel C */
@@ -725,7 +737,27 @@ typedef struct {
     int nobike;                                      /* RM3 6198: Carol (MV.A = 3) enters without the bike (g1 = 2) */
     int door_skip_ach;                               /* session 16: achievement for entering the zone right of the SwitchDoor while it is closed (DV2 5098 / 5099: 18) */
     int monitor_hop;                                 /* 2605: a monitor hops when bumped from below (D-051: AT only, DV keeps its traced behaviour) */                     /* switches.c: pressure-plate rule (0 DV 4971-4973, 1 AT1 4093-4096), pass after the movement */
+    /* session 17 (Fortune Night, spec_fn_flow 9.2) */
+    int start_card;                                  /* 4307: g4 = max(g4, 1) at the act start (the card), without AT1's fall pose */
+    int script_exit;                                 /* no right-edge exit: at X > W - 50 (no B test) the exit walk starts (B = 2 grounded, CTRL.M 1, timer and pause off); the stage script starts the fade (FN3 7710) */
+    int walkin_minx, walkin_free;                    /* walk-in: X = max(X, minx) (FN6 8550); free: B is not forced (the stage's own modes move the player) */
+    int death_g4;                                    /* death / pause restart into death_to with this g4 (FN6 loop_death_34 / loop_restart_34: FN5 with g4 2); 0 = kept */
+    const cambox_t *cam_box;                         /* fixed camera bounds C, D, E, F every frame (FN6) */
+    const classkill_t *ckills; int nckills;          /* character class sets removed at the act start (FN3 8082 / 8083) */
+    const markmove_t *cmarks; int ncmarks;           /* CameraLimitBoss markers moved at the act start (FN3 8083) */
+    const char *mus4, *mus6, *mus7;                  /* music slots 4 / 6 / 7 of the frame (slot 5 = music; level_music_slot) */
+    const char *res_voice;                           /* the results voice (FN6 8545: group_teamlilac_madeit for everyone; voice_play_once) */
+    int res_wipe;                                    /* boss results (path 3) end with the wipe after D = 150 (FN6 8546-8549) */
 } level_def_t;
+const char *level_music_slot(int slot);              /* the current act's music for a play_music(slot) of its scripts (NULL: none) */
+void level_lock_markers(void);                       /* CAM.M = 1: the boss bounds of the CameraLimitBoss markers (as placed / moved) */
+int  game_timer(void);                               /* the stage timer in frames (stopped while G.timer_stop) */
+/* src/game/fn_flow.c (Fortune Night stage script, stage index 3, spec_fn_flow) */
+void   fn_flow_spawn(void), fn_flow_frame(player_t *p);
+float  fn_flow_hud_dy(void);                          /* FN3 7712: the HUD slides up during the Serpentine pass */
+void   fn_flow_panther_view(void);                    /* FN5 8370 (the boss script): parallax pieces 1898 / 1899 hidden */
+void   player_bike_off(player_t *p, int park);        /* Carol leaves the bike (MV.A 3 -> 2; park: an ObjectBike is left at her, FN5 8383) */
+int    par_hidden(int handle);
 const level_def_t *level_def(const char *dir), *level_cur(void);
 const char *level_first_of_stage(int stage), *level_next(const char *dir), *level_route_start(int character), *level_route_next(int stage);
 const exit_t *level_exit_check(const player_t *p);
