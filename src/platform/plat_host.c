@@ -191,7 +191,8 @@ static void apply_dbg(int f, int tp) {
         if (dbg[i].k == 'D' && !player_invincible(p)) player_hurt(p, p->x + dbg[i].a);   /* test hit from dx */
         if (dbg[i].k == 'H') p->hp = (int)dbg[i].a;
         if (dbg[i].k == 'B') for (int k = 0; k < G.nobjs; k++) { obj_t *o = &G.o[k]; if (o->alive && (o->type == OT_IW_HEAD || o->type == OT_IW_HEADF || o->type == OT_CH_HEAD || o->type == OT_SN_HEAD || o->type == OT_GEYE || o->type == OT_BGCORE || o->type == OT_CLAW_HITBOX ||
-                                                                                    o->type == OT_MT_HEAD || o->type == OT_MT_HIT1 || o->type == OT_MT_HIT2 || o->type == OT_FNP_HIT)) o->A = dbg[i].a; }   /* RM5: Mantalith head + arms */
+                                                                                    o->type == OT_MT_HEAD || o->type == OT_MT_HIT1 || o->type == OT_MT_HIT2 ||
+                                                                                    o->type == OT_FN_DOZER || o->type == OT_FN_SERP_HIT || o->type == OT_FN_SAMU || o->type == OT_FNP_HIT)) o->A = dbg[i].a; }   /* FN bosses (fn_boss.c) */   /* RM5: Mantalith head + arms */
         if (dbg[i].k == 'Z') p->mD = (int)dbg[i].a;
         if (dbg[i].k == 'S') results_begin_boss(G.frame);   /* test: a boss starts the results (path 3; FN6 8785 before the boss module) */
         if (dbg[i].k == 'F') G.stage_flags = (int)dbg[i].a;   /* test: ML stage flags (Relic Maze gates) */
@@ -317,8 +318,8 @@ int main(int argc, char **argv) {
             while (sscanf(q, "%d:%d%n", &t, &x0, &nn) == 2) {
                 for (int i = 0; i < G.nobjs; i++) { const obj_t *o = &G.o[i];
                     if (o->alive && (o->type == t || (t == OT_IW_HEAD && o->type == OT_IW_HEADF)) && (x0 < 0 || (int)o->ox == x0))
-                        printf("ob %d %d %d x %.2f y %.2f st %d A %.2f dir %d an %d fr %d fl %x a0 %.3f a1 %.3f a2 %.3f a3 %.3f a4 %.3f fx %.2f fy %.2f bd %d tm %d vx %.2f vy %.2f\n", cur_frame, t, x0, o->x, o->y, o->st, o->A, o->dir,
-                               o->an.b ? o->an.anim : -1, o->an.frame, o->fl, o->av[0], o->av[1], o->av[2], o->av[3], o->av[4], o->fx, o->fy, o->bd, o->tm, o->vx, o->vy); }
+                        printf("ob %d %d %d x %.2f y %.2f st %d A %.2f dir %d an %d fr %d fl %x a0 %.3f a1 %.3f a2 %.3f a3 %.3f a4 %.3f fx %.2f fy %.2f bd %d tm %d vx %.2f vy %.2f a5 %.3f a6 %.3f a7 %.3f c %d hd %d lay %d ang %.2f\n", cur_frame, t, x0, o->x, o->y, o->st, o->A, o->dir,
+                               o->an.b ? o->an.anim : -1, o->an.frame, o->fl, o->av[0], o->av[1], o->av[2], o->av[3], o->av[4], o->fx, o->fy, o->bd, o->tm, o->vx, o->vy, o->av[5], o->av[6], o->av[7], o->c, o->hidden, o->layer, o->ang); }
                 q += nn; if (*q == ',') q++; else break; } } }
         if (getenv("FP_DBG_ENEMY")) {             /* nearest enemy: A, C, knock-back, angle, flags */
             int bi = -1; float bd = 1e9f;

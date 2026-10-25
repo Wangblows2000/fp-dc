@@ -7,7 +7,11 @@ SRC += ../src/game/fn_gimb.c   # Fortune Night acts 4-5 gimmicks
 SRC += ../src/game/rm_claw.c   # RM3 Claw sequence
 SRC += ../src/game/fn_flow.c   # Fortune Night stage flow
 SRC += ../src/game/fn_enemy.c   # Fortune Night enemies
+<<<<<<< HEAD
 SRC += ../src/game/fn_panther.c   # Fortune Night Panther (FN5 chase, FN6 boss)
+=======
+SRC += ../src/game/fn_boss.c   # Fortune Night bosses
+>>>>>>> master
 CFLAGS = -O2 -g -std=c99 -DFP_HOST_ENV -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Wno-unused-parameter -ffp-contract=off
 HDRS = $(wildcard ../src/*.h ../src/*/*.h ../src/*/*.inc)
 fpdc_host: $(SRC) $(HDRS)
