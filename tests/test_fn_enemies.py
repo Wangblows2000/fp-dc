@@ -215,7 +215,7 @@ check('roller_crash_destroyed', snd(sids, 50) and ro[-1]['f'] < 299 and ro[-1]['
 
 # ==== 6. GhettoShell (FN4 shell at (1263, 1232), flag 16): sways +-40 px, faces the player, blasts every 121 near-view frames
 # (anim 10, sound 231 at frame 9) with 5 sound waves (one every 3 frames, 6 px sideways / 3 px up, 17 frames)
-rows, obs, sids = run('fn4', '5 TP 1150 1200;' + INV, 300, '%d:1263,%d:-1' % (SHELL, WAVE))
+rows, obs, sids = run('fn4', '5 TP 1220 1200;' + INV, 300, '%d:1263,%d:-1' % (SHELL, WAVE))
 sh = of(obs, SHELL); wv = [o for o in of(obs, WAVE) if o['dir'] == 16]
 check('shell_sways', max(o['x'] for o in sh) - min(o['x'] for o in sh) > 30 and sh[0]['fl'] & NOFLY)
 bl = sorted(set(snd(sids, 231)))   # (both FN4 shells near the start blast together)
@@ -226,14 +226,14 @@ check('shell_5_waves', bl and 4 <= len({o['f'] for o in first if o['a0'] == 0}) 
 w0 = [o for o in wv if o['a0'] <= 16][:2]
 check('shell_wave_moves', len(w0) == 2 and w0[1]['x'] - w0[0]['x'] == -6 and w0[1]['y'] - w0[0]['y'] == -3)
 # a wave hurts for 10 (fire shield immune)
-rows, obs, sids = run('fn4', '5 TP 1220 1200', 120)
+rows, obs, sids = run('fn4', '5 TP 1290 1200', 120)
 d = hp_drops(rows)
 check('shell_wave_damage_10', bool(d) and d[0][1] == 2, str(d))
-rows, obs, sids = run('fn4', '3 TP 700 1200;20 MON %d;22 24 X;150 TP 1220 1200' % MON_FIRE, 330, '%d:-1' % WAVE)
+rows, obs, sids = run('fn4', '3 TP 700 1200;20 MON %d;22 24 X;150 TP 1290 1200' % MON_FIRE, 330, '%d:-1' % WAVE)
 check('shell_wave_fire_shield_immune', rows[149]['sh'] == 2 and of(obs, WAVE) and not hp_drops(rows), 'sh %s drops %s' % (rows[149]['sh'], hp_drops(rows)))
 # whips defeat it (HP 25): no fly-away; 10 explosions (every 7 frames, sounds 311 / 319 / 320), then the keystone, sound 38,
 # 4 debris (frames 60-57) and it goes
-rows, obs, sids = run('fn4', '5 TP 1215 1200;' + INV + ';' + attacks(10, 300, 12), 420, '%d:1263,%d:-1,%d:-1' % (SHELL, OT_KEYSTONE, OT_DEBRIS))
+rows, obs, sids = run('fn4', '5 TP 1290 1200;' + INV + ';' + attacks(10, 300, 12), 420, '%d:1263,%d:-1,%d:-1' % (SHELL, OT_KEYSTONE, OT_DEBRIS))
 sh = of(obs, SHELL)
 dfr = [o['f'] for o in sh if o['fl'] & DEFEATED]
 ex = [f for f, s in sids if s in (311, 319, 320) and dfr and f >= dfr[0]]

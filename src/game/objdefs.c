@@ -361,6 +361,36 @@ static const objdef_t DEFS[] = {
     { OT_RM_SCEIL,      OD_SOLID,                              NULL         }, /* spikeceiling_1557 (Q7) */
     { OT_RM_CRUSHBOX,   OD_BOXCOL,                             NULL         }, /* levelcrushdeath_1627 */
     { OT_RM_CHAIR,      0,                                     NULL         }, /* objectchair_1596 (Q22) */
+    /* Fortune Night acts 4-5 gimmicks (fn_gimb.c, spec_fn_gimmicks_b 1 / 26.1): sprites set by fn_gimb_spawn */
+    { OT_FN_ESCFRONT,   0,                                     NULL         }, /* escalatorfront1_1906 / front2_1914 */
+    { OT_FN_ESCSTEP,    OD_OBSTACLE|OD_NOEDGE|OD_HIDDEN,       NULL         }, /* escalatorright_1908 / left_1915 (Q8 Q9, invisible) */
+    { OT_FN_FOUNTAIN,   0,                                     NULL         }, /* fountainfront_1918 / front2_1919 */
+    { OT_FN_WATERPLAT,  OD_OBSTACLE|OD_NOEDGE|OD_HIDDEN,       NULL         }, /* levelwaterplatform_1921 (Q8 Q9, invisible) */
+    { OT_FN_ROPE,       OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* gimmickclothesline_1987 (invisible) */
+    { OT_FN_TBAR,       OD_BOXCOL,                             NULL         }, /* gimmickhangingmovingbar_1951 */
+    { OT_FN_TSENS,      OD_HANG|OD_BOXCOL|OD_HIDDEN,           NULL         }, /* gimmickhangingmovingsensor_1950 (Q23, invisible) */
+    { OT_FN_TWHEEL,     0,                                     NULL         }, /* gimmickhangingmovingwheel_1952 */
+    { OT_FN_TSTOP,      OD_BOXCOL,                             NULL         }, /* gimmickhangingmovingstopper_1949 */
+    { OT_FN_LIFT,       OD_OBSTACLE|OD_NOEDGE,                 NULL         }, /* levelmovingplatform1_1957 (Q8 Q9 Q13) */
+    { OT_FN_STILT,      OD_BOXCOL,                             NULL         }, /* platformstilt1-4_1958-1961 (layer 2) */
+    { OT_FN_MPLAT2,     OD_OBSTACLE|OD_NOEDGE,                 NULL         }, /* levelmovingplatform2_1976 (Q8 Q9 Q12 Q13) */
+    { OT_FN_TSPRING,    OD_SOLID|OD_NOEDGE|OD_BOXCOL,          NULL         }, /* turningspring_1944 (Q7 Q9) */
+    { OT_FN_AIRBALLOON, OD_BOXCOL,                                NULL         }, /* gimmickairballoon_1991 */
+    { OT_FN_IBALLOON,   OD_HANG|OD_BOXCOL|OD_HIDDEN,           NULL         }, /* gimmickhangingidleballoon_1992 (Q23, invisible) */
+    { OT_FN_KEY,        OD_SOLID,                              NULL         }, /* keyboard_1984 (Q7) */
+    { OT_FN_DISCOLIGHT, OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* discolight_1932 (screen overlay, drawn by fn_gimb.c) */
+    { OT_FN_DISCOBALL,  0,                                     NULL         }, /* objectdiscoball_1930 / ball2_1933 */
+    { OT_FN_PARASOL,    0,                                     NULL         }, /* objectparasol_1940 */
+    { OT_FN_RESTROOM,   0,                                     NULL         }, /* restroommen_1973 / women_1974 (Q22) */
+    { OT_FN_ARROW,      0,                                     NULL         }, /* arrowlight_1971 */
+    { OT_FN_CAROUSEL,   OD_BOXCOL,                             NULL         }, /* carousel_2004 (drawn by fn_gimb.c) */
+    { OT_FN_CARPLAT,    OD_OBSTACLE|OD_NOEDGE|OD_BOXCOL,       NULL         }, /* carouselplatform_2005 (Q8 Q9) */
+    { OT_FN_POD,        OD_SOLID,                              NULL         }, /* gimmickelevator_2035 (Q7) */
+    { OT_FN_PODDOOR,    0,                                     NULL         }, /* gimmickelevatordoor_2034 */
+    { OT_FN_PODCASE,    0,                                     NULL         }, /* gimmickpolepodcaseinner_2001 */
+    { OT_FN_LOOP0B,     OD_SOLID|OD_LAYER0,                    NULL         }, /* layer0loop4/5/6_1977/1978/1983 (Q7 Q10) */
+    { OT_FN_NOTE,       0,                                     NULL         }, /* - (EffectsHeart_444, 8209) */
+    { OT_FN_MICON,      0,                                     NULL         }, /* - (MonitorIcon_363, 8214 / 8215) */
     /* Relic Maze act 3 Claw sequence (rm_claw.c, spec_rm_claw.md 1; sprites set by rm_claw_spawn) */
     { OT_SHRINE3,       0,                                     "shrine3"    }, /* shrine3 (Q20, armoured) */
     { OT_CLAW,          0,                                     "claw0"      }, /* bossclaw */
@@ -440,7 +470,7 @@ static const objdef_t DEFS[] = {
     { OT_FN_DARM2,      0,                                     "du_arm2"    }, /* enemydusterarm2_1935 */
     { OT_FN_DARM1,      0,                                     "du_arm1"    }, /* enemydusterarm1_1936 */
     { OT_FN_DMOUTH,     0,                                     "du_mouth"   }, /* enemydustermouth_1937 */
-    { OT_FN_BALLOON,    0,                                     "bl_float"   }, /* enemyballoon_1945 (Q20) */
+    { OT_FN_BALLOON,       0,                                     "bl_float"   }, /* enemyballoon_1945 (Q20) */
     { OT_FN_PIGEON,     0,                                     "pg_sit"     }, /* pigeon_1641 (decor) */
     { OT_FN_FBURST,     0,                                     "fk_burst"   }, /* effectflareburst_1810 (off-map template) */
     { OT_FN_LASER,      0,                                     NULL         }, /* - (EnemyLaser_1781) */
