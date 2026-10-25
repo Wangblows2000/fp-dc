@@ -64,25 +64,26 @@ void aqua_monitor_fall(obj_t *m) {
 }
 
 static void dig_reward(obj_t *s, player_t *p) {
-    int A = (int)s->A;
-    if (A == 3) return;                                            /* no reward event for spot 3 (RE by absence) */
+    const level_def_t *L = level_cur();
+    int A = (int)s->A, R = A >= 0 && A < L->ndig_rewards ? L->dig_rewards[A] : DIG_NONE;   /* the level's reward table */
+    if (R == DIG_NONE) return;                                     /* no reward event (AT1 spot 3, RE by absence) */
     s->alive = 0; snd_play_orig(306, 220, 128);
     static const signed char DX[4] = { 14, 10, 18, 22 };
     for (int k = 0; k < 4; k++) dig_debris(s->x + DX[k], s->y + 24);
     float dx = (float)(floor(p->x) + 12 * (p->face ? 1 : -1)), dy = (float)floor(p->y - ORIG_REF_DY);   /* DIG object (2255/2256) */
-    switch (A) {
-    case 0:                                                        /* 4190: keystone monitor pops up + 2 crystals */
+    switch (R) {
+    case DIG_KEYSTONE_MON:                                         /* 4190: keystone monitor pops up + 2 crystals */
         spawn_monitor(OT_MON_KEYSTONE, "mon_key", s->x + 16, s->y + 16);          /* at spot + (16, 16) (RE) */
         for (int i = 0; i < 2; i++) obj_drop_crystal(dx, dy, i);
         break;
-    case 1: case 2: case 5:                                        /* 4191 / 4193: 5 crystals (loop_dig_crystals) */
+    case DIG_CRYSTALS:                                             /* 4191 / 4193: 5 crystals (loop_dig_crystals) */
         for (int i = 0; i < 5; i++) obj_drop_crystal(dx, dy, i);
         break;
-    case 4: {                                                      /* 4192: a petal (A = 2: thrown, INFERRED) */
+    case DIG_PETAL: {                                              /* 4192: a petal (A = 2: thrown, INFERRED) */
         obj_throw_petal(s->x + 16, s->y);
         break;
     }
-    case 6:                                                        /* 4194: wood shield monitor pops up */
+    case DIG_WOOD_MON:                                             /* 4194: wood shield monitor pops up */
         spawn_monitor(OT_MON_WOOD, "mon_wood", s->x + 16, s->y + 16);            /* position as 4190 (INFERRED) */
         break;
     }

@@ -136,7 +136,13 @@ void objects_plat_pretick(int n) {
 void objects_platforms(player_t *p) {
     /* every level: the passes act on their own types (Aqua Tunnel's own platform block is aqua_gim_post, after the movement) */
     /* DV3 gimmick blocks (5131-5234) run with the platforms, before Lilac's movement */
-    wlogs_update(p); dv3_switch_update(p); trunks_update(p); bamboo_update(p); switches_update(p, 0);
+    /* each pass only where the level places its objects (objects_have; session 13: the block runs in every level) */
+    if (objects_have(OT_WLOG) || objects_have(OT_WLOG_GEN)) wlogs_update(p);
+    if (objects_have(OT_WALLPLATE) || objects_have(OT_TRAPDOOR) || objects_have(OT_BOULDER)) dv3_switch_update(p);
+    if (objects_have(OT_TRUNK)) trunks_update(p);
+    if (objects_have(OT_BAM1)) bamboo_update(p);
+    switches_update(p, 0);
+    if (!objects_have(OT_PLAT_VALLEY) && !objects_have(OT_PLAT_MOVE2) && !objects_have(OT_PLAT_MOVE3) && !objects_have(OT_GEYSER) && !objects_have(OT_BRIDGE)) return;
     double MY = p->y - ORIG_REF_DY;
     int PX = (int)p->x, PY = (int)MY;
     for (int i = 0; i < G.nobjs; i++) {

@@ -1,0 +1,3 @@
+CHAR 0
+LEVEL dv4
+60 900 R

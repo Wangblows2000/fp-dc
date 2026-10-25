@@ -22,7 +22,21 @@
       the Iron Worm chain is pre-advanced (62 frames)
 - [ ] Draw order: slime floor in front of the snake (4653 move_front), rocks / head move_back (INFERRED)
 - [ ] DV shade effect name (effectsshade_436 vs effectshade_436), see ASSET_PIPELINE session 12
+- [ ] Original traces for the session-13 items that are RE only: Aqua Tunnel card pickups (ids 21-30, numbering
+      INFERRED), a story clear of DV4 / AT4 (SaveData x3 y1..3 and MenuSequence across frame 8, ML.Z at the results)
 - [ ] AT4 results voices (mi_milla_yay / thatwasfun) and the victory pose (OTHERS.Y 48)
+
+## Session 13 (bug fixes, reusable systems)
+- [x] Milla's hang animation (RE 2461, RV m_hang_dv1); Lilac / Carol unchanged (test_levels)
+- [x] Aqua Tunnel results backdrop (results images for every stage that places the clear card; test_levels)
+- [x] Title cards per stage (STAGE_CARDS; cards per level / character / load order / restart in test_levels)
+- [x] Time Attack previews (solid masks, tiling), checker column and translucent menu bar (RV screenshots)
+- [x] DV4 boss hit tally removed (D-059)
+- [x] Level table, class+handle types, shared switches, object registry, presence-driven passes (D-052 to D-056)
+- [x] Save v3 for every stage (records, files, progress, cards; v1/v2 conversion; test_saves)
+- [ ] Records x8..x12 and flag G31 of records.dat (meaning UNKNOWN, spec_records_saves)
+- [ ] Continue a file at the stage after its last stage (only AT / DV exist: Continue starts the route's first stage)
+- [ ] Unlock flags (records x2: all-cards unlocks, gallery) are not stored; the gallery is not ported
 
 ## Front end / presentation
 - [ ] GALLERY (Carol playable since session 10, Milla since session 11)

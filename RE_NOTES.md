@@ -526,8 +526,12 @@ globals 4-6 before a restart (`CP=keep` keeps them): stale checkpoints had pollu
   best time, crystals, deaths per stage).
 - `records.dat`: X 20, Y 100, Z 1 (8030 bytes): options and records (y35 + 1 = default difficulty; x2 y42 decides the
   opening cutscene).
-- The port's FPDC.SAV keeps the same per-file fields in 515 bytes (lives, crystals, stage, time, deaths, character,
-  mode); a per-stage record block like column x3 would fit the remaining VMU blocks if it is ever needed.
+- Session 13 (RE build/re/spec_records_saves.md, RV-file checks in place): column x3 holds **one block per stage s at
+  rows 6+5s, 7+5s, 8+5s** (time ms, crystals, deaths of the last clear; Aqua Tunnel = s 0 at y6, so the earlier "from
+  y11" was Dragon Valley's block); the file totals y4 / y6 / y7 are their sums (RE 954; exact in all five files).
+  records.dat x(3+J) y(2s+1) / y(2s+2) = Time Attack best time ms / best crystals per character group J (Lilac 0,
+  Spade 1, Carol 2, Milla 3, Torque 4); x1 y(40+J) = furthest completed stage (the stage-select padlocks); x20 = the
+  100 cards. The port's save v3 mirrors this (see "Session 13").
 
 ## Loading pipeline (session 7, measured with src/game/loadprof.c)
 Per load the profiler logs: heap (mallinfo), largest free VRAM, and time in open / read / texture upload / sfx / decode /
@@ -539,3 +543,61 @@ music / object creation / other, plus allocation count and skipped work.
   compatible transitions (CRC-checked); empty parallax layers skipped; mirrored left sprites drawn by UV flip.
 - **KOS finding:** fs_iso9660's DMA path needs a 32-byte aligned destination; the < 32-byte tail goes through an
   unaligned buffer and can hang. All disc files are padded to 32 bytes.
+
+## Session 13: bug fixes, reusable objects and levels, save v3
+- **Milla's hang (RE 2461, RV m_hang_dv1):** OTHERS.Y 41 selects skin animation 15 (her hang, with the tail). The port
+  showed her idle because her A_HANG entry is a0 (her table maps every A_ name to her own skin through OTHERS.Y).
+- **Springs keep MV.Q (RV spring_yellow_upleft, m_hang_dv1):** a diagonal spring does not turn the player.
+- **Results backdrop (RE):** the results images (ActClear 1 / 3 panels, bars, digits) were imported only for frame 24
+  (DV4). Every frame that places LevelCardActClear1 now gets them (AT4 shows its panels; DV4 unchanged).
+- **Title cards (RE build/re/spec_stage_cards.md):** LevelCardIntro2 (name) and LevelCardIntro3 ("STAGE n") pick their
+  frame per stage: name AT 3, DV 0, RM 1, FN 2, SB 4, JC 5, TB 6, PL 8, TH 7, BG 10, FD 11-14; "STAGE n" AT 0, DV 0,
+  RM 1, FN 2, SB 3, JC 4, TB 5 (6 for Carol / Milla), PL 6, TH 5, BG 7, FD 8 (ROUND n). No act number is drawn. The
+  importer used frame 0 of both for every level; it now takes them from STAGE_CARDS (import_frame.py) per level.
+- **Time Attack preview (RE 612/613 + RV screenshots):** the preview window is masked by solid quick backdrops
+  (no image: size 0x4c / 0x50, colour 0xc4-0xc7, gradient 0xc8 → 0xcc-0xcf); the UI importer dropped them, so the
+  neighbouring stages' strips showed (half AT with its padlock, half DV). They are imported as solid rects (UI kind 2).
+  Strips narrower than the 272-px window repeat (INFERRED). The menus' checker layer wraps vertically (RV
+  orig_tasel_s13 / orig_chsel_s13) and their bottom bar is semi-transparent (image alpha 135; record panel 87): UI
+  images with one partial alpha are now drawn as an opaque part plus a translucent layer (UI kind 3).
+- **DV4 boss counter:** the bottom-right hit tally was a port addition of session 10 (the original's GUIBoss bar is
+  never visible, U-G1); it is removed. Boss logic, damage, defeat and results are unchanged (cmp_all, test_gameplay).
+- **Object identity = class + handle (RE, frame JSON):** some class names are used by two different objects with their
+  own handles, constructor values and events: SwitchDoor 770 (AT, slides) vs 997 / 1066 (DV, sinks), SwitchWallPlate
+  831 (AT, pipes) vs 1029 (DV3, boulder), AquaBrickPlatform 731 vs 803, LevelCrusher1 808 (vertical) vs 847 (AT3
+  horizontal slab), LevelAxelPlatform1/2 680/737 (made by makers) vs 845/846 (placed, AT3), GimmickSwingSpawner1 824
+  (8 links) vs 848 (6). The importer gives each its own engine type (ENGINE_TYPES_ID); the runtime no longer tests the
+  act to tell them apart.
+- **Same object, different events (RE):** PressurePlate_769 is one object in DV2, DV3 and AT1, but DV presses it while
+  the player stands on it every frame (4971-4973, + resting block / parked bike, click once 5183) and AT1 keeps it
+  pressed while anything touches a plate (4093-4096, + the Iron Worm's head, click per press). That rule is level data
+  (plate_rule), the plate itself shared (src/game/switches.c).
+- **Aqua Tunnel cards (RE spec_at_flow 1.2):** ids 21-30, AT1 from 21, AT2 24, AT3 27, AT4 28 (numbering by creation
+  order INFERRED as in DV). They were placed but never numbered or saved by the port; now they are (level data).
+- **Saves (RE spec_records_saves):** one stage index s for records, files and progress (§1 table). Record rules 907 /
+  908 have no mode test (story clears update the Time Attack table too), times count only over 10 s, crystals are the
+  best ever independently of the time. 954 / 955 (story only) write the stage block, the last stage, the progress,
+  lives, shield and the crystal counter; Time Attack never writes a file. Still UNKNOWN: records x8..x12, flag G31,
+  whether ML.Z stops at the results (INFERRED: it does; the port saves the time frozen at the results).
+
+## Reusable objects and levels (session 13; the rule for every new level)
+**Rule:** every newly added level asset and gameplay object is evaluated for reuse, generalised where appropriate,
+optimised through the established pipeline (ASSET_PIPELINE "Adding a level"), and configured so it stays present and
+functional in the levels that place it. Concretely:
+1. **Object = Fusion class + handle.** A class that is already ported works in a new level as soon as the level places
+   it: tools/import_frame.py maps it to its engine type (ENGINE_TYPES, or ENGINE_TYPES_ID when the class name is shared
+   by another handle) and exports its sprites with the level's banks (the ENS rows are taken when the class or one of
+   its parents, ENS_WITH, is placed); src/game/objdefs.c holds its shared properties (qualifier groups, image-box
+   collision, spawn sprite); its behaviour code runs on its type in every level. No code may test the level name or act
+   number to decide how an object behaves.
+2. **Per-level parameters are data** in src/game/levels.c (one row per act): water line, act count and order, music,
+   walk-in, exit rule, edge results, checkpoints, boss camera locks, act-start item sets, camera bounds, start rule,
+   Carol's jump pads, Milla's dig zones, card ids, switch rule, monitor hop, stage sound group, AT axel / pipe values.
+   Fill them from the frame's own events (RE) when an object depends on them.
+3. **Genuinely level-specific scripting** (a boss, an intro like AT2's current, a cinematic) stays in that stage's file
+   and is attached through the level's stage index, never through string tests in shared code.
+4. **Subsystems follow presence:** a pass runs only where its objects exist (objects_have / objects_have_from), so a
+   level pays nothing for objects it does not place.
+5. **Evidence:** a reused object in a new level is checked against an original trace of that level when its events
+   differ (e.g. the plate rule); otherwise its existing traces stand.
+OBJECTS.md (tools/object_catalog.py) lists every type, its classes, registry flags, implementation and placements.

@@ -189,3 +189,42 @@ breaks on background, solids, obstacles or enemies (2751: -15) and leaves Effect
 with the unstuck loops. The head bump that starts a hop (2605, every character) is enabled in Aqua Tunnel only, so
 Dragon Valley's monitors keep their traced session-8 behaviour. RV a4_snake / a4_snake_bomb (Milla catches the falling
 bomb at frame 1048) now match.
+
+## Session 13 (2026-10-25): bug fixes, reusable objects and levels, save v3
+**D-052 Levels are data (src/game/levels.c).** Shared code reads one row per act (frame, stage index, act count,
+music, water, walk-in, exit rule, edge results, start rule, checkpoints, boss camera, item sets, camera bounds, card
+ids, pads, dig zones, switch rule, sound group, ...) instead of testing "dv" / "at" names. A new act of an already
+ported mechanic is one row; only genuinely new behaviour needs code. Stage-specific scripting (AT2's intro current,
+the bosses) stays in its stage file and is selected by the stage index.
+
+**D-053 One engine type per Fusion object (class + handle).** Where two handles share a class name (SwitchDoor 770 /
+997, SwitchWallPlate 831 / 1029, AquaBrickPlatform 731 / 803, LevelCrusher1 808 / 847, LevelAxelPlatform 680 / 845 and
+737 / 846, GimmickSwingSpawner1 824 / 848) the importer assigns separate types (ENGINE_TYPES_ID), so no runtime code
+tests the act to tell them apart. Data format unchanged (lv2 type numbers of the AT levels only).
+
+**D-054 Shared switches with a per-level plate rule.** PressurePlate_769 is the same object in DV2, DV3 and AT1 but
+pressed by different events (RE 4971-4973 vs 4093-4096); the rule and the pass (before / after the movement) are level
+data, the plate, the Milla block and the doors live in src/game/switches.c. Every door type answers the level's
+switches. Each level's original behaviour is kept (cmp_all, cmp_at, test_gameplay, test_aqua identical).
+
+**D-055 Object registry (src/game/objdefs.c).** Qualifier-group membership, image-box collision and the spawn sprite
+are per-type data shared by every level (Fusion qualifiers are class properties). Verified identical to the previous
+hand-written lists for all 256 types before the switch.
+
+**D-056 Subsystems follow object presence.** The AT passes and the DV platform passes run in every level and act on
+their types; a level without any object of a family skips its passes (objects_have / objects_have_from), so Dragon
+Valley pays nothing for Aqua Tunnel code and the reverse.
+
+**D-057 Save v3, stage-indexed (supersedes the v1/v2 layout).** Mirrors records.dat + file<n>.sav (spec_records_saves):
+records rec[15][4] in ms, per-file blocks per stage (totals are sums, RE 954), progress per character, 100 card ids.
+The port has no routing frame 8, so its writes happen once at the results' D = 150 (records 907 / 908 in any mode,
+file / progress 954 / 955 in story only). A new game replaces its slot only at its first stage end (the original
+writes the file at frame 8 too). v1 / v2 saves convert on load; 1292 bytes, 6 VMU blocks with the 3-frame icon.
+
+**D-058 Menu transparency and solid masks in the UI importer.** Solid quick backdrops are imported as rects (kind 2);
+images with one semi-transparent alpha become an opaque part plus a translucent layer drawn with vertex alpha (kind 3),
+since the textures keep 1 bit of alpha. The checker layer of the menus wraps vertically (RV screenshots).
+
+**D-059 No boss hit tally on the HUD (supersedes the session-10 "hit tally bottom right").** The original shows no
+boss counter (GUIBoss is never visible, U-G1); the port's tally is removed at its source (serp4_hud). Boss logic,
+damage, defeat and results are unchanged.

@@ -17,6 +17,8 @@ static const padcfg_t PADS_DV3[] = { {7408,2200,0,90,0,1,0}, {7072,1952,1,270,0,
 static const padcfg_t PADS_DV4[] = { {4040,2296,0,0,0,1,1}, {4368,2152,1,180,0,0,0}, {4616,2160,2,0,0,0,0}, {4864,2168,3,180,0,0,0},
     {5136,2152,4,180,0,0,0}, {5296,2152,5,0,0,0,0}, {5504,2176,6,90,0,0,0}, {5344,2096,7,270,0,0,0}, {5344,2000,8,270,1,0,0},
     {10120,2134,9,-4.5f,0,1,1}, {10400,2024,10,180,0,0,0}, {10432,1992,11,270,1,0,0} };
+/* Milla's dig spot rewards by spot index A (AT1 4189-4194; spot 3 has no event) */
+static const signed char DIGR_AT1[] = { DIG_KEYSTONE_MON, DIG_CRYSTALS, DIG_CRYSTALS, DIG_NONE, DIG_PETAL, DIG_CRYSTALS, DIG_WOOD_MON };
 /* Milla's dig zones (spec_milla_moves 6, events 4171-4182 of frame 17) */
 static const zone_t DIGZ_AT1[] = {
     { 6939, 7302, 102, 185 }, { 1479, 1705, 594, 671 }, { 9450, 9654, 181, 262 }, { 3214, 3315, 838, 904 },
@@ -49,7 +51,7 @@ static const level_def_t LEVELS[] = {
     /* Aqua Tunnel: frame index 16-19 (tools/re/bgm_refs.py: 16 m_stage0, 17/18 m_stage0b; AT2 after the Chomper (g4 >=
      * 10, 4330) m_stage0b), water 1200 / 1200 / none / 1480 (4309 / 4478 / 4530 / 4685), AT2 walk-in B = 0 (4403), AT3
      * ends at the top (4521: MV.Y < 380), AT4 results through the boss only (4652) */
-    { AT("at1", 16, 1, "bgm/m_stage0.adp"), .card_first = 21, .water = 1200, .axel2_top = 320, .dig_zones = DIGZ_AT1, .ndig_zones = N_(DIGZ_AT1),
+    { AT("at1", 16, 1, "bgm/m_stage0.adp"), .card_first = 21, .water = 1200, .axel2_top = 320, .dig_zones = DIGZ_AT1, .ndig_zones = N_(DIGZ_AT1), .dig_rewards = DIGR_AT1, .ndig_rewards = N_(DIGR_AT1),
       .start_fall = 1, .cps = CP_AT1, .ncps = N_(CP_AT1), .boss_cam = &CAM_AT1, .kills = KILL_AT1, .nkills = N_(KILL_AT1), .cam_right = 12480 + 213 },
     { AT("at2", 17, 2, "bgm/m_stage0.adp"), .card_first = 24, .walkin_still = 1, .music_cp = "bgm/m_stage0b.adp", .water = 1200,
       .cps = CP_AT2, .ncps = N_(CP_AT2), .boss_cam = &CAM_AT2, .kills = KILL_AT2, .nkills = N_(KILL_AT2), .cam_cp10_left = 6144 - 213, .cam_cp10_pad = 50 },
