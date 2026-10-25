@@ -954,6 +954,8 @@ float camera_bound_C(void), camera_bound_E(void);
 const char *level_music(const char *dir);
 void   r_set_scale(float s);           /* following rotated sprites scaled around the hotspot (Active scale) */
 float  r_get_scale(void);
+void   r_set_xscale(float s);          /* an extra x scale for the following rotated sprites (Active::set_x_scale) */
+float  r_get_xscale(void);
 void camera_reset(void);
 void objects_pretick(int n);
 void hud_draw(void);

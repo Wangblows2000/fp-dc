@@ -468,3 +468,22 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
 - **Sounds:** SFX_FN += 62 70 75 165 166 168 169 191-200 317 (11025 Hz; convert_sfx.sh).
 - **Host:** BOSSHP sets the bulldozer, the Serpentine hitbox and the samurai (not the UFO); the `ob` line adds a5-a7, c, hd,
   lay, ang; FP_DBG_FNB prints the boss camera bounds per frame.
+## Session 17: the Panther (port: src/game/fn_panther.c; tests/test_fn_panther.py)
+- **Types 860-899** (fp.h OT_FNP_*): values, 13 rig parts (head .. foot FR) + ribs / tail, hitbox (Q20 via
+  fn_panther_q20), laser, target, glow, wheel, scrolling floor (OD_SOLID|OD_BOXCOL), speed back, plane platform
+  (OD_OBSTACLE), the assist set, ships / cables (FN5), runtime plasma / missile / rapid bullet / warning / speed line /
+  shield / insta-shield. Importer: FN_PANTHER block (FNP_TYPES_ID, rows fp_*, FN6-only rows tied to 'scrollingfloor').
+- **Hooks (one line each):** objects.c fn_panther_spawn / fn_panther_draw(pass); game.c fn_panther_input (the floor's
+  CTRL.D auto-run, the FN5 pose lock) in the scripted-input chain, fn_panther_frame after fn_flow_frame,
+  fn_panther_draw(3) (the white fade) after the front passes; combat.c fn_panther_q20; plat_host.c BOSSHP += OT_FNP_HIT.
+- **Renderer:** r_set_xscale / r_get_xscale (an x scale for rotated sprites; render_soft.c and render_pvr.c, kept in the
+  PVR translucent queue) for the laser's set_x_scale(16).
+- **Flow interfaces used:** fn_flow_panther_view (8370), level_lock_markers / level_release_camera, music_fade,
+  level_music_slot(4), player_bike_off, par_set_drift (8762), results_begin_boss(kill time) (8785), G.timer_stop,
+  G.cam_nF, G.input_lock.
+- **Per frame (SH4):** the rig is computed once (no per-part object scans; parts cached at spawn); runtime objects in one
+  pass over the object list. FN6: fn6_ens 1024x512 + 256x256, 109 placed objects; fn5_ens 688 frames (27 panther rows) with a 1024 second atlas.
+- **Sounds:** SFX_FN6 = 134 99 126 137 165 166 169 191 193 194 195 200 219 254 256 257 258 259 261 436 (228 KB at
+  11025 Hz); SFX_FN45 += 126 193 (242 KB); convert_sfx.sh converts 137 254 256-259 261 436 at half rate.
+- **Host:** FP_DBG_FP=1 prints `fp` (state), `fpdmg` (damage source / amount), `fpev` (rapid fall / missile blast);
+  FP_DBG_FP=2 adds `fpp` (every part's x, y, angle).

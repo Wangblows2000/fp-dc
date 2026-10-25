@@ -225,15 +225,18 @@ void r_sprite(const tex_t *t, int u, int v, int uw, int vh, float x, float y, fl
 static float rscale = 1.f;
 void r_set_scale(float s) { rscale = s; }
 float r_get_scale(void) { return rscale; }
+static float rxscale = 1.f;   /* extra x scale (Active::set_x_scale, e.g. the Panther's laser) */
+void r_set_xscale(float s) { rxscale = s; }
+float r_get_xscale(void) { return rxscale; }
 void r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float py, float hx, float hy,
                   float angle, int flip, uint32_t argb) {
     if (t->id < 0 || t->id >= ntex) return;
     if ((overlay || invert_on || add_on || (argb >> 24) < 0xff) && !in_tr) {
-        if (ndq < NDQ) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 1, t, u, v, uw, vh, flip, { px, py, hx, hy, angle, rscale }, argb, invert_on, add_on, zc }; zc += 0.0001f; }
+        if (ndq < NDQ) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 1, t, u, v, uw, vh, flip, { px, py, hx, hy, angle, rscale, rxscale }, argb, invert_on, add_on, zc }; zc += 0.0001f; }
         return;
     }
     if (flip) hx = uw - 1 - hx;                    /* the mirrored image's hotspot (texture u reversed below) */
-    float r = (uw > vh ? uw : vh) * 1.5f;
+    float r = (uw * rxscale > vh ? uw * rxscale : vh) * 1.5f;
     if (px + r < 0 || py + r < 0 || px - r >= SCREEN_W || py - r >= SCREEN_H) return;
     if (cur_hdr != t->id) { pvr_prim(HDR(t->id), sizeof(pvr_poly_hdr_t)); cur_hdr = t->id; }
     float iw = 1.0f / texs[t->id].w, ih = 1.0f / texs[t->id].h;
@@ -247,8 +250,8 @@ void r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float 
     vt.z = zc; vt.argb = argb; vt.oargb = cur_oargb;
     for (int i = 0; i < 4; i++) {
         vt.flags = i == 3 ? PVR_CMD_VERTEX_EOL : PVR_CMD_VERTEX;
-        vt.x = (px + lx[i] * c + ly[i] * sn) * SX + OFF_X;     /* screen y points down: CCW = (c, -s; s, c) */
-        vt.y = (py - lx[i] * sn + ly[i] * c) * SY + OFF_Y;
+        vt.x = (px + lx[i] * rxscale * c + ly[i] * sn) * SX + OFF_X;     /* screen y points down: CCW = (c, -s; s, c) */
+        vt.y = (py - lx[i] * rxscale * sn + ly[i] * c) * SY + OFF_Y;
         vt.u = tu[i]; vt.v = tv[i];
         pvr_prim(&vt, sizeof vt);
     }
@@ -285,7 +288,7 @@ static void replay(void) {
                 cur_oargb = inv_pass == 1 ? 0x00ffffff : 0;
                 uint32_t col = inv_pass == 1 ? (c->argb & 0xff000000) : (c->argb | 0x00ffffff);
                 if (c->kind == 0) r_sprite(c->t, c->u, c->v, c->uw, c->vh, c->a[0], c->a[1], c->a[2], c->a[3], c->flip, col);
-                else { float ks = rscale; rscale = c->a[5]; r_sprite_rot(c->t, c->u, c->v, c->uw, c->vh, c->a[0], c->a[1], c->a[2], c->a[3], c->a[4], c->flip, col); rscale = ks; }
+                else { float ks = rscale, kx = rxscale; rscale = c->a[5]; rxscale = c->a[6]; r_sprite_rot(c->t, c->u, c->v, c->uw, c->vh, c->a[0], c->a[1], c->a[2], c->a[3], c->a[4], c->flip, col); rscale = ks; rxscale = kx; }
             }
             inv_pass = 0; cur_oargb = 0; cur_hdr = -2;
             continue;
@@ -293,7 +296,7 @@ static void replay(void) {
         if (c->add != add_pass) { add_pass = c->add; cur_hdr = -2; }
         switch (c->kind) {
         case 0: r_sprite(c->t, c->u, c->v, c->uw, c->vh, c->a[0], c->a[1], c->a[2], c->a[3], c->flip, c->argb); break;
-        case 1: { float ks = rscale; rscale = c->a[5]; r_sprite_rot(c->t, c->u, c->v, c->uw, c->vh, c->a[0], c->a[1], c->a[2], c->a[3], c->a[4], c->flip, c->argb); rscale = ks; } break;
+        case 1: { float ks = rscale, kx = rxscale; rscale = c->a[5]; rxscale = c->a[6]; r_sprite_rot(c->t, c->u, c->v, c->uw, c->vh, c->a[0], c->a[1], c->a[2], c->a[3], c->a[4], c->flip, c->argb); rscale = ks; rxscale = kx; } break;
         case 2:   /* fade: translucent black over the whole display (incl. letterbox) */
             if (cur_hdr != -1) { pvr_prim(&col_hdr_tr, sizeof col_hdr_tr); cur_hdr = -1; }
             quad(0, 0, 640, 480, 0, 0, 0, 0, c->argb);

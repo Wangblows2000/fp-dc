@@ -741,3 +741,39 @@ Static RE only (spec Part Z: no original run of these fights); host-tested (test
   fires for it too (a UFO with G < 3 exists) - RE literal, UNKNOWN in the original (flow trace 10).
 - **Not ported:** EffectWarning2's off-screen missile tracker (7889-7891), the HUD slides (7821 / 7868), the timer stop
   during the escape (0x2205a), the Adventure dialog / voice (7728-7791, 7955), the beam's rotation at G 3.
+## Session 17: the Panther (spec build/re/spec_fn_bosses.md F / G / X; port src/game/fn_panther.c)
+RE plus original traces (tools/orig/trace_orig.py, new `GBYTES=<addr,...>`: the frame's group bytes per frame -> `.grp`):
+T-F1 FRAME=33 at (12000, 210) holding right (Lilac, Milla); T-G1 FRAME=34 Lilac idle, invulnerable; T-G2 the same with
+SETV hitbox A = 0 repeatedly; T-G3 CHAR=2 / CHAR=4. Host-tested (tests/test_fn_panther.py). The spec file is in the
+shared build/ (not in git): this section is the session's addendum to it (spec §G.12 to be pasted there).
+- **U-G1 settled (RE 8557-8559 + RV T-G1)**, the chain evaluated once per frame (A = rib / tail index): ribs (8554) ->
+  shoulder F at rib 0's action point; head x = K + amp sin(M - 20) sin I, y = L + amp sin(M - 20) cos I (amp 32 in A6,
+  32 - 32 ShoulderF2.A in A5); back cannon at rib 0; hip F at rib 6; leg FR at shoulder F's action point, foot FR at leg
+  FR's; tail k at hip - 24k (cos, sin)(30 sin(20k + J) - I); knee F at hip F's action point, leg FL at the knee's, foot FL
+  at leg FL's; shoulder F2 at shoulder F; the rider at the head's action point (33, -25); front cannon / jaw = head +
+  rot(B, C) (ctor B 56 C 48 / B 71 C 21); charge glow at the cannon's action point; hitbox on the jaw; then M, J -= N.
+  RV check: leg FR predicted (170.6, 188.6), port (171, 189).
+- **Laser (RE disasm 8581-8583):** set_x_scale(16.0) (the 50 px image -> 800 px), angle = cannon angle - 22.5 (float at
+  0x21b69e8), hidden with x scale 1.0 at D 5. Renderer: new r_set_xscale (both renderers, the PVR queue keeps it).
+  INFERRED: the hit test is an 800 x 24 segment (not the rotated mask), the additive blend.
+- **8561-8566 run while 0x227c9 is OFF** (jne in the disasm): the body follows the player outside the rider phase;
+  0x227c9 is the rider phase. The hits (8635-8645) stay on after the defeat (only 0x227ba).
+- **RV T-G1 cadence:** plasma f117 (191, then 436 every 5 frames x12), rider f392-565 (193, then 194 x30 every 3 frames;
+  anim 12 8 frames / 13 95 / 12 8), back cannon f977 (254, voice 258, 11 x 195), alternating. Floor: B +0.2 a frame to
+  the top speed during the walk-in (CTRL.D held), -0.569 a frame to < 10 after the control returns, then 10.08 (X +0.08).
+- **RV T-G2:** pools 60 / 60 / 70 / 80 / 90; exposed (A 1, C 30) 15 frames after the jaw starts opening; the laser after
+  the first hit (D 3 100 frames, D 4 200); mode 2 at F 3; the jaw hidden at F 4; the partner's strikes ~4 HP every 6
+  frames (137 x10); defeat F 7 -> white flash at +513, groups off +525, C 2 +612, results (g4 0) at **defeat + 883**.
+- **RV T-G3:** Milla on the plane at X 520, Y 170-183; Carol like Lilac (top speed 12 during the walk-in).
+- **RV T-F1:** trigger X ~12545; Ship2.B jumps to 270 (not Milla); 13 at B 280 / 320-360; K 11663 at B 360, +16 a frame,
+  stops at ~12475 L 106 at B 440 (193); control back B 490 (Lilac M 5, B 12, sound 9); B 520 the run (N -> 15); the exit
+  at X ~15485. Milla: K 13817 at once, Milla moved to K + 200. U-F1: no hurt event found or seen (the port: no damage).
+- **U-G3 (assist) partly settled (RE 8668-8747):** offense list +0x10b30; I cooldown (8668 I > 2 -> I - 1; 8669 I = 2, not
+  mode 2, cannon D not 3..5 -> I = 1); 8670 / 8671 arrival voices; 8680 the strike = ShieldInstaShield, 137, flag 16 (the
+  shared Q20 hit); 8684 knocked by a projectile (25, anim 8, D = C = -4); 8687 / 8701 I = 600; subgroups 0x227c4 /
+  0x227be / 0x227c1. Images: plane 2045; offense dir 0 Lilac, dir 1 Carol on the bike; defense Milla; projectile purple
+  slashes. **Port INFERRED (reduced):** I starts at 1200 (RV first strike ~f1200), 10 strikes every 6 frames at -4 HP,
+  knocked by shots, then 600; the defense / projectile helpers and the per-character helper choice are not ported.
+- **INFERRED elsewhere:** the plasma aim (atan2; the decompiled offsets are garbled), the floor pieces' slot reuse, the
+  mode-2 body x step, the hit flash images (dir 1), achievement 21's window (8 frames after a partner strike), Milla
+  carried by the plane when within 3 px, the FN5 back-cannon / rapid images loaded with FN6 only.

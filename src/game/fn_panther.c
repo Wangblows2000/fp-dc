@@ -73,6 +73,7 @@ static struct {
     float floor_y, cam_left;
     /* laser */
     int laser_on; float lx, ly, lang;
+    int t;                                  /* frames since the act started (the frame's g3 counter) */
     /* post-boss (0x227c5) */
     int post_t, fade, fade_dir, res_on, kill_time, once8651, hold;
     /* A5 chase */
@@ -107,6 +108,12 @@ static int vulnerable(const player_t *p) { return p->state != ST_DEAD && !p->hur
 static int is_milla(void) { return chr_is_milla(G.character); }                 /* MV.A 4 (5 = Torque, not playable) */
 static int pm(const player_t *p) { return player_orig_m(p); }
 
+static void hurt(player_t *p, int dmg, const char *src) {                         /* player_contact + the host test trace */
+#ifdef FP_HOST_ENV
+    if (FP.dbg && !p->hurt_pending) printf("fpdmg %d %s %d\n", G.frame, src, dmg);
+#endif
+    player_contact(p, dmg);
+}
 int fn_panther_q20(int type) { return type == OT_FNP_HIT; }                      /* A6 qualifier 20: only the hitbox (RE on_frame_35_init) */
 
 /* ===================================================================================================== spawn */
@@ -305,7 +312,7 @@ static void floor_scroll(int plane) {                                           
 }
 static void plane_mode(player_t *p) {                                            /* 8524-8528 (Milla on PlayerAssist's plane) */
     if (!FP.plane || !FP.assist) return;
-    if (G.frame < 4) { p->x = 520; p->y = 170 + ORIG_REF_DY; FP.plA = 520; FP.plB = 200; }   /* 8524 (g3 < 4) */
+    if (FP.t < 4) { p->x = 520; p->y = 170 + ORIG_REF_DY; FP.plA = 520; FP.plB = 200; }   /* 8524 (g3 < 4) */
     uint32_t h = p->held;
     if (h & BTN_UP) FP.plB = fmax(FP.plB - 2, 70);                               /* 8526 (CTRL.A) */
     if (h & BTN_DOWN) FP.plB = fmin(FP.plB + 2, 230);                            /* 8527 (CTRL.B) */
@@ -362,14 +369,14 @@ static void cannon(player_t *p) {                                               
     if (FC('D') == 3) { if (FP.glow) { FP.glow->scale = (float)fmax(2 - 0.02 * FC('E'), 0.1); place_at_ap(FP.glow, fc); } FC('E') += 1; }   /* 8580 */
     if (FC('D') == 3 && FC('E') >= 100) { FC('E') = 0; FC('D') = 4; FP.glow_vis = 0; FP.laser_on = 1; snd_play_orig(169, 220, 128); }   /* 8581 */
     if (FC('D') == 4) {                                                          /* 8582: the laser follows the muzzle, gun sparks */
-        double x, y; act_point(fc, &x, &y); FP.lx = (float)x; FP.ly = (float)y; FP.lang = fc->ang;
+        double x, y; act_point(fc, &x, &y); FP.lx = (float)x; FP.ly = (float)y; FP.lang = fc->ang - 22.5f;   /* RE 8582: angle = cannon angle - 22.5 */
         if (G.frame % 4 == 0) fx((float)x, (float)y, "fp_spark");                /* (one spark every 4 frames: INFERRED density) */
         FC('E') += 1;
     }
     if (FC('D') == 4 && FP.laser_on && pm(p) != 9 && !p->hurt_pending && !player_invincible(p) && p->shield != 3) {   /* 8584: 10 damage (not with the metal shield) */
         double a = FP.lang, ux = c_cos(a), uy = -c_sin(a), dx = PX(p) - FP.lx, dy = PY(p) - 10 - FP.ly;
         double along = dx * ux + dy * uy, across = fabs(-dx * uy + dy * ux);
-        if (along > 0 && along < 650 && across < 12 + 17) player_contact(p, 10);   /* laser 24 px high x 650 px; the sensor's half height 17 (INFERRED box) */
+        if (along > 0 && along < 800 && across < 12 + 17) hurt(p, 10, "laser");   /* laser 24 px high x 800 px (50 px x-scaled 16, RE 8581); the sensor's half height 17 (INFERRED: a segment test, not the rotated mask) */
     }
     if (FC('D') == 4 && FC('E') >= 200) { FC('D') = 5; FP.laser_on = 0; }       /* 8583 */
     if (FC('D') == 5 && FC('G') <= 3) { FP.fc.fl &= ~8u; FC('A') = 0; FC('G') = 0; FC('D') = -1; }   /* 8585 */
@@ -513,7 +520,7 @@ static void runtime_pass(player_t *p) {
             }
             ball_move(o); o->dir = (int)o->av[3];
             if (solid_here(o)) { fx(o->x, o->y, "explosion02"); o->alive = 0; break; }
-            if (!dead && csens_hit(p, o) && vulnerable(p)) { player_contact(p, 5); o->alive = 0; break; }
+            if (!dead && csens_hit(p, o) && vulnerable(p)) { hurt(p, 5, "plasma"); o->alive = 0; break; }
             if (player_cube_state() >= 4 && player_cube_hits(o)) { o->alive = 0; break; }   /* col_20_34: Milla's cube absorbs it */
             if (o->x < G.camx - 64 || o->x > G.camx + SCREEN_W + 64 || o->y < G.camy - 64) o->alive = 0;
             break;
@@ -530,12 +537,16 @@ static void runtime_pass(player_t *p) {
                 if (player_cube_state() >= 4 && player_cube_hits(o)) { snd_play_orig(219, 220, 128); hit = 1; }   /* col_10_34 */
                 if (hit) {                                                       /* flag 6 -> the blast (8665) */
                     if (is_milla()) snd_play_orig(38, 220, 128);
-                    o->st = 1; o->tm = 0; o->ang = 0; setan(o, S_MBLAST); fx(o->x, o->y, "explosion06"); snd_play_orig(29, 220, 128);
+                    o->st = 1; o->tm = 0; o->ang = 0; setan(o, S_MBLAST);
+#ifdef FP_HOST_ENV
+                    if (FP.dbg) printf("fpev %d blast %.0f %.0f\n", G.frame, o->x, o->y - ORIG_REF_DY);
+#endif
+ fx(o->x, o->y, "explosion06"); snd_play_orig(29, 220, 128);
                 }
                 if (o->x < G.camx - 200 || o->x > G.camx + SCREEN_W + 200 || o->y < G.camy - 400) o->alive = 0;
             } else {                                                             /* the blast */
                 o->tm++;
-                if (o->tm < 30 && !dead && csens_hit(p, o) && vulnerable(p) && p->shield != 2) { player_contact(p, 10); p->vy = -8; p->ground = 0; }   /* 8666 */
+                if (o->tm < 30 && !dead && csens_hit(p, o) && vulnerable(p) && p->shield != 2) { hurt(p, 10, "missile"); p->vy = -8; p->ground = 0; }   /* 8666 */
                 if (o->tm >= 45) o->alive = 0;                                   /* 8667 */
             }
             break;
@@ -544,6 +555,10 @@ static void runtime_pass(player_t *p) {
                 o->y -= 16; o->av[1] += 1;
                 if (o->av[1] > 50) {                                             /* 8652: falls at x + 16 C D with a ground warning */
                     o->av[0] = 1; o->av[1] = 0; o->x = (float)(int)(o->x + 16 * o->av[2] * o->av[3]); setan(o, S_RBUL_D);
+#ifdef FP_HOST_ENV
+                    if (FP.dbg) printf("fpev %d rfall %.0f %.0f\n", G.frame, o->x, o->y - ORIG_REF_DY);
+#endif
+
                     obj_t *w = spawn(OT_FNP_WARN, S_WARN, o->x, (float)(V('L') + 120), 2);
                     if (w) { w->av[0] = i; if (is_milla()) w->y = G.camy + 20; }   /* 8655: Milla's warning at the view top */
                 }
@@ -554,7 +569,7 @@ static void runtime_pass(player_t *p) {
                 }
             }
             if (!dead && csens_hit(p, o) && !p->hurt_pending) {                  /* col_0_34: 1 damage, no invulnerability test */
-                snd_play_orig(45, 220, 128); fx(o->x, o->y, "explosion02"); player_contact(p, 1); o->alive = 0; break;
+                snd_play_orig(45, 220, 128); fx(o->x, o->y, "explosion02"); hurt(p, 1, "rapid"); o->alive = 0; break;
             }
             if (o->y > G.lvl.h + 64) o->alive = 0;
             break;
@@ -572,7 +587,7 @@ static void runtime_pass(player_t *p) {
         }
     }
     /* the rider's shield touching the player: 5 damage (8501 / the 8062 copy) */
-    if (FP.shield && !FP.shield->hidden && !dead && csens_hit(p, FP.shield) && vulnerable(p)) player_contact(p, 5);
+    if (FP.shield && !FP.shield->hidden && !dead && csens_hit(p, FP.shield) && vulnerable(p)) hurt(p, 5, "shield");
 }
 
 /* ---- the partner (group 0x227c8; reduced port of 8668-8747: U-G3) */
@@ -748,6 +763,7 @@ void fn_panther_frame(player_t *p) {
         goto out;
     }
     /* ---- act 6 */
+    FP.t++;
     if (FP.g_floor) {
         floor_mode(p);
         int M = pm(p), lr = (p->held & (BTN_LEFT | BTN_RIGHT)) != 0 && FP.autod == 0;
@@ -777,10 +793,10 @@ void fn_panther_frame(player_t *p) {
     for (int k = 0; k < P_N; k++) FP.p[k]->inv = 0;                               /* the flash is drawn by fn_panther_draw */
 out:;
 #ifdef FP_HOST_ENV
-    if (FP.dbg) printf("fp %d act %d K %.2f L %.2f M %.1f N %.2f I %.0f hA %.2f hC %d hD %.0f hF %.0f jaw %.0f fcD %.0f fcE %.0f fcF %.0f bcD %.0f rd %d m2 %d post %d hdA %.0f hdC %.0f hdD %.0f res %d chase %d s2B %.0f s2A %.3f as %d px %.2f py %.2f B %.3f\n",
+    if (FP.dbg) printf("fp %d act %d K %.2f L %.2f M %.1f N %.2f I %.0f hA %.2f hC %d hD %.0f hF %.0f jaw %.0f fcD %.0f fcE %.0f fcF %.0f bcD %.0f rd %d m2 %d post %d hdA %.0f hdC %.0f hdD %.0f res %d chase %d s2B %.0f s2A %.3f as %d shv %d pl %d t %d px %.2f py %.2f B %.3f\n",
                        G.frame, FP.act, V('K'), V('L'), V('M'), V('N'), V('I'), FP.hit ? FP.hit->A : 0., FP.hit ? FP.hit->c : 0, FP.hD, FP.hF, JW('A'),
                        FC('D'), FC('E'), FC('F'), BC('D'), FP.g_rider, FP.g_m2, FP.g_post, HD('A'), HD('C'), HD('D'), FP.res_on, FP.chase_on,
-                       FP.ship2 ? FP.ship2->av[1] : FP.hd.a[1], AV(FP.s2, 'A'), FP.as_st, p->x, p->y - ORIG_REF_DY, p->ground ? p->gsp : p->vx);
+                       FP.ship2 ? FP.ship2->av[1] : FP.hd.a[1], AV(FP.s2, 'A'), FP.as_st, FP.shield && !FP.shield->hidden, FP.g_plane, FP.t, p->x, p->y - ORIG_REF_DY, p->ground ? p->gsp : p->vx);
     if (FP.dbg && getenv("FP_DBG_FP")[0] == '2') {                               /* every part: x y angle */
         printf("fpp %d", G.frame);
         for (int k = 0; k < P_N; k++) printf(" %d:%.0f,%.0f,%.2f", k, FP.p[k]->x, FP.p[k]->y, FP.p[k]->ang);
@@ -818,12 +834,10 @@ void fn_panther_draw(int pass) {
         return;
     }
     if (pass != 1) return;
-    if (FP.laser_on && FP.laser && FP.laser->an.b) {                             /* BossPantherLaser_2047: x-scaled to the arena (13 segments) */
-        const frame_t *f = anim_frame(&FP.laser->an);
-        double a = FP.lang, dx = c_cos(a) * 50, dy = -c_sin(a) * 50;
-        r_set_additive(1);
-        for (int k = 0; k < 13; k++) frame_draw_rot(FP.laser->an.b, f, floorf((float)(FP.lx + k * dx) - G.camx), floorf((float)(FP.ly + k * dy) - G.camy), (float)a, 0, 0xffffffff);
-        r_set_additive(0);
+    if (FP.laser_on && FP.laser && FP.laser->an.b) {                             /* BossPantherLaser_2047: x scale 16 (RE 8581 / 8583: 16, back to 1) */
+        r_set_xscale(16); r_set_additive(1);                                     /* (additive: INFERRED) */
+        frame_draw_rot(FP.laser->an.b, anim_frame(&FP.laser->an), floorf(FP.lx - G.camx), floorf(FP.ly - G.camy), FP.lang, 0, 0xffffffff);
+        r_set_additive(0); r_set_xscale(1);
     }
     if (FP.glow && FP.glow_vis && FP.glow->an.b) {                          /* the charge glow (scaled, additive) */
         r_set_scale(FP.glow->scale); r_set_additive(1);

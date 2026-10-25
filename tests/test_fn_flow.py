@@ -97,10 +97,12 @@ rows, ev, out = run('5 TP 11600 1040\n10 300 R\n', 140, {'FP_LEVEL': 'fn4'})
 last4 = max((r['x'] for r in rows if r['act'] == 4 and r['f'] > 10), default=0)
 f5 = next((r for r in rows if r['act'] == 5), None)
 check('fn4_exit_past_w_plus_20', f5 is not None and last4 > 11644 and f5['x'] < -20 and f5['g4'] == -1, 'max x %s' % last4)
-rows, ev, out = run('5 TP 15100 200\n10 300 R\n', 200, {'FP_LEVEL': 'fn5'})
+# (the Panther chase, fn_panther.c 8372, takes the control first at X > limR - 300 - 20 B: the exit comes after its timeline)
+rows, ev, out = run('5 TP 15100 200\n10 400 R\n', 400, {'FP_LEVEL': 'fn5'})
 w6 = [r for r in rows if r['act'] == 6]
 check('fn5_exit_to_fn6', bool(w6) and max(r['x'] for r in rows if r['act'] == 5) > 15220, str(w6[:1] and w6[0]['x']))
-check('fn6_walkin_x400_no_b', w6 and w6[0]['x'] == 400 and w6[0]['g4'] == -1 and w6[0]['gsp'] == 0 and w6[0]['vx'] == 0, str(w6[:1] and (w6[0]['x'], w6[0]['gsp'])))
+# (no B event from the flow; the Panther's floor auto-run then holds CTRL.D during the walk-in, 8516 / 8517, RV T-G1)
+check('fn6_walkin_x400_no_b', w6 and w6[0]['x'] == 400 and w6[0]['g4'] == -1 and w6[0]['vx'] == 0, str(w6[:1] and (w6[0]['x'], w6[0]['gsp'])))
 check('fn6_fixed_camera_view', w6 and all(r['cx'] == 214 and r['cy'] == 71 for r in w6), str(sorted({(r['cx'], r['cy']) for r in w6})[:3]))
 check('fn6_music_boss', [l for _, l in ev if l.startswith('music b')][-1].startswith('music bgm/m_boss.adp'))
 
@@ -110,13 +112,14 @@ rows, ev, out = run('5 TP 10900 540\n40 HP 0\n40 HURT 10\n', 260, {'FP_LEVEL': '
 check('fn5_checkpoint_g4_3', at(rows, 30)['g4'] == 3)
 rs = [r for r in rows if r['f'] > 60 and r['lv'] == 4]
 check('fn5_restart_at_checkpoint', rs and abs(rs[0]['x'] - 10880) < 2 and rs[0]['g4'] in (2, 3), str(rs[:1] and (rs[0]['x'], rs[0]['g4'])))
-rows, ev, out = run('5 TP 10900 540\n30 TP 15100 200\n35 300 R\n', 400, {'FP_LEVEL': 'fn5'})
+# (FN6 has the Panther's scrolling floor now: the death is forced, HP 0 + a hit, once the act runs)
+rows, ev, out = run('5 TP 10900 540\n30 TP 15100 200\n35 400 R\n380 HP 0\n380 HURT 10\n', 650, {'FP_LEVEL': 'fn5'})
 back = [r for r in rows if r['act'] == 5 and r['lv'] == 4]
 check('fn6_death_to_fn5_g4_2', any(r['act'] == 6 for r in rows) and back and abs(back[0]['x'] - 10880) < 8 and back[0]['g4'] in (2, 3) and loads(ev)[-1] == 'fn5',
       str(back[:1] and (back[0]['x'], back[0]['g4'])) + str(loads(ev)))
 check('fn6_death_g4_back_to_3', back and back[-1]['g4'] == 3)
 # a debug start in FN6 (no FN5 checkpoint): the death target starts fresh (INFERRED)
-rows, ev, out = run('', 300, {'FP_LEVEL': 'fn6'})
+rows, ev, out = run('100 HP 0\n100 HURT 10\n', 400, {'FP_LEVEL': 'fn6'})
 back = [r for r in rows if r['act'] == 5]
 check('fn6_death_without_checkpoint_fresh_fn5', back and back[0]['x'] == 61 and back[0]['g4'] == 1, str(back[:1] and (back[0]['x'], back[0]['g4'])))
 
