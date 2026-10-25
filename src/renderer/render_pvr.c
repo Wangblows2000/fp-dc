@@ -103,7 +103,9 @@ int r_tex_load(tex_t *t, const void *data, size_t size) {
     pvr_poly_cxt_txr(&cxt, PVR_LIST_TR_POLY, txfmt, w, h, p, PVR_FILTER_NONE);
     cxt.depth.comparison = PVR_DEPTHCMP_GEQUAL;
     cxt.gen.culling = PVR_CULLING_NONE;
-    cxt.txr.env = PVR_TXRENV_MODULATE;
+    cxt.txr.env = PVR_TXRENV_MODULATEALPHA;   /* session 13: alpha = texture x vertex (MODULATE ignored the vertex alpha, so
+                                               * every sprite drawn with alpha < 255 - translucent UI layers, results panels,
+                                               * fades - was opaque on the DC; same result as before for alpha 255) */
     pvr_poly_compile(&texs[slot].hdr_tr, &cxt);
     cxt.blend.src = PVR_BLEND_SRCALPHA; cxt.blend.dst = PVR_BLEND_ONE;          /* additive */
     pvr_poly_compile(&texs[slot].hdr_add, &cxt);
