@@ -235,7 +235,11 @@ enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_MON_INVINC = 4, OT_MON
        OT_SN_HEAD = 221, OT_SN_SEG = 222, OT_SN_MOUTH = 223, OT_ACID = 224, OT_ROCK_AT = 225, OT_BUBBLE = 226 /* runtime */, OT_IW_HEADF = 227 /* the worm head once emerged (Q20 on layer 3) */,
        /* session 13: one engine type per Fusion object (class + handle), so no code tests the level to tell them apart */
        OT_ABPLAT2 = 228 /* AquaBrickPlatform_803 */, OT_AXEL1P = 229, OT_AXEL2P = 230 /* placed LevelAxelPlatform1_845 / 2_846 (AT3) */,
-       OT_SWSPAWN1B = 231 /* GimmickSwingSpawner1_848 */ };
+       OT_SWSPAWN1B = 231 /* GimmickSwingSpawner1_848 */,
+       /* Relic Maze enemies (session 14, src/game/relic.c, spec_rm_enemies.md) */
+       OT_IRIS = 232, OT_SLUG = 233, OT_HOPPER = 234, OT_FSPITTER = 235, OT_SENTINEL = 236, OT_EXBASE = 237, OT_EXHEAD = 238,
+       OT_POT = 239, OT_BLUEPOT = 240,
+       OT_FSPRITE = 241, OT_SPARK = 242, OT_SSPIKE = 243, OT_FLAME = 244, OT_FSSHELL = 245 /* runtime: their children */ };
 
 #define MAX_ATLAS 4
 typedef struct {
@@ -507,6 +511,7 @@ obj_t *obj_alloc(void);
 void   obj_effect(float x, float y, const char *anim);
 void   obj_explode(float x, float y);
 void   obj_drop_crystal(float x, float y, int S);
+void   obj_launch_crystal(float x, float y, int dir);
 void   keystone_spawn(float x, float y, double B, double I);
 void   keystone_update(obj_t *k, player_t *p);
 int    obj_overlaps_bg(const obj_t *o);
@@ -541,6 +546,11 @@ void   spore_update(obj_t *o, player_t *p);
 void   enemies_absorb_crystals(void);
 /* src/game/aqua.c (Aqua Tunnel, session 12) */
 int    aqua_level(void);                      /* act 1-4 in Aqua Tunnel, else 0 */
+/* src/game/relic.c (Relic Maze enemies, session 14) */
+void   relic_spawn(void), relic_frame(player_t *p);
+int    relic_obj_update(obj_t *o, player_t *p);   /* 1: a relic.c type (handled) */
+int    relic_keeps_state(int type);               /* its own events set D on defeat (2764 leaves st) */
+void   rock_at_new(float x, float y), rock_at_break(obj_t *r), rocks_at_frame(player_t *p);   /* EnemyRock (aqua_boss.c), shared */
 /* level definitions (src/game/levels.c): per-act data read by the shared code */
 typedef struct { short x, y, A; float B; short D, E, blk; } padcfg_t;   /* Carol's jump pad at (x, y): index A, angle B, chain end D, lit E, block pad */
 typedef struct { short x0, x1, y0, y1; } zone_t;

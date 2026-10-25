@@ -240,6 +240,20 @@ static const objdef_t DEFS[] = {
     { OT_TD_PIECE + 9,  0,                                     NULL         }, /* minibosstreddright4 */
     { OT_TD_PIECE + 10, 0,                                     NULL         }, /* minibosstreddright5 */
     { OT_TD_PIECE + 11, 0,                                     NULL         }, /* minibosstreddright6 */
+    { OT_IRIS,          0,                                     NULL         }, /* enemyiris (relic.c) */
+    { OT_SLUG,          0,                                     NULL         }, /* enemyslug */
+    { OT_HOPPER,        0,                                     NULL         }, /* enemyhopper */
+    { OT_FSPITTER,      0,                                     NULL         }, /* enemyfirespitter */
+    { OT_SENTINEL,      0,                                     NULL         }, /* enemysentinel */
+    { OT_EXBASE,        0,                                     NULL         }, /* enemyextractorbase */
+    { OT_EXHEAD,        0,                                     NULL         }, /* enemyextractorhead */
+    { OT_POT,           0,                                     NULL         }, /* objectpot */
+    { OT_BLUEPOT,       0,                                     NULL         }, /* objectbluepot */
+    { OT_FSPRITE,       0,                                     NULL         }, /* - */
+    { OT_SPARK,         0,                                     NULL         }, /* - */
+    { OT_SSPIKE,        0,                                     NULL         }, /* - */
+    { OT_FLAME,         0,                                     NULL         }, /* - */
+    { OT_FSSHELL,       0,                                     NULL         }, /* - */
 };
 static objdef_t BY_TYPE[256];
 static int built;

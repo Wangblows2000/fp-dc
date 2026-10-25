@@ -91,6 +91,7 @@ void objects_spawn(void) {
     layers_refresh(&G.p);
     bosses_spawn();
     aqua_spawn();
+    relic_spawn();
     wlogs_spawn(); dv3_switch_spawn(); switches_spawn(); tunnels_reset(); shields_reset(); water_reset();
     /* 3566 / 3567: 12 logs per bridge at (bx + 16k, by + 56), A = k, B = base y */
     int nb = G.nobjs;
@@ -350,10 +351,10 @@ void obj_throw_petal(float x, float y) {
 }
 /* 2766: one absorbed crystal per frame from a defeated enemy, fanned around straight up (spec_combat; the Pinball
  * movement's speed is INFERRED: 4 px/frame, then the thrown-item rules) */
-void obj_drop_crystal(float x, float y, int S) {
+void obj_drop_crystal(float x, float y, int S) { obj_launch_crystal(x, y, (int)((2 * (S % 2) - 1) * (S + 1) / 2.0 + 8)); }
+void obj_launch_crystal(float x, float y, int d) {     /* a crystal thrown out in direction d (0..31) */
     obj_t *e = alloc_obj();
     if (!e) return;
-    int d = (int)((2 * (S % 2) - 1) * (S + 1) / 2.0 + 8);
     double a = d * 11.25 / 57.29577951308232;
     e->type = OT_ITEM_FLY; e->st = OT_CRYSTAL; e->alive = 1; e->x = x; e->y = y;
     e->vx = 4.f * (float)fd_cos(a); e->vy = -4.f * (float)fd_sin(a);
@@ -658,6 +659,7 @@ void objects_update(void) {
         float bx0, by0, bx1, by1;
         obj_box(o, &bx0, &by0, &bx1, &by1);
         int defeated = enemy_type(o->type) && (o->fl & 0x40);
+        if (o->type >= OT_IRIS && relic_obj_update(o, p)) continue;                  /* Relic Maze enemies (src/game/relic.c) */
         if (o->type >= OT_DIGSPOT || o->type == OT_MON_KEYSTONE || o->type == OT_MON_WOOD) { if (aqua_obj_update(o, p)) continue; }   /* Aqua Tunnel objects (src/game/aqua.c) */
         switch (o->type) {
         case OT_CRYSTAL:
