@@ -264,12 +264,14 @@ void r_tint(float x, float y, float w, float h, uint32_t rgb) {
 }
 void r_rect(float x, float y, float w, float h, uint32_t argb) {
     if (x + w < 0 || y + h < 0 || x >= SCREEN_W || y >= SCREEN_H) return;
-    if (overlay && !in_tr) {
+    uint32_t a = argb >> 24;
+    if (a == 0) return;                                  /* as the host renderer: alpha 0 draws nothing */
+    if ((overlay || a < 0xff) && !in_tr) {               /* translucent rects (session 16: they were forced opaque) */
         if (ndq < NDQ) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 3, NULL, 0, 0, 0, 0, 0, { x, y, w, h }, argb, 0, 0, zc }; zc += 0.0001f; }
         return;
     }
     if (cur_hdr != -1) { pvr_prim(in_tr ? &col_hdr_tr : &col_hdr, sizeof col_hdr); cur_hdr = -1; }
-    quad(x * SX + OFF_X, y * SY + OFF_Y, (x + w) * SX + OFF_X, (y + h) * SY + OFF_Y, 0, 0, 0, 0, argb | 0xff000000);
+    quad(x * SX + OFF_X, y * SY + OFF_Y, (x + w) * SX + OFF_X, (y + h) * SY + OFF_Y, 0, 0, 0, 0, in_tr ? argb : argb | 0xff000000);
 }
 
 static void replay(void) {
