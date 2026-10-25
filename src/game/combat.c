@@ -138,7 +138,8 @@ int enemy_type(int t) {
            t == OT_FIREFLY || t == OT_SLIME ||   /* Aqua Tunnel Q20 (spec_at_enemies) */
            t == OT_IW_HEADF || t == OT_CH_BALL ||   /* Iron Worm head (from 4206), Chomper lure (spec_ironworm / spec_chomper) */
            t == OT_IRIS || t == OT_SLUG || t == OT_HOPPER || t == OT_FSPITTER || t == OT_SENTINEL || t == OT_EXHEAD ||
-           t == OT_POT || t == OT_BLUEPOT || t == OT_GEYE || t == OT_BGCORE;          /* Relic Maze Q20 (spec_rm_enemies 0: pots take every shared hit) */
+           t == OT_POT || t == OT_BLUEPOT || t == OT_GEYE || t == OT_BGCORE ||        /* Relic Maze Q20 (spec_rm_enemies 0: pots take every shared hit) */
+           t == OT_MT_HEAD || t == OT_MT_HIT1 || t == OT_MT_HIT2;                    /* RM5 q20: Mantalith head and arm weak points (spec_rm_mantalith 0) */
 }
 static int candidates[MAX_OBJS], ncand;
 

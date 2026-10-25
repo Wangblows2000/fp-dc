@@ -254,6 +254,13 @@ enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_MON_INVINC = 4, OT_MON
        OT_GEYE = 350, OT_GLID = 351, OT_GP1 = 352, OT_GP2 = 353, OT_GSHOT = 354 /* runtime */, OT_BGCORE = 357, OT_BGSPINE = 358,
        OT_BGP3 = 359, OT_BGPC = 360, OT_BGP6 = 361, OT_BGN1 = 362, OT_BGN2 = 363, OT_BGN3 = 364, OT_BGN4 = 365, OT_BGHEAD = 366,
        OT_SHOCK = 367 /* runtime */, OT_CAMLIM_L = 368, OT_CAMLIM_R = 369, OT_CAMLIM_T = 370, OT_CAMLIM_B = 371 /* CameraLimitBoss markers */ };
+/* Relic Maze act 5 Mantalith / Kingdom Stone (rm_mantalith.c) */
+enum { OT_MT_FIRST = 450, OT_MT_STONE = 450, OT_MT_SPADE = 451, OT_MT_HOOK = 452, OT_MT_KS1 = 453, OT_MT_KS2 = 454, OT_MT_RAY1 = 455,
+       OT_MT_RAY2 = 456, OT_MT_SHRINE = 457, OT_MT_CUT1 = 459, OT_MT_CUT2 = 460, OT_MT_BODY = 461, OT_MT_NECK4 = 462, OT_MT_NECK3 = 463,
+       OT_MT_NECK2 = 464, OT_MT_NECK1 = 465, OT_MT_LKNEE = 466, OT_MT_RKNEE = 467, OT_MT_LEG2 = 468, OT_MT_LEG3 = 469, OT_MT_BEAD = 470,
+       OT_MT_HEAD = 471, OT_MT_HEAD2 = 472, OT_MT_HEAD3 = 473, OT_MT_ARM6 = 474, OT_MT_ARM3 = 475, OT_MT_HIT1 = 476, OT_MT_HIT2 = 477,
+       OT_MT_WARN = 478, OT_MT_DEBRIS = 479, OT_MT_SLASH = 480, OT_MT_CHOMP = 481, OT_MT_RUIN = 482, OT_MT_RPIECE = 483 /* runtime 479-483 */,
+       OT_MT_LAST = 483 };
 
 #define MAX_ATLAS 4
 typedef struct {
@@ -477,6 +484,7 @@ int    player_milla_hud(void);
 void   player_milla_dbg(double v[7]);   /* traces: cube A, x, y, C, F, anim, MILLA's shown direction */                           /* jump-pad configuration (src/characters/carol_bike.inc) */
 void player_engine_stop(void);
 void voice_play(const char *name);
+void voice_play_once(const char *name);   /* a voice loaded on demand (two rotating slots; NULL frees them): stage-clear lines */
 void plat_quit(void);
 void r_fade(float alpha);      /* full-screen black overlay with alpha (translucent list) */
 int  game_load_level(const char *dir);   /* unloads the current level first */
@@ -574,6 +582,12 @@ obj_t *relic_flame_new(float x, float y, double C, double D);
 int    relic_boss_keeps(int type), relic_is_gate_pillar(const obj_t *o);
 void   rmboss_spawn(void), rmboss_frame(player_t *p);
 int    rmboss_obj(obj_t *o, player_t *p);
+obj_t *relic_shock_new(double x, double y, int dir, double speed);   /* HazardShockwave_1576 (relic_boss.c); speed px / frame (0: the golem's 6.25) */
+void   relic_act_point(const obj_t *o, double *x, double *y);        /* the current frame's action point, rotated with the object (relic_boss.c) */
+void   rm_mantalith_spawn(void), rm_mantalith_frame(player_t *p), rm_mantalith_draw(int front);   /* RM5 end (rm_mantalith.c) */
+int    rm_mantalith_obj(obj_t *o, player_t *p);
+void   results_begin_boss(int time_frames), results_script_input(uint32_t held), results_request_end(void);   /* results path 3 (any boss) */
+int    results_tally_done(void), results_frames(void);
 void   rock_at_new(float x, float y), rock_at_break(obj_t *r), rocks_at_frame(player_t *p);   /* EnemyRock (aqua_boss.c), shared */
 /* level definitions (src/game/levels.c): per-act data read by the shared code */
 typedef struct { short x, y, A; float B; short D, E, blk; } padcfg_t;   /* Carol's jump pad at (x, y): index A, angle B, chain end D, lit E, block pad */

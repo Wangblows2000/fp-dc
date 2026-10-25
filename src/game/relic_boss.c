@@ -52,6 +52,7 @@ static void act_rot(const obj_t *o, double *x, double *y) {
     double dx = o->an.b->act[2 * fi] - f->hx, dy = o->an.b->act[2 * fi + 1] - f->hy, a = o->ang;
     *x = o->x + dx * c_cos(a) + dy * c_sin(a); *y = o->y - dx * c_sin(a) + dy * c_cos(a);
 }
+void relic_act_point(const obj_t *o, double *x, double *y) { act_rot(o, x, y); }   /* shared: the Mantalith's claws (rm_mantalith.c) */
 static void rock_debris(float x, float y, int speed) {                             /* EnemyRock_1194 debris: pinball, gravity 30, no collision (RE: no RM2 rock events) */
     static const int DIRS[12] = { 1, 2, 3, 4, 5, 6, 10, 11, 12, 13, 14, 15 };
     obj_t *r = spawn(OT_DEBRIS, "rock", x, y);
@@ -324,10 +325,14 @@ static void bg_dirsprite(obj_t *o, const char *base) {
     if (a >= 0 && (o->an.b != &G.ens || o->an.anim != a)) anim_set(&o->an, &G.ens, a);
 }
 static int bg_on_back(const player_t *p) { int k = mv_sensor_obj(p->x, PY(p), p->N, SENSOR_BOTTOMBIG, OT_BGSPINE); return k >= 0 && p->ground; }
-static void shock_new(double x, double y, int dir) {
-    obj_t *s = spawn(OT_SHOCK, dir == 16 ? "shock_l" : "shock", (float)x, (float)y);
-    if (s) { s->dir = dir & 31; s->av[0] = 10; s->av[1] = 0; }
+/* HazardShockwave_1576: A = 10 damage, B age; av[2] its BallMovement speed in px / frame (0: the golem's 50 = 6.25;
+ * the Mantalith sets 20 / 40 / 60 = 2.5 / 5 / 7.5, rm_mantalith.c, which also ages its own waves) */
+obj_t *relic_shock_new(double x, double y, int dir, double speed) {
+    obj_t *s = spawn(OT_SHOCK, (dir & 31) == 16 ? "shock_l" : "shock", (float)x, (float)y);
+    if (s) { s->dir = dir & 31; s->av[0] = 10; s->av[1] = 0; s->av[2] = speed; }
+    return s;
 }
+static void shock_new(double x, double y, int dir) { relic_shock_new(x, y, dir, 0); }
 static void bg_frame(player_t *p) {
     obj_t *g = BG.core, *s = BG.spine;
     if (!g || !s) return;
@@ -515,7 +520,7 @@ static void bg_frame(player_t *p) {
 static void shocks(player_t *p) {                                                  /* 7113 / 7114: BallMovement 50 (6.25 px / frame) */
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *s = &G.o[i]; if (!s->alive || s->type != OT_SHOCK) continue;
-        if (s->born != G.frame) s->x += s->dir == 16 ? -6.25f : 6.25f;
+        { float v = s->av[2] > 0 ? (float)s->av[2] : 6.25f; if (s->born != G.frame) s->x += s->dir == 16 ? -v : v; }
         if (s->av[1] <= 50 && csens_hit(p, s) && vulnerable(p)) { player_contact(p, (int)s->av[0]); if (BG.core) BG.core->st = 0; }   /* 7114 */
         if (s->av[1] > 50 || s->x < -64 || s->x > G.lvl.w + 64) s->alive = 0;     /* 7113 (the off-level removal: port safety) */
     }
