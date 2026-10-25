@@ -116,10 +116,22 @@ static const exit_t EX_FN45[] = { { 1, 0, 20, 0, 0, NULL } };
 static const classkill_t CK_FN3[] = { { 1, 840, 843 }, { 1, OT_MON_BOMB, OT_MON_BOMB }, { 2, 821, 825 } };
 static const markmove_t CM_FN3[] = { { 2, 10831, -32768, 11441, 1424 } };
 static const cambox_t BOX_FN6 = { 224, 0, 960, 311 };   /* 8553 / handle_frame_35 inline (RV at each frame start: C 224, D 0, E 960, F 311) */
-/* the stage's own sounds (D-047): flow 134 (7713, Serpentine's crash; RM's copy, 11025 Hz) and 61 (7716; in the port a Carol
- * group id, so Lilac / Milla need it here). The enemy / gimmick / boss modules add theirs. */
-static const short SFX_FN[] = { 61, 134,
-                                62, 70, 75, 165, 166, 168, 169, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 317 };   /* + the bosses (fn_boss.c; 11025 Hz) */
+/* the stage's own sounds (D-047), one group per act (session 17: one shared FN group was 420 KB; sound RAM needs >= 256 KB free
+ * with the heaviest character, ASSET_PIPELINE). Ids from the modules' snd_play_orig calls and the act's object classes (json
+ * frames 30-35): flow 134 (7713 Serpentine's crash; also the lamppost break) and 61 (7716; a Carol group id, needed by
+ * Lilac / Milla); everywhere: 33 hang (Carol id), coil 164 / 371 / 167, lights 171; pigeons 243 (FN1-3), boost blocks 163
+ * (FN1-2), teeter 143 (FN2-5), trolley 260 (FN2), gachapon 187 / 188 (FN3-5), fireworks / flares 430, Turretus 127 (FN2-5),
+ * Milla cube reflect 219, shell 231 / gimmicks B 208-249 / 428 (FN4-5); bosses (fn_boss.c): UFO 168 / 169 (FN1, FN3 chase),
+ * bulldozer 165 / 166 (FN1-2), Serpentine 62 / 70 / 75 / 191-200 / 317 (FN3). All 11025 Hz (convert_sfx.sh). */
+static const short SFX_FN1[] = { 33, 134, 164, 371, 171, 167, 163, 430, 243, 165, 166, 168, 169 };
+static const short SFX_FN2[] = { 33, 134, 164, 371, 171, 167, 143, 163, 260, 430, 243, 127, 219, 165, 166 };
+static const short SFX_FN3[] = { 33, 134, 164, 371, 171, 167, 61, 143, 187, 188, 430, 243, 127, 219,
+                                 62, 70, 75, 168, 169, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 317 };
+static const short SFX_FN45[] = { 33, 134, 164, 371, 171, 167, 143, 187, 188, 430, 127, 219, 231,
+                                  208, 212, 216, 217, 218, 223, 224, 225, 226, 227, 228, 229, 230, 249, 428 };
+#define SFX_FN4 SFX_FN45
+#define SFX_FN5 SFX_FN45
+static const short SFX_FN6[] = { 134 };   /* + the bosses (fn_boss.c; 11025 Hz) */
 /* Fortune Night bosses (fn_boss.c, spec_fn_bosses C / E): FN3 beam chase (7794 window, 7797 / 7798 / 7810 zones, 7800 / 7801
  * floors at A >= 4, Floor2 pieces at MV.B) and samurai (7815 lock, 8040 / 8048 music, 8045 y 512, turrets 8047 / 8048); FN5
  * samurai (8422 g4 < 3, 8424 CAM.D 336, no music; 8473 turret; its 8045 copy's y is not in the spec: home y + 16, INFERRED) */
@@ -133,7 +145,7 @@ static const fnboss_t FNB_FN5 = { 0, 0, { { 0 } }, 5, 0, 0, 0, 336, 3, 192, { { 
  * (no col_21_29 in test_collisions_29); FN2 has no flare-wall handler (col_24_30); FN5's balloon gives a life (8349) */
 static const fnenemy_t FNE_FN1 = { 1500, 1, 0, 0 }, FNE_FN2 = { 0, 0, 1, 0 }, FNE_FN5 = { 0, 0, 0, 1 };
 /* Fortune Night (session 17, spec_fn_flow 9.1): music slots 4 / 6 / 7 of the frame's loop table (tools/re/bgm_refs.py, 3) */
-#define FN(d, f, n, mus) .dir = d, .frame = f, .stage = 3, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_FN, .nsfx = N_(SFX_FN)
+#define FN(d, f, n, mus) .dir = d, .frame = f, .stage = 3, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_FN##n, .nsfx = N_(SFX_FN##n)
 #define FN_M123 .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage3.adp", .mus7 = "bgm/m_stage3.adp"
 #define FN_M45 .mus4 = "bgm/m_boss.adp", .mus6 = "bgm/m_stage3b.adp", .mus7 = "bgm/m_stage3b.adp"
 #define RM(d, f, n, mus) .dir = d, .frame = f, .stage = 2, .act = n, .nacts = 5, .music = mus, .checkpoints = 1, .sfx = SFX_RM, .nsfx = N_(SFX_RM)
