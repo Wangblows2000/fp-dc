@@ -8,7 +8,7 @@
 RUN=${RUN:-/home/claude/fprun}; DISP=${DISP:-:93}
 export DISPLAY=$DISP
 if ! xdpyinfo -display $DISP >/dev/null 2>&1; then
-  (setsid Xvfb $DISP -screen 0 852x480x24 >/dev/null 2>&1 &)
+  (setsid Xvfb $DISP -screen 0 852x480x24 </dev/null >/dev/null 2>&1 8>&- 9>&- &)   # no inherited lock fds (flock 9)
   for i in $(seq 50); do xdpyinfo -display $DISP >/dev/null 2>&1 && break; timeout 0.2 tail -f /dev/null; done
 fi
 kill -9 $(pgrep -x Chowdren) $(pgrep -x gdb) 2>/dev/null
