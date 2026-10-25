@@ -157,17 +157,15 @@ void cork_move(player_t *p) {
 
 /* ---- geyser plate (RE 4968/4969 + the platform engine with F = 2, G = 240, H = 1): see objects.c platforms */
 
-/* ---- cards (ObjectCodec_430, events 2569-2578). Act k's cards are numbered from the last-created placement down
- * (DV1 1-4, DV2 5-6, DV3 7-10); o->dir = card ID, tm = E (pickup timer), vy = F (sparkle timer), inv flag 1 = already
- * in the records (drawn half transparent). The collected set goes to SV.card_bits at act clear (save.c). */
-static const int CARD_ID0[4] = { 1, 5, 7, 8 };
-static uint16_t cards_taken_act;                               /* bits taken this act (written to SV at act clear) */
-static int act_index(void) { return G.lvdir[0] == 'd' && G.lvdir[1] == 'v' ? G.lvdir[2] - '1' : -1; }
+/* ---- cards (ObjectCodec_430, events 2569-2578). Each act numbers its cards from its first id (level data card_first:
+ * DV1 1, DV2 5, DV3 7, DV4 8; AT1 21, AT2 24, AT3 27, AT4 28), last-created placement first; o->dir = card ID, tm = E
+ * (pickup timer), vy = F (sparkle timer), inv flag 1 = already in the records (drawn half transparent). The ids taken
+ * this act go to the save's card set (records x20, ids 1..100) at the act clear. */
+static uint8_t cards_taken_act[(SAVE_CARDS + 7) / 8];          /* ids taken this act (written to SV at act clear) */
 void cards_spawn_all(void) {
-    int a = act_index(), id;
-    cards_taken_act = 0;
-    if (a < 0 || a > 3) return;
-    id = CARD_ID0[a];
+    int id = level_cur()->card_first;
+    memset(cards_taken_act, 0, sizeof cards_taken_act);
+    if (id <= 0) return;
     for (int i = G.nobjs - 1; i >= 0; i--) {                   /* last created first */
         obj_t *o = &G.o[i];
         if (!o->alive || o->type != OT_CARD) continue;
@@ -176,8 +174,7 @@ void cards_spawn_all(void) {
         int an = ens_anim("card"); if (an >= 0) anim_set(&o->an, &G.ens, an);
     }
 }
-static int card_bit(int id) { return id - 1; }                 /* card IDs 1..10 -> bits 0..9 of the DV set */
-int card_recorded(int id) { int b = card_bit(id); return b >= 0 && b < 16 && (SV.card_bits[0] >> b & 1); }
+int card_recorded(int id) { return save_card_has(id); }
 static void card_sparkle(const obj_t *o) {
     int r1 = cross_rand_raw(32768), r2 = cross_rand_raw(32768), r3 = cross_rand_raw(32768), r4 = cross_rand_raw(32768);
     obj_effect(o->x + ((r1 >> 11) & 15) - ((r2 >> 11) & 15), o->y + ((r3 >> 11) & 15) - ((r4 >> 11) & 15), "ringsparkle");
@@ -193,7 +190,7 @@ void card_update(obj_t *o, player_t *p) {
         if (fabsf(o->x - px) <= 19 && o->y >= py - 31 && o->y <= py + 19) {
             for (int k = 0; k < 3; k++) card_sparkle(o);
             o->tm = 1; snd_play_orig(32, 220, 128);
-            int b = card_bit(o->dir); if (b >= 0 && b < 16) cards_taken_act |= (uint16_t)(1u << b);
+            if (o->dir >= 1 && o->dir <= SAVE_CARDS) cards_taken_act[(o->dir - 1) >> 3] |= (uint8_t)(1 << ((o->dir - 1) & 7));
         }
     }
     if (o->tm > 0) {                                                                         /* 2572 */
@@ -206,12 +203,12 @@ void card_update(obj_t *o, player_t *p) {
 }
 /* act clear: merge this act's cards into the save (one VMU write per act, never mid-stage) */
 int cards_commit(void) {
-    uint16_t before = SV.card_bits[0];
-    SV.card_bits[0] |= cards_taken_act;
-    cards_taken_act = 0;
-    return SV.card_bits[0] != before;
+    int changed = 0;
+    for (int id = 1; id <= SAVE_CARDS; id++)
+        if ((cards_taken_act[(id - 1) >> 3] >> ((id - 1) & 7) & 1) && !save_card_has(id)) { save_card_set(id); changed = 1; }
+    memset(cards_taken_act, 0, sizeof cards_taken_act);
+    return changed;
 }
-int cards_taken_now(void) { int n = 0; for (unsigned v = cards_taken_act | SV.card_bits[0]; v; v &= v - 1) n++; return n; }
 
 /* ======================================================================== DV3 (spec_dv3_gimmicks.md) */
 static obj_t *first_type(int t) { for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == t) return &G.o[i]; return NULL; }

@@ -81,11 +81,11 @@ with tempfile.TemporaryDirectory() as d:
     r, m, sids, p = run('40 42 S\n200 201 U\n230 231 J\n280 281 D\n290 291 D\n300 301 L\n330 331 D\n360 361 J\n', 420, {'FP_SAVE': sv})
     data = open(sv, 'rb').read() if os.path.exists(sv) else b''
     check('options_saved', len(data) > 8 and data[:3] == b'FPS' and data[5] == 90, 'len %d music %s' % (len(data), data[5] if len(data) > 5 else None))
-    check('save_payload_small', 0 < len(data) <= 1024, '%d bytes' % len(data))
+    check('save_payload_small', 0 < len(data) <= 1536, '%d bytes' % len(data))   # v3: 15 stages x 8 files + records (6 VMU blocks with the icon)
     # reload: the next boot reads the saved volume back (the options screen shows 90)
     r2, m2, s2, p2 = run('', 5, {'FP_SAVE': sv})
     check('save_reload_ok', p2.returncode == 0)
-    check('save_v2_letterbox_default_on', len(data) > 8 and data[3] == 2 and 'letterbox 1' in p2.stdout, 'ver %s' % (data[3] if len(data) > 3 else None))
+    check('save_v3_letterbox_default_on', len(data) > 8 and data[3] == 3 and 'letterbox 1' in p2.stdout, 'ver %s' % (data[3] if len(data) > 3 else None))
     # SCREEN SIZE: right toggles 16:9 letterbox off at once; OKAY saves it; the next boot applies it
     r, m, sids, p = run('40 42 S\n200 201 U\n230 231 J\n280 281 D\n300 301 R\n330 331 D\n340 341 D\n360 361 J\n', 420, {'FP_SAVE': sv})
     check('letterbox_toggle_applies', 'letterbox 0' in p.stdout and (301, 64) in sids or 'letterbox 0' in p.stdout, str(sids[-4:]))
@@ -108,10 +108,10 @@ with tempfile.TemporaryDirectory() as d:
     sv1 = os.path.join(d, 'v1.bin'); open(sv1, 'wb').write(v1)
     r2, m2, s2, p2 = run('', 5, {'FP_SAVE': sv1})
     check('save_v1_loads_letterbox_default', 'letterbox 1' in p2.stdout, p2.stdout[-200:])
-    # v1 file + options OKAY: rewritten as v2 with the v1 music volume (70) kept
+    # v1 file + options OKAY: rewritten as v3 with the v1 music volume (70) kept
     r, m, sids, p = run('40 42 S\n200 201 U\n230 231 J\n280 281 U\n300 301 J\n', 380, {'FP_SAVE': sv1})
     data = open(sv1, 'rb').read()
-    check('save_v1_upgraded_to_v2', data[3] == 2 and data[5] == 70 and data[4 + 5] == 1, 'ver %d music %d file0 used %d' % (data[3], data[5], data[9]))
+    check('save_v1_upgraded_to_v3', data[3] == 3 and data[5] == 70 and data[4 + 5] == 1, 'ver %d music %d file0 used %d' % (data[3], data[5], data[9]))
 
 # pause (DV1 direct): open with start after the card, cursor clamps at QUIT, start closes; restart/quit wipe
 r, m, sids, p = run('200 201 S\n210 211 D\n220 221 D\n230 231 D\n240 241 S\n', 260, {'FP_LEVEL': 'dv1'})

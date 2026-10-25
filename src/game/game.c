@@ -55,8 +55,6 @@ const char *level_music(const char *dir) {   /* level data (levels.c): loop_play
     const level_def_t *d = level_def(dir);
     return d->music_cp && G.at_g4 >= 10 ? d->music_cp : d->music;
 }
-/* the stage's icon frame E on the Time Attack list = its record row (RE spec_stageselect: 0 Aqua Tunnel, 1 Dragon Valley) */
-int stage_rec_index(const char *dir) { return level_def(dir)->stage; }
 int act_of(const char *dir) { return level_def(dir)->act; }
 
 static void bank_free(bank_t *b) { free(b->act); free(b->frames); free(b->anims); free(b->seq); free(b->mbits); free(b->moff); memset(b, 0, sizeof *b); }
@@ -334,17 +332,33 @@ int game_init(void) {
         G.mode = MODE_PLAY; int r = game_load_level(plat_start_level()); G.card_t = CARD_DONE;
 #ifdef FP_HOST_ENV
         if (getenv("FP_CARD")) G.card_t = 0;
+        G.file_slot = getenv("FP_FILE") ? atoi(getenv("FP_FILE")) : -1; G.file_new = getenv("FP_FILE_NEW") != NULL;   /* host save tests: story file */
+        G.file_mode = 1; G.time_attack = getenv("FP_TA") != NULL;                                                  /* host save tests: Time Attack run */
 #endif
         return r;
     }
     return fe_enter();
 }
 
+/* the stage end's save writes (one place for every stage; RE 907 / 908 / 954 / 955, see save.c) */
+void game_save_stage_end(uint32_t time_ms) {
+    int story = !G.time_attack;
+    if (story && G.file_slot >= 0 && G.file_slot < SAVE_FILES && G.file_new) {   /* a new game replaces the slot's old file here */
+        memset(&SV.file[G.file_slot], 0, sizeof SV.file[G.file_slot]); SV.file[G.file_slot].last_stage = 0xff; G.file_new = 0;
+    }
+    save_stage_end(level_cur()->stage, G.character, time_ms, G.stage_crystals, G.stage_deaths, story, G.file_slot);
+    if (story && G.file_slot >= 0 && G.file_slot < SAVE_FILES) {          /* 955: carried into the next stage */
+        save_file_t *f = &SV.file[G.file_slot];
+        f->mode = (uint8_t)G.file_mode; f->lives = (uint8_t)(G.p.lives > 255 ? 255 : G.p.lives); f->shield = (uint8_t)G.p.shield;
+        f->counter = (uint16_t)G.p.crystals;
+    }
+}
+
 /* from the front end: character/stage chosen */
 void game_start_adventure(const char *dir, int time_attack) {
     G.time_attack = time_attack; G.at_g4 = 1; G.at_dir[0] = 0;
     G.p.energy_init = 0;                       /* fresh run: lives/crystals reset by player_reset */
-    G.stage_crystals = 0; G.keystones = 0;
+    G.stage_crystals = 0; G.keystones = 0; G.stage_deaths = 0;
     G.mode = MODE_PLAY;
     if (game_load_level(dir) < 0) { fe_enter(); return; }
 }
@@ -487,10 +501,7 @@ static void next_act(void) {
     const char *nx = level_next(d);
     if (!nx) {
         G.mode = MODE_RESULTS; G.res_t = 0; G.res_time = G.frame; music_play("bgm/m_clear.adp");
-        if (G.time_attack) {                          /* Time Attack record (stage list order: 0 Shang Mu Academy, 1 Dragon Valley) */
-            save_rec_t *r = &SV.rec[stage_rec_index(G.lvdir)][chr_slot(G.character)];
-            if (!r->time || (uint32_t)G.frame < r->time) { r->time = (uint32_t)G.frame; r->crystals = (uint16_t)(CRYSTALS_PER_LIFE - G.p.crystals); save_store(); }
-        }
+        game_save_stage_end((uint32_t)((uint64_t)G.frame * 1000 / FPS)); save_store();   /* a last act without a results sequence */
         return;
     }
     snprintf(d, sizeof d, "%s", nx);
@@ -623,6 +634,7 @@ void game_update(const input_t *in) {
         int lives = G.p.lives - 1, crystals = G.act_crystals, frame = G.frame, ks = G.act_keystones, sc = G.act_stage_crystals;
         if (lives < 1) { music_stop(); snd_stop_all(); fe_enter_from_stage(G.time_attack); return; }   /* game over (card not ported) */
         music_stop(); snd_stop_all();
+        G.stage_deaths++;                                                   /* SaveData x3 y3 (RE 1966 / 1985) */
         { char d[8]; snprintf(d, sizeof d, "%s", G.lvdir); if (game_load_level(d) < 0) { fe_enter(); return; } }
         G.p.lives = lives; G.p.crystals = crystals; G.frame = frame; G.act_lives = lives; G.keystones = ks; G.stage_crystals = sc;
         G.card_t = CARD_DONE;

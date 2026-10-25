@@ -99,7 +99,7 @@ int fe_enter(void) {
 static void chsel_enter(void);
 static void stsel_enter(void);
 /* a new file: written when the player completes a stage (the original's file<n>.sav exists once its play time > 0) */
-static void fe_new_file(int classic) { G.file_slot = hub_selected_file(); G.file_mode = classic; }
+static void fe_new_file(int classic) { G.file_slot = hub_selected_file(); G.file_mode = classic; G.file_new = 1; }   /* the slot is replaced at the first stage end */
 /* pause QUIT (RE 4305 -> frame 7 dispatcher): RV Time Attack -> stage select (frame 5); otherwise the title
  * menu (the dispatcher's other routes are not traced; INFERRED) */
 int fe_enter_from_stage(int time_attack) {
@@ -459,7 +459,7 @@ void fe_update(const input_t *in) {
             fe_mode = 2; fe_new_file(0); G.character = CHR_LILAC; fe_unload(); game_start_adventure(level_route_start(CHR_LILAC), 0);
         }
         if (ex == HUB_EXIT_CONTINUE) {        /* original: frame 8 (stage from the save); the port has Dragon Valley only */
-            fe_mode = SV.file[hub_selected_file()].mode ? 1 : 2; G.file_slot = hub_selected_file();
+            fe_mode = SV.file[hub_selected_file()].mode ? 1 : 2; G.file_slot = hub_selected_file(); G.file_new = 0; G.file_mode = SV.file[G.file_slot].mode;
             G.character = SV.file[hub_selected_file()].character == CHR_CAROL_BIKE ? CHR_CAROL : SV.file[hub_selected_file()].character;
             fe_unload(); game_start_adventure(level_route_start(G.character), 0);   /* the route's first stage (RE 799; the saved stage is not used yet) */
         }

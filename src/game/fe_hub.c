@@ -412,11 +412,11 @@ void hub_draw(void) {
         const save_file_t *f = &SV.file[H.slot];
         for (int i = 0; i < 11; i++) if (finfo[i]) finfo[i]->vis = 1;
         if (finfo[3]) ui_obj_select(S, finfo[3], 0, f->character);
-        if (finfo[2]) ui_obj_frame(finfo[2], f->stage);
+        if (finfo[2]) ui_obj_frame(finfo[2], f->last_stage < SAVE_STAGES ? f->last_stage : 0);   /* FileStageIcon = y5 (last stage s) */
         if (finfo[0]) ui_obj_frame(finfo[0], f->mode);
         for (int i = 0; i < 5; i++) if (finfo[i]) ui_draw_obj(S, finfo[i], cx, cy, 0xffffffff);
-        uint32_t ms = f->time;
-        counter_br(finfo[5], f->lives, cx, cy, 1); counter_br(finfo[7], f->deaths, cx, cy, 1); counter_br(finfo[8], f->crystals, cx, cy, 1);
+        uint32_t ms = save_file_time(f);                                                   /* totals = sums of the stage blocks (RE 954) */
+        counter_br(finfo[5], f->lives, cx, cy, 1); counter_br(finfo[7], save_file_deaths(f), cx, cy, 1); counter_br(finfo[8], save_file_crystals(f), cx, cy, 1);
         counter_br(finfo[6], (ms / 10) % 100, cx, cy, 2); counter_br(finfo[9], (ms / 1000) % 60, cx, cy, 2); counter_br(finfo[10], ms / 60000, cx, cy, 2);
     } else if (H.file || H.sup) {
         int k = -1;
