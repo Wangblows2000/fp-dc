@@ -255,9 +255,9 @@ static const objdef_t DEFS[] = {
     { OT_FLAME,         0,                                     NULL         }, /* - */
     { OT_FSSHELL,       0,                                     NULL         }, /* - */
 };
-static objdef_t BY_TYPE[256];
+static objdef_t BY_TYPE[MAX_OT];
 static int built;
 const objdef_t *objdef(int type) {
     if (!built) { for (unsigned i = 0; i < sizeof DEFS / sizeof DEFS[0]; i++) BY_TYPE[DEFS[i].type] = DEFS[i]; built = 1; }
-    return (unsigned)type < 256 ? &BY_TYPE[type] : &BY_TYPE[0];
+    return (unsigned)type < MAX_OT ? &BY_TYPE[type] : &BY_TYPE[0];
 }

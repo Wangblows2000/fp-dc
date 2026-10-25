@@ -193,6 +193,7 @@ enum { COL_NONE, COL_SOLID, COL_PLATFORM, COL_LADDER };
 typedef struct { int32_t x, y; uint16_t u, v, w, h; uint8_t atlas, layer, col, pad; } piece_t;
 typedef struct { uint16_t type, anim; int32_t x, y; } lvobj_t;
 
+#define MAX_OT 512                 /* engine types are < MAX_OT (object-presence bits, registry, groups) */
 /* engine object types (tools/import_frame.py ENGINE_TYPES) */
 enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_MON_INVINC = 4, OT_MON_RINGS = 18, OT_MON_1UP = 19, OT_PETAL = 6, OT_SPIKES = 7,
        OT_SPRING = 8, OT_SIGN = 9, OT_TURRETUS = 10, OT_ROCK = 11, OT_MONITOR = 12,
