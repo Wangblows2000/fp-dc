@@ -6,9 +6,9 @@
 #include <stdlib.h>
 #include "../fp.h"
 
-static uint8_t have_type[32];   /* bit per engine type placed on the map (objects_spawn) */
-int objects_have(int type) { return (unsigned)type < 256 && (have_type[type >> 3] >> (type & 7) & 1); }
-int objects_have_from(int type) { for (int t = type; t < 256; t++) if (have_type[t >> 3] >> (t & 7) & 1) return 1; return 0; }
+static uint8_t have_type[MAX_OT / 8];   /* bit per engine type placed on the map (objects_spawn) */
+int objects_have(int type) { return (unsigned)type < MAX_OT && (have_type[type >> 3] >> (type & 7) & 1); }
+int objects_have_from(int type) { for (int t = type; t < MAX_OT; t++) if (have_type[t >> 3] >> (t & 7) & 1) return 1; return 0; }
 
 static int A_EXPLODE = -1;
 /* recovered sequences (tools/import_frame.py) */
@@ -85,7 +85,7 @@ void objects_spawn(void) {
     }
     memset(have_type, 0, sizeof have_type);                 /* types placed on the map (objects_have; off-map templates do not count) */
     for (int i = 0; i < G.lvl.nobj; i++) { const lvobj_t *lo = &G.lvl.objs[i];
-        if (lo->type < 256 && lo->x >= 0 && lo->y >= 0) have_type[lo->type >> 3] |= (uint8_t)(1 << (lo->type & 7)); }
+        if (lo->type < MAX_OT && lo->x >= 0 && lo->y >= 0) have_type[lo->type >> 3] |= (uint8_t)(1 << (lo->type & 7)); }
     cards_spawn_all();
     pads_spawn();                                 /* jump pads: index, angle, chain end, lit (spec_carol_bike C2) */
     layers_refresh(&G.p);
@@ -865,11 +865,11 @@ int obj_in_group(int type, int grp) {   /* the registry's qualifier flags (src/g
  * (first hit) is unchanged. Rebuilt when a slot is allocated or retyped (obj_gen) or the slot count changes. */
 #define NGRP 4
 static short cand[NGRP + 1][MAX_OBJS]; static int ncand[NGRP + 1]; static unsigned cand_gen; static int cand_nobjs = -1;
-static uint8_t grp_bits[256]; static int grp_bits_ok;   /* bit g: type is in group g; bit NGRP: in any group */
+static uint8_t grp_bits[MAX_OT]; static int grp_bits_ok;   /* bit g: type is in group g; bit NGRP: in any group */
 static int in_any_group(int t) { return obj_in_group(t, OBJGRP_SOLID) || obj_in_group(t, OBJGRP_OBSTACLE) || obj_in_group(t, OBJGRP_NOEDGE); }
 static void cand_refresh(void) {
     if (!grp_bits_ok) {
-        for (int t = 0; t < 256; t++) {
+        for (int t = 0; t < MAX_OT; t++) {
             for (int g = 0; g < NGRP; g++) if (obj_in_group(t, g)) grp_bits[t] |= 1 << g;
             if (in_any_group(t)) grp_bits[t] |= 1 << NGRP;
         }
@@ -878,7 +878,7 @@ static void cand_refresh(void) {
     if (cand_gen == obj_gen && cand_nobjs == G.nobjs) return;
     for (int g = 0; g <= NGRP; g++) ncand[g] = 0;
     for (int i = 0; i < G.nobjs; i++) {
-        unsigned t = (unsigned)G.o[i].type, b = t < 256 ? grp_bits[t] : 0;
+        unsigned t = (unsigned)G.o[i].type, b = t < MAX_OT ? grp_bits[t] : 0;
         for (int g = 0; g <= NGRP; g++) if (b & (1 << g)) cand[g][ncand[g]++] = (short)i;
     }
     cand_gen = obj_gen; cand_nobjs = G.nobjs;
@@ -900,7 +900,7 @@ static int bank_extent(const bank_t *b) {
 static int sensor_hit_any(int grp, int type, int ox, int oy, const signed char *x0, const signed char *x1, int h) {
     cand_refresh();
     /* group query: that group's list; type query: the any-group list if the type is in one, else every slot */
-    int L = type < 0 ? (grp >= 0 && grp < NGRP ? grp : -1) : ((unsigned)type < 256 && (grp_bits[type] >> NGRP & 1) ? NGRP : -1);
+    int L = type < 0 ? (grp >= 0 && grp < NGRP ? grp : -1) : ((unsigned)type < MAX_OT && (grp_bits[type] >> NGRP & 1) ? NGRP : -1);
 #ifdef FP_PERF_BASELINE
     L = -1;                                        /* A/B measurement build: the old full scan */
 #endif
