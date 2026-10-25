@@ -330,6 +330,12 @@ class Tracer(gdb.Breakpoint):
                     self.xlf.flush()
         except Exception:
             import traceback; open('/tmp/xl_err.txt', 'a').write(traceback.format_exc())
+        if os.environ.get('GBYTES'):   # GBYTES="0x227ba,0x227bb": group-switch bytes at Frames + off, one line per frame (<out>.grp)
+            if FRAMES[0] is None: FRAMES[0] = find_frames(self.objs['mv'], self.objs.get('others', 0))
+            if FRAMES[0]:
+                if not hasattr(self, 'grpf'): self.grpf = open(self.outpath[:-4] + '.grp', 'w')
+                self.grpf.write('%d %s\n' % (self.f, ' '.join('%s=%d' % (g_, bytes(inf.read_memory(FRAMES[0] + int(g_, 0), 1))[0]) for g_ in os.environ['GBYTES'].split(','))))
+                self.grpf.flush()
         for nm_, key_, val_ in SETV.get(self.f, []):
             if nm_ in self.objs or nm_ in getattr(self, 'xlobj', {}):
                 o_ = self.objs[nm_] if nm_ in self.objs else self.xlobj[nm_]
