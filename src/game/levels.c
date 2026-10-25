@@ -131,8 +131,8 @@ static const level_def_t LEVELS[] = {
     { FN("fn1", 29, 1, "bgm/m_stage3.adp"), .card_first = 31 },
     { FN("fn2", 30, 2, "bgm/m_stage3.adp"), .card_first = 33 },
     { FN("fn3", 31, 3, "bgm/m_stage3.adp"), .card_first = 36 },
-    { FN("fn4", 32, 4, "bgm/m_stage3b.adp"), .card_first = 37 },
-    { FN("fn5", 33, 5, "bgm/m_stage3b.adp"), .card_first = 39 },
+    { FN("fn4", 32, 4, "bgm/m_stage3b.adp"), .card_first = 37, .wplate_cyclone = 1 },   /* 5677: the escalator plate takes M 26 too (fn_gimb.c) */
+    { FN("fn5", 33, 5, "bgm/m_stage3b.adp"), .card_first = 39, .wplate_cyclone = 1, .fnb_disco = 1 },   /* + the disco light 8298-8303 */
     { FN("fn6", 34, 6, "bgm/m_boss.adp"), .card_first = 40 },
 };
 static const level_def_t DEFAULT = { .dir = "", .frame = -1, .stage = -1, .act = 1, .nacts = 1, .music = "bgm/m_stage1.adp" };

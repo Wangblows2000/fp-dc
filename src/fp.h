@@ -291,6 +291,24 @@ enum { OT_RM_PILLAR = 300 /* GimmickMovingPillar1/2/3_1395-1397 (sub 0-2) */, OT
        OT_RM_LSBASE = 331 /* LightStoneBase_1562 / Base2_1564 (sub 0-1) */, OT_RM_LSTOP = 332 /* LightStoneTop_1563 / Top2_1565 (sub 0-1) */,
        OT_RM_LSDOOR = 333 /* LightStoneDoor1/2_1585-1586 (sub 0-1) */, OT_RM_SCEIL = 334 /* SpikeCeiling_1557 */,
        OT_RM_CRUSHBOX = 335 /* LevelCrushDeath_1627 */, OT_RM_CHAIR = 336 /* ObjectChair_1596 */ };
+/* Fortune Night gimmicks, acts 4-5 (fn_gimb.c, build/re/spec_fn_gimmicks_b.md; tools/import_frame.py FNB_TYPES_ID: families share a
+ * type and carry their member index in bits 0-7 of the lvobj anim field, the instance layer in bits 8-15) */
+enum { OT_FNB_FIRST = 680, OT_FN_ESCFRONT = 680 /* EscalatorFront1_1906 / Front2_1914 (sub 0-1) */, OT_FN_ESCSTEP = 681 /* EscalatorRight_1908 / Left_1915 */,
+       OT_FN_FOUNTAIN = 682 /* FountainFront_1918 / Front2_1919 */, OT_FN_WATERPLAT = 683 /* LevelWaterPlatform_1921 */,
+       OT_FN_ROPE = 684 /* GimmickClothesline_1987 */, OT_FN_TBAR = 686 /* GimmickHangingMovingBar_1951 */,
+       OT_FN_TSENS = 687 /* GimmickHangingMovingSensor_1950 (Q23) */, OT_FN_TWHEEL = 688 /* GimmickHangingMovingWheel_1952 */,
+       OT_FN_TSTOP = 689 /* GimmickHangingMovingStopper_1949 */, OT_FN_LIFT = 690 /* LevelMovingPlatform1_1957 (Q13) */,
+       OT_FN_STILT = 691 /* PlatformStilt1-4_1958-1961 (sub 0-3) */, OT_FN_MPLAT2 = 692 /* LevelMovingPlatform2_1976 (Q12 Q13) */,
+       OT_FN_TSPRING = 693 /* TurningSpring_1944 */, OT_FN_BALLOON = 694 /* GimmickAirBalloon_1991 */,
+       OT_FN_IBALLOON = 695 /* GimmickHangingIdleBalloon_1992 (Q23) */, OT_FN_KEY = 696 /* Keyboard_1984 */, OT_FN_DISCOLIGHT = 697 /* DiscoLight_1932 */,
+       OT_FN_DISCOBALL = 698 /* ObjectDiscoBall_1930 / Ball2_1933 */, OT_FN_PARASOL = 699 /* ObjectParasol_1940 */,
+       OT_FN_RESTROOM = 700 /* RestroomMen_1973 / Women_1974 (Q22) */, OT_FN_ARROW = 701 /* ArrowLight_1971 */, OT_FN_CAROUSEL = 702 /* Carousel_2004 */,
+       OT_FN_CARPLAT = 703 /* CarouselPlatform_2005 */, OT_FN_POD = 704 /* GimmickElevator_2035 (pod body, Q7) */,
+       OT_FN_PODDOOR = 705 /* GimmickElevatorDoor_2034 (pod shell) */, OT_FN_PODCASE = 706 /* GimmickPolePodCaseInner_2001 */,
+       OT_FN_LOOP0B = 707 /* Layer0Loop4/5/6_1977/1978/1983 (Q7 Q10) */,
+       OT_FN_NOTE = 708 /* runtime: EffectsHeart_444 note (8209) */, OT_FN_MICON = 709 /* runtime: MonitorIcon_363 reward (8214 / 8215) */,
+       OT_FNB_LAST = 709 };
+#define OT_FN_ROPEEND 584   /* GimmickHangingLongSensor2_1703: the acts 1-3 rope stop type (OT_FN_CLSTOP), shared by both clothesline classes */
 /* Relic Maze act 3 Claw sequence (rm_claw.c) */
 enum { OT_SHRINE3 = 400, OT_CLAW = 401, OT_CLAW_TALONS = 402, OT_CLAW_LINK = 403, OT_CLAW_JOINT = 404, OT_CLAW_HITBOX = 405,
        OT_CLAW_BASE = 406, OT_CLAW_BEAM = 407 /* runtime */, OT_CAR_ENGINE = 408, OT_CAR_WHEEL = 409, OT_MERC = 410, OT_PBLOCK3 = 411,
@@ -443,7 +461,7 @@ typedef struct {
     double av[8];                /* class alterables (boss scripts) */
 } __attribute__((aligned(32))) obj_t;
 
-#define MAX_OBJS 640
+#define MAX_OBJS 1024              /* Fortune Night 4 places 748 objects (371 crystals) */
 
 typedef struct {
     level_t lvl;
@@ -572,7 +590,8 @@ enum { ST_NORMAL, ST_ATTACK, ST_CYCLONE, ST_CHARGE, ST_BOOST, ST_HURT, ST_DEAD,
        ST_SHAKE,       /* M12: shake off water after an Aqua Tunnel water jet (1885-1887, 4141/4142) */
        ST_HELD,        /* M43: held in the AT2 Chomper mouth (4435; OTHERS.Y 8 ball pose, L = 1) */
        ST_CART,        /* M90: Milla pumping the RM3 hand-car (6131-6166, src/game/relic_gimb.c) */
-       ST_SIT };       /* M39: sitting on an RM5 chair (6585, 3068-3072, src/game/relic_gimb.c) */
+       ST_SIT,         /* M39: sitting on an RM5 chair (6585, 3068-3072, src/game/relic_gimb.c); FN restrooms (fn_gimb.c) */
+       ST_DANCE };     /* M50: the FN5 disco dance (8306-8310, src/game/fn_gimb.c) */
 /* src/game/combat.c (build/re/spec_combat.md) */
 void combat_frame(player_t *p);
 void combat_draw_shields(int behind);
@@ -635,6 +654,10 @@ int    rmboss_obj(obj_t *o, player_t *p);
 void   relic_gimb_spawn(void), relic_gimb_frame(player_t *p);
 int    relic_gimb_player(player_t *p, const input_t *in);
 int    relic_gimb_is_gate_pillar(const obj_t *o);         /* RM5 Bone Golem gate pillars (no travel of their own; moved by the boss) */   /* ST_CART / ST_SIT: 1 = handled (the movement block is off this frame) */
+/* src/game/fn_gimb.c (Fortune Night acts 4-5 gimmicks, spec_fn_gimmicks_b.md): spawn, the pre pass (objects_platforms: balloons
+ * 8104-8113), the post pass (game.c after the Relic Maze gimmicks), the M39 restroom / M50 dance groups and two draw hooks */
+void   fn_gimb_spawn(void), fn_gimb_pre(player_t *p), fn_gimb_frame(player_t *p), fn_gimb_draw_back(void), fn_gimb_draw_front(void);
+int    fn_gimb_player(player_t *p, const input_t *in);   /* ST_SIT (restroom) / ST_DANCE: 1 = handled */
 void   player_pose(player_t *p, int idx, int dir, int speed);   /* player.c: every skin forced to animation index idx (Milla: direction dir) */
 /* src/game/rm_claw.c (RM3 Claw sequence, spec_rm_claw.md): hooks next to the relic_* ones */
 void   rm_claw_spawn(void), rm_claw_frame(player_t *p);
@@ -724,6 +747,7 @@ typedef struct {
     const warp_t *warps; int nwarps;       /* RM2 5925: in the zone while the axle turns -> the flag, gates open */
     int nobike;                                      /* RM3 6198: Carol (MV.A = 3) enters without the bike (g1 = 2) */
     int door_skip_ach;                               /* session 16: achievement for entering the zone right of the SwitchDoor while it is closed (DV2 5098 / 5099: 18) */
+    int fnb_disco;                                   /* FN5 8298-8303: disco balls near the view raise the DiscoLight (A4 has no writer: no light, no dance) */
     int monitor_hop;                                 /* 2605: a monitor hops when bumped from below (D-051: AT only, DV keeps its traced behaviour) */                     /* switches.c: pressure-plate rule (0 DV 4971-4973, 1 AT1 4093-4096), pass after the movement */
 } level_def_t;
 const level_def_t *level_def(const char *dir), *level_cur(void);

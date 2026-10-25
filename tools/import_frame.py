@@ -410,6 +410,60 @@ ENGINE_TYPES.update(CLAW_TYPES); ENGINE_TYPES_ID.update(CLAW_TYPES_ID); ENS += C
 for _k, _v in CLAW_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v
 
 for _k, _v in MT_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # RM5 end (rm_mantalith.c)
+
+# ---- FN_GIMB: Fortune Night gimmicks, acts 4-5 (build/re/spec_fn_gimmicks_b.md; src/game/fn_gimb.c). Types 680-707 mirror
+# src/fp.h (OT_FNB_FIRST..OT_FNB_LAST). Families share a type; the lvobj anim field carries the member index (FNB_SUB, bits
+# 0-7) and the instance layer (bits 8-15, write_lv2). Reused by class + handle: SwitchWallPlate_1149 = RM's plate type 315
+# (relic_gimb.c presses it, the FN rows add its sprite), GimmickHangingLongSensor2_1703 = the acts 1-3 rope stop (584, the
+# same type in both FN blocks: clothesline 1987 and clothesline2 1702 share the stops). Every row is limited to the A4 / A5
+# frames (json 33 / 34): several classes are placed elsewhere under other handles (RM bars, DV moving platform 938, RM elevator).
+FNB_TYPES_ID = {
+    ('escalatorfront1', 1906): 680, ('escalatorfront2', 1914): 680, ('escalatorright', 1908): 681, ('escalatorleft', 1915): 681,
+    ('fountainfront', 1918): 682, ('fountainfront2', 1919): 682, ('levelwaterplatform', 1921): 683,
+    ('gimmickclothesline', 1987): 684, ('gimmickhanginglongsensor2', 1703): 584,
+    ('gimmickhangingmovingbar', 1951): 686, ('gimmickhangingmovingsensor', 1950): 687, ('gimmickhangingmovingwheel', 1952): 688,
+    ('gimmickhangingmovingstopper', 1949): 689, ('levelmovingplatform1', 1957): 690,
+    ('platformstilt1', 1958): 691, ('platformstilt2', 1959): 691, ('platformstilt3', 1960): 691, ('platformstilt4', 1961): 691,
+    ('levelmovingplatform2', 1976): 692, ('turningspring', 1944): 693, ('gimmickairballoon', 1991): 694,
+    ('gimmickhangingidleballoon', 1992): 695, ('keyboard', 1984): 696, ('discolight', 1932): 697,
+    ('objectdiscoball', 1930): 698, ('objectdiscoball2', 1933): 698, ('objectparasol', 1940): 699,
+    ('restroommen', 1973): 700, ('restroomwomen', 1974): 700, ('arrowlight', 1971): 701, ('carousel', 2004): 702,
+    ('carouselplatform', 2005): 703, ('gimmickelevator', 2035): 704, ('gimmickelevatordoor', 2034): 705,
+    ('gimmickpolepodcaseinner', 2001): 706, ('layer0loop4', 1977): 707, ('layer0loop5', 1978): 707, ('layer0loop6', 1983): 707}
+FNB_SUB = {'escalatorfront2_1914': 1, 'escalatorleft_1915': 1, 'fountainfront2_1919': 1, 'platformstilt2_1959': 1, 'platformstilt3_1960': 2,
+           'platformstilt4_1961': 3, 'objectdiscoball2_1933': 1, 'restroomwomen_1974': 1, 'layer0loop5_1978': 1, 'layer0loop6_1983': 2}
+FNB_ENS = [(c, 0, '0', nm) for c, nm in (
+    ('escalatorfront1_1906', 'escf0'), ('escalatorfront2_1914', 'escf1'), ('escalatorright_1908', 'escs0'), ('escalatorleft_1915', 'escs1'),
+    ('fountainfront_1918', 'fount0'), ('fountainfront2_1919', 'fount1'), ('levelwaterplatform_1921', 'wplat'), ('gimmickclothesline_1987', 'rope'),
+    ('gimmickhanginglongsensor2_1703', 'ropeend'), ('gimmickhangingmovingbar_1951', 'tbar'), ('gimmickhangingmovingsensor_1950', 'tsens'),
+    ('gimmickhangingmovingwheel_1952', 'twheel'), ('gimmickhangingmovingstopper_1949', 'tstop'), ('levelmovingplatform1_1957', 'lift'),
+    ('platformstilt1_1958', 'stilt0'), ('platformstilt2_1959', 'stilt1'), ('platformstilt3_1960', 'stilt2'), ('platformstilt4_1961', 'stilt3'),
+    ('levelmovingplatform2_1976', 'mplat2f'), ('turningspring_1944', 'tspr'), ('gimmickairballoon_1991', 'balloon'),
+    ('gimmickhangingidleballoon_1992', 'iballoon'), ('keyboard_1984', 'key'), ('objectdiscoball_1930', 'dball0'), ('objectdiscoball2_1933', 'dball1'),
+    ('objectparasol_1940', 'parasol'), ('restroommen_1973', 'rroom0'), ('restroomwomen_1974', 'rroom1'), ('arrowlight_1971', 'arrow'),
+    ('carousel_2004', 'carousel'), ('carouselplatform_2005', 'carplat'), ('gimmickelevator_2035', 'pod'), ('gimmickelevatordoor_2034', 'poddoor'),
+    ('layer0loop4_1977', 'fnloop0_0'), ('layer0loop5_1978', 'fnloop0_1'), ('layer0loop6_1983', 'fnloop0_2'))] + \
+    [('escalatorfront1_1906', 0, '16', 'escf0r'), ('escalatorfront2_1914', 0, '16', 'escf1r'), ('gimmickhangingmovingbar_1951', 0, '8', 'tbar_sw'),
+     ('turningspring_1944', 8, '0', 'tspr_w'), ('turningspring_1944', 10, '0', 'tspr_t'), ('turningspring_1944', 11, '0', 'tspr_s'),
+     ('keyboard_1984', 7, '0', 'key_p'), ('objectparasol_1940', 7, '0', 'parasol_b'), ('gimmickpolepodcaseinner_2001', 0, '16', 'podcase'),
+     ('effectsspringbeam_540', 4, '0', 'sbeam0'), ('effectsspringbeam_540', 4, '8', 'sbeam8'), ('effectsspringbeam_540', 4, '24', 'sbeam24'),
+     ('effectsheart_444', 7, '0', 'note')]
+FNB_ENS_WITH = {'effectsspringbeam_540': ('turningspring', 'restroommen'), 'effectsheart_444': ('keyboard',), 'effectswaterhit_756': ('levelwaterplatform',)}
+FNB_ENS_FRAMES = {e[0]: {33, 34} for e in FNB_ENS}
+FNB_ENS_FRAMES['switchwallplate_1149'] = RMB_ENS_FRAMES['switchwallplate_1149'] | {33, 34}   # the RM plate's sprite in A4 / A5 (relic_gimb.c)
+# the poses the A4 / A5 events force on every skin (RE 8138 trolley swing anim 40 dir 7, 8306-8308 dance anim 40 dir 8, 8193 /
+# 8194 restroom anim 40 dir 24): Lilac's, her hair's and Carol's banks get 'a40_d<dir>' rows in these frames only (Milla's bank
+# already holds every direction)
+FNB_POSE_FRAMES, FNB_POSE_DIRS = {33, 34}, {40: ('7', '8', '24')}
+def fnb_pose_rows(entries, n, pre=''):
+    out = []
+    for ai, dirs in (FNB_POSE_DIRS.items() if n in FNB_POSE_FRAMES else ()):
+        for dk in dirs:
+            if ai < len(entries) and entries[ai] and dk in entries[ai]:
+                d = entries[ai][dk]; out.append({'name': '%sa%d_d%s' % (pre, ai, dk), 'frames': d['frames'], 'speed': d['max_speed'], 'loop': d['loop'], 'back_to': d['back_to']})
+    return out
+ENGINE_TYPES_ID.update(FNB_TYPES_ID); ENS += FNB_ENS; ENS_FRAMES.update(FNB_ENS_FRAMES)
+for _k, _v in FNB_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v
 ENS_ONLY_WITH = {'guiweaponslot_426', 'effectswatersplash_379', 'bubblepatch_804', 'mediumbubble_805', 'generalwaterhorizon_377', 'bubblenumbers_405', 'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 # classes whose untrimmed image box matters (spring top edges RV, box-collision platforms/logs, invisible
 # sensors): their images are never cropped. Everything else in the object bank is cropped to its opaque pixels.
@@ -813,6 +867,7 @@ def main():
                                 'loop': dd['loop'], 'back_to': dd['back_to']})
     # Lilac's hair overlay (PlayerSkinSashHair_424, RV hair_cyc_boost probe): same animation id as the skin,
     # its own frames and speeds, same position and angle, drawn behind the skin
+    lb['anims'] += fnb_pose_rows(la, n)   # FN_GIMB poses (A4 / A5 only)
     write_bank2(src, lb, out, report)
     hb = {'name': 'lilachair', 'anims': []}
     ha = an['playerskinsashhair_424']['anims']
@@ -824,6 +879,7 @@ def main():
             dd = ha[ai].get(dkey) or h0
             hb['anims'].append({'name': 'h_' + nm + suf, 'frames': dd['frames'], 'speed': dd['max_speed'],
                                 'loop': dd['loop'], 'back_to': dd['back_to']})
+    hb['anims'] += fnb_pose_rows(ha, n, 'h_')   # FN_GIMB poses (A4 / A5 only)
     write_bank2(src, hb, out, report)
     # Carol (session 10): her skin, tail and bike-riding skin, every animation index the class has, named 'a<index>'
     # ('_l' = direction 16 when it is not a pixel mirror of direction 0). The game loads them only when Carol plays.
@@ -839,7 +895,7 @@ def main():
                                     'loop': dd['loop'], 'back_to': dd['back_to']})
             # extra directions the events select: Wild Kick in the air (2425: direction + 1 -> 1 / 17) and the bored idle
             # (1735: direction + 4 -> 4 / 20), named 'a<index>_d<direction>'
-            for dkey in {21: ('1', '17'), 0: ('4', '20')}.get(ai, ()):
+            for dkey in {21: ('1', '17'), 0: ('4', '20'), **(FNB_POSE_DIRS if n in FNB_POSE_FRAMES else {})}.get(ai, ()):   # + FN_GIMB poses
                 if dkey in entry and not (dkey == '17' and mirrored(entry.get('1', d0), entry[dkey])):
                     dd = entry[dkey]
                     cb['anims'].append({'name': 'a%d_d%s' % (ai, dkey), 'frames': dd['frames'], 'speed': dd['max_speed'],
@@ -1028,6 +1084,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         a = names.index(o['cls'][:15]) if o['cls'][:15] in names else (o.get('par_index', 0xffff) if 20 <= o['type'] < 28 else 0xffff)
         if 139 <= o['type'] <= 143 or o['type'] in (169, 170, 187, 204): a = o.get('layer', 2)   # waterfalls, AT water jets / crushers / slime floor: the instance's layer
         if 300 <= o['type'] < 350: a = RMB_SUB.get(o['cls'], 0)   # Relic Maze acts 3-5 families: the member index (relic_gimb.c)
+        if 680 <= o['type'] < 800: a = FNB_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # FN_GIMB (fn_gimb.c): member index | instance layer << 8
         d += struct.pack('<2H2i', o['type'], a, o['x'], o['y'])
     for t in table: d += t
     d += struct.pack('<%dH' % len(smap), *smap)
