@@ -349,7 +349,9 @@ static void fireballs(player_t *p) {
             else if (firing && !b->an.done) { f->av[4] = 40; f->av[3] = b->dir; }        /* 5707 */
         }
         if ((f->fl & 2) && !in_back) f->fl &= ~2;                                         /* 5709 */
-        if (!in_back && f->av[4] > 0 && obj_overlaps_bg(f)) fb_burst(f);                  /* 5649 / col_33_24 */
+        { int bg = obj_overlaps_bg(f);                                                    /* 5649 / col_33_24: edge-triggered (born inside the ceiling) */
+          if (f->born == G.frame) f->fl = (f->fl & ~4) | (bg ? 4 : 0);
+          else { if (!in_back && f->av[4] > 0 && bg && !(f->fl & 4)) fb_burst(f); f->fl = (f->fl & ~4) | (bg ? 4 : 0); } }
         if (anim_named(f, "fball_burst") && f->an.done) { f->alive = 0; continue; }       /* 5710 */
         if (!anim_named(f, "fball_burst") && csens_hit(p, f)) {
             if (p->shield == 2) { snd_play_orig(101, 220, 128); fb_burst(f); }             /* col_23_24: the fire shield deflects */
