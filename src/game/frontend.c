@@ -1,19 +1,21 @@
 /* Front end built from the ORIGINAL menu frames (tools/import_ui.py) and their decompiled events:
  *   title_3 = frame index 2 ("Press Start", events 307-330, below),
  *   title_4 = index 3 (title menu / file select / mode select / options on one 1440x480 canvas: fe_hub.c),
- *   chsel_7 = index 6 (character select, events 750-810, below), tasel_6 = index 5 (Time Attack stage select).
+ *   chsel_7 = index 6 (character select, events 750-810, below), tasel_6 = index 5 (Time Attack stage select),
+ *   gal_11 = index 10 (gallery, fe_gallery.inc).
  * RE = read from the decompiled events (build/re/fe/spec_*.md, RE_NOTES "Front end"), RV = observed in the
  * running original, INFERRED = neither. Only Lilac and Dragon Valley exist in the port (DECISIONS D-020). */
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include "../fp.h"
 #include "ui.h"
 
-enum { FE_PRESS, FE_HUB, FE_CHSEL, FE_STSEL };
+enum { FE_PRESS, FE_HUB, FE_CHSEL, FE_STSEL, FE_GAL };
 
-static ui_banks_t b_title, b_scr, b_font;         /* b_scr: the character select or the stage select bank */
+static ui_banks_t b_title, b_scr, b_font;         /* b_scr: the character select, the stage select or the gallery bank */
 static ui_scene_t s_press, s_hub, s_scr;
 static int fe_state, fe_t, fe_loaded, fe_lt_t, fe_rt_t, scr_loaded = -1;
 static float cam_x, cam_y;
@@ -68,17 +70,20 @@ static int scr_load(int which) {
     if (scr_loaded == which) return 0;
     if (scr_loaded >= 0) { ui_free(&s_scr); ui_banks_free(&b_scr); }
     scr_loaded = -1;
-    lp_begin(which == 0 ? "chsel" : "tasel");
-    int bad = which == 0 ? (ui_banks_load(&b_scr, "chsel", 1) < 0 || ui_load(&s_scr, "chsel_7", &b_scr) < 0)
-                         : (ui_banks_load(&b_scr, "tasel", 1) < 0 || ui_load(&s_scr, "tasel_6", &b_scr) < 0);
+    static const char *const BK[3] = { "chsel", "tasel", "gal" }, *const SC[3] = { "chsel_7", "tasel_6", "gal_11" };
+    if (which < 0 || which > 2) return -1;
+    lp_begin(BK[which]);
+    int bad = ui_banks_load(&b_scr, BK[which], 1) < 0 || ui_load(&s_scr, SC[which], &b_scr) < 0;
     pack_release(); lp_end();
     if (bad) { plat_log("front end screen %d missing\n", which); return -1; }
     scr_loaded = which;
     return 0;
 }
 
+static void gal_release(void);
 static void fe_unload(void) {
     if (!fe_loaded) return;
+    if (fe_state == FE_GAL) gal_release();
     if (scr_loaded >= 0) { ui_free(&s_scr); ui_banks_free(&b_scr); scr_loaded = -1; }
     ui_free(&s_press); ui_free(&s_hub);
     ui_banks_free(&b_title); ui_banks_free(&b_font);
@@ -320,32 +325,34 @@ static void wipe_draw(void) {
 /* ---- tile fade-in (FadeIn_146 x104: RE 615 runs 4 times per frame and destroys a random remaining tile;
  * a destroyed tile plays its disappearing animation 4 (6 frames) and is removed; RE 750 removes the black
  * cover once a tile reaches frame 2) */
-#define NTILE 104
+#define NTILE 112
 static struct { int state, frame; } tile[NTILE];   /* 0 present, 1 disappearing, 2 gone */
 static int tiles_left, cover_on;
+static int tile_n = 104, tile_cols = 13, tile_x0 = 112;   /* frames 5 / 6: 104 tiles, 13 columns from x 112; gallery: 112, 14, 96 */
 static unsigned fe_seed = 1;
 static int fe_rand(int n) { fe_seed = fe_seed * 0x343fd + 0x269ec3; return (int)((((fe_seed >> 16) & 0x7fff) * (unsigned)n) >> 15); }
-static void tiles_start(void) { memset(tile, 0, sizeof tile); tiles_left = NTILE; cover_on = 1; }
+static void tiles_start_layout(int n, int cols, int x0) { tile_n = n; tile_cols = cols; tile_x0 = x0; memset(tile, 0, sizeof tile); tiles_left = n; cover_on = 1; }
+static void tiles_start(void) { tiles_start_layout(104, 13, 112); }
 static int tiles_step(void) {     /* returns 1 when every tile is gone */
-    for (int i = 0; i < NTILE; i++) if (tile[i].state == 1 && ++tile[i].frame >= 6) { tile[i].state = 2; tiles_left--; }
+    for (int i = 0; i < tile_n; i++) if (tile[i].state == 1 && ++tile[i].frame >= 6) { tile[i].state = 2; tiles_left--; }
     for (int k = 0; k < 4; k++) {
         int n = 0;
-        for (int i = 0; i < NTILE; i++) n += tile[i].state == 0;
+        for (int i = 0; i < tile_n; i++) n += tile[i].state == 0;
         if (!n) break;
         int r = fe_rand(n);
-        for (int i = 0; i < NTILE; i++) if (tile[i].state == 0 && r-- == 0) { tile[i].state = 1; tile[i].frame = 0; break; }
+        for (int i = 0; i < tile_n; i++) if (tile[i].state == 0 && r-- == 0) { tile[i].state = 1; tile[i].frame = 0; break; }
     }
-    for (int i = 0; i < NTILE; i++) if (tile[i].state == 1 && tile[i].frame >= 2) cover_on = 0;
+    for (int i = 0; i < tile_n; i++) if (tile[i].state == 1 && tile[i].frame >= 2) cover_on = 0;
     return tiles_left == 0;
 }
 static void tiles_draw(ui_scene_t *s) {
     ui_obj_t *t = ui_find(s, "fadein", 0);
     if (cover_on) r_rect(0, 0, SCREEN_W, SCREEN_H, 0xff000000);
     if (!t) return;
-    for (int i = 0; i < NTILE; i++) {
+    for (int i = 0; i < tile_n; i++) {
         if (tile[i].state == 2) continue;
-        int cx = i % 13, cy = i / 13;               /* 13 columns x 112..496 (frame), 8 rows */
-        float x = 112 + cx * 32 - cam_x, y = cy * 32 - cam_y;
+        int cx = i % tile_cols, cy = i / tile_cols;  /* 13 columns x 112..496 (frame), 8 rows (gallery: 14 from 96) */
+        float x = tile_x0 + cx * 32 - cam_x, y = cy * 32 - cam_y;
         if (tile[i].state == 0) { r_rect(x, y, 32, 32, 0xff000000); continue; }
         ui_obj_select(s, t, 4, 0); ui_obj_frame(t, tile[i].frame);
         const frame_t *f = anim_frame(&t->an);
@@ -472,6 +479,8 @@ static void chsel_draw(void) {
 
 /* ---- Time Attack stage select (frame index 5 = on_frame_6): see stsel_* below */
 #include "fe_stsel.inc"
+/* ---- Gallery (frame index 10 = on_frame_11): fe_gallery.inc */
+#include "fe_gallery.inc"
 
 void fe_update(const input_t *in) {
     G.frame++; fe_t++;
@@ -481,6 +490,7 @@ void fe_update(const input_t *in) {
     case FE_HUB: {
         int ex = hub_update(in);
         if (ex == HUB_EXIT_QUIT) { plat_quit(); break; }
+        if (ex == HUB_EXIT_GALLERY) { if (scr_load(2) == 0) { set_state(FE_GAL); gal_enter(); } else { set_state(FE_HUB); hub_enter(); } }   /* RE 390: frame 10 */
         if (ex == HUB_EXIT_TIME_ATTACK) { fe_mode = 0; if (scr_load(0) == 0) { set_state(FE_CHSEL); chsel_enter(); } }
         if (ex == HUB_EXIT_NEW_CLASSIC) { fe_mode = 1; fe_new_file(1); if (scr_load(0) == 0) { set_state(FE_CHSEL); chsel_enter(); } }
         if (ex == HUB_EXIT_NEW_ADVENTURE) {   /* original: frame 81 (opening cutscene, not ported) -> DV1 */
@@ -504,13 +514,14 @@ void fe_update(const input_t *in) {
     }
     case FE_CHSEL: chsel_update(in); break;
     case FE_STSEL: stsel_update(in); break;
+    case FE_GAL: gal_update(in); break;
     }
 }
 
 /* trace helper (host tests): the original frame index this screen corresponds to, and its cursor */
 void fe_trace_info(int *idx, int *cur) {
-    *idx = fe_state == FE_PRESS ? 2 : fe_state == FE_HUB ? 3 : fe_state == FE_CHSEL ? 6 : 5;
-    *cur = fe_state == FE_HUB ? hub_cursor() : fe_state == FE_CHSEL ? C.cur : fe_state == FE_STSEL ? T.A : 0;
+    *idx = fe_state == FE_PRESS ? 2 : fe_state == FE_HUB ? 3 : fe_state == FE_CHSEL ? 6 : fe_state == FE_GAL ? 10 : 5;
+    *cur = fe_state == FE_HUB ? hub_cursor() : fe_state == FE_CHSEL ? C.cur : fe_state == FE_STSEL ? T.A : fe_state == FE_GAL ? Y.A * 100 + Y.D : 0;
 }
 
 void fe_draw(void) {
@@ -520,6 +531,7 @@ void fe_draw(void) {
     case FE_HUB: hub_draw(); break;
     case FE_CHSEL: chsel_draw(); break;
     case FE_STSEL: stsel_draw(); break;
+    case FE_GAL: gal_draw(); break;
     }
     r_end();
 }

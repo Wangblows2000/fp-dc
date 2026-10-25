@@ -56,6 +56,8 @@ int    snd_loop_start(int h, int vol, int freq);   /* platform: looping sample o
 void   snd_loop_set(int ch, int vol, int freq);
 void   snd_loop_end(int ch);
 int    music_play(const char *name);
+int    music_play_once(const char *name);       /* gallery (session 15): the track plays once, then the channel is idle */
+int    music_active(void);                        /* 1 while a track is playing (a once track that reached its end: 0) */
 void   music_update(void);
 void   music_stop(void);
 void   music_volume(int pct);
@@ -78,6 +80,7 @@ static inline int chr_slot(int g1) { return g1 == 2 || g1 == 3 ? 1 : g1 == 4 ? 2
 static inline int chr_is_carol(int g1) { return g1 == 2 || g1 == 3; }
 static inline int chr_is_milla(int g1) { return g1 == 4; }
 #define SAVE_CARDS 100                 /* card ids 1..100 (records.dat x20) */
+#define SAVE_ACH 56                    /* achievements k = 1..56 (records.dat x2 y1..56) */
 /* Save v3 (session 13, build/re/spec_records_saves.md): everything is indexed by the original's stage index s (0 Aqua
  * Tunnel, 1 Dragon Valley, 2 Relic Maze ... 14 Shang Mu; level_def_t.stage), so every current and future stage has its
  * slot without a format change. Times in ms (ML.Z), as the original. */
@@ -95,10 +98,16 @@ typedef struct {
     save_rec_t rec[SAVE_STAGES][SAVE_CHARS];
     uint8_t progress[SAVE_CHARS];      /* records x1 y(40+J): furthest completed stage s + 1 per character (0 = none) */
     uint8_t cards[(SAVE_CARDS + 7) / 8];   /* records x20: card id n taken = bit n - 1 */
+    uint8_t cards_open[(SAVE_CARDS + 7) / 8];   /* v4 (session 15, gallery): records x20 == 2, card turned face up (opened) */
+    uint8_t ach[SAVE_ACH];             /* v4: records x2 y(k), k = 1..56 at ach[k - 1]: 0 locked, 1 earned (not announced), 2 announced */
 } save_t;
 int    save_card_total(void), save_card_has(int id);
 void   save_card_set(int id);
-void   save_unlock_all(void);                /* title cheat: progress + cards (save.c) */
+int    save_card_state(int id);              /* gallery: records x20 value 0 not taken, 1 face down, 2 opened */
+void   save_card_open(int id, int open);     /* gallery: Open writes 2, Close Card writes 1 (the taken bit is kept) */
+int    save_ach(int k);                      /* achievement k = 1..56: 0 / 1 / 2 */
+void   save_ach_set(int k, int v);
+void   save_unlock_all(void);                /* title cheat: progress + cards + achievements 1-3 (save.c) */
 uint32_t save_file_time(const save_file_t *f);
 int    save_file_crystals(const save_file_t *f), save_file_deaths(const save_file_t *f);
 void   save_stage_end(int s, int character, uint32_t time_ms, int crystals, int deaths, int story, int file_slot);
@@ -483,7 +492,7 @@ int  fe_enter(void);
 int  fe_enter_from_stage(int time_attack);
 int  game_next_stage(void);   /* Classic: load the route's next stage after the results (1: done) */
 /* hub (frame index 3: title menu / file select / mode select / options), src/game/fe_hub.c */
-enum { HUB_EXIT_TIME_ATTACK = 1, HUB_EXIT_QUIT, HUB_EXIT_NEW_ADVENTURE, HUB_EXIT_NEW_CLASSIC, HUB_EXIT_CONTINUE };
+enum { HUB_EXIT_TIME_ATTACK = 1, HUB_EXIT_QUIT, HUB_EXIT_NEW_ADVENTURE, HUB_EXIT_NEW_CLASSIC, HUB_EXIT_CONTINUE, HUB_EXIT_GALLERY };
 struct ui_scene_s;
 void hub_bind(struct ui_scene_s *s);
 void hub_enter(void);

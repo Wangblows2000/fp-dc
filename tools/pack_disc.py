@@ -4,7 +4,7 @@
 - Entries are LZ4 blocks (lz4.block, high compression) when that saves at least 10 %, else stored.
 - Every entry starts at a 32-byte aligned offset.
 - Kept loose (read outside loads or by name from the disc): ui/loading.*, ui/vmu_*.
-- bgm/ is never packed (the music is streamed).
+- bgm/ is never packed (the music is streamed); neither is gal/ (gallery art and sounds, each read on demand).
 Requires: pip install lz4.
 usage: pack_disc.py <data_dir> [--keep]   (--keep: leave the loose files in place)"""
 import os, sys, struct, fnmatch
@@ -12,7 +12,7 @@ import zlib
 import lz4.block
 
 LOOSE = ['loading.*', 'vmu_*']
-SKIP_DIRS = {'bgm'}
+SKIP_DIRS = {'bgm', 'gal'}
 
 def pack_dir(root, d, keep):
     src = os.path.join(root, d)

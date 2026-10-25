@@ -36,7 +36,8 @@
 - [x] Save v3 for every stage (records, files, progress, cards; v1/v2 conversion; test_saves)
 - [ ] Records x8..x12 and flag G31 of records.dat (meaning UNKNOWN, spec_records_saves)
 - [x] Continue a file at the stage after its last stage (session 14: frame 8 routing, lives / shield / counter)
-- [ ] Unlock flags (records x2: all-cards unlocks, gallery) are not stored; the gallery is not ported
+- [x] Gallery (session 15): records x20 opened state and x2 achievements in save v4; only Card Collector (23-32) and the cheat's 1-3 are set by the port
+- [ ] Achievements other than Card Collector are never earned in play (records x2 events not ported)
 
 ## Relic Maze (session 14)
 - [x] RM1-RM5 for Lilac, Carol (on foot / bike) and Milla: routes, exits / entries / death targets, stage flags,
@@ -50,7 +51,7 @@
 - [ ] Fortune Night (frame 29) and later stages: RM5 currently ends at the front end
 
 ## Front end / presentation
-- [ ] GALLERY (Carol playable since session 10, Milla since session 11)
+- [x] GALLERY (session 15: fe_gallery.inc, test_gallery.py)
 - [ ] Card/transition timings from a higher-rate capture
 
 ## Platform

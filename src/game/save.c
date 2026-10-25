@@ -4,9 +4,14 @@
  * v3 (session 13) follows the original's records.dat + file<n>.sav (build/re/spec_records_saves.md, RE; checked against
  * the user's reference saves in place, RV-file): every table is indexed by the stage index s, so all current and future
  * stages have a slot and adding a stage needs no format change. Totals are not stored (the original recomputes them as
- * sums of the per-stage blocks, RE 954). Payload 1286 bytes; with the VMU header and the 3-frame icon the memory-card
- * file is 6 blocks. v1 (session 6) and v2 (session 10) files are read and converted (save_load), then written as v3 on
- * the next save. */
+ * sums of the per-stage blocks, RE 954). v1 (session 6) and v2 (session 10) files are read and converted (save_load).
+ *
+ * v4 (session 15, gallery; build/re/fe/spec_gallery.md 8) appends the per-card "opened" bits (records x20 == 2) and the
+ * 56 achievement states (records x2 y1..56: 0 / 1 / 2). Payload 1355 bytes, file 1361 (4 + 1355 + CRC 2); with the VMU
+ * header (128) and the 3-frame icon (1536) the memory-card file is 3025 bytes = still 6 blocks (<= 3072). v3 files load
+ * with every taken card face down and no achievement (INFERRED: the PC records of a port player cannot be known), and
+ * every older file is written as v4 on the next save. A damaged, foreign or truncated file is ignored (defaults) and
+ * only replaced by the next deliberate save. */
 #include <string.h>
 #include "../fp.h"
 
@@ -27,7 +32,7 @@ static unsigned r8(buf_t *b) { if (b->n < b->cap) return b->p[b->n++]; b->bad = 
 static unsigned r16(buf_t *b) { unsigned v = r8(b); return v | r8(b) << 8; }
 static uint32_t r32(buf_t *b) { uint32_t v = r16(b); return v | (uint32_t)r16(b) << 16; }
 
-static void io3(buf_t *b, int wr) {
+static void io3(buf_t *b, int wr, int ver) {
 #define F8(x)  do { if (wr) w8(b, (x)); else (x) = r8(b); } while (0)
 #define F16(x) do { if (wr) w16(b, (x)); else (x) = r16(b); } while (0)
 #define F32(x) do { if (wr) w32(b, (x)); else (x) = r32(b); } while (0)
@@ -41,6 +46,10 @@ static void io3(buf_t *b, int wr) {
         for (int c = 0; c < SAVE_CHARS; c++) { F32(SV.rec[s][c].time); F16(SV.rec[s][c].crystals); }
     for (int c = 0; c < SAVE_CHARS; c++) F8(SV.progress[c]);
     for (unsigned k = 0; k < sizeof SV.cards; k++) F8(SV.cards[k]);
+    if (ver >= 4) {                                            /* v4: gallery */
+        for (unsigned k = 0; k < sizeof SV.cards_open; k++) F8(SV.cards_open[k]);
+        for (int k = 0; k < SAVE_ACH; k++) F8(SV.ach[k]);
+    }
 #undef F8
 #undef F16
 #undef F32
@@ -82,13 +91,13 @@ void save_defaults(void) {
     for (int i = 0; i < SAVE_FILES; i++) SV.file[i].last_stage = 0xff;
 }
 
-#define SAVE_VER 3
-#define SAVE_BUF 1536            /* 4 + payload (1286) + 2, with room to spare */
+#define SAVE_VER 4
+#define SAVE_BUF 1536            /* 4 + payload (1355) + 2, with room to spare */
 int save_store(void) {
     uint8_t data[SAVE_BUF];
     buf_t b = { data, 0, sizeof data - 2, 0 };
     w8(&b, 'F'); w8(&b, 'P'); w8(&b, 'S'); w8(&b, SAVE_VER);
-    io3(&b, 1);
+    io3(&b, 1, SAVE_VER);
     if (b.bad) return -1;
     uint16_t c = crc16(data, b.n);
     data[b.n] = c & 255; data[b.n + 1] = c >> 8;
@@ -102,26 +111,40 @@ int save_load(void) {
     if (n < 8 || data[0] != 'F' || data[1] != 'P' || data[2] != 'S' || data[3] < 1 || data[3] > SAVE_VER) return -1;
     if (crc16(data, n - 2) != (data[n - 2] | data[n - 1] << 8)) return -1;
     buf_t b = { data + 4, 0, (size_t)n - 6, 0 };
-    if (data[3] == SAVE_VER) io3(&b, 0); else read_v12(&b, data[3]);
-    if (b.bad) { save_defaults(); return -1; }
+    if (data[3] >= 3) io3(&b, 0, data[3]); else read_v12(&b, data[3]);
+    if (b.bad || b.n != b.cap) { save_defaults(); return -1; }   /* short or over-long payload: not one of ours */
+    for (int id = 1; id <= SAVE_CARDS; id++) if (!save_card_has(id)) save_card_open(id, 0);   /* opened implies taken */
+    for (int k = 0; k < SAVE_ACH; k++) if (SV.ach[k] > 2) SV.ach[k] = 2;
     return 0;
 }
 
 size_t save_payload_size(void) {
     uint8_t data[SAVE_BUF];
     buf_t b = { data, 0, sizeof data, 0 };
-    io3(&b, 1);
+    io3(&b, 1, SAVE_VER);
     return b.n + 6;
 }
 
 /* cards (records x20): id n in 1..100 */
 int  save_card_has(int id) { return id >= 1 && id <= SAVE_CARDS && (SV.cards[(id - 1) >> 3] >> ((id - 1) & 7) & 1); }
 void save_card_set(int id) { if (id >= 1 && id <= SAVE_CARDS) SV.cards[(id - 1) >> 3] |= (uint8_t)(1 << ((id - 1) & 7)); }
+/* gallery (records x20): 0 not taken, 1 taken (face down), 2 opened */
+int  save_card_state(int id) { return !save_card_has(id) ? 0 : (SV.cards_open[(id - 1) >> 3] >> ((id - 1) & 7) & 1) ? 2 : 1; }
+void save_card_open(int id, int open) {
+    if (id < 1 || id > SAVE_CARDS) return;
+    uint8_t m = (uint8_t)(1 << ((id - 1) & 7));
+    if (open && save_card_has(id)) SV.cards_open[(id - 1) >> 3] |= m; else SV.cards_open[(id - 1) >> 3] &= (uint8_t)~m;
+}
+int  save_ach(int k) { return k >= 1 && k <= SAVE_ACH ? SV.ach[k - 1] : 0; }
+void save_ach_set(int k, int v) { if (k >= 1 && k <= SAVE_ACH) SV.ach[k - 1] = (uint8_t)(v < 0 ? 0 : v > 2 ? 2 : v); }
 /* title-screen cheat (session 15): everything the save tracks as unlocked. Progress = every stage for every character
- * (Time Attack locks, RE 641-643) and all 100 cards (the gallery's unlock source); records, files and options untouched. */
+ * (Time Attack locks, RE 641-643), all 100 cards taken (face down: opening stays the player's), and achievements 1-3
+ * ("clear all Lilac / Carol / Milla stages") announced, which is what unlocks the type-3 gallery cards (RE 996-1002).
+ * Records, files, options and the other achievements are untouched. */
 void save_unlock_all(void) {
     for (int c = 0; c < SAVE_CHARS; c++) SV.progress[c] = SAVE_STAGES;
     for (int id = 1; id <= SAVE_CARDS; id++) save_card_set(id);
+    for (int k = 1; k <= 3; k++) save_ach_set(k, 2);
 }
 int save_card_total(void) { int n = 0; for (int id = 1; id <= SAVE_CARDS; id++) n += save_card_has(id); return n; }
 
