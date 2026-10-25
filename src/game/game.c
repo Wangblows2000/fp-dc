@@ -77,6 +77,21 @@ static const char *const CHR_FILES[3][8] = { { "lilac2.tex", "lilac2.spr", "lila
 /* only textures that were actually created (a zeroed tex_t has id 0 = somebody else's slot) */
 static void tex_drop(tex_t *t) { if (t->w > 0) r_tex_free(t); memset(t, 0, sizeof *t); t->id = -1; }
 
+/* music fades (Chowdren fadeout_music / fadein_music, used by RM3's Claw sequence): the stream volume ramps linearly over
+ * n gameplay frames between 0 and the player's music volume; a fade-out stops the stream at its end and restores the
+ * volume for the next track. music_fade(0, ..) cancels a running fade. */
+extern int fe_music_volume;
+static int mfade_t, mfade_n, mfade_in;
+void music_fade(int frames, int fade_in) {
+    if (frames <= 0) { if (mfade_t) music_volume(fe_music_volume); mfade_t = 0; return; }
+    mfade_n = mfade_t = frames; mfade_in = fade_in; music_volume(fade_in ? 0 : fe_music_volume);
+}
+static void music_fade_tick(void) {
+    if (!mfade_t) return;
+    mfade_t--;
+    music_volume(fe_music_volume * (mfade_in ? mfade_n - mfade_t : mfade_t) / mfade_n);
+    if (!mfade_t && !mfade_in) { music_stop(); music_volume(fe_music_volume); }
+}
 void camera_shake(int z) { float n = G.cam.Z + z; G.cam.Z = n < z ? n : (float)z; }
 
 static void level_free(void) {   /* everything of the level except Lilac's banks */
@@ -150,6 +165,7 @@ int game_load_level(const char *dir) {
 #endif
     loading_end();
     G.mus_resume_t = 0;
+    music_fade(0, 0);                              /* a running fade ends with the level */
     { uint64_t tm = plat_time_us(); music_play(level_music(dir)); LP.music_us += plat_time_us() - tm; }
     lp_end();
     return 0;
@@ -632,7 +648,7 @@ void game_update(const input_t *in) {
     G.frame++;
     input_t none = {0}, rin = results_input(in), sin_ = {0};
     const input_t *pin = (G.clear_t || G.act_in || G.input_lock) ? &none : results_on() ? &rin : in;   /* act end / walk-in / results: no control (RE) */
-    { static uint32_t sprev; uint32_t h; if (serp4_input(&h)) { sin_.held = h; sin_.pressed = h & ~sprev; sprev = h; pin = &sin_; } else sprev = 0; }   /* DV4 boss exit (5547 lock, 5573-5577) */
+    { static uint32_t sprev; uint32_t h; if (serp4_input(&h) || rm_claw_input(&h)) { sin_.held = h; sin_.pressed = h & ~sprev; sprev = h; pin = &sin_; } else sprev = 0; }   /* DV4 boss exit (5547 lock, 5573-5577) */
     PROF(PS_PAR, par_update());                   /* RE 3541: parallax drift */
     aqua_set_input(pin);                          /* AT swings read CTRL.K (4357) */
     PROF(PS_PLAT, objects_platforms(&G.p));       /* RE: platform/bridge events run before Lilac's movement */
@@ -656,6 +672,7 @@ void game_update(const input_t *in) {
     aqua_update(&G.p);                            /* Aqua Tunnel per-frame events (src/game/aqua.c) */
     relic_frame(&G.p);                            /* Relic Maze enemies' shared passes (src/game/relic.c) */
     relic_gimb_frame(&G.p);                       /* Relic Maze acts 3-5 gimmicks (src/game/relic_gimb.c) */
+    rm_claw_frame(&G.p);                          /* RM3 Claw sequence events 6196-6350 (src/game/rm_claw.c) */
     if (G.p.state == 6 /* ST_DEAD */ && G.p.dead_t > 120) {     /* death: the act restarts with one life less (RE 1972 / loop_death_13) */
         int lives = G.p.lives - 1, crystals = G.act_crystals, frame = G.frame, ks = G.act_keystones, sc = G.act_stage_crystals;
         if (lives < 1) { music_stop(); snd_stop_all(); fe_enter_from_stage(G.time_attack); return; }   /* game over (card not ported) */
@@ -682,6 +699,7 @@ void game_update(const input_t *in) {
     if (G.mus_resume_t > 0 && --G.mus_resume_t == 0)
         music_play(G.p.invinc ? "bgm/m_invincibility.adp" : level_music(G.lvdir));
     if (G.p.invinc && G.p.invuln == 0) { G.p.invinc = 0; music_play(level_music(G.lvdir)); }
+    music_fade_tick();
     if (G.clear_t && level_cur()->exit_max_y && G.p.y - ORIG_REF_DY >= level_cur()->exit_max_y) { }   /* AT3 4523 / inline: the fade pauses below y 380 */
     else if (G.clear_t) {                              /* RE 3310 / 3578: fade +4 per frame; at 255 next frame */
         int a = G.clear_t == 1 ? 0 : G.clear_t;     /* fade object created with alpha 0 */
@@ -800,6 +818,7 @@ void hud_draw(void) {
     /* HUD drops in from the top when the card slides out (RV capture); offset applied to all items */
     hud_dy = G.card_t >= CARD_DONE ? 0.f : G.card_t < CARD_OUT0 ? -40.f : -40.f + 40.f * (G.card_t - CARD_OUT0) / (CARD_DONE - CARD_OUT0);
     hud_dy += results_hud_dy();                                    /* RE 4561: slides up 80 px during the results */
+    hud_dy += rm_claw_hud_dy();                                    /* RM3 6206 / 6258 (src/game/rm_claw.c) */
     if (G.card_t < CARD_OUT0) return;
     /* energy meter: fill = guienergy alt A / 100 as x scale (RV en_xs); shine loop while full (RV en_img) */
     int full = p->energy >= PHYS_ENERGY_MAX;
@@ -891,6 +910,7 @@ void game_draw(void) {
     spiral_front_draw();
     water_draw_tint();
     draw_pieces(3, 3);
+    par_draw_front();                             /* layer-3 parallax pieces (RM3 piece5, the caravan chase) */
     objects_draw(2);
     draw_pieces(4, 7);
     relic_gima_draw_overlay();                    /* RM2 basement darkness (5997, BasementLight on layer 5) */
@@ -898,6 +918,7 @@ void game_draw(void) {
     water_draw_hud();
     serp_draw_hud();
     aqua_boss_draw_hud();
+    rm_claw_draw_front();                         /* RM3 wreck: white fade (6281-6293) */
     results_draw();
     card_draw();
     pause_draw();
