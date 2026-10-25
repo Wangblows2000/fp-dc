@@ -295,7 +295,7 @@ static void ge_shots(player_t *p) {                                             
  * Parts: av[0] A joint angle, av[1] B side (P3 / PC / P6) or HEAD timer, av[2] R rattle, kx / ky X / Y flight, c Z bounces;
  * fl 4 flag 2 (rattle phase), 8 flag 3 (attached), 0x40 flag 6 (flying), HEAD fl 1 = flag 0 (struck). */
 static struct { int phase, voice, pillarD, front, back; obj_t *core, *spine, *n[4], *head, *p3[2], *pc[2], *p6[2]; } BG;
-int relic_is_gate_pillar(const obj_t *o) { (void)o; return 0; }   /* GimmickMovingPillar1 / 3 (acts 3-5 gimmick types: wired at the merge) */
+int relic_is_gate_pillar(const obj_t *o) { return relic_gimb_is_gate_pillar(o); }   /* GimmickMovingPillar1 / 3 without a zone (relic_gimb.c) */
 static int bg_part(int t) { return t >= OT_BGSPINE && t <= OT_BGHEAD; }
 static void bg_pillars(int dy) {                                                   /* GimmickMovingPillar1 / 3 at the room's left exit (relic_gimb.c types) */
     for (int i = 0; i < G.nobjs; i++) { obj_t *o = &G.o[i]; if (o->alive && relic_is_gate_pillar(o) && fabsf(o->x - BG.core->x) < 600 && fabsf(o->y - BG.core->y) < 200) o->y += (float)dy; }
