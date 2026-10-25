@@ -556,6 +556,18 @@ STAGE 2". Labels as everywhere: RE read from code, RV original trace, INFERRED r
   pause during the RM5 scene, Mantalith sounds 147 / 214 / 215 (D-063), monitor breaking by the Mantalith's arms.
   **Carol / Milla result voices are 1-second placeholders** (the voice files available here are placeholders).
 
+## Session 16: rendering and RM3 findings
+- **Backdrops ignore the image hotspot (RE):** Backdrop::draw passes x + hotspot_x, y + hotspot_y to
+  FrameObject::draw_image, which subtracts the hotspot again (chowdren.dis 0x202a3c0 / 0xa33650); collision follows
+  the same box. Images with a hotspot used as backdrops: caravantruck3 (154,120), caravanplatform8, shafts (56,48), AT
+  atcolumn (32,0), teeter-totter axle (12,12), others in frames 26/27. RV: the RM3 truck matches an original
+  screenshot after the importer change.
+- **Thrown items (INFERRED):** created on the play layer like their spawners; the port had left them on layer 0.
+- **PVR sampling (INFERRED, from the hardware report):** an edge exactly on a sample point may take the neighbouring
+  texel; offsets of 0.25 px keep edges off both pixel-corner and pixel-centre sample points.
+- **Earth shield (RE spec_shields 2.2):** magnetized items (flag 2) home in with any shield or none (2542); the port
+  only moves them while the earth shield is held, and the user's report of a persisting pull is not reproduced.
+
 ## Session 15: bug fixes, gallery (spec build/re/fe/spec_gallery.md; port src/game/fe_gallery.inc)
 - **Invisible-at-creation classes (RE):** constructors that call set_visible(0) include SwitchColumnFront1_1157 (RM1
   column collision box; image 43 is a solid 176×224 green placeholder), MinibossBarrier_969 (gate / arena wall; the
