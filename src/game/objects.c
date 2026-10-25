@@ -529,7 +529,15 @@ int obj_obj_hit(const obj_t *a, const obj_t *b) {
         if (a->ang != 0) rot_bounds(a, fa, &a0, &b0, &a1, &b1); else { a0 = (int)floorf(a->x) - (a->flip ? fa->w - fa->hx : fa->hx); b0 = (int)floorf(a->y) - fa->hy; a1 = a0 + fa->w; b1 = b0 + fa->h; }
         if (b->ang != 0) rot_bounds(b, fb, &c0, &d0, &c1, &d1); else { c0 = (int)floorf(b->x) - (b->flip ? fb->w - fb->hx : fb->hx); d0 = (int)floorf(b->y) - fb->hy; c1 = c0 + fb->w; d1 = d0 + fb->h; }
         int x0 = a0 > c0 ? a0 : c0, x1 = a1 < c1 ? a1 : c1, y0 = b0 > d0 ? b0 : d0, y1 = b1 < d1 ? b1 : d1;
-        for (int y = y0; y < y1; y++) for (int x = x0; x < x1; x++) if (obj_px(a, x, y) && obj_px(b, x, y)) return 1;
+        /* the same test as obj_px(a) && obj_px(b) per pixel, with each object's rotation (cos, sin) computed once
+         * (session 13 perf: the DV4 boulder against the tunnel walls took 16-25 ms a frame in Flycast) */
+        double ca = 1, sa = 0, cb = 1, sb = 0;
+        if (a->ang != 0) rot_cs(a, &ca, &sa);
+        if (b->ang != 0) rot_cs(b, &cb, &sb);
+        for (int y = y0; y < y1; y++) for (int x = x0; x < x1; x++) {
+            int pa = a->ang != 0 ? rot_px(a, fa, ca, sa, x, y) : obj_px(a, x, y);
+            if (pa && (b->ang != 0 ? rot_px(b, fb, cb, sb, x, y) : obj_px(b, x, y))) return 1;
+        }
         return 0;
     }
     int ax = (int)floorf(a->x) - (a->flip ? fa->w - fa->hx : fa->hx), ay = (int)floorf(a->y) - fa->hy;

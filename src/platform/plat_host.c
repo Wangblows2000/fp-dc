@@ -284,7 +284,9 @@ int main(int argc, char **argv) {
         plat_poll_input(&in);
         apply_loads(cur_frame);
         apply_dbg(cur_frame, 0);
-        game_update(&in);
+        { static int fus = -1; if (fus < 0) fus = getenv("FP_FRAME_US") ? atoi(getenv("FP_FRAME_US")) : 0;   /* host profiling: frames whose update exceeds N us */
+          uint64_t t0 = plat_time_us(); game_update(&in); uint64_t dt = plat_time_us() - t0;
+          if (fus && dt > (uint64_t)fus) printf("slowupd %d %lu us x %.0f y %.0f\n", cur_frame, (unsigned long)dt, G.p.x, G.p.y); }
         apply_dbg(cur_frame + 2, 1);
         const player_t *p = &G.p;
         double mdd[7]; player_milla_dbg(mdd);
