@@ -537,7 +537,8 @@ void   enemies_absorb_crystals(void);
 int    aqua_level(void);                      /* act 1-4 in Aqua Tunnel, else 0 */
 /* level definitions (src/game/levels.c): per-act data read by the shared code */
 typedef struct { short x, y, A; float B; short D, E, blk; } padcfg_t;   /* Carol's jump pad at (x, y): index A, angle B, chain end D, lit E, block pad */
-typedef struct { short x0, x1, y0, y1; } zone_t;                        /* a box in original MV coordinates (x0..x1, y0..y1 inclusive) */
+typedef struct { short x0, x1, y0, y1; } zone_t;
+enum { DIG_NONE, DIG_KEYSTONE_MON, DIG_CRYSTALS, DIG_PETAL, DIG_WOOD_MON };   /* dig spot rewards (spec_milla_moves 6) */                        /* a box in original MV coordinates (x0..x1, y0..y1 inclusive) */
 typedef struct { short x0, x1, g4, x, y; } cpzone_t;                    /* checkpoint: x0 < X < x1 and g4 below -> g4 / g5 / g6 = g4, x, y */
 typedef struct { short g4_max, lock_x, lock_ymin, lock_ymax, l, t, r, b, unlock_x, unlock_y; } camzone_t;   /* boss camera lock (see levels.c) */
 typedef struct { short x0, x1, y0, y1; signed char who, jelly; } killbox_t;   /* items removed at the act start: who 0 all, 1 not Milla, 2 Milla */
@@ -553,6 +554,7 @@ typedef struct {
     int pipe_auto_y;                                 /* > 0: the rotating pipes also turn back when MV.Y > this (AT3 4507: 2900) */
     const padcfg_t *pads; int npads;                 /* Carol's jump pads (ObjectJumppad_539 / 1104: 3564 + DV2 4950-4957, DV3 5169-5180, DV4 5355-5366) */
     const zone_t *dig_zones; int ndig_zones;         /* Milla's dig zones: MILLA.D = 1 inside (AT1 4171-4182; 3313 clears it) */
+    const signed char *dig_rewards; int ndig_rewards;   /* reward per dig spot index A (DIG_*; AT1 4189-4194) */
     int plate_rule, switch_late;
     /* stage flow (the frame's own events; spec_at_flow): checkpoints, the boss camera, act-start item sets, bounds */
     int checkpoints;                                 /* 1: start / restart rule 2955-2957 + 3578 with the global values g4 / g5 / g6 (no floor snap, walk-in from x -32) */

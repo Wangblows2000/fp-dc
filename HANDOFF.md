@@ -12,7 +12,10 @@ Native Dreamcast (KallistiOS) port of Freedom Planet. A custom C engine plays da
   Milla traces: `CHAR=4` (any frame; `FRAME=16` = Aqua Tunnel 1 for the dig); `<f> SETV others E 9999` makes her
   invulnerable (the host understands the same line). `tools/orig/start_orig.sh` → `tools/orig/route_dv1.sh` → `FRAME=<20 dv1 / 21 dv2 / 22 dv3 / 23 dv4> tools/orig/run_trace.sh <script> <out.csv> <frames>`. `XVT_EXTRA="name=0x<vtable+0x10>#<instance>"` logs extra objects. A teleport far from the start can be blocked by the camera bounds (sensors are clamped to them).
 - Trace scripts: `<f> TP x y`, `<f> EN v`, `<f> HP v`, `<a> <b> KEYS` (a 1-frame range sends nothing; use ≥ 2 frames).
-- Host-only debug script commands: `<f> MON <type>` (shield monitor ahead of Lilac), `<f> HURT <dx>`, `<f> BOSSHP v` (AT boss HP).
+- Host-only debug script commands: `<f> MON <type>` (shield monitor ahead of Lilac), `<f> HURT <dx>`, `<f> BOSSHP v` (AT boss HP),
+  `<f> LOAD <dir>` (start another level in the same run). Env: `FP_CARD_DBG`, `FP_DUMP_OBJDEFS`, `FP_TA`, `FP_FILE`, `FP_FILE_NEW`.
+- Baseline comparisons: the trace comparers run the checkout they live in, so a `git worktree` of an older commit (with
+  its own converted2 for changed levels) gives a per-trace baseline (session 13 used /home/claude/fpdc_head).
 - Aqua Tunnel traces: `FRAME=16..19 CHAR=4`; run_trace.sh clears the AT checkpoint globals (`CP=keep` keeps them).
 - User PC: `C:\Users\wobbles\Desktop\Freedom Planet` (read-only input); deliverables go to its `fpdc\` subfolder.
 
@@ -20,7 +23,7 @@ Native Dreamcast (KallistiOS) port of Freedom Planet. A custom C engine plays da
 See ASSET_PIPELINE.md (levels, UI, font, audio). Then:
 ```sh
 for l in "21 dv1" "22 dv2" "23 dv3" "24 dv4" "17 at1" "18 at2" "19 at3" "20 at4"; do set -- $l; tools/build_level.sh $1 $2 converted2; done
-make -C host && python3 tests/test_gameplay.py && python3 tests/test_frontend.py && python3 tests/test_carol.py && python3 tests/test_milla.py && python3 tests/test_aqua.py
+make -C host && for t in gameplay frontend carol milla aqua levels saves; do python3 tests/test_$t.py; done
 Q=1 tools/orig/cmp_all.sh && python3 tools/orig/cmp_carol.py && FR=295 python3 tools/orig/cmp_milla.py && python3 tools/orig/cmp_at.py   # against the original's traces
 source /opt/toolchains/dc/kos/environ.sh && make && make cdi        # build/fpdc.cdi (~300 MB)
 make cdi DEMO=tests/play/<route>.txt CDI=build/fpdc_demo.cdi        # verification disc: scripted input ("LEVEL dv1" line starts the act)
@@ -90,6 +93,22 @@ spec_milla_monitor_carry.md.
   pipes, beam, crushers, axels, swings, slime floor, rafts), the Iron Worm, the Chomper and the Chomper Snake.
 - **Milla:** monitor lifting / carrying / throwing (D-051), dig rewards live in AT1.
 - Traces: tests/orig_at (37 scripts), `python3 tools/orig/cmp_at.py`; host tests tests/test_aqua.py.
+
+## Session 13 (2026-10-25): bug fixes and reusable level systems
+Brief: Milla's hang + AT results backdrop, title cards, Time Attack previews, DV4 boss counter, generalised objects,
+performance / assets / VMU saves, docs. Details: RE_NOTES "Session 13" and "Reusable objects and levels", RUNTIME_MAP
+"Session 13", ASSET_PIPELINE "Session 13" (with the "Adding a level" checklist), DECISIONS D-052 to D-059,
+BUILD_AND_TEST_LOG "Session 13", OBJECTS.md. Specs (build/re, not committed): spec_stage_cards.md,
+spec_records_saves.md.
+- **Fixed:** Milla's hang uses her hang animation; springs keep the facing; AT4 results show their panels; every level
+  shows its own title card (also after restarts, act changes and in any load order); the Time Attack preview shows one
+  stage with padlocks only on locked slots (and the menus' checker column and translucent bar now match the original);
+  the DV4 boss hit tally is gone.
+- **Generalised:** src/game/levels.c (all level parameters and the stage flow), engine type per Fusion object
+  (class + handle), src/game/switches.c (plates / Milla block / doors), src/game/objdefs.c (object registry),
+  presence-driven passes; no shared code tests a level name. Rule for new levels: RE_NOTES "Reusable objects and levels".
+- **Saves:** v3, stage-indexed (records in ms for every stage, files with per-stage blocks, progress, 100 cards), one
+  write at each stage end; Aqua Tunnel cards are collected and saved.
 
 ## Aqua Tunnel: verified vs approximated
 - **Matched to original traces (RV, cmp_at, Milla):** slimes and their bursts, fireflies in the current, water jet from

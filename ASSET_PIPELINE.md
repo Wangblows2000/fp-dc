@@ -53,7 +53,7 @@ G="/mnt/user-data/uploads/Freedom Planet/game"          # read-only copy of the 
 python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui title 3 4 3+titlestar_53   # press start (+ runtime title stars) + hub
 python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui chsel 7      # character select
 python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui stsel 12     # Time Attack stage select
-python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui tasel 6 -x '^bg(1|1[0-9]|[3-9])layer'   # Time Attack stage select (frame index 5); extra BG layers excluded to fit one atlas
+python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui tasel 6 -x '^bg(1[0-9]|[3-9])layer'   # Time Attack stage select (frame index 5): previews of the ported stages only (bg1 AT, bg2 DV), to fit one atlas
 python3 tools/import_loading.py build/frames extracted/linux/images converted2/ui        # loading-screen crystal bank
 python3 tools/make_vmu_icons.py extracted/linux/images converted2/ui                     # VMU LCD frames (crystal, life heads) + save icon
 python3 tools/import_font.py "$G/Data/font.bmp" converted2/ui                             # 8x20 original font
@@ -124,3 +124,41 @@ omits mirrored dir-16 animations.
   m_invincibility m_menu1 m_menu2 m_midboss m_results m_stage0 m_stage0b m_stage1 m_stage1b m_title).
 - Known gap: the DV `effectsshade_436` ENS entry names a class that does not exist (`effectshade_436`), so DV enemies
   have no shade puff; AT uses the right name (`shade_at`). Left alone to keep DV banks byte-identical (TODO).
+
+
+## Session 13: generalised importers and the "Adding a level" checklist
+- **import_frame.py**
+  - `ENGINE_TYPES_ID` / `engine_type(cls, handle)`: an engine type per Fusion object where two handles share a class
+    name (RE_NOTES "Session 13"); `ENGINE_TYPES` still maps every other class by name.
+  - `STAGE_CARDS` / `stage_card(n)`: the title-card frames per stage (RE spec_stage_cards) for `card_name` and
+    `card_stage` (frame 1 = the Carol / Milla variant where one exists).
+  - The results images are exported for every frame that places LevelCardActClear1 (was DV4 only); `WATER_FRAMES`
+    gives every water stage the air meter and the water effects.
+  - The duplicated AT entries for the pressure plate and the wall plate are gone (the shared `pplate` / `wallplate`
+    entries serve every level).
+- **import_ui.py**
+  - Solid quick backdrops (no image) become kind-2 rects (the stage-select preview masks).
+  - Images whose semi-transparent pixels share one alpha are split into an opaque part and a translucent layer (kind
+    3, drawn with that vertex alpha): ARGB1555 / PAL8 keep 1 bit of alpha, so this is how the menus' 135-alpha bar and
+    the 87-alpha record panel survive (the same idea as the level importer's negative-id layers).
+  - Groups left unused by a split are not packed. Rebuild: `chsel 7`, `stsel 12`, `tasel 6 -x '^bg(1[0-9]|[3-9])layer'`.
+- **tools/object_catalog.py** writes OBJECTS.md (every engine type, classes, registry flags, implementation, placement).
+
+### Adding a level (every new act; the generalisation rule of RE_NOTES "Reusable objects and levels")
+1. Build it with the shared pipeline: `tools/build_level.sh <frame index + 1> <dir> converted2`. This already applies,
+   for any level: per-level PAL8 palettes with `--flex=_ens`, 4 bpp parallax chunks (`--pal4=1:_p[xw]`) and 4 bpp
+   character overlays, power-of-two atlases with the half-height split (D-038) for every `_obj` / `_ens` / character
+   bank, second atlases for large `_ens` banks, cropped sprites (except BOX_TYPES), and the LZ4 packs / pre-twiddled
+   textures / 32-byte padding of `make cdi`. No per-level optimisation flags are needed.
+2. Read `<dir>.tmp`'s `<dir>_report.txt`: classes skipped (not in ENGINE_TYPES), missing animations, atlas sizes.
+   For a skipped class that is an existing object under another handle, add an ENGINE_TYPES_ID row; for a new object,
+   port it (type, registry row, ENS rows, behaviour) — that is the only case that needs new decompilation.
+3. Add the act's row to src/game/levels.c (frame, stage index, act, music, water, cards, and the parameters its
+   objects take; RE from the frame's start event and its object events) and its STAGE_CARDS row if the stage is new.
+4. Budgets, checked in Flycast with a demo disc (`make cdi DEMO=... `, `load[<dir>]` and `prof` lines): VRAM free after
+   load ≥ 1 MB with the heaviest character (Milla), sound RAM largest free block ≥ 256 KB with the stage group,
+   600-frame windows at 602-603 vblanks (the two extra are the profiler's own print). If VRAM is short: move the
+   largest sprite bank's rarely drawn classes behind ENS_WITH parents, then let palettize put ≤ 15-colour banks in 4 bpp
+   blocks (`--pal4`).
+5. Regenerate OBJECTS.md, run the host suites and the trace comparers, and add the level to the TA / route tables if the
+   stage is new (stage index from spec_records_saves §1).

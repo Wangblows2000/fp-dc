@@ -294,3 +294,44 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
 - Host: `FP_TRACK=type:spawnx` (spawnx -1 = any; 214 also matches 227), `FP_AT_GT`, `FP_AT_PRERUN`; script commands
   `<f> BOSSHP v` (AT boss HP). cmp_at.py writes the raw host output to build/fpdc_traces/at_<name>.out; `XTRACK=` adds
   port objects to it.
+
+## Session 13: level table, reusable objects, switches, registry, save v3 (port: src/game/levels.c, switches.c, objdefs.c, save.c)
+- **src/game/levels.c** — `level_def_t` per act (fp.h): dir, original frame index, stage index s (0 AT, 1 DV, ...; the
+  save / Time Attack index), act / nacts, music (+ after checkpoint 10), water line, walk-in, exit rule (exit_max_y),
+  edge results, AT axel / pipe values, pads, dig zones, plate rule / switch pass, monitor hop, stage sound group,
+  checkpoints, boss camera lock, act-start item sets, camera bounds, start rule (checkpoints), start fall, card ids.
+  API: `level_def(dir)`, `level_cur()`, `level_next(dir)` (NULL after the last act), `level_first_of_stage(s)`,
+  `level_route_start(character)`; stage flow shared by every level: `level_flow_spawn()` (item sets),
+  `level_flow_frame(p)` (checkpoints, boss camera), `level_camera_bounds()`, `level_release_camera(keep)`,
+  `level_cam_locked()`. Readers: game.c (music, act end / next act, walk-in, start rule, stage sounds), water.c,
+  results.c (edge results), gimmicks.c (spinning-log line), carol_bike.inc (pads), aqua.c (dig zones, AT stage
+  script = stage 0), aqua_gim.c (axels, pipes, swings' water line), monitors.c, switches.c, frontend / fe_stsel (routes).
+- **src/game/objdefs.c** — `objdef(type)`: registry flags OD_SOLID / OD_OBSTACLE / OD_NOEDGE (qualifier groups,
+  obj_in_group) and OD_BOXCOL (image-box collision: sensors in objects.c, aqua_gim is_box), and the spawn sprite (the
+  old EA table). One row per engine type, ranges as base + k. OBJECTS.md is generated from it.
+- **src/game/switches.c** — pressure plates (OT_PPLATE, rule from level data), the Milla block, SwitchDoor 997/1066
+  (OT_DOOR), 770 (OT_SDOOR), the AT1 gate (OT_SDOOR2); `switches_update(p, late)` runs in the platform block (DV,
+  late 0) or in aqua_gim_post (AT, late 1).
+- **Presence:** `objects_have(type)` / `objects_have_from(type)` (objects.c): on-map placed types of the level, set at
+  spawn. The Aqua Tunnel passes run in any level with objects from OT_DIGSPOT up; tunnels (q27) and spinning logs follow
+  their objects.
+- **Engine types added:** 228 OT_ABPLAT2 (AquaBrickPlatform_803), 229 / 230 OT_AXEL1P / OT_AXEL2P (845 / 846), 231
+  OT_SWSPAWN1B (848); importer types 210 (SwitchDoor_770), 212 (SwitchWallPlate_831) and 188 (LevelCrusher1_847)
+  directly. 211 (OT_APLATE) is unused.
+- **Frame order in an act (every level):** objects_platforms (DV platform passes, switches with switch_late 0) →
+  aqua_pre (AT2 intro, dig zones) → player_update → objects_update → aqua_update (skipped without AT-family objects,
+  then only level_flow_frame): bursts, bombs, jelly, bricks, aqua_gim_post (path, carry, swings, collapse, switches
+  late 1, pipes, beam, crushers, axels, rafts, dip), the AT bosses (stage 0 only), fireflies, slimes, timers, whisps,
+  jets, level_flow_frame, jet maker, dig.
+- **Save v3** (save.c, fp.h): options; file[8] {used, character, mode, last_stage, lives, shield, counter, stage[15]
+  {time ms, crystals, deaths}}; rec[15][4] {time ms, crystals}; progress[4] (s + 1); cards (ids 1..100). Totals =
+  sums. Writes: `game_save_stage_end(time_ms)` at the results' D = 150 (and a last act without results) →
+  `save_stage_end()`; cards at each act change (`cards_commit`). New game: `G.file_new` replaces the slot at the first
+  stage end. Deaths per stage: `G.stage_deaths` (+1 per death restart).
+- **UI (ui.c / ui.h):** kind 2 = solid quick backdrop (w, h, colours); kind 3 = translucent layer of the object before
+  it (alpha in the header pad byte; it copies the owner's position, frame, visibility, tiling); `tilew` (preview strips
+  repeat across the window), `tileh` (the checker layer wraps vertically).
+- **Host:** `<f> LOAD <dir>` (a fresh start of another level in the same run), `FP_CARD_DBG` (prints the card images of
+  each load), `FP_DUMP_OBJDEFS` (registry per type), `FP_TA` / `FP_FILE` / `FP_FILE_NEW` (save tests).
+- **Tests:** tests/test_levels.py (cards, load orders, restart, hang animations, results panels, registry vs importer,
+  next acts, checkpoint), tests/test_saves.py (records, files, progress, cards, conversion, CRC).
