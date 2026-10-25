@@ -98,6 +98,7 @@ typedef struct {
 } save_t;
 int    save_card_total(void), save_card_has(int id);
 void   save_card_set(int id);
+void   save_unlock_all(void);                /* title cheat: progress + cards (save.c) */
 uint32_t save_file_time(const save_file_t *f);
 int    save_file_crystals(const save_file_t *f), save_file_deaths(const save_file_t *f);
 void   save_stage_end(int s, int character, uint32_t time_ms, int crystals, int deaths, int story, int file_slot);
