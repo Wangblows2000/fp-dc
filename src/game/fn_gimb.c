@@ -448,12 +448,15 @@ static void reward_icon(player_t *p, int frame) {    /* MonitorIcon_363 at PLAYE
 static void keys(player_t *p) {
     obj_t *o, *r, *dl = slot(S.dl);
     if (!N(OT_FN_KEY)) return;
-    int on[LMAX], non = 0, roll = objects_alive_type(FNB_ROLLER);
+    int on[LMAX], non = 0, roll = 0, nr = 0;
+    obj_t *rl[8];                                                                   /* the rollers near the keys (objects far off-screen sleep anyway) */
+    if (objects_alive_type(FNB_ROLLER)) { EACH(OT_FN_KEY, o) if (fabsf(o->x - (G.camx + SCREEN_W / 2)) < SCREEN_W * 1.5f) { roll = 1; break; } }
+    if (roll) for (int i = 0; i < G.nobjs && nr < 8; i++) { r = &G.o[i]; if (r->alive && r->type == FNB_ROLLER && fabsf(r->x - (G.camx + SCREEN_W / 2)) < SCREEN_W * 2) rl[nr++] = r; }
     EACH(OT_FN_KEY, o) o->fl &= ~F1;                                                /* 8206 */
     if (!dead(p)) EACH(OT_FN_KEY, o) if (sens_hit(SENS_BOTTOMBIG, o)) on[non++] = (int)(o - G.o);   /* 8207: one random key under her */
     if (non) { o = &G.o[on[cross_rand(non)]]; o->fl |= F1; o->av[1] = 0; }
-    if (roll) for (int i = 0; i < G.nobjs; i++) {                                   /* 8208: a roller on the keys */
-        r = &G.o[i]; if (!r->alive || r->type != FNB_ROLLER) continue;
+    for (int i = 0; i < nr; i++) {                                                  /* 8208: a roller on the keys */
+        r = rl[i];
         non = 0; EACH(OT_FN_KEY, o) if (obj_obj_hit(r, o)) on[non++] = (int)(o - G.o);
         if (non) { o = &G.o[on[cross_rand(non)]]; o->fl |= F1; o->av[1] = 0; }
     }
@@ -467,7 +470,7 @@ static void keys(player_t *p) {
         }
         if (!(o->fl & F1)) {                                                        /* 8210 / 8211: released after 4 free frames */
             int touch = !dead(p) && sens_hit(SENS_BOTTOMBIG, o);
-            if (!touch && roll) for (int i = 0; i < G.nobjs && !touch; i++) { r = &G.o[i]; if (r->alive && r->type == FNB_ROLLER && obj_obj_hit(r, o)) touch = 1; }
+            for (int i = 0; i < nr && !touch; i++) if (obj_obj_hit(rl[i], o)) touch = 1;
             if (!touch) o->av[1] += 1;
             if (o->av[1] > 3) { set_s(o, "key"); o->fl &= ~F2; o->av[1] = 0; }
         }
