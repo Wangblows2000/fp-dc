@@ -304,6 +304,27 @@ enum { OT_MT_FIRST = 450, OT_MT_STONE = 450, OT_MT_SPADE = 451, OT_MT_HOOK = 452
        OT_MT_HEAD = 471, OT_MT_HEAD2 = 472, OT_MT_HEAD3 = 473, OT_MT_ARM6 = 474, OT_MT_ARM3 = 475, OT_MT_HIT1 = 476, OT_MT_HIT2 = 477,
        OT_MT_WARN = 478, OT_MT_DEBRIS = 479, OT_MT_SLASH = 480, OT_MT_CHOMP = 481, OT_MT_RUIN = 482, OT_MT_RPIECE = 483 /* runtime 479-483 */,
        OT_MT_LAST = 483 };
+/* Fortune Night gimmicks, acts 1-3 (fn_gima.c, build/re/spec_fn_gimmicks_a.md; tools/import_frame.py FNA_*). Families share a
+ * type; the lvobj anim field holds the member index (bits 0-5), the act's event-copy flags (bits 6-7) and the layer (8-15) */
+enum { OT_FNA_FIRST = 560, OT_FN_DSEG = 560 /* GimmickDragonTunnel1_1734 (sub 0) / Tunnel2_1733 (1) */, OT_FN_DSEGP = 561 /* Tunnel1_1860 (A3: Q8 Q9) */,
+       OT_FN_DHEAD = 562 /* GimmickDragonTunnelHead_1737 / Head2_1783 */, OT_FN_DMASK = 563 /* DragonTunnelMask1_1798 / Mask2_1799 */,
+       OT_FN_DHIDE = 564 /* DragonTunnelHide1/2/3_1782/1859/1787 */, OT_FN_FCAR = 565 /* LevelFerrisWheel1-4_1774-1777 */,
+       OT_FN_FSPOKE = 566 /* LevelFerrisWheelPiece_1778 */, OT_FN_GOLD = 567 /* GoldPlatform1/2/3_1684/1685/1720 */,
+       OT_FN_ARCHBASE = 568 /* GimmickRollingArchBase_1659 */, OT_FN_ARCH = 569 /* GimmickRollingArch_1661 */, OT_FN_ARCHWHEEL = 570 /* RollingArch2_1663 */,
+       OT_FN_BOOST = 571 /* GimmickBoostBlock_1728 (Q20) */, OT_FN_BFLAME = 572 /* BoostBlockFlame_1731 */, OT_FN_BTURN = 573 /* BoostBlockTurn_1730 */,
+       OT_FN_LBRIDGE = 574 /* GimmickLanternBridge1-8_1668-1675 */, OT_FN_HPIPE = 575 /* GimmickVerticalHalfPipe1-6 */,
+       OT_FN_TEETER = 576 /* GimmickTeeterTotter_1831 */, OT_FN_BWALL = 577 /* BreakableWall_1637 */, OT_FN_BWPIECE = 578 /* runtime: BreakableWallPiece_1638 */,
+       OT_FN_BFLOOR = 579 /* BreakableFloor1/2_1766/1767 */, OT_FN_BFPIECE = 580 /* runtime: BreakableFloorPiece_1764 */,
+       OT_FN_FWLAUNCH = 581 /* FireworkLauncher_1735 */, OT_FN_FWPART = 582 /* runtime: FireworkParticle_1736 */,
+       OT_FN_CLOTHES = 583 /* GimmickClothesline2_1702 */, OT_FN_CLSTOP = 584 /* GimmickHangingLongSensor2_1703 */, OT_FN_FLAG = 585 /* Flag_1701 */,
+       OT_FN_PLANTERN = 586 /* PaperLantern_527 */, OT_FN_FLANTERN = 587 /* FloatingLantern_1846 */, OT_FN_GWHEEL = 588 /* GachaponWheel_1851 */,
+       OT_FN_GDOOR = 589 /* GachaponDoor_1852 */, OT_FN_GFRONT = 590 /* GachaponFront_1854 */, OT_FN_SIGN = 591 /* SignStop_1698 / SignYield_1697 */,
+       OT_FN_LAMP = 592 /* LampPostFront_1791 (Q20) */, OT_FN_PIGEON = 593 /* Pigeon_1641 */, OT_FN_STROBE = 594 /* StrobeLight_1857 */,
+       OT_FN_LSIGN = 595 /* LargeSign1/2_1755/1757, LargeSign3_1849/1893 */, OT_FN_COLUMN = 596 /* LargeColumn_1864 / LargeColumn2_1874 */,
+       OT_FN_RAMP = 597 /* Ramp1/2_1870/1871 */, OT_FN_TROLLEY = 598 /* LevelTrollyCar_1803 */, OT_FN_TPLAT = 599 /* LevelTrolleyPlatform_1806 / 2_1807 */,
+       OT_FN_TLIGHT = 600 /* LevelTrollyCarLight_1812 / Light2_1813 */, OT_FN_LOOP0 = 601 /* Layer0Loop/0Loop2/0Loop3/0Block */,
+       OT_FN_LOOP1 = 602 /* Layer1Loop/1Loop2/1Loop3 */, OT_FN_STAR = 603 /* BGStar_16 */, OT_FN_PARAM = 604 /* importer: per-act constant (x value, y key) */,
+       OT_FN_DUST = 605 /* runtime: EffectsDust01_369 behind the boost blocks */, OT_FNA_LAST = 605 };
 
 #define MAX_ATLAS 4
 typedef struct {
@@ -443,7 +464,7 @@ typedef struct {
     double av[8];                /* class alterables (boss scripts) */
 } __attribute__((aligned(32))) obj_t;
 
-#define MAX_OBJS 640
+#define MAX_OBJS 1024   /* Fortune Night act 1 places ~800 on-map objects (session 17) */
 
 typedef struct {
     level_t lvl;
@@ -572,7 +593,8 @@ enum { ST_NORMAL, ST_ATTACK, ST_CYCLONE, ST_CHARGE, ST_BOOST, ST_HURT, ST_DEAD,
        ST_SHAKE,       /* M12: shake off water after an Aqua Tunnel water jet (1885-1887, 4141/4142) */
        ST_HELD,        /* M43: held in the AT2 Chomper mouth (4435; OTHERS.Y 8 ball pose, L = 1) */
        ST_CART,        /* M90: Milla pumping the RM3 hand-car (6131-6166, src/game/relic_gimb.c) */
-       ST_SIT };       /* M39: sitting on an RM5 chair (6585, 3068-3072, src/game/relic_gimb.c) */
+       ST_SIT,         /* M39: sitting on an RM5 chair (6585, 3068-3072, src/game/relic_gimb.c) */
+       ST_HPIPE };     /* M38: Fortune Night vertical half-pipe (7538-7542, group 1891; src/game/fn_gima.c) */
 /* src/game/combat.c (build/re/spec_combat.md) */
 void combat_frame(player_t *p);
 void combat_draw_shields(int behind);
@@ -650,6 +672,10 @@ obj_t *relic_shock_new(double x, double y, int dir, double speed);   /* HazardSh
 void   relic_act_point(const obj_t *o, double *x, double *y);        /* the current frame's action point, rotated with the object (relic_boss.c) */
 void   rm_mantalith_spawn(void), rm_mantalith_frame(player_t *p), rm_mantalith_draw(int front);   /* RM5 end (rm_mantalith.c) */
 int    rm_mantalith_obj(obj_t *o, player_t *p);
+/* src/game/fn_gima.c (Fortune Night acts 1-3 gimmicks, spec_fn_gimmicks_a.md) */
+void   fn_gima_spawn(void), fn_gima_frame(player_t *p), fn_gima_draw(int pass);
+int    fn_gima_enemy(int type);                          /* Q20 members of this set (lampposts, boost blocks): combat.c's shared hits */
+void   fn_gima_floor_hit(obj_t *f, double X, double Y);  /* a boss breaks a BreakableFloor1/2 (flag 6, piece speeds X, Y; RE 7392 / 7800 ...) */
 void   results_begin_boss(int time_frames), results_script_input(uint32_t held), results_request_end(void);   /* results path 3 (any boss) */
 int    results_tally_done(void), results_frames(void);
 void   rock_at_new(float x, float y), rock_at_break(obj_t *r), rocks_at_frame(player_t *p);   /* EnemyRock (aqua_boss.c), shared */
