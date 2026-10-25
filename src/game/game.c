@@ -635,7 +635,8 @@ static void pause_update(const input_t *in) {
 
 void game_update(const input_t *in) {
     /* VMU screen: the character's life icon and lives in a stage, the crystal everywhere else */
-    if (G.mode == MODE_PLAY && !G.in_select) vmuscr_life(G.character == 2 || G.character == 3 ? 2 : G.character == 4 ? 3 : G.character == 0 ? 0 : 4, G.p.lives); else vmuscr_crystal();
+    { int fc = G.mode == MODE_FRONTEND ? hub_vmu_file_char() : -1;
+      if (G.mode == MODE_PLAY && !G.in_select) vmuscr_char(G.character); else if (fc >= 0) vmuscr_char(fc); else vmuscr_crystal(); }
     if (G.mode == MODE_FRONTEND) { fe_update(in); return; }
     if (G.in_select) { sel_update(in); return; }
     if (G.mode == MODE_RESULTS) {

@@ -6,8 +6,8 @@ Writes:
   <out_dir>/vmu_lcd.bin   'FVL1' u16 nframes, u16 ncrystal; nframes x 192 bytes (48x32 1bpp, row-major,
                           first byte = top-left, MSB = leftmost pixel, 1 = dark LCD pixel).
                           frames 0..ncrystal-1: crystal spin (ObjectCrystal_317) for title/menus;
-                          then one life icon per character (GUIIcon_346 directions 0..4:
-                          Lilac, Carol, Carol (bike), Milla, Torque/Spade) - the head part of the strip.
+                          then 12 character portraits (FileSaveSlotCharacter_109: 4 Lilac, 4 Carol, 4 Milla),
+                          rotated every 6 s by src/game/vmu.c vmuscr_char.
   <out_dir>/vmu_icon.bin  'FVI1' u16 nframes, u16 speed; u16 palette[16] (ARGB4444);
                           nframes x 512 bytes (32x32 4bpp, high nibble = left pixel): save-file icon
                           shown in the Dreamcast file manager (the crystal spin).
@@ -17,7 +17,9 @@ import os, struct, sys
 from PIL import Image
 
 CRYSTAL = [4752, 4913, 4914, 4915, 4916, 4917]          # objectcrystal_317 anim 0 dir 0
-HEADS = [311, 112, 395, 507, 5116]                       # guiicon_346 dirs 0,1,2,4,5 (strip 64x12)
+# character portraits (session 16): FileSaveSlotCharacter_109 (the file-select slot picture), directions 1 / 3 / 5 =
+# character 0 Lilac / 2 Carol / 4 Milla (fe_hub.c selects direction character + 1), 4 frames each, 80x40
+PORTRAITS = [[3775, 3964, 4423, 4563], [4654, 4656, 4561, 4793], [4794, 4792, 4796, 4798]]
 
 def load(src, i):
     return Image.open(os.path.join(src, 'img_%d.png' % i)).convert('RGBA')
@@ -99,9 +101,10 @@ def main():
         sparkle(bits, x, y, r)
         frames.append(bits)
     nc = len(frames)
-    for i in HEADS:
-        head = load(src, i).crop((0, 0, 15, 12))       # head part of the GUIIcon strip
-        frames.append(lineart(head, 2, 0))             # 30x24 on the left; the game draws "x NN" lives at the right
+    for row in PORTRAITS:                              # 80x40 -> 64x32 (nearest), centre 48x32; 1 px lines where colours
+        for i in row:                                  # differ strongly, very dark pixels filled (no greys on the LCD)
+            im = load(src, i).resize((64, 32), Image.NEAREST).crop((8, 0, 56, 32))
+            frames.append(lineart(im, 1, 0, thr=120))
     data = b'FVL1' + struct.pack('<2H', len(frames), nc) + b''.join(pack(f) for f in frames)
     open(os.path.join(out, 'vmu_lcd.bin'), 'wb').write(data)
     # save-file icon: 32x32, 16 colours (ARGB4444), crystal spin (3 frames to keep the file small)

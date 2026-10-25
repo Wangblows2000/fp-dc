@@ -447,6 +447,10 @@ void hub_draw(void) {
 }
 
 int hub_selected_file(void) { return H.slot; }
+int hub_vmu_file_char(void) {                       /* VMU: the highlighted used file's character on the file select, else -1 */
+    if (!H.file || H.title || H.slot < 0 || H.slot >= SAVE_FILES || !SV.file[H.slot].used) return -1;
+    return SV.file[H.slot].character;
+}
 int hub_cursor(void) { return H.cur; }
 void hub_camera(float *x, float *y) { *x = camx(); *y = camy(); }
 int hub_on_title(void) { return H.title || H.fadein; }

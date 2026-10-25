@@ -1,5 +1,5 @@
-/* VMU screen (48x32, 1 bpp): an animated crystal on the title and menus, and the life icon of the
- * character being played (with the lives count) during gameplay. The art comes from the original's
+/* VMU screen (48x32, 1 bpp): an animated crystal on the title and menus, and the character's rotating file-select
+ * portraits in a stage and on the file select (session 16). The art comes from the original's
  * images (tools/make_vmu_icons.py -> ui/vmu_lcd.bin, converted for a black-and-white panel); this file
  * only composes the bitmap and hands it to the platform when it changes. */
 #include <stdlib.h>
@@ -10,20 +10,6 @@ static uint8_t *lcd;               /* 'FVL1' file */
 static int nframes, ncrystal;
 static uint8_t cur[192], last[192];
 static int sent, tick;
-
-/* 3x5 digits for the lives count (own glyphs) */
-static const uint8_t DIG[10][5] = {
-    {7,5,5,5,7},{2,6,2,2,7},{7,1,7,4,7},{7,1,7,1,7},{5,5,7,1,1},
-    {7,4,7,1,7},{7,4,7,5,7},{7,1,1,2,2},{7,5,7,5,7},{7,5,7,1,7}};
-
-static void pset(int x, int y) { if (x >= 0 && x < 48 && y >= 0 && y < 32) cur[y * 6 + x / 8] |= (uint8_t)(0x80 >> (x & 7)); }
-
-/* digit d scaled 2x at (x, y): 6x10 px */
-static void digit(int x, int y, int d) {
-    for (int r = 0; r < 5; r++)
-        for (int c = 0; c < 3; c++)
-            if (DIG[d][r] & (4 >> c)) { pset(x + 2 * c, y + 2 * r); pset(x + 2 * c + 1, y + 2 * r); pset(x + 2 * c, y + 2 * r + 1); pset(x + 2 * c + 1, y + 2 * r + 1); }
-}
 
 void vmuscr_init(void) {
     size_t n;
@@ -49,17 +35,15 @@ void vmuscr_crystal(void) {
     push();
 }
 
-/* gameplay: life icon of character c (0 Lilac, 1 Carol, 2 Carol on the bike, 3 Milla, 4 extra) and lives */
-void vmuscr_life(int c, int lives) {
-    if (nframes <= ncrystal) return;
-    if (c < 0 || c >= nframes - ncrystal) c = 0;
-    memcpy(cur, lcd + 8 + (ncrystal + c) * 192, 192);
-    if (lives < 0) lives = 0;
-    if (lives > 99) lives = 99;
-    /* "x" then the count, right half, vertically centred (x 32..47) */
-    for (int i = 0; i < 4; i++) { pset(31 + i, 14 + i); pset(34 - i, 14 + i); }
-    if (lives >= 10) { digit(36, 11, lives / 10); digit(42, 11, lives % 10); }
-    else digit(39, 11, lives);
+/* gameplay and the file select: the character's file-select portraits (FileSaveSlotCharacter_109, 4 per character),
+ * a new one every 6 s. The tick counts game updates (fixed 60 Hz logic frames), so the rotation does not depend on the
+ * render rate; it keeps running through pauses and menus. Lives are not shown (session 16). character: G1 value. */
+#define VMU_PER_CHAR 4
+void vmuscr_char(int character) {
+    int c = character == 2 || character == 3 ? 1 : character == 4 ? 2 : 0;   /* Lilac, Carol (on foot / bike), Milla */
+    if (nframes < ncrystal + 3 * VMU_PER_CHAR) return;
+    int k = (int)((tick++ / (6 * FPS)) % VMU_PER_CHAR);
+    memcpy(cur, lcd + 8 + (ncrystal + c * VMU_PER_CHAR + k) * 192, 192);
     push();
 }
 

@@ -126,7 +126,8 @@ size_t save_payload_size(void);
 /* src/game/vmu.c */
 void   vmuscr_init(void);
 void   vmuscr_crystal(void);
-void   vmuscr_life(int character, int lives);
+void   vmuscr_char(int character);           /* rotating file-select portraits (vmu.c) */
+int    hub_vmu_file_char(void);              /* fe_hub.c: highlighted used file character or -1 */
 const uint8_t *vmuscr_current(void);                         /* stop every sound effect channel */
 /* loading screen (src/game/loading.c): silent, spinning crystal bottom-right */
 void   loading_begin(const char *label);   /* label: load profiler (loadprof.c) */

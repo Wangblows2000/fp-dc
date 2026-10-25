@@ -55,7 +55,7 @@ python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui chs
 python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui stsel 12     # Time Attack stage select
 python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui tasel 6 -x '^bg(1[0-9]|[4-9])layer'   # Time Attack stage select (frame index 5): previews of the ported stages only (bg1 AT, bg2 DV, bg3 RM), to fit one atlas
 python3 tools/import_loading.py build/frames extracted/linux/images converted2/ui        # loading-screen crystal bank
-python3 tools/make_vmu_icons.py extracted/linux/images converted2/ui                     # VMU LCD frames (crystal, life heads) + save icon
+python3 tools/make_vmu_icons.py extracted/linux/images converted2/ui                     # VMU LCD frames (crystal, 12 character portraits) + save icon
 python3 tools/import_font.py "$G/Data/font.bmp" converted2/ui                             # 8x20 original font
 python3 tools/audio/catalog.py "$G/Data/BGM" "$G/Data/voices" extracted/linux/audio build/audio/catalog.csv
 tools/audio/convert_bgm.sh "$G/Data/BGM" converted2/bgm          # 67 x .adp + bgm_manifest.csv
