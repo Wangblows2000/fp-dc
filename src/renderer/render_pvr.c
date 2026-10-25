@@ -14,11 +14,17 @@ void r_set_letterbox(int on) { (void)on; }
 /* Presentation (SV.letterbox, Options > SCREEN SIZE). The logical view stays 426x240 either way:
  *  on : x1.5 both ways -> 639x360, centred, opaque bars 60 px top and bottom (16:9 picture on a 4:3 frame);
  *  off: x1.5 across, x2 down -> 639x480 (fills the 4:3 frame; integer vertical scale). D-025. */
-static float SX = 1.5f, SY = 1.5f, OFF_X = 0.5f, OFF_Y = 60.0f;
+/* Sub-pixel offsets (session 16): logical coordinates are integers, so with x1.5 / x2 every quad edge lands on a
+ * whole or half screen pixel. On the hardware the PVR then samples exactly on a texture's first texel row/column edge
+ * and can take the texel before it (the atlas neighbour / transparent padding): a 1 px gap along tile tops (vertical
+ * offset was 0; the old horizontal 0.5 only moved even-x edges off the sample points). A 0.25 px offset on both axes
+ * keeps every edge between sample points for either sampling convention (pixel corners or centres); shared tile edges
+ * stay identical, so tiling stays watertight. */
+static float SX = 1.5f, SY = 1.5f, OFF_X = 0.25f, OFF_Y = 60.25f;
 static int letterbox = 1;
 void r_set_letterbox(int on) {
     letterbox = on ? 1 : 0;
-    SY = on ? 1.5f : 2.0f; OFF_Y = on ? 60.0f : 0.0f;
+    SY = on ? 1.5f : 2.0f; OFF_Y = on ? 60.25f : 0.25f;
 }
 #endif
 
@@ -196,8 +202,8 @@ static void bars(void) {          /* letterbox: opaque black over anything drawn
     if (!letterbox) return;
     if (cur_hdr != -1) { pvr_prim(in_tr ? &col_hdr_tr : &col_hdr, sizeof col_hdr); cur_hdr = -1; }
     zc += 1.0f;                    /* above every sprite of this list */
-    quad(0, 0, 640, OFF_Y, 0, 0, 0, 0, 0xff000000);
-    quad(0, OFF_Y + 240 * SY, 640, 480, 0, 0, 0, 0, 0xff000000);
+    quad(0, 0, 640, 60, 0, 0, 0, 0, 0xff000000);
+    quad(0, 60 + 240 * SY, 640, 480, 0, 0, 0, 0, 0xff000000);
 }
 
 void r_sprite(const tex_t *t, int u, int v, int uw, int vh, float x, float y, float w, float h, int flip, uint32_t argb) {
