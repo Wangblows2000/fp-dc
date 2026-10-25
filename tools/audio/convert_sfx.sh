@@ -18,7 +18,10 @@ conv() {  # src dst
   "$HERE/wav2adpcm" -t "$TMP/x.wav" "$2" > /dev/null
   echo "$(basename "$2" .wav),$(basename "$1"),$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$1"),$(stat -c %s "$2")" >> "$OUT/sfx_manifest.csv"
 }
-for i in $IDS; do conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; done
+# Relic Maze stage set (D-047 stage sounds): converted at half rate so the set fits sound RAM next to Milla's group and the
+# music stream (session 14: 380 KB at 22 kHz did not leave the stream's 64 KB buffer; snd_sfx_load also needs <= 65534 samples)
+LOW=" 54 55 59 60 62 67 68 70 73 75 77 96 99 101 110 111 135 149 213 219 260 262 306 312 426 "
+for i in $IDS; do case "$LOW" in *" $i "*) R0=$RATE; RATE=11025; conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; RATE=$R0;; *) conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav";; esac; done
 for v in "$VOX"/eng/li/lilac_*.ogg; do conv "$v" "$OUT/$(basename "$v" .ogg).wav"; done
 rm -rf "$TMP"
 awk -F, 'NR>1{s+=$4} END {printf "%d sounds, %.1f KB\n", NR-1, s/1024}' "$OUT/sfx_manifest.csv"

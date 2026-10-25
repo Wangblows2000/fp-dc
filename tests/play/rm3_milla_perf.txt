@@ -1,0 +1,3 @@
+CHAR 4
+LEVEL rm3
+60 900 R
