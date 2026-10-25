@@ -304,6 +304,12 @@ enum { OT_MT_FIRST = 450, OT_MT_STONE = 450, OT_MT_SPADE = 451, OT_MT_HOOK = 452
        OT_MT_HEAD = 471, OT_MT_HEAD2 = 472, OT_MT_HEAD3 = 473, OT_MT_ARM6 = 474, OT_MT_ARM3 = 475, OT_MT_HIT1 = 476, OT_MT_HIT2 = 477,
        OT_MT_WARN = 478, OT_MT_DEBRIS = 479, OT_MT_SLASH = 480, OT_MT_CHOMP = 481, OT_MT_RUIN = 482, OT_MT_RPIECE = 483 /* runtime 479-483 */,
        OT_MT_LAST = 483 };
+/* Fortune Night enemies (fn_enemy.c, build/re/spec_fn_enemies.md): block 512-559 (runtime children 540+) */
+enum { OT_FN_E_FIRST = 512, OT_FN_COIL = 512, OT_FN_COILHEAD = 513, OT_FN_COILP1 = 514, OT_FN_COILP2 = 515, OT_FN_COILP3 = 516,
+       OT_FN_COILP4 = 517, OT_FN_COILFLIP = 518, OT_FN_TPOLE = 519, OT_FN_TLIGHT1 = 520, OT_FN_TLIGHT2 = 521, OT_FN_TLIGHT3 = 522,
+       OT_FN_STURRET = 523, OT_FN_FCANNON = 524, OT_FN_ROLLER = 525, OT_FN_SHELL = 526, OT_FN_DUSTER = 527, OT_FN_DARM2 = 528,
+       OT_FN_DARM1 = 529, OT_FN_DMOUTH = 530, OT_FN_BALLOON = 531, OT_FN_PIGEON = 532, OT_FN_FBURST = 533 /* EffectFlareBurst_1810 */,
+       OT_FN_LASER = 540, OT_FN_FLARE = 541, OT_FN_WAVE = 542 /* runtime */, OT_FN_E_LAST = 559 };
 
 #define MAX_ATLAS 4
 typedef struct {
@@ -650,6 +656,10 @@ obj_t *relic_shock_new(double x, double y, int dir, double speed);   /* HazardSh
 void   relic_act_point(const obj_t *o, double *x, double *y);        /* the current frame's action point, rotated with the object (relic_boss.c) */
 void   rm_mantalith_spawn(void), rm_mantalith_frame(player_t *p), rm_mantalith_draw(int front);   /* RM5 end (rm_mantalith.c) */
 int    rm_mantalith_obj(obj_t *o, player_t *p);
+/* src/game/fn_enemy.c (Fortune Night enemies, spec_fn_enemies.md): spawn, test_collisions handlers + 7282 / 7285 (before
+ * combat), per-object events, qualifier 20 membership */
+void   fn_enemy_spawn(void), fn_enemy_pre(player_t *p);
+int    fn_enemy_obj(obj_t *o, player_t *p), fn_enemy_q20(int type);
 void   results_begin_boss(int time_frames), results_script_input(uint32_t held), results_request_end(void);   /* results path 3 (any boss) */
 int    results_tally_done(void), results_frames(void);
 void   rock_at_new(float x, float y), rock_at_break(obj_t *r), rocks_at_frame(player_t *p);   /* EnemyRock (aqua_boss.c), shared */
@@ -684,6 +694,9 @@ typedef struct {
     int pad_bike_pop;                            /* jump pads (6092-6095): pop for MV.A != 2 (the bike too), the ride only for Carol on foot */
     int basement_y;                              /* the basement events (group 0x2250d, 6750) run while MV.Y > this (RM5 1608) */
 } rmgim_t;
+/* Fortune Night enemies (fn_enemy.c): per-act differences of the frames' own events (spec_fn_enemies 1.3 / 2.5 / 4.4 / 8);
+ * NULL = lasers and flares stop at walls, no coil flip line, the balloon drops a petal monitor */
+typedef struct { int coil_flip_y; signed char laser_nowall, flare_nowall, balloon_life; } fnenemy_t;
 typedef struct {
     const char *dir; int frame, stage, act, nacts;   /* data dir, original frame index, stage record index (Time Attack icon E), act n of nacts */
     const char *music, *music_cp;                    /* stage music; after checkpoint g4 >= 10 (AT2 after the Chomper) */
@@ -725,6 +738,7 @@ typedef struct {
     int nobike;                                      /* RM3 6198: Carol (MV.A = 3) enters without the bike (g1 = 2) */
     int door_skip_ach;                               /* session 16: achievement for entering the zone right of the SwitchDoor while it is closed (DV2 5098 / 5099: 18) */
     int monitor_hop;                                 /* 2605: a monitor hops when bumped from below (D-051: AT only, DV keeps its traced behaviour) */                     /* switches.c: pressure-plate rule (0 DV 4971-4973, 1 AT1 4093-4096), pass after the movement */
+    const fnenemy_t *fne;                            /* Fortune Night enemies' per-act rules (fn_enemy.c); NULL: defaults */
 } level_def_t;
 const level_def_t *level_def(const char *dir), *level_cur(void);
 const char *level_first_of_stage(int stage), *level_next(const char *dir), *level_route_start(int character), *level_route_next(int stage);
