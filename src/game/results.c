@@ -6,7 +6,9 @@
  * move into the file total (4580-4584, sounds 15/16), D = 150 hides everything and saves (5394/5395), the wipe
  * (5382/5383, sound 56) ends the stage 51 frames later (5385).
  * Path B (5381): Lilac passes the right edge first -> she keeps running right (5388) and the wipe follows D = 150.
- * Path A (5576): the boss exit starts it; the wipe runs when Lilac passes the right edge after D = 150 (5382). */
+ * Path A (5576): the boss exit starts it; the wipe runs when Lilac passes the right edge after D = 150 (5382).
+ * Path 3 (results_begin_boss, e.g. RM5 7083 Sign.B = 179): any boss starts it with its own stopped time; no wipe: the
+ * boss's post-results script moves the player (results_script_input) and ends the stage (results_request_end). */
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -19,6 +21,7 @@ static struct {
     int bonus1, bonus2, total, time_frames, tally_snd;
     int wipe, wipe_f; float wipe_x;
     int saved;
+    int end_req; uint32_t s_held, s_prev;   /* path 3: stage end requested by the boss script; its scripted input */
 } R;
 
 void results_reset(void) { memset(&R, 0, sizeof R); snap_register(&R, sizeof R); }
@@ -33,6 +36,13 @@ void results_begin(int pathB) {
     if (pathB == 2 && aqua_snake_kill_frame >= 0) R.time_frames = aqua_snake_kill_frame;   /* AT4: 4641 stopped the timer at the kill */
     R.bonus2 = G.keystones;
 }
+/* generic boss results (path 3): Sign.B = 179 like AT4's snake, the stage time stopped at time_frames (the boss's
+ * timer-off frames left out), no wipe after D = 150 */
+void results_begin_boss(int time_frames) { if (R.on) return; results_begin(3); R.time_frames = time_frames; }
+int  results_tally_done(void) { return R.on && R.svD >= 150; }                       /* D = 150: saved, panels hidden */
+int  results_frames(void) { return R.on ? R.t : -1; }                                 /* frames since the results started */
+void results_script_input(uint32_t held) { R.s_held = held; }                        /* path 3: CTRL.D / jump of the boss script */
+void results_request_end(void) { if (R.on) R.end_req = 1; }                          /* path 3: next frame (frame 8) */
 
 static int frames_of(const char *nm) { int a = bank_anim(&G.objs, nm); return a < 0 ? 0 : G.objs.anims[a].count; }
 static void imgc(const char *nm, int frame, float x, float y, uint32_t argb);
@@ -57,10 +67,19 @@ input_t results_input(const input_t *in) {
     (void)in;
     if (!R.on) return *in;
     if (R.pathB == 2) return none;                                       /* AT4 (4564 / 4588-4592): moved by results_update */
+    if (R.pathB == 3) { none.held = R.s_held; none.pressed = R.s_held & ~R.s_prev; none.released = R.s_prev & ~R.s_held; R.s_prev = R.s_held; return none; }
     if (R.pathB || R.wipe) { none.held = BTN_RIGHT; }                     /* 5388 CTRL.D = 1; wipe keeps her running */
     return none;                                                         /* 4561 CTRL.M = 1 (input locked) */
 }
 
+static int stage_end(void) {
+    int ta = G.time_attack;
+    R.on = 0;
+    music_stop();
+    if (!ta && game_next_stage()) return 1;                                    /* Classic: frame 8 routes to the next stage (DV / AT -> RM) */
+    fe_enter_from_stage(ta);
+    return 1;
+}
 /* after the gameplay update */
 int results_update(player_t *p) {
     if (!R.on) {
@@ -127,20 +146,14 @@ int results_update(player_t *p) {
             }
         }
     }
+    if (R.end_req) return stage_end();                                       /* path 3: the boss script's fade ended */
     /* 5382 / 5383 wipe: path B at D >= 150; path A when Lilac passes the right edge afterwards */
-    if (!R.wipe && R.pathB != 2 && R.svD >= 150 && (R.pathB || p->x > G.lvl.w - 50)) {
+    if (!R.wipe && R.pathB != 2 && R.pathB != 3 && R.svD >= 150 && (R.pathB || p->x > G.lvl.w - 50)) {
         R.wipe = 1; R.wipe_f = 0; R.wipe_x = -(SCREEN_W + 120); snd_play_orig(56, 230, 128);
     }
     if (R.wipe) {
         R.wipe_x = R.wipe_x + 32 > 0 ? 0 : R.wipe_x + 32;                     /* 5384 */
-        if (++R.wipe_f > 50) {                                                /* 5385: next frame (stage card / unlocks: not ported) */
-            int ta = G.time_attack;
-            R.on = 0;
-            music_stop();
-            if (!ta && game_next_stage()) return 1;                            /* Classic: frame 8 routes to the next stage (DV / AT -> RM) */
-            fe_enter_from_stage(ta);
-            return 1;
-        }
+        if (++R.wipe_f > 50) return stage_end();                              /* 5385: next frame (stage card / unlocks: not ported) */
     }
     return 0;
 }

@@ -282,7 +282,24 @@ uint32_t prof_acc[PS_N], prof_max[PS_N];
 static const char *VOICES[] = { "lilac_attack0", "lilac_attack1", "lilac_attack2", "lilac_attack3", "lilac_uppercut0",
     "lilac_uppercut1", "lilac_uppercut2", "lilac_uppercut3", "lilac_cyclone1", "lilac_cyclone2", "lilac_hurt0",
     "lilac_hurt1", "lilac_hurt2", "lilac_hurt3", "lilac_die", "lilac_cantmoveit" };
-static int voice_handle[16];
+#define NVOICES (int)(sizeof VOICES / sizeof VOICES[0])
+static int voice_handle[NVOICES];
+/* voices heard once per stage (stage-clear lines, RM5 6589-6592): loaded on demand into two rotating slots instead of
+ * staying resident with the character's set (sound RAM, D-047); the older slot is freed when a third one loads */
+static int vod_handle[2] = { -1, -1 }, vod_next;
+void voice_play_once(const char *name) {
+    char nm[48];
+#ifdef FP_HOST_ENV
+    if (getenv("FP_TRACE_SID")) printf("voice %s\n", name);
+#endif
+    if (!name) { for (int k = 0; k < 2; k++) if (vod_handle[k] >= 0) { snd_unload(vod_handle[k]); vod_handle[k] = -1; } return; }   /* NULL: free both */
+    if (!*name) return;
+    if (vod_handle[vod_next] >= 0) snd_unload(vod_handle[vod_next]);
+    snprintf(nm, sizeof nm, "sfx/%s.wav", name);
+    vod_handle[vod_next] = snd_load(nm);
+    if (vod_handle[vod_next] >= 0) snd_play(vod_handle[vod_next], 255, 128);
+    vod_next ^= 1;
+}
 
 void snd_play_orig(int id, int vol, int pan) {
 #ifdef FP_HOST_ENV
@@ -295,9 +312,9 @@ void snd_group_load(int who) {       /* 0 Lilac (+ voices), 1 Carol, 2 Milla */
     static const int *const GR[3] = { SND_LILAC, SND_CAROL, SND_MILLA };
     static const int GN[3] = { sizeof SND_LILAC / sizeof *SND_LILAC, sizeof SND_CAROL / sizeof *SND_CAROL, sizeof SND_MILLA / sizeof *SND_MILLA };
     for (int g = 0; g < 3; g++) if (g != who) for (int i = 0; i < GN[g]; i++) if (snd_handle[GR[g][i]] >= 0) { snd_unload(snd_handle[GR[g][i]]); snd_handle[GR[g][i]] = -1; }
-    if (who) for (int i = 0; i < (int)(sizeof VOICES / sizeof VOICES[0]); i++) if (voice_handle[i] >= 0) { snd_unload(voice_handle[i]); voice_handle[i] = -1; }
+    if (who) for (int i = 0; i < NVOICES; i++) if (voice_handle[i] >= 0) { snd_unload(voice_handle[i]); voice_handle[i] = -1; }
     for (int i = 0; i < GN[who]; i++) if (snd_handle[GR[who][i]] < 0) { snprintf(nm, sizeof nm, "sfx/s%d.wav", GR[who][i]); snd_handle[GR[who][i]] = snd_load(nm); loading_tick(); }
-    if (!who) for (int i = 0; i < (int)(sizeof VOICES / sizeof VOICES[0]); i++) if (voice_handle[i] < 0) { snprintf(nm, sizeof nm, "sfx/%s.wav", VOICES[i]); voice_handle[i] = snd_load(nm); loading_tick(); }
+    if (!who) for (int i = 0; i < NVOICES; i++) if (voice_handle[i] < 0) { snprintf(nm, sizeof nm, "sfx/%s.wav", VOICES[i]); voice_handle[i] = snd_load(nm); loading_tick(); }
     snd_group = who;
     G.sfx.attack = snd_handle[21];
     plat_log("sound set %s, sound RAM largest free block %d KB\n", who == 1 ? "carol" : who == 2 ? "milla" : "lilac", snd_mem_free_kb());
@@ -311,7 +328,7 @@ int snd_loop_orig(int id, int vol, int freq) {
 void snd_loop_update(int ch, int vol, int freq) { snd_loop_set(ch, vol, freq); }
 void snd_loop_stop(int ch) { snd_loop_end(ch); }
 void voice_play(const char *name) {
-    for (int i = 0; i < (int)(sizeof VOICES / sizeof VOICES[0]); i++)
+    for (int i = 0; i < NVOICES; i++)
         if (!strcmp(VOICES[i], name)) { if (voice_handle[i] >= 0) snd_play(voice_handle[i], 255, 128); return; }
 }
 
@@ -335,7 +352,7 @@ int game_init(void) {
             in_group(SND_MILLA, sizeof SND_MILLA / sizeof *SND_MILLA, id)) continue;
         snprintf(nm, sizeof nm, "sfx/s%d.wav", id); snd_handle[id] = snd_load(nm); loading_tick();
     }
-    for (int i = 0; i < 16; i++) voice_handle[i] = -1;
+    for (int i = 0; i < NVOICES; i++) voice_handle[i] = -1;
     snd_group_load(0);                             /* Lilac's set (the front end starts on her) */
     loading_end(); lp_end();
     /* legacy handles used by gameplay code, now mapped to the original sound IDs */
@@ -914,6 +931,7 @@ void game_draw(void) {
     objects_draw(2);
     draw_pieces(4, 7);
     relic_gima_draw_overlay();                    /* RM2 basement darkness (5997, BasementLight on layer 5) */
+    rm_mantalith_draw(0);                         /* RM5 end: light rays, hook line, ground cuts (rm_mantalith.c) */
     hud_draw();
     water_draw_hud();
     serp_draw_hud();
@@ -922,6 +940,7 @@ void game_draw(void) {
     results_draw();
     card_draw();
     pause_draw();
+    rm_mantalith_draw(1);                         /* RM5 end: its LevelCardFade flashes / fades (rm_mantalith.c) */
     if (G.clear_t) r_fade(G.clear_t / 255.f);     /* act end: fade object alpha (RE 3310) */
     if (G.act_in && G.act_fade) r_fade(G.act_fade / 255.f);   /* act start: fade from black (RE 4526) */
     r_end();

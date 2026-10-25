@@ -447,6 +447,7 @@ void relic_spawn(void) {
 void relic_frame(player_t *p) {
     relic_gima_post(p);                                                         /* acts 1-2 gimmicks (relic_gima.c) */
     rmboss_frame(p);                                                            /* golems (relic_boss.c), after the shared combat rules */
+    rm_mantalith_frame(p);                                                      /* RM5 end: Kingdom Stone scene, Mantalith, post-results (rm_mantalith.c) */
     if (!objects_have_from(OT_IRIS) && !objects_have(OT_ROCK_AT)) return;
     rocks_at_frame(p);                                                          /* 4230-4232 (extractor rocks) */
     if (G.act_in && level_cur()->walkin_purge)                                  /* RM1 5826 (spec_rm_enemies 1.6: those fully in view) */
@@ -462,6 +463,7 @@ void relic_frame(player_t *p) {
 }
 int relic_obj_update(obj_t *o, player_t *p) {
     if (o->type >= OT_GEYE && o->type <= OT_CAMLIM_B) return rmboss_obj(o, p);
+    if (o->type >= OT_MT_FIRST && o->type <= OT_MT_LAST) return rm_mantalith_obj(o, p);
     if (o->type >= OT_RAIL2 && o->type <= OT_LL1L02) return relic_gima_obj(o, p);
     if (o->type > OT_LL1L02) return 0;
     switch (o->type) {

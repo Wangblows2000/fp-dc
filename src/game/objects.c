@@ -96,6 +96,7 @@ void objects_spawn(void) {
     rmboss_spawn();
     relic_gimb_spawn();                           /* Relic Maze acts 3-5 gimmicks (src/game/relic_gimb.c) */
     rm_claw_spawn();                              /* RM3 Claw sequence (src/game/rm_claw.c) */
+    rm_mantalith_spawn();                         /* RM5 end (rm_mantalith.c) */
     wlogs_spawn(); dv3_switch_spawn(); switches_spawn(); tunnels_reset(); shields_reset(); water_reset();
     /* 3566 / 3567: 12 logs per bridge at (bx + 16k, by + 56), A = k, B = base y */
     int nb = G.nobjs;

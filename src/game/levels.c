@@ -76,7 +76,8 @@ static const warp_t WARPS_RM5[] = { { -32768, 79, -32768, 1096, -1, 1024, 1816, 
                                     { -32768, 79, 1095, 32767, -1, 704, 920, -1, -3, -3, 704 },      /* 6731 + 6735 */
                                     { 654, 900, 840, 1096, 1, 0, 1432, 1, 3, -2, 0 },                 /* 6740 (the fade trigger for a right exit INFERRED: B > 0) */
                                     { 974, 32767, 1608, 1864, 1, 0, 920, 1, 3, -2, 0 } };             /* 6743 */
-static const short SFX_RM[] = { 54, 55, 59, 60, 62, 67, 68, 70, 73, 75, 77, 96, 99, 101, 110, 111, 135, 149, 213, 219, 260, 262, 306, 312, 426 };   /* not in the global set (D-047): enemies, gimmicks, flow */
+static const short SFX_RM[] = { 54, 55, 59, 60, 62, 67, 68, 70, 73, 75, 77, 96, 99, 101, 110, 111, 135, 149, 213, 219, 260, 262, 306, 312, 426,   /* not in the global set (D-047): enemies, gimmicks, flow */
+                                132, 134, 146, 148, 151, 152 };   /* RM5 Mantalith (rm_mantalith.c), 11025 Hz: 147 / 214 / 215 left out (sound RAM) */
 /* Relic Maze acts 3-5 gimmicks (relic_gimb.c, spec_rm_gimmicks_b): moving-pillar zones (RE 6379-6385 / 6527-6531: box origin
  * in [x0, x1) x [y0, y1) -> travel C), jump pads (6096-6101 / 6429 / 6430 / 6570-6576; index = spread index, newest first;
  * RM3 pads 0-7 belong to the Claw chase, pads with x > 10400 show anim 7; RM4: no lit start pad, U8), door return, basement */
@@ -111,8 +112,8 @@ static const level_def_t LEVELS[] = {
     { AT("at3", 18, 3, "bgm/m_stage0b.adp"), .card_first = 27, .exit_max_y = 380, .pipe_auto_y = 2900, .cam_right = 856 + 213 },
     { AT("at4", 19, 4, "bgm/m_stage0b.adp"), .card_first = 28, .water = 1480, .cps = CP_AT4, .ncps = N_(CP_AT4), .boss_cam = &CAM_AT4, .cam_right = 7424 + 213 },
     /* Relic Maze: frame index 24-28 (spec_rm_flow; music m_stage2, RM3 m_stage2b after its g4 = 10 checkpoint, RM4-RM5
-     * m_stage2b), cards 11 / 14 / 17 / 18 / 20, no water. RM5's Mantalith and its results are not ported yet: the act's
-     * right edge ends the stage. */
+     * m_stage2b), cards 11 / 14 / 17 / 18 / 20, no water. RM5 ends with the Mantalith (rm_mantalith.c, spec_rm_mantalith):
+     * the boss starts the results (7083) and its post-results script ends the stage (7097). */
     { RM("rm1", 24, 1, "bgm/m_stage2.adp"), .card_first = 11, .exits = EX_RM1, .nexits = N_(EX_RM1), .entries = EN_RM1, .nentries = N_(EN_RM1),
       .cps = CP_RM1, .ncps = N_(CP_RM1), .flag1_y = 340, .crystals_once = 1, .wplate_cyclone = 1, .walkin_purge = 1, .gates = GATES_RM1, .ngates = N_(GATES_RM1),
       .dig_zones = DIGZ_RM1, .ndig_zones = N_(DIGZ_RM1), .dig_rewards = DIGR_RM1, .ndig_rewards = N_(DIGR_RM1) },
@@ -123,7 +124,7 @@ static const level_def_t LEVELS[] = {
       .entries = EN_RM3, .nentries = N_(EN_RM3), .cps = CP_RM3, .ncps = N_(CP_RM3), .cam_right = 12288 + 50,
       .rmg = &RMG_RM3, .pads = PADS_RM3, .npads = N_(PADS_RM3), .nobike = 1 },
     { RM("rm4", 27, 4, "bgm/m_stage2b.adp"), .card_first = 18, .cps = CP_RM4, .ncps = N_(CP_RM4), .rmg = &RMG_RM4, .pads = PADS_RM4, .npads = N_(PADS_RM4) },
-    { RM("rm5", 28, 5, "bgm/m_stage2b.adp"), .card_first = 20, .entries = EN_RM5, .nentries = N_(EN_RM5), .cam_right = 9600 + 50, .edge_results = 1,
+    { RM("rm5", 28, 5, "bgm/m_stage2b.adp"), .card_first = 20, .entries = EN_RM5, .nentries = N_(EN_RM5), .cam_right = 9600 + 50,
       .rmg = &RMG_RM5, .pads = PADS_RM5, .npads = N_(PADS_RM5), .rooms = ROOMS_RM5, .nrooms = N_(ROOMS_RM5), .warps = WARPS_RM5, .nwarps = N_(WARPS_RM5) },
 };
 static const level_def_t DEFAULT = { .dir = "", .frame = -1, .stage = -1, .act = 1, .nacts = 1, .music = "bgm/m_stage1.adp" };
