@@ -18,7 +18,7 @@
 #define FT0 OT_FNB_FIRST
 #define NRT (OT_FNB_LAST - OT_FNB_FIRST + 2)          /* + the rope stop (OT_FN_ROPEEND, a type of the acts 1-3 block) */
 #define LMAX 240                                      /* the A5 carousel places 228 pieces */
-#define TIX(t) ((t) == OT_FN_ROPEEND ? NRT - 1 : (t) - FT0)
+#define TIX(t) ((int)(t) == (int)OT_FN_ROPEEND ? NRT - 1 : (int)(t) - FT0)
 static short LST[NRT][LMAX]; static short NLS[NRT];
 #define N(T) NLS[TIX(T)]
 #define EACH(T, OB) for (int _k = 0; _k < NLS[TIX(T)]; _k++) if (((OB) = &G.o[LST[TIX(T)][_k]])->alive && (OB)->type == (T))
