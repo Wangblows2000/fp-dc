@@ -410,6 +410,37 @@ ENGINE_TYPES.update(CLAW_TYPES); ENGINE_TYPES_ID.update(CLAW_TYPES_ID); ENS += C
 for _k, _v in CLAW_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v
 
 for _k, _v in MT_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # RM5 end (rm_mantalith.c)
+# ---- FN_ENEMIES: Fortune Night enemies (spec_fn_enemies.md 13; src/game/fn_enemy.c), engine types 512-559 (fp.h FN enemy
+# block). Facing sets: '' direction 0, '_l' 16. A 6th element = rows exported only when one of those classes is placed
+# (the keystone directions and debris frames of the FN crashes: other stages' banks stay unchanged)
+FN_ENEMY_TYPES = {'enemycoil': 512, 'enemycoilhead': 513, 'enemycoilpiece1': 514, 'enemycoilpiece2': 515, 'enemycoilpiece3': 516,
+    'enemycoilpiece4': 517, 'enemycoilflip': 518, 'enemytrafficle': 519, 'enemytrafficle1': 520, 'enemytrafficle2': 521, 'enemytrafficle3': 522,
+    'enemysuperturretus': 523, 'enemyflarecannon': 524, 'enemyroller': 525, 'enemyghettoshell': 526, 'enemyduster': 527, 'enemydusterarm2': 528,
+    'enemydusterarm1': 529, 'enemydustermouth': 530, 'enemyballoon': 531, 'pigeon': 532, 'effectflareburst': 533}
+FN_ENEMY_KS = ('enemycoilhead', 'enemysuperturretus', 'enemyflarecannon')
+FN_ENEMY_ENS = [(c, a, '0', nm) for c, a, nm in (
+    ('enemycoil_1742', 0, 'fc_base'), ('enemycoilhead_1743', 0, 'fc_head'), ('enemycoilhead_1743', 7, 'fc_zap'), ('enemycoilhead_1743', 8, 'fc_chg'),
+    ('enemycoilhead_1743', 10, 'fc_post'), ('enemycoilhead_1743', 11, 'fc_hdead'), ('enemycoilpiece1_1738', 0, 'fc_p1'), ('enemycoilpiece2_1740', 0, 'fc_p2'),
+    ('enemycoilpiece3_1739', 0, 'fc_p3'), ('enemycoilpiece4_1741', 0, 'fc_p4'), ('enemycoilflip_1759', 0, 'fc_flip'), ('enemytrafficle_1760', 0, 'ft_pole'),
+    ('enemyflarecannon_1808', 0, 'fk_idle'), ('enemyflarecannon_1808', 7, 'fk_fire'), ('enemyflarecannon_1808', 8, 'fk_dead'), ('enemyflare_1809', 0, 'fk_flare'),
+    ('enemyflare_1809', 7, 'fk_fall'), ('enemyflare_1809', 8, 'fk_blast'), ('effectflareburst_1810', 4, 'fk_burst'), ('enemyduster_1938', 0, 'du_body'),
+    ('enemydusterarm2_1935', 0, 'du_arm2'), ('enemydusterarm1_1936', 0, 'du_arm1'), ('enemydustermouth_1937', 0, 'du_mouth'),
+    ('enemyballoon_1945', 0, 'bl_float'), ('enemyballoon_1945', 8, 'bl_pop'))] + \
+    [(c, a, d, nm + ('' if d == '0' else '_l')) for c, a, nm in (
+    ('enemytrafficle1_1761', 0, 'ft_l1'), ('enemytrafficle2_1762', 0, 'ft_l2'), ('enemytrafficle3_1763', 0, 'ft_l3'), ('enemysuperturretus_1833', 0, 'st_fly'),
+    ('enemysuperturretus_1833', 7, 'st_shoot'), ('enemysuperturretus_1833', 8, 'st_dead'), ('enemysuperturretus_1833', 10, 'st_brake'),
+    ('enemyroller_1934', 0, 'ro_idle'), ('enemyroller_1934', 1, 'ro_roll'), ('enemyroller_1934', 7, 'ro_jump'), ('enemyroller_1934', 8, 'ro_dead'),
+    ('enemyroller_1934', 10, 'ro_land'), ('enemyghettoshell_1988', 0, 'gs_idle'), ('enemyghettoshell_1988', 8, 'gs_dead'), ('enemyghettoshell_1988', 10, 'gs_blast'),
+    ('enemysoundwave_1989', 0, 'gs_wave'), ('pigeon_1641', 0, 'pg_sit'), ('pigeon_1641', 1, 'pg_fly'), ('pigeon_1641', 7, 'pg_peck')) for d in ('0', '16')] + \
+    [('enemytrafficle%d_%d' % (k, 1760 + k), 8, '0', 'ft_l%d_dead' % k) for k in (1, 2, 3)] + [('enemylaser_1781', 0, d, 'ft_laser' + d) for d in ('0', '1', '2')] + \
+    [('pigeon_1641', 7, d, 'pg_peck' + d) for d in ('1', '17')] + [('objectkeystone_429', 0, d, 'keystone' + d, None, (c,)) for d, c in (('2', 'enemycoilhead'), ('3', 'enemyflarecannon'), ('4', 'enemysuperturretus'))] + \
+    [('effectsdebris_427', 0, '0', 'debris_fnh', slice(41, 45), ('enemycoilhead',)), ('effectsdebris_427', 0, '0', 'debris_fns', slice(57, 61), ('enemyghettoshell',))]
+FN_ENEMY_ENS_WITH = {'enemylaser_1781': ('enemytrafficle1', 'enemytrafficle2', 'enemytrafficle3'), 'enemyflare_1809': ('enemyflarecannon',),
+    'effectflareburst_1810': ('enemyflarecannon',), 'enemysoundwave_1989': ('enemyghettoshell',), 'objectkeystone_429': FN_ENEMY_KS + ('enemyghettoshell',),
+    'effectsdebris_427': FN_ENEMY_KS + ('enemyghettoshell',), 'effectsexplosion06_435': ('enemyghettoshell', 'enemyduster'),
+    'effectshade_436': ('enemytrafficle1', 'enemytrafficle2', 'enemytrafficle3', 'enemyroller')}
+ENGINE_TYPES.update(FN_ENEMY_TYPES); ENS += FN_ENEMY_ENS   # FN_ENEMIES
+for _k, _v in FN_ENEMY_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # FN_ENEMIES
 ENS_ONLY_WITH = {'guiweaponslot_426', 'effectswatersplash_379', 'bubblepatch_804', 'mediumbubble_805', 'generalwaterhorizon_377', 'bubblenumbers_405', 'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 # classes whose untrimmed image box matters (spring top edges RV, box-collision platforms/logs, invisible
 # sensors): their images are never cropped. Everything else in the object bank is cropped to its opaque pixels.
@@ -761,6 +792,7 @@ def main():
     for e in ENS:
         cls, ai, dk, nm = e[:4]
         if cls in ENS_FRAMES and n not in ENS_FRAMES[cls]: continue
+        if len(e) > 5 and not any(w in placed for w in e[5]): continue   # rows tied to their creators (FN_ENEMIES)
         base = cls.rsplit('_', 1)[0]
         if cls in ENS_ONLY_WITH:                     # off-map templates do not count (shields: only with an on-map shield monitor)
             if not any(w in placed for w in ENS_WITH.get(cls, ())): continue
@@ -775,7 +807,7 @@ def main():
                 except (KeyError, IndexError, TypeError): pass
         try: d = an[cls]['anims'][ai][dk]
         except (KeyError, IndexError, TypeError): report.append('  ens: missing %s anim %d dir %s' % (cls, ai, dk)); continue
-        fr_ = d['frames'][e[4]] if len(e) > 4 else d['frames']
+        fr_ = d['frames'][e[4]] if len(e) > 4 and e[4] is not None else d['frames']
         ens['anims'].append({'name': nm, 'frames': fr_, 'speed': d['max_speed'], 'loop': d['loop'], 'back_to': d['back_to']})
     if ens['anims']: write_bank2(src, ens, out, report)
     report.append('ens bank: %s' % [a['name'] for a in ens['anims']])
