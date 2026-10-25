@@ -136,7 +136,9 @@ int enemy_type(int t) {
     return t == OT_GANSEKI || t == OT_TURRETUS || t == OT_DRAGONFLY || t == OT_FLOUNDER || t == OT_CACTEON || t == OT_SPOREPOD ||
            t == OT_WR_WEAK || t == OT_TD_BODY || t == OT_SNAKE_BODY || t == OT_SNAKE_HIT || t == OT_BBOULDER ||
            t == OT_FIREFLY || t == OT_SLIME ||   /* Aqua Tunnel Q20 (spec_at_enemies) */
-           t == OT_IW_HEADF || t == OT_CH_BALL;   /* Iron Worm head (from 4206), Chomper lure (spec_ironworm / spec_chomper) */
+           t == OT_IW_HEADF || t == OT_CH_BALL ||   /* Iron Worm head (from 4206), Chomper lure (spec_ironworm / spec_chomper) */
+           t == OT_IRIS || t == OT_SLUG || t == OT_HOPPER || t == OT_FSPITTER || t == OT_SENTINEL || t == OT_EXHEAD ||
+           t == OT_POT || t == OT_BLUEPOT;          /* Relic Maze Q20 (spec_rm_enemies 0: pots take every shared hit) */
 }
 static int candidates[MAX_OBJS], ncand;
 
@@ -203,10 +205,10 @@ static int any_body_overlap(const player_t *p) {     /* 2761: any of the big dis
 
 /* landing explosion (Ganseki 4390, Dragonfly 4807; Turretus 4776 adds the keystone and debris, sound 29) */
 static void corpse_land(obj_t *o) {
-    if (o->type == OT_TURRETUS || o->type == OT_SPOREPOD) {      /* 4776 / 4997: keystone + explosion + debris, sound 29 */
+    if (o->type == OT_TURRETUS || o->type == OT_SPOREPOD || o->type == OT_HOPPER || o->type == OT_FSPITTER || o->type == OT_SENTINEL) {   /* 4776 / 4997 (RM 5732 / 6173, 6191 / 6465, 6460-6463): keystone + explosion + debris, sound 29 */
         snd_play_orig(29, 220, 128); obj_effect(o->x, o->y, "explosion");
         keystone_spawn(o->x, o->y, 0, 0);                        /* ObjectKeystone_429 at the corpse (spec_keystones 2.1) */
-        if (o->type == OT_SPOREPOD) for (int k = 0; k < 4; k++) {
+        if (o->type != OT_TURRETUS) for (int k = 0; k < 4; k++) {
             obj_t *d = obj_alloc(); int a = ens_anim("debris");
             if (!d || a < 0) break;
             d->type = OT_DEBRIS; d->alive = 1; d->x = o->x; d->y = o->y; anim_set(&d->an, &G.ens, a); d->an.frame = 10 - k;
@@ -327,7 +329,7 @@ void combat_frame(player_t *p) {
         if ((!(o->fl & F_DEFEATED) && o->c == 1) || (o->fl & F_DEFEATED)) o->inv = 0;           /* 2763 */
         if (o->A <= 0 && !(o->fl & F_DEFEATED)) {                                                /* 2764 */
             G.kills++;                   /* test/trace counter only (no counterpart in the original) */
-            snd_play_orig(23, 220, 128); o->fl |= F_DEFEATED; o->A = 0; o->ky -= 3; if (o->type != OT_FIREFLY && o->type != OT_SLIME && o->type != OT_IW_HEADF && o->type != OT_CH_BALL) o->st = o->type == OT_DRAGONFLY ? 5 : 3;   /* AT: their own 4111 / 4127 set D (the patrol still runs once, spec_at_enemies 1.5)*/
+            snd_play_orig(23, 220, 128); o->fl |= F_DEFEATED; o->A = 0; o->ky -= 3; if (o->type != OT_FIREFLY && o->type != OT_SLIME && o->type != OT_IW_HEADF && o->type != OT_CH_BALL && !relic_keeps_state(o->type)) o->st = o->type == OT_DRAGONFLY ? 5 : 3;   /* AT: their own 4111 / 4127 set D (the patrol still runs once, spec_at_enemies 1.5)*/
         }
         if ((o->fl & F_DEFEATED) && o->absorbed > 0) { o->absorbed--; obj_drop_crystal(o->x, o->y, o->absorbed); }   /* 2766 */
         if ((o->fl & F_DEFEATED) && (o->type == OT_TD_BODY || (o->fl & F_NOFLY))) continue;                             /* 5282: flag 16, no fly-away */
@@ -338,7 +340,8 @@ void combat_frame(player_t *p) {
             if (o->x < 0 || o->x > G.lvl.w || o->y > G.lvl.h || o->y < 0) { o->alive = 0; continue; }   /* 2767 */
             if ((o->type == OT_GANSEKI || o->type == OT_TURRETUS) && o->y > G.camy + 290) { o->alive = 0; continue; }   /* 4389 / 4777 */
             int lands = o->type == OT_GANSEKI || o->type == OT_TURRETUS || o->type == OT_DRAGONFLY || o->type == OT_FLOUNDER ||
-                        o->type == OT_CACTEON || o->type == OT_SPOREPOD || o->type == OT_FIREFLY || o->type == OT_SLIME;   /* classes with a landing event (AT 4113 / 4129) */
+                        o->type == OT_CACTEON || o->type == OT_SPOREPOD || o->type == OT_FIREFLY || o->type == OT_SLIME ||
+                        o->type == OT_IRIS || o->type == OT_SLUG || o->type == OT_HOPPER || o->type == OT_FSPITTER || o->type == OT_SENTINEL;   /* RM 5785 / 5765 (sound 50); the others keystone */   /* classes with a landing event (AT 4113 / 4129) */
             if (lands && o->ky > 0 && (obj_overlaps_bg(o) || solid_obj_overlap(o))) corpse_land(o);                        /* 4390 / 4776 / 4807 */
         }
     }

@@ -181,6 +181,7 @@ static void rock_new(float x, float y) {
     double sp = 50 - 10 + R(20), a = d * 11.25 / 57.29577951308232;
     r->vx = (float)(sp * cos(a)); r->vy = (float)(-sp * sin(a)); r->fx = r->fy = 0; r->tm = 0;
 }
+void rock_at_new(float x, float y) { rock_new(x, y); }   /* the Relic Maze extractors throw the same object (spec_rm_enemies 4.5) */
 static void rock_break(obj_t *r) { r->fl |= 1; set_anim_ens(r, "rock_break"); r->an.frame = 0; r->an.done = 0; r->scale = 1; r->vx = r->vy = 0; }
 static void rocks_frame(player_t *p) {
     for (int i = 0; i < G.nobjs; i++) {
@@ -205,6 +206,8 @@ static void rocks_frame(player_t *p) {
         if ((r->fl & 1) && !(r->fl & 2)) { r->fl |= 2; snd_play_orig(55, 220, 128); }      /* 4231 */
     }
 }
+void rock_at_break(obj_t *r) { rock_break(r); }
+void rocks_at_frame(player_t *p) { if (act() != 1) rocks_frame(p); }   /* other levels (AT1 runs it with the worm) */
 int aqua_worm_on_plate(const obj_t *pl) { return iw_head && iw_head->alive && iw_head->an.b && pl->an.b && obj_obj_hit(iw_head, pl); }   /* 4095 */
 static void iw_frame(player_t *p) {
     obj_t *h = iw_head;

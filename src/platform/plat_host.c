@@ -298,8 +298,8 @@ int main(int argc, char **argv) {
             while (sscanf(q, "%d:%d%n", &t, &x0, &nn) == 2) {
                 for (int i = 0; i < G.nobjs; i++) { const obj_t *o = &G.o[i];
                     if (o->alive && (o->type == t || (t == OT_IW_HEAD && o->type == OT_IW_HEADF)) && (x0 < 0 || (int)o->ox == x0))
-                        printf("ob %d %d %d x %.2f y %.2f st %d A %.2f dir %d an %d fr %d fl %x a0 %.3f a1 %.3f a2 %.3f a3 %.3f a4 %.3f fx %.2f fy %.2f bd %d\n", cur_frame, t, x0, o->x, o->y, o->st, o->A, o->dir,
-                               o->an.b ? o->an.anim : -1, o->an.frame, o->fl, o->av[0], o->av[1], o->av[2], o->av[3], o->av[4], o->fx, o->fy, o->bd); }
+                        printf("ob %d %d %d x %.2f y %.2f st %d A %.2f dir %d an %d fr %d fl %x a0 %.3f a1 %.3f a2 %.3f a3 %.3f a4 %.3f fx %.2f fy %.2f bd %d tm %d vx %.2f vy %.2f\n", cur_frame, t, x0, o->x, o->y, o->st, o->A, o->dir,
+                               o->an.b ? o->an.anim : -1, o->an.frame, o->fl, o->av[0], o->av[1], o->av[2], o->av[3], o->av[4], o->fx, o->fy, o->bd, o->tm, o->vx, o->vy); }
                 q += nn; if (*q == ',') q++; else break; } } }
         if (getenv("FP_DBG_ENEMY")) {             /* nearest enemy: A, C, knock-back, angle, flags */
             int bi = -1; float bd = 1e9f;

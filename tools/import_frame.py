@@ -77,6 +77,9 @@ ENGINE_TYPES = {
     'minibossironworm': 214, 'minibossironwormsegment': 215, 'minibossironwormbase': 216,   # spec_ironworm.md
     'minibosschomper': 217, 'minibosschompertail': 218, 'minibosschomperball': 219, 'minibosschompermouth': 220,   # spec_chomper.md
     'bosschompersnake': 221, 'bosschompersnakesegment': 222, 'bosschompersnakemouth': 223,   # spec_chompersnake.md
+    # Relic Maze enemies (session 14, spec_rm_enemies.md; src/game/relic.c)
+    'enemyiris': 232, 'enemyslug': 233, 'enemyhopper': 234, 'enemyfirespitter': 235, 'enemysentinel': 236,
+    'enemyextractorbase': 237, 'enemyextractorhead': 238, 'objectpot': 239, 'objectbluepot': 240,
     'waterfallback': 139, 'waterfallfront': 140, 'waterfallfront2': 141, 'waterfallfront3': 142, 'waterfallfront4': 143,   # EnemyGansekiJr_835 (RE build/re/spec_ganseki.md)     # LadderTop_428: invisible obstacle at the top of each ladder (RE spec_ladder.md)
 }
 
@@ -155,6 +158,28 @@ AT_ENS = [('objectdigspot_779', 0, '0', 'digspot'), ('guiweaponslot_426', 7, '0'
           ('bosschompersnakemouth_863', 0, '0', 'snm_close'), ('bosschompersnakemouth_863', 0, '1', 'snm_close1'),
           ('bosschompersnakemouth_863', 10, '0', 'snm_open'), ('bosschompersnakemouth_863', 10, '1', 'snm_open1'),
           ('bossbubblebomb_862', 0, '0', 'bub')]
+# Relic Maze enemies, pots and their children (spec_rm_enemies.md 10); facing sets: '' dir 0, '_l' dir 16
+RM_ENS = [('enemyiris_1191', a, '0', nm) for a, nm in ((0, 'ir_idle'), (1, 'ir_chase'), (8, 'ir_dead'), (9, 'ir_blink'), (10, 'ir_dive'), (11, 'ir_ret'))] + \
+    [('enemyslug_1190', a, d, nm + ('' if d == '0' else '_l')) for a, nm in ((0, 'sl_idle'), (1, 'sl_walk'), (8, 'sl_dead'), (10, 'sl_spit')) for d in ('0', '16')] + \
+    [('enemyslug_1190', 0, '8', 'sl_mask'), ('enemyfiresprite_1189', 0, '0', 'fsprite'), ('enemyfiresprite_1189', 7, '0', 'fsprite_burn')] + \
+    [('enemyhopper_1150', a, d, nm + ('' if d == '0' else '_l')) for a, nm in ((0, 'hp_idle'), (7, 'hp_crouch'), (8, 'hp_air'), (9, 'hp_dead'), (10, 'hp_land')) for d in ('0', '16')] + \
+    [('enemyhopper_1150', 0, d, 'hp_m' + d) for d in ('7', '8', '9', '10')] + \
+    [(c, a, d, nm + ('' if d == '0' else '_l')) for c, pre in (('enemyextractorhead_1166', 'ex'), ('enemyextractorbase_1162', 'eb'))
+     for a, nm in ((0, '_idle'), (6, '_shoot'), (7, '_aim'), (8, '_8'), (9, '_9'), (10, '_drill'), (11, '_ret')) for d in ('0', '16') for nm in (pre + nm,)] + \
+    [('enemyspark_1200', 0, '0', 'spark'), ('enemyspark_1200', 0, '16', 'spark_l'), ('enemyspark_1200', 0, '24', 'spark_run'),
+     ('enemyrock_1194', 0, '0', 'rock'), ('enemyrock_1194', 7, '0', 'rock_break'), ('enemyrock_1290', 0, '0', 'rock'), ('enemyrock_1290', 7, '0', 'rock_break')] + \
+    [('enemyfirespitter_1307', a, d, nm + ('' if d == '0' else '_l')) for a, nm in ((0, 'fs_walk'), (7, 'fs_open'), (8, 'fs_dead'), (10, 'fs_turn')) for d in ('0', '16')] + \
+    [('enemyfirespitterbase_1313', 0, '0', 'fs_shell'), ('enemyfirespitterbase_1313', 0, '16', 'fs_shell_l'), ('minibossflame_1264', 4, '0', 'flame'),
+     ('enemysentinel_1474', 0, '0', 'sn_eye')] + [('enemysentinel_1474', 7, d, 'sn_open' + d) for d in ('0', '8', '16', '24')] + \
+    [('enemysentinelspike_1475', 0, '0', 'sn_spike'), ('objectpot_1206', 0, '0', 'pot'), ('objectpot_1206', 0, '8', 'pot_broken'),
+     ('objectbluepot_1620', 0, '0', 'pot'), ('objectbluepot_1620', 0, '8', 'pot_broken'), ('effectsdebris_427', 0, '0', 'debris_pot', slice(51, 53)),
+     ('effectsdebris_427', 0, '0', 'debris_hop', slice(16, 18))]
+RM_ENS_WITH = {'enemyfiresprite_1189': ('enemyslug',), 'enemyspark_1200': ('enemyextractorhead',), 'enemyrock_1194': ('enemyextractorhead',),
+               'enemyrock_1290': ('enemyextractorhead',), 'enemyfirespitterbase_1313': ('enemyfirespitter',),
+               'minibossflame_1264': ('enemyfirespitter', 'minibossgolem'), 'enemysentinelspike_1475': ('enemysentinel',)}
+# rows exported only in these frames (json number): the creator's own events name the handle per frame (RM1 5793 rock
+# 1194, RM3 / RM4 6175 rock 1290); the pots share names (one image set per level)
+ENS_FRAMES = {'enemyrock_1194': {25}, 'enemyrock_1290': {27, 28}}
 AT_ENS_WITH = {'enemyrock_776': ('minibossironworm',), 'minibossacid_774': ('minibossironworm', 'minibosschomper', 'bosschompersnake'),
                'bossbubblebomb_862': ('bosschompersnake',), 'effectshade_436': ('minibosschomper', 'bosschompersnake'),
                'levelaxelplatform1_680': ('axelplatformmaker1',), 'levelaxelplatform2_737': ('axelplatformmaker2',),
@@ -215,10 +240,10 @@ ENS = [('enemydragonfly_942', a, d, nm + ('' if d == '0' else '_l')) for a, nm i
        ('effectswatersplash_379', 4, '0', 'splash'), ('bubblepatch_804', 0, '0', 'bpatch'), ('bubblepatch_804', 7, '0', 'bpatch_open'),
        ('bubblepatch_804', 8, '0', 'bpatch_close'), ('mediumbubble_805', 0, '0', 'mbubble'), ('generalwaterhorizon_377', 0, '0', 'horizon')] + \
       [('bubblenumbers_405', 0, d, 'bnum%s' % d) for d in ('0', '1', '2', '3', '4', '5')] + \
-      AT_ENS
-ENS_WITH = {**AT_ENS_WITH, 'guiweaponslot_426': ('objectdigspot',), 'enemysporeprojectile_1022': ('enemysporepod',), 'objectkeystone_429': ('enemysporepod', 'enemyturretus', 'monitorkeystone'),
-            'effectsdebris_427': ('enemysporepod', 'bossserpentinehead', 'objectdigspot'), 'effectsexplosion06_435': ('minibosswretchnidbase', 'minibosstredd', 'bossserpentinehead', 'monitorbomb', 'minibossironworm', 'bosschompersnake'),
-            'effectsshade_436': ('enemygansekijr', 'enemydragonfly', 'enemystarflounder', 'enemycacteon'),
+      AT_ENS + RM_ENS
+ENS_WITH = {**AT_ENS_WITH, **RM_ENS_WITH, 'guiweaponslot_426': ('objectdigspot',), 'enemysporeprojectile_1022': ('enemysporepod', 'enemyhopper'), 'objectkeystone_429': ('enemysporepod', 'enemyturretus', 'monitorkeystone', 'enemyhopper', 'enemyfirespitter', 'enemysentinel', 'enemyextractorhead'),
+            'effectsdebris_427': ('enemysporepod', 'bossserpentinehead', 'objectdigspot', 'objectpot', 'objectbluepot', 'enemyhopper', 'enemyfirespitter', 'enemysentinel'), 'effectsexplosion06_435': ('minibosswretchnidbase', 'minibosstredd', 'bossserpentinehead', 'monitorbomb', 'minibossironworm', 'bosschompersnake', 'enemyextractorhead'),
+            'effectsshade_436': ('enemygansekijr', 'enemydragonfly', 'enemystarflounder', 'enemycacteon', 'enemyiris', 'enemyslug'),
             'minibosstreddbomb_1060': ('minibosstredd',), 'minibosstredddebris_1058': ('minibosstredd',), 'monitoricon_363': ('minibosstredd', 'shieldmonitor_onmap'),
             'bossfireball_1003': ('bossserpentinehead',), 'bossboulder_1099': ('bossgiantboulder',), 'effectwarning_1100': ('bossgiantboulder',),
             'breakablerockpiece_432': ('bosstunnel2', 'bosstunnel'), 'breakabledebris1_1098': ('breakable1',), 'effectsdust_437': ('pushableblock1',), 'effectswatersplash_379': ('water_level',), 'bubblepatch_804': ('water_level',), 'mediumbubble_805': ('water_level',), 'generalwaterhorizon_377': ('water_level',), 'bubblenumbers_405': ('water_level',), 'shieldwood_342': ('shieldmonitor_onmap',), 'shieldearth_443': ('shieldmonitor_onmap',), 'shieldwater_439': ('shieldmonitor_onmap',), 'shieldmagnetic_344': ('shieldmonitor_onmap',), 'shieldflamefront_343': ('shieldmonitor_onmap',), 'shieldflameback_376': ('shieldmonitor_onmap',), 'effectsshield_440': ('shieldmonitor_onmap',)}
@@ -542,6 +567,7 @@ def main():
     for o in fr['objects']: placed_handles.setdefault(o['cls'], set()).add(o['id'])
     for e in ENS:
         cls, ai, dk, nm = e[:4]
+        if cls in ENS_FRAMES and n not in ENS_FRAMES[cls]: continue
         base = cls.rsplit('_', 1)[0]
         if cls in ENS_ONLY_WITH:                     # off-map templates do not count (shields: only with an on-map shield monitor)
             if not any(w in placed for w in ENS_WITH.get(cls, ())): continue
@@ -772,7 +798,7 @@ def write_bank2(src, bank, out, report):
     data += struct.pack('<%dH' % len(seq), *seq)
     # collision masks (Chowdren: image collision bit = alpha != 0): 'MSK1', then per frame rows of
     # ceil(w / 8) bytes, bit 7 of byte 0 = leftmost pixel
-    if bank['name'] in ('milla2',):
+    if bank['name'] in ('milla2',) or bank['name'].endswith('_ens'):   # session 14: enemies spawn at their action points (spec_rm_enemies)
         # 'ACT1': per-frame action point relative to the (cropped) image (img meta 3rd/4th values): the held cube sits at
         # MILLA's action point (spec_milla_combat 3.3)
         data += b'ACT1'

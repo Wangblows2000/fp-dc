@@ -654,6 +654,7 @@ void game_update(const input_t *in) {
     }
     PROF(PS_OBJ, objects_update());
     aqua_update(&G.p);                            /* Aqua Tunnel per-frame events (src/game/aqua.c) */
+    relic_frame(&G.p);                            /* Relic Maze enemies' shared passes (src/game/relic.c) */
     if (G.p.state == 6 /* ST_DEAD */ && G.p.dead_t > 120) {     /* death: the act restarts with one life less (RE 1972 / loop_death_13) */
         int lives = G.p.lives - 1, crystals = G.act_crystals, frame = G.frame, ks = G.act_keystones, sc = G.act_stage_crystals;
         if (lives < 1) { music_stop(); snd_stop_all(); fe_enter_from_stage(G.time_attack); return; }   /* game over (card not ported) */
