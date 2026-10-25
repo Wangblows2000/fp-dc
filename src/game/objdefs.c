@@ -62,7 +62,7 @@ static const objdef_t DEFS[] = {
     { OT_WR_TURRET,     0,                                     NULL         }, /* minibosswretchnidturret */
     { OT_WR_WEAK,       0,                                     NULL         }, /* minibosswretchnidweakspot */
     { OT_WR_RAIL,       0,                                     NULL         }, /* minibossrailing */
-    { OT_WR_BARRIER,    OD_SOLID,                              NULL         }, /* minibossbarrier */
+    { OT_WR_BARRIER,    OD_SOLID|OD_HIDDEN,                    NULL         }, /* minibossbarrier (ctor set_visible 0: the railing is the visual) */
     { OT_WR_LEG,        0,                                     NULL         }, /* minibosswretchnidleftleg1 */
     { OT_TD_BODY,       0,                                     NULL         }, /* minibosstredd */
     { OT_TD_PIECE,      0,                                     NULL         }, /* minibosstreddleft1 */
@@ -96,7 +96,7 @@ static const objdef_t DEFS[] = {
     { OT_BAM4,          0,                                     NULL         }, /* gimmickbamboospike4 */
     { OT_TAOSTONE,      0,                                     NULL         }, /* objecttaostone */
     { OT_SPINLOG,       0,                                     "slog0"      }, /* spinninglog */
-    { OT_SPINLOG_MASK,  OD_OBSTACLE,                           "slogmask"   }, /* spinninglogmask */
+    { OT_SPINLOG_MASK,  OD_OBSTACLE|OD_HIDDEN,                 "slogmask"   }, /* spinninglogmask */
     { OT_BROCK2,        OD_SOLID,                              NULL         }, /* breakablerock2 */
     { OT_SNAKE_HEAD,    0,                                     NULL         }, /* bossserpentinehead */
     { OT_SNAKE_BODY,    0,                                     NULL         }, /* bosssnakebody */
@@ -126,7 +126,7 @@ static const objdef_t DEFS[] = {
     { OT_WF_FRONT4,     0,                                     NULL         }, /* waterfallfront4 */
     { OT_BBOULDER,      0,                                     NULL         }, /* - */
     { OT_KEYSTONE,      0,                                     NULL         }, /* - */
-    { OT_SPIRAL_FRONT,  0,                                     "spiralfront" }, /* spiraltunnelfront */
+    { OT_SPIRAL_FRONT,  OD_HIDDEN,                             "spiralfront" }, /* spiraltunnelfront */
     { OT_FRONTROCK,     0,                                     "frontrock1" }, /* frontrock1 */
     { OT_FRONTTREE,     0,                                     "fronttree"  }, /* fronttree */
     { OT_TREEFRONT,     0,                                     "treefront"  }, /* treefront */
@@ -272,7 +272,7 @@ static const objdef_t DEFS[] = {
     { OT_CLOCK2,        0,                                     "clock2"     }, /* clockdial2 */
     { OT_AXLE,          OD_SOLID,                              "axle"       }, /* gimmickaxletunnel */
     { OT_BLIGHT,        OD_BOXCOL,                             "blight"     }, /* basementlight */
-    { OT_COLFRONT,      OD_SOLID|OD_BOXCOL,                    "colfront"   }, /* switchcolumnfront1 */
+    { OT_COLFRONT,      OD_SOLID|OD_BOXCOL|OD_HIDDEN,          "colfront"   }, /* switchcolumnfront1 (ctor set_visible 0: image 43 is a solid green box) */
     { OT_COLBACK1,      OD_BOXCOL,                             "colback1"   }, /* switchcolumnback1 */
     { OT_COLBACK2,      OD_BOXCOL,                             "colback2"   }, /* switchcolumnback2 */
     { OT_RUINS,         OD_SOLID|OD_BOXCOL,                    "ruins"      }, /* breakableruins */

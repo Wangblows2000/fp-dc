@@ -79,7 +79,7 @@ void objects_spawn(void) {
             if (ea) { int a = ens_anim(ea); if (a >= 0) anim_set(&o->an, &G.ens, a); else o->an.b = NULL; }
             if (o->type == OT_LAYER_0 || o->type == OT_LAYER_1 || o->type == OT_LAYER_SW || o->type == OT_CORK_L || o->type == OT_CORK_R) o->an.b = NULL;
             if (o->type == OT_SPIRAL_TOP || o->type == OT_SPIRAL_BOTTOM) { o->an.b = NULL; memset(o->av, 0, sizeof o->av); }   /* A, B, C = 0 */
-            if (o->type == OT_SPIRAL_FRONT || o->type == OT_SPINLOG_MASK) o->hidden = 1;                       /* invisible at start */
+            if (objdef(o->type)->flags & OD_HIDDEN) o->hidden = 1;                                          /* invisible at start (registry: ctor set_visible(0)) */
             if (o->type == OT_SPINLOG || o->type == OT_SPINLOG_MASK || o->type == OT_PBLOCK1) { memset(o->av, 0, sizeof o->av); o->dir = 0; o->fl = 0; }
             if ((o->type >= OT_LOOP016 && o->type <= OT_LOOP1Q) || o->type == OT_LAYER_SW) {
                 if (o->x < 0) o->alive = 0;                                                    /* off-map templates */

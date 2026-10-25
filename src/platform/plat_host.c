@@ -181,6 +181,7 @@ static void apply_dbg(int f, int tp) {
         if (dbg[i].k == 'B') for (int k = 0; k < G.nobjs; k++) { obj_t *o = &G.o[k]; if (o->alive && (o->type == OT_IW_HEAD || o->type == OT_IW_HEADF || o->type == OT_CH_HEAD || o->type == OT_SN_HEAD || o->type == OT_GEYE || o->type == OT_BGCORE || o->type == OT_CLAW_HITBOX ||
                                                                                     o->type == OT_MT_HEAD || o->type == OT_MT_HIT1 || o->type == OT_MT_HIT2)) o->A = dbg[i].a; }   /* RM5: Mantalith head + arms */
         if (dbg[i].k == 'Z') p->mD = (int)dbg[i].a;
+        if (dbg[i].k == 'F') G.stage_flags = (int)dbg[i].a;   /* test: ML stage flags (Relic Maze gates) */
         if (dbg[i].k == 'I') p->invuln = (int)dbg[i].a;      /* test: Milla inside a dig zone (MILLA.D, set by other stages' zone events) */
         if (dbg[i].k == 'P') for (int k = 0; k < G.nobjs; k++) if (G.o[k].alive && G.o[k].type == OT_PBLOCK1) { G.o[k].x = dbg[i].a + 41; G.o[k].y = dbg[i].b; break; }   /* port x = original x + 41 */
         if (dbg[i].k == 'Q') for (int k = 0; k < G.nobjs; k++) if (G.o[k].alive && G.o[k].type == OT_PBLOCK3) { G.o[k].x = dbg[i].a; G.o[k].y = dbg[i].b; break; }   /* RM3 PushableBlock3 (host tests) */
@@ -224,7 +225,8 @@ int main(int argc, char **argv) {
             if (sscanf(line, "%d HP %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'H', fx, 0 }; continue; }
             if (sscanf(line, "%d DIGZONE %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'Z', fx, 0 }; continue; }
             if (sscanf(line, "%d SETV others E %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'I', fx, 0 }; continue; }   /* tracer command: invulnerability timer */
-            if (sscanf(line, "%d BOSSHP %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'B', fx, 0 }; continue; }   /* host test: AT boss HP */
+            if (sscanf(line, "%d BOSSHP %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'B', fx, 0 }; continue; }
+            if (sscanf(line, "%d FLAGS %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'F', fx, 0 }; continue; }   /* host test: G.stage_flags */   /* host test: AT boss HP */
             if (sscanf(line, "%d MON %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'M', fx, 0 }; continue; }
             { char lv[8]; if (sscanf(line, "%d LOAD %7s", &ff, lv) == 2 && nload < 8) { loads[nload].f = ff; snprintf(loads[nload].dir, sizeof loads[nload].dir, "%s", lv); nload++; continue; } }   /* load a level (host tests: load order) */
             if (sscanf(line, "%d PB3 %f %f", &ff, &fx, &fy) == 3 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'Q', fx, fy }; continue; }   /* RM3 PushableBlock3 to (x, y) */

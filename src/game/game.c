@@ -635,7 +635,7 @@ static void pause_update(const input_t *in) {
 
 void game_update(const input_t *in) {
     /* VMU screen: the character's life icon and lives in a stage, the crystal everywhere else */
-    if (G.mode == MODE_PLAY && !G.in_select) vmuscr_life(G.character == 2 ? 1 : G.character == 3 ? 2 : G.character == 4 ? 3 : G.character == 0 ? 0 : 4, G.p.lives); else vmuscr_crystal();
+    if (G.mode == MODE_PLAY && !G.in_select) vmuscr_life(G.character == 2 || G.character == 3 ? 2 : G.character == 4 ? 3 : G.character == 0 ? 0 : 4, G.p.lives); else vmuscr_crystal();
     if (G.mode == MODE_FRONTEND) { fe_update(in); return; }
     if (G.in_select) { sel_update(in); return; }
     if (G.mode == MODE_RESULTS) {
@@ -852,7 +852,7 @@ void hud_draw(void) {
     /* life petals: counter value = half-petals 0..14 (RV GUIRings_125, max 14) */
     if (p->hp > 0) hud_img(2, p->hp, 8, 19 + hud_dy, -1);
     /* character head + crystal icon, lives (2 digits), crystals (3 digits) */
-    hud_img(chr_is_milla(G.character) ? 18 : G.character == CHR_CAROL_BIKE || G.p.bike ? 17 : chr_is_carol(G.character) ? 16 : 3, 0, 128, 8 + hud_dy, -1);   /* guiicon direction by character (Carol 1, on the bike 2) */
+    hud_img(chr_is_milla(G.character) ? 18 : chr_is_carol(G.character) || G.p.bike ? 17 : 3, 0, 128, 8 + hud_dy, -1);   /* guiicon direction = MV.A (RE anims: dir 2 and 3 = image 395 for Carol on foot and on the bike; dir 1 = image 112 is not Carol) */
     hud_number(p->lives < 0 ? 0 : p->lives > 99 ? 99 : p->lives, 2, 144, 8 + hud_dy);
     hud_number(p->crystals < 0 ? 0 : p->crystals > 999 ? 999 : p->crystals, 3, 176, 8 + hud_dy);
     /* clock + stage timer mm:ss:cc (RV GUITimerM/S/Milli counters; colons are part of the clock image) */

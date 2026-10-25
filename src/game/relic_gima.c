@@ -25,6 +25,7 @@ static obj_t *spawn(int type, const char *anim, float x, float y) {
     memset(o, 0, sizeof *o);
     o->type = type; o->alive = 1; o->hp = 1; o->x = o->ox = x; o->y = o->oy = y; o->layer = 2; o->born = G.frame;
     if (anim) set_ens(o, anim);
+    if (objdef(type)->flags & OD_HIDDEN) o->hidden = 1;   /* registry: ctor set_visible(0) (the gate barrier) */
     return o;
 }
 static obj_t *first_of(int t) { for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == t) return &G.o[i]; return NULL; }
