@@ -147,14 +147,16 @@ with tempfile.TemporaryDirectory() as d:
     run('', 60, {'FP_VMU_DUMP': d})
     title_imgs = sorted(os.listdir(d))
     check('vmu_crystal_animates_on_title', len(title_imgs) >= 5, '%d images' % len(title_imgs))
-with tempfile.TemporaryDirectory() as d:
-    run('', 3, {'FP_VMU_DUMP': d, 'FP_LEVEL': 'dv1'})
-    imgs = sorted(os.listdir(d))
-    ok = False
-    if imgs:
-        b = open(os.path.join(d, imgs[-1]), 'rb').read().split(b'\n', 2)[2]
-        ok = len(b) == 192 and any(b)
-    check('vmu_life_icon_in_stage', ok, str(imgs))
+# session 16: in a stage the VMU shows the character's 4 file-select portraits, a new one every 6 s (360 updates), no lives
+lcd = open(os.path.join(DATA, 'ui', 'vmu_lcd.bin'), 'rb').read()
+nfr, ncr = lcd[4] | lcd[5] << 8, lcd[6] | lcd[7] << 8
+frame = lambda k: lcd[8 + k * 192: 8 + (k + 1) * 192]
+for ch, row in (('0', 0), ('2', 1), ('3', 1), ('4', 2)):
+    with tempfile.TemporaryDirectory() as d:
+        run('', 1500, {'FP_VMU_DUMP': d, 'FP_LEVEL': 'dv1', 'FP_CHAR': ch})
+        seq = [open(os.path.join(d, n), 'rb').read().split(b'\n', 2)[2] for n in sorted(os.listdir(d))]
+        want = [frame(ncr + row * 4 + k) for k in range(4)]
+        check('vmu_portraits_char%s' % ch, nfr == ncr + 12 and seq[:4] == want and seq[4:5] == want[:1], '%d images' % len(seq))
 
 # three title -> level -> pause QUIT -> title-menu cycles (valgrind with FP_VALGRIND=1)
 cyc = CLASSIC + '660 661 S\n670 671 D\n680 681 D\n690 691 J\n'
