@@ -248,6 +248,35 @@ CLAW_ENS_FRAMES = {'cameratriggerboss_389': {27}, 'shrine2_1296': {27}}   # the 
 # rows exported only in these frames (json number): the creator's own events name the handle per frame (RM1 5793 rock
 # 1194, RM3 / RM4 6175 rock 1290); the pots share names (one image set per level)
 ENS_FRAMES = {'enemyrock_1194': {25, 26}, 'enemyrock_1290': {27, 28}}   # RM2: the golem's debris rocks (5972 / 5976)
+# ---- Relic Maze act 5 end (src/game/rm_mantalith.c, build/re/spec_rm_mantalith.md): Kingdom Stone scene, the Mantalith's
+# parts (q29 visuals + the q20 head / arm weak points), its projectiles and the post-results ruins. Engine types 450-499
+# by (class, handle): these class names are other stages' objects too (KingdomStone_3680, Shrine2_1296, ...)
+MT_ENGINE_TYPES_ID = {('kingdomstone', 1589): 450, ('placeholdercharacter', 1625): 451, ('npchookline', 1590): 452,
+    ('ksprojectile1', 1593): 453, ('ksprojectile2', 1626): 454, ('lightray', 1591): 455, ('lightray2', 1592): 456, ('shrine2', 1588): 457,
+    ('bossgroundcut1', 1600): 459, ('bossgroundcut2', 1601): 460, ('bossmantalithbody', 1603): 461, ('bossmantalithneck4', 1604): 462,
+    ('bossmantalithneck3', 1605): 463, ('bossmantalithneck2', 1610): 464, ('bossmantalithneck1', 1611): 465, ('bossmantalithleftknee', 1606): 466,
+    ('bossmantalithrightknee', 1607): 467, ('bossmantalithleg2', 1609): 468, ('bossmantalithleg3', 1608): 469, ('bossmantalithleg1', 1602): 470,
+    ('bossmantalithhead', 1614): 471, ('bossmantalithhead2', 1613): 472, ('bossmantalithhead3', 1612): 473, ('bossmantalitharm6', 1615): 474,
+    ('bossmantalitharm3', 1616): 475, ('bossmantalithhitbox1', 1618): 476, ('bossmantalithhitbox2', 1619): 477, ('effectwarning', 1528): 478}
+MT_ENS = [('kingdomstone_1589', 0, '0', 'mt_stone'), ('placeholdercharacter_1625', 0, '0', 'mt_spade'), ('placeholdercharacter_1625', 0, '1', 'mt_spade_land'),
+    ('placeholdercharacter_1625', 7, '0', 'mt_spade_jump'), ('npchookline_1590', 0, '0', 'mt_hook'), ('ksprojectile1_1593', 0, '0', 'mt_ks1'),
+    ('ksprojectile2_1626', 0, '0', 'mt_ks2'), ('lightray_1591', 0, '0', 'mt_ray'), ('shrine2_1588', 0, '0', 'mt_shrine'), ('bossgroundcut1_1600', 0, '0', 'mt_cut'),
+    ('bossmantalithbody_1603', 0, '0', 'mt_body'), ('bossmantalithneck4_1604', 0, '0', 'mt_neck4'), ('bossmantalithneck3_1605', 0, '0', 'mt_neck3'),
+    ('bossmantalithneck2_1610', 0, '0', 'mt_neck2'), ('bossmantalithneck1_1611', 0, '0', 'mt_neck1'), ('bossmantalithleftknee_1606', 0, '0', 'mt_knee'),
+    ('bossmantalithleg2_1609', 0, '0', 'mt_leg2'), ('bossmantalithleg3_1608', 0, '0', 'mt_leg3')] + \
+    [('bossmantalithleg1_1602', 0, d, 'mt_bead' + d) for d in ('0', '1', '2', '3', '31')] + \
+    [('bossmantalithhead_1614', a, d, 'mt_h%d_%s' % (a, d)) for a in (0, 7) for d in ('0', '1', '2')] + [('bossmantalithhead_1614', 8, '0', 'mt_h8')] + \
+    [(c, a, '0', nm + ('_8' if a == 8 else '')) for c, nm in (('bossmantalithhead2_1613', 'mt_horn2'), ('bossmantalithhead3_1612', 'mt_horn3')) for a in (0, 8)] + \
+    [(c, 0, d, nm + d) for c, nm in (('bossmantalitharm3_1616', 'mt_arm3_'), ('bossmantalitharm6_1615', 'mt_arm6_')) for d in ('0', '4', '8')] + \
+    [('bossmantalitharm3_1616', 7, '0', 'mt_arm3_sw'), ('bossmantalitharm6_1615', 7, '0', 'mt_arm6_sw'), ('bossmantalithhitbox1_1618', 0, '0', 'mt_hit1'),
+     ('bossmantalithhitbox2_1619', 0, '0', 'mt_hit2'), ('effectwarning_1528', 0, '0', 'mt_warn'), ('bossslash_1598', 0, '0', 'mt_slash'), ('bosschomp_1599', 4, '0', 'mt_chomp'),
+     ('breakableruins_1450', 0, '0', 'mt_ruins'), ('breakableruinspiece_1451', 0, '0', 'mt_rpiece')]   # + the shared 'dust', 'debris', 'explosion06', 'rock'
+MT_ENS_WITH = {'bossslash_1598': ('bossmantalithbody',), 'bosschomp_1599': ('bossmantalithbody',), 'breakableruins_1450': ('bossmantalithbody',),
+    'breakableruinspiece_1451': ('bossmantalithbody',), 'effectsdust_437': ('kingdomstone',), 'effectsdebris_427': ('bossmantalithbody',),
+    'enemyrock_1290': ('bossmantalithbody',), 'effectsexplosion06_435': ('bossmantalithbody',)}   # created by the boss / the scene (6878, 6918, 6928, 7050, 7061, 7088)
+ENS_FRAMES['enemyrock_1290'] = ENS_FRAMES['enemyrock_1290'] | {29}   # RM5 (json 29): the slam's rocks (6949-6956)
+ENGINE_TYPES_ID.update(MT_ENGINE_TYPES_ID)   # RM5 end (rm_mantalith.c)
+ENS_FRAMES.update({c: {29} for c in {e[0] for e in MT_ENS}})   # RM5 end rows: frame 29 only (the class names exist in other stages)
 AT_ENS_WITH = {'enemyrock_776': ('minibossironworm',), 'minibossacid_774': ('minibossironworm', 'minibosschomper', 'bosschompersnake'),
                'bossbubblebomb_862': ('bosschompersnake',), 'effectshade_436': ('minibosschomper', 'bosschompersnake'),
                'levelaxelplatform1_680': ('axelplatformmaker1',), 'levelaxelplatform2_737': ('axelplatformmaker2',),
@@ -309,6 +338,7 @@ ENS = [('enemydragonfly_942', a, d, nm + ('' if d == '0' else '_l')) for a, nm i
        ('bubblepatch_804', 8, '0', 'bpatch_close'), ('mediumbubble_805', 0, '0', 'mbubble'), ('generalwaterhorizon_377', 0, '0', 'horizon')] + \
       [('bubblenumbers_405', 0, d, 'bnum%s' % d) for d in ('0', '1', '2', '3', '4', '5')] + \
       AT_ENS + RM_ENS
+ENS += MT_ENS   # RM5 end (rm_mantalith.c)
 ENS_WITH = {**AT_ENS_WITH, **RM_ENS_WITH, 'guiweaponslot_426': ('objectdigspot',), 'enemysporeprojectile_1022': ('enemysporepod', 'enemyhopper'), 'objectkeystone_429': ('enemysporepod', 'enemyturretus', 'monitorkeystone', 'enemyhopper', 'enemyfirespitter', 'enemysentinel', 'enemyextractorhead'),
             'effectsdebris_427': ('enemysporepod', 'bossserpentinehead', 'objectdigspot', 'objectpot', 'objectbluepot', 'enemyhopper', 'enemyfirespitter', 'enemysentinel'), 'effectsexplosion06_435': ('minibosswretchnidbase', 'minibosstredd', 'bossserpentinehead', 'monitorbomb', 'minibossironworm', 'bosschompersnake', 'enemyextractorhead'),
             'effectsshade_436': ('enemygansekijr', 'enemydragonfly', 'enemystarflounder', 'enemycacteon', 'enemyiris', 'enemyslug'),
@@ -379,6 +409,7 @@ ENS_FRAMES.update(RMB_ENS_FRAMES)
 ENGINE_TYPES.update(CLAW_TYPES); ENGINE_TYPES_ID.update(CLAW_TYPES_ID); ENS += CLAW_ENS; ENS_FRAMES.update(CLAW_ENS_FRAMES)
 for _k, _v in CLAW_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v
 
+for _k, _v in MT_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # RM5 end (rm_mantalith.c)
 ENS_ONLY_WITH = {'guiweaponslot_426', 'effectswatersplash_379', 'bubblepatch_804', 'mediumbubble_805', 'generalwaterhorizon_377', 'bubblenumbers_405', 'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 # classes whose untrimmed image box matters (spring top edges RV, box-collision platforms/logs, invisible
 # sensors): their images are never cropped. Everything else in the object bank is cropped to its opaque pixels.
