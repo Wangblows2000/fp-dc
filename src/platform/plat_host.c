@@ -191,7 +191,7 @@ static void apply_dbg(int f, int tp) {
         if (dbg[i].k == 'D' && !player_invincible(p)) player_hurt(p, p->x + dbg[i].a);   /* test hit from dx */
         if (dbg[i].k == 'H') p->hp = (int)dbg[i].a;
         if (dbg[i].k == 'B') for (int k = 0; k < G.nobjs; k++) { obj_t *o = &G.o[k]; if (o->alive && (o->type == OT_IW_HEAD || o->type == OT_IW_HEADF || o->type == OT_CH_HEAD || o->type == OT_SN_HEAD || o->type == OT_GEYE || o->type == OT_BGCORE || o->type == OT_CLAW_HITBOX ||
-                                                                                    o->type == OT_MT_HEAD || o->type == OT_MT_HIT1 || o->type == OT_MT_HIT2)) o->A = dbg[i].a; }   /* RM5: Mantalith head + arms */
+                                                                                    o->type == OT_MT_HEAD || o->type == OT_MT_HIT1 || o->type == OT_MT_HIT2 || o->type == OT_FNP_HIT)) o->A = dbg[i].a; }   /* RM5: Mantalith head + arms */
         if (dbg[i].k == 'Z') p->mD = (int)dbg[i].a;
         if (dbg[i].k == 'S') results_begin_boss(G.frame);   /* test: a boss starts the results (path 3; FN6 8785 before the boss module) */
         if (dbg[i].k == 'F') G.stage_flags = (int)dbg[i].a;   /* test: ML stage flags (Relic Maze gates) */
