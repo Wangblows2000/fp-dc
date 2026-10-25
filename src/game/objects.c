@@ -8,7 +8,7 @@
 
 static uint8_t have_type[MAX_OT / 8];   /* bit per engine type placed on the map (objects_spawn) */
 int objects_have(int type) { return (unsigned)type < MAX_OT && (have_type[type >> 3] >> (type & 7) & 1); }
-int objects_have_from(int type) { for (int t = type; t < MAX_OT; t++) if (have_type[t >> 3] >> (t & 7) & 1) return 1; return 0; }
+int objects_have_from(int type) { for (int t = type; t < (type < 512 ? 512 : MAX_OT); t++) if (have_type[t >> 3] >> (t & 7) & 1) return 1; return 0; }   /* families below 512 do not count the Fortune Night blocks (512+, session 17) */
 
 static int A_EXPLODE = -1;
 /* recovered sequences (tools/import_frame.py) */
@@ -110,6 +110,7 @@ void objects_spawn(void) {
     rm_claw_spawn();                              /* RM3 Claw sequence (src/game/rm_claw.c) */
     rm_mantalith_spawn();                         /* RM5 end (rm_mantalith.c) */
     fn_enemy_spawn();                             /* Fortune Night enemies (src/game/fn_enemy.c) */
+    fn_gima_spawn();                              /* Fortune Night acts 1-3 gimmicks (src/game/fn_gima.c) */
     wlogs_spawn(); dv3_switch_spawn(); switches_spawn(); tunnels_reset(); shields_reset(); water_reset();
     /* 3566 / 3567: 12 logs per bridge at (bx + 16k, by + 56), A = k, B = base y */
     int nb = G.nobjs;
@@ -868,6 +869,7 @@ void objects_draw(int pass) {
         if (inv) r_set_invert(0);
     }
     if (pass == 1) combat_draw_shields(1);           /* visible slash shields, behind Lilac */
+    fn_gima_draw(pass);                              /* Fortune Night: additive / scaled / depth-sorted gimmick parts (fn_gima.c) */
 }
 
 /* Collision groups tested by Lilac's sensors (RE: QualifierLists of frame 21, read at runtime):

@@ -142,7 +142,8 @@ static int enemy_type_list(int t) {
            t == OT_POT || t == OT_BLUEPOT || t == OT_GEYE || t == OT_BGCORE ||          /* Relic Maze Q20 (spec_rm_enemies 0: pots take every shared hit) */
            t == OT_MT_HEAD || t == OT_MT_HIT1 || t == OT_MT_HIT2 ||                    /* RM5 q20: Mantalith head and arm weak points (spec_rm_mantalith 0) */
            fn_enemy_q20(t) ||                       /* Fortune Night Q20 (fn_enemy.c, spec_fn_enemies 0) */
-           rm_claw_enemy(t);                        /* RM3 Claw set: Shrine3, BossClawHitbox, CaravanEngine (rm_claw.c) */
+           rm_claw_enemy(t) ||                      /* RM3 Claw set: Shrine3, BossClawHitbox, CaravanEngine (rm_claw.c) */
+           fn_gima_enemy(t);                        /* Fortune Night: lampposts, boost blocks (fn_gima.c) */
 }
 /* per-type table of the list above (called for every slot several times a frame: the chain of compares cost ~1 ms in RM) */
 int enemy_type(int t) {

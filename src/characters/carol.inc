@@ -291,6 +291,7 @@ static int carol_anim(const player_t *p, int *force6) {
     case ST_HURT: if (p->cY == 9) return A_HURT; break;     /* OTHERS.Y 9 from the frame after the hit */
     case ST_PUSH: if (p->cY == 13) return A_PUSH; break;    /* OTHERS.Y 13 from the 2nd M11 frame */
     case ST_CORK: return (p->cork_e > 0.25 && p->cork_e < 1.5) ? A_CORK2 : A_CORK;
+    case ST_HPIPE: return p->cY == 45 ? A_CORK : A_CORK2;   /* M38 (fn_gima.c): OTHERS.Y 45 / 46 */
     case ST_LADDERIN: return A_CLIMBOVER;
     case ST_LADDER: return p->lad_y == 28 ? A_CLIMBOVER : p->lad_y == 47 ? A_CATCH : p->lad_y == 29 ? A_CLIMBDOWN : A_CLIMB;
     default: break;
