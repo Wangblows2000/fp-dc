@@ -8,6 +8,7 @@ OBJS = src/platform/plat_dc.o src/renderer/render_pvr.o src/resources/assets.o \
        src/physics/level.o src/physics/sensors.o src/characters/player.o src/game/objects.o src/game/game.o \
        src/game/ui.o src/game/frontend.o src/game/loading.o src/game/vmu.o src/game/fe_hub.o src/game/save.o src/game/loadprof.o src/resources/pack.o src/game/snap.o src/physics/fmath.o src/game/combat.o src/game/enemies.o src/game/gimmicks.o src/game/bosses.o src/game/serpentine.o src/game/results.o src/game/chase.o src/game/parallax.o src/game/shields.o src/game/water.o src/game/aqua.o src/game/aqua_gim.o src/game/aqua_boss.o src/game/monitors.o src/game/levels.o src/game/switches.o src/game/objdefs.o src/game/relic.o src/game/relic_gima.o src/game/relic_boss.o src/game/rm_mantalith.o
 OBJS += src/game/relic_gimb.o   # Relic Maze acts 3-5 gimmicks
+OBJS += src/game/fn_gimb.o   # Fortune Night acts 4-5 gimmicks
 OBJS += src/game/rm_claw.o   # RM3 Claw sequence
 
 FP_GAME ?= /mnt/user-data/uploads/Freedom Planet
