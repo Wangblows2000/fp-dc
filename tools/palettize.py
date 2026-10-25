@@ -55,6 +55,21 @@ def main():
     members = [[f for f in files if rx.search(f)] for rx in groups]
     texs = {f: load(f) for m in members for f in m}
     cols = [set(p for f in m for p in texs[f][4] if p & 0x8000) for m in members]
+    # spill (session 14, generic): a group whose textures need more than its room (e.g. rm3's level pieces: 282 colours)
+    # moves whole textures - its later atlases first - to another group with room for them, losslessly, before the
+    # flex banks are placed. Lilac's group stays fixed (resident banks). Levels whose groups fit are unchanged.
+    for g in range(len(groups)):
+        while len(cols[g]) > 255 - nblk(g) and len(members[g]) > 1:
+            moved = False
+            for f in sorted(members[g], reverse=True):
+                c = set(p for p in texs[f][4] if p & 0x8000)
+                rest = set(p for f2 in members[g] if f2 != f for p in texs[f2][4] if p & 0x8000)
+                cand = [h for h in range(len(groups)) if h != g and not groups[h].search('lilac2.tex')]
+                h = min(cand, key=lambda h: len(cols[h] | c), default=None)
+                if h is None or len(cols[h] | c) > 255 - nblk(h): continue
+                members[g].remove(f); members[h].append(f); cols[g] = rest; cols[h] |= c
+                print('%s: spilled from group %d to group %d' % (f, g, h)); moved = True; break
+            if not moved: break
     # --flex=<regex>: textures that join the first group with room for their colours (fewest added first)
     for rx in flex:
         for f in files:

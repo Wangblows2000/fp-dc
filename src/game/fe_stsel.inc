@@ -19,7 +19,7 @@ static struct {
 
 static int stsel_progress(void) { int p = SV.progress[chr_slot(G.character)]; return p ? p - 1 : 0; }   /* RecordData x1 y(40+J): furthest completed stage s */
 /* Dragon Valley for Lilac / Carol; Aqua Tunnel for Milla (session 12: RE 623 puts AT (E 0) in DV's slot for G1 = 1 / 4) */
-static int stage_playable(int e) { return chr_is_milla(G.character) ? e == 0 : e == 1; }
+static int stage_playable(int e) { return level_first_of_stage(e) != NULL; }   /* ported stages (levels.c); each character's icon list already gives her own stages (RE 623-625) */
 
 static void stsel_enter(void) {
     memset(&T, 0, sizeof T);
