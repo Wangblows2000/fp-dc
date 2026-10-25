@@ -3,6 +3,7 @@ SRC = ../src/platform/plat_host.c ../src/platform/host_bot.c ../src/platform/hos
       ../src/physics/level.c ../src/physics/sensors.c ../src/characters/player.c ../src/game/objects.c ../src/game/game.c ../src/game/ui.c ../src/game/frontend.c ../src/game/loading.c ../src/game/vmu.c ../src/game/fe_hub.c ../src/game/save.c ../src/game/loadprof.c ../src/resources/pack.c ../src/game/snap.c ../src/physics/fmath.c ../src/game/combat.c ../src/game/enemies.c ../src/game/gimmicks.c ../src/game/bosses.c ../src/game/serpentine.c ../src/game/results.c ../src/game/chase.c ../src/game/parallax.c ../src/game/shields.c ../src/game/water.c ../src/game/aqua.c ../src/game/aqua_gim.c ../src/game/aqua_boss.c ../src/game/monitors.c ../src/game/levels.c ../src/game/switches.c ../src/game/objdefs.c ../src/game/relic.c ../src/game/relic_gima.c ../src/game/relic_boss.c ../src/game/rm_mantalith.c
 SRC += ../src/game/relic_gimb.c   # Relic Maze acts 3-5 gimmicks
 SRC += ../src/game/fn_gima.c   # Fortune Night acts 1-3 gimmicks
+SRC += ../src/game/fn_gimb.c   # Fortune Night acts 4-5 gimmicks
 SRC += ../src/game/rm_claw.c   # RM3 Claw sequence
 SRC += ../src/game/fn_enemy.c   # Fortune Night enemies
 CFLAGS = -O2 -g -std=c99 -DFP_HOST_ENV -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Wno-unused-parameter -ffp-contract=off
