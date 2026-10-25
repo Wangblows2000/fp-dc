@@ -376,7 +376,7 @@ static const objdef_t DEFS[] = {
     { OT_FN_STILT,      OD_BOXCOL,                             NULL         }, /* platformstilt1-4_1958-1961 (layer 2) */
     { OT_FN_MPLAT2,     OD_OBSTACLE|OD_NOEDGE,                 NULL         }, /* levelmovingplatform2_1976 (Q8 Q9 Q12 Q13) */
     { OT_FN_TSPRING,    OD_SOLID|OD_NOEDGE|OD_BOXCOL,          NULL         }, /* turningspring_1944 (Q7 Q9) */
-    { OT_FN_AIRBALLOON,    OD_BOXCOL,                             NULL         }, /* gimmickairballoon_1991 */
+    { OT_FN_AIRBALLOON, OD_BOXCOL,                                NULL         }, /* gimmickairballoon_1991 */
     { OT_FN_IBALLOON,   OD_HANG|OD_BOXCOL|OD_HIDDEN,           NULL         }, /* gimmickhangingidleballoon_1992 (Q23, invisible) */
     { OT_FN_KEY,        OD_SOLID,                              NULL         }, /* keyboard_1984 (Q7) */
     { OT_FN_DISCOLIGHT, OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* discolight_1932 (screen overlay, drawn by fn_gimb.c) */
@@ -471,7 +471,7 @@ static const objdef_t DEFS[] = {
     { OT_FN_DARM2,      0,                                     "du_arm2"    }, /* enemydusterarm2_1935 */
     { OT_FN_DARM1,      0,                                     "du_arm1"    }, /* enemydusterarm1_1936 */
     { OT_FN_DMOUTH,     0,                                     "du_mouth"   }, /* enemydustermouth_1937 */
-    { OT_FN_AIRBALLOON,    0,                                     "bl_float"   }, /* enemyballoon_1945 (Q20) */
+    { OT_FN_BALLOON,       0,                                     "bl_float"   }, /* enemyballoon_1945 (Q20) */
     { OT_FN_PIGEON,     0,                                     "pg_sit"     }, /* pigeon_1641 (decor) */
     { OT_FN_FBURST,     0,                                     "fk_burst"   }, /* effectflareburst_1810 (off-map template) */
     { OT_FN_LASER,      0,                                     NULL         }, /* - (EnemyLaser_1781) */
