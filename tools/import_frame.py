@@ -80,6 +80,17 @@ ENGINE_TYPES = {
     # Relic Maze enemies (session 14, spec_rm_enemies.md; src/game/relic.c)
     'enemyiris': 232, 'enemyslug': 233, 'enemyhopper': 234, 'enemyfirespitter': 235, 'enemysentinel': 236,
     'enemyextractorbase': 237, 'enemyextractorhead': 238, 'objectpot': 239, 'objectbluepot': 240,
+    # Relic Maze acts 1-2 gimmicks (session 14, spec_rm_gimmicks_a.md; src/game/relic_gima.c)
+    'minibossrailing2': 246, 'gimmickrelicpanel': 247, 'gimmickrelicflippanel': 249, 'gimmickrelicflippanel2': 250,
+    'gimmickrelicflippanel3': 251, 'gimmickrelicflippanel4': 252, 'gimmickfireballspawner': 253, 'gimmickfireballturret1': 254,
+    'gimmickfireballturret2': 255, 'gimmickfireballturretback': 256, 'gimmickhangingmovingbar': 259, 'gimmickhangingmovingsensor': 260,
+    'gimmickhangingmovingbar2': 261, 'gimmickhangingmovingsensor2': 262, 'gimmickhangingidleswitch': 263, 'gimmickhangingswitch': 264,
+    'gimmickhangingidlemover': 265, 'gimmickhangingmover': 266, 'gimmickmovingfloor1': 267, 'gimmickmovingfloor2': 268,
+    'gimmickmovingfloor3': 269, 'gimmickrollingplatform': 270, 'gimmickrollingplatform2': 271, 'gimmickspinball': 272,
+    'clockdial1': 273, 'clockdial2': 274, 'gimmickaxletunnel': 275, 'basementlight': 276, 'switchcolumnfront1': 277,
+    'switchcolumnback1': 278, 'switchcolumnback2': 279, 'breakableruins': 280, 'digspothole': 282, 'layerchangeswitch2': 283,
+    'levellayer001': 285, 'levellayer002': 286, 'levellayer015': 287, 'levellayer02': 288, 'levellayer101': 289,
+    'levellayer116': 290, 'levellayer1loop01': 291, 'levellayer1loop02': 292,
     'waterfallback': 139, 'waterfallfront': 140, 'waterfallfront2': 141, 'waterfallfront3': 142, 'waterfallfront4': 143,   # EnemyGansekiJr_835 (RE build/re/spec_ganseki.md)     # LadderTop_428: invisible obstacle at the top of each ladder (RE spec_ladder.md)
 }
 
@@ -92,7 +103,8 @@ ENGINE_TYPES_ID = {
     ('aquabrickplatform', 803): 228,     # AquaBrickPlatform_803 (AT2 / AT4); 731 (AT1) = 183
     ('levelcrusher1', 847): 188,         # LevelCrusher1_847: AT3's horizontal slab; 808 (AT2) = the vertical crusher 187
     ('levelaxelplatform1', 845): 229,    # LevelAxelPlatform1_845 / 2_846: AT3's placed bobbing platforms; 680 / 737 are made by
-    ('levelaxelplatform2', 846): 230,    #   the AxelPlatformMakers (AT1 / AT4) and stay 194 / 195
+    ('levelaxelplatform2', 846): 230,
+    ('switchwallplate', 1149): 284,      # SwitchWallPlate_1149 (RM1: raises the switch column, RM2: turns the flip panels)    #   the AxelPlatformMakers (AT1 / AT4) and stay 194 / 195
     ('gimmickswingspawner1', 848): 231,  # GimmickSwingSpawner1_848 (AT3: 6 links); 824 (AT2: 8 links) = 198
 }
 def engine_type(cls, handle): return ENGINE_TYPES_ID.get((cls, handle), ENGINE_TYPES.get(cls))
@@ -174,7 +186,25 @@ RM_ENS = [('enemyiris_1191', a, '0', nm) for a, nm in ((0, 'ir_idle'), (1, 'ir_c
     [('enemysentinelspike_1475', 0, '0', 'sn_spike'), ('objectpot_1206', 0, '0', 'pot'), ('objectpot_1206', 0, '8', 'pot_broken'),
      ('objectbluepot_1620', 0, '0', 'pot'), ('objectbluepot_1620', 0, '8', 'pot_broken'), ('effectsdebris_427', 0, '0', 'debris_pot', slice(51, 53)),
      ('effectsdebris_427', 0, '0', 'debris_hop', slice(16, 18))]
-RM_ENS_WITH = {'enemyfiresprite_1189': ('enemyslug',), 'enemyspark_1200': ('enemyextractorhead',), 'enemyrock_1194': ('enemyextractorhead',),
+RM_ENS += [('minibossrailing2_1204', 0, '0', 'rail2'), ('gimmickrelicpanelpiece_1193', 0, '0', 'rpiece'), ('gimmickrelicflippanel_1226', 0, '0', 'flippanel')] + \
+    [('gimmickrelicpanel_1175', 0, d, 'rpanel' + d) for d in ('0', '1', '2', '3')] + \
+    [('gimmickfireballspawner_1179', 0, '0', 'fbspawn'), ('gimmickfireballspawner_1179', 6, '0', 'fbspawn_open'), ('gimmickfireballturret1_1180', 0, '0', 'fbturret1'),
+     ('gimmickfireballturret2_1182', 0, '0', 'fbturret2'), ('gimmickfireballturretback_1181', 0, '0', 'fbback'), ('gimmickfireballturretback_1181', 11, '0', 'fbback_end')] + \
+    [('gimmickfireballturretback_1181', a, d, nm + ('' if d == '0' else '_l')) for a, nm in ((6, 'fbback_fire'), (10, 'fbback_load')) for d in ('0', '16')] + \
+    [('gimmickfireball_1192', 0, '0', 'fball'), ('gimmickfireball_1192', 7, '0', 'fball_burst'), ('effectember_1025', 4, '0', 'ember'),
+     ('gimmickhangingmovingbar_1111', 0, '0', 'hbar'), ('gimmickhangingmovingsensor_1110', 0, '0', 'hsens'), ('gimmickhangingmovingbar2_1255', 0, '0', 'hbar2'),
+     ('gimmickhangingmovingsensor2_1254', 0, '0', 'hsens2'), ('gimmickhangingidleswitch_1268', 0, '0', 'hiswitch'), ('gimmickhangingswitch_1269', 0, '0', 'hswitch'),
+     ('gimmickhangingidlemover_1271', 0, '0', 'himover'), ('gimmickhangingmover_1270', 0, '0', 'hmover'), ('gimmickmovingfloor1_1265', 0, '0', 'mfloor1'),
+     ('gimmickmovingfloor2_1266', 0, '0', 'mfloor2'), ('gimmickmovingfloor3_1267', 0, '0', 'mfloor3'), ('gimmickrollingplatform_1161', 0, '0', 'rplat'),
+     ('gimmickrollingplatform2_1159', 0, '0', 'rwheel'), ('gimmickspinball_1173', 0, '0', 'spinball'), ('clockdial1_1243', 0, '0', 'clock1'), ('clockdial2_1244', 0, '0', 'clock2'),
+     ('gimmickaxletunnel_1278', 0, '0', 'axle'), ('basementlight_1276', 0, '0', 'blight'), ('switchcolumnfront1_1157', 0, '0', 'colfront'),
+     ('switchcolumnback1_1155', 0, '0', 'colback1'), ('switchcolumnback2_1156', 0, '0', 'colback2'), ('breakableruins_1202', 0, '0', 'ruins'),
+     ('breakableruinspiece_1203', 0, '0', 'ruinpiece'), ('digspothole_1209', 0, '0', 'dighole'), ('digspothole_1209', 0, '8', 'dighole_open'),
+     ('layerchangeswitch2_1241', 0, '0', 'lsw2'), ('levellayer001_1211', 0, '0', 'll001'), ('levellayer002_1212', 0, '0', 'll002'), ('levellayer015_1217', 0, '0', 'll015'),
+     ('levellayer02_1236', 0, '0', 'll02'), ('levellayer101_1213', 0, '0', 'll101'), ('levellayer116_1233', 0, '0', 'll116'), ('levellayer1loop01_1215', 0, '0', 'll1l01'),
+     ('levellayer1loop02_1216', 0, '0', 'll1l02')]
+RM_ENS_WITH = {'gimmickrelicpanelpiece_1193': ('gimmickrelicpanel',), 'gimmickfireball_1192': ('gimmickfireballspawner',), 'effectember_1025': ('gimmickfireballspawner',),
+               'breakableruinspiece_1203': ('breakableruins',), 'monitorearthshield_442': ('objectdigspot',), 'minibossrailing2_1204': ('minibossrailing2', 'minibossbarrier'),'enemyfiresprite_1189': ('enemyslug',), 'enemyspark_1200': ('enemyextractorhead',), 'enemyrock_1194': ('enemyextractorhead',),
                'enemyrock_1290': ('enemyextractorhead',), 'enemyfirespitterbase_1313': ('enemyfirespitter',),
                'minibossflame_1264': ('enemyfirespitter', 'minibossgolem'), 'enemysentinelspike_1475': ('enemysentinel',)}
 # rows exported only in these frames (json number): the creator's own events name the handle per frame (RM1 5793 rock

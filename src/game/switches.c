@@ -44,6 +44,11 @@ static int sensor_on_mask(const obj_t *o, int s) {         /* rule 1: the image 
 void switches_spawn(void) {
     memset(&SW, 0, sizeof SW); SW.gate_closed = 1;
     static int reg; if (!reg) { reg = 1; snap_register(&SW, sizeof SW); }
+    if (level_cur()->plate_rule == 2) {                                                             /* 6031 / 6032: plate A = 0 (the newest) starts pressed */
+        obj_t *last = NULL;
+        for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == OT_PPLATE && G.o[i].x >= 0 && G.o[i].y < G.lvl.h) last = &G.o[i];
+        if (last) { last->hidden = 1; last->fl |= 1; }
+    }
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i];
         if (!o->alive) continue;
@@ -62,6 +67,16 @@ void switches_update(player_t *p, int late) {
     const level_def_t *L = level_cur();
     if (L->switch_late != late) return;
     int pressed_p = 0, pressed_m = 0, any_touch = 0;
+    if (L->plate_rule == 2) {                                                                       /* RM2 5894-5897: radio buttons */
+        for (int i = 0; i < G.nobjs; i++) {
+            obj_t *pl = &G.o[i];
+            if (!pl->alive || pl->type != OT_PPLATE || (pl->fl & 1) || !p->ground || !sensor_on_mask(pl, SENS_BOTTOMBIG)) continue;
+            for (int k = 0; k < G.nobjs; k++) if (G.o[k].alive && G.o[k].type == OT_PPLATE) { G.o[k].hidden = 0; G.o[k].fl &= ~1; }   /* 5895 loop_floorswitch */
+            pl->hidden = 1; pl->fl |= 1; snd_play_orig(49, 220, 128); relic_axle_turn();          /* 5897 (the block branch 5894 / 5896: INFERRED unreachable) */
+            break;
+        }
+        return;
+    }
     if (L->plate_rule == 0) {
         for (int i = 0; i < G.nobjs; i++) {
             obj_t *pl = &G.o[i];

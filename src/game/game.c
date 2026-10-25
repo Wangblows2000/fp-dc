@@ -631,7 +631,7 @@ void game_update(const input_t *in) {
     if (pause_try_open(in)) return;                  /* (the original pauses after this frame's gameplay events) */
     G.frame++;
     input_t none = {0}, rin = results_input(in), sin_ = {0};
-    const input_t *pin = (G.clear_t || G.act_in) ? &none : results_on() ? &rin : in;   /* act end / walk-in / results: no control (RE) */
+    const input_t *pin = (G.clear_t || G.act_in || G.input_lock) ? &none : results_on() ? &rin : in;   /* act end / walk-in / results: no control (RE) */
     { static uint32_t sprev; uint32_t h; if (serp4_input(&h)) { sin_.held = h; sin_.pressed = h & ~sprev; sprev = h; pin = &sin_; } else sprev = 0; }   /* DV4 boss exit (5547 lock, 5573-5577) */
     PROF(PS_PAR, par_update());                   /* RE 3541: parallax drift */
     aqua_set_input(pin);                          /* AT swings read CTRL.K (4357) */
@@ -890,6 +890,7 @@ void game_draw(void) {
     draw_pieces(3, 3);
     objects_draw(2);
     draw_pieces(4, 7);
+    relic_gima_draw_overlay();                    /* RM2 basement darkness (5997, BasementLight on layer 5) */
     hud_draw();
     water_draw_hud();
     serp_draw_hud();

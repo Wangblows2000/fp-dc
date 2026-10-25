@@ -439,6 +439,7 @@ void relic_spawn(void) {
     }
 }
 void relic_frame(player_t *p) {
+    relic_gima_post(p);                                                         /* acts 1-2 gimmicks (relic_gima.c) */
     if (!objects_have_from(OT_IRIS) && !objects_have(OT_ROCK_AT)) return;
     rocks_at_frame(p);                                                          /* 4230-4232 (extractor rocks) */
     for (int i = 0; i < G.nobjs; i++) {                                         /* col_3_24: Milla's shield breaks rocks */
@@ -451,6 +452,7 @@ void relic_frame(player_t *p) {
     }
 }
 int relic_obj_update(obj_t *o, player_t *p) {
+    if (o->type >= OT_RAIL2) return relic_gima_obj(o, p);
     switch (o->type) {
     case OT_IRIS: if (DEFEATED(o)) iris_dead(o); else iris_frame(o, p); return 1;
     case OT_SLUG: if (DEFEATED(o)) { o->st = 4; set_a(o, "sl_dead"); } else slug_frame(o, p); return 1;   /* 5763 / 5764 */

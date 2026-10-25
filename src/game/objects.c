@@ -92,6 +92,7 @@ void objects_spawn(void) {
     bosses_spawn();
     aqua_spawn();
     relic_spawn();
+    relic_gima_spawn();
     wlogs_spawn(); dv3_switch_spawn(); switches_spawn(); tunnels_reset(); shields_reset(); water_reset();
     /* 3566 / 3567: 12 logs per bridge at (bx + 16k, by + 56), A = k, B = base y */
     int nb = G.nobjs;
@@ -143,6 +144,7 @@ void objects_platforms(player_t *p) {
     if (objects_have(OT_TRUNK)) trunks_update(p);
     if (objects_have(OT_BAM1)) bamboo_update(p);
     switches_update(p, 0);
+    relic_gima_pre(p);                            /* Relic Maze acts 1-2: rolling platform, hanging switch / mover, moving handles */
     if (!objects_have(OT_PLAT_VALLEY) && !objects_have(OT_PLAT_MOVE2) && !objects_have(OT_PLAT_MOVE3) && !objects_have(OT_GEYSER) && !objects_have(OT_BRIDGE)) return;
     double MY = p->y - ORIG_REF_DY;
     int PX = (int)p->x, PY = (int)MY;
@@ -577,6 +579,19 @@ int obj_overlaps_bg(const obj_t *o) {
         }
     return 0;
 }
+/* a hang handle (OD_HANG: GimmickHangingIdleSensor_674, the RM moving sensors, switch and mover handles). The idle
+ * sensor is 50x15, hotspot (25, 0); the others use their image box. Lilac's PlayerSensorTopBig_332 is 11x11 centred at
+ * (floor X, floor Yref - 13) (RV), tested after this frame's move (RE event 4065) */
+void obj_hang_try(obj_t *o, player_t *p) {
+    double ry = p->y - ORIG_REF_DY;
+    double tx = floor(p->x), ty = floor(ry) - 13;
+    float x0 = o->x - 25, y0 = o->y, x1 = o->x + 25, y1 = o->y + 15;
+    if (o->type != OT_HANG && o->an.b) { const frame_t *f = anim_frame(&o->an); x0 = floorf(o->x) - f->hx; y0 = floorf(o->y) - f->hy; x1 = x0 + f->w; y1 = y0 + f->h; }
+    if (player_can_hang(p) && overlap(tx - 5, ty - 5, tx + 6, ty + 6, x0, y0, x1, y1)) {
+        player_hang(p, o->x, o->type == OT_HANG ? o->y : o->y - 4);       /* 4062: moving handles hold Y = handle y + 28 */
+        p->hang_obj = (int)(o - G.o); p->hang_px = o->x; p->hang_py = o->y;
+    }
+}
 void obj_effect(float x, float y, const char *anim) {
     int a = bank_anim(&G.objs, anim);
     if (a >= 0) { spawn_effect(x, y, a); return; }
@@ -730,21 +745,26 @@ void objects_update(void) {
             turretus_events(o, p, bx0, by0, bx1, by1);
             break;
         case OT_MONICON: shield_icon_update(o, p); break;
-        case OT_ROCK: case OT_MONITOR: case OT_MON_RINGS: case OT_MON_1UP: case OT_MON_INVINC: case OT_MON_KEYSTONE:
+        case OT_ROCK: case OT_RUINS: case OT_MONITOR: case OT_MON_RINGS: case OT_MON_1UP: case OT_MON_INVINC: case OT_MON_KEYSTONE:
         case OT_MON_WOOD: case OT_MON_EARTH: case OT_MON_FIRE: case OT_MON_METAL: case OT_MON_WATER: case OT_MON_BOMB: case OT_MON_CRATE:
             if ((o->fl & 0x200) || (!dead && (monitor_hit(p, bx0, by0, bx1, by1) || side_sensor_break(p, o) ||
                           (o->type == OT_ROCK ? player_cube_breaks_rock(o) : (o->av[0] == 0 && !o->av[4] && player_cube_opens_monitor(o)))))) {   /* 2618 / 2619: resting monitors only */   /* Milla: 4762 / 2618 / 2619; 0x200: bomb blast (3243) */
                 if (side_sensor_break(p, o)) player_hitstop(p, 5);          /* RV spiral_dv1: OTHERS.K = 5 per rock */
                 obj_t m = *o;                /* the freed slot is reused by the thrown items */
                 o->alive = 0;
-                if (m.type != OT_ROCK && mon_thrown(&m)) obj_effect(m.x + 16, m.y + 16, "explosion01");   /* 2622: thrown -> EffectsExplosion01 */
+                if (m.type == OT_RUINS) {                                      /* 5674: BreakableRuinsPiece_1203 (C 0.3, gravity: pieces as the rock's, INFERRED) */
+                    int a = ens_anim("ruinpiece");
+                    for (int k = 0; k < 4 && a >= 0; k++) { obj_t *d = alloc_obj(); if (!d) break; memset(d, 0, sizeof *d);
+                        d->type = OT_DEBRIS; d->alive = 1; d->layer = 2; d->x = m.x + 16; d->y = m.y + 16 * k; anim_set(&d->an, &G.ens, a);
+                        d->vx = (float)((k & 1) ? 1.5 : -1.5); d->vy = -2.f - k; }
+                } else if (m.type != OT_ROCK && mon_thrown(&m)) obj_effect(m.x + 16, m.y + 16, "explosion01");   /* 2622: thrown -> EffectsExplosion01 */
                 else explode(m.x, m.y - 8);
-                if (m.type == OT_ROCK) snd_play_orig(13, 220, 128);          /* RV spiral_dv1: rock break = 13 */
+                if (m.type == OT_ROCK || m.type == OT_RUINS) snd_play_orig(13, 220, 128);   /* RV spiral_dv1: rock break = 13 (ruins 5674: 13) */
                 else if (m.type == OT_MON_CRATE) snd_play_orig(278, 220, 128);   /* RE 2625: D = 3 (crate) -> 278 */
                 else if (m.type == OT_MON_RINGS || m.type == OT_MON_KEYSTONE || m.type == OT_MON_BOMB) snd_play_orig(12, 220, 128);   /* RE 2626: D not 0 / 3 / -1 -> 12 */
                 else if (m.type == OT_MON_INVINC || (m.type >= OT_MON_WOOD && m.type <= OT_MON_WATER)) { snd_play_orig(308, 220, 128); snd_play_orig(316, 220, 128); }   /* RE 2624: D = 0 */
                 else { snd_play_orig(307, 220, 128); snd_play_orig(12, 220, 128); }   /* RE 2623: D = -1 (crystals; RV mon trace 307 + 12) */
-                monitor_reward(&m, p); shield_monitor_broken(&m); aqua_monitor_broken(&m);
+                if (m.type != OT_RUINS) { monitor_reward(&m, p); shield_monitor_broken(&m); aqua_monitor_broken(&m); }
                 player_bounce(p, -4.f);
             }
             break;
@@ -786,15 +806,7 @@ void objects_update(void) {
                 anim_restart(&o->an);
             }
             break;
-        case OT_HANG: {
-            /* hang sensor 50x15, hotspot (25, 0); Lilac's PlayerSensorTopBig_332 is 11x11 centred at
-             * (floor X, floor Yref - 13) (RV), tested after this frame's move (RE event 4065) */
-            double ry = p->y - ORIG_REF_DY;
-            double tx = floor(p->x), ty = floor(ry) - 13;
-            if (player_can_hang(p) && overlap(tx - 5, ty - 5, tx + 6, ty + 6, o->x - 25, o->y, o->x + 25, o->y + 15))
-                player_hang(p, o->x, o->y);
-            break;
-        }
+        case OT_HANG: obj_hang_try(o, p); break;
         case OT_SIGN:
             /* sign_390 / sign_781 are camera-bound markers (events 2860-2863), not goals */
             break;

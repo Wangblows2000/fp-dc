@@ -62,8 +62,8 @@ void rspring_update(obj_t *o, player_t *p) {
 /* ---- loops: collision layers (RE 3025/3026, 1613-1616, 3031/3032; DV2/DV4 4914-4917).
  * Layer-0 pieces (levellayer016, levellayer0loop04) and layer-1 pieces (levellayer115, levellayer1loop03) are
  * always-solid objects; MV.P picks which set is solid (flag 0 off) and which is ignored (flag 0 on). */
-static int is_loop0(int t) { return t == OT_LOOP016 || t == OT_LOOP0Q; }
-static int is_loop1(int t) { return t == OT_LOOP115 || t == OT_LOOP1Q; }
+static int is_loop0(int t) { return (objdef(t)->flags & OD_LAYER0) != 0; }   /* registry (session 14): DV016 / 0loop04, RM2 001 / 002 / 015 / 02 */
+static int is_loop1(int t) { return (objdef(t)->flags & OD_LAYER1) != 0; }   /* DV115 / 1loop03, RM2 101 / 116 / 1loop01 / 1loop02 */
 void layers_refresh(const player_t *p) {
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i];
@@ -82,6 +82,11 @@ void layers_update(player_t *p) {                              /* after the move
         else if (o->type == OT_LAYER_1) p->layer = 1;            /* 1614 */
         else if (B > 0) p->layer = 1;                            /* 1615 */
         else if (B < 0) p->layer = 0;                            /* 1616 */
+    }
+    for (int i = 0; i < G.nobjs; i++) {                          /* RM2 5879 / 5880: LayerChangeSwitch2_1241, the mirror (right after 1613-1616) */
+        obj_t *o = &G.o[i];
+        if (!o->alive || o->type != OT_LAYER_SW2 || !disc_on_box(p, o->x, o->y, o->x + 16, o->y + 48)) continue;
+        if (B < 0) p->layer = 1; else if (B > 0) p->layer = 0;
     }
     layers_refresh(p);                                           /* 3031 / 3032 */
 }

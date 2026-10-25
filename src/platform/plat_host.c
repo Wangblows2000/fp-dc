@@ -232,7 +232,7 @@ int main(int argc, char **argv) {
         fclose(f);
     }
     if (getenv("FP_DUMP_OBJDEFS")) {   /* the object registry per engine type: solid, obstacle, no-edge, obstacle-all, box (tests/test_levels.py) */
-        for (int t = 0; t < 256; t++) {
+        for (int t = 0; t < MAX_OT; t++) {
             int box = (objdef(t)->flags & OD_BOXCOL) != 0;
             printf("grp %d %d %d %d %d %d %d\n", t, obj_in_group(t, 0), obj_in_group(t, 1), obj_in_group(t, 2), obj_in_group(t, 3), box, objdef(t)->type == t);
         }

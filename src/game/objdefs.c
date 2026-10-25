@@ -28,7 +28,7 @@ static const objdef_t DEFS[] = {
     { OT_SPRING_UR,     OD_NOEDGE,                             NULL         }, /* yellowspringupright */
     { OT_SPRING_R,      OD_SOLID|OD_NOEDGE,                    NULL         }, /* yellowspringright */
     { OT_SPRING_L,      0,                                     NULL         }, /* yellowspringleft */
-    { OT_HANG,          0,                                     NULL         }, /* gimmickhangingidlesensor */
+    { OT_HANG,          OD_HANG,                                     NULL         }, /* gimmickhangingidlesensor */
     { OT_MON_RINGS,     OD_SOLID|OD_NOEDGE,                    NULL         }, /* monitorrings */
     { OT_MON_1UP,       OD_SOLID|OD_NOEDGE,                    NULL         }, /* monitor1up */
     { OT_PARALLAX,      0,                                     NULL         }, /* levelparallaxpiece0 */
@@ -114,10 +114,10 @@ static const objdef_t DEFS[] = {
     { OT_CAMTRIGGER,    0,                                     NULL         }, /* cameratriggerboss */
     { OT_JUMPPAD,       0,                                     NULL         }, /* objectjumppad */
     { OT_MON_KEYSTONE,  OD_SOLID|OD_NOEDGE,                    "mon_key"    }, /* monitorkeystone */
-    { OT_LOOP016,       OD_SOLID,                              "loop016"    }, /* levellayer016 */
-    { OT_LOOP0Q,        OD_SOLID,                              "loop0q"     }, /* levellayer0loop04 */
-    { OT_LOOP115,       OD_SOLID,                              "loop115"    }, /* levellayer115 */
-    { OT_LOOP1Q,        OD_SOLID,                              "loop1q"     }, /* levellayer1loop03 */
+    { OT_LOOP016,       OD_SOLID|OD_LAYER0,                              "loop016"    }, /* levellayer016 */
+    { OT_LOOP0Q,        OD_SOLID|OD_LAYER0,                              "loop0q"     }, /* levellayer0loop04 */
+    { OT_LOOP115,       OD_SOLID|OD_LAYER1,                              "loop115"    }, /* levellayer115 */
+    { OT_LOOP1Q,        OD_SOLID|OD_LAYER1,                              "loop1q"     }, /* levellayer1loop03 */
     { OT_CHUNK,         0,                                     NULL         }, /* - */
     { OT_WF_BACK,       0,                                     NULL         }, /* waterfallback */
     { OT_WF_FRONT,      0,                                     NULL         }, /* waterfallfront */
@@ -240,6 +240,54 @@ static const objdef_t DEFS[] = {
     { OT_TD_PIECE + 9,  0,                                     NULL         }, /* minibosstreddright4 */
     { OT_TD_PIECE + 10, 0,                                     NULL         }, /* minibosstreddright5 */
     { OT_TD_PIECE + 11, 0,                                     NULL         }, /* minibosstreddright6 */
+    /* Relic Maze acts 1-2 (spec_rm_gimmicks_a 0.3: Q7 solid, Q8 obstacle, Q9 no-edge, Q23 hang, box = initialize_active(true)) */
+    { OT_RAIL2,         0,                                     "rail2"      }, /* minibossrailing2 (visual of a gate) */
+    { OT_RPANEL,        OD_SOLID,                              NULL         }, /* gimmickrelicpanel */
+    { OT_RPIECE,        0,                                     NULL         }, /* - */
+    { OT_FLIPPANEL,     OD_SOLID,                              "flippanel"  }, /* gimmickrelicflippanel */
+    { OT_FLIPMARK2,     0,                                     NULL         }, /* gimmickrelicflippanel2 (marker) */
+    { OT_FLIPMARK3,     0,                                     NULL         }, /* gimmickrelicflippanel3 */
+    { OT_FLIPMARK4,     0,                                     NULL         }, /* gimmickrelicflippanel4 */
+    { OT_FBSPAWN,       0,                                     "fbspawn"    }, /* gimmickfireballspawner */
+    { OT_FBTURRET1,     OD_BOXCOL,                             "fbturret1"  }, /* gimmickfireballturret1 */
+    { OT_FBTURRET2,     OD_BOXCOL,                             "fbturret2"  }, /* gimmickfireballturret2 */
+    { OT_FBBACK,        OD_BOXCOL,                             "fbback"     }, /* gimmickfireballturretback */
+    { OT_FBALL,         0,                                     NULL         }, /* - */
+    { OT_EMBER,         0,                                     NULL         }, /* - */
+    { OT_HBAR,          0,                                     "hbar"       }, /* gimmickhangingmovingbar */
+    { OT_HSENS,         OD_BOXCOL|OD_HANG,                     "hsens"      }, /* gimmickhangingmovingsensor */
+    { OT_HBAR2,         0,                                     "hbar2"      }, /* gimmickhangingmovingbar2 */
+    { OT_HSENS2,        OD_BOXCOL|OD_HANG,                     "hsens2"     }, /* gimmickhangingmovingsensor2 */
+    { OT_HISWITCH,      OD_BOXCOL|OD_HANG,                     "hiswitch"   }, /* gimmickhangingidleswitch */
+    { OT_HSWITCHV,      0,                                     "hswitch"    }, /* gimmickhangingswitch */
+    { OT_HIMOVER,       OD_BOXCOL|OD_HANG,                     "himover"    }, /* gimmickhangingidlemover */
+    { OT_HMOVERV,       0,                                     "hmover"     }, /* gimmickhangingmover */
+    { OT_MFLOOR1,       OD_SOLID|OD_BOXCOL,                    "mfloor1"    }, /* gimmickmovingfloor1 */
+    { OT_MFLOOR2,       OD_SOLID|OD_BOXCOL,                    "mfloor2"    }, /* gimmickmovingfloor2 */
+    { OT_MFLOOR3,       OD_SOLID|OD_BOXCOL,                    "mfloor3"    }, /* gimmickmovingfloor3 */
+    { OT_RPLAT,         OD_OBSTACLE|OD_NOEDGE,                 "rplat"      }, /* gimmickrollingplatform */
+    { OT_RWHEEL,        0,                                     "rwheel"     }, /* gimmickrollingplatform2 */
+    { OT_SPINBALL,      0,                                     "spinball"   }, /* gimmickspinball */
+    { OT_CLOCK1,        0,                                     "clock1"     }, /* clockdial1 */
+    { OT_CLOCK2,        0,                                     "clock2"     }, /* clockdial2 */
+    { OT_AXLE,          OD_SOLID,                              "axle"       }, /* gimmickaxletunnel */
+    { OT_BLIGHT,        OD_BOXCOL,                             "blight"     }, /* basementlight */
+    { OT_COLFRONT,      OD_SOLID|OD_BOXCOL,                    "colfront"   }, /* switchcolumnfront1 */
+    { OT_COLBACK1,      OD_BOXCOL,                             "colback1"   }, /* switchcolumnback1 */
+    { OT_COLBACK2,      OD_BOXCOL,                             "colback2"   }, /* switchcolumnback2 */
+    { OT_RUINS,         OD_SOLID|OD_BOXCOL,                    "ruins"      }, /* breakableruins */
+    { OT_RUINPIECE,     0,                                     NULL         }, /* - */
+    { OT_DIGHOLE,       OD_SOLID|OD_BOXCOL,                    "dighole"    }, /* digspothole */
+    { OT_LAYER_SW2,     OD_BOXCOL,                             NULL         }, /* layerchangeswitch2 (invisible) */
+    { OT_WPLATE_RM,     0,                                     "wallplate"  }, /* switchwallplate_1149 */
+    { OT_LL001,         OD_SOLID|OD_BOXCOL|OD_LAYER0,          "ll001"      }, /* levellayer001 */
+    { OT_LL002,         OD_SOLID|OD_BOXCOL|OD_LAYER0,          "ll002"      }, /* levellayer002 */
+    { OT_LL015,         OD_SOLID|OD_LAYER0,                    "ll015"      }, /* levellayer015 (mask) */
+    { OT_LL02,          OD_SOLID|OD_BOXCOL|OD_LAYER0,          "ll02"       }, /* levellayer02 */
+    { OT_LL101,         OD_SOLID|OD_BOXCOL|OD_LAYER1,          "ll101"      }, /* levellayer101 */
+    { OT_LL116,         OD_SOLID|OD_LAYER1,                    "ll116"      }, /* levellayer116 (mask) */
+    { OT_LL1L01,        OD_SOLID|OD_LAYER1,                    "ll1l01"     }, /* levellayer1loop01 (mask) */
+    { OT_LL1L02,        OD_SOLID|OD_LAYER1,                    "ll1l02"     }, /* levellayer1loop02 (mask) */
     { OT_IRIS,          0,                                     NULL         }, /* enemyiris (relic.c) */
     { OT_SLUG,          0,                                     NULL         }, /* enemyslug */
     { OT_HOPPER,        0,                                     NULL         }, /* enemyhopper */

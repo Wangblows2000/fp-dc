@@ -86,6 +86,14 @@ static void dig_reward(obj_t *s, player_t *p) {
     case DIG_WOOD_MON:                                             /* 4194: wood shield monitor pops up */
         spawn_monitor(OT_MON_WOOD, "mon_wood", s->x + 16, s->y + 16);            /* position as 4190 (INFERRED) */
         break;
+    case DIG_EARTH_MON:                                            /* RM1 5821: earth shield monitor */
+        spawn_monitor(OT_MON_EARTH, "mon_earth", s->x + 16, s->y + 16);
+        break;
+    case DIG_OPEN_HOLE:                                            /* RM1 5823: the DigSpotHole opens (direction 8, flag 0: not solid) */
+        for (int k = 0; k < 4; k++) dig_debris(s->x + DX[k], s->y + 24);
+        snd_play_orig(13, 220, 128);
+        for (int i = 0; i < G.nobjs; i++) { obj_t *h = &G.o[i]; if (h->alive && h->type == OT_DIGHOLE) { int a = ens_anim("dighole_open"); if (a >= 0) anim_set(&h->an, &G.ens, a); h->fl |= 1; } }
+        break;
     }
 }
 

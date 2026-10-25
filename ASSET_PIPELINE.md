@@ -53,7 +53,7 @@ G="/mnt/user-data/uploads/Freedom Planet/game"          # read-only copy of the 
 python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui title 3 4 3+titlestar_53   # press start (+ runtime title stars) + hub
 python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui chsel 7      # character select
 python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui stsel 12     # Time Attack stage select
-python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui tasel 6 -x '^bg(1[0-9]|[3-9])layer'   # Time Attack stage select (frame index 5): previews of the ported stages only (bg1 AT, bg2 DV), to fit one atlas
+python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui tasel 6 -x '^bg(1[0-9]|[4-9])layer'   # Time Attack stage select (frame index 5): previews of the ported stages only (bg1 AT, bg2 DV, bg3 RM), to fit one atlas
 python3 tools/import_loading.py build/frames extracted/linux/images converted2/ui        # loading-screen crystal bank
 python3 tools/make_vmu_icons.py extracted/linux/images converted2/ui                     # VMU LCD frames (crystal, life heads) + save icon
 python3 tools/import_font.py "$G/Data/font.bmp" converted2/ui                             # 8x20 original font
