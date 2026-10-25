@@ -177,3 +177,31 @@ omits mirrored dir-16 animations.
    blocks (`--pal4`).
 5. Regenerate OBJECTS.md, run the host suites and the trace comparers, and add the level to the TA / route tables if the
    stage is new (stage index from spec_records_saves §1).
+
+## Session 15: Gallery
+The gallery (original frame index 10 = `frame_11.json`, spec build/re/fe/spec_gallery.md, code src/game/fe_gallery.inc) uses
+three kinds of data, all new files (nothing existing is rebuilt):
+```sh
+G="/mnt/user-data/uploads/Freedom Planet/game"          # read-only copy of the user's install
+# 1. the scene + bank (only the classes the screen draws; the art, text boxes, list / input / save objects are left out;
+#    EffectsWhiteBurst_31 is created at run time, so it is added off-screen like 3+titlestar_53)
+python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui gal 11 11+effectswhiteburst_31 \
+  -x '^(artwork|fade|achievementdescription|helpmessage|blackborder|backgroundsystembox|separatormasterobjects2|playerinput|masterinput|inputsp1|globalinputdata|mouseobject|sarassteam.*|list.*|mapdata2?|savedata|windowcontrol|recorddata|icon.*|charname1|active2)$'
+# 2. the 16 artworks (PAL8, one palette each, loaded on View) and the string tables (List* constructors + the executable)
+python3 tools/import_gallery.py build/frames extracted/linux/images /home/claude/fprun/bin64/Chowdren build/re converted2/gal
+# 3. the sound cards' clips (19 voices, 11025 Hz; the user's install first, else the /home/claude/fprun placeholders),
+#    the samples of the file-less sound cards (0 1 2 3 57 188 362, 11025 Hz) and the gallery's UI sound 443 (22050 Hz)
+tools/audio/convert_gallery.sh extracted/linux/audio "$G/Data/voices" /home/claude/fprun/Data/voices converted2/gal
+```
+- Output: `converted2/ui/gal_11.ui` (301 objects) + `gal_ui0.spr/.tex` (188 images, ARGB1555 atlas 1024x512 = 1 MB);
+  `converted2/gal/`: `art_00..15.tex/.pal` (15 x 256x256 + Syntax 512x256, PAL8 palette group 0: 64 / 128 KB of VRAM, one at a
+  time), `gal_text.txt` (`FPGT1 100 56 9`: card files, card labels, achievement names, descriptions, ListWarnings 0-8),
+  27 `.wav` (225 KB) and `gal_manifest.csv`.
+- Disc: `make cdi` copies `gal/` loose (tools/pack_disc.py skips it, pack.c never looks for `gal.pak`), so a View or a sound
+  card reads one small file; `twiddle_disc.py` pre-twiddles the art like every PAL8 texture. Music cards stream the existing
+  `bgm/*.adp` (all 58 tracks of the card list are in converted2/bgm; the lean `BGM=` disc lists only some of them).
+- Voices: only lilac_wontgiveup / nottoday / hitmeifyoucan / snakeman exist in the user's install; the other 15 clips are the
+  1-second placeholders of /home/claude/fprun (convert the real files when available: re-run step 3).
+- Memory (gallery open): VRAM title bank 2 MB + font 32 KB + gallery bank 1 MB (it replaces the 2 MB character-select /
+  stage-select bank in the shared screen slot) + one artwork <= 128 KB; sound RAM s443 6 KB resident + one clip <= 56 KB.
+
