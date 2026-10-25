@@ -170,5 +170,20 @@ n_play = sum(1 for a, b in zip(modes, modes[1:]) if a != MODE_PLAY and b == MODE
 check('three_title_level_cycles', n_play == 3 and modes[-1] == MODE_FRONTEND and p.returncode == 0, 'entries %d rc %d' % (n_play, p.returncode))
 if os.environ.get('FP_VALGRIND'):
     check('valgrind_no_leaks', 'definitely lost: 0 bytes' in p.stderr or 'no leaks are possible' in p.stderr, p.stderr[-300:])
+# session 15: title-screen unlock cheat (Left x3, Right x3, each within 1 s; any other press resets)
+def cheat_run(script):
+    sav = tempfile.mktemp(suffix='.sav')
+    r, m, sids, p = run(script, 120, {'FP_SAVE': sav})
+    d = open(sav, 'rb').read() if os.path.exists(sav) else b''
+    if os.path.exists(sav): os.unlink(sav)
+    return [x[0] for x in m], d, p.stdout + p.stderr
+names, d, out = cheat_run('20 21 L\n30 31 L\n40 41 L\n50 51 R\n60 61 R\n70 71 R\n')
+check('cheat_unlocks_and_jingle', 'cheat: all unlocked' in out and 'bgm/m_1up.adp' in names and len(d) == 1292, str(names))
+if d:   # progress (4 bytes) and cards (13 bytes) sit before the CRC
+    check('cheat_saved_progress_cards', list(d[-2 - 13 - 4:-2 - 13]) == [15] * 4 and d[-2 - 13:-2] == bytes([255] * 12 + [15]), d[-19:-2].hex())
+names, d, out = cheat_run('20 21 L\n30 31 L\n40 41 L\n120 121 R\n130 131 R\n140 141 R\n')
+check('cheat_times_out', 'cheat:' not in out and not d)
+names, d, out = cheat_run('20 21 L\n30 31 L\n35 36 U\n40 41 L\n50 51 R\n60 61 R\n70 71 R\n')
+check('cheat_reset_by_other_input', 'cheat:' not in out and not d)
 print('%d failure(s)' % fails)
 sys.exit(1 if fails else 0)

@@ -117,6 +117,12 @@ size_t save_payload_size(void) {
 /* cards (records x20): id n in 1..100 */
 int  save_card_has(int id) { return id >= 1 && id <= SAVE_CARDS && (SV.cards[(id - 1) >> 3] >> ((id - 1) & 7) & 1); }
 void save_card_set(int id) { if (id >= 1 && id <= SAVE_CARDS) SV.cards[(id - 1) >> 3] |= (uint8_t)(1 << ((id - 1) & 7)); }
+/* title-screen cheat (session 15): everything the save tracks as unlocked. Progress = every stage for every character
+ * (Time Attack locks, RE 641-643) and all 100 cards (the gallery's unlock source); records, files and options untouched. */
+void save_unlock_all(void) {
+    for (int c = 0; c < SAVE_CHARS; c++) SV.progress[c] = SAVE_STAGES;
+    for (int id = 1; id <= SAVE_CARDS; id++) save_card_set(id);
+}
 int save_card_total(void) { int n = 0; for (int id = 1; id <= SAVE_CARDS; id++) n += save_card_has(id); return n; }
 
 /* file totals = sums of the stage blocks (RE 954) */

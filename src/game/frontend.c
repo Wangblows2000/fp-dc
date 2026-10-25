@@ -231,6 +231,28 @@ static void title_update(uint32_t p) {
     if (ps) anim_tick(&ps->an, -1);
 }
 
+/* Unlock cheat (session 15, not in the original): Left x3, Right x3 on the title screen. Each press must follow the
+ * previous one within 1 s and any other button resets the sequence (so normal input never triggers it). Unlocks
+ * through the save's own fields (save_unlock_all), writes the save with the normal save_store, and plays the 1-up
+ * jingle (m_1up) before the title music resumes. */
+static int cheat_k, cheat_t, cheat_jingle;
+static int cheat_step(uint32_t pressed) {
+    static const uint32_t SEQ[6] = { BTN_LEFT, BTN_LEFT, BTN_LEFT, BTN_RIGHT, BTN_RIGHT, BTN_RIGHT };
+    pressed &= BTN_LEFT | BTN_RIGHT | BTN_UP | BTN_DOWN | BTN_JUMP | BTN_ATTACK | BTN_START | BTN_SPECIAL | BTN_LT | BTN_RT;
+    if (!pressed) { if (cheat_k && ++cheat_t > FPS) cheat_k = 0; return 0; }
+    if (pressed == SEQ[cheat_k]) { cheat_k++; cheat_t = 0; }
+    else { cheat_k = pressed == SEQ[0] ? 1 : 0; cheat_t = 0; }
+    if (cheat_k < 6) return 0;
+    cheat_k = 0;
+    save_unlock_all(); save_store();
+    music_play("bgm/m_1up.adp"); cheat_jingle = 240;            /* the 1-up jingle (objects.c OT_MON_1UP: 240 frames, INFERRED) */
+    plat_log("cheat: all unlocked\n");
+    return 1;
+}
+static void cheat_music(void) {
+    if (cheat_jingle > 0 && --cheat_jingle == 0 && fe_state == FE_PRESS && !tleaving) music_play("bgm/m_title.adp");
+}
+
 static void title_draw(void) {
     ui_obj_t *o;
     if ((o = ui_find(&s_press, "shockwave", 0))) o->vis = 0;
@@ -449,7 +471,7 @@ void fe_update(const input_t *in) {
     G.frame++; fe_t++;
     if (fe_dev_select_check(in)) { fe_unload(); game_dev_select(); return; }
     switch (fe_state) {
-    case FE_PRESS: { static uint32_t prev; uint32_t p = prev; prev = in->pressed; title_update(p); break; }   /* RE order: presses act next frame */
+    case FE_PRESS: { static uint32_t prev; uint32_t p = prev; prev = in->pressed; cheat_step(p); cheat_music(); title_update(p); break; }   /* RE order: presses act next frame */
     case FE_HUB: {
         int ex = hub_update(in);
         if (ex == HUB_EXIT_QUIT) { plat_quit(); break; }
