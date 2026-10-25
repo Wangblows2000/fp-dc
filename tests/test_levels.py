@@ -101,5 +101,26 @@ rows, _ = run('5 TP 7590 1080\n40 HP 0\n40 HURT 10\n', 520, {'FP_LEVEL': 'at1', 
 xs = [r['x'] for r in rows[300:]]
 check('at1_checkpoint_restart', xs and 7500 < xs[0] < 7700, 'x after restart %s' % (xs[0] if xs else None))
 
+# ---- DV1 is still completable by input alone (the route found by the host search, tests/play/route_dv1_search.txt)
+_, out = run(open(os.path.join(HERE, 'play', 'route_dv1_search.txt')).read(), 14100, {'FP_LEVEL': 'dv1'})
+loads = [l.split('[', 1)[1].split(']', 1)[0] for l in out.splitlines() if l.startswith('load[')]
+check('dv1_route_by_input_reaches_dv2', 'dv2' in loads, str(loads))
+
+# ---- menu scenes (UI importer): the Time Attack preview masks (solid quick backdrops, kind 2) and the translucent
+# layers of the semi-transparent images (kind 3: the bottom bar 135, the record panel 87)
+def ui_kinds(path):
+    d = open(path, 'rb').read(); n = struct.unpack_from('<H', d, 8)[0]; off = 12; out = []
+    for _ in range(n):
+        cls = d[off:off + 24].split(b'\0')[0].decode(); kind, nent, pad = d[off + 29], d[off + 30], d[off + 31]; off += 32
+        off += 12 if kind == 2 else 6 * nent
+        out.append((cls, kind, pad))
+    return out
+import struct
+k = ui_kinds(os.path.join(DATA, 'ui', 'tasel_6.ui'))
+check('tasel_preview_masks', sum(1 for c, kd, _ in k if kd == 2) >= 10, str(sum(1 for c, kd, _ in k if kd == 2)))
+check('tasel_translucent_layers', {(c, a) for c, kd, a in k if kd == 3} >= {('~backdrop', 135), ('~recordback', 87)}, str({(c, a) for c, kd, a in k if kd == 3}))
+k = ui_kinds(os.path.join(DATA, 'ui', 'chsel_7.ui'))
+check('chsel_translucent_bar', ('~backdrop', 3, 135) in k)
+
 print('%d failure(s)' % fails)
 sys.exit(1 if fails else 0)
