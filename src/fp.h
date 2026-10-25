@@ -429,8 +429,10 @@ typedef struct {
     int stage_flags, exit_b, walk_b, keep_g4, stage_carry;
     int input_lock;               /* CTRL.M = 1 set by an object (RM2 hanging mover 5871): no control */
     const char *exit_to;
+    const void *warp;             /* the warp being faded into (warp_t, RM5 labyrinth rooms); NULL for act exits */
     char prev_dir[8];
     float cam_nC, cam_nE;          /* normal camera bounds C / E (U = 0): 0 / width in DV; AT per act (spec_at_flow 3.1) */
+    float cam_nF;                  /* normal bottom bound F (the frame height; RM5 labyrinth rooms, session 14) */
     int cam_m2;                    /* CAM.M = 2: camera returns to the player (loop_camera_mode2) */
     int orig_moves;                 /* 1: down-kick / uppercut exactly as the original (comparisons); 0: port's momentum change */
 } game_t;
@@ -590,7 +592,12 @@ typedef struct { const char *from; short x, y, y_flag1; signed char face, walk_b
  * barriers on them go; create 1 = after the entry walk-in, with the flag off and ymin < MV.Y <= ymax, a rail + barrier close
  * at (x, y) behind the player */
 typedef struct { short flag, rail_type, x, y, ymin, ymax; signed char create; } gate_t;
-typedef struct { short flag, x0, x1, y0, y1; } flagclear_t;   /* act start with the flag set: the area's items / gates go (RM2 6039 / 6040) */
+typedef struct { short flag, x0, x1, y0, y1; } flagclear_t;
+/* RM5 labyrinth (spec_rm_flow 2.5): a room's camera bounds E / F while x0 < X <= x1 and y0 < MV.Y < y1 (rails: 1 only while a
+ * railing exists, 0 only when none, -1 always); a warp fades out when the player is in its zone moving in direction dir,
+ * then walks in at (tx, ty) facing face with B = walk_b (g4 = g4 during the walk-in; walkin_E > 0: camera E meanwhile) */
+typedef struct { short x0, x1, y0, y1, E, F; signed char rails; } camroom_t;
+typedef struct { short x0, x1, y0, y1; signed char dir; short tx, ty; signed char face, walk_b, g4; short walkin_E; } warp_t;   /* act start with the flag set: the area's items / gates go (RM2 6039 / 6040) */
 typedef struct { short g4_max, lock_x, lock_ymin, lock_ymax, l, t, r, b, unlock_x, unlock_y; } camzone_t;   /* boss camera lock (see levels.c) */
 typedef struct { short x0, x1, y0, y1; signed char who, jelly; } killbox_t;   /* items removed at the act start: who 0 all, 1 not Milla, 2 Milla, 3 all but Lilac, 4 all but Carol on foot (RM2 6013 / 6014) */
 typedef struct {
@@ -626,13 +633,18 @@ typedef struct {
     int wplate_cyclone;                              /* SwitchWallPlate_1149: Lilac's cyclone (M26) presses it too (RM1 5677) */
     const gate_t *gates; int ngates;
     const flagclear_t *flagclears; int nflagclears;
-    const zone_t *breakout; int breakout_flag;       /* RM2 5925: in the zone while the axle turns -> the flag, gates open */
+    const zone_t *breakout; int breakout_flag;
+    const camroom_t *rooms; int nrooms;
+    int walkin_purge;                                /* RM1 5826: during a walk-in every EnemyIris completely inside the view goes */
+    const warp_t *warps; int nwarps;       /* RM2 5925: in the zone while the axle turns -> the flag, gates open */
     int monitor_hop;                                 /* 2605: a monitor hops when bumped from below (D-051: AT only, DV keeps its traced behaviour) */                     /* switches.c: pressure-plate rule (0 DV 4971-4973, 1 AT1 4093-4096), pass after the movement */
 } level_def_t;
 const level_def_t *level_def(const char *dir), *level_cur(void);
 const char *level_first_of_stage(int stage), *level_next(const char *dir), *level_route_start(int character), *level_route_next(int stage);
 const exit_t *level_exit_check(const player_t *p);
 const entry_t *level_entry(const char *from);
+const warp_t *level_warp_check(const player_t *p);
+void level_warp_do(player_t *p, const warp_t *w);
 int objects_have(int type), objects_have_from(int type);
 void game_save_stage_end(uint32_t time_ms);
 /* object registry (src/game/objdefs.c): properties of each engine type shared by every level */
