@@ -50,9 +50,15 @@ static int fe_load(void) {
     loading_end(); lp_end();
     if (bad) { plat_log("front end data missing\n"); return -1; }
     hub_bind(&s_hub);
-    fe_difficulty = SV.difficulty <= 3 ? SV.difficulty : 1;
-    fe_music_volume = SV.music_volume <= 100 ? SV.music_volume : 100;
-    fe_letterbox = SV.letterbox ? 1 : 0;
+    { static int opts_loaded;   /* the options come from the save once per boot: global 12 (difficulty) is changed by the
+                                 * file screen too and must survive the front end being reloaded after a stage (session 15:
+                                 * re-reading it here silently switched the game's difficulty, e.g. Casual -> Normal) */
+      if (!opts_loaded) {
+          opts_loaded = 1;
+          fe_difficulty = SV.difficulty <= 3 ? SV.difficulty : 1;
+          fe_music_volume = SV.music_volume <= 100 ? SV.music_volume : 100;
+          fe_letterbox = SV.letterbox ? 1 : 0;
+      } }
     fe_loaded = 1; scr_loaded = -1;
     return 0;
 }

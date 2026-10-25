@@ -16,6 +16,7 @@ static int A_TURR[6] = { -1, -1, -1, -1, -1, -1 };   /* idle, idle_l, shoot, sho
 static int A_GAN[10] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };   /* Ganseki: pose, walk, dead, curl, wake; even = right, odd = left */
 static int A_PELLET = -1, A_EXPLODE2 = -1, A_SPARKLE = -1, A_HEART = -1, A_CRYSTAL = -1, A_PETAL = -1;
 
+static void ext_cache_reset(void);
 static unsigned obj_gen = 1;   /* bumped whenever a slot is (re)allocated or retyped: invalidates the sensor candidates */
 /* superset of the types alive now: rebuilt when a slot is allocated / retyped (obj_gen) and at every objects_update, so a
  * pass can skip its full slot scan when none of its types exists (a type that died since stays set until then) */
@@ -47,7 +48,7 @@ void objects_spawn(void) {
     A_SPARKLE = bank_anim(&G.objs, "ringsparkle"); A_HEART = bank_anim(&G.objs, "heart");
     A_CRYSTAL = bank_anim(&G.objs, "objectcrystal_3"); A_PETAL = bank_anim(&G.objs, "objectpetal_355");
     memset(G.o, 0, sizeof G.o);
-    G.nobjs = 0; obj_gen++;
+    G.nobjs = 0; obj_gen++; ext_cache_reset();   /* banks such as G.ens keep their address across levels: forget their extents */
     for (int i = 0; i < G.lvl.nobj; i++) if (G.lvl.objs[i].type == OT_LOG && G.lvl.objs[i].anim != 0xffff) A_LOG = G.lvl.objs[i].anim;
     for (int i = 0; i < G.lvl.nobj; i++) {
         const lvobj_t *lo = &G.lvl.objs[i];
@@ -927,6 +928,7 @@ static int bank_extent(const bank_t *b) {
     return m;
 }
 static const bank_t *ext_slot_b[MAX_OBJS]; static short ext_slot_m[MAX_OBJS];
+static void ext_cache_reset(void) { memset(ext_b, 0, sizeof ext_b); next_b = 0; memset(ext_slot_b, 0, sizeof ext_slot_b); }
 /* Player-phase snapshot (objects_sense_snapshot): per candidate list, a packed copy of x / y / reach so the ~80 sensor
  * queries of player_update reject far objects without touching their obj_t (one SH4 cache miss each: ~3-5 ms a frame
  * in RM4). Superset filter only: reach = 2x the bank extent + SNAP_SLACK px for objects moved during the phase; every
