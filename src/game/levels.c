@@ -52,7 +52,19 @@ static const cpzone_t CP_RM2[] = { { 100, 32767, 2, 6360, 256, 0, 1 } };       /
 static const cpzone_t CP_RM3[] = { { 7400, 8360, 10, 8352, 2669, 2000, 0 } };     /* 6296 -> loop_next_act_26 (Y > 2000) */
 static const cpzone_t CP_RM4[] = { { 4330, 5330, 2, 4330, 830, 0, 0 } };
 static const killbox_t KILL_RM2[] = { { 2915, 3204, 281, 584, 3, 0 }, { 3219, 3265, 327, 621, 4, 0 } };   /* 6013 / 6014 */
-static const short SFX_RM[] = { 40, 51, 62, 76, 110, 135 };
+/* RM1 / RM2 gimmicks (spec_rm_gimmicks_a): dig zones 5820 and rewards 5821-5824 (spot A: newest first), RM2 jump pads
+ * (5169, 4951, 5171, 5172, 5892, 5893), the stage-flag gates (10), the start clean-ups 6039 / 6040 and the basement
+ * break-out zone 5925 */
+static const zone_t DIGZ_RM1[] = { { -12, 1186, 966, 1173 }, { 3455, 4489, 692, 1009 }, { 4416, 5362, 523, 840 }, { 2305, 2357, 1091, 1149 },
+                                   { 1207, 1620, 1109, 1226 }, { 6539, 6653, 487, 620 } };
+static const signed char DIGR_RM1[] = { DIG_EARTH_MON, DIG_CRYSTALS, DIG_OPEN_HOLE, DIG_KEYSTONE_MON };
+static const padcfg_t PADS_RM2[] = { {3264,432,0,90,0,1,0}, {3264,224,1,90,0,0,0}, {3264,32,2,90,1,0,0}, {800,608,3,0,0,1,0}, {664,384,4,270,0,0,0}, {992,40,5,180,1,0,0} };
+static const gate_t GATES_RM1[] = { { 0x2, OT_WR_RAIL, 0, 0, 0, 0, 0 }, { 0x4, OT_RAIL2, 0, 0, 0, 0, 0 } };   /* 5832 / 5833 */
+static const gate_t GATES_RM2[] = { { 0x2, OT_WR_RAIL, 116, 336, -32768, 1000, 1 }, { 0x4, OT_RAIL2, 116, 1424, 1000, 32767, 1 },   /* 5922 / 5923 */
+                                    { 0x4, OT_RAIL2, 0, 0, 0, 0, 0 } };                                                      /* 5926 */
+static const flagclear_t CLEAR_RM2[] = { { 0x2, 0, 3499, 0, 1199 }, { 0x4, 22, 1937, 1600, 3189 } };                        /* 6039 / 6040 */
+static const zone_t BREAKOUT_RM2 = { 587, 824, 2328, 2566 };
+static const short SFX_RM[] = { 54, 55, 59, 60, 62, 67, 70, 77, 101, 110, 135, 213, 219, 306, 426 };   /* not in the global set (D-047): enemies, gimmicks, flow */
 
 static const short SFX_AT[] = { 55, 62, 69, 99, 172, 173, 240, 242, 251, 252, 278, 306, 308, 316 };
 #define N_(a) (int)(sizeof a / sizeof a[0])
@@ -80,9 +92,11 @@ static const level_def_t LEVELS[] = {
      * m_stage2b), cards 11 / 14 / 17 / 18 / 20, no water. RM5's Mantalith and its results are not ported yet: the act's
      * right edge ends the stage. */
     { RM("rm1", 24, 1, "bgm/m_stage2.adp"), .card_first = 11, .exits = EX_RM1, .nexits = N_(EX_RM1), .entries = EN_RM1, .nentries = N_(EN_RM1),
-      .cps = CP_RM1, .ncps = N_(CP_RM1), .flag1_y = 340, .crystals_once = 1 },
+      .cps = CP_RM1, .ncps = N_(CP_RM1), .flag1_y = 340, .crystals_once = 1, .wplate_cyclone = 1, .gates = GATES_RM1, .ngates = N_(GATES_RM1),
+      .dig_zones = DIGZ_RM1, .ndig_zones = N_(DIGZ_RM1), .dig_rewards = DIGR_RM1, .ndig_rewards = N_(DIGR_RM1) },
     { RM("rm2", 25, 2, "bgm/m_stage2.adp"), .card_first = 14, .exits = EX_RM2, .nexits = N_(EX_RM2), .entries = EN_RM2, .nentries = N_(EN_RM2),
-      .cps = CP_RM2, .ncps = N_(CP_RM2), .death_to = "rm1", .kills = KILL_RM2, .nkills = N_(KILL_RM2) },
+      .cps = CP_RM2, .ncps = N_(CP_RM2), .death_to = "rm1", .kills = KILL_RM2, .nkills = N_(KILL_RM2), .plate_rule = 2, .pads = PADS_RM2, .npads = N_(PADS_RM2),
+      .gates = GATES_RM2, .ngates = N_(GATES_RM2), .flagclears = CLEAR_RM2, .nflagclears = N_(CLEAR_RM2), .breakout = &BREAKOUT_RM2, .breakout_flag = 0x4 },
     { RM("rm3", 26, 3, "bgm/m_stage2.adp"), .card_first = 17, .music_cp = "bgm/m_stage2b.adp", .exits = EX_RM3, .nexits = N_(EX_RM3),
       .entries = EN_RM3, .nentries = N_(EN_RM3), .cps = CP_RM3, .ncps = N_(CP_RM3), .cam_right = 12288 + 50 },
     { RM("rm4", 27, 4, "bgm/m_stage2b.adp"), .card_first = 18, .cps = CP_RM4, .ncps = N_(CP_RM4) },

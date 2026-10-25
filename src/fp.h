@@ -184,7 +184,8 @@ void anim_restart(animator_t *a);
 void anim_tick(animator_t *a, int speed_override);       /* <0: use table speed */
 const frame_t *anim_frame(const animator_t *a);
 void frame_draw(const bank_t *b, const frame_t *f, float x, float y, int flip, uint32_t argb);
-void frame_draw_rot(const bank_t *b, const frame_t *f, float x, float y, float angle_deg, int flip, uint32_t argb);   /* flip: mirrored image (hotspot w - 1 - hx) */
+void frame_draw_rot(const bank_t *b, const frame_t *f, float x, float y, float angle_deg, int flip, uint32_t argb);
+void frame_draw_scaled(const bank_t *b, const frame_t *f, float x, float y, float w, float h, uint32_t argb);   /* flip: mirrored image (hotspot w - 1 - hx) */
 int  tex_load_file(tex_t *t, const char *name);
 int  pal_load_file(const char *name);
 
@@ -240,7 +241,15 @@ enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_MON_INVINC = 4, OT_MON
        /* Relic Maze enemies (session 14, src/game/relic.c, spec_rm_enemies.md) */
        OT_IRIS = 232, OT_SLUG = 233, OT_HOPPER = 234, OT_FSPITTER = 235, OT_SENTINEL = 236, OT_EXBASE = 237, OT_EXHEAD = 238,
        OT_POT = 239, OT_BLUEPOT = 240,
-       OT_FSPRITE = 241, OT_SPARK = 242, OT_SSPIKE = 243, OT_FLAME = 244, OT_FSSHELL = 245 /* runtime: their children */ };
+       OT_FSPRITE = 241, OT_SPARK = 242, OT_SSPIKE = 243, OT_FLAME = 244, OT_FSSHELL = 245 /* runtime: their children */,
+       /* Relic Maze acts 1-2 gimmicks (session 14, src/game/relic_gima.c, spec_rm_gimmicks_a.md) */
+       OT_RAIL2 = 246, OT_RPANEL = 247, OT_RPIECE = 248 /* runtime */, OT_FLIPPANEL = 249, OT_FLIPMARK2 = 250, OT_FLIPMARK3 = 251, OT_FLIPMARK4 = 252,
+       OT_FBSPAWN = 253, OT_FBTURRET1 = 254, OT_FBTURRET2 = 255, OT_FBBACK = 256, OT_FBALL = 257, OT_EMBER = 258 /* runtime */,
+       OT_HBAR = 259, OT_HSENS = 260, OT_HBAR2 = 261, OT_HSENS2 = 262, OT_HISWITCH = 263, OT_HSWITCHV = 264, OT_HIMOVER = 265, OT_HMOVERV = 266,
+       OT_MFLOOR1 = 267, OT_MFLOOR2 = 268, OT_MFLOOR3 = 269, OT_RPLAT = 270, OT_RWHEEL = 271, OT_SPINBALL = 272, OT_CLOCK1 = 273, OT_CLOCK2 = 274,
+       OT_AXLE = 275, OT_BLIGHT = 276, OT_COLFRONT = 277, OT_COLBACK1 = 278, OT_COLBACK2 = 279, OT_RUINS = 280, OT_RUINPIECE = 281 /* runtime */,
+       OT_DIGHOLE = 282, OT_LAYER_SW2 = 283, OT_WPLATE_RM = 284,
+       OT_LL001 = 285, OT_LL002 = 286, OT_LL015 = 287, OT_LL02 = 288, OT_LL101 = 289, OT_LL116 = 290, OT_LL1L01 = 291, OT_LL1L02 = 292 };
 
 #define MAX_ATLAS 4
 typedef struct {
@@ -296,7 +305,8 @@ typedef struct {
     int springing, skidding, ctrl_lock;
     int look, look_prev;           /* 2 = looking up (M2), 3 = crouching (M3) this / last frame */
     uint32_t held;                 /* this frame's held buttons (object events that test input) */
-    double hang_x, hang_y;         /* grabbed hang sensor position (state M41) */                 /* launched by a spring, until landing (spring anim while rising) */
+    double hang_x, hang_y;         /* grabbed hang sensor position (state M41) */
+    int hang_obj; float hang_px, hang_py;   /* the held handle (Q = 1) and its last position: moving handles carry the player (4062, session 14) */                 /* launched by a spring, until landing (spring anim while rising) */
     float rot;                   /* sprite angle, degrees CCW (original Active angle @+0xc4) */
     double boost_vx, boost_vy;    /* (unused since the RE boost; kept for the save layout of player_t) */
     int boost_n, boost_q, m5_bounced;
@@ -412,6 +422,7 @@ typedef struct {
     /* stage flow (session 14, spec_rm_flow 6.2): MasterLevel flags kept across acts and deaths of one stage (0x1 RM1 lower
      * half, 0x2 / 0x4 RM2 tasks done), the exit taken (target act, fade B), the act left, the entry's facing / walk-in B */
     int stage_flags, exit_b, walk_b, keep_g4, stage_carry;
+    int input_lock;               /* CTRL.M = 1 set by an object (RM2 hanging mover 5871): no control */
     const char *exit_to;
     char prev_dir[8];
     float cam_nC, cam_nE;          /* normal camera bounds C / E (U = 0): 0 / width in DV; AT per act (spec_at_flow 3.1) */
@@ -549,13 +560,16 @@ void   enemies_absorb_crystals(void);
 int    aqua_level(void);                      /* act 1-4 in Aqua Tunnel, else 0 */
 /* src/game/relic.c (Relic Maze enemies, session 14) */
 void   relic_spawn(void), relic_frame(player_t *p);
+void   relic_gima_spawn(void), relic_gima_pre(player_t *p), relic_gima_post(player_t *p), relic_gima_draw_overlay(void), relic_axle_turn(void), relic_hang_hold(player_t *p);
+int    relic_gima_obj(obj_t *o, player_t *p), relic_boss_clear_type(int type);
+void   obj_hang_try(obj_t *o, player_t *p);       /* a hang handle (OD_HANG): the grab (4064-4066) */
 int    relic_obj_update(obj_t *o, player_t *p);   /* 1: a relic.c type (handled) */
 int    relic_keeps_state(int type);               /* its own events set D on defeat (2764 leaves st) */
 void   rock_at_new(float x, float y), rock_at_break(obj_t *r), rocks_at_frame(player_t *p);   /* EnemyRock (aqua_boss.c), shared */
 /* level definitions (src/game/levels.c): per-act data read by the shared code */
 typedef struct { short x, y, A; float B; short D, E, blk; } padcfg_t;   /* Carol's jump pad at (x, y): index A, angle B, chain end D, lit E, block pad */
 typedef struct { short x0, x1, y0, y1; } zone_t;
-enum { DIG_NONE, DIG_KEYSTONE_MON, DIG_CRYSTALS, DIG_PETAL, DIG_WOOD_MON };   /* dig spot rewards (spec_milla_moves 6) */                        /* a box in original MV coordinates (x0..x1, y0..y1 inclusive) */
+enum { DIG_NONE, DIG_KEYSTONE_MON, DIG_CRYSTALS, DIG_PETAL, DIG_WOOD_MON, DIG_EARTH_MON, DIG_OPEN_HOLE };   /* dig spot rewards (spec_milla_moves 6) */                        /* a box in original MV coordinates (x0..x1, y0..y1 inclusive) */
 typedef struct { short x0, x1, g4, x, y, ymin; signed char nosnap; } cpzone_t;   /* checkpoint: x0 < X < x1 (and MV.Y > ymin when set) and g4 below -> g4 / g5 / g6 = g4, x, y (nosnap: no restart snapshot, RM2 5924) */
 /* act exits (spec_rm_flow 6.2): edge 1 = right (X > W + x, B > 0), -1 = left (X < x, B < 0); ymin < MV.Y < ymax unless both 0;
  * the first match wins; during the fade a grounded player gets B = fade_b (0: the DV / AT rule B = max(B, 2), 3311) */
@@ -563,6 +577,11 @@ typedef struct { signed char edge, fade_b; short x, ymin, ymax; const char *to; 
 /* act entries after an act change (g4 < 0): from act `from` (NULL: any) the player is placed at MV (x, y), + y_flag1 when
  * stage flag 0x1 is set, facing `face`, and walks in at B = walk_b for 32 frames */
 typedef struct { const char *from; short x, y, y_flag1; signed char face, walk_b; } entry_t;
+/* stage-flag gates (RM 5832 / 5833 / 5922 / 5923 / 5926): create 0 = while the flag is set, the rails of rail_type and the
+ * barriers on them go; create 1 = after the entry walk-in, with the flag off and ymin < MV.Y <= ymax, a rail + barrier close
+ * at (x, y) behind the player */
+typedef struct { short flag, rail_type, x, y, ymin, ymax; signed char create; } gate_t;
+typedef struct { short flag, x0, x1, y0, y1; } flagclear_t;   /* act start with the flag set: the area's items / gates go (RM2 6039 / 6040) */
 typedef struct { short g4_max, lock_x, lock_ymin, lock_ymax, l, t, r, b, unlock_x, unlock_y; } camzone_t;   /* boss camera lock (see levels.c) */
 typedef struct { short x0, x1, y0, y1; signed char who, jelly; } killbox_t;   /* items removed at the act start: who 0 all, 1 not Milla, 2 Milla, 3 all but Lilac, 4 all but Carol on foot (RM2 6013 / 6014) */
 typedef struct {
@@ -595,6 +614,10 @@ typedef struct {
     const entry_t *entries; int nentries;
     const char *death_to;
     int flag1_y, crystals_once;
+    int wplate_cyclone;                              /* SwitchWallPlate_1149: Lilac's cyclone (M26) presses it too (RM1 5677) */
+    const gate_t *gates; int ngates;
+    const flagclear_t *flagclears; int nflagclears;
+    const zone_t *breakout; int breakout_flag;       /* RM2 5925: in the zone while the axle turns -> the flag, gates open */
     int monitor_hop;                                 /* 2605: a monitor hops when bumped from below (D-051: AT only, DV keeps its traced behaviour) */                     /* switches.c: pressure-plate rule (0 DV 4971-4973, 1 AT1 4093-4096), pass after the movement */
 } level_def_t;
 const level_def_t *level_def(const char *dir), *level_cur(void);
@@ -604,7 +627,7 @@ const entry_t *level_entry(const char *from);
 int objects_have(int type), objects_have_from(int type);
 void game_save_stage_end(uint32_t time_ms);
 /* object registry (src/game/objdefs.c): properties of each engine type shared by every level */
-enum { OD_SOLID = 1, OD_OBSTACLE = 2, OD_NOEDGE = 4, OD_BOXCOL = 8 };
+enum { OD_SOLID = 1, OD_OBSTACLE = 2, OD_NOEDGE = 4, OD_BOXCOL = 8, OD_HANG = 16, OD_LAYER0 = 32, OD_LAYER1 = 64 };   /* OD_HANG: a hang handle (Q23); OD_LAYER0 / 1: loop-layer pieces solid while MV.P = 0 / 1 */
 typedef struct { uint16_t type, flags; const char *ens; } objdef_t;
 const objdef_t *objdef(int type);
 void level_flow_spawn(void), level_flow_frame(const player_t *p), level_camera_bounds(void), level_release_camera(int keep_trigger);
