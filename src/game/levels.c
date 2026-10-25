@@ -88,6 +88,15 @@ static const pillarzone_t PIL_RM4[] = { { 4411, 4458, 658, 894, 144 }, { 4459, 4
     { 4557, 4604, 659, 895, 96 }, { 4604, 4651, 661, 897, 80 } };
 static const rmgim_t RMG_RM3 = { PIL_RM3, N_(PIL_RM3), 0, 1, 0 }, RMG_RM4 = { PIL_RM4, N_(PIL_RM4), 8, 1, 0 }, RMG_RM5 = { NULL, 0, 0, 1, 1608 };
 static const padcfg_t PADS_RM4[] = { {368,632,0,0,0,0,0}, {496,392,1,0,0,0,0}, {560,632,2,0,1,0,0}, {1656,912,3,0,0,0,0}, {1472,688,4,270,1,0,0} };
+/* Fortune Night pads (ObjectJumpPad_1529; spec_fn_gimmicks_a 16: A = spread newest first, RE 4950 / 7186-7196 (FN1), 4950 / 4951 / 7649 /
+ * 4954 / 7650-7654 / 5365 / 7655-7663 (FN3)); FN2's only pad is an off-map template (inert) */
+static const padcfg_t PADS_FN1[] = { {3880,1328,0,0,0,1,0}, {3944,1008,1,90,1,0,0}, {3464,1032,2,0,0,1,0}, {3520,744,3,270,0,0,0}, {3584,440,4,270,1,0,0},
+    {7528,1072,6,90,0,1,0}, {7208,952,7,180,1,0,0}, {10472,704,8,90,0,1,0}, {10472,416,9,90,0,0,0}, {10472,128,10,90,1,0,0},
+    {7656,1168,11,270,0,1,0}, {7784,1016,12,270,0,0,0}, {7912,728,13,270,1,0,0} };
+static const padcfg_t PADS_FN3[] = { {5568,784,0,0,0,1,0}, {5888,640,1,90,0,0,0}, {5632,640,2,270,1,0,0}, {7312,1088,4,0,0,1,0}, {7792,1088,5,0,1,0,0},
+    {9504,800,6,0,0,1,0}, {9568,424,7,180,0,0,0}, {9984,464,8,90,0,0,0}, {9856,752,9,270,0,0,0}, {10176,712,10,180,0,0,0}, {10752,752,11,90,0,0,0},
+    {10400,520,12,180,0,0,0}, {10496,800,13,0,0,0,0}, {10368,656,14,270,0,0,0}, {10720,616,15,180,0,0,0}, {11360,616,16,180,1,0,0},
+    {10656,800,17,0,0,1,0}, {10656,616,18,180,0,0,0}, {11360,616,19,180,1,0,0} };
 static const padcfg_t PADS_RM5[] = { {352,2664,0,0,0,0,0}, {624,2632,1,0,1,0,0}, {1176,520,2,270,0,1,0}, {1176,216,3,270,1,0,0} };
 
 static const short SFX_AT[] = { 55, 62, 69, 99, 172, 173, 240, 242, 251, 252, 278, 306, 308, 316 };
@@ -131,9 +140,9 @@ static const level_def_t LEVELS[] = {
     { RM("rm5", 28, 5, "bgm/m_stage2b.adp"), .card_first = 20, .entries = EN_RM5, .nentries = N_(EN_RM5), .cam_right = 9600 + 50,
       .rmg = &RMG_RM5, .pads = PADS_RM5, .npads = N_(PADS_RM5), .rooms = ROOMS_RM5, .nrooms = N_(ROOMS_RM5), .warps = WARPS_RM5, .nwarps = N_(WARPS_RM5) },
     /* Fortune Night: frame index 29-34 (session 17; rows provisional until spec_fn_flow is ported: music, cards, exits) */
-    { FN("fn1", 29, 1, "bgm/m_stage3.adp"), .card_first = 31, .fne = &FNE_FN1 },
+    { FN("fn1", 29, 1, "bgm/m_stage3.adp"), .card_first = 31, .fne = &FNE_FN1, .pads = PADS_FN1, .npads = N_(PADS_FN1) },
     { FN("fn2", 30, 2, "bgm/m_stage3.adp"), .card_first = 33, .fne = &FNE_FN2 },
-    { FN("fn3", 31, 3, "bgm/m_stage3.adp"), .card_first = 36 },
+    { FN("fn3", 31, 3, "bgm/m_stage3.adp"), .card_first = 36, .pads = PADS_FN3, .npads = N_(PADS_FN3) },
     { FN("fn4", 32, 4, "bgm/m_stage3b.adp"), .card_first = 37, .wplate_cyclone = 1 },   /* 5677: the escalator plate takes M 26 too (fn_gimb.c) */
     { FN("fn5", 33, 5, "bgm/m_stage3b.adp"), .card_first = 39, .fne = &FNE_FN5, .wplate_cyclone = 1, .fnb_disco = 1 },   /* + the disco light 8298-8303 (fn_gimb.c) */
     { FN("fn6", 34, 6, "bgm/m_boss.adp"), .card_first = 40 },
