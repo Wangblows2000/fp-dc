@@ -190,7 +190,8 @@ Every level, front-end and boot load runs behind a black loading screen with Obj
 | screen | original frame | port | sounds | from the original | INFERRED / not ported |
 |---|---|---|---|---|---|
 | Press Start | 2 | frontend.c FE_PRESS | 100 | events 307-330, 1-frame input latency | – |
-| Title menu | 3 (cam 43,0) | fe_hub.c title_events | 63/64 | 380-392, console layout | GALLERY inert; QUIT hidden (console) |
+| Title menu | 3 (cam 43,0) | fe_hub.c title_events | 63/64 | 380-392, console layout | QUIT hidden (console) |
+| Gallery | 10 | fe_gallery.inc FE_GAL | 64/63/32/40/443/56/100 | spec_gallery (992-1139), RV t_gal1-6 | see "Session 15: Gallery" |
 | File / mode select | 3 (cam 43,240) | file_events, delete_events | 63/64/56 | 393-437 | Adventure skips the cutscene; continue starts DV1 |
 | Options | 3 (cam 523,0) | options_events | 63/64 | 464-511 | Controls / screen size / sensitivity hidden (console); SFX volume display-only on host |
 | Character select | 6 | frontend.c FE_CHSEL | 63, 220/221/186, 56 | spec_charselect | Lilac, Carol (session 10) and Milla (session 11) playable |
@@ -361,3 +362,31 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
 - **Host:** `FP_TRACK=type:spawnx` (now tm / vx / vy), BOSSHP for golems, Claw hitbox and Mantalith head / arms,
   `FP_DBG_OBJS`, `FP_TRACE_SND`, `FP_DBG_BG`. Tests: tests/test_rm_gimmicks_b.py, test_rm_claw.py, test_rm_mantalith.py,
   RM cases in test_gameplay / test_aqua.
+
+## Session 15: Gallery (port: src/game/fe_gallery.inc, save.c v4)
+- **Route:** title menu GALLERY (hub wipe, sound 56) -> frame index 10 (m_results, tile fade-in 14x8 from (96,0)) -> RETURN
+  (sound 56, wipe, F > 50) -> title menu (m_menu2). View fixed at camera left 107; the scroll group eases 1/8 per frame to
+  -(D + 1) x 30 (cards) / x 25 (achievements); Return_110 follows the header at y - 24 (RV y 52).
+- **Pages (header Left / Right, wrap):** CARDS (10x10, rows DV RM AT FN SB JC TB TH PL BG = ids 10r+1..10r+10, row icon frames
+  1 2 0 3 4 5 6 8 7 9 or the padlock 15), ACHIEVEMENTS (8x7, frame k when announced, else "?"), DATA (four delete rows, YES/NO
+  panel starting on NO, applied when leaving).
+- **Cards:** dir 0 grey star (not taken), 1 face down (shimmer frame (t/3 + id/2) mod 40, held after 10), 2 padlock (type 3
+  without achievement 1-3), 3 note / 4 speaker / 5 cookie (opened). A on face down: sound 32, flip frame B mod 11, sparkle
+  spiral, at B = 50 opened (save 2), sound 40, white burst, selector back at B > 100. A on an opened card: music
+  (`bgm/<file>.adp`, type 1 once, 0 / 3 loop) or a clip (`gal/<file>.wav`, its WAV length = busy) on "channel 31" (m_results
+  does not come back), again = stop; art = `gal/art_NN` at (322,0) on top, A closes (443). C on an opened card: Close
+  Card (443, face down, save 1). Card 68 shows the bird guard while it plays.
+- **Text box (120,8):** 50 columns, 20 px lines at x 13 / y 8: label + hint, a hint alone on line 1 (RV), name +
+  description, or the DATA warning. Footer "UP/DOWN: Scroll" (13,216) / "B: Return" (341,216).
+- **Entry Card Collector (RE 992):** rows with all 10 cards and achievement 23+r == 0 -> 1, save; the "UNLOCKED" overlay
+  (3 per page, sound 100, 150 frames or A after 30; INFERRED layout, the original's frame 9 is not ported) sets them to 2 and
+  saves again.
+- **Leaving:** deletes (times / crystals of every stage and character, cards + opened, achievements except 42) then one save
+  write, only when something changed in the gallery (INFERRED: the original saves unconditionally).
+- **Save v4** (save.c, fp.h): v3 + `cards_open[13]` (records x20 == 2) + `ach[56]` (records x2 y1..56, 0 / 1 / 2). 1361 bytes
+  (6 VMU blocks with the header and the 3-frame icon). v3 and older load with taken cards face down and no achievements;
+  a short, long or CRC-damaged file is ignored and kept until the next deliberate save. Card pickups only set the taken bit
+  (pickup = max(old, 1)). Title cheat: progress, all 100 cards (face down) and achievements 1-3 = 2.
+- **Host trace:** `gal ...` lines (entry dumps of cards / dirs / achievements / rows, card writes, plays, art load / free, marks,
+  deletes, saves); tests/test_gallery.py.
+

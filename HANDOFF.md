@@ -193,7 +193,8 @@ spec_rm_golems, spec_rm_claw, spec_rm_mantalith, rm_inventory.
   is INFERRED from the DV1 rocks; the DV4 exit is RE-only (no original trace).
 - **INFERRED:** water tint extent (drawn full width below the surface, also over left foreground rocks); shield carry-over
   between acts; spinning-log phase (global counter offset); breath bubbles' SKIN condition; stage-select confirm timing.
-- **Not ported:** gallery, the original's game-over card, enemies' own water splashes.
+- **Not ported:** the original's game-over card, enemies' own water splashes; in the gallery (session 15): the frame-9
+  achievement pop-up (an overlay instead), idle card twinkles, the console button-icon hints, real voices for 15 sound cards.
 
 ## Safety
 Never write to the user's game folders. extracted/, converted*/, build/, docs/reference/, tools/audio/wav2adpcm are gitignored. Never commit game data or decompiled output (`git ls-files` check before commits).

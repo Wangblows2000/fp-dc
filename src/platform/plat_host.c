@@ -114,12 +114,24 @@ void snd_loop_end(int ch) { if (getenv("FP_TRACE_SND")) printf("snd loopstop %d 
 void snd_play(int h, int vol, int pan) { (void)vol; (void)pan; if (getenv("FP_TRACE_SND")) printf("snd %d @%d\n", h, cur_frame); }
 /* host: no audio output; FP_TRACE_SND logs music starts so tests can check transitions (no duplicates) */
 static char host_mus[64];
+static int host_mus_end = -1;    /* music_play_once: the frame the track ends (file size at 32000 bytes/s: 4-bit stereo 32 kHz) */
 int  music_play(const char *name) {
-    if (!strcmp(host_mus, name)) return 0;
-    snprintf(host_mus, sizeof host_mus, "%s", name);
+    if (!strcmp(host_mus, name) && music_active()) return 0;
+    snprintf(host_mus, sizeof host_mus, "%s", name); host_mus_end = -1;
     if (getenv("FP_TRACE_SND")) printf("music %s @%d\n", name, cur_frame);
     return 0;
 }
+int  music_play_once(const char *name) {
+    host_mus[0] = 0;
+    music_play(name);
+    char path[512]; snprintf(path, sizeof path, "%s/%s", data_dir, name);
+    FILE *f = fopen(path, "rb"); long n = 0;
+    if (f) { fseek(f, 0, SEEK_END); n = ftell(f); fclose(f); }
+    host_mus_end = cur_frame + (int)(n * 60 / 32000) + 1;
+    if (getenv("FP_TRACE_SND")) printf("music once %ld frames @%d\n", (long)(host_mus_end - cur_frame), cur_frame);
+    return f ? 0 : -1;
+}
+int  music_active(void) { return host_mus[0] && (host_mus_end < 0 || cur_frame < host_mus_end); }
 void music_volume(int pct) { (void)pct; }
 void music_pause(void) { if (getenv("FP_TRACE_SND")) printf("music pause @%d\n", cur_frame); }
 void music_resume(void) { if (getenv("FP_TRACE_SND")) printf("music resume @%d\n", cur_frame); }
