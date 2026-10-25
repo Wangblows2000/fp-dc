@@ -336,3 +336,36 @@ No audio device in the VM: sounds were checked through the sound-id traces, not 
   AT2 4.1 / 2.4 / 7.1; AT3 1.8 / 0.56 / 13.6; AT4 4.7 / 0.73 / 9.3. VRAM free after load: AT1 2570, AT2 1672, AT3 3347,
   AT4 2816 KB. Sound RAM largest free block with Milla and the AT group: 324 KB. No AICA crash.
 - **DC build:** 0 warnings.
+
+## Session 13 (2026-10-25): bug fixes, reusable objects and levels, save v3
+Labels: original-trace (RV), RE, host-test, emulator (Flycast, emulated time). **Nothing measured on real hardware.**
+
+- **Baseline method:** a git worktree of the session-12 HEAD (/home/claude/fpdc_head) with its own Aqua Tunnel data
+  built by its importer; the trace comparers (cmp_all, cmp_carol, cmp_milla, cmp_at) now run the checkout they live in,
+  so both sides were compared per trace (sound columns aside). Earlier "21/35" for cmp_at at the session start was
+  measured with stale data; the session-12 HEAD gives 20/35 with fresh data.
+- **After every refactoring step (levels.c, class+handle types, switches.c, AT gates removed, stage flow as data,
+  registry, presence gating, save v3):** every trace line identical to the HEAD baseline: cmp_all 76/76, strict
+  11311/11377 (99.4 %); cmp_carol 43/53; cmp_milla 38/43 (37/42 at HEAD + the new m_hang_dv1, which matches X/Y/B/G/L/M/OTHERS.Y on all 104 frames); cmp_at 21/35 (a2_redup, which
+  needs the variant types in the object groups, matches again: HEAD 20). One intermediate regression (a2_redup, the new
+  AquaBrickPlatform_803 type missing from the obstacle group) was caught by this diff and fixed; the registry then
+  replaced the hand-written lists (identical for all 256 types, FP_DUMP_OBJDEFS).
+- **Host suites (end):** test_gameplay 72/72, test_frontend 30/30 (save checks moved to v3), test_carol 19/19,
+  test_milla 33/33, test_aqua 19/19, new test_levels 23/23 (DV1 completed by an input-only route, cards for Lilac / Carol / Milla in DV1 and AT1, load orders
+  AT→DV→AT and DV→AT→DV2→AT3, restart, act change, Milla / Lilac / Carol hang animations, results panels drawn in DV4
+  and AT4, registry vs importer, next acts, AT1 checkpoint restart, UI masks / translucent layers), new test_saves
+  19/19 (Time Attack record of stage 1 for Lilac in ms, files untouched by Time Attack, size 1292 bytes, slower run
+  keeps the time, runs under 10 s ignored, story block / last stage / progress / records, only its file, AT = stage 0
+  in Milla's slot, deaths in the block, AT1 card id 21 saved and reloaded, damaged save ignored, v2 → v3 conversion).
+- **Save model vs the user's PC saves (RV-file, tests/check_user_saves.py, read in place, nothing copied):** 23/23:
+  in all five files the totals equal the sums of the per-stage blocks (rows 6+5s..8+5s), the last stage has a block,
+  rows 9+5s / 10+5s and the scratch rows are 0; records.dat is 20x100, its crystal records are at least every file's
+  stage block for the file's character, the progress rows are stage indices.
+- **Visual checks (host renders, RV against original screenshots taken with tools/orig/goto_frame.sh):** AT1 card
+  "STAGE 1 / Aqua Tunnel", DV1 card "Dragon Valley" for all three characters; AT4 and DV4 results panels; Time Attack
+  previews for Lilac / Carol (Dragon Valley) and Milla (Aqua Tunnel) with padlocks only on locked slots; checker column
+  and translucent bottom bar in Character Select and Stage Select match build/orig/orig_chsel_s13.png and
+  orig_tasel_s13.png; HUD of DV1-DV4 for Lilac, Carol and Milla, DV4 Serpentine fight without a bottom-right counter.
+- **Bosses:** DV4 Serpentine (FP_SN_AUTOKILL) and AT4 Chomper Snake (BOSSHP 0) defeats run their results and exits in
+  the host tests; the bosses are not beaten by normal play in automated tests (limitation, unchanged).
+- **DC build:** 0 warnings.
