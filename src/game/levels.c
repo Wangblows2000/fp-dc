@@ -118,7 +118,14 @@ static const markmove_t CM_FN3[] = { { 2, 10831, -32768, 11441, 1424 } };
 static const cambox_t BOX_FN6 = { 224, 0, 960, 311 };   /* 8553 / handle_frame_35 inline (RV at each frame start: C 224, D 0, E 960, F 311) */
 /* the stage's own sounds (D-047): flow 134 (7713, Serpentine's crash; RM's copy, 11025 Hz) and 61 (7716; in the port a Carol
  * group id, so Lilac / Milla need it here). The enemy / gimmick / boss modules add theirs. */
-static const short SFX_FN[] = { 61, 134 };
+static const short SFX_FN[] = { 61, 134,
+                                62, 70, 75, 165, 166, 168, 169, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 317 };   /* + the bosses (fn_boss.c; 11025 Hz) */
+/* Fortune Night bosses (fn_boss.c, spec_fn_bosses C / E): FN3 beam chase (7794 window, 7797 / 7798 / 7810 zones, 7800 / 7801
+ * floors at A >= 4, Floor2 pieces at MV.B) and samurai (7815 lock, 8040 / 8048 music, 8045 y 512, turrets 8047 / 8048); FN5
+ * samurai (8422 g4 < 3, 8424 CAM.D 336, no music; 8473 turret; its 8045 copy's y is not in the spec: home y + 16, INFERRED) */
+static const fnboss_t FNB_FN3 = { 2024, 2064, { { 2554, 3451, 553, 824 }, { 2559, 3458, 831, 1145 }, { 3454, 3844, 835, 1194 } }, 4, 1,
+                                  1, 1, 0, 0, 512, { { 11550, 949, 24 }, { 11552, 852, 48 } } };
+static const fnboss_t FNB_FN5 = { 0, 0, { { 0 } }, 5, 0, 0, 0, 336, 3, 192, { { 10931, 550, 48 }, { 0, 0, 0 } } };
 
 #define DV(d, f, n, mus) .dir = d, .frame = f, .stage = 1, .act = n, .nacts = 4, .music = mus
 #define AT(d, f, n, mus) .dir = d, .frame = f, .stage = 0, .act = n, .nacts = 4, .music = mus, .plate_rule = 1, .switch_late = 1, .monitor_hop = 1, .checkpoints = 1, .sfx = SFX_AT, .nsfx = N_(SFX_AT)
@@ -168,10 +175,10 @@ static const level_def_t LEVELS[] = {
     { FN("fn1", 29, 1, "bgm/m_stage3.adp"), FN_M123, .fne = &FNE_FN1, .pads = PADS_FN1, .npads = N_(PADS_FN1), .card_first = 31, .start_card = 1, .cps = CP_FN1, .ncps = N_(CP_FN1), .cam_right = 11992 + 213 },
     { FN("fn2", 30, 2, "bgm/m_stage3.adp"), FN_M123, .fne = &FNE_FN2, .card_first = 33, .cps = CP_FN2, .ncps = N_(CP_FN2), .cam_right = 11992 + 213 },
     { FN("fn3", 31, 3, "bgm/m_stage3.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage3c.adp", .mus7 = "bgm/m_trouble.adp", .card_first = 36, .pads = PADS_FN3, .npads = N_(PADS_FN3),
-      .cps = CP_FN3, .ncps = N_(CP_FN3), .cam_right = 14920 + 213, .script_exit = 1, .ckills = CK_FN3, .nckills = N_(CK_FN3), .cmarks = CM_FN3, .ncmarks = N_(CM_FN3) },
+      .cps = CP_FN3, .ncps = N_(CP_FN3), .cam_right = 14920 + 213, .script_exit = 1, .fnb = &FNB_FN3, .ckills = CK_FN3, .nckills = N_(CK_FN3), .cmarks = CM_FN3, .ncmarks = N_(CM_FN3) },
     { FN("fn4", 32, 4, "bgm/m_stage3b.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage3b.adp", .mus7 = "bgm/m_stage3b.adp", .card_first = 37, .wplate_cyclone = 1,   /* 5677: the escalator plate takes M 26 too (fn_gimb.c) */
       .cps = CP_FN4, .ncps = N_(CP_FN4), .exits = EX_FN45, .nexits = N_(EX_FN45), .cam_right = 11992 + 213 },
-    { FN("fn5", 33, 5, "bgm/m_stage3b.adp"), FN_M45, .fne = &FNE_FN5, .wplate_cyclone = 1, .fnb_disco = 1, .card_first = 39, .cps = CP_FN5, .ncps = N_(CP_FN5), .exits = EX_FN45, .nexits = N_(EX_FN45), .cam_right = 15288 + 213 },
+    { FN("fn5", 33, 5, "bgm/m_stage3b.adp"), FN_M45, .fne = &FNE_FN5, .fnb = &FNB_FN5, .wplate_cyclone = 1, .fnb_disco = 1, .card_first = 39, .cps = CP_FN5, .ncps = N_(CP_FN5), .exits = EX_FN45, .nexits = N_(EX_FN45), .cam_right = 15288 + 213 },
     { FN("fn6", 34, 6, "bgm/m_boss.adp"), .mus4 = "bgm/m_boss.adp", .mus6 = "bgm/m_boss.adp", .mus7 = "bgm/m_boss.adp", .walkin_minx = 400, .walkin_free = 1,
       .cam_box = &BOX_FN6, .death_to = "fn5", .death_g4 = 2, .res_voice = "teamlilac_madeit", .res_wipe = 1 },
 };

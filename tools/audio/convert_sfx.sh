@@ -29,6 +29,8 @@ for v in "$VOX"/eng/li/lilac_*.ogg; do conv "$v" "$OUT/$(basename "$v" .ogg).wav
 R0=$RATE; RATE=11025; for v in ca/carol_feelmypower mi/milla_yay mi/milla_superdog; do conv "$VOX/eng/$v.ogg" "$OUT/$(basename $v).wav"; done; RATE=$R0
 # Fortune Night (session 17): the stage group SFX_FN holds the flow ids 61 (a Carol id, needed by everyone at FN3's exit) and
 # 134 (already in IDS / LOW above); the FN6 results group voice (8545, everyone) loads on demand, half rate like the others
+# Fortune Night bosses (fn_boss.c): UFO 168 / 169, bulldozer 165 / 166, Serpentine 191-200 / 317 (62 / 70 / 75 are RM ids), half rate
+for i in 165 166 168 169 191 192 193 194 195 196 197 198 199 200 317; do R0=$RATE; RATE=11025; conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; RATE=$R0; done
 R0=$RATE; RATE=11025; conv "$VOX/eng/group/teamlilac_madeit.ogg" "$OUT/teamlilac_madeit.wav"; RATE=$R0
 rm -rf "$TMP"
 awk -F, 'NR>1{s+=$4} END {printf "%d sounds, %.1f KB\n", NR-1, s/1024}' "$OUT/sfx_manifest.csv"

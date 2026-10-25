@@ -351,6 +351,21 @@ enum { OT_FNA_FIRST = 560, OT_FN_DSEG = 560 /* GimmickDragonTunnel1_1734 (sub 0)
        OT_FN_DUST = 605 /* runtime: EffectsDust01_369 behind the boost blocks */, OT_FNA_LAST = 605 };
 /* Fortune Night stage flow (session 17, src/game/fn_flow.c, build/re/spec_fn_flow.md): runtime objects of the stage script.
  * 512-559 FN enemies, 560-799 FN gimmicks, 800-899 FN bosses (other modules); 900-909 the flow. */
+/* Fortune Night bosses and minibosses (session 17, src/game/fn_boss.c, build/re/spec_fn_bosses.md Parts A-E / X): 800-859.
+ * Sub ids (hatch 0 / 1, wheel 0 / 1, hand 0 left / 1 right, gate 0 / 1) ride in the lvobj anim field (FNBOSS_SUB). */
+enum { OT_FNBOSS_FIRST = 800, OT_FN_UFO = 800 /* MinibossUFO_1772 (Q20) */, OT_FN_UFO_PIECE = 801 /* MinibossUFO2_1773 */,
+       OT_FN_UFO_HATCH = 802 /* MinibossUFOHatch1_1770 / Hatch2_1771 */, OT_FN_UFO_BEAM = 803 /* MinibossUFOBeam_1769 */,
+       OT_FN_UFO_BORDER = 804 /* MinibossUFOBorder_1768 */, OT_FN_UFO_DEBRIS = 805 /* MinibossUFODebris_1875 */,
+       OT_FN_DOZER = 810 /* MinibossBulldozer_1746 (Q20) */, OT_FN_DOZER_ARM = 811, OT_FN_DOZER_CLAW = 812, OT_FN_DOZER_DOOR = 813 /* (Q20) */,
+       OT_FN_DOZER_WHEEL = 814 /* Wheel1_1748 / Wheel2_1749 */, OT_FN_DOZER_HITBOX = 815 /* (Q7) */, OT_FN_LIMITER = 816 /* MinibossLimiter_1751 */,
+       OT_FN_BOOMERANG = 817 /* runtime: MinibossBoomerang_1753 */, OT_FN_DOZER_DEBRIS = 818 /* runtime: MinibossBulldozerDebris_1754 */,
+       OT_FN_SERP = 820 /* NPCSerpentine_945 (the FN3 boss) */, OT_FN_SERP_ARM = 821 /* BossSerpentineArm_1865 */, OT_FN_SERP_HIT = 822 /* BossSerpHitbox_1873 (Q20) */,
+       OT_FN_SERP_FLOOR = 823 /* BossSerpFloorCheck_1869 */, OT_FN_SERP_SHIELD = 824 /* ShieldSerpentine_1872 */, OT_FN_CHARGE_GLOW = 825 /* BossChargeGlow_1868 */,
+       OT_FN_WARNING = 826 /* runtime: EffectWarning_1528 */, OT_FN_WARNING2 = 827 /* runtime: EffectWarning2_1895 */,
+       OT_FN_RAPIDBULLET = 828 /* runtime: BossRapidBullet_1866 */, OT_FN_MISSILE = 829 /* runtime: BossMissile_1867 */,
+       OT_FN_SAMU = 840 /* MinibossSamu_1890 (Q20) */, OT_FN_SAMU_HAND = 841 /* LeftHand_1888 / RightHand_1889 */, OT_FN_SAMU_WHEEL = 842,
+       OT_FN_SAMU_PROBE = 843 /* MinibossSamuFloorCheck_1891 */, OT_FN_SAMU_DEBRIS = 844 /* runtime */, OT_FN_BOSSGATE = 845 /* BossGate_1894 / _2030 (Q7) */,
+       OT_FNBOSS_LAST = 859 };
 enum { OT_FN_SERPNPC = 900 /* NPCSerpentine_945 in FN3's exit pass (7710-7725), created by the script */, OT_FN_FLOW_LAST = 909 };
 
 #define MAX_ATLAS 4
@@ -758,6 +773,15 @@ typedef struct {
 /* Fortune Night enemies (fn_enemy.c): per-act differences of the frames' own events (spec_fn_enemies 1.3 / 2.5 / 4.4 / 8);
  * NULL = lasers and flares stop at walls, no coil flip line, the balloon drops a petal monitor */
 typedef struct { int coil_flip_y; signed char laser_nowall, flare_nowall, balloon_life; } fnenemy_t;
+/* Fortune Night bosses (fn_boss.c): per-act values of the frames' own events (spec_fn_bosses C / E); NULL = the FN1 / FN2 rules
+ * (the UFO's floor-breaker state machine 7377-7403, floors break at A >= 5). chase_*: the FN3 beam chase (7794-7810: start
+ * window on MV.X, zones 1-3 {x0, x1, y0, y1}, floors at A >= cut_a, Floor2 pieces thrown at MV.B); samu_*: the samurai's
+ * lock (1: CAM.M 1 at 7815 between the limit markers; 0: CAM.D = cam_d while fighting, 8424 / 8425), music (8040 fadeout +
+ * 8048 play_music(6)), trigger g4 limit (8422: g4 < g4_max; 0 none), wreck stop y (8045), turrets {x, y, gate A} (8047 / 8048) */
+typedef struct {
+    short chase_x0, chase_x1, zone[3][4]; signed char cut_a, floor2_mvb;
+    signed char samu_lock, samu_music; short samu_cam_d, samu_g4_max, samu_wreck_y, turret[2][3];
+} fnboss_t;
 typedef struct {
     const char *dir; int frame, stage, act, nacts;   /* data dir, original frame index, stage record index (Time Attack icon E), act n of nacts */
     const char *music, *music_cp;                    /* stage music; after checkpoint g4 >= 10 (AT2 after the Chomper) */
@@ -812,12 +836,17 @@ typedef struct {
     const char *res_voice;                           /* the results voice (FN6 8545: group_teamlilac_madeit for everyone; voice_play_once) */
     int res_wipe;                                    /* boss results (path 3) end with the wipe after D = 150 (FN6 8546-8549) */
     const fnenemy_t *fne;                            /* Fortune Night enemies' per-act rules (fn_enemy.c); NULL: defaults */
+    const fnboss_t *fnb;                             /* Fortune Night bosses' per-act rules (fn_boss.c); NULL: FN1 / FN2 */
 } level_def_t;
 const char *level_music_slot(int slot);              /* the current act's music for a play_music(slot) of its scripts (NULL: none) */
 void level_lock_markers(void);                       /* CAM.M = 1: the boss bounds of the CameraLimitBoss markers (as placed / moved) */
 int  game_timer(void);                               /* the stage timer in frames (stopped while G.timer_stop) */
 /* src/game/fn_flow.c (Fortune Night stage script, stage index 3, spec_fn_flow) */
 void   fn_flow_spawn(void), fn_flow_frame(player_t *p);
+/* src/game/fn_boss.c (Fortune Night bosses, spec_fn_bosses A-E): spawn, the test_collisions handlers (before combat), the per-object
+ * dispatch (1: handled; every rule runs in fn_boss_frame after the gimmicks), draw (1: drawn / skipped), scripted pad (CTRL.M) */
+void   fn_boss_spawn(void), fn_boss_pre(player_t *p), fn_boss_frame(player_t *p);
+int    fn_boss_obj(obj_t *o, player_t *p), fn_boss_q20(int type), fn_boss_draw_obj(const obj_t *o, int pass), fn_boss_input(uint32_t *held);
 float  fn_flow_hud_dy(void);                          /* FN3 7712: the HUD slides up during the Serpentine pass */
 void   fn_flow_panther_view(void);                    /* FN5 8370 (the boss script): parallax pieces 1898 / 1899 hidden */
 void   player_bike_off(player_t *p, int park);        /* Carol leaves the bike (MV.A 3 -> 2; park: an ObjectBike is left at her, FN5 8383) */
