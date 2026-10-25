@@ -23,7 +23,7 @@ static double c_cos(double d) { double m = fmod(d, 360.); if (m < 0) m += 360; r
 static double c_sin(double d) { double m = fmod(d, 360.); if (m < 0) m += 360; return (m == 180. || m == 0.) ? 0. : fd_sin(d / 57.29577951308232); }
 
 static int PY_(const player_t *p) { return (int)floor(p->y - ORIG_REF_DY); }   /* PLAYER.y (Player_326 at int Y) */
-static int is_box(int t) { return t == OT_ABPLAT || t == OT_ABPLAT2 || t == OT_CRUSH_H || t == OT_CRUSH_H2 || t == OT_SWPLAT || t == OT_RAFT; }
+static int is_box(int t) { return (objdef(t)->flags & OD_BOXCOL) != 0; }   /* registry (objdefs.c) */
 /* a placed player sensor (mask rows) overlapping the object: box objects use the image rect, others the (rotated) mask */
 static int sens_hit(int s, const obj_t *o) {
     int ox, oy, h; const signed char *a, *b;

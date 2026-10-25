@@ -423,7 +423,7 @@ static void chsel_update(const input_t *now) {
 static void chsel_draw(void) {
     ui_scene_t *s = &s_scr;
     ui_obj_t *ck = ui_find(s, "checkerpattern", 0);
-    if (ck) ck->dy = -C.checkA;
+    if (ck) { ck->dy = -C.checkA; ck->tileh = 1; }   /* layer 1 wraps vertically (RV: the checker fills the left column) */
     for (int k = 0; k < 5; k++) if (C.slot[k]) ui_obj_select(s, C.slot[k], 0, (C.main || C.chosen) && C.cur == k ? 1 : 0);   /* RE 752/753 */
     int alt = C.shake > 30;                                                              /* RE 767/768 */
     if (C.ch[0] && !(C.chosen && G.character == CHR_LILAC)) ui_obj_select(s, C.ch[0], 0, alt ? 8 : 0);

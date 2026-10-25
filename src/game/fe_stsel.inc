@@ -156,7 +156,7 @@ static void stsel_counter(ui_obj_t *o, int v, int digits) {     /* Counter: zero
 static void stsel_draw(void) {
     ui_scene_t *s = &s_scr;
     ui_obj_t *ck = ui_find(s, "checkerpattern", 0);
-    if (ck) ck->dy = -T.checkA;
+    if (ck) { ck->dy = -T.checkA; ck->tileh = 1; }   /* layer 1 wraps vertically (RV orig_tasel_s13: the checker fills the left column) */
     int sel_e = T.e[T.D];
     int f = sel_e >= 99 ? 16 : sel_e;                        /* RE 730: StageName frame = min(E, 16) */
     /* BG preview (RE 612/613): layers at (C - fmod(B, A), E - 48 f); only the stages in the port are imported */

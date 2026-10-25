@@ -556,6 +556,10 @@ typedef struct {
 const level_def_t *level_def(const char *dir), *level_cur(void);
 const char *level_first_of_stage(int stage), *level_next(const char *dir), *level_route_start(int character);
 int objects_have(int type), objects_have_from(int type);
+/* object registry (src/game/objdefs.c): properties of each engine type shared by every level */
+enum { OD_SOLID = 1, OD_OBSTACLE = 2, OD_NOEDGE = 4, OD_BOXCOL = 8 };
+typedef struct { uint16_t type, flags; const char *ens; } objdef_t;
+const objdef_t *objdef(int type);
 void level_flow_spawn(void), level_flow_frame(const player_t *p), level_camera_bounds(void), level_release_camera(int keep_trigger);
 int  level_cam_locked(void);   /* a placed object of this engine type (of any type >= this) exists in the level (set at spawn) */
 void   aqua_gim_spawn(void), aqua_set_input(const input_t *in), aqua_gim_post(player_t *p);

@@ -162,6 +162,10 @@ void plat_quit(void) { printf("quit @%d\n", cur_frame); exit(0); }
  * first pushable block to original coordinates */
 typedef struct { int f; char k; float a, b; } dbg_t;
 static dbg_t dbg[256]; static int ndbg;
+static struct { int f; char dir[8]; } loads[8]; static int nload;
+static void apply_loads(int f) {   /* "<f> LOAD <dir>": a fresh stage start (card included) of another level, as the menus would */
+    for (int i = 0; i < nload; i++) if (loads[i].f == f && game_load_level(loads[i].dir) == 0) G.mode = MODE_PLAY;
+}
 static void apply_dbg(int f, int tp) {
     for (int i = 0; i < ndbg; i++) {
         if ((dbg[i].k == 'T') != tp) continue;
@@ -220,11 +224,19 @@ int main(int argc, char **argv) {
             if (sscanf(line, "%d SETV others E %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'I', fx, 0 }; continue; }   /* tracer command: invulnerability timer */
             if (sscanf(line, "%d BOSSHP %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'B', fx, 0 }; continue; }   /* host test: AT boss HP */
             if (sscanf(line, "%d MON %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'M', fx, 0 }; continue; }
+            { char lv[8]; if (sscanf(line, "%d LOAD %7s", &ff, lv) == 2 && nload < 8) { loads[nload].f = ff; snprintf(loads[nload].dir, sizeof loads[nload].dir, "%s", lv); nload++; continue; } }   /* load a level (host tests: load order) */
             if (sscanf(line, "%d PB %f %f", &ff, &fx, &fy) == 3 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'P', fx, fy }; continue; }   /* first pushable block to original (x, y) */
             if (sscanf(line, "%d %d %31s", &script[nscript].a, &script[nscript].b, btn) == 3)
                 script[nscript++].m = parse_btn(btn);
         }
         fclose(f);
+    }
+    if (getenv("FP_DUMP_OBJDEFS")) {   /* the object registry per engine type: solid, obstacle, no-edge, obstacle-all, box (tests/test_levels.py) */
+        for (int t = 0; t < 256; t++) {
+            int box = (objdef(t)->flags & OD_BOXCOL) != 0;
+            printf("grp %d %d %d %d %d %d %d\n", t, obj_in_group(t, 0), obj_in_group(t, 1), obj_in_group(t, 2), obj_in_group(t, 3), box, objdef(t)->type == t);
+        }
+        return 0;
     }
     bot_on = getenv("FP_BOT") != NULL;
     search_on = getenv("FP_SEARCH") != NULL;
@@ -270,6 +282,7 @@ int main(int argc, char **argv) {
     input_t in;
     for (cur_frame = 0; cur_frame < frames; cur_frame++) {
         plat_poll_input(&in);
+        apply_loads(cur_frame);
         apply_dbg(cur_frame, 0);
         game_update(&in);
         apply_dbg(cur_frame + 2, 1);

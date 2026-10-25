@@ -144,6 +144,9 @@ int game_load_level(const char *dir) {
     G.p.spawn_x = G.p.spawn_y = 0;
     hud_reset();
     { uint64_t to = plat_time_us(); level_start(); LP.obj_us += plat_time_us() - to; }
+#ifdef FP_HOST_ENV
+    { void card_dbg(void); if (getenv("FP_CARD_DBG")) card_dbg(); }
+#endif
     loading_end();
     G.mus_resume_t = 0;
     { uint64_t tm = plat_time_us(); music_play(level_music(dir)); LP.music_us += plat_time_us() - tm; }
@@ -703,6 +706,15 @@ void text_draw(float x, float y, const char *s, uint32_t argb, int scale) {
 #define NHUD 19
 static int hud_anim[NHUD] = { -2 };
 void hud_reset(void) { hud_anim[0] = -2; }
+static void hud_init(void);
+#ifdef FP_HOST_ENV
+void card_dbg(void) {                             /* host tests: the card images this level's bank holds */
+    hud_init();
+    const frame_t *s = hud_anim[6] >= 0 ? &G.objs.frames[G.objs.seq[G.objs.anims[hud_anim[6]].first]] : NULL;
+    const frame_t *n = hud_anim[7] >= 0 ? &G.objs.frames[G.objs.seq[G.objs.anims[hud_anim[7]].first]] : NULL;
+    printf("card %s stage %dx%d name %dx%d\n", G.lvdir, s ? s->w : 0, s ? s->h : 0, n ? n->w : 0, n ? n->h : 0);
+}
+#endif
 static void hud_init(void) {
     if (hud_anim[0] == -2) {
         static const char *nm[NHUD] = { "hud_frame", "hud_fill", "hud_petals", "hud_icon", "hud_clock", "hud_digits",
@@ -781,9 +793,9 @@ void hud_draw(void) {
 }
 
 static void card_draw(void) {
-    int t = G.card_t, act = act_of(G.lvdir);
+    int t = G.card_t;
     if (t >= CARD_DONE) return;
-    (void)act;
+    hud_init();
     /* black until the stage fades in */
     if (t < CARD_FADE1) r_fade(t < CARD_FADE0 ? 1.f : 1.f - (float)(t - CARD_FADE0) / (CARD_FADE1 - CARD_FADE0));
     float ys = 159, yn = 185;                      /* RV final positions (sel_20 capture) */
