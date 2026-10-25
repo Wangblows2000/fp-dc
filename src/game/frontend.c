@@ -461,7 +461,16 @@ void fe_update(const input_t *in) {
         if (ex == HUB_EXIT_CONTINUE) {        /* original: frame 8 (stage from the save); the port has Dragon Valley only */
             fe_mode = SV.file[hub_selected_file()].mode ? 1 : 2; G.file_slot = hub_selected_file(); G.file_new = 0; G.file_mode = SV.file[G.file_slot].mode;
             G.character = SV.file[hub_selected_file()].character == CHR_CAROL_BIKE ? CHR_CAROL : SV.file[hub_selected_file()].character;
-            fe_unload(); game_start_adventure(level_route_start(G.character), 0);   /* the route's first stage (RE 799; the saved stage is not used yet) */
+            const save_file_t *sf = &SV.file[G.file_slot];
+            const char *lv = NULL;                    /* frame 8: ML.Q = StageIDList[y5] -> the stage after the last completed one (session 14) */
+            if (sf->last_stage != 0xff) { lv = level_route_next(sf->last_stage); if (!lv) lv = level_first_of_stage(sf->last_stage); }   /* next not ported: replay the last */
+            if (!lv) lv = level_route_start(G.character);
+            fe_unload(); game_start_adventure(lv, 0);
+            if (sf->last_stage != 0xff && G.mode == MODE_PLAY) {   /* 955: lives, shield and the crystal counter carried in the file */
+                if (sf->lives) G.p.lives = sf->lives;
+                if (sf->counter) G.p.crystals = sf->counter;
+                G.p.shield = sf->shield;
+            }
         }
         break;
     }
