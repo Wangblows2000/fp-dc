@@ -292,6 +292,66 @@ ENS_WITH = {**AT_ENS_WITH, **RM_ENS_WITH, 'guiweaponslot_426': ('objectdigspot',
             'bossfireball_1003': ('bossserpentinehead',), 'bossboulder_1099': ('bossgiantboulder',), 'effectwarning_1100': ('bossgiantboulder',),
             'breakablerockpiece_432': ('bosstunnel2', 'bosstunnel'), 'breakabledebris1_1098': ('breakable1',), 'effectsdust_437': ('pushableblock1',), 'effectswatersplash_379': ('water_level',), 'bubblepatch_804': ('water_level',), 'mediumbubble_805': ('water_level',), 'generalwaterhorizon_377': ('water_level',), 'bubblenumbers_405': ('water_level',), 'shieldwood_342': ('shieldmonitor_onmap',), 'shieldearth_443': ('shieldmonitor_onmap',), 'shieldwater_439': ('shieldmonitor_onmap',), 'shieldmagnetic_344': ('shieldmonitor_onmap',), 'shieldflamefront_343': ('shieldmonitor_onmap',), 'shieldflameback_376': ('shieldmonitor_onmap',), 'effectsshield_440': ('shieldmonitor_onmap',)}
 
+# ---- Relic Maze acts 3-5 gimmicks (spec_rm_gimmicks_b.md; src/game/relic_gimb.c). Types 300-336 mirror src/fp.h. Objects
+# of one family share a type; RMB_SUB gives each member's index, written in the lvobj anim field (write_lv2).
+RMB_TYPES_ID = {
+    ('gimmickmovingpillar1', 1395): 300, ('gimmickmovingpillar2', 1396): 300, ('gimmickmovingpillar3', 1397): 300,
+    ('gimmickhangingidleswitch', 1268): 301, ('gimmickhangingswitch', 1398): 302,
+    ('gimmickrisingswing', 1392): 303, ('gimmickrisingswingpiece', 1393): 304, ('gimmickpickaxe', 1335): 305,
+    ('gimmickpickaxehandle', 1336): 306, ('gimmickpickaxebase', 1337): 306, ('gimmickpickaxebase2', 1383): 306,
+    ('gimmickrelicflippanel2', 1245): 307, ('gimmickspinnycup', 1380): 308, ('gimmickelevator', 1340): 309, ('gimmickelevator2', 1399): 310,
+    ('levelhandcar', 1421): 311, ('levelhandcarhandle', 1420): 312, ('levelhandcartop', 1422): 312,
+    ('levelhandcarfloor1', 1423): 313, ('levelhandcarfloor2', 1424): 313, ('levelhandcarfloor3', 1425): 313, ('levelminetrackswitch', 1419): 314,
+    ('switchwallplate', 1149): 315, ('switchwallplate2', 1429): 315, ('switchwallplate', 1526): 315, ('switchwallplate', 1543): 315, ('switchwallplate2', 1578): 315,
+    ('levelfloatingplatform2', 1311): 317, ('levelfloatingplatform3', 1403): 317, ('levelmovingplatform01', 1389): 318, ('active', 1338): 319,
+    ('rmalternatepath', 1426): 320, ('rmalternatepath2', 1438): 320, ('gimmickrollingplatformcave', 1449): 321, ('gimmickrollingplatformcave2', 1447): 322,
+    ('gimmickdrillplatform', 1480): 323, ('breakableruins', 1450): 324, ('levelrmplatform', 1517): 325, ('gatewayfront', 1524): 326, ('gatewayfront2', 1525): 327,
+    ('cavesoilcraterfront', 1379): 328, ('cavesoilcraterfront2', 1385): 328,
+    ('levellayer001', 1441): 329, ('levellayer002', 1442): 329, ('levellayer015', 1443): 329, ('levellayer02', 1477): 329, ('levellayer03', 1494): 329,
+    ('levellayer117', 1488): 330, ('levellayer1loop2', 1489): 330,
+    ('lightstonebase', 1562): 331, ('lightstonebase2', 1564): 331, ('lightstonetop', 1563): 332, ('lightstonetop2', 1565): 332,
+    ('lightstonedoor1', 1585): 333, ('lightstonedoor2', 1586): 333, ('spikeceiling', 1557): 334, ('levelcrushdeath', 1627): 335, ('objectchair', 1596): 336}
+RMB_SUB = {'gimmickmovingpillar2_1396': 1, 'gimmickmovingpillar3_1397': 2, 'gimmickpickaxebase_1337': 1, 'gimmickpickaxebase2_1383': 2,
+           'levelhandcartop_1422': 1, 'levelhandcarfloor2_1424': 1, 'levelhandcarfloor3_1425': 2,
+           'switchwallplate2_1429': 1, 'switchwallplate_1526': 2, 'switchwallplate_1543': 3, 'switchwallplate2_1578': 4,
+           'levelfloatingplatform3_1403': 1, 'rmalternatepath2_1438': 1, 'cavesoilcraterfront2_1385': 1,
+           'levellayer002_1442': 1, 'levellayer015_1443': 2, 'levellayer02_1477': 3, 'levellayer03_1494': 4, 'levellayer1loop2_1489': 1,
+           'lightstonebase2_1564': 1, 'lightstonetop2_1565': 1, 'lightstonedoor2_1586': 1}
+RMB_ENS = [(c, 0, '0', nm) for c, nm in (
+    ('gimmickmovingpillar1_1395', 'pil0'), ('gimmickmovingpillar2_1396', 'pil1'), ('gimmickmovingpillar3_1397', 'pil2'), ('gimmickhangingswitch_1398', 'hswitch'),
+    ('gimmickrisingswing_1392', 'rswing'), ('gimmickrisingswingpiece_1393', 'rspiece'), ('gimmickpickaxe_1335', 'pickaxe'),
+    ('gimmickpickaxehandle_1336', 'pxpart0'), ('gimmickpickaxebase_1337', 'pxpart1'), ('gimmickpickaxebase2_1383', 'pxpart2'),
+    ('gimmickrelicflippanel2_1245', 'marker2'), ('gimmickspinnycup_1380', 'cup'), ('gimmickelevator_1340', 'elev'), ('gimmickelevator2_1399', 'elev2'),
+    ('levelhandcar_1421', 'cart'), ('levelhandcarhandle_1420', 'cartpart0'), ('levelhandcartop_1422', 'cartpart1'),
+    ('levelhandcarfloor1_1423', 'cartprobe0'), ('levelhandcarfloor2_1424', 'cartprobe1'), ('levelhandcarfloor3_1425', 'cartprobe2'), ('levelminetrackswitch_1419', 'tswitch'),
+    ('switchwallplate_1149', 'rmplate0'), ('switchwallplate2_1429', 'rmplate1'), ('switchwallplate_1526', 'rmplate2'), ('switchwallplate_1543', 'rmplate3'), ('switchwallplate2_1578', 'rmplate4'),
+    ('breakablespike_1436', 'spikebit'), ('levelfloatingplatform2_1311', 'floatbox0'), ('levelfloatingplatform3_1403', 'floatbox1'), ('levelmovingplatform01_1389', 'movplat'),
+    ('active_1338', 'floorbox'), ('rmalternatepath_1426', 'altpath0'), ('rmalternatepath2_1438', 'altpath1'),
+    ('gimmickrollingplatformcave_1449', 'rcave'), ('gimmickrollingplatformcave2_1447', 'rcave2'), ('gimmickdrillplatform_1480', 'drill'),
+    ('breakableruins_1450', 'ruins'), ('breakableruinspiece_1451', 'ruinpiece'), ('levelrmplatform_1517', 'rmplat'), ('gatewayfront_1524', 'gate'), ('gatewayfront2_1525', 'gate2'),
+    ('cavesoilcraterfront_1379', 'crater0'), ('cavesoilcraterfront2_1385', 'crater1'),
+    ('levellayer001_1441', 'rmloop0_0'), ('levellayer002_1442', 'rmloop0_1'), ('levellayer015_1443', 'rmloop0_2'), ('levellayer02_1477', 'rmloop0_3'), ('levellayer03_1494', 'rmloop0_4'),
+    ('levellayer117_1488', 'rmloop1_0'), ('levellayer1loop2_1489', 'rmloop1_1'),
+    ('lightstonebase_1562', 'lsbase0'), ('lightstonebase2_1564', 'lsbase1'), ('lightstonetop_1563', 'lstop0'), ('lightstonetop2_1565', 'lstop1'),
+    ('lightstonedoor1_1585', 'lsdoor0'), ('lightstonedoor2_1586', 'lsdoor1'), ('levelcrushdeath_1627', 'crushbox'), ('objectchair_1596', 'chair'))] + \
+    [('gimmickpickaxe_1335', 0, '1', 'pickaxe_b'), ('gimmickpickaxebase_1337', 0, '1', 'pxpart1_b'), ('gimmickpickaxebase2_1383', 0, '1', 'pxpart2_b'),
+     ('gimmickelevator_1340', 1, '0', 'elev_on'), ('gimmickdrillplatform_1480', 0, '24', 'drill_done'),
+     ('lightstonebase_1562', 0, '5', 'lsbase0_lit'), ('lightstonebase2_1564', 0, '5', 'lsbase1_lit'),
+     ('lightstonetop_1563', 0, '8', 'lstop0_lit'), ('lightstonetop2_1565', 0, '8', 'lstop1_lit')] + \
+    [('lightstonebase_1562', 7, str(d), 'lsbase0_c%d' % d) for d in range(6)] + [('lightstonebase2_1564', 7, str(d), 'lsbase1_c%d' % d) for d in range(6)] + \
+    [('spikeceiling_1557', 0, str(d), 'sceil%d' % d) for d in range(5)] + \
+    [('objectjumppad_1402', 0, '0', 'jpad_rm'), ('objectjumppad_1402', 0, '1', 'jpad_rm_lit'), ('objectjumppad_1402', 7, '0', 'jpad_rm7'), ('objectjumppad_1402', 7, '1', 'jpad_rm7_lit')]
+RMB_ENS_WITH = {'breakablespike_1436': ('levelhandcar',), 'breakableruinspiece_1451': ('breakableruins',)}
+# rows only in the acts that own these handles (their classes are placed by other stages too)
+RMB_ENS_FRAMES = {c: {27, 28, 29} for c in ('objectjumppad_1402', 'gimmickmovingpillar1_1395', 'gimmickmovingpillar2_1396', 'gimmickmovingpillar3_1397')}
+RMB_ENS_FRAMES.update({'switchwallplate_1149': {25, 26, 27}, 'switchwallplate2_1429': {27}, 'switchwallplate_1526': {28}, 'switchwallplate_1543': {29}, 'switchwallplate2_1578': {29},
+                       'gimmickhangingswitch_1398': {27, 28}, 'gimmickrelicflippanel2_1245': {27, 28}, 'breakableruins_1450': {28, 29}, 'breakableruinspiece_1451': {28, 29},
+                       'levellayer001_1441': {28}, 'levellayer002_1442': {28}, 'levellayer015_1443': {28}, 'levellayer02_1477': {28}, 'levellayer03_1494': {28}})
+ENGINE_TYPES_ID.update(RMB_TYPES_ID)
+ENS += RMB_ENS
+ENS_WITH.update(RMB_ENS_WITH)
+ENS_FRAMES.update(RMB_ENS_FRAMES)
+
 ENS_ONLY_WITH = {'guiweaponslot_426', 'effectswatersplash_379', 'bubblepatch_804', 'mediumbubble_805', 'generalwaterhorizon_377', 'bubblenumbers_405', 'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 # classes whose untrimmed image box matters (spring top edges RV, box-collision platforms/logs, invisible
 # sensors): their images are never cropped. Everything else in the object bank is cropped to its opaque pixels.
@@ -878,6 +938,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
     for o in objs:
         a = names.index(o['cls'][:15]) if o['cls'][:15] in names else (o.get('par_index', 0xffff) if 20 <= o['type'] < 28 else 0xffff)
         if 139 <= o['type'] <= 143 or o['type'] in (169, 170, 187, 204): a = o.get('layer', 2)   # waterfalls, AT water jets / crushers / slime floor: the instance's layer
+        if 300 <= o['type'] < 350: a = RMB_SUB.get(o['cls'], 0)   # Relic Maze acts 3-5 families: the member index (relic_gimb.c)
         d += struct.pack('<2H2i', o['type'], a, o['x'], o['y'])
     for t in table: d += t
     d += struct.pack('<%dH' % len(smap), *smap)

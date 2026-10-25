@@ -313,13 +313,18 @@ static void whisps_frame(void) {
 int aqua_obj_alpha(const obj_t *o) { return o->type == OT_WHISP ? o->st : 255; }
 
 /* ================================================================ BreakableAquaBrick_681 (4070-4077, col_13_16 / col_16_16) */
+/* the same rule set runs for BreakableRuins_1450 (RM4 / RM5, spec_rm_gimmicks_b 10: 5669-5676 / 6435-6437 on its own list):
+ * a 64x64 box and 9 pieces (BreakableRuinsPiece_1451, 24x24; their spread over the block INFERRED) */
+static int brick_w(int t) { return t == OT_ABRICK ? 32 : t == OT_RM_RUINS ? 64 : 0; }
 static void brick_pieces(const obj_t *b, double X, double Y) {
-    static const signed char PX[4] = { 8, 24, 8, 24 }, PY[4] = { 8, 8, 24, 24 };
-    for (int k = 0; k < 4; k++) {
+    static const signed char PX[9] = { 8, 24, 8, 24 }, PY[9] = { 8, 8, 24, 24 };
+    static const signed char RX[9] = { 12, 32, 52, 12, 32, 52, 12, 32, 52 }, RY[9] = { 12, 12, 12, 32, 32, 32, 52, 52, 52 };
+    int ruins = b->type == OT_RM_RUINS, n = ruins ? 9 : 4;
+    for (int k = 0; k < n; k++) {
         obj_t *q = obj_alloc();
         if (!q) return;
-        q->type = OT_ABPIECE; q->alive = 1; q->layer = 2; set_ens(q, "abpiece");
-        q->x = b->x + PX[k]; q->y = b->y + PY[k];
+        q->type = OT_ABPIECE; q->alive = 1; q->layer = ruins ? 3 : 2; set_ens(q, ruins ? "ruinpiece" : "abpiece");   /* RM: created after the player (in front) */
+        q->x = b->x + (ruins ? RX[k] : PX[k]); q->y = b->y + (ruins ? RY[k] : PY[k]);
         q->av[0] = X - 2 + (cross_rand_raw(0x10000) >> 13 & 3); q->av[1] = Y - 4 + (cross_rand_raw(0x10000) >> 13 & 3); q->av[2] = 0.3;
         q->fx = q->x; q->fy = q->y; q->ang = (float)((cross_rand_raw(0x10000) >> 13 & 3) * 90);
     }
@@ -333,10 +338,11 @@ static void bricks_frame(player_t *p) {
     int body = 0;
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i];
-        if (!o->alive || o->type != OT_ABRICK) continue;
+        if (!o->alive || !brick_w(o->type)) continue;
+        if (o->type == OT_RM_RUINS && (o->fl & 0x40)) continue;                                  /* RM: broken by the drill (6388) this frame */
         if (pass) o->fl |= 1; else o->fl &= ~1;                                                 /* 4070 / 4071 */
         if (dead) continue;
-        float x0 = o->x, y0 = o->y, x1 = o->x + 32, y1 = o->y + 64;
+        float x0 = o->x, y0 = o->y, x1 = o->x + brick_w(o->type), y1 = o->y + 64;
         int side = Z && p->hitstop <= 0 && (box_sensor(SENS_LEFTBIG, x0, y0, x1, y1) || box_sensor(SENS_RIGHTBIG, x0, y0, x1, y1));   /* 4072 a/b */
         int cyc = 0;
         if (M == 26)                                                                             /* 4072 c: the cyclone's shield */
@@ -354,7 +360,7 @@ static void bricks_frame(player_t *p) {
     int snd = 0;
     for (int i = 0; i < G.nobjs; i++) {                                                         /* 4075 */
         obj_t *o = &G.o[i];
-        if (!o->alive || o->type != OT_ABRICK || !(o->fl & 0x40)) continue;
+        if (!o->alive || !brick_w(o->type) || !(o->fl & 0x40)) continue;
         if (!snd) { snd_play_orig(13, 220, 128); snd = 1; }
         obj_t b = *o; o->alive = 0;
         brick_pieces(&b, b.av[0], b.av[1]);
@@ -547,7 +553,7 @@ static void bombs_frame(player_t *p) {
         }
         for (int k = 0; k < G.nobjs; k++) { obj_t *q = &G.o[k];                                    /* 4074 bricks; 3243 monitors after 10 frames */
             if (!q->alive) continue;
-            if (q->type == OT_ABRICK && box_ov(q->x, q->y, q->x + 32, q->y + 64, x0, y0, x1, y1)) { q->fl |= 0x40; q->av[1] = -3; q->av[0] = cross_rand(5) - 2; p->hitstop = 5; }
+            if (brick_w(q->type) && box_ov(q->x, q->y, q->x + brick_w(q->type), q->y + 64, x0, y0, x1, y1)) { q->fl |= 0x40; q->av[1] = -3; q->av[0] = cross_rand(5) - 2; p->hitstop = 5; }   /* + RM ruins 5673 */
             if (e->A > 10 && q != e && (q->type == OT_MONITOR || q->type == OT_MON_RINGS || q->type == OT_MON_1UP || q->type == OT_MON_INVINC || q->type == OT_MON_KEYSTONE ||
                 (q->type >= OT_MON_WOOD && q->type <= OT_MON_WATER) || q->type == OT_MON_BOMB || q->type == OT_MON_CRATE) &&
                 box_ov(q->x, q->y, q->x + 32, q->y + 32, x0, y0, x1, y1)) q->fl |= 0x200;   /* broken by the generic path in objects.c */

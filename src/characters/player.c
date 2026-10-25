@@ -251,6 +251,7 @@ int player_orig_m(const player_t *p) {
     case ST_CHARGE: case ST_BOOST: return 5; case ST_DKWIND: return 19; case ST_LADDERIN: return 25;
     case ST_HANG: return 41; case ST_CORK: return 45; case ST_LADDER: return 46; case ST_SHAKE: return 12; case ST_HELD: return 43;
     case ST_WILDKICK: return 44; case ST_WALL: return 47; case ST_PAD: return 48; case ST_BIKEAIR: return 32;
+    case ST_CART: return 90; case ST_SIT: return 39;   /* Relic Maze hand-car / chair (relic_gimb.c) */
     default: return -1;
     }
 }
@@ -796,6 +797,29 @@ static int push_wants(const player_t *p, const input_t *in) {
 #include "carol_bike.inc"
 #include "milla.inc"
 
+/* Relic Maze poses (src/game/relic_gimb.c: M39 chair 3069-3071, M90 hand-car 6135): the original forces one animation index
+ * on every skin (SKIN and hair, Carol, her tail and bike skin, Milla and her tail). Lilac's bank has named animations only:
+ * index 1 = 'walk', 10 = 'crouch', others 'idle'. dir: Milla's direction (others: 16 = facing left); speed < 0: the table's */
+void player_pose(player_t *p, int idx, int dir, int speed) {
+    player_anims_init();
+    if (is_milla()) { milla_set_anim(p, idx, dir); anim_tick(&p->an, speed); if (hair.b) anim_tick(&hair, speed); psc = p->an; return; }
+    if (!is_carol()) { p->face = dir > 8 && dir < 24 ? -1 : 1; set_anim(p, idx == 1 ? A_WALK : idx == 10 ? A_CROUCH : A_IDLE); }
+    else {
+        int left = dir > 8 && dir < 24, carol = is_carol();
+        const bank_t *sk = p->bike && G.bike.nanims ? &G.bike : &G.lilac;
+        char nm[16], nl[16]; snprintf(nm, sizeof nm, "a%d", idx); snprintf(nl, sizeof nl, "a%d_l", idx);
+        int a = left ? bank_anim(sk, nl) : -1, fl = 0;
+        if (a < 0) { a = bank_anim(sk, nm); fl = left; }
+        if (a >= 0) { if (p->an.b != sk || p->an.anim != a) anim_set(&p->an, sk, a); draw_flip = fl; cur_anim = -1; }
+        snprintf(nm, sizeof nm, carol ? "a%d" : "h_a%d", idx); snprintf(nl, sizeof nl, carol ? "a%d_l" : "h_a%d_l", idx);
+        int h = G.hair.nanims && left ? bank_anim(&G.hair, nl) : -1, hf = 0;
+        if (h < 0 && G.hair.nanims) { h = bank_anim(&G.hair, nm); hf = left; }
+        if (h >= 0) { if (hair.b != &G.hair || hair.anim != h) anim_set(&hair, &G.hair, h); hair_flip = hf; } else hair.b = NULL;
+    }
+    anim_tick(&p->an, speed); if (hair.b) anim_tick(&hair, speed);
+    if (!p->bike) psc = p->an;
+}
+
 /* ---- roll, state M6 (build/re/spec_roll_gimmicks.md §1). Lilac's table 1543: O 0.0334 friction, P 0.2 brake,
  * Q 0.035 uphill, R 0.25 downhill (water values 1545/1546 not used: the port has no water physics yet). */
 #define ROLL_O (phys_w.RO)   /* 0.0334; 0.0217 under water (1545) */
@@ -882,6 +906,7 @@ void player_update(player_t *p, const input_t *in) {
         player_sync_sensors(p);
         return;
     }
+    if ((p->state == ST_CART || p->state == ST_SIT) && relic_gimb_player(p, in)) return;   /* M90 / M39: their own groups (relic_gimb.c) */
     /* RV energy meter (GUIEnergy_127 alt A): -3/frame while boosting, -0.25/frame in the cyclone, else
      * +0.4/frame up to 100 (state at the start of the frame) */
     /* the stage-start delay counts frames from the start in every state (original boost_cycle trace: the

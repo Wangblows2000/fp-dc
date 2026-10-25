@@ -323,6 +323,44 @@ static const objdef_t DEFS[] = {
     { OT_SSPIKE,        0,                                     NULL         }, /* - */
     { OT_FLAME,         0,                                     NULL         }, /* - */
     { OT_FSSHELL,       0,                                     NULL         }, /* - */
+    /* Relic Maze acts 3-5 gimmicks (relic_gimb.c, spec_rm_gimmicks_b 1 / 20.1): sprites set by relic_gimb_spawn */
+    { OT_RM_PILLAR,     OD_SOLID,                              NULL         }, /* gimmickmovingpillar1/2/3_1395-1397 (Q7) */
+    { OT_RM_IDLESW,     0,                                     NULL         }, /* gimmickhangingidleswitch_1268 (Q23 hang) */
+    { OT_RM_HSWITCH,    0,                                     NULL         }, /* gimmickhangingswitch_1398 */
+    { OT_RM_RSWING,     OD_OBSTACLE|OD_NOEDGE,                 NULL         }, /* gimmickrisingswing_1392 (Q8 Q9 Q13) */
+    { OT_RM_RSPIECE,    0,                                     NULL         }, /* gimmickrisingswingpiece_1393 */
+    { OT_RM_PICKAXE,    0,                                     NULL         }, /* gimmickpickaxe_1335 */
+    { OT_RM_PXPART,     0,                                     NULL         }, /* gimmickpickaxehandle_1336 / base_1337 / base2_1383 */
+    { OT_RM_MARKER,     0,                                     NULL         }, /* gimmickrelicflippanel2_1245 */
+    { OT_RM_CUP,        0,                                     NULL         }, /* gimmickspinnycup_1380 */
+    { OT_RM_ELEV,       OD_BOXCOL,                             NULL         }, /* gimmickelevator_1340 */
+    { OT_RM_ELEV2,      OD_SOLID|OD_BOXCOL,                    NULL         }, /* gimmickelevator2_1399 (Q7 Q13) */
+    { OT_RM_CART,       OD_OBSTACLE|OD_NOEDGE|OD_BOXCOL,       NULL         }, /* levelhandcar_1421 (Q8 Q9) */
+    { OT_RM_CARTPART,   OD_BOXCOL,                             NULL         }, /* levelhandcarhandle_1420 / top_1422 */
+    { OT_RM_CARTPROBE,  0,                                     NULL         }, /* levelhandcarfloor1/2/3_1423-1425 */
+    { OT_RM_TSWITCH,    OD_SOLID,                              NULL         }, /* levelminetrackswitch_1419 (Q7) */
+    { OT_RM_WPLATE,     0,                                     NULL         }, /* switchwallplate_1149 / 1526 / 1543, switchwallplate2_1429 / 1578 */
+    { OT_RM_SPIKEBIT,   0,                                     NULL         }, /* - (BreakableSpike_1436) */
+    { OT_RM_FLOATBOX,   OD_OBSTACLE|OD_NOEDGE|OD_BOXCOL,       NULL         }, /* levelfloatingplatform2_1311 / 3_1403 (Q8 Q9) */
+    { OT_RM_MOVPLAT,    OD_OBSTACLE|OD_NOEDGE,                 NULL         }, /* levelmovingplatform01_1389 (Q8 Q9 Q13) */
+    { OT_RM_FLOORBOX,   OD_SOLID,                              NULL         }, /* active_1338 (Q7) */
+    { OT_RM_ALTPATH,    OD_SOLID|OD_BOXCOL,                    NULL         }, /* rmalternatepath_1426 / rmalternatepath2_1438 (Q7) */
+    { OT_RM_RCAVE,      OD_OBSTACLE|OD_NOEDGE,                 NULL         }, /* gimmickrollingplatformcave_1449 (Q8 Q9 Q13) */
+    { OT_RM_RCAVE2,     0,                                     NULL         }, /* gimmickrollingplatformcave2_1447 */
+    { OT_RM_DRILL,      OD_SOLID|OD_BOXCOL,                    NULL         }, /* gimmickdrillplatform_1480 (Q7) */
+    { OT_RM_RUINS,      OD_SOLID|OD_BOXCOL,                    NULL         }, /* breakableruins_1450 (Q7) */
+    { OT_RM_RMPLAT,     OD_OBSTACLE|OD_NOEDGE,                 NULL         }, /* levelrmplatform_1517 (Q8 Q9) */
+    { OT_RM_GATE,       0,                                     NULL         }, /* gatewayfront_1524 */
+    { OT_RM_GATE2,      0,                                     NULL         }, /* gatewayfront2_1525 */
+    { OT_RM_CRATER,     0,                                     NULL         }, /* cavesoilcraterfront_1379 / front2_1385 */
+    { OT_RM_LOOP0,      OD_SOLID,                              NULL         }, /* levellayer001/002/015/02/03 (RM4 handles, Q7 Q10) */
+    { OT_RM_LOOP1,      OD_SOLID,                              NULL         }, /* levellayer117_1488 / 1loop2_1489 (Q7 Q11) */
+    { OT_RM_LSBASE,     0,                                     NULL         }, /* lightstonebase_1562 / base2_1564 */
+    { OT_RM_LSTOP,      0,                                     NULL         }, /* lightstonetop_1563 / top2_1565 */
+    { OT_RM_LSDOOR,     OD_SOLID,                              NULL         }, /* lightstonedoor1/2_1585-1586 (Q7) */
+    { OT_RM_SCEIL,      OD_SOLID,                              NULL         }, /* spikeceiling_1557 (Q7) */
+    { OT_RM_CRUSHBOX,   OD_BOXCOL,                             NULL         }, /* levelcrushdeath_1627 */
+    { OT_RM_CHAIR,      0,                                     NULL         }, /* objectchair_1596 (Q22) */
 };
 static objdef_t BY_TYPE[MAX_OT];
 static int built;

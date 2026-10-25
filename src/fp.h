@@ -254,6 +254,27 @@ enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_MON_INVINC = 4, OT_MON
        OT_GEYE = 350, OT_GLID = 351, OT_GP1 = 352, OT_GP2 = 353, OT_GSHOT = 354 /* runtime */, OT_BGCORE = 357, OT_BGSPINE = 358,
        OT_BGP3 = 359, OT_BGPC = 360, OT_BGP6 = 361, OT_BGN1 = 362, OT_BGN2 = 363, OT_BGN3 = 364, OT_BGN4 = 365, OT_BGHEAD = 366,
        OT_SHOCK = 367 /* runtime */, OT_CAMLIM_L = 368, OT_CAMLIM_R = 369, OT_CAMLIM_T = 370, OT_CAMLIM_B = 371 /* CameraLimitBoss markers */ };
+/* Relic Maze acts 3-5 gimmicks (relic_gimb.c) */
+/* (spec_rm_gimmicks_b.md; tools/import_frame.py RMB_TYPES_ID; one type per Fusion object, families of objects with the same
+ * rules share a type and carry their member index in the lvobj anim field: RMB_SUB) */
+enum { OT_RM_PILLAR = 300 /* GimmickMovingPillar1/2/3_1395-1397 (sub 0-2) */, OT_RM_IDLESW = 301 /* GimmickHangingIdleSwitch_1268 */,
+       OT_RM_HSWITCH = 302 /* GimmickHangingSwitch_1398 (rope visual) */, OT_RM_RSWING = 303 /* GimmickRisingSwing_1392 */,
+       OT_RM_RSPIECE = 304 /* GimmickRisingSwingPiece_1393 */, OT_RM_PICKAXE = 305 /* GimmickPickaxe_1335 */,
+       OT_RM_PXPART = 306 /* PickaxeHandle_1336 / Base_1337 / Base2_1383 (sub 0-2) */, OT_RM_MARKER = 307 /* GimmickRelicFlipPanel2_1245 */,
+       OT_RM_CUP = 308 /* GimmickSpinnyCup_1380 */, OT_RM_ELEV = 309 /* GimmickElevator_1340 */, OT_RM_ELEV2 = 310 /* GimmickElevator2_1399 */,
+       OT_RM_CART = 311 /* LevelHandCar_1421 */, OT_RM_CARTPART = 312 /* HandCarHandle_1420 / Top_1422 (sub 0-1) */,
+       OT_RM_CARTPROBE = 313 /* HandCarFloor1/2/3_1423-1425 (sub 0-2) */, OT_RM_TSWITCH = 314 /* LevelMineTrackSwitch_1419 */,
+       OT_RM_WPLATE = 315 /* SwitchWallPlate_1149 / WallPlate2_1429 / 1526 / 1543 / WallPlate2_1578 (sub 0-4) */,
+       OT_RM_SPIKEBIT = 316 /* BreakableSpike_1436 (runtime) */, OT_RM_FLOATBOX = 317 /* LevelFloatingPlatform2_1311 / 3_1403 (sub 0-1) */,
+       OT_RM_MOVPLAT = 318 /* LevelMovingPlatform01_1389 */, OT_RM_FLOORBOX = 319 /* Active_1338 */,
+       OT_RM_ALTPATH = 320 /* RMAlternatePath_1426 / Path2_1438 (sub 0-1) */, OT_RM_RCAVE = 321 /* GimmickRollingPlatformCave_1449 */,
+       OT_RM_RCAVE2 = 322 /* GimmickRollingPlatformCave2_1447 (wheel) */, OT_RM_DRILL = 323 /* GimmickDrillPlatform_1480 */,
+       OT_RM_RUINS = 324 /* BreakableRuins_1450 */, OT_RM_RMPLAT = 325 /* LevelRMPlatform_1517 */, OT_RM_GATE = 326 /* GatewayFront_1524 */,
+       OT_RM_GATE2 = 327 /* GatewayFront2_1525 (door leaf) */, OT_RM_CRATER = 328 /* CaveSoilCraterFront_1379 / Front2_1385 (sub 0-1) */,
+       OT_RM_LOOP0 = 329 /* RM4 loop-layer set 0: LevelLayer001/002/015/02/03 (sub 0-4) */, OT_RM_LOOP1 = 330 /* set 1: LevelLayer117 / 1Loop2 (sub 0-1) */,
+       OT_RM_LSBASE = 331 /* LightStoneBase_1562 / Base2_1564 (sub 0-1) */, OT_RM_LSTOP = 332 /* LightStoneTop_1563 / Top2_1565 (sub 0-1) */,
+       OT_RM_LSDOOR = 333 /* LightStoneDoor1/2_1585-1586 (sub 0-1) */, OT_RM_SCEIL = 334 /* SpikeCeiling_1557 */,
+       OT_RM_CRUSHBOX = 335 /* LevelCrushDeath_1627 */, OT_RM_CHAIR = 336 /* ObjectChair_1596 */ };
 
 #define MAX_ATLAS 4
 typedef struct {
@@ -517,7 +538,9 @@ enum { ST_NORMAL, ST_ATTACK, ST_CYCLONE, ST_CHARGE, ST_BOOST, ST_HURT, ST_DEAD,
        ST_MCARRY,      /* Milla M30: charging / carrying the cube or a monitor (2269-2277) */
        ST_MSHIELD,     /* Milla M31: shield / burst / beam (2278-2293) */
        ST_SHAKE,       /* M12: shake off water after an Aqua Tunnel water jet (1885-1887, 4141/4142) */
-       ST_HELD };      /* M43: held in the AT2 Chomper mouth (4435; OTHERS.Y 8 ball pose, L = 1) */
+       ST_HELD,        /* M43: held in the AT2 Chomper mouth (4435; OTHERS.Y 8 ball pose, L = 1) */
+       ST_CART,        /* M90: Milla pumping the RM3 hand-car (6131-6166, src/game/relic_gimb.c) */
+       ST_SIT };       /* M39: sitting on an RM5 chair (6585, 3068-3072, src/game/relic_gimb.c) */
 /* src/game/combat.c (build/re/spec_combat.md) */
 void combat_frame(player_t *p);
 void combat_draw_shields(int behind);
@@ -576,6 +599,11 @@ obj_t *relic_flame_new(float x, float y, double C, double D);
 int    relic_boss_keeps(int type), relic_is_gate_pillar(const obj_t *o);
 void   rmboss_spawn(void), rmboss_frame(player_t *p);
 int    rmboss_obj(obj_t *o, player_t *p);
+/* src/game/relic_gimb.c (Relic Maze acts 3-5 gimmicks, spec_rm_gimmicks_b.md) */
+void   relic_gimb_spawn(void), relic_gimb_frame(player_t *p);
+int    relic_gimb_player(player_t *p, const input_t *in);
+int    relic_gimb_is_gate_pillar(const obj_t *o);         /* RM5 Bone Golem gate pillars (no travel of their own; moved by the boss) */   /* ST_CART / ST_SIT: 1 = handled (the movement block is off this frame) */
+void   player_pose(player_t *p, int idx, int dir, int speed);   /* player.c: every skin forced to animation index idx (Milla: direction dir) */
 void   rock_at_new(float x, float y), rock_at_break(obj_t *r), rocks_at_frame(player_t *p);   /* EnemyRock (aqua_boss.c), shared */
 /* level definitions (src/game/levels.c): per-act data read by the shared code */
 typedef struct { short x, y, A; float B; short D, E, blk; } padcfg_t;   /* Carol's jump pad at (x, y): index A, angle B, chain end D, lit E, block pad */
@@ -600,6 +628,14 @@ typedef struct { short x0, x1, y0, y1, E, F; signed char rails; } camroom_t;
 typedef struct { short x0, x1, y0, y1; signed char dir; short tx, ty; signed char face, walk_b, g4; short walkin_E; } warp_t;   /* act start with the flag set: the area's items / gates go (RM2 6039 / 6040) */
 typedef struct { short g4_max, lock_x, lock_ymin, lock_ymax, l, t, r, b, unlock_x, unlock_y; } camzone_t;   /* boss camera lock (see levels.c) */
 typedef struct { short x0, x1, y0, y1; signed char who, jelly; } killbox_t;   /* items removed at the act start: who 0 all, 1 not Milla, 2 Milla, 3 all but Lilac, 4 all but Carol on foot (RM2 6013 / 6014) */
+/* Relic Maze acts 3-5 gimmicks (relic_gimb.c, spec_rm_gimmicks_b): per-act values of shared objects (level_def_t.rmg) */
+typedef struct { short x0, x1, y0, y1, C; } pillarzone_t;   /* moving pillars with their box origin in [x0, x1) x [y0, y1) travel C */
+typedef struct {
+    const pillarzone_t *pillars; int npillars;  /* 6379-6385 (RM3) / 6527-6531 (RM4) */
+    int door_rise;                               /* SwitchDoor return per frame, no "player under the door" test (RM4 6431: 8); 0 = DV 5185 / 5186 */
+    int pad_bike_pop;                            /* jump pads (6092-6095): pop for MV.A != 2 (the bike too), the ride only for Carol on foot */
+    int basement_y;                              /* the basement events (group 0x2250d, 6750) run while MV.Y > this (RM5 1608) */
+} rmgim_t;
 typedef struct {
     const char *dir; int frame, stage, act, nacts;   /* data dir, original frame index, stage record index (Time Attack icon E), act n of nacts */
     const char *music, *music_cp;                    /* stage music; after checkpoint g4 >= 10 (AT2 after the Chomper) */
@@ -624,6 +660,7 @@ typedef struct {
     int cam_cp10_left, cam_cp10_pad;                 /* once g4 >= 10 (AT2's Chomper beaten): C = left, E = width + pad */
     const short *sfx; int nsfx;                      /* the stage's own sound ids (loaded with the level, D-047) */
     int card_first;                                  /* first card id of the act (ObjectCodec_430; 0 = none): DV 1 / 5 / 7 / 8, AT 21 / 24 / 27 / 28 */
+    const rmgim_t *rmg;                              /* Relic Maze acts 3-5 gimmick values (relic_gimb.c); NULL: none */
     /* session 14 (spec_rm_flow 6.2): exits / entries other than the right edge, a death / restart target act, stage flag
      * 0x1 = (MV.Y > flag1_y) every frame, crystals only on the first visit (RM1: removed when g4 is not 0 / 1) */
     const exit_t *exits; int nexits;

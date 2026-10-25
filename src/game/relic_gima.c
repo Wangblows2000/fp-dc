@@ -117,11 +117,7 @@ static void hangers(player_t *p) {
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i];
         if (!o->alive) continue;
-        if (o->type == OT_HISWITCH) {                                                    /* 5866-5868 (A = av[0] rest y) */
-            if (!held(p, o)) { o->y = (float)fmax(o->av[0], o->y - 2); o->fl &= ~2; }
-            else if (o->y < o->av[0] + 8) o->y = (float)fmin(o->av[0] + 8, o->y + 2);
-            if (held(p, o) && o->y >= o->av[0] + 8 && !(o->fl & 2)) o->fl |= 2;         /* flag 1: pulled */
-        } else if (o->type == OT_HIMOVER) {                                              /* 5870-5876: fl 2 = flag 1 (down), 4 = flag 2 (grab latch) */
+        if (o->type == OT_HIMOVER) {                                              /* 5870-5876: fl 2 = flag 1 (down), 4 = flag 2 (grab latch) */
             int q = held(p, o);
             if (!q && (o->fl & 4)) { o->fl &= ~4; G.input_lock = 0; }                    /* 5870 */
             if (q && !(o->fl & 4)) { o->fl ^= 2; G.input_lock = 1; o->fl |= 4; }        /* 5871 */
@@ -133,13 +129,13 @@ static void hangers(player_t *p) {
     for (int i = 0, si = 0, mi = 0; i < G.nobjs; i++) {                                  /* 5874: the visuals at their paired handles (index pairing) */
         obj_t *v = &G.o[i];
         if (!v->alive || (v->type != OT_HSWITCHV && v->type != OT_HMOVERV)) continue;
-        int want = v->type == OT_HSWITCHV ? OT_HISWITCH : OT_HIMOVER, k = v->type == OT_HSWITCHV ? si++ : mi++;
+        int want = v->type == OT_HSWITCHV ? OT_RM_IDLESW : OT_HIMOVER,   /* the switch handle: relic_gimb.c's type (one implementation, every act) */ k = v->type == OT_HSWITCHV ? si++ : mi++;
         for (int j = 0, n = 0; j < G.nobjs; j++) if (G.o[j].alive && G.o[j].type == want && n++ == k) { v->x = G.o[j].x - 1; v->y = G.o[j].y; break; }
     }
 }
 
 void relic_gima_pre(player_t *p) {
-    if (!objects_have(OT_RPLAT) && !objects_have(OT_HISWITCH) && !objects_have(OT_HIMOVER)) { relic_hang_hold(p); return; }
+    if (!objects_have(OT_RPLAT) && !objects_have(OT_HSWITCHV) && !objects_have(OT_HIMOVER)) { relic_hang_hold(p); return; }
     rplat_control(p);
     hangers(p);
     relic_hang_hold(p);
@@ -148,11 +144,9 @@ void relic_gima_pre(player_t *p) {
 /* ================================================================ 12. wall plate 1149 -> switch column / flip panels */
 static int wp_latch, col_C_sound;
 static void wallplates(player_t *p) {
-    int pressed = 0, M = player_orig_m(p), cyc = level_cur()->wplate_cyclone;
+    int pressed = 0; (void)p;
     for (int i = 0; i < G.nobjs; i++) {
-        obj_t *o = &G.o[i]; if (!o->alive || o->type != OT_WPLATE_RM) continue;
-        o->hidden = 0; o->fl &= ~1;                                                      /* 4505 / 4365: momentary */
-        if (sens_hit(SENS_RIGHTBIG, o) && (M == 11 || M == 47 || (cyc && M == 26))) { o->hidden = 1; o->fl |= 1; }   /* 5677 / 5900 */
+        obj_t *o = &G.o[i]; if (!o->alive || o->type != OT_RM_WPLATE || o->par != 0) continue;   /* SwitchWallPlate_1149: pressed by relic_gimb.c (S_RB, M 11 / 47, + M 26 with wplate_cyclone) */
         if (o->fl & 1) pressed = 1;
     }
     int edge = pressed && !wp_latch; wp_latch = pressed;
@@ -379,12 +373,12 @@ static void floors(player_t *p) {
     }
     if (land) { snd_play_orig(51, 220, 128); if (G.cam.Z < 2) G.cam.Z = 2; }              /* 6005 */
     for (int i = 0; i < G.nobjs; i++) {
-        obj_t *s = &G.o[i]; if (!s->alive || s->type != OT_HISWITCH) continue;
-        if ((s->fl & 2) && !moving && !(s->fl & 8)) {                                     /* 6006: a pull toggles every floor */
+        obj_t *s = &G.o[i]; if (!s->alive || s->type != OT_RM_IDLESW) continue;   /* relic_gimb.c: F1 0x1000 pulled, F3 0x4000 armed */
+        if ((s->fl & 0x1000) && !moving && !(s->fl & 0x4000)) {                                     /* 6006: a pull toggles every floor */
             for (int j = 0; j < G.nobjs; j++) { obj_t *o = &G.o[j]; if (o->alive && o->type >= OT_MFLOOR1 && o->type <= OT_MFLOOR3) { o->av[2] = o->av[1]; o->av[1] = -o->av[1]; } }
-            snd_play_orig(62, 220, 128); loop62(1, 1); s->fl |= 8; moving = 1;
+            snd_play_orig(62, 220, 128); loop62(1, 1); s->fl |= 0x4000; moving = 1;
         }
-        if (!(s->fl & 2) && !moving && (s->fl & 8)) s->fl &= ~8;                          /* 6007 */
+        if (!(s->fl & 0x1000) && !moving && (s->fl & 0x4000)) s->fl &= ~0x4000;          /* 6007 */
     }
     if (!moving) loop62(1, 0);                                                           /* 6008 */
 }
@@ -440,7 +434,7 @@ void relic_gima_spawn(void) {
         case OT_HBAR2: case OT_HSENS2: path_init(o, 0, 0, 0, 0, 2, 88, 0, 1); o->fl |= 0x41; break;    /* 6033 */
         case OT_RPLAT: path_init(o, 180, 0, 192, 180, 0, -192, 0, 1); o->fx = o->x; o->fy = o->y; break;   /* A 180, C 192, E 180, G -192, H 1 */
         case OT_SPINBALL: o->av[0] = o->x; o->av[1] = o->y; break;                          /* start: A = x, B = y */
-        case OT_HISWITCH: case OT_HIMOVER: o->av[0] = o->y; break;                           /* 6028: A = y */
+        case OT_HIMOVER: o->av[0] = o->y; break;                                             /* 6028: A = y */
         case OT_COLFRONT: case OT_COLBACK1: case OT_COLBACK2: o->av[0] = o->y; break;        /* 5843 */
         case OT_MFLOOR1: case OT_MFLOOR2: case OT_MFLOOR3: {                                 /* 6043-6049: C by column */
             int x = (int)o->x; o->av[0] = o->y;
@@ -454,14 +448,15 @@ void relic_gima_spawn(void) {
     /* 5901-5903 / 5869: markers set the flip panels' start angles and the movers' start (bottom); then they go */
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *m = &G.o[i];
-        if (!m->alive || m->type < OT_FLIPMARK2 || m->type > OT_FLIPMARK4) continue;
+        if (!m->alive || ((m->type < OT_FLIPMARK2 || m->type > OT_FLIPMARK4) && m->type != OT_RM_MARKER)) continue;
+        int used = m->type != OT_RM_MARKER, mk2 = m->type == OT_FLIPMARK2 || m->type == OT_RM_MARKER;   /* FlipPanel2_1245 is relic_gimb.c's marker type (also the pickaxe marker: kept unless used here) */
         for (int j = 0; j < G.nobjs; j++) {
             obj_t *o = &G.o[j];
             if (!o->alive || fabsf(o->x - m->x) > 48 || fabsf(o->y - m->y) > 48) continue;
-            if (o->type == OT_FLIPPANEL) { o->av[2] = m->type == OT_FLIPMARK2 ? 90 : m->type == OT_FLIPMARK3 ? 180 : 270; o->ang = (float)o->av[2]; }
-            else if (o->type == OT_HIMOVER && m->type == OT_FLIPMARK2) { o->y = (float)(o->av[0] + 280); o->fl |= 2; }
+            if (o->type == OT_FLIPPANEL) { o->av[2] = mk2 ? 90 : m->type == OT_FLIPMARK3 ? 180 : 270; o->ang = (float)o->av[2]; used = 1; }
+            else if (o->type == OT_HIMOVER && mk2) { o->y = (float)(o->av[0] + 280); o->fl |= 2; used = 1; }
         }
-        m->alive = 0;
+        if (used) m->alive = 0;
     }
     flag_cleanups();
 }
