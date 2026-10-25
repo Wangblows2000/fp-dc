@@ -183,6 +183,9 @@ if d:   # v4 tail: progress (4 bytes), cards (13), cards opened (13), achievemen
     G = 13 + 13 + 56
     check('cheat_saved_progress_cards', list(d[-2 - G - 4:-2 - G]) == [15] * 4 and d[-2 - G:-2 - 69] == bytes([255] * 12 + [15]), d[-2 - G - 4:-2 - 69].hex())
     check('cheat_cards_face_down_ach_1_3', d[-2 - 69:-2 - 56] == bytes(13) and d[-2 - 56:-2] == bytes([2, 2, 2] + [0] * 53), d[-2 - 69:-2].hex())
+r2, m2, s2, p2 = run('40 42 S\n170 171 L\n180 181 L\n190 191 L\n200 201 R\n210 211 R\n220 221 R\n', 480, {'FP_SAVE': tempfile.mktemp(suffix='.sav')})
+n2 = [x[0] for x in m2]
+check('cheat_on_title_menu', 'cheat: all unlocked' in p2.stdout + p2.stderr and n2[-2:] == ['bgm/m_1up.adp', 'bgm/m_menu2.adp'], str(n2))
 names, d, out = cheat_run('20 21 L\n30 31 L\n40 41 L\n120 121 R\n130 131 R\n140 141 R\n')
 check('cheat_times_out', 'cheat:' not in out and not d)
 names, d, out = cheat_run('20 21 L\n30 31 L\n35 36 U\n40 41 L\n50 51 R\n60 61 R\n70 71 R\n')

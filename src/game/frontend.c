@@ -261,7 +261,10 @@ static int cheat_step(uint32_t pressed) {
     return 1;
 }
 static void cheat_music(void) {
-    if (cheat_jingle > 0 && --cheat_jingle == 0 && fe_state == FE_PRESS && !tleaving) music_play("bgm/m_title.adp");
+    if (cheat_jingle > 0 && --cheat_jingle == 0) {                 /* back to the screen's own track */
+        if (fe_state == FE_PRESS && !tleaving) music_play("bgm/m_title.adp");
+        else if (fe_state == FE_HUB && hub_on_title()) music_play("bgm/m_menu2.adp");
+    }
 }
 
 static void title_draw(void) {
@@ -488,6 +491,7 @@ void fe_update(const input_t *in) {
     switch (fe_state) {
     case FE_PRESS: { static uint32_t prev; uint32_t p = prev; prev = in->pressed; cheat_step(p); cheat_music(); title_update(p); break; }   /* RE order: presses act next frame */
     case FE_HUB: {
+        if (hub_on_title()) { cheat_step(in->pressed); } cheat_music();     /* the cheat also works on the title menu (Left / Right do nothing there) */
         int ex = hub_update(in);
         if (ex == HUB_EXIT_QUIT) { plat_quit(); break; }
         if (ex == HUB_EXIT_GALLERY) { if (scr_load(2) == 0) { set_state(FE_GAL); gal_enter(); } else { set_state(FE_HUB); hub_enter(); } }   /* RE 390: frame 10 */
