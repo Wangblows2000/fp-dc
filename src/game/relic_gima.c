@@ -208,9 +208,13 @@ static void gates(player_t *p) {
     for (int k = 0; k < L->ngates; k++) {
         const gate_t *g = &L->gates[k];
         if (g->create) {                                                                  /* RM2 5922 / 5923: closed behind the player after the walk-in */
-            if (gates_created || G.act_in || G.card_t < 192) continue;
+            /* RE: created at fade A >= 32 with the player assumed past it ("behind the player"); the walk-in speed is UNKNOWN
+             * (spec_rm_flow 1.3: B may carry over from RM1), and the port's walk-in left the player at x ~100, in front of the
+             * gate at 116, so the entrance was sealed. INFERRED: the gate waits until the player has passed it (clear of its
+             * 16 px barrier); once per visit. */
+            if ((gates_created >> k & 1) || G.act_in || G.card_t < 192) continue;
             double Y = MVY(p);
-            if (!(G.stage_flags & g->flag) && Y > g->ymin && Y <= g->ymax) gate_create(g->rail_type, g->x, g->y);
+            if (!(G.stage_flags & g->flag) && Y > g->ymin && Y <= g->ymax && PXi(p) > g->x + 16 + 12) { gate_create(g->rail_type, g->x, g->y); gates_created |= 1 << k; }
         } else if (G.stage_flags & g->flag) {                                            /* RM1 5832 / 5833, RM2 5926: the flag opens its gate */
             for (int i = 0; i < G.nobjs; i++) {
                 obj_t *r = &G.o[i]; if (!r->alive || r->type != g->rail_type) continue;
@@ -219,7 +223,6 @@ static void gates(player_t *p) {
             }
         }
     }
-    if (!G.act_in && G.card_t >= 192) gates_created = 1;
     /* 5925: the basement break-out (zone, the axle turning, flag off) */
     const zone_t *z = L->breakout;
     if (z && !(G.stage_flags & L->breakout_flag) && axle_turning()) {
