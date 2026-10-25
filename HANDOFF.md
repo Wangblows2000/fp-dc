@@ -128,6 +128,31 @@ spec_rm_golems, spec_rm_claw, spec_rm_mantalith, rm_inventory.
   Mantalith sounds 147 / 214 / 215 not ported; INFERRED items in RE_NOTES. An agent published a private working page
   (spec_rm_enemies) during research; it is still in the user's artifacts (delete only if the user asks).
 
+## Session 15 (2026-10-25): bug fixes, Gallery, unlock cheat
+Brief: damage, DV/RM rising platform, Carol's icon, the two door gates, Gallery from card progression, title cheat.
+Details: RE_NOTES "Session 15", RUNTIME_MAP "Session 15", ASSET_PIPELINE "Session 15: Gallery", DECISIONS D-068 to
+D-072, BUILD_AND_TEST_LOG "Session 15". Spec: build/re/fe/spec_gallery.md (not committed).
+- **Damage:** not a collision bug. The user played on Casual, where the original takes no damage (RE 2414). The port
+  re-read the difficulty from the save each time the front end reloaded, so after quitting to the menu a Casual game
+  became Normal and damage "came back". Options are now read once per boot (D-068). Damage verified for Lilac, Carol
+  (on foot / bike) and Milla.
+- **Rising platform (it is RM1's switch column, not Dragon Valley):** SwitchColumnFront1_1157 is an invisible
+  collision box (constructor set_visible(0), RE) whose image 43 is solid green; the port drew it. Registry flag
+  OD_HIDDEN (D-069), also applied to MinibossBarrier_969 (the railings are the gates' visuals).
+- **Gates (RM2 entrances to the golem room and the basement):** the gate that closes behind the player after the
+  walk-in was created while the port's walk-in had left the player in front of it, sealing both entrances. The gate
+  now waits until the player has passed it (INFERRED, D-070).
+- **Carol's icon:** HUD and VMU life icon use guiicon direction 2 (image 395) on foot as on the bike; direction 1
+  (image 112) is not Carol (RE anims).
+- **Gallery:** src/game/fe_gallery.inc (CARDS / ACHIEVEMENTS / DATA, card flip / play / art view, Card Collector
+  pop-up), save v4 (opened cards, 56 achievement states; v1-v3 convert), test_gallery.py (D-071).
+- **Cheat (stays in final builds):** on the title screen (Press Start) or the title menu, press Left, Left, Left,
+  Right, Right, Right, each within 1 s of the previous one; any other button resets it. Effect: every stage's progress
+  for every character (Time Attack stages), all 100 cards (face down, so the gallery opens them), achievements 1-3 (the
+  type-3 cards); the save is written with the normal save_store and the 1-up jingle plays, then the screen's music
+  returns. Characters are already all selectable. Entering the gallery afterwards awards the Card Collector pop-ups.
+  Records, files and options are untouched (D-072).
+
 ## Aqua Tunnel: verified vs approximated
 - **Matched to original traces (RV, cmp_at, Milla):** slimes and their bursts, fireflies in the current, water jet from
   the left, jelly jump / charge, red springs right / up-right / up, bomb walk, AT2 aqua brick platforms, AT1 plates +
@@ -159,12 +184,11 @@ spec_rm_golems, spec_rm_claw, spec_rm_mantalith, rm_inventory.
   Aqua Tunnel: session 12.)
 
 ## Latest verified
-- host-test (session 14): gameplay, front end, Carol, Milla, Aqua, levels, saves, rm_gimmicks_b, rm_claw, rm_mantalith
-  all 0 failures; original-trace comparers unchanged from the session-start baseline (cmp_all / cmp_carol / cmp_milla /
-  cmp_at as in session 13). RV-file save model unchanged (tests/check_user_saves.py).
-- emulator (Flycast, session 14): every RM act at 602-605 vblanks per 600 frames after its load window (RM4 Carol 605
-  worst); VRAM free RM1 2917, RM2 2388, RM3 1494 (Milla 1134), RM4 1053, RM5 2060 KB; session-13 figures for DV / AT
-  stand. **Emulator only; nothing measured on real hardware.**
+- host-test (session 15, final code): gameplay, front end (incl. 6 cheat checks), Carol, Milla, Aqua, levels, saves
+  (v4), rm_gimmicks_b, rm_claw, rm_mantalith, gallery: all 0 failures; original-trace comparers unchanged.
+- emulator (Flycast, session 15 disc): the cheat (demo input) unlocks and saves; the gallery opens (VRAM free 3167 KB),
+  cards flip, a music card plays, the art view shows Lilac's artwork; RM1 → RM2 walk-in passes the entrance gate. RM
+  act figures from session 14 stand (602-605 vblanks). **Emulator only; nothing measured on real hardware.**
 
 ## Next actions
 1. Real hardware: the session 14 disc; read the `perf:` / `prof` lines in RM3 / RM4 (the lowest VRAM and the heaviest

@@ -28,7 +28,7 @@ objects and levels" for the per-level parameters some objects take from src/game
 | 16 | OT_SPRING_L | yellowspringleft |  |  | game/objects.c | at4:7 dv2:3 |
 | 17 | OT_HANG | gimmickhangingidlesensor | HANG |  | game/objects.c, game/relic_gimb.c | at1:2 at4:5 dv1:10 dv2:8 dv3:2 |
 | 18 | OT_MON_RINGS | monitorrings | SOLID NOEDGE |  | game/aqua.c, game/monitors.c, game/objects.c, game/relic.c, game/relic_gima.c | at1:2 at2:2 at4:1 dv1:2 dv2:2 dv3:2 |
-| 19 | OT_MON_1UP | monitor1up | SOLID NOEDGE |  | game/aqua.c, game/monitors.c, game/objects.c, game/relic.c, game/relic_gima.c | at1:1 dv1:1 dv3:1 |
+| 19 | OT_MON_1UP | monitor1up | SOLID NOEDGE |  | game/aqua.c, game/frontend.c, game/monitors.c, game/objects.c, game/relic.c, game/relic_gima.c | at1:1 dv1:1 dv3:1 |
 | 20 | OT_PARALLAX | levelparallaxpiece0 |  |  | game/objects.c | dv1:1 dv2:1 dv4:1 |
 | 21 | OT_PARALLAX + 1 | levelparallaxpiece1 |  |  |  | dv1:1 dv2:1 dv4:1 |
 | 22 | OT_PARALLAX + 2 | levelparallaxpiece2 |  |  |  | at1:1 at2:1 dv1:2 dv2:2 dv3:1 dv4:2 |
@@ -67,7 +67,7 @@ objects and levels" for the per-level parameters some objects take from src/game
 | 57 | OT_WR_TURRET | minibosswretchnidturret |  |  | game/bosses.c | dv1:1 |
 | 58 | OT_WR_WEAK | minibosswretchnidweakspot |  |  | game/bosses.c, game/combat.c, game/objects.c | dv1:1 |
 | 59 | OT_WR_RAIL | minibossrailing |  |  | game/bosses.c, game/levels.c, game/relic_boss.c, game/relic_gima.c | dv1:5 |
-| 60 | OT_WR_BARRIER | minibossbarrier | SOLID |  | game/bosses.c, game/relic_boss.c, game/relic_gima.c | dv1:5 |
+| 60 | OT_WR_BARRIER | minibossbarrier | SOLID HIDDEN |  | game/bosses.c, game/relic_boss.c, game/relic_gima.c | dv1:5 |
 | 61 | OT_WR_LEG | minibosswretchnidleftleg1 |  |  | game/bosses.c | dv1:1 |
 | 62 | OT_WR_LEG + 1 | minibosswretchnidleftleg2 |  |  |  | dv1:1 |
 | 63 | OT_WR_LEG + 2 | minibosswretchnidleftleg3 |  |  |  | dv1:1 |
@@ -123,7 +123,7 @@ objects and levels" for the per-level parameters some objects take from src/game
 | 113 | OT_BAM4 | gimmickbamboospike4 |  |  | game/gimmicks.c | dv3:3 |
 | 114 | OT_TAOSTONE | objecttaostone |  |  |  | at4:1 dv3:1 |
 | 115 | OT_SPINLOG | spinninglog |  | slog0 | game/gimmicks.c, game/objects.c | dv2:3 |
-| 116 | OT_SPINLOG_MASK | spinninglogmask | OBSTACLE | slogmask | game/gimmicks.c, game/objects.c | dv2:3 |
+| 116 | OT_SPINLOG_MASK | spinninglogmask | OBSTACLE HIDDEN | slogmask | game/gimmicks.c, game/objects.c | dv2:3 |
 | 117 | OT_BROCK2 | breakablerock2 | SOLID |  | game/chase.c, game/objects.c, game/serpentine.c | dv2:1 dv4:13 |
 | 118 | OT_SNAKE_HEAD | bossserpentinehead |  |  | game/serpentine.c | dv1:1 |
 | 119 | OT_SNAKE_BODY | bosssnakebody |  |  | game/bosses.c, game/combat.c, game/serpentine.c |  |
@@ -153,7 +153,7 @@ objects and levels" for the per-level parameters some objects take from src/game
 | 143 | OT_WF_FRONT4 | waterfallfront4 |  |  | game/objects.c | dv3:15 |
 | 144 | OT_BBOULDER | (runtime) |  |  | game/combat.c, game/serpentine.c |  |
 | 146 | OT_KEYSTONE | (runtime) |  |  | game/gimmicks.c, game/objects.c |  |
-| 147 | OT_SPIRAL_FRONT | spiraltunnelfront |  | spiralfront | game/gimmicks.c, game/objects.c | dv1:1 dv2:1 |
+| 147 | OT_SPIRAL_FRONT | spiraltunnelfront | HIDDEN | spiralfront | game/gimmicks.c, game/objects.c | dv1:1 dv2:1 |
 | 148 | OT_FRONTROCK | frontrock1 |  | frontrock1 |  | dv1:6 |
 | 149 | OT_FRONTTREE | fronttree |  | fronttree |  | dv1:1 |
 | 150 | OT_TREEFRONT | treefront |  | treefront |  | dv3:1 |
@@ -282,7 +282,7 @@ objects and levels" for the per-level parameters some objects take from src/game
 | 274 | OT_CLOCK2 | clockdial2 |  | clock2 | game/relic_gima.c |  |
 | 275 | OT_AXLE | gimmickaxletunnel | SOLID | axle | game/relic_gima.c |  |
 | 276 | OT_BLIGHT | basementlight | BOXCOL | blight | game/relic_gima.c |  |
-| 277 | OT_COLFRONT | switchcolumnfront1 | SOLID BOXCOL | colfront | game/relic_gima.c |  |
+| 277 | OT_COLFRONT | switchcolumnfront1 | SOLID BOXCOL HIDDEN | colfront | game/relic_gima.c |  |
 | 278 | OT_COLBACK1 | switchcolumnback1 | BOXCOL | colback1 | game/relic_gima.c |  |
 | 279 | OT_COLBACK2 | switchcolumnback2 | BOXCOL | colback2 | game/relic_gima.c |  |
 | 280 | OT_RUINS | breakableruins | SOLID BOXCOL | ruins | game/objects.c, game/relic_gima.c |  |

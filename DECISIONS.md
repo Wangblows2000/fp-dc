@@ -264,3 +264,26 @@ bounds (5982 intent); the original may keep it (trace T3 of spec_rm_golems).
 from a packed x / y / reach copy (objects_sense_snapshot; superset with 64 px slack, rebuilt per phase and on slot
 changes); enemy_type is a per-type table; the Aqua Tunnel passes run only when one of their types is alive
 (objects_alive_type). Relic Maze places dig spots, so the AT pass block used to scan every slot ten times a frame.
+
+## Session 15
+
+**D-068 Options are loaded from the save once per boot.** Global 12 (difficulty) is changed by the file screen and the
+options; re-reading it on every front-end load reverted a Casual game to the saved Normal after a stage, which looked
+like damage turning on and off. Casual keeps the original's no-damage rule (RE 2414).
+
+**D-069 Registry flag OD_HIDDEN for classes whose constructor calls set_visible(0).** Replaces the hard-coded list in
+objects.c; applied to the ported collision-only / event-shown classes (RM1 switch column front, minibossbarrier, spiral
+front, spinning-log mask). The other ported set_visible(0) classes are not audited yet (TODO).
+
+**D-070 RM2 entrance gates wait for the player to pass (INFERRED).** RE creates them "behind the player" at fade
+A ≥ 32; the walk-in speed is UNKNOWN and the port's walk-in stops short, so the gate is created once the player is
+28 px past its x (once per visit). Replace with the traced walk-in when an original trace of the RM1 → RM2 entry exists.
+
+**D-071 Gallery and save v4.** The gallery follows spec_gallery (cards = the sound test and art, achievements, data);
+save v4 adds the opened state of the 100 cards and 56 achievement states (1361 bytes, still 6 VMU blocks). v1-v3 saves
+convert (taken cards face down). Artworks and sound cards load on demand; the achievement pop-up is an overlay instead
+of frame 9. Only Card Collector and the cheat's 1-3 are set by the port.
+
+**D-072 Unlock cheat in final builds.** Left x3 then Right x3 on the title screen or title menu (1 s per step, other
+input resets). It writes only through the save's own fields (progress, cards, achievements 1-3) and save_store, so a
+save made with it is an ordinary v4 save.
