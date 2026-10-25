@@ -323,6 +323,40 @@ static const objdef_t DEFS[] = {
     { OT_SSPIKE,        0,                                     NULL         }, /* - */
     { OT_FLAME,         0,                                     NULL         }, /* - */
     { OT_FSSHELL,       0,                                     NULL         }, /* - */
+    /* Relic Maze act 5 Mantalith / Kingdom Stone (rm_mantalith.c, spec_rm_mantalith 0; sprites set by its spawn code) */
+    { OT_MT_STONE,      0,                                     NULL         }, /* kingdomstone_1589 */
+    { OT_MT_SPADE,      0,                                     NULL         }, /* placeholdercharacter_1625 (Spade) */
+    { OT_MT_HOOK,       0,                                     NULL         }, /* npchookline_1590 */
+    { OT_MT_KS1,        0,                                     NULL         }, /* ksprojectile1_1593 */
+    { OT_MT_KS2,        0,                                     NULL         }, /* ksprojectile2_1626 */
+    { OT_MT_RAY1,       0,                                     NULL         }, /* lightray_1591 */
+    { OT_MT_RAY2,       0,                                     NULL         }, /* lightray2_1592 */
+    { OT_MT_SHRINE,     0,                                     NULL         }, /* shrine2_1588 */
+    { OT_MT_CUT1,       0,                                     NULL         }, /* bossgroundcut1_1600 */
+    { OT_MT_CUT2,       0,                                     NULL         }, /* bossgroundcut2_1601 */
+    { OT_MT_BODY,       0,                                     NULL         }, /* bossmantalithbody_1603 */
+    { OT_MT_NECK4,      0,                                     NULL         }, /* bossmantalithneck4_1604 */
+    { OT_MT_NECK3,      0,                                     NULL         }, /* bossmantalithneck3_1605 */
+    { OT_MT_NECK2,      0,                                     NULL         }, /* bossmantalithneck2_1610 */
+    { OT_MT_NECK1,      0,                                     NULL         }, /* bossmantalithneck1_1611 */
+    { OT_MT_LKNEE,      0,                                     NULL         }, /* bossmantalithleftknee_1606 */
+    { OT_MT_RKNEE,      0,                                     NULL         }, /* bossmantalithrightknee_1607 */
+    { OT_MT_LEG2,       0,                                     NULL         }, /* bossmantalithleg2_1609 (left foot) */
+    { OT_MT_LEG3,       0,                                     NULL         }, /* bossmantalithleg3_1608 (right foot) */
+    { OT_MT_BEAD,       0,                                     NULL         }, /* bossmantalithleg1_1602 (16 beads) */
+    { OT_MT_HEAD,       0,                                     NULL         }, /* bossmantalithhead_1614 (q20) */
+    { OT_MT_HEAD2,      0,                                     NULL         }, /* bossmantalithhead2_1613 */
+    { OT_MT_HEAD3,      0,                                     NULL         }, /* bossmantalithhead3_1612 */
+    { OT_MT_ARM6,       0,                                     NULL         }, /* bossmantalitharm6_1615 */
+    { OT_MT_ARM3,       0,                                     NULL         }, /* bossmantalitharm3_1616 */
+    { OT_MT_HIT1,       0,                                     NULL         }, /* bossmantalithhitbox1_1618 (q20) */
+    { OT_MT_HIT2,       0,                                     NULL         }, /* bossmantalithhitbox2_1619 (q20) */
+    { OT_MT_WARN,       0,                                     NULL         }, /* effectwarning_1528 */
+    { OT_MT_DEBRIS,     0,                                     NULL         }, /* - (BossMantalithDebris_1617, EffectsDebris_427) */
+    { OT_MT_SLASH,      0,                                     NULL         }, /* - (BossSlash_1598) */
+    { OT_MT_CHOMP,      0,                                     NULL         }, /* - (BossChomp_1599) */
+    { OT_MT_RUIN,       0,                                     NULL         }, /* - (BreakableRuins_1450, post-results) */
+    { OT_MT_RPIECE,     0,                                     NULL         }, /* - (BreakableRuinsPiece_1451) */
 };
 static objdef_t BY_TYPE[MAX_OT];
 static int built;

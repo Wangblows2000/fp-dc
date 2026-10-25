@@ -178,7 +178,8 @@ static void apply_dbg(int f, int tp) {
         if (dbg[i].k == 'E') p->energy = dbg[i].a;
         if (dbg[i].k == 'D' && !player_invincible(p)) player_hurt(p, p->x + dbg[i].a);   /* test hit from dx */
         if (dbg[i].k == 'H') p->hp = (int)dbg[i].a;
-        if (dbg[i].k == 'B') for (int k = 0; k < G.nobjs; k++) { obj_t *o = &G.o[k]; if (o->alive && (o->type == OT_IW_HEAD || o->type == OT_IW_HEADF || o->type == OT_CH_HEAD || o->type == OT_SN_HEAD || o->type == OT_GEYE || o->type == OT_BGCORE)) o->A = dbg[i].a; }
+        if (dbg[i].k == 'B') for (int k = 0; k < G.nobjs; k++) { obj_t *o = &G.o[k]; if (o->alive && (o->type == OT_IW_HEAD || o->type == OT_IW_HEADF || o->type == OT_CH_HEAD || o->type == OT_SN_HEAD || o->type == OT_GEYE || o->type == OT_BGCORE ||
+                                                                                    o->type == OT_MT_HEAD || o->type == OT_MT_HIT1 || o->type == OT_MT_HIT2)) o->A = dbg[i].a; }   /* RM5: Mantalith head + arms */
         if (dbg[i].k == 'Z') p->mD = (int)dbg[i].a;
         if (dbg[i].k == 'I') p->invuln = (int)dbg[i].a;      /* test: Milla inside a dig zone (MILLA.D, set by other stages' zone events) */
         if (dbg[i].k == 'P') for (int k = 0; k < G.nobjs; k++) if (G.o[k].alive && G.o[k].type == OT_PBLOCK1) { G.o[k].x = dbg[i].a + 41; G.o[k].y = dbg[i].b; break; }   /* port x = original x + 41 */

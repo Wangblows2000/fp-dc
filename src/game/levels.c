@@ -64,7 +64,8 @@ static const gate_t GATES_RM2[] = { { 0x2, OT_WR_RAIL, 116, 336, -32768, 1000, 1
                                     { 0x4, OT_RAIL2, 0, 0, 0, 0, 0 } };                                                      /* 5926 */
 static const flagclear_t CLEAR_RM2[] = { { 0x2, 0, 3499, 0, 1199 }, { 0x4, 22, 1937, 1600, 3189 } };                        /* 6039 / 6040 */
 static const zone_t BREAKOUT_RM2 = { 587, 824, 2328, 2566 };
-static const short SFX_RM[] = { 54, 55, 59, 60, 62, 67, 70, 77, 101, 110, 135, 213, 219, 306, 426 };   /* not in the global set (D-047): enemies, gimmicks, flow */
+static const short SFX_RM[] = { 54, 55, 59, 60, 62, 67, 70, 77, 101, 110, 135, 213, 219, 306, 426,   /* not in the global set (D-047): enemies, gimmicks, flow */
+                                111, 132, 134, 146, 148, 149, 151, 152 };   /* RM5 Mantalith (rm_mantalith.c), 11025 Hz: 147 / 214 / 215 left out (sound RAM) */
 
 static const short SFX_AT[] = { 55, 62, 69, 99, 172, 173, 240, 242, 251, 252, 278, 306, 308, 316 };
 #define N_(a) (int)(sizeof a / sizeof a[0])
@@ -89,8 +90,8 @@ static const level_def_t LEVELS[] = {
     { AT("at3", 18, 3, "bgm/m_stage0b.adp"), .card_first = 27, .exit_max_y = 380, .pipe_auto_y = 2900, .cam_right = 856 + 213 },
     { AT("at4", 19, 4, "bgm/m_stage0b.adp"), .card_first = 28, .water = 1480, .cps = CP_AT4, .ncps = N_(CP_AT4), .boss_cam = &CAM_AT4, .cam_right = 7424 + 213 },
     /* Relic Maze: frame index 24-28 (spec_rm_flow; music m_stage2, RM3 m_stage2b after its g4 = 10 checkpoint, RM4-RM5
-     * m_stage2b), cards 11 / 14 / 17 / 18 / 20, no water. RM5's Mantalith and its results are not ported yet: the act's
-     * right edge ends the stage. */
+     * m_stage2b), cards 11 / 14 / 17 / 18 / 20, no water. RM5 ends with the Mantalith (rm_mantalith.c, spec_rm_mantalith):
+     * the boss starts the results (7083) and its post-results script ends the stage (7097). */
     { RM("rm1", 24, 1, "bgm/m_stage2.adp"), .card_first = 11, .exits = EX_RM1, .nexits = N_(EX_RM1), .entries = EN_RM1, .nentries = N_(EN_RM1),
       .cps = CP_RM1, .ncps = N_(CP_RM1), .flag1_y = 340, .crystals_once = 1, .wplate_cyclone = 1, .gates = GATES_RM1, .ngates = N_(GATES_RM1),
       .dig_zones = DIGZ_RM1, .ndig_zones = N_(DIGZ_RM1), .dig_rewards = DIGR_RM1, .ndig_rewards = N_(DIGR_RM1) },
@@ -100,7 +101,7 @@ static const level_def_t LEVELS[] = {
     { RM("rm3", 26, 3, "bgm/m_stage2.adp"), .card_first = 17, .music_cp = "bgm/m_stage2b.adp", .exits = EX_RM3, .nexits = N_(EX_RM3),
       .entries = EN_RM3, .nentries = N_(EN_RM3), .cps = CP_RM3, .ncps = N_(CP_RM3), .cam_right = 12288 + 50 },
     { RM("rm4", 27, 4, "bgm/m_stage2b.adp"), .card_first = 18, .cps = CP_RM4, .ncps = N_(CP_RM4) },
-    { RM("rm5", 28, 5, "bgm/m_stage2b.adp"), .card_first = 20, .entries = EN_RM5, .nentries = N_(EN_RM5), .cam_right = 9600 + 50, .edge_results = 1 },
+    { RM("rm5", 28, 5, "bgm/m_stage2b.adp"), .card_first = 20, .entries = EN_RM5, .nentries = N_(EN_RM5), .cam_right = 9600 + 50 },
 };
 static const level_def_t DEFAULT = { .dir = "", .frame = -1, .stage = -1, .act = 1, .nacts = 1, .music = "bgm/m_stage1.adp" };
 
