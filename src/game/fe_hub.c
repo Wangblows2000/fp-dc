@@ -137,8 +137,8 @@ static void title_events(const input_t *in) {
     case 1:                                                              /* 389 TIME ATTACK */
         H.confirm = 0; H.title = 0; snd_play_orig(56, 230, 128); wipe_start(); music_stop(); H.exit = HUB_EXIT_TIME_ATTACK;
         break;
-    case 2:                                                              /* 390 GALLERY -> frame 10: not in the port */
-        H.confirm = 0;
+    case 2:                                                              /* 390 GALLERY -> frame 10 (fe_gallery.inc): the hub wipe, sound 56 */
+        H.confirm = 0; H.title = 0; snd_play_orig(56, 230, 128); wipe_start(); music_stop(); H.exit = HUB_EXIT_GALLERY;
         break;
     case 3:                                                              /* 391 OPTIONS */
         H.confirm = 0; snd_play_orig(63, 230, 128); H.title = 0; H.opt = 1; H.opt_in = 1; H.opt_once = 1;

@@ -198,6 +198,8 @@ static int mus_vol = 255;
 static int mus_paused;           /* pause menu: stream stopped in place, not polled */
 static uint8_t mus_buf[MUS_CHUNK * 2 + 8] __attribute__((aligned(32)));
 static int mus_pos, mus_loop_len;   /* bytes read since the loop start; loop length (file length & ~31) */
+static int mus_once;                 /* gallery music cards of type 1 (session 15): no loop, silence after the end */
+static volatile int mus_ended;       /* a once track delivered its last byte (music_active() = 0) */
 
 static void *mus_cb(snd_stream_hnd_t hnd, int smp_req, int *smp_recv) {
     /* KOS passes the request in BYTES (snd_stream.c: get_data(hnd, needed_bytes, &got_bytes)) */
@@ -213,6 +215,7 @@ static void *mus_cb(snd_stream_hnd_t hnd, int smp_req, int *smp_recv) {
     int got = 0, rewinds = 0;
     while (got < want && rewinds < 2) {
         int room = mus_loop_len - mus_pos;
+        if (room <= 0 && mus_once) { memset(mus_buf + got, 0, (size_t)(want - got)); got = want; mus_ended = 1; break; }   /* once: silence (zero ADPCM codes from the sealed end state) */
         if (room <= 0) { printf("music: loop %s (%d bytes)\n", mus_name, mus_pos); fs_seek(mus_f, 0, SEEK_SET); mus_pos = 0; rewinds++; continue; }   /* whole-file loop */
         int k = want - got < room ? want - got : room;
         ssize_t n = fs_read(mus_f, mus_buf + got, (size_t)k);
@@ -243,7 +246,7 @@ static void *mus_thread(void *arg) {
 
 static void music_stop_locked(void) {
     if (mus != SND_STREAM_INVALID) { snd_stream_stop(mus); snd_stream_destroy(mus); mus = SND_STREAM_INVALID; }
-    mus_paused = 0;
+    mus_paused = 0; mus_once = 0; mus_ended = 0;
     if (mus_f >= 0) { fs_close(mus_f); mus_f = -1; }
     mus_name[0] = 0;
 }
@@ -251,7 +254,7 @@ static void music_stop_locked(void) {
 int music_play(const char *name) {
     char path[128];
     mutex_lock(&mus_lock);
-    if (mus != SND_STREAM_INVALID && !strcmp(mus_name, name)) { mutex_unlock(&mus_lock); return 0; }  /* no restart / no duplicate */
+    if (mus != SND_STREAM_INVALID && !strcmp(mus_name, name) && !mus_ended) { mutex_unlock(&mus_lock); return 0; }  /* no restart / no duplicate */
     music_stop_locked();
     snprintf(path, sizeof path, FP_DATA_ROOT "/%s", name);
     mus_f = fs_open(path, O_RDONLY);
@@ -268,6 +271,17 @@ int music_play(const char *name) {
     if (!mus_thd) { mus_thread_run = 1; mus_thd = thd_create(0, mus_thread, NULL); }
     return 0;
 }
+
+/* gallery: a track that plays once (ListSongFilenames type 1, RE 1042 loop argument 1) */
+int music_play_once(const char *name) {
+    music_stop();
+    int r = music_play(name);
+    mutex_lock(&mus_lock);
+    if (r == 0) mus_once = 1;
+    mutex_unlock(&mus_lock);
+    return r;
+}
+int music_active(void) { return mus != SND_STREAM_INVALID && !mus_ended && !mus_paused; }
 
 void music_volume(int pct) {
     mutex_lock(&mus_lock);

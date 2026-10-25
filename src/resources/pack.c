@@ -8,7 +8,7 @@
  *
  * Only one pack is held in RAM at a time (the whole compressed file); it is released at the end of
  * each load (pack_release), so the steady-state memory cost is zero. Files that are read outside loads
- * (ui/vmu_*, ui/loading.*, levels.txt) stay loose on the disc. */
+ * (ui/vmu_*, ui/loading.*, levels.txt) and the gallery's on-demand files (gal/) stay loose on the disc. */
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -79,6 +79,7 @@ static const uint8_t *pack_find(const char *name) {
     if (!sl || (size_t)(sl - name) >= sizeof cur_dir || strchr(sl + 1, '/')) return NULL;
     /* files kept loose by tools/pack_disc.py (LOOSE): never read a pack just to miss them */
     if (!strncmp(sl + 1, "loading.", 8) || !strncmp(sl + 1, "vmu_", 4)) return NULL;
+    if (!strncmp(name, "gal/", 4)) return NULL;          /* gallery art / sounds: loose, read one at a time on demand */
     char dir[24]; memcpy(dir, name, sl - name); dir[sl - name] = 0;
     if (pack_select(dir) < 0) return NULL;
     for (uint32_t i = 0; i < cur_n; i++) {
