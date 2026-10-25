@@ -12,6 +12,7 @@
  * with every taken card face down and no achievement (INFERRED: the PC records of a port player cannot be known), and
  * every older file is written as v4 on the next save. A damaged, foreign or truncated file is ignored (defaults) and
  * only replaced by the next deliberate save. */
+#include <stdio.h>
 #include <string.h>
 #include "../fp.h"
 
@@ -137,6 +138,17 @@ void save_card_open(int id, int open) {
 }
 int  save_ach(int k) { return k >= 1 && k <= SAVE_ACH ? SV.ach[k - 1] : 0; }
 void save_ach_set(int k, int v) { if (k >= 1 && k <= SAVE_ACH) SV.ach[k - 1] = (uint8_t)(v < 0 ? 0 : v > 2 ? 2 : v); }
+/* session 16 (build/re/spec_achievements.md 0): every writer is "set 1" (guarded by == 0) or "max 1" (never lowers an
+ * announced 2); both are "0 -> 1" here (RE). In memory only: records.dat is written at the results' D = 150 (5394) and by
+ * the pop-up (frame index 9), which the port reproduces through save_store() in results.c / the pop-up. */
+void ach_earn(int k) {
+    if (save_ach(k) != 0) return;
+    save_ach_set(k, 1);
+#ifdef FP_HOST_ENV
+    printf("ach earn %d\n", k);   /* host tests (tests/test_achievements.py) */
+#endif
+}
+int ach_pending(void) { for (int k = 1; k <= SAVE_ACH; k++) if (save_ach(k) == 1) return 1; return 0; }
 /* title-screen cheat (session 15): everything the save tracks as unlocked. Progress = every stage for every character
  * (Time Attack locks, RE 641-643), all 100 cards taken (face down: opening stays the player's), and achievements 1-3
  * ("clear all Lilac / Carol / Milla stages") announced, which is what unlocks the type-3 gallery cards (RE 996-1002).

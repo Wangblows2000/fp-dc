@@ -155,7 +155,7 @@ void chase_update(player_t *p) {
     }
     /* 5453-5460 catch-up / respawn: the boulder ran past the view */
     if (CH.A > viewL + 626 && CH.E > 0 && CH.E < 11) {
-        CH.flag4 = 1; CH.C = 14;
+        CH.flag4 = 1; CH.C = 14; ach_earn(33);                                                   /* records x2 y33 "Rolling Stones" (RE) */
         static const double RA[11] = { 0, 672, 2592, 2592, 4320, 5472, 7072, 8480, 8480, 8480, 8480 }, RB[11] = { 0, 2112, 2240, 2240, 2240, 2312, 2384, 2384, 2384, 2384, 2384 };
         static const int RE[11] = { 0, 1, 1, 2, 3, 4, 5, 6, 6, 6, 6 };
         int e = CH.E; CH.A = RA[e]; CH.B = RB[e]; CH.E = RE[e]; if (e >= 7) CH.H = 0;
