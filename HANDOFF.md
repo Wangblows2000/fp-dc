@@ -137,7 +137,7 @@ spec_records_saves.md.
   beam's first hit is 1 frame early; flap-sound cadence (frame-time timer in the original).
 - **RE only:** shield on springs / ladders, dig rewards (spots of Aqua Tunnel / Relic Maze), float under water (blocked
   by the swim rule), recoil under a ceiling (no low ceiling found near the DV1 start).
-- **Not ported:** fuel cans for Milla, Relic Maze, alternative palettes, idle voice variants. (Monitor lifting and
+- **Not ported:** fuel cans for Milla, alternative palettes, idle voice variants. (Monitor lifting and
   Aqua Tunnel: session 12.)
 
 ## Latest verified

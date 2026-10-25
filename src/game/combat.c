@@ -132,7 +132,7 @@ static void shield_creators(player_t *p) {
 
 /* ---- enemies */
 /* qualifier 20 ("enemies"; RE on_frame_N_init): every class that takes Lilac's hits by the shared rules */
-int enemy_type(int t) {
+static int enemy_type_list(int t) {
     return t == OT_GANSEKI || t == OT_TURRETUS || t == OT_DRAGONFLY || t == OT_FLOUNDER || t == OT_CACTEON || t == OT_SPOREPOD ||
            t == OT_WR_WEAK || t == OT_TD_BODY || t == OT_SNAKE_BODY || t == OT_SNAKE_HIT || t == OT_BBOULDER ||
            t == OT_FIREFLY || t == OT_SLIME ||   /* Aqua Tunnel Q20 (spec_at_enemies) */
@@ -141,6 +141,12 @@ int enemy_type(int t) {
            t == OT_POT || t == OT_BLUEPOT || t == OT_GEYE || t == OT_BGCORE ||          /* Relic Maze Q20 (spec_rm_enemies 0: pots take every shared hit) */
            t == OT_MT_HEAD || t == OT_MT_HIT1 || t == OT_MT_HIT2 ||                    /* RM5 q20: Mantalith head and arm weak points (spec_rm_mantalith 0) */
            rm_claw_enemy(t);                        /* RM3 Claw set: Shrine3, BossClawHitbox, CaravanEngine (rm_claw.c) */
+}
+/* per-type table of the list above (called for every slot several times a frame: the chain of compares cost ~1 ms in RM) */
+int enemy_type(int t) {
+    static uint8_t tab[MAX_OT]; static int ok;
+    if (!ok) { for (int k = 0; k < MAX_OT; k++) tab[k] = (uint8_t)(enemy_type_list(k) != 0); ok = 1; }
+    return (unsigned)t < MAX_OT ? tab[t] : enemy_type_list(t);
 }
 static int candidates[MAX_OBJS], ncand;
 

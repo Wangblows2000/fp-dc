@@ -349,18 +349,20 @@ static void slime_raft(player_t *p) {
  * events before the movement call; the port's frame boundary differs from that (see RE_NOTES session 12). */
 void aqua_gim_post(player_t *p) {
     if (!objects_have_from(OT_DIGSPOT)) return;   /* nothing of this family placed (Dragon Valley) */
-    path_step();                             /* 3270-3289 */
-    carry(p);                                /* 4061 */
-    /* session 13: every pass runs on every level and acts only on its own object types (the act tests are gone; the
-     * order is the one each act used) */
-    swings(p);                               /* 4357-4360 (AT2, AT3) */
-    collapse_frame(p);                       /* 4078-4083 */
+#define A_(t) objects_alive_type(t)
+    /* each pass scans every slot: skipped when none of its types is alive (RM places dig spots, so the block runs there) */
+    int q13 = A_(OT_CRUSH_V) || A_(OT_CRUSH_VIS) || A_(OT_AXEL1) || A_(OT_AXEL2) || A_(OT_AXEL1P) || A_(OT_AXEL2P);
+    if (q13) path_step();                    /* 3270-3289 */
+    if (q13) carry(p);                       /* 4061 */
+    if (A_(OT_SWPLAT) || A_(OT_SWCHAIN) || A_(OT_SWSPAWN1) || A_(OT_SWSPAWN1B) || A_(OT_SWSPAWN2)) swings(p);   /* 4357-4360 (AT2, AT3) */
+    if (A_(OT_COLLAPSE)) collapse_frame(p);  /* 4078-4083 */
     switches_update(p, 1);                   /* 4093-4100, 4362-4364 (src/game/switches.c, levels with switch_late) */
-    wallplates_pipes(p);                     /* 4365-4371, 4507-4510 */
-    beams(p);                                /* 4372 / 4373 */
-    crushers_h(p);                           /* 4511-4518 */
-    axels(p);                                /* 4084-4092 / 4519 / 4551-4552 */
-    slime_raft(p);                           /* 4553-4559 */
-    dip(p);                                  /* 3303-3307 */
+    if (A_(OT_WPLATE_AT) || A_(OT_PIPE) || A_(OT_PIPECOG)) wallplates_pipes(p);   /* 4365-4371, 4507-4510 */
+    if (A_(OT_BEAM)) beams(p);               /* 4372 / 4373 */
+    if (A_(OT_CRUSH_H) || A_(OT_CRUSH_H2)) crushers_h(p);   /* 4511-4518 */
+    if (A_(OT_AXEL1P) || A_(OT_AXEL2P) || A_(OT_AXMAKER1) || A_(OT_AXMAKER2) || A_(OT_AXEL1) || A_(OT_AXEL2)) axels(p);   /* 4084-4092 / 4519 / 4551-4552 */
+    if (A_(OT_SLIMEFLOOR) || A_(OT_SLIMEF_VIS) || A_(OT_RAFT)) slime_raft(p);   /* 4553-4559 */
+    if (q13) dip(p);                         /* 3303-3307 */
+#undef A_
 }
 int aqua_gim_obj(obj_t *o) { return (o->type >= OT_ABPLAT && o->type <= OT_EXPL01) || (o->type >= OT_ABPLAT2 && o->type <= OT_SWSPAWN1B); }

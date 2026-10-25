@@ -126,6 +126,21 @@ omits mirrored dir-16 animations.
   have no shade puff; AT uses the right name (`shade_at`). Left alone to keep DV banks byte-identical (TODO).
 
 
+## Session 14: Relic Maze
+- Levels: `for l in "25 rm1" "26 rm2" "27 rm3" "28 rm4" "29 rm5"; do set -- $l; tools/build_level.sh $1 $2 converted2; done`
+  (after an importer change rebuild all 13 levels; the RM flow commit f2ccf97 checked AT / DV output byte-identical).
+- Importer (tools/import_frame.py): ENS rows take the sprites of the handle the frame places (another stage's object
+  keeps its own images); `ENS_FRAMES` / `RMB_ENS_FRAMES` limit a row to some json frames (e.g. enemyrock_1194 25-26,
+  enemyrock_1290 27-28, switchwallplate_1149 25-27); `RMB_TYPES_ID` / `RMB_SUB` (acts 3-5 families, member index in
+  the lvobj anim), CLAW_* and MT_* tables merged with one line each; RM parallax tables (RM3 per-frame D, RM4 / RM5 y
+  wrap); over-full palette groups spill losslessly into a second group (session 14 prep).
+- Sounds: the RM stage group (levels.c SFX_RM) holds only ids outside the global set and is converted at 11025 Hz:
+  convert_sfx.sh `LOW` list (D-063). Rule for a new stage group: add the ids to IDS and, when sound RAM is tight
+  (check "sound RAM largest free block" in the Flycast log for each character), to LOW. Result voices load on demand
+  (voice_play_once). Carol / Milla voices: the only copies here are placeholders (converted from /home/claude/fprun at
+  11025 Hz); convert the real files when available.
+- tools/object_catalog.py reads every OT_ enum block (the per-module ranges) and skips the `_FIRST` / `_LAST` aliases.
+
 ## Session 13: generalised importers and the "Adding a level" checklist
 - **import_frame.py**
   - `ENGINE_TYPES_ID` / `engine_type(cls, handle)`: an engine type per Fusion object where two handles share a class
@@ -141,7 +156,7 @@ omits mirrored dir-16 animations.
   - Images whose semi-transparent pixels share one alpha are split into an opaque part and a translucent layer (kind
     3, drawn with that vertex alpha): ARGB1555 / PAL8 keep 1 bit of alpha, so this is how the menus' 135-alpha bar and
     the 87-alpha record panel survive (the same idea as the level importer's negative-id layers).
-  - Groups left unused by a split are not packed. Rebuild: `chsel 7`, `stsel 12`, `tasel 6 -x '^bg(1[0-9]|[3-9])layer'`.
+  - Groups left unused by a split are not packed. Rebuild: `chsel 7`, `stsel 12`, `tasel 6 -x '^bg(1[0-9]|[4-9])layer'`.
 - **tools/object_catalog.py** writes OBJECTS.md (every engine type, classes, registry flags, implementation, placement).
 
 ### Adding a level (every new act; the generalisation rule of RE_NOTES "Reusable objects and levels")

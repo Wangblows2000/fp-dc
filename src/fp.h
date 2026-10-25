@@ -714,6 +714,8 @@ const entry_t *level_entry(const char *from);
 const warp_t *level_warp_check(const player_t *p);
 void level_warp_do(player_t *p, const warp_t *w);
 int objects_have(int type), objects_have_from(int type);
+void objects_sense_snapshot(int on);
+int  objects_alive_type(int type);    /* objects.c: superset test, any slot of this type alive (pass gates) */   /* objects.c: packed sensor prefilter for the player phase (game.c) */
 void game_save_stage_end(uint32_t time_ms);
 /* object registry (src/game/objdefs.c): properties of each engine type shared by every level */
 enum { OD_SOLID = 1, OD_OBSTACLE = 2, OD_NOEDGE = 4, OD_BOXCOL = 8, OD_HANG = 16, OD_LAYER0 = 32, OD_LAYER1 = 64 };   /* OD_HANG: a hang handle (Q23); OD_LAYER0 / 1: loop-layer pieces solid while MV.P = 0 / 1 */

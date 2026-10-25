@@ -35,8 +35,19 @@
 - [x] Level table, class+handle types, shared switches, object registry, presence-driven passes (D-052 to D-056)
 - [x] Save v3 for every stage (records, files, progress, cards; v1/v2 conversion; test_saves)
 - [ ] Records x8..x12 and flag G31 of records.dat (meaning UNKNOWN, spec_records_saves)
-- [ ] Continue a file at the stage after its last stage (only AT / DV exist: Continue starts the route's first stage)
+- [x] Continue a file at the stage after its last stage (session 14: frame 8 routing, lives / shield / counter)
 - [ ] Unlock flags (records x2: all-cards unlocks, gallery) are not stored; the gallery is not ported
+
+## Relic Maze (session 14)
+- [x] RM1-RM5 for Lilac, Carol (on foot / bike) and Milla: routes, exits / entries / death targets, stage flags,
+      checkpoints, cards, music, enemies, gimmicks, Eye / Bone Golem, Claw sequence (Lilac / Carol), Milla's hand-car,
+      Kingdom Stone scene, Mantalith, boss results, saves (host tests; Flycast: every act loads and runs a demo window)
+- [ ] Original traces for the RE-only items (spec_rm_* "Traces to record"): golems, Claw, Mantalith, hand-car end (U5),
+      RM5 room warps, the Eye Golem camera release (D-066), shockwave ageing during the Bone Golem (RE_NOTES UNKNOWN)
+- [ ] Real Carol / Milla result voices (only placeholders available here)
+- [ ] RM5 Adventure dialog cutscene (D-064), HUD slide / timer pause in the RM5 scene, Mantalith sounds 147 / 214 / 215
+- [ ] Unlock and achievement records (7119, 6900, 7116 / 7117; D-065)
+- [ ] Fortune Night (frame 29) and later stages: RM5 currently ends at the front end
 
 ## Front end / presentation
 - [ ] GALLERY (Carol playable since session 10, Milla since session 11)
