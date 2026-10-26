@@ -704,6 +704,57 @@ SB_ENS = [('switchplatform_2100', 0, '0', 'sbswplat'), ('switchplatformmask_2099
          [('levelairship1_2105', 0, d, 'sbairship' + d) for d in ('0', '1', '2', '16')]
 ENS += SB_ENS
 ENS_FRAMES.update({e[0]: SB_FRAMES for e in SB_ENS})
+# ---- SB_BOSS: Sky Battalion bosses and minibosses (build/re/spec_sb_bosses.md; src/game/sb_boss*.c). Types 1150-1279 mirror src/fp.h
+# (OT_SB_*); the lvobj anim field carries the sub id (SBBOSS_SUB) | instance layer << 8. The classes are mapped only in SBBOSS_FRAMES
+# (json 36-39); MinibossUFOBeam_1769 (FN type 803) is the satellite's main beam in SB3 (remapped below). Every sprite row names its
+# creator class (rows exported only where that boss is placed).
+SBBOSS_FRAMES = {36, 37, 38, 39}
+SBBOSS_TYPES_ID = {('playerassist', 2205): 1150, ('playerassistcopilot', 2220): 1151, ('guicompass', 2246): 1152,
+    ('bosssatellite', 2286): 1160, ('bosssatellitetop', 2284): 1161, ('bosssatellitethrusters', 2285): 1162, ('bosssatellitearm', 2287): 1163,
+    ('minibossufobeam2', 2288): 1165,
+    ('bossgrappler', 2331): 1240, ('bossgrapplerhandleft', 2330): 1241, ('bossgrapplerhandright', 2329): 1242, ('bossgrapplerarmleft', 2327): 1243,
+    ('bossgrapplerarmright', 2328): 1244, ('bosscrystalspire', 2333): 1245, ('bosscrystalspikespawner1', 2325): 1246, ('bosscrystalspikespawner2', 2326): 1247,
+    ('crystalplatform', 2334): 1250,
+    ('bosschopper', 2216): 1200, ('bosschopperblade', 2217): 1201, ('bosschoppertail', 2215): 1202, ('bosschoppertailblade', 2218): 1203,
+    ('bosschoppertailblade2', 2214): 1204, ('bosschopperbars', 2212): 1205, ('bosschopperbars2', 2213): 1206,
+    ('bossspademask', 2248): 1220, ('bossspade', 2247): 1221, ('bossspadehitbox', 2250): 1222,
+    ('bosskujackerbase', 2118): 1170, ('bosskujackerhead', 2125): 1171, ('bosskujackerhead2', 2119): 1172, ('bosskujackerleg1', 2117): 1173,
+    ('bosskujackerleg2', 2116): 1174, ('bosskujackerpilot', 2124): 1175, ('bosskujackertail', 2115): 1176, ('bosskujackertailtarget', 2120): 1177,
+    ('bosskujackerwing1', 2122): 1178, ('bosskujackerwing2', 2123): 1179, ('bosstornado', 2131): 1180, ('effectschargebeam', 2130): 1182}
+SBBOSS_SUB = {}
+_SA, _AS, _GR, _CH, _SP = ('bosssatellite',), ('playerassist',), ('bossgrappler',), ('bosschopper',), ('bossspade',)
+_KJ = ('bosskujackerbase',)
+SBBOSS_ENS = [(c, a, d, nm, None, w) for c, a, d, nm, w in (
+    ('bosssatellite_2286', 0, '0', 'sbs_sat', _SA), ('bosssatellite_2286', 7, '0', 'sbs_sat7', _SA), ('bosssatellite_2286', 8, '0', 'sbs_sat8', _SA),
+    ('bosssatellite_2286', 10, '0', 'sbs_sat10', _SA), ('bosssatellitearm_2287', 0, '0', 'sbs_arm', _SA), ('bosssatellitearm_2287', 7, '0', 'sbs_arm7', _SA),
+    ('bosssatellitearm_2287', 8, '0', 'sbs_arm8', _SA), ('bosssatellitearm_2287', 10, '0', 'sbs_arm10', _SA), ('bosssatellitetop_2284', 0, '0', 'sbs_top', _SA),
+    ('bosssatellitethrusters_2285', 0, '0', 'sbs_thr', _SA), ('minibossufobeam2_2288', 0, '0', 'sbs_beam2', _SA), ('minibossufobeam_1769', 0, '0', 'sbs_beam', _SA),
+    ('playerassist_2205', 0, '0', 'sba_plane', _AS), ('playerassistcopilot_2220', 0, '0', 'sba_cop0', _AS), ('playerassistcopilot_2220', 0, '2', 'sba_cop2', _AS),
+    ('playerassistcopilot_2220', 0, '3', 'sba_cop3', _AS), ('playerassistcopilot_2220', 0, '4', 'sba_cop4', _AS), ('guicompass_2246', 0, '0', 'sba_compass', _AS),
+    ('bossgrappler_2331', 0, '0', 'sbg_gr', _GR), ('bossgrappler_2331', 0, '1', 'sbg_gr1', _GR), ('bossgrappler_2331', 0, '2', 'sbg_gr2', _GR),
+    ('bossgrappler_2331', 7, '0', 'sbg_gr7', _GR), ('bossgrappler_2331', 7, '1', 'sbg_gr71', _GR), ('bossgrappler_2331', 7, '2', 'sbg_gr72', _GR),
+    ('bossgrappler_2331', 8, '0', 'sbg_gr8', _GR), ('bossgrapplerhandleft_2330', 0, '0', 'sbg_hl', _GR), ('bossgrapplerhandleft_2330', 7, '0', 'sbg_hl7', _GR),
+    ('bossgrapplerhandright_2329', 0, '0', 'sbg_hr', _GR), ('bossgrapplerhandright_2329', 7, '0', 'sbg_hr7', _GR),
+    ('bossgrapplerarmleft_2327', 0, '0', 'sbg_al', _GR), ('bossgrapplerarmleft_2327', 7, '0', 'sbg_al7', _GR),
+    ('bossgrapplerarmright_2328', 0, '0', 'sbg_ar', _GR), ('bossgrapplerarmright_2328', 7, '0', 'sbg_ar7', _GR),
+    ('bosscrystalspire_2333', 0, '0', 'sbg_spire', _GR), ('bosscrystalspike_2324', 0, '0', 'sbg_spike', _GR), ('bosshomingspark_2332', 0, '24', 'sbg_spark', _GR),
+    ('bosscrystalspikespawner1_2325', 0, '0', 'sbg_spawn', _GR), ('crystalplatform_2334', 0, '0', 'sbg_plat', _GR), ('effectwarning_1528', 0, '0', 'sbg_warn', _GR))] + \
+    [(c, a, d, nm + ('' if d == '0' else '_l'), None, _CH) for c, a, nm in (
+    ('bosschopper_2216', 0, 'sbc_ch'), ('bosschopper_2216', 8, 'sbc_ch8'), ('bosschopperblade_2217', 0, 'sbc_blade'), ('bosschoppertail_2215', 0, 'sbc_tail'),
+    ('bosschoppertailblade_2218', 0, 'sbc_tb'), ('bosschoppertailblade2_2214', 0, 'sbc_tb2'), ('bosschopperbars_2212', 0, 'sbc_bars'),
+    ('bosschopperbars2_2213', 0, 'sbc_bars2'), ('bossmissile_2219', 0, 'sbc_mis')) for d in ('0', '16')] + \
+    [('bossmissile_2219', 8, '0', 'sbc_mis8', None, _CH)] + \
+    [('bossspade_2247', a, d, 'sbp_%d' % a + ('' if d == '0' else '_l'), None, _SP) for a in (0, 1, 2, 8, 15, 21, 24, 26, 29) for d in ('0', '16')] + \
+    [(c, a, '0', nm, None, _SP) for c, a, nm in (('bossspadecard_2249', 0, 'sbp_card'), ('bossspadecard_2249', 7, 'sbp_card7'),
+                                                 ('bossspadehitbox_2250', 0, 'sbp_hit'), ('thunderspark_410', 4, 'sbp_tspark'))] + \
+    [(c, a, d, nm, None, _KJ) for c, a, d, nm in [('bosskujackerbase_2118', 0, '0', 'sbk_base'), ('bosskujackerbase_2118', 7, '0', 'sbk_base7'), ('bosskujackerbase_2118', 11, '0', 'sbk_base11'), ('bosskujackerhead_2125', 0, '0', 'sbk_head'), ('bosskujackerhead_2125', 0, '16', 'sbk_head_l'), ('bosskujackerhead_2125', 0, '24', 'sbk_head_d'), ('bosskujackerhead_2125', 7, '0', 'sbk_head7'), ('bosskujackerhead_2125', 7, '16', 'sbk_head7_l'), ('bosskujackerhead_2125', 8, '0', 'sbk_head8'), ('bosskujackerhead_2125', 9, '0', 'sbk_head9'), ('bosskujackerhead_2125', 10, '0', 'sbk_head10'), ('bosskujackerhead_2125', 11, '24', 'sbk_head11'), ('bosskujackerhead2_2119', 0, '0', 'sbk_neck'), ('bosskujackerhead2_2119', 11, '0', 'sbk_neck11'), ('bosskujackerwing1_2122', 0, '0', 'sbk_w1'), ('bosskujackerwing1_2122', 11, '0', 'sbk_w1_11'), ('bosskujackerwing2_2123', 0, '0', 'sbk_w2'), ('bosskujackerwing2_2123', 11, '0', 'sbk_w2_11'), ('bosskujackerleg1_2117', 0, '0', 'sbk_leg1'), ('bosskujackerleg1_2117', 7, '0', 'sbk_leg1_7'), ('bosskujackerleg1_2117', 7, '16', 'sbk_leg1_7l'), ('bosskujackerleg1_2117', 11, '0', 'sbk_leg1_11'), ('bosskujackerleg2_2116', 0, '0', 'sbk_leg2'), ('bosskujackerleg2_2116', 7, '0', 'sbk_leg2_7'), ('bosskujackerleg2_2116', 7, '16', 'sbk_leg2_7l'), ('bosskujackerleg2_2116', 11, '0', 'sbk_leg2_11'), ('bosskujackertail_2115', 0, '0', 'sbk_tail'), ('bosskujackertail_2115', 10, '0', 'sbk_tail10'), ('bosskujackertail_2115', 11, '0', 'sbk_tail11'), ('bosskujackertailtarget_2120', 0, '0', 'sbk_tt'), ('bosskujackertailtarget_2120', 11, '0', 'sbk_tt11'), ('bosskujackerpilot_2124', 0, '0', 'sbk_pilot'), ('bosskujackerpilot_2124', 7, '0', 'sbk_pilot7'), ('bosskujackerpilot_2124', 7, '16', 'sbk_pilot7_l'), ('bosstornado_2131', 0, '0', 'sbk_tornado'), ('bossbolt_2129', 0, '0', 'sbk_bolt'), ('bosslightning_2121', 0, '0', 'sbk_light'), ('bosslightning2_2132', 0, '0', 'sbk_light2'), ('bosslightning2_2132', 0, '1', 'sbk_light2v'), ('effectschargebeam_2130', 0, '0', 'sbk_beam'), ('effectsgust_2127', 4, '0', 'sbk_gust'), ('effectsgust2_2128', 0, '0', 'sbk_gust2'), ('effectsdust01_369', 4, '0', 'sbk_dust'), ('effectsdust01_369', 4, '16', 'sbk_dust_l'), ('effectsexplosion02_368', 4, '0', 'sbk_exp2'), ('effectwarning_1528', 0, '0', 'sbk_warn')]]
+SBBOSS_ENS_WITH = {'effectsexplosion01_367': _SA + _GR + _CH + _SP, 'effectsexplosion06_435': _SA + _GR + _CH + _KJ, 'effectshade_436': _SA,
+                   'bosscrystalspike_2324': _GR, 'bosshomingspark_2332': _GR, 'bossmissile_2219': _CH, 'minibosstreddbomb_1060': _CH, 'monitoricon_363': _CH,
+                   'bossspadecard_2249': _SP, 'thunderspark_410': _SP, 'bossbolt_2129': _KJ, 'bosslightning_2121': _KJ, 'bosslightning2_2132': _KJ,
+                   'effectsgust_2127': _KJ, 'effectsgust2_2128': _KJ, 'effectsdust01_369': _KJ, 'effectsexplosion02_368': _KJ, 'effectwarning_1528': _KJ}
+ENGINE_TYPES_ID.update(SBBOSS_TYPES_ID); ENS += SBBOSS_ENS   # SB_BOSS
+ENS_FRAMES['effectwarning_1528'] = ENS_FRAMES.get('effectwarning_1528', set()) | {36, 39}   # SB_BOSS: the spire's marker (SB4), the Kujacker's dash warnings (SB1)
+for _k, _v in SBBOSS_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # SB_BOSS
 # ---- SB_ENEMIES: Sky Battalion enemies (session 19, build/re/spec_sb_enemies.md; src/game/sb_enemy.c), engine types 1024-1099
 # (fp.h OT_SB_*). Rows '' = direction 0, '_l' = 16. Runtime children are exported with their creators (ENS_WITH). Placed off-map
 # templates (the lasers) map to the runtime types and are dropped at spawn.
@@ -1074,7 +1125,11 @@ def main():
                 skipped[o['cls']] = skipped.get(o['cls'], 0) + 1; continue
             objs.append({'type': t, 'x': o['x'], 'y': o['y'], 'cls': key, 'layer': o['layer'] or 0})
 
+    for o in objs:   # SB_BOSS: SB3's MinibossUFOBeam_1769 is the satellite's main beam
+        if o['type'] == 803 and n == 38: o['type'] = 1164
+        if o['type'] == 478 and n == 39: o['type'] = 1188   # SB4's EffectWarning_1528: the spire's drop marker (10123 / col_30_38)
     objs = [o for o in objs if not (800 <= o['type'] < 860 and n not in FNBOSS_FRAMES)]   # FN_BOSS: its classes only in FN1-FN3 / FN5
+    objs = [o for o in objs if not (1150 <= o['type'] < 1280 and n not in SBBOSS_FRAMES)]   # SB_BOSS: its classes only in SB1-SB4
     for o in objs: o['fna'] = FNA_SUB.get(o['cls'], 0) | FNA_FLAGS.get((o['cls'], n), 0) | (o['layer'] << 8)   # FN_GIMA (fn_gima.c)
     objs += [{'type': 604, 'x': v, 'y': k, 'cls': 'fnparam', 'layer': 0, 'fna': 0} for k, v in FNA_PARAMS.get(n, ())]   # FN_GIMA parameters
     # ---- piece atlases
@@ -1563,6 +1618,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         if 560 <= o['type'] < 680: a = o.get('fna', 0)            # FN_GIMA: member index | act flags | layer << 8 (fn_gima.c)
         if 680 <= o['type'] < 800: a = FNB_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # FN_GIMB (fn_gimb.c): member index | instance layer << 8
         if 800 <= o['type'] < 860: a = FNBOSS_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # FN_BOSS (fn_boss.c): sub id | instance layer << 8
+        if 1150 <= o['type'] < 1280: a = SBBOSS_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # SB_BOSS (sb_boss.c): sub id | instance layer << 8
         if 1100 <= o['type'] < 1150: a = SBG_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # SB_GIM (sb_gim.c): member index | instance layer << 8
         d += struct.pack('<2H2i', o['type'], a, o['x'], o['y'])
     for t in table: d += t

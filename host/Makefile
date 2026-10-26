@@ -13,6 +13,7 @@ SRC += ../src/game/sb_gim.c     # Sky Battalion gimmicks
 SRC += ../src/game/fn_panther.c   # Fortune Night Panther (FN5 chase, FN6 boss)
 SRC += ../src/game/fn_assist.c    # FN6 partner assist and the plane (session 18)
 SRC += ../src/game/fn_boss.c   # Fortune Night bosses
+SRC += ../src/game/sb_boss.c ../src/game/sb_satellite.c ../src/game/sb_kujacker.c ../src/game/sb_chopper.c ../src/game/sb_spade.c ../src/game/sb_grappler.c   # Sky Battalion bosses (session 19)
 CFLAGS = -O2 -g -std=c99 -DFP_HOST_ENV -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Wno-unused-parameter -ffp-contract=off
 HDRS = $(wildcard ../src/*.h ../src/*/*.h ../src/*/*.inc)
 fpdc_host: $(SRC) $(HDRS)

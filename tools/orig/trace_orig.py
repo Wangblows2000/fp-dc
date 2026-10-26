@@ -92,6 +92,7 @@ def build_imgmap():
 
 SETC = {}
 SETV = {}
+SETM = {}
 SETB = {}   # "<f> SETB <hexoff> <byte>": write one byte at Frames + off (group switches, debug setups)
 FRAMES = [None]
 def find_frames(mv, others):
@@ -130,6 +131,10 @@ def load_script(path):
                 SETB.setdefault(int(t[0]), []).append((int(t[2], 16), int(t[3], 0)))
             elif len(t) == 5 and t[1] == 'SETXY':   # debug: "<f> SETXY <obj> <x> <y>" writes a found object's int x, y
                 SETV.setdefault(int(t[0]), []).append((t[2], 'XY', (int(t[3]), int(t[4]))))
+            elif len(t) == 5 and t[1] == 'SETM':   # "<f> SETM <0xmember> <0xalt offset> <int>": uint32 in the alterables of the
+                SETM.setdefault(int(t[0]), []).append((int(t[2], 16), int(t[3], 16), int(t[4], 0)))   # member's last-created instance
+            elif len(t) == 5 and t[1] == 'SETF':   # "<f> SETF <obj> <0xalt offset> <int>": a uint32 in the alterables (flags 0x120)
+                SETV.setdefault(int(t[0]), []).append((t[2], 'F' + t[3], int(t[4], 0)))
             elif len(t) == 5 and t[1] == 'SETV':
                 SETV.setdefault(int(t[0]), []).append((t[2], t[3], float(t[4])))
             elif len(t) == 4 and t[1] == 'TP':
@@ -303,6 +308,13 @@ class Tracer(gdb.Breakpoint):
             if FRAMES[0] is None: FRAMES[0] = find_frames(self.objs['mv'], self.objs.get('others', 0)); gdb.write('frames at %s\n' % (hex(FRAMES[0]) if FRAMES[0] else None))
             for off_, b_ in SETB[self.f]:
                 if FRAMES[0]: inf.write_memory(FRAMES[0] + off_, bytes([b_]))
+        if self.f in SETM:
+            if FRAMES[0] is None: FRAMES[0] = find_frames(self.objs['mv'], self.objs.get('others', 0))
+            for mo_, ao_, v_ in SETM[self.f]:
+                ob_ = struct.unpack('<Q', bytes(inf.read_memory(FRAMES[0] + mo_, 8)))[0]
+                al_ = struct.unpack('<Q', bytes(inf.read_memory(ob_ + 0x20, 8)))[0] if ob_ else 0
+                gdb.write('SETM +0x%x obj 0x%x alt 0x%x\n' % (mo_, ob_, al_))
+                if al_: inf.write_memory(al_ + ao_, struct.pack('<I', v_ & 0xffffffff))
         try:
             if os.environ.get('XLIST'):   # XLIST="name=0xoff,q:name=0xoff": x, y, flags of every instance of an ObjectList at
                 if FRAMES[0] is None: FRAMES[0] = find_frames(self.objs['mv'], self.objs.get('others', 0))   # Frames+off (q: = qualifier)
@@ -351,6 +363,9 @@ class Tracer(gdb.Breakpoint):
                         f_ = struct.unpack('<I', bytes(inf.read_memory(c20_ + 0x18, 4)))[0]
                         inf.write_memory(c20_ + 0x18, struct.pack('<I', f_ & 0xfffffcff))
                 elif key_.startswith('0x'): inf.write_memory(o_ + int(key_, 16), struct.pack('<d', val_))
+                elif key_.startswith('F0x'):
+                    alt_ = struct.unpack('<Q', bytes(inf.read_memory(o_ + 0x20, 8)))[0]
+                    inf.write_memory(alt_ + int(key_[1:], 16), struct.pack('<I', val_ & 0xffffffff))
                 else:
                     alt_ = struct.unpack('<Q', bytes(inf.read_memory(o_ + 0x20, 8)))[0]
                     inf.write_memory(alt_ + 0x50 + 8 * (ord(key_) - 65), struct.pack('<d', val_))
