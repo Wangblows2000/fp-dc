@@ -164,10 +164,12 @@ check('fn6_results_after_defeat', res is not None and d7 is not None and abs(res
 check('fn6_results_music_voice', any('m_clear' in l for l in R['music']) and 'voice teamlilac_madeit' in R['out'])
 check('fn6_results_screen', any(r['res'] for r in R['f']))
 
-# ---------------------------------------------------------------- the partner's assist (U-G3, reduced: INFERRED)
-R = run('5 SETV others E 99999\n', 1300, {'FP_LEVEL': 'fn6'})
+# ---------------------------------------------------------------- the partner's assist (fn_assist.c; tests/test_fn_assist.py)
+# Carol arrives at f1198 (I 1200); a projectile may knock her out on a pass (RV al_c0: the first pass, f1127 -> the strikes on
+# the next 600 cycle), so the run covers two cycles
+R = run('5 SETV others E 99999\n', 2100, {'FP_LEVEL': 'fn6'})
 st = [r['hA'] for r in R['fp'] if r['f'] > 1150]
-check('fn6_assist_strikes', st and min(st) < 60 and 137 in {s for _, s in R['sid']}, str(st and min(st)))   # I 1200 -> 10 strikes of 4
+check('fn6_assist_strikes', st and min(st) < 60 and 137 in {s for _, s in R['sid']}, str(st and min(st)))   # 10 strikes of 3 + |B| / 10
 
 # ---------------------------------------------------------------- an FN6 death goes back to FN5 (spec_fn_flow 5.4, death_g4)
 R = run('100 HP 0\n100 HURT 10\n', 400, {'FP_LEVEL': 'fn6'})
