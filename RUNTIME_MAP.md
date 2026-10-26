@@ -500,6 +500,22 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
   reusable types (camera limits 368-371, chairs 336, layer switches 283, ...); about 2 ms per frame on the host profile.
   A per-type object index would remove that cost (not done: passes also act on runtime-created objects).
 
+## Session 18: Fortune Night playtest fixes (port: tools/import_frame.py, fn_boss.c, fn_gimb.c, fn_gima.c)
+- **Importer:** FNA_TYPES_ID maps BreakableFloor1/2 **1996 / 1997** (FN5) to OT_FN_BFLOOR (sub 1 = Floor2); their ens rows use
+  the handle substitution (fnbfloor0 / 1 from the placed handle's images); piece rows: 1764 limited to json 30-32 / 35, 1995
+  (FN5) added for json 34, both named fnbfpiece. fn5 exports 886 objects (was 830). **The lead must rebuild converted2/fn5**
+  (`rm converted2/fn5; tools/build_level.sh 34 fn5 converted2`); other levels are unchanged.
+- **fn_boss.c ufo_a1:** flag 5 (F_ARM) is set while G = 0 and no longer cleared (7367 only).
+- **fn_gimb.c disco:** S.idle_t is the sash idle clock; dance when DiscoLight A >= 64, still (ground, B 0, M 0, no keys), not
+  on the bike and ((idle_t - 1) * 14 / 100) % 12 > 10.
+- **fn_gima.c arches:** 7225 `A >= 175`, 7226 `A <= 5`; the per-arch proximity test is the base's 256 x 128 box + 48 px (the
+  old 200-px radius around the base's top-left corner dropped the ring's right half: the base went non-solid under her).
+- Host tests: test_fn_bosses (ufo armour in every state, clangs without damage, floor cut and fly-off despite hits for the
+  three characters, reset after a death, dormant after the checkpoint restart; FN5 56 floors, landing on them, rows break,
+  entry -> defeat -> out of the arena -> FN6 for the three characters), test_fn_gimmicks_a (RV arch_lf catch and ride, RV
+  arch_l / arch_r no catch, every arch of FN1-FN3 for the three characters + the bike, jump-off, far-side catch),
+  test_fn_gimmicks_b (RV dance timing for the three, cancel / restart, walk-in, no dance on the bike).
+
 ## Session 18: pellet sounds, shield sprites, gallery voices (port: objects.c, player.c, shields.c, game.c, fe_gallery.inc)
 - **Sounds on a pellet (RE col_4_20 / col_7_20 / col_20_20, RV .snd):** shot 28; pellet death (hit or ground) 17 +
   explosion02 (objects.c explode2, was 80 = Lilac's hurt voice); a hit adds 2414's 25 + the character's hurt voice
@@ -514,6 +530,22 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
 - **Gallery sound cards:** gal/<name>.wav (11025 Hz sample, <= 65534 samples) or gal/<name>.adp (longer: streamed once on
   the music channel by music_play_once, idle when music_active() drops; Y.play_t = -1 marks it). Only sx_08b02 (card 70).
 
+## Session 18: the Panther fight fixes (port: src/game/fn_panther.c; tests/test_fn_panther.py s18_*)
+- **Hook order:** fn_panther_input (before player_update) now also runs the FN6 floor events that precede the movement:
+  8508 / 8509 (belt latch), 8512 (left edge), 8515-8517 (belt speed, virtual right press); floor_mode (after the movement)
+  keeps 8513 / 8514 / 8518 (belt) / 8519 / 8523 and 8550's walk-in X >= 400.
+- **rig():** mode-2 branch (FP.g_m2 in act 6): pose_m2 (8613), the 8614 angles, head y - 0.5 I, hip rumble, tail, unrotated
+  cannon / jaw, the wheel object placed at the hip (drawn by fn_panther_draw pass 0 at its own x / y / angle). body_moves:
+  8620 / 8621 follow the player. No rig after 8762 (fight group off).
+- **runtime_pass:** 8657 target each frame, plasma re-aim / spin / player burst / Milla target burst / 300-frame cap,
+  missile birth-frame turn, blast_step (Explosion06 pattern, x - 10), warnings by age (31 frames). debris_fx = OT_DEBRIS
+  (bosses.c motion). post_boss: 8759, 8769 wreck.
+- **Shared files:** fp.h + game.c: `fn_panther_hud_dy()` added to hud_dy (FN6 8764: -80 from the closing pose); game.c
+  host-only `FP_DIFF` (global 12 for tests).
+- **Host:** FP_DBG_FP=3 prints `fpo frame slot born type x y st tm hidden` for every runtime panther object; the `fpp` row
+  (FP_DBG_FP=2) ends with `w:x,y,shown,scale,angle` (the wheel).
+- **Per frame (SH4):** unchanged structure (one pass over the object list for runtime objects); a missile blast now adds up
+  to 45 short Explosion06 effects (as the original; at most ~4 blasts overlap).
 ## Session 18: the partner assist and the plane (port: src/game/fn_assist.c; tests/test_fn_assist.py)
 - **Hooks (fn_panther.c, one line each):** fn_assist_spawn() at the end of the act-6 spawn; fn_assist_plane_mode(p) in place of
   the former plane_mode; fn_assist_frame(p, &ctx) after runtime_pass while 0x227c8 is on (ctx: hitbox, fight / mode-2 flags,
@@ -532,4 +564,4 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
   256x256: about +470 KB VRAM). Sounds: SFX_FN6 += 241 (half rate, 2 KB) and 288 (Lilac's jump, 22 kHz, trimmed with the FN
   TRIM rule: 27 -> 12 KB): the FN6 stage group 176 -> 190 KB.
 - **Host:** FP_DBG_FP=1 adds `fpa` (plane / Milla / helper state per frame), `fpas` (drop, arrive, jump, strike, land,
-  knocked) and `fpcast` (the closing scene's D and cast x / sprite).
+  knocked `by <object type>`, -1 the laser) and `fpcast` (the closing scene's D and cast x / sprite).

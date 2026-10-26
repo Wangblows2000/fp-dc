@@ -193,7 +193,10 @@ static void beam_cut(player_t *p, int need_a, double X1, int x2_mvb) {          
 static void ufo_a1(player_t *p) {
     obj_t *u = ufo(), *b = beam();
     if (!u) return;
-    if (U.G == 0) { u->fl |= F_ARM; u->c = 5; } else u->fl &= ~F_ARM;       /* 7367: armoured before the encounter (cleared after: spec A.5, INFERRED) */
+    if (U.G == 0) { u->fl |= F_ARM; u->c = 5; }                                 /* 7367: armoured, C = 5 while G = 0. No event clears its flag 5
+        * (RE session 18: of the events selecting the UFO only 7367 writes flag 5; flag 5 is cleared only by 7441 / 7815 for other bosses), so
+        * the armour stays for the whole encounter: hits clang (C = 5 pauses L and the beam, 7387 / 7395) but never fly it away before the
+        * beam has cut the floor (session-17 build cleared it at G 1: 200 HP of hits made it leave early, the playtest report) */
     if (!U.act) {                                                               /* 7368: Player_326 on a CameraTriggerBoss */
         if (U.G != 0) return;
         int hit = 0;

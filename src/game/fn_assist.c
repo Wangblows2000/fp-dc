@@ -46,7 +46,7 @@ static struct {
     /* the closing scene's cast (8765-8785): Lilac, Carol, Milla, Torque */
     struct { float x, y; animator_t an; int k, speed; } cast[4];
     int cast_on, cast_turned, cast_win;
-    int dbg;
+    int dbg, knock_by;
 } AS;
 
 static int ch_mv_a(void) { return G.character; }   /* MV.A: 0 Lilac, 2 Carol, 3 Carol on the bike, 4 Milla (1 Spade, 5 Torque: not playable) */
@@ -202,12 +202,12 @@ static int knocked(const fn_assist_ctx_t *c) {                                  
         const obj_t *o = &G.o[i];
         if (!o->alive || (o->type != OT_FNP_PLASMA && o->type != OT_FNP_MISSILE && o->type != OT_FNP_RBULLET) || !o->an.b) continue;
         if (fabsf(o->x - AS.off->x) > 160 || fabsf(o->y - AS.off->y) > 160) continue;
-        if (obj_rect_hit(o, x0, y0, x1, y1)) return 1;
+        if (obj_rect_hit(o, x0, y0, x1, y1)) { AS.knock_by = o->type; return 1; }
     }
     if (c->laser_on) {                                                           /* the 800 x 24 laser segment (as fn_panther.c) */
         double ux = c_cos(c->lang), uy = -c_sin(c->lang), dx = AS.off->x - c->lx, dy = AS.off->y - 16 - c->ly;
         double along = dx * ux + dy * uy, across = fabs(-dx * uy + dy * ux);
-        if (along > 0 && along < 800 && across < 12 + 16) return 1;
+        if (along > 0 && along < 800 && across < 12 + 16) { AS.knock_by = -1; return 1; }
     }
     return 0;
 }
@@ -276,7 +276,7 @@ static void offense_frame(const fn_assist_ctx_t *c) {
         if (O->F == 0 && knocked(c)) {                                           /* 8684 */
             O->F = 2; snd_play_orig(25, 220, 128); O->D = -4; own_set(&AS.a_off, S_AOFF8B); O->C = -4;
 #ifdef FP_HOST_ENV
-            if (AS.dbg) printf("fpas %d knocked %d\n", G.frame, (int)o->x);
+            if (AS.dbg) printf("fpas %d knocked %d by %d\n", G.frame, (int)o->x, AS.knock_by);
 #endif
         }
         if (O->F == 2) { O->D += 0.4; O->B = fmin(O->B, O->G); }                 /* 8685 */
@@ -313,7 +313,7 @@ static void offense_frame(const fn_assist_ctx_t *c) {
         if (O->F == 0 && knocked(c)) {                                           /* 8698 */
             O->F = 2; snd_play_orig(25, 220, 128); O->D = -4; own_set(&AS.a_off, S_AOFF8); own_set(&AS.a_proj, S_APROJ8); O->C = -4;
 #ifdef FP_HOST_ENV
-            if (AS.dbg) printf("fpas %d knocked %d\n", G.frame, (int)o->x);
+            if (AS.dbg) printf("fpas %d knocked %d by %d\n", G.frame, (int)o->x, AS.knock_by);
 #endif
         }
         if (O->F == 2) { O->D += 0.4; O->B = fmin(O->B, O->G); }                 /* 8699 */

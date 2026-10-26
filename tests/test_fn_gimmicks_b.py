@@ -155,6 +155,26 @@ for ch, nm in ((0, 'lilac'), (2, 'carol'), (4, 'milla')):
     check('disco_dance_%s' % nm, any(r['mm'] == 50 for r in rows) and max(o['a0'] for o in dl) == 64)
 rows, _, _ = run('fn5', 0, '55 TP 2950 250;200 230 R', 240)
 check('disco_dance_exit', at(rows, 199)['mm'] == 50 and at(rows, 230)['mm'] != 50)
+# session 18 (RE 8306-8308 + RV disco_c0 / c2 / c4, set_frame 33, TP (2950, 250) idle): the dance waits for frame 11 of Lilac's
+# skin idle (12 frames at speed 14), the same skin for every character: M 50 exactly 79 frames after the landing for Lilac, Carol
+# and Milla (RV f19 -> f98), the light at 64 first (RV 29 frames before); the pose is skin anim 40 direction 8; moving or
+# jumping ends it, standing still again restarts it; Carol on the bike never dances (no MV.A = 3 event); a walk-in also dances
+for ch, nm in ((0, 'lilac'), (2, 'carol'), (4, 'milla')):
+    rows, obs, _ = run('fn5', ch, '5 TP 2950 250', 300, '%d:-1' % DISCOLIGHT)
+    land = [r['f'] for r in rows if r['f'] > 6 and r['gnd']][0]
+    m50 = [r['f'] for r in rows if r['mm'] == 50]
+    a64 = [o['f'] for o in of(obs, DISCOLIGHT) if o['a0'] == 64]
+    check('disco_dance_rv_timing_%s' % nm, m50 and m50[0] - land == 79 and a64 and a64[0] < m50[0] and all(r['mm'] == 50 for r in rows if r['f'] >= m50[0]),
+          'land %s M50 %s A64 %s' % (land, m50[:1], a64[:1]))
+    rows, _, _ = run('fn5', ch, '5 TP 2950 250;150 156 R;300 302 J', 420)
+    m50 = [r['f'] for r in rows if r['mm'] == 50]
+    again = [f for f in m50 if 157 < f < 300]
+    check('disco_dance_cancel_and_restart_%s' % nm, m50 and m50[0] < 150 and at(rows, 157)['mm'] != 50 and again and at(rows, 299)['mm'] == 50 and at(rows, 303)['mm'] != 50,
+          'M50 %s, again %s' % (m50[:1], again[:1]))
+    rows, _, _ = run('fn5', ch, '5 TP 2760 250;60 100 R', 300)
+    check('disco_dance_after_walk_in_%s' % nm, any(r['mm'] == 50 for r in rows if r['f'] > 100))
+rows, _, _ = run('fn5', 3, '5 TP 2950 250', 300)
+check('disco_no_dance_on_the_bike', all(r['mm'] != 50 for r in rows) and rows[-1]['bike'] == 1)
 rows, obs, _ = run('fn4', 0, '55 TP 3297 900', 300, '%d:-1' % DISCOLIGHT)
 check('disco_none_in_a4', all(r['mm'] != 50 for r in rows) and all(o['a0'] == 0 for o in of(obs, DISCOLIGHT)))
 

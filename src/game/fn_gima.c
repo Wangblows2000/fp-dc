@@ -218,13 +218,19 @@ static void arches(player_t *p) {
         a->ang = (float)*A; *A = clampd(*A, 0, 180);                           /* 7224 */
         if (w) { double x, y; act_pt(a, &x, &y); w->x = (float)floor(x); w->y = (float)floor(y); w->ang = (float)fmod(3 * *A, 360); }
         if (!b) continue;
-        int close = !dead(p) && near_p(p, b, 200);
+        float bx0, by0, bx1, by1; img_box(b, &bx0, &by0, &bx1, &by1);           /* the base's 256 x 128 box (hot spot 0, 0) */
+        int close = !dead(p) && (float)p->x > bx0 - 48 && (float)p->x < bx1 + 48 && (float)MY(p) > by0 - 48 && (float)MY(p) < by1 + 48;   /* (a 200-px
+             * radius around the base's top-left corner left the ring's right half out: the base went non-solid under her, 7231) */
         if (close) {
             double Bp = pB(p);
             int rb_a = sens_hit(SENS_RIGHTBIG, a), lb_a = sens_hit(SENS_LEFTBIG, a), bb_a = sens_hit(SENS_BOTTOMBIG, a);
             int side = 0;
-            if (rb_a && sens_hit(SENS_RIGHTBIG, b) && !lb_a && !bb_a && Bp >= 0 && *A < 175) side = 1;          /* 7225 */
-            else if (lb_a && sens_hit(SENS_LEFTBIG, b) && !rb_a && !bb_a && Bp <= 0 && *A > 5) side = -1;  /* 7226 */
+            /* 7225 / 7226 keep the arches with A >= 175 / A <= 5 (RE session 18: the selection loops remove A < 175 / A > 5; the
+             * session-17 port read them the other way round, so the arch resting at 180 / 0 never caught the player). RV arch_lf:
+             * sprung up at the tower's left side holding right, Lilac is caught at the ring's left foot (A 180, B 4.8, N ~86) and
+             * runs round the upper half while the arch follows her (A 178 -> 103 in 38 frames). */
+            if (rb_a && sens_hit(SENS_RIGHTBIG, b) && !lb_a && !bb_a && Bp >= 0 && *A >= 175) side = 1;         /* 7225 */
+            else if (lb_a && sens_hit(SENS_LEFTBIG, b) && !rb_a && !bb_a && Bp <= 0 && *A <= 5) side = -1; /* 7226 */
             if (side) {
                 p->N = p->O = side > 0 ? 90 : 270; b->fl &= ~1;
                 p->ground = 1; p->vy = 0; p->gsp = 5.0 * side; p->vx = 0;

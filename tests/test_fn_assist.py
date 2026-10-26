@@ -86,12 +86,23 @@ check('lilac_carol_arrives_f1198', arr and arr[0][2][0] == 'carol' and near(arr[
 check('lilac_carol_voice_once', len(sids(R, 126)) == 1 and near(sids(R, 126)[0], 1196, 6), str(sids(R, 126)))    # 8670
 check('lilac_carol_600_cycle', len(arr) >= 2 and arr[1][0] - arr[0][0] == 598, str([a[0] for a in arr]))         # RV 1077 -> 1675
 jp = evs(R, 'jump')
+# a projectile knocks the helper back (8684: RV al_c0 f1127-1149, Carol's first pass: F 2, D -3.6 -> 5.2 in 22 frames, top y 248,
+# then she drives out and comes back on the next 600 cycle; the jump is on a pass without a knock)
+kn = evs(R, 'knocked')
+if kn:
+    k0 = kn[0][0]; ks = [r for r in fa if r['f'] >= k0 and r['F'] == 2]; ks = [r for r in ks if r['f'] - k0 < 40]
+    back = first(fa, lambda r: r['f'] > k0 and r['F'] == 0)
+    check('lilac_carol_knocked_rv', ks and abs(ks[0]['D'] + 3.6) < 0.01 and back and back['f'] - k0 == 22 and abs(back['D'] - 5.2) < 0.01
+          and min(r['oy'] for r in ks) == 248, str(ks[:1] and back and (ks[0]['D'], back['f'] - k0, back['D'], min(r['oy'] for r in ks))))
 if jp:
     j0 = jp[0][0]
-    drive = [r for r in fa if arr[0][0] < r['f'] <= j0]
+    a0 = max(a[0] for a in arr if a[0] <= j0)                                                        # the pass that jumps
+    drive = [r for r in fa if a0 < r['f'] <= j0]
+    g0 = first(drive, lambda r: r['oy'] == 267)                                                     # (8672 B = Y(o): a knock just
+    drive = [r for r in drive if g0 and r['f'] >= g0['f']]                                          #  before the arrival falls back, 8677)
     check('lilac_carol_drives_on_the_ground', drive and all(r['oy'] == 267 and r['odir'] == 1 for r in drive),
           str(sorted({r['oy'] for r in drive})))
-    xs = [r['ox'] for r in drive if r['f'] > arr[0][0] + 2]
+    xs = [r['ox'] for r in drive if r['f'] > g0['f'] + 2]
     check('lilac_carol_drives_right_5', len(xs) > 5 and xs[3] - xs[2] == 5, str(xs[:5]))
     air = [r for r in fa if j0 <= r['f'] < j0 + 40]
     check('lilac_carol_jumps_d_minus_8', air and min(r['oy'] for r in air) < 200 and abs(air[0]['D'] - (-7.7)) < 0.01, str(air[:1] and air[0]['D']))   # 8678 -8, 8679 + 0.3 (RV -7.7)
@@ -128,7 +139,8 @@ jp = evs(R, 'jump')
 check('carol_lilac_jump_sound_288', jp and any(abs(f - jp[0][0]) <= 2 for f in sids(R, 288)), str((jp[:1], sids(R, 288)[:2])))
 if jp:
     j0 = jp[0][0]
-    pre = [r for r in R['fpa'] if arr[0][0] < r['f'] <= j0]
+    a0 = max(a[0] for a in arr if a[0] <= j0)                                                        # the pass that jumps (knocks: 8698)
+    pre = [r for r in R['fpa'] if a0 < r['f'] <= j0]
     check('carol_lilac_runs_on_the_ground', pre and all(r['oy'] == 267 and r['odir'] == 0 for r in pre))
     ld = first(evs(R, 'land'), lambda e: e[0] > j0)
     check('carol_lilac_floats_100_frames', ld and 95 <= ld[0] - j0 <= 102, str(ld and ld[0] - j0))   # D -5, + 0.1 (RV 2160 -> 2261)
