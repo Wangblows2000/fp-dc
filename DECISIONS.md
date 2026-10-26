@@ -346,3 +346,27 @@ loaded no parallax).
 **D-087 Trailing silence of FN stage sounds is cut at -48 dB** (convert_sfx.sh TRIM): about 30 % less sound RAM with no
 audible change; looped ids are excluded so loop lengths stay the original's. RM's shared ids (70, 75, 99, 134, 219)
 shrink too.
+
+## Session 18 (Fortune Night playtest fixes)
+
+**D-088 Same-result performance work only.** The FN slowdown came from CPU passes written for other stages (AT / RM
+families running on FN's RM-range reusable objects), per-object full scans and animation-name searches. Each change keeps
+the result identical (checked by every suite and the trace comparers); rendering and assets were not the bottleneck
+(draw 2-4 ms, VRAM ≥ 625 KB free), so no sprite trimming or palette changes were made.
+
+**D-089 Shields persist across acts and stay visible** (RE: the shield value is global; every stage frame places the
+shield objects). Levels without a shield monitor load a separate 256 KB `<dir>_shl` bank only when a shield is carried
+in or appears.
+
+**D-090 Pellet destruction plays sound 17** (RE col_4_20 / col_7_20 / col_20_20); id 80 (Lilac's hurt voice) was a
+port error. The generic hurt no longer plays 17 (RE 2414).
+
+**D-091 FN1 UFO stays armoured in every state** (RE: 7367 only sets it; RV ufo_hit): hits clang and pause the beam;
+the floor always breaks.
+
+**D-092 FN6 assist / plane in src/game/fn_assist.c** (RE 8668-8721, 8762-8785, RV traces al_*): Lilac gets Carol on the
+bike (drive, jump, 10 strikes), Carol gets Lilac (float), Milla gets both alternately and stands on the plane; the
+plane brings the petal box for Lilac / Carol and leaves at the white flash; the closing cast walks in before the results.
+
+**D-093 Gallery sound cards use the genuine clips from the user's PC install** (read-only copy); the 33 s monologue
+(card 70) streams on the music channel like the original's channel 31.

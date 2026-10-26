@@ -61,10 +61,28 @@
 - [ ] Real hardware: FN3 / FN5 / FN6 perf and memory (emulator: 603 vblanks per 600 frames)
 - [ ] FN3 with Carol / Milla has the least VRAM left of any level (see BUILD_AND_TEST_LOG "Session 17")
 
+## Fortune Night playtest fixes (session 18)
+- [x] FN6: projectiles, standing (mode 2) pose, stray debris, left edge, HUD slide, partner assists (Carol bike / Lilac
+      float / both for Milla), plane petal delivery, closing cast + results; FN5 arena floor; FN1 UFO armour; FN5 dance timing;
+      rolling arches; pellet sound; shield sprites across acts; gallery voices; FN2 / FN4 ceiling springs; CPU cuts
+- [ ] Flycast / hardware: FN1 UFO clang + floor break, rolling arches (FN1 x ~1750 spring), FN5 samurai arena exit,
+      FN6 full fight to the results per character, pellet hit / miss voices, DV3 -> DV4 shield carry
+- [ ] Player core: the hurt pose ends on landing (player.c); the original keeps 4 grounded hurt frames at B -1.7 (RV t3,
+      Milla's FN6 knockback 34 vs 42 px)
+- [ ] FN3 Serpentine (fn_boss.c): 7911 (dash) runs before the state machine; the original runs 7828 first (Hard missile
+      range 300-400 vs > 300 px); rapid bullets' "C = E mod 2 + 2" in FN3's 7877 is probably C = E + 2 as in FN6
+- [ ] FN5 samurai digs slower than the original (attack selector U-E1 still INFERRED)
+- [ ] FN6 leftovers: closing-pose sprites / Serpentine on the floor / dust (8765-8771), defeat during mode 2, Carol's
+      exhaust dust (8675), achievement 21's rider branch, petals' treadmill ride timing, missile layer change (8660)
+- [ ] FN3 HUD slides (7821 / 7868) and EffectWarning2 (7889-7891); Serpentine escape timer stop / Adventure dialog / beam
+      rotation (documented, not ported)
+- [ ] Yellow down springs: runtime check (host scripts cannot launch the player upward into them)
+- [ ] Real Carol / Milla result voices: milla_yay / gasp / thatwasfun exist in the PC install (not integrated yet)
+
 ## Session 16
 - [x] Seams (offsets), RM3 truck / diamond, thrown petals' layer, basement vignette, VMU portraits, achievements
 - [ ] Verify the seam fix on real hardware
-- [ ] Earth-shield magnet report: waiting for a reproduction (D-078)
+- [x] Earth-shield magnet report: the shield (any type) kept working but was invisible in acts without a shield monitor (session 18, D-089)
 - [ ] Achievements needing unported stages (spec_achievements out-of-scope list); 18 Switch Skipper needs a trace
 
 ## Session 15
@@ -73,7 +91,7 @@
 - [ ] Original trace of the RM1 → RM2 walk-in (tracer must follow a frame change) to replace D-070
 - [ ] Other set_visible(0) classes: audit when they are ported (list in RE_NOTES "Session 15")
 - [ ] RM2 basement darkness: drawn as an opaque grey box with a black surround; shader 20 (U4) unknown
-- [ ] Real voices for 15 gallery sound cards (placeholders from /home/claude/fprun)
+- [x] Real voices for 15 gallery sound cards (session 18: genuine clips from the PC install, D-093)
 
 ## Front end / presentation
 - [x] GALLERY (session 15: fe_gallery.inc, test_gallery.py)

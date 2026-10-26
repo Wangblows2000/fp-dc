@@ -128,6 +128,30 @@ spec_rm_golems, spec_rm_claw, spec_rm_mantalith, rm_inventory.
   Mantalith sounds 147 / 214 / 215 not ported; INFERRED items in RE_NOTES. An agent published a private working page
   (spec_rm_enemies) during research; it is still in the user's artifacts (delete only if the user asks).
 
+## Session 18 (2026-10-26): Fortune Night playtest fixes, performance
+Details: RE_NOTES / RUNTIME_MAP "Session 18: ..." (five sections), DECISIONS D-088 to D-093, BUILD_AND_TEST_LOG "Session 18",
+ASSET_PIPELINE "Session 18". Original traces: build/orig_traces/fn_s18/ and fn6_s18/ (not committed).
+- **FN6 Panther (fn_panther.c):** plasma re-aims every frame for everyone (RE + RV t2), bursts on the player / Milla's
+  target; rapid shells fan to +-496 px (C = E + 2 from the disassembly); warnings live 31 frames; missiles turn on their
+  first frame and their blasts ride the treadmill; the standing (mode 2) pose follows 8613-8621 (RV t4: head y 75, wheel on
+  the floor; was the walking rig rotated and too high); jaw / post-boss debris fall and are removed; the post-boss panther
+  backs off and leaves a wreck; left-edge clamp 8512 (was inverted) and 8515-8517 run before the player moves (RV t1).
+- **FN6 assists and plane (new src/game/fn_assist.c, RE 8668-8721 / 8762-8785, RV al_*):** Lilac gets Carol driving in on
+  her bike and jumping at the hitbox (10 strikes); Carol gets Lilac (jump, float, shields); Milla gets both in turn and
+  stands on the plane; the plane brings the petal box (6 petals) for Lilac / Carol and leaves at the white flash; the
+  closing cast (Lilac, Carol, Torque, Milla) walks in before the results.
+- **FN5:** the samurai arena floor (BreakableFloor1/2 1996 / 1997, 56 pieces over the spikes) was never imported; the
+  disco dance waits for Lilac's idle-clock frame (RV: landing + 79 frames; worked on the host, confirmed in Flycast).
+- **FN1:** the UFO stays armoured in every state (RE 7367 / RV ufo_hit), so hits can no longer drive it off before the
+  floor breaks. **FN1-FN3:** rolling arches catch at A >= 175 / A <= 5 (comparisons were reversed) and the nearness box
+  follows the ring (RV arch_lf).
+- **Shared:** pellets play 17 when destroyed (80 = Lilac's hurt voice was wrong; RE col_4/7/20_20); shields stay visible
+  across acts via a `<dir>_shl` bank (all shield types); gallery sound cards play the genuine voice clips (card 70
+  streams); FN2 / FN4 ceiling springs (YellowSpringDown, RE 3008) imported.
+- **Performance (same results):** AT / RM family passes skipped when their objects are absent, candidate lists for bomb
+  arming / crystal absorption, x-bucketed sensor snapshot, cached animation lookups, dragon-mask sort. Flycast update time:
+  FN1 13.6 -> 7.5 ms, FN3 Milla 14.3 -> 10.1 ms, FN4 Milla 11.9 -> 8.6 ms; every FN act at 602-603 vblanks / 600 frames.
+
 ## Session 17 (2026-10-25/26): Fortune Night (FN1-FN6) for Lilac, Carol and Milla
 Details: RE_NOTES / RUNTIME_MAP "Session 17: ..." (flow, enemies, gimmicks A / B, bosses, the Panther), DECISIONS D-079
 to D-087, BUILD_AND_TEST_LOG "Session 17", ASSET_PIPELINE "Session 17". Specs (not committed): build/re/spec_fn_flow.md,
@@ -228,21 +252,19 @@ D-072, BUILD_AND_TEST_LOG "Session 15". Spec: build/re/fe/spec_gallery.md (not c
   Aqua Tunnel: session 12.)
 
 ## Latest verified
-- host-test (session 17, final code): gameplay, front end, Carol, Milla, Aqua, levels, saves, rm_gimmicks_b, rm_claw,
-  rm_mantalith, gallery, achievements, fn_enemies, fn_gimmicks_a, fn_gimmicks_b, fn_bosses, fn_panther, fn_flow: all 0
-  failures. Trace comparers unchanged (cmp_all 76/76 strict 11311/11377, cmp_carol 43/53, cmp_milla 37/43 = the
-  session-16 code on the same data, cmp_at 21/35).
-- emulator (Flycast, session 17): FN1-FN6 with Lilac / Carol / Milla per BUILD_AND_TEST_LOG "Session 17" (perf, VRAM,
-  sound RAM, no AICA errors). Original-game screenshots of FN1 / FN2 / FN4 starts match the host renders.
-  **Nothing measured on real hardware.**
+- host-test (session 18, final code, all 19 levels rebuilt): gameplay, front end, Carol, Milla, Aqua, levels, saves,
+  rm_gimmicks_b, rm_claw, rm_mantalith, gallery, achievements, fn_enemies, fn_gimmicks_a, fn_gimmicks_b, fn_bosses,
+  fn_panther, fn_assist, fn_flow: all 0 failures. Trace comparers unchanged (cmp_all 76/76 strict 11311/11377, cmp_carol
+  43/53, cmp_milla 37/43, cmp_at 21/35).
+- emulator (Flycast, session 18): FN6 per character (plane, Carol's bike, Lilac's float, Milla on the plane, missile
+  blasts as in the original's screenshots), FN5 disco dance for Lilac / Carol / Milla, perf / VRAM / sound RAM per
+  BUILD_AND_TEST_LOG "Session 18". **Nothing measured on real hardware.**
 
 ## Next actions
-1. Real hardware: FN3 (Carol / Milla: lowest VRAM; Milla: slimmest frame time) and FN6; read `perf:` / `prof` and the
-   `stage sounds ..., sound RAM largest free block` line.
-2. Original traces for the FN INFERRED items (TODO "Fortune Night"): bulldozer facing T-B1, samurai selector U-E1, Panther
-   U-G2 / U-G3.
-3. The session 14 RM hardware check and the RM / AT traces still listed in TODO.
-4. Next stage after Fortune Night (Sky Battalion, json frame 36+) via ASSET_PIPELINE "Adding a level".
+1. Real hardware: FN3 / FN5 (Carol: lowest VRAM, 625 / 953 KB) and FN6 (missile blast overdraw); read `perf:` / `prof`.
+2. Play the FN6 fight to the results per character in Flycast (the plane's second visit, the closing cast).
+3. TODO "Fortune Night playtest fixes (session 18)" open items (player hurt landing, FN3 Serpentine order, samurai rate).
+4. Next stage (Sky Battalion, json frame 36+) via ASSET_PIPELINE "Adding a level".
 
 ## Carol: verified vs approximated
 - **Matched to original traces (RV, cmp_carol, 53 traces):** on-foot movement, pounce chains, roll and roll jump, crouch

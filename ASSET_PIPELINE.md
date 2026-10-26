@@ -253,3 +253,12 @@ tools/audio/convert_gallery.sh extracted/linux/audio "$G/Data/voices" /home/clau
   ```
   A clip over 65534 samples at 11025 Hz becomes `gal/<name>.adp` (stereo ADPCM 32 kHz, sealed; streamed) instead of a
   `.wav`: sx_08b02 (33 s, 1.03 MB). `make cdi` copies `gal/*.adp` too. 19 clips: 18 .wav (5-25 KB, <= 56 KB) + 1 .adp.
+
+## Session 18: Fortune Night data (lead)
+- After an importer change rebuild every level (19): `for l in "17 at1" "18 at2" "19 at3" "20 at4" "21 dv1" "22 dv2" "23 dv3"
+  "24 dv4" "25 rm1" "26 rm2" "27 rm3" "28 rm4" "29 rm5" "30 fn1" "31 fn2" "32 fn3" "33 fn4" "34 fn5" "35 fn6"; do set -- $l;
+  tools/build_level.sh $1 $2 converted2; done` (session 18 rebuilt all of them: shield banks, FN5 floors 1996 / 1997 + debris
+  1995, yellow down springs, FN6 assist / cast rows).
+- New sounds: 241 (half rate, trimmed) and 288 (Lilac's group, 22050 Hz, trimmed 27 -> 12 KB) via convert_sfx.sh.
+- Measured (Flycast, after load): VRAM free FN1 Lilac 2177, FN2 Carol 1112, FN3 Carol 625, FN3 Milla 793, FN4 Milla 1825,
+  FN5 Carol 953, FN6 Lilac / Carol / Milla 3167 / 2639 / 2807 KB; sound RAM after the stage group 137 (FN3 Milla) to 319 KB.
