@@ -584,3 +584,39 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
 - **OT_SPRING_D = 29** (YellowSpringDown_416, FN2 / FN4 ceilings, RE event 3008 = event 3000 with G = 11): dispatched to
   aqua_spring (box contact from below while G <= 0, launch G 11 + gravity, sound 5). Types 20-27 are the parallax piece
   range and must not be reused.
+
+## Session 19: DV3 spike ball, RM Milla background (port: src/game/gimmicks.c, tools/import_frame.py, assets.c, game.c)
+- **Bamboo (gimmicks.c):** dv3_switch_spawn -> bamboo_link: per-type index lists of OT_BAM1..4 (creation order) and the
+  5319 start phases (pivot tm = fmod(10 (N - 1 - j), 50)). bamboo_update per frame: joints, poles (position, then angle),
+  pivot angles, heads, the 5228 contact test (bam_sensor_hit: the character sensor turned by direction (int)(N / 11.25)),
+  then the 5229-5234 state machine. Work is proportional to the bamboo count (no per-object scans). RE_NOTES has the RV data.
+- **Tiled pieces (level format, compatible):** a piece record with pad bit 2 is followed by a size record (s32 w, h at x, y;
+  pad 0x81). level_load folds the pair into one piece_t with tw / th = the tile and w / h = the box; draw_pieces draws only
+  the visible tiles, cutting the last row / column. Levels without Quick Backdrops are byte-identical in layout (only
+  dv3, rm2, rm3, rm5, fn2, fn5 gain tiled pieces; fn4 rebuilds identically). Collision is rasterised from the tiles by the
+  importer, so physics is unchanged in format. piece_t grew to 24 bytes (tw, th).
+- **Synthetic piece images:** a solid Quick Backdrop tiles a 64 x 64 colour block (ids >= QB_BASE). In a split-colour level
+  such blocks go to the colour set with the least image area (RM3: the second set; atlas sizes unchanged).
+- **Rebuild:** dv3 (23), rm2 (26), rm3 (27), rm5 (29), fn2 (31), fn4 (33), fn5 (34) with tools/build_level.sh. RM3 atlases stay
+  [(1024,1024), (1024,512), (1024,512), (1024,128)]; piece records 2702 -> 2782 (79 tiled pairs; the first tiles replace the single placements, + 1 solid box).
+- Flycast to look at: RM3 cart route with Milla (cave wall, supports to the bottom, no parallax crystals in the dark band),
+  RM3 / FN5 performance (draw time of the tiled layer-1 wall), DV3 bamboo swing and its hurt, DV3 rock wall near x 1200, y 1100.
+## Session 19: Sky Battalion flow (port: src/game/sb_flow.c, levels.c, game.c, parallax.c, render_pvr.c / render_soft.c, tools/import_frame.py)
+- **sb_flow.c** (stage index 4; attached by level_cur()->stage, never a level name): sb_flow_spawn after fn_flow_spawn in
+  level_start, sb_flow_frame after fn_flow_frame, sb_flow_draw(0) at the end of objects_draw, hud_dy += sb_flow_hud_dy().
+  SB1: pads (904 + masks 905), launch (G.clear_t + G.exit_to), done ships, airships (909, drawn at 0.25), night overlay
+  (911) and the Kujacker hand-off; SB2-4: pads, the opening (913 planks, timer / HUD / g4), boss camera locks on the
+  CameraLimitBoss markers while OT_WR_RAIL / OT_WR_BARRIER exist (level_lock_markers / level_release_camera).
+- **Hooks (fp.h):** sb_flow_ship_done(flag), sb_flow_night(), sb_flow_intro(), sb_flow_pad_down(i), sb_flow_act(),
+  sb_flow_hud_dy(). Host trace lines "sbflow ..." under FP_TRACE_SND.
+- **level_def_t.clear_free:** the act-end fade leaves the player alone (SB1 launch: no 3311 walk, no pin, control kept).
+- **levels.c:** rows sb1-sb4 (stage 4, frames 35-38, SFX_SB1..4, cards 41 / 44 / 48, checkpoints, exit EX_SBSHIP -> sb1,
+  entries EN_SB1 / EN_SBSHIP, music slots); level_route_next: stage 3 -> level_first_of_stage(4) (Classic FN6 -> SB1).
+- **Parallax file v2** (written only when an image has flags; other levels stay v1): image header 4 x u16 with flags
+  1 = ARGB4444 chunks (`<name>_pa<i>_<k>.tex`, FPTX fmt 4), 2 = half resolution (drawn x2), 2048 = SB bob (9198),
+  4096 = world-positioned image (D = world x; the zaoship). Renderers accept texture fmt 4 (PVR ARGB4444 non-twiddled;
+  soft: per-texel alpha).
+- **Importer:** SB_TYPES / SB_ENS (frames 36-39 only), BAKE_SOLID (ShipPlatform1/2/3 rasterised into collision, then
+  dropped), tall pieces first in the atlas order (SB1's 996 x 708 ship).
+- Flycast to look at: SB1 pads and the launch fade, the SB1 flying entry, the ship opening planks, the ARGB4444 mist on
+  PVR (VRAM free per act), the night overlay, sound RAM per act, the parallax bob.

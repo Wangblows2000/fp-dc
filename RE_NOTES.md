@@ -1030,3 +1030,87 @@ frame f = act frame f + 121 (offense I 1200 ctor, 1079 at f0) = port frame f + 1
 - RV (original screenshots build/orig/fn6_blast_*.png, set_frame 34): the back-cannon missile blasts leave long arcs of
   Explosion06 with dark smoke rings, as in the port; the reported "black boxes" were not seen in Flycast (the dark frames
   are the smoke rings).
+
+## Session 19: DV3 spike ball, RM Milla background
+Labels: RE read from code, RV original trace / screenshot (set_frame 22 / 25 / 26 / 30 / 33, `tools/orig/run_trace.sh`,
+XVT_EXTRA on the four bamboo classes), INFERRED reasoned. Port: src/game/gimmicks.c (bamboo), tools/import_frame.py +
+src/resources/assets.c + src/game/game.c (Quick Backdrops); tests/test_dv3_bamboo.py.
+
+**DV3 bamboo spike traps (GimmickBambooSpike_1070 pivot, 2_1071 joint "spike ball", 3_1069 pole, 4_1072 head; x 8512 /
+8848 / 9040; DV3 only).**
+- Root cause (port): bamboo_update paired the parts with their pivot every frame by equal x (|dx| < 4). The joint and pole
+  are moved onto the pivot's tip, so once the pivot leaned past ~4 degrees the pairing failed: only the pivot swung, the
+  joint / pole / head froze where they were, and the damage check (which needed the joint found) never ran. Fix: pair once
+  at spawn by instance order.
+- Pairing (RE 5227): Chowdren walks the joint (and pole) list from the last instance down and picks pivot slot
+  N1 - (k % N1) for the k-th: instance i of a part goes with instance i of the pivot (head: of the pole). DV3's json order
+  pairs by equal x.
+- Event order (RE 5227 / RV): joint and pole -> the pivot's action point with LAST frame's pivot angle; pole angle =
+  -(pivot angle) (stored 0-360, RV 290 for -70); pivot angle = C * D; head -> the pole's action point (this frame's pole).
+  The head therefore stays over the pivot (zig-zag).
+- Action point after rotation (RV, all 29 angles of the trace): both the hotspot (8,52) and the action point (8,-5) of image
+  3499 are rotated about the image origin and truncated separately: offset = trunc(R act) - trunc(R hot),
+  R(x, y) = (x cos a + y sin a, -x sin a + y cos a). The former -57 sin / -57 cos was off by one at 22 of 29 angles.
+- Start phases (RE 5319, start of frame; RV): spread value B = 0, 1, 2 over the pivots from the last-created one, then
+  B = fmod(10 B, 50): 8848 / 9040 / 8512 start 20 / 10 / 0 frames into the first wait (RV start trace: swings begin at rows
+  29 / 39 / 49). The port started all three in phase.
+- Cycle (RE 5229-5234, RV): wait until B > 50, C += 5 per frame to 70 (13 frames), hold 51, back to 0, D = -D: 128 frames a
+  side, RV-equal in the port.
+- Damage (RE 5228): OTHERS.D == 0 and OTHERS.B != 3 (metal shield) and PlayerCharacterSensor overlaps a joint -> MV.R = 1,
+  LIFE.B += 5 (applied by 2414: invulnerability, the other shields' absorb, Casual). Only the joint hurts; pivot, pole, head
+  are harmless and not solid. Same for Carol and Milla (no state test).
+- Turned character sensor (RV walk trace, row 143): walking under the upright joint on DV3's slope (N 351.87 = direction 31)
+  the original hurts although the upright 15 x 46 sensor misses the joint's bottom row by 2 px; the sensor is in direction
+  (int)(N / 11.25) (spec_combat 3), so its top corner reaches the joint. The port tests the joint's pixels inside the turned
+  box (bam_sensor_hit; pixel rounding of Fusion's rotated direction images INFERRED). RV hurts (walk: rows 143 / 224 / 318 /
+  387 / 450; idle: 195) are matched by the host within 2-4 frames (host TP lands earlier).
+- Not verified: the joint's own 4-frame animation timing; the sensor's direction images for other directions.
+
+**Relic Maze 3 hand-car background (Milla's cart route, x ~1100-7000, y 1600-2000; also seen by Lilac / Carol there).**
+- The debug readout "V9628 D7042" is not a position: it is the FP_PROFILE line "U<update us> D<draw us>" (game.c hud_draw).
+- RV (screenshots set_frame 26, Lilac and Milla): the area shows a dark dirt cave wall fading to near black (0,8,8) below,
+  the track supports run down to the screen bottom. The port showed RM3's jungle sky piece 2r and, under it, parallax
+  piece 9's black band with crystals; the supports stopped after 32 px.
+- Root cause (importer): Quick Backdrops. RE QuickBackdrop::draw (0x203b530): a box of width +0x4c x height +0x50 at x, y;
+  with an image the image tiles the box from its top-left (no hotspot; the visible range only); without one draw_gradient
+  fills it with colour +0xc4..c7 (gradient to +0xcc..cf when +0xc8 = 1). tools/import_frame.py placed the image once and
+  skipped image-less ones. RM3 has quickbackdrop_1352 (0,928) 6720 x 288 of 3384, quickbackdrop2_1353 (0,1216) 6720 x 288
+  of 3418 (the fade), quickbackdrop3_1355 (0,1504) 6720 x 576 solid (0,8,8) (all layer 1, scroll 0.8),
+  quickbackdrop4_1435 x 75 (16 x 2176 of a 16 x 32 support) and rmhugedirtpattern_1430 (960,800) 6528 x 768 of 2451, box
+  obstacle (0xac 9). Other ported levels with boxes larger than their image: DV3 quickbackdrop_1073 (240,1048) 3840 x 252
+  (layer 2 rock wall), RM2 rmdungeonbg_1272 (0,1200) 2112 x 1536 (layer 1), RM5 rmpurplebrickback_1561 (0,200) 1920 x 2048
+  (layer 0), FN2 railroad1_1804 / railroad2_1805 (-32,1560 / 1624) 7168 wide (the trestle), FN5 quickbackdrop_2028
+  (11904,224) 3328 x 288 box obstacle. FN4's fnlullaby_1993 is its image's size (unchanged). RV screenshots (DV3 1200,1180;
+  FN2 1000,1500; RM2 600,1500; RM3 3000,1650; FN5 12400,150) match the rebuilt port.
+- Collision change (RE, follows from the obstacle boxes): RM3 x 976-7488, y 800-1568 is now solid (the huge dirt filler
+  between the Claw route and the cart route; 19347 tiles), FN5 x 11904-15200, y 240-512 is now solid (3462 tiles). The other
+  levels' collision is unchanged. RM / FN host suites pass with it.
+- Not verified: gradient Quick Backdrops (none in the ported levels; the importer skips them).
+
+## Session 19: Sky Battalion flow
+Labels: RE read from code (handle_frame_36..39_events, on_frame_36..39_start / init disassembly), RV original screenshots
+(set_frame 35 / 36: build/orig/sb_sb1fresh_*, sb_sb2walk_*), INFERRED reasoned. Full spec: build/re/spec_sb_flow.md;
+inventory build/re/sb_inventory.md. Port: src/game/sb_flow.c, levels.c rows sb1-sb4, parallax.c; tests/test_sb_flow.py.
+- **Structure (RE):** SB1 (json 36, frame index 35) is Zao's airship, the stage hub; SB2 / SB3 / SB4 (json 37-39) are the
+  red / blue / green ships. SB1 pads (SwitchPlatform_2100, index C newest first, 9216) send the player to frame 0x24 / 0x25
+  / 0x26 (8876-8878, g4 -1); each ship ends at X > W - 50 back to SB1 (9455-9458), where she flies in (8882 / 8883: X -40,
+  Y start.y + 16 - 400, B 15, G -5). Pad C -> ship by json order is INFERRED (agrees with the name signs).
+- **Pads (RE 8866-8872):** standing on flat ground (O < 30 or > 330) sinks B by 0.5 to 24, the player follows; sound 62,
+  then 49 and flags 2 | 4; 8874 / 8875 fade with control kept. A done ship (MasterLevel 0x10 / 0x20 / 0x40, set by the
+  boss ends 9597 / 9698, 9925, 10112) keeps its pad down and hides its name sign (9220-9222).
+- **Night (RE 9005-9009):** grounded past X 1200 with the three flags: LevelDarkSky (8,0,0) at alpha (128 - B) 2, B 128
+  -0.5 / frame to 64, music fades 4 s, timer off; 50 frames later group 0x22840 (the Kujacker) and the timer. CAM.H -> -50
+  (9008) and the hub fire group 0x2283b (8996-9004, 9223-9227) are not ported.
+- **Ship opening (RE 9460-9470 / 9868-9875, RV):** after a 32-frame fade Zao's airship (levelparallaxzaoship_2243, a layer-0
+  SystemBox at world 128,112) fires its four planks (LevelSBBGPlatform) one per 20 frames (g3 % 20; explosion, sound 99,
+  B -8), then releases the hover platforms (flag 0x800), the timer and HUD return and g4 = 1.
+- **Checkpoints / locks (RE):** SB2 9550 / 9551, SB3 9876 / 9877, SB4 10076 / 10077; boss locks 9552 (+600, once) / 9554,
+  9878 (+200, re-lockable) / 9879, 10078 (+0x50, once) / 10079. SB2's boss depends on the character (9553 / 9471).
+- **Data (RE):** music tables 35: 4 m_boss3 5 m_stage4 6 m_menu2 7 m_stage4; 36: 4 m_midboss 5 / 6 m_stage4 7 m_trouble;
+  37 / 38: 4 m_midboss 5-7 m_stage4. Cards SB2 41, SB3 44, SB4 48 (counters inline in on_frame_38/39 start). Frame 8:
+  Classic I = 3 -> 35 (SB1). Results 4561-4586 / 5394 run in SB1, 8873 wipe -> frame 8.
+- **Parallax (RE, RV):** 9198 replaces 3542 with a bob K = (viewY + 20 sin(g3 deg) - 20) E + C; D / E / G per piece in the
+  spec. Pieces 2064 / 2065 / 2094 (images 8426 / 8421 / 8425) are semi-transparent mist (RV: the deck shows through). SB1
+  layer 1 scrolls 0.25 (the enemy airships), SB2-4 layer 1 0.8. ShipPlatform1/2/3 are invisible q8 masks (no events).
+- Not verified: pad stand box, g3 phase (port: G.frame), Adventure g4 99 branches (Magister dialog -> 82, zaoship falling ->
+  79), zaoship colours after par_top (138 -> 117).

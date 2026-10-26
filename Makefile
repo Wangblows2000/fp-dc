@@ -12,6 +12,7 @@ OBJS += src/game/fn_gima.o   # Fortune Night acts 1-3 gimmicks
 OBJS += src/game/fn_gimb.o   # Fortune Night acts 4-5 gimmicks
 OBJS += src/game/rm_claw.o   # RM3 Claw sequence
 OBJS += src/game/fn_flow.o   # Fortune Night stage flow
+OBJS += src/game/sb_flow.o   # Sky Battalion stage flow (session 19)
 OBJS += src/game/fn_enemy.o   # Fortune Night enemies
 OBJS += src/game/sb_enemy.o   # Sky Battalion enemies
 OBJS += src/game/sb_gim.o     # Sky Battalion gimmicks

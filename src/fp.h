@@ -207,7 +207,7 @@ int  pal_load_file(const char *name);
 
 /* ---------------------------------------------------------------- level (FPL2) */
 enum { COL_NONE, COL_SOLID, COL_PLATFORM, COL_LADDER };
-typedef struct { int32_t x, y; uint16_t u, v, w, h; uint8_t atlas, layer, col, pad; } piece_t;
+typedef struct { int32_t x, y; uint16_t u, v, w, h; uint8_t atlas, layer, col, pad; uint16_t tw, th; } piece_t;   /* tw > 0: tiled (session 19): the tile u, v, tw x th repeats over w x h */
 typedef struct { uint16_t type, anim; int32_t x, y; } lvobj_t;
 
 #define MAX_OT 1280                /* engine types are < MAX_OT (object-presence bits, registry, groups); 1024-1279: Sky Battalion (session 19) */
@@ -382,6 +382,12 @@ enum { OT_FNBOSS_FIRST = 800, OT_FN_UFO = 800 /* MinibossUFO_1772 (Q20) */, OT_F
        OT_FN_SAMU_PROBE = 843 /* MinibossSamuFloorCheck_1891 */, OT_FN_SAMU_DEBRIS = 844 /* runtime */, OT_FN_BOSSGATE = 845 /* BossGate_1894 / _2030 (Q7) */,
        OT_FNBOSS_LAST = 859 };
 enum { OT_FN_SERPNPC = 900 /* NPCSerpentine_945 in FN3's exit pass (7710-7725), created by the script */, OT_FN_FLOW_LAST = 909 };
+/* Sky Battalion stage objects (session 19, src/game/sb_flow.c; tools/import_frame.py SB_TYPES; range 904-959) */
+enum { OT_SB_SWPLAT = 904 /* SwitchPlatform_2100: invisible solid box, sinks under the player (8866-8872) */,
+       OT_SB_SWMASK = 905 /* SwitchPlatformMask_2099: its drawn image */, OT_SB_NAME1 = 906, OT_SB_NAME2 = 907, OT_SB_NAME3 = 908 /* LevelShipName1-3 */,
+       OT_SB_AIRSHIP = 909 /* LevelAirship1_2105 (SB1 layer 1, 0.25) */, OT_SB_ZAOFLAG = 910 /* LevelZaoFlag_2107 */,
+       OT_SB_DARKSKY = 911 /* LevelDarkSky_2114 (the Kujacker's night) */, OT_SB_BGPLAT = 913 /* LevelSBBGPlatform_2244 (the opening planks) */,
+       OT_SB_FLOW_LAST = 959 };
 /* SB_ENEMIES: Sky Battalion enemies (session 19, src/game/sb_enemy.c, build/re/spec_sb_enemies.md): placed 1024-1059, runtime 1060-1099 */
 enum { OT_SBE_FIRST = 1024, OT_SB_HOPPER = 1024 /* EnemyHopperMkII_2189 (Q20) */, OT_SB_MAGMEON = 1025 /* EnemyMagmeon_2203 (Q20) */,
        OT_SB_ROTOR = 1026 /* EnemyRotorBlade_2184 (Q20) */, OT_SB_ROTORSPK = 1027 /* EnemyRotorBladeSpikes_2183 */, OT_SB_TUBE = 1028 /* EnemySpawnTube_2185 */,
@@ -395,8 +401,8 @@ enum { OT_SBE_FIRST = 1024, OT_SB_HOPPER = 1024 /* EnemyHopperMkII_2189 (Q20) */
 /* SB_GIM: Sky Battalion gimmicks (session 19, src/game/sb_gim.c, build/re/spec_sb_gimmicks.md): placed 1100-1139, runtime 1140-1149.
  * Families share a type; the lvobj anim field carries the member index (SBG_SUB, bits 0-7) and the instance layer (bits 8-15) */
 enum { OT_SBG_FIRST = 1100, OT_SB_CANNON = 1100 /* GimmickCannon_2142 */, OT_SB_CANBASE = 1101 /* GimmickCannonBase_2141 (Q7 Q20) */,
-       OT_SB_CANBASE2 = 1102 /* GimmickCannonBase2_2176 */, OT_SB_SWPLAT = 1103 /* SwitchPlatform_2100 (Q7, invisible) */,
-       OT_SB_SWMASK = 1104 /* SwitchPlatformMask_2099 */, OT_SB_FIRE = 1105 /* HazardFireUp/Down/Left/Right_2237/2238/2241/2240 (sub 0-3) */,
+       OT_SB_CANBASE2 = 1102 /* GimmickCannonBase2_2176 */, /* 1103 / 1104 unused: SwitchPlatform / Mask are sb_flow.c's 904 / 905 */
+       OT_SB_FIRE = 1105 /* HazardFireUp/Down/Left/Right_2237/2238/2241/2240 (sub 0-3) */,
        OT_SB_LIGHTNING = 1106 /* HazardLightningRadial_2254 (invisible) */, OT_SB_LIGHTNING2 = 1107 /* HazardLightningRadial2_2256 */,
        OT_SB_FLAMER = 1108 /* GimmickFlamethrower_2182 */, OT_SB_SPINCUP = 1109 /* GimmickSpinCup_2269 */, OT_SB_CUPSTART = 1110 /* _StartPoint_2275 */,
        OT_SB_CUPLAND = 1111 /* _LandPoint_2270 */, OT_SB_CHAINWALL = 1112 /* GimmickChainWallUp/Down_2307/2308 (Q7) */,
@@ -890,6 +896,8 @@ typedef struct {
     int res_wipe;                                    /* boss results (path 3) end with the wipe after D = 150 (FN6 8546-8549) */
     const fnenemy_t *fne;                            /* Fortune Night enemies' per-act rules (fn_enemy.c); NULL: defaults */
     const fnboss_t *fnb;                             /* Fortune Night bosses' per-act rules (fn_boss.c); NULL: FN1 / FN2 */
+    /* session 19 (Sky Battalion, spec_sb_flow) */
+    int clear_free;                                  /* the act-end fade leaves the player alone (no 3311 walk, control kept): SB1's launch pads (8874-8878) */
 } level_def_t;
 const char *level_music_slot(int slot);              /* the current act's music for a play_music(slot) of its scripts (NULL: none) */
 void level_lock_markers(void);                       /* CAM.M = 1: the boss bounds of the CameraLimitBoss markers (as placed / moved) */
@@ -907,6 +915,17 @@ int    fn_assist_cpu_finish(const obj_t *hit), fn_assist_last_hit(void);   /* ac
 int    fn_assist_closing(int D), fn_assist_cast_on(void);   /* the closing scene's cast (8764-8785): the head's D; the player hidden */
 /* src/game/fn_flow.c (Fortune Night stage script, stage index 3, spec_fn_flow) */
 void   fn_flow_spawn(void), fn_flow_frame(player_t *p);
+/* src/game/sb_flow.c (Sky Battalion stage script, stage index 4, spec_sb_flow). Hooks for the boss / gimmick modules:
+ *   sb_flow_ship_done(flag): a ship's boss is beaten (SB2 0x10, SB3 0x20, SB4 0x40; RE 9597 / 9698 / 9925 / 10112): MasterLevel
+ *     flag, camera released (CAM.M 2, U 0), play_music(5). Call it where the boss's end event runs.
+ *   sb_flow_night(): 0, 1 = the night is falling (9005-9008), 2 = 9009 fired (group 0x22840: start the Kujacker).
+ *   sb_flow_intro(): SB2-SB4 opening (0x228f3): 0 none, 1 hold the hover platforms (9461: I -160), 2 release them (9468 /
+ *     9873: flag 0x800).
+ *   sb_flow_pad_down(i): SwitchPlatform with index C = i fully sunk (flag 4, 8872): SB2 / SB4 door logic.
+ * The Kujacker's end starts the results with results_begin_boss(time) (the sb1 row adds the wipe 8873-8881 -> frame 8). */
+void   sb_flow_spawn(void), sb_flow_frame(player_t *p), sb_flow_draw(int pass), sb_flow_ship_done(int flag);
+int    sb_flow_act(void), sb_flow_night(void), sb_flow_intro(void), sb_flow_pad_down(int i);
+float  sb_flow_hud_dy(void);
 /* src/game/fn_boss.c (Fortune Night bosses, spec_fn_bosses A-E): spawn, the test_collisions handlers (before combat), the per-object
  * dispatch (1: handled; every rule runs in fn_boss_frame after the gimmicks), draw (1: drawn / skipped), scripted pad (CTRL.M) */
 void   fn_boss_spawn(void), fn_boss_pre(player_t *p), fn_boss_frame(player_t *p);

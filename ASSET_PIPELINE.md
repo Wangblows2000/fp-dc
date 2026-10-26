@@ -262,3 +262,12 @@ tools/audio/convert_gallery.sh extracted/linux/audio "$G/Data/voices" /home/clau
 - New sounds: 241 (half rate, trimmed) and 288 (Lilac's group, 22050 Hz, trimmed 27 -> 12 KB) via convert_sfx.sh.
 - Measured (Flycast, after load): VRAM free FN1 Lilac 2177, FN2 Carol 1112, FN3 Carol 625, FN3 Milla 793, FN4 Milla 1825,
   FN5 Carol 953, FN6 Lilac / Carol / Milla 3167 / 2639 / 2807 KB; sound RAM after the stage group 137 (FN3 Milla) to 319 KB.
+
+## Session 19: Sky Battalion data (flow agent)
+- Levels: `for l in "36 sb1" "37 sb2" "38 sb3" "39 sb4"; do set -- $l; tools/build_level.sh $1 $2 converted2; done`
+  (SB_TYPES / SB_ENS rows, ShipPlatform1/2/3 baked into collision, mist pieces 8426 / 8421 / 8425 as half-resolution
+  ARGB4444 `_pa` chunks outside the palettizer, par v2 only for these levels).
+- Stage select / TA preview keeps the SB background strips: `python3 tools/import_ui.py build/frames extracted/linux/images
+  converted2/ui tasel 6 -x '^bg(1[0-9]|[6-9])layer'` (173 images, one atlas).
+- Sounds: tools/audio/convert_sfx.sh converts 103 156 237 255 264 265 266 267-274 438 446 at 11025 Hz with the -48 dB tail
+  trim (SFX_SB1..4 groups in levels.c). Music: m_stage4 m_boss3 m_menu2 m_midboss m_trouble (already in bgm/).
