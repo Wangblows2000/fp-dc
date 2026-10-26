@@ -683,7 +683,7 @@ void objects_update(void) {
          * update_objects, then events) */
         if (o->type == OT_PELLET && o->born == G.frame) continue;
         if (o->type == OT_PELLET) pellet_move(o);                 /* update_objects: movement, then animation */
-        anim_tick(&o->an, (o->type == OT_AXEL1 || o->type == OT_AXEL2 || o->type == OT_AXEL1P || o->type == OT_AXEL2P) ? o->c : -1);   /* AT axels: speed set by 4085 / 4519 */
+        anim_tick(&o->an, (o->type == OT_AXEL1 || o->type == OT_AXEL2 || o->type == OT_AXEL1P || o->type == OT_AXEL2P || (o->type == OT_SB_SPADE && o->c > 0)) ? o->c : -1);   /* AT axels: speed set by 4085 / 4519; SB2 Spade: force_speed (sb_spade.c) */
         act[i] = 1;
     }
     /* test_collisions: enemies absorb free crystals (col_3_13 + 1290 + 2546) */

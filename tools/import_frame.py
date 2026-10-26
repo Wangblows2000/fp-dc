@@ -716,9 +716,10 @@ SBBOSS_TYPES_ID = {('playerassist', 2205): 1150, ('playerassistcopilot', 2220): 
     ('bossgrapplerarmright', 2328): 1244, ('bosscrystalspire', 2333): 1245, ('bosscrystalspikespawner1', 2325): 1246, ('bosscrystalspikespawner2', 2326): 1247,
     ('crystalplatform', 2334): 1250,
     ('bosschopper', 2216): 1200, ('bosschopperblade', 2217): 1201, ('bosschoppertail', 2215): 1202, ('bosschoppertailblade', 2218): 1203,
-    ('bosschoppertailblade2', 2214): 1204, ('bosschopperbars', 2212): 1205, ('bosschopperbars2', 2213): 1206}
+    ('bosschoppertailblade2', 2214): 1204, ('bosschopperbars', 2212): 1205, ('bosschopperbars2', 2213): 1206,
+    ('bossspademask', 2248): 1220, ('bossspade', 2247): 1221, ('bossspadehitbox', 2250): 1222}
 SBBOSS_SUB = {}
-_SA, _AS, _GR, _CH = ('bosssatellite',), ('playerassist',), ('bossgrappler',), ('bosschopper',)
+_SA, _AS, _GR, _CH, _SP = ('bosssatellite',), ('playerassist',), ('bossgrappler',), ('bosschopper',), ('bossspade',)
 SBBOSS_ENS = [(c, a, d, nm, None, w) for c, a, d, nm, w in (
     ('bosssatellite_2286', 0, '0', 'sbs_sat', _SA), ('bosssatellite_2286', 7, '0', 'sbs_sat7', _SA), ('bosssatellite_2286', 8, '0', 'sbs_sat8', _SA),
     ('bosssatellite_2286', 10, '0', 'sbs_sat10', _SA), ('bosssatellitearm_2287', 0, '0', 'sbs_arm', _SA), ('bosssatellitearm_2287', 7, '0', 'sbs_arm7', _SA),
@@ -738,9 +739,13 @@ SBBOSS_ENS = [(c, a, d, nm, None, w) for c, a, d, nm, w in (
     ('bosschopper_2216', 0, 'sbc_ch'), ('bosschopper_2216', 8, 'sbc_ch8'), ('bosschopperblade_2217', 0, 'sbc_blade'), ('bosschoppertail_2215', 0, 'sbc_tail'),
     ('bosschoppertailblade_2218', 0, 'sbc_tb'), ('bosschoppertailblade2_2214', 0, 'sbc_tb2'), ('bosschopperbars_2212', 0, 'sbc_bars'),
     ('bosschopperbars2_2213', 0, 'sbc_bars2'), ('bossmissile_2219', 0, 'sbc_mis')) for d in ('0', '16')] + \
-    [('bossmissile_2219', 8, '0', 'sbc_mis8', None, _CH)]
-SBBOSS_ENS_WITH = {'effectsexplosion01_367': _SA + _GR + _CH, 'effectsexplosion06_435': _SA + _GR + _CH, 'effectshade_436': _SA,
-                   'bosscrystalspike_2324': _GR, 'bosshomingspark_2332': _GR, 'bossmissile_2219': _CH, 'minibosstreddbomb_1060': _CH, 'monitoricon_363': _CH}
+    [('bossmissile_2219', 8, '0', 'sbc_mis8', None, _CH)] + \
+    [('bossspade_2247', a, d, 'sbp_%d' % a + ('' if d == '0' else '_l'), None, _SP) for a in (0, 1, 2, 8, 15, 21, 24, 26, 29) for d in ('0', '16')] + \
+    [(c, a, '0', nm, None, _SP) for c, a, nm in (('bossspadecard_2249', 0, 'sbp_card'), ('bossspadecard_2249', 7, 'sbp_card7'),
+                                                 ('bossspadehitbox_2250', 0, 'sbp_hit'), ('thunderspark_410', 4, 'sbp_tspark'))]
+SBBOSS_ENS_WITH = {'effectsexplosion01_367': _SA + _GR + _CH + _SP, 'effectsexplosion06_435': _SA + _GR + _CH, 'effectshade_436': _SA,
+                   'bosscrystalspike_2324': _GR, 'bosshomingspark_2332': _GR, 'bossmissile_2219': _CH, 'minibosstreddbomb_1060': _CH, 'monitoricon_363': _CH,
+                   'bossspadecard_2249': _SP, 'thunderspark_410': _SP}
 ENGINE_TYPES_ID.update(SBBOSS_TYPES_ID); ENS += SBBOSS_ENS   # SB_BOSS
 ENS_FRAMES['effectwarning_1528'] = ENS_FRAMES.get('effectwarning_1528', set()) | {39}   # SB_BOSS: the spire's marker (SB4)
 for _k, _v in SBBOSS_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # SB_BOSS

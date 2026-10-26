@@ -40,7 +40,7 @@ void sbc_spawn(void) {
     c->A = 70; c->fl |= F_NOFLY; c->hidden = 1;                                 /* ctor A 70, D -3, L 8, M -1; shown by 9555 */
     C.D = -3; C.L = 8; C.M = -1; C.E = c->x; C.F = c->y + 100; C.N = c->y;     /* RV c_idle f0: E = X, F = Y + 100, N = Y */
     int n = sbb_count(OT_SB_CH_TAIL);
-    for (int k = 0; k < n && k < NTAIL; k++) { obj_t *t = tail(k); if (t) { t->av[0] = n - 1 - k; C.tB[k] = -32; C.tC[k] = -24 - 16 * t->av[0]; t->hidden = 1; } }   /* A from the last created; C (RV) */
+    for (int k = 0; k < n && k < NTAIL; k++) { obj_t *t = tail(k); if (t) { t->av[0] = n - 1 - k; C.tB[k] = -32 - 16 * t->av[0]; C.tC[k] = -24 - 16 * t->av[0]; t->hidden = 1; } }   /* A from the last created; B / C (RV c_idle / p_kill f0) */
     obj_t *o;
     if ((o = sbb_get(OT_SB_CH_BLADE, 0))) o->hidden = 1;
     if ((o = sbb_get(OT_SB_CH_TBLADE, 0))) o->hidden = 1;
@@ -49,6 +49,15 @@ void sbc_spawn(void) {
     if ((o = sbb_get(OT_SB_CH_BARS2, 0))) o->hidden = 1;
 }
 void sbc_pre(player_t *p) { (void)p; }
+/* the parts' directions 0 / 16 (9561 / 9562; Spade's carrier 9602-9607 in sb_spade.c) */
+void sbc_pose_parts(int right) {
+    obj_t *c = ch(); if (!c) return;
+    ca(c, right ? C_CH : C_CHL);
+    ca(sbb_get(OT_SB_CH_BLADE, 0), right ? C_BLADE : C_BLADEL); ca(sbb_get(OT_SB_CH_BARS, 0), right ? C_BARS : C_BARSL);
+    ca(sbb_get(OT_SB_CH_BARS2, 0), right ? C_BARS2 : C_BARS2L); ca(sbb_get(OT_SB_CH_TBLADE, 0), right ? C_TB : C_TBL);
+    ca(sbb_get(OT_SB_CH_TBLADE2, 0), right ? C_TB2 : C_TB2L);
+    for (int k = 0; k < sbb_count(OT_SB_CH_TAIL) && k < NTAIL; k++) ca(tail(k), right ? C_TAIL : C_TAILL);
+}
 
 static void missile_new(obj_t *c, int m) {                                      /* 9569 / 9570: direction 28 / 20, F = M, speed 50 */
     if (C.nmis >= NMIS) return;

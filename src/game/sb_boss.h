@@ -59,6 +59,7 @@ void   sbb_compass_show(void);
 void sbs_spawn(void), sbs_pre(player_t *p), sbs_frame(player_t *p); int sbs_draw(const obj_t *o, int pass);   /* SB3 satellite */
 void sbk_spawn(void), sbk_pre(player_t *p), sbk_frame(player_t *p); int sbk_draw(const obj_t *o, int pass);   /* SB1 Kujacker */
 void sbc_spawn(void), sbc_pre(player_t *p), sbc_frame(player_t *p); int sbc_draw(const obj_t *o, int pass);   /* SB2 chopper */
+void sbc_pose_parts(int right);                                                 /* the chopper parts' directions (Spade's carrier) */
 void sbp_spawn(void), sbp_pre(player_t *p), sbp_frame(player_t *p); int sbp_draw(const obj_t *o, int pass);   /* SB2 Spade */
 void sbg_spawn(void), sbg_pre(player_t *p), sbg_frame(player_t *p); int sbg_draw(const obj_t *o, int pass);   /* SB4 grappler */
 #endif
