@@ -620,3 +620,14 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
   dropped), tall pieces first in the atlas order (SB1's 996 x 708 ship).
 - Flycast to look at: SB1 pads and the launch fade, the SB1 flying entry, the ship opening planks, the ARGB4444 mist on
   PVR (VRAM free per act), the night overlay, sound RAM per act, the parallax bob.
+
+## Session 19: Sky Battalion enemies and gimmicks (port: src/game/sb_enemy.c, sb_gim.c, objdefs.c, tools/import_frame.py)
+- Types: fp.h SB_ENEMIES 1024-1099 (1024 hopper ... 1038 magnetizer line, runtime 1060-1065), SB_GIM 1100-1149 (1103 the
+  breakable floors, 1117 / 1118 / 1119 platforms, runtime 1140-1142). Importer blocks SB_ENEMIES / SB_GIM (SBG_SUB member
+  index | layer << 8 in the lvobj anim field).
+- Passes: objects.c spawn (sb_gim_spawn then sb_enemy_spawn), objects_platforms sb_gim_pre (one-way flags), per-object
+  sb_enemy_obj / sb_gim_obj, game.c sb_gim_frame (paths, carry, opening hold / release, families). Q20 via combat.c
+  enemy_type_list (sb_enemy_q20 / sb_gim_q20: the cannon base). Per-type instance lists; nothing runs without the types.
+- Hooks used: sb_flow_intro() (platform hold / release). Exported: sb_gim_cannon_kills() (PlayerAssist.I for the boss agent).
+- Sounds: SFX_SB2 + 312 263, SFX_SB3 + 312, SFX_SB4 + 312 (263 new, 11025 Hz trimmed); groups 81 / 130 / 154 / 124 KB.
+- Tests: tests/test_sb_enemies.py (RV cycles), tests/test_sb_gimmicks.py (opening ride, data rows, hazards).
