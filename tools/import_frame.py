@@ -33,7 +33,7 @@ from convert import write_tex, pack, argb1555
 ENGINE_TYPES = {
     'playerstartingpoint': 1, 'objectcrystal': 2, 'enemydragonfly': 3, 'objectpetal': 6,
     'hazardspikesup': 7, 'yellowspringup': 8, 'yellowspringupleft': 13, 'yellowspringupright': 14,
-    'yellowspringright': 15, 'yellowspringleft': 16, 'gimmickhangingidlesensor': 17, 'sign': 9, 'enemyturretus': 10,
+    'yellowspringright': 15, 'yellowspringleft': 16, 'yellowspringdown': 29, 'gimmickhangingidlesensor': 17, 'sign': 9, 'enemyturretus': 10,
     'breakablerock': 11, 'monitorcrystals': 12, 'monitorrings': 18, 'monitor1up': 19,
     'monitorinvincibility': 4, 'levelparallaxpiece0': 20, 'levelparallaxpiece1': 21,
     'levelparallaxpiece2': 22, 'levelparallaxpiece3': 23, 'levelparallaxpiece4': 24,

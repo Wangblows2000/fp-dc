@@ -176,10 +176,22 @@ static void dragons(player_t *p) {
         o->av[2] += 4;                                                         /* 7199 */
         o->ang = (float)(s * 30 * c_sin(o->av[1] - 90));
     }
-    EACH(OT_FN_DMASK, m) m->fl |= 1;                                           /* 7199: every mask disabled ... */
-    for (int t = OT_FN_DSEG; t <= OT_FN_DSEGP; t++) EACH(t, o) {               /* ... except next to a segment of its dragon (+-39 px) */
-        int want = seg_t1(o) ? 0 : 1;
-        EACH(OT_FN_DMASK, m) if (m->par == want && fabsf(m->x - o->x) <= 39 && fabsf(m->y - o->y) <= 39) m->fl &= ~1;
+    /* 7199: every mask disabled ... except next to a segment of its dragon (+-39 px). Session 18 perf: the masks sorted by
+     * x once per frame, each segment checks only the masks within 39 px in x (same result as the full pair test) */
+    static obj_t *MS[256]; int nm = 0, all = 0;
+    EACH(OT_FN_DMASK, m) { m->fl |= 1; if (nm < 256) MS[nm++] = m; else all = 1; }
+    if (all) {
+        for (int t = OT_FN_DSEG; t <= OT_FN_DSEGP; t++) EACH(t, o) {
+            int want = seg_t1(o) ? 0 : 1;
+            EACH(OT_FN_DMASK, m) if (m->par == want && fabsf(m->x - o->x) <= 39 && fabsf(m->y - o->y) <= 39) m->fl &= ~1;
+        }
+    } else {
+        for (int i = 1; i < nm; i++) { obj_t *k = MS[i]; int j = i - 1; while (j >= 0 && MS[j]->x > k->x) { MS[j + 1] = MS[j]; j--; } MS[j + 1] = k; }
+        for (int t = OT_FN_DSEG; t <= OT_FN_DSEGP; t++) EACH(t, o) {
+            int want = seg_t1(o) ? 0 : 1, lo = 0, hi = nm;
+            while (lo < hi) { int mid = (lo + hi) / 2; if (MS[mid]->x < o->x - 40) lo = mid + 1; else hi = mid; }
+            for (int i = lo; i < nm && MS[i]->x <= o->x + 40; i++) { m = MS[i]; if (m->par == want && fabsf(m->x - o->x) <= 39 && fabsf(m->y - o->y) <= 39) m->fl &= ~1; }
+        }
     }
     for (int t = OT_FN_DSEG; t <= OT_FN_DSEGP; t++) EACH(t, o) if (o->av[2] >= 752) {   /* 7200 / 7201: the segment re-enters its window */
         o->av[1] = seg_t1(o) ? 0 : 180; o->av[2] -= 752;
