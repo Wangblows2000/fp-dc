@@ -127,11 +127,16 @@ static void hangers(player_t *p) {
             else if (q && G.input_lock) G.input_lock = 0;                                /* 5875 / 5876: reached the stop */
         }
     }
+    /* the handles in slot order, listed once (session 18 perf: was a scan per visual; same pairing) */
+    short hs[64], hm[64]; int nhs = 0, nhm = 0;
+    for (int j = 0; j < G.nobjs; j++) { const obj_t *h = &G.o[j]; if (!h->alive) continue;
+        if (h->type == OT_RM_IDLESW && nhs < 64) hs[nhs++] = (short)j; else if (h->type == OT_HIMOVER && nhm < 64) hm[nhm++] = (short)j; }
     for (int i = 0, si = 0, mi = 0; i < G.nobjs; i++) {                                  /* 5874: the visuals at their paired handles (index pairing) */
         obj_t *v = &G.o[i];
         if (!v->alive || (v->type != OT_HSWITCHV && v->type != OT_HMOVERV)) continue;
-        int want = v->type == OT_HSWITCHV ? OT_RM_IDLESW : OT_HIMOVER,   /* the switch handle: relic_gimb.c's type (one implementation, every act) */ k = v->type == OT_HSWITCHV ? si++ : mi++;
-        for (int j = 0, n = 0; j < G.nobjs; j++) if (G.o[j].alive && G.o[j].type == want && n++ == k) { v->x = G.o[j].x - 1; v->y = G.o[j].y; break; }
+        /* the switch handle: relic_gimb.c's type (one implementation, every act) */
+        int sw = v->type == OT_HSWITCHV, k = sw ? si++ : mi++;
+        if (k < (sw ? nhs : nhm)) { const obj_t *h = &G.o[sw ? hs[k] : hm[k]]; v->x = h->x - 1; v->y = h->y; }
     }
 }
 
@@ -146,6 +151,7 @@ void relic_gima_pre(player_t *p) {
 static int wp_latch, col_C_sound;
 static void wallplates(player_t *p) {
     int pressed = 0; (void)p;
+    if (!objects_alive_type(OT_RM_WPLATE) && !objects_alive_type(OT_COLFRONT)) { wp_latch = 0; return; }   /* none alive: the same outcome without the scans (session 18 perf) */
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i]; if (!o->alive || o->type != OT_RM_WPLATE || o->par != 0) continue;   /* SwitchWallPlate_1149: pressed by relic_gimb.c (S_RB, M 11 / 47, + M 26 with wplate_cyclone) */
         if (o->fl & 1) pressed = 1;
@@ -170,6 +176,7 @@ static void wallplates(player_t *p) {
 }
 /* ================================================================ 2. flip panels (5905-5910): av[0] A, av[1] B, av[2] C rest angle */
 static void flippanels(void) {
+    if (!objects_alive_type(OT_FLIPPANEL)) return;
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i]; if (!o->alive || o->type != OT_FLIPPANEL) continue;
         if (o->av[0] != 0 && o->av[0] != 99) { o->ang += (float)(0.1 * o->av[1]); o->av[1] += o->av[0]; }   /* 5905 */
@@ -187,6 +194,7 @@ void relic_axle_turn(void) {                          /* 5896 / 5897: axle A = f
 }
 static int axle_turning(void) { obj_t *a = first_of(OT_AXLE); return a && fmod(a->ang + 360, 360) != a->av[0]; }
 static void axles(void) {
+    if (!objects_alive_type(OT_AXLE)) return;
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *a = &G.o[i]; if (!a->alive || a->type != OT_AXLE) continue;
         double ang = fmod(a->ang + 360, 360);
@@ -256,6 +264,7 @@ static void flag_cleanups(void) {                     /* RM2 6039 / 6040 (act st
 /* ================================================================ 1. relic panel (5691-5701): st A, c B pieces, an frame (speed 0, manual) */
 static void relic_panels(void) {
     int on_any = 0;
+    if (!objects_alive_type(OT_RPANEL) && !objects_alive_type(OT_RPIECE)) return;
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i]; if (!o->alive || o->type != OT_RPANEL) continue;
         if (sens_hit(SENS_BOTTOMBIG, o)) { on_any = 1; if (o->st == 0) o->st = 1; }   /* 5691 (MV.L not tested) */
@@ -291,7 +300,7 @@ static void relic_panels(void) {
 
 /* ================================================================ 8. spin ball (5684-5690): av[0] A, av[1] B, av[2] C, av[3] D, fl 1 = flag 0 */
 static void spinball(player_t *p) {
-    obj_t *o = first_of(OT_SPINBALL);                                                    /* only the first instance moves */
+    obj_t *o = objects_alive_type(OT_SPINBALL) ? first_of(OT_SPINBALL) : NULL;                          /* only the first instance moves */
     if (!o) return;
     o->x = (float)(int)(o->av[0] + 100 * c_cos(o->av[3]));                              /* 5684 (E = 100) */
     o->y = (float)(int)(o->av[1] + 100 * c_sin(o->av[2]));                              /* 5685 */
@@ -316,6 +325,7 @@ static void fb_move(obj_t *o) {
 static void fb_burst(obj_t *f) { if (!anim_named(f, "fball_burst")) { f->av[4] = 0; restart_ens(f, "fball_burst"); } }
 static void fireballs(player_t *p) {
     int run = 0;
+    if (!objects_alive_type(OT_FBSPAWN) && !objects_alive_type(OT_FBBACK) && !objects_alive_type(OT_FBALL) && !objects_alive_type(OT_EMBER)) return;
     for (int i = 0; i < G.nobjs && !run; i++) { const obj_t *o = &G.o[i]; if (o->alive && ((o->type == OT_FBSPAWN && near_view(o, 150)) || (o->type == OT_FBBACK && near_view(o, 100)))) run = 1; }
     if (run) for (int i = 0; i < G.nobjs; i++) {                                         /* 5702 -> loop_fireball_launcher */
         obj_t *o = &G.o[i]; if (!o->alive) continue;
@@ -369,6 +379,7 @@ static void fireballs(player_t *p) {
 static void floors(player_t *p) {
     (void)p;
     int moving = 0, land = 0;
+    if (!objects_alive_type(OT_MFLOOR1) && !objects_alive_type(OT_MFLOOR2) && !objects_alive_type(OT_MFLOOR3) && !objects_alive_type(OT_RM_IDLESW)) { loop62(1, 0); return; }
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i]; if (!o->alive || o->type < OT_MFLOOR1 || o->type > OT_MFLOOR3) continue;
         if (o->av[2] > 0) { o->av[2] -= 2; o->y -= 4; moving = 1; }                       /* 5999 / 6001 / 6003 */
@@ -390,7 +401,7 @@ static void floors(player_t *p) {
 /* ================================================================ 9.3 / 9.4 basement light, clock */
 static int blight_alpha = -1;
 static void basement_light(player_t *p) {
-    obj_t *o = first_of(OT_BLIGHT);
+    obj_t *o = objects_alive_type(OT_BLIGHT) ? first_of(OT_BLIGHT) : NULL;
     blight_alpha = -1;
     if (!o) return;
     double Y = MVY(p);
@@ -420,6 +431,7 @@ void relic_gima_draw_overlay(void) {
     }
 }
 static void clocks(void) {                            /* 5920: ML.Z = the stage time in ms */
+    if (!objects_alive_type(OT_CLOCK1) && !objects_alive_type(OT_CLOCK2)) return;
     double Z = (double)G.frame * 1000.0 / FPS;
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i]; if (!o->alive) continue;
@@ -472,9 +484,10 @@ void relic_gima_spawn(void) {
 }
 void relic_gima_post(player_t *p) {
     if (!objects_have_from(OT_RAIL2) && !objects_have(OT_WR_BARRIER)) return;
+    if (objects_alive_type(OT_HBAR) || objects_alive_type(OT_HSENS) || objects_alive_type(OT_HBAR2) || objects_alive_type(OT_HSENS2) || objects_alive_type(OT_RPLAT))
     for (int i = 0; i < G.nobjs; i++) { obj_t *o = &G.o[i]; if (o->alive && is_path(o->type)) path_step(o); }   /* 3283-3289 */
-    carry(p);                                                                            /* 4061 */
-    for (int i = 0, k = 0; i < G.nobjs; i++) {                                           /* 5713: the wheel at its platform, rolling */
+    if (objects_alive_type(OT_RPLAT)) carry(p);                                                          /* 4061 (mv_sensor_obj finds nothing without one) */
+    if (objects_alive_type(OT_RWHEEL)) for (int i = 0, k = 0; i < G.nobjs; i++) {                                           /* 5713: the wheel at its platform, rolling */
         obj_t *w = &G.o[i]; if (!w->alive || w->type != OT_RWHEEL) continue;
         for (int j = 0, n = 0; j < G.nobjs; j++) if (G.o[j].alive && G.o[j].type == OT_RPLAT && n++ == k) { w->x = G.o[j].x; w->y = G.o[j].y; w->ang -= (float)(4 * G.o[j].av[3]); break; }
         k++;

@@ -101,6 +101,8 @@ static void level_free(void) {   /* everything of the level except Lilac's banks
     tex_drop(&G.objs.tex); if (G.objs.tex2.w > 0) tex_drop(&G.objs.tex2); bank_free(&G.objs);
     if (G.ens.nframes) { tex_drop(&G.ens.tex); if (G.ens.tex2.w > 0) tex_drop(&G.ens.tex2); bank_free(&G.ens); }
     memset(&G.ens, 0, sizeof G.ens); G.ens.tex.id = -1;
+    if (G.shl.nframes) { tex_drop(&G.shl.tex); bank_free(&G.shl); }
+    memset(&G.shl, 0, sizeof G.shl); G.shl.tex.id = -1;
     for (int i = 0; i < G.lvl.natlas && i < MAX_ATLAS; i++) tex_drop(&G.lvl.atlas[i]);
     for (int i = 0; i < G.npar; i++) tex_drop(&G.par[i]);
     par_free();
@@ -163,6 +165,7 @@ int game_load_level(const char *dir) {
     G.p.spawn_x = G.p.spawn_y = 0;
     hud_reset();
     { uint64_t to = plat_time_us(); level_start(); LP.obj_us += plat_time_us() - to; }
+    shields_bank_load();                           /* a carried shield's sprites (acts without shield monitors, session 18) */
 #ifdef FP_HOST_ENV
     { void card_dbg(void); if (getenv("FP_CARD_DBG")) card_dbg(); }
 #endif
@@ -339,6 +342,9 @@ int snd_loop_orig(int id, int vol, int freq) {
 void snd_loop_update(int ch, int vol, int freq) { snd_loop_set(ch, vol, freq); }
 void snd_loop_stop(int ch) { snd_loop_end(ch); }
 void voice_play(const char *name) {
+#ifdef FP_HOST_ENV
+    if (getenv("FP_TRACE_SID")) printf("voice %s\n", name);   /* host tests: resident voices too (session 18) */
+#endif
     for (int i = 0; i < NVOICES; i++)
         if (!strcmp(VOICES[i], name)) { if (voice_handle[i] >= 0) snd_play(voice_handle[i], 255, 128); return; }
 }

@@ -417,7 +417,9 @@ static void explode2(float x, float y) {
     e->type = OT_EXPLODE; e->alive = 1; e->x = x; e->y = y;
     if (A_EXPLODE2 >= 0) anim_set(&e->an, &G.objs, A_EXPLODE2);
     else if (A_EXPLODE >= 0) anim_set(&e->an, &G.objs, A_EXPLODE);
-    snd_play_orig(80, 220, 128);   /* RV: id 80 with the pellet hit */
+    /* RE col_4_20 / col_7_20 / col_20_20 (pellet vs the sensor, Q7, the background): explosion02 + Media slot 136/8 = sound 17
+     * (RV hurt_turretus 17 25 81, a miss 17 alone). 80 is Lilac's hurt voice (loop_sound_hurt0_8 play_id 0x50; session 18) */
+    snd_play_orig(17, 220, 128);
 }
 
 /* Turretus events 4767-4774 in their original order, after this frame's animation update */
@@ -950,6 +952,11 @@ static void ext_cache_reset(void) { memset(ext_b, 0, sizeof ext_b); next_b = 0; 
 static int snap_on; static unsigned snap_stamp, snap_gen[NGRP + 1], snap_epoch[NGRP + 1]; static int snap_n[NGRP + 1];
 static short snap_x[NGRP + 1][MAX_OBJS], snap_y[NGRP + 1][MAX_OBJS], snap_m[NGRP + 1][MAX_OBJS];
 void objects_sense_snapshot(int on) { snap_on = on; snap_stamp++; }
+#define SB_W 512
+#define SB_N 64
+#define SB_CAP 6144
+static short sb_start[NGRP + 1][SB_N + 1], sb_list[NGRP + 1][SB_CAP]; static unsigned char sb_ok[NGRP + 1];
+static int sb_of(int x) { int b = x < 0 ? 0 : x / SB_W; return b >= SB_N ? SB_N - 1 : b; }   /* the last bucket also takes everything past it */
 static void snap_build(int L) {
     for (int c = 0; c < ncand[L]; c++) {
         int i = cand[L][c]; const obj_t *o = &G.o[i]; int m = 0;
@@ -958,6 +965,15 @@ static void snap_build(int L) {
         snap_x[L][c] = (short)x; snap_y[L][c] = (short)y; snap_m[L][c] = (short)(m + 2 + SNAP_SLACK + 1);
     }
     snap_n[L] = ncand[L]; snap_gen[L] = obj_gen; snap_epoch[L] = snap_stamp;
+    /* x buckets (session 18 perf, FN's 600-870 objects): bucket b lists, in candidate order, every c whose reach
+     * [x - m, x + m] meets [b * SB_W, (b + 1) * SB_W); a query inside one bucket walks only that list (same hits, same order) */
+    int cnt[SB_N + 1] = { 0 }, tot = 0;
+    for (int c = 0; c < ncand[L]; c++) { int b0 = sb_of(snap_x[L][c] - snap_m[L][c]), b1 = sb_of(snap_x[L][c] + snap_m[L][c]); for (int b = b0; b <= b1; b++) cnt[b]++; tot += b1 - b0 + 1; }
+    if (tot > SB_CAP) { sb_ok[L] = 0; return; }
+    sb_start[L][0] = 0; for (int b = 0; b < SB_N; b++) sb_start[L][b + 1] = (short)(sb_start[L][b] + cnt[b]);
+    int fill[SB_N]; for (int b = 0; b < SB_N; b++) fill[b] = sb_start[L][b];
+    for (int c = 0; c < ncand[L]; c++) { int b0 = sb_of(snap_x[L][c] - snap_m[L][c]), b1 = sb_of(snap_x[L][c] + snap_m[L][c]); for (int b = b0; b <= b1; b++) sb_list[L][fill[b]++] = (short)c; }
+    sb_ok[L] = 1;
 }
 static int sensor_hit_any(int grp, int type, int ox, int oy, const signed char *x0, const signed char *x1, int h) {
     cand_refresh();
@@ -973,7 +989,10 @@ static int sensor_hit_any(int grp, int type, int ox, int oy, const signed char *
         if (snap_epoch[L] != snap_stamp || snap_gen[L] != obj_gen || snap_n[L] != ncand[L]) snap_build(L);
         qx = snap_x[L]; qy = snap_y[L]; qm = snap_m[L];
     }
-    for (int c = 0; c < n; c++) {
+    const short *bl = NULL;
+    if (qx && sb_ok[L] && sb_of(ox) == sb_of(ox + 27)) { int b = sb_of(ox); bl = sb_list[L] + sb_start[L][b]; n = sb_start[L][b + 1] - sb_start[L][b]; }
+    for (int k = 0; k < n; k++) {
+        int c = bl ? bl[k] : k;
         if (qx) { int m = qm[c]; if (qx[c] < ox - m || qx[c] > ox + 27 + m || qy[c] < oy - m || qy[c] > oy + h + m) continue; }
         int i = cl ? cl[c] : c;
         const obj_t *o = &G.o[i];

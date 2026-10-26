@@ -68,7 +68,7 @@ build/disc/data: $(DATA_DIR)/levels.txt
 	cp $(DATA_DIR)/ui/*.ui $(DATA_DIR)/ui/*.spr $(DATA_DIR)/ui/*.tex $(DATA_DIR)/ui/*.bin build/disc/data/ui/
 	cp $(BGM) build/disc/data/bgm/
 	cp $(DATA_DIR)/sfx/*.wav build/disc/data/sfx/
-	mkdir -p build/disc/data/gal; cp $(DATA_DIR)/gal/*.tex $(DATA_DIR)/gal/*.pal $(DATA_DIR)/gal/*.wav $(DATA_DIR)/gal/*.txt build/disc/data/gal/   # gallery (session 15): loose, on demand
+	mkdir -p build/disc/data/gal; cp $(DATA_DIR)/gal/*.tex $(DATA_DIR)/gal/*.pal $(DATA_DIR)/gal/*.wav $(DATA_DIR)/gal/*.txt $(wildcard $(DATA_DIR)/gal/*.adp) build/disc/data/gal/   # gallery (session 15): loose, on demand (.adp: streamed sound cards, session 18)
 	python3 tools/twiddle_disc.py build/disc/data
 	python3 tools/pack_disc.py build/disc/data
 	if [ -n "$(DEMO)" ]; then cp "$(DEMO)" build/disc/data/demo.txt; fi   # verification builds: scripted input (plat_dc demo_load)
