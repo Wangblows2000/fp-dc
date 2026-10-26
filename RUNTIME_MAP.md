@@ -620,3 +620,21 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
   dropped), tall pieces first in the atlas order (SB1's 996 x 708 ship).
 - Flycast to look at: SB1 pads and the launch fade, the SB1 flying entry, the ship opening planks, the ARGB4444 mist on
   PVR (VRAM free per act), the night overlay, sound RAM per act, the parallax bob.
+
+## Session 19: Sky Battalion bosses (port: src/game/sb_boss.c, sb_kujacker.c, sb_chopper.c, sb_spade.c, sb_satellite.c, sb_grappler.c)
+- **sb_boss.c** (both Makefiles): sb_boss_spawn builds per-type instance lists (OT_SBB_FIRST..LAST = 1150-1279, placement
+  order) and calls each encounter's spawn; sb_boss_pre / sb_boss_frame / sb_boss_draw_obj dispatch to sbs_* (SB3), sbk_* (SB1),
+  sbc_* (SB2 chopper), sbp_* (SB2 Spade), sbg_* (SB4); each returns at once when its boss is not placed. Shared helpers in
+  sb_boss.h (sbb_get / sbb_count / sbb_spawn, sbb_hurt / sbb_vulnerable / sbb_csens_hit, sbb_fight_start, sbb_arena_end,
+  sbb_lock_edge, sbb_draw / sbb_draw_yscaled); the exit plane and the compass; sb_boss_q20 (combat.c), sb_boss_cannon_down()
+  (for the gimmicks: GimmickCannonBase destroyed, 9319).
+- **Hooks used:** sb_flow_night() (SB1 start), sb_flow_ship_done(flag) via sbb_arena_end, results_begin_boss() (SB1 end),
+  level_music_slot(4) via sbb_fight_start, the flow's camera locks (level_cam_locked).
+- **objects.c:** anim_tick speed for OT_SB_SPADE (force_speed in o->c). **fp.h:** OT_SB_* (Kujacker 1170-1188, chopper
+  1200-1206, Spade 1220-1224, satellite / grappler / plane in the block). **levels.c:** SFX_SB1 + 99, SFX_SB2 + 71 / 155 / 240 / 445.
+- **Importer (SB_BOSS block):** SBBOSS_TYPES_ID, SBBOSS_ENS rows sbs_* / sbg_* / sbc_* / sbp_* / sbk_*, SBBOSS_ENS_WITH (effects
+  kept in the boss levels' _ens banks).
+- **Host debug:** FP_DBG_SBS / SBG / SBC / SBP / SBK print the state per frame; FP_SB_ASSIST_I = frame to count two cannons down.
+- **Sounds (tools/audio/convert_sfx.sh, 11025 Hz, trimmed):** + 71 155 445 (Spade). Groups: SFX_SB1 91 KB, SFX_SB2 126 KB.
+- Flycast to look at: the Kujacker (many parts and up to ~220 lightning spokes on screen during the charge), sb2's _ens texture
+  (about 1 MB: Spade + chopper), the satellite beams' y-scaling on PVR, sound RAM per act.

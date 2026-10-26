@@ -4,7 +4,7 @@
  * RE handle_frame_39_events groups 0x2298b (+ 0x22989 climb, 0x2298a attacks, 0x22988 rig) events 10078-10140, the
  * collision handlers col_7_38 / col_13_38 / col_38_38 (sparks), col_12_38 / col_18_38 (spawner and EnemyLimiter), col_30_38
  * (the spire landing), the start events 10151 (link index A, flag 16) and on_frame_39_start (spawner home A / B).
- * RV trace g_idle / g_kill (build/orig_traces/sb_boss). Everyone fights it (no MV.A test). spec_sb_bosses Part D.
+ * RV trace g_idle / g_kill (build/orig_traces/sb_boss). Everyone fights it (no MV.A test). spec_sb_bosses Part E.
  * Grappler alterables: A HP (1: every hit is a stage), C the shared hit timer (60 after a stage), D phase 0-4, E stages taken
  * (5: defeated), F climb speed (+-4), G depth below the start (+ down), H direction (1 down, -1 up), I phase timer, J hop
  * offset, K / L the fall after the defeat, flag 2 the moving hand (clear: left). Spire A: 0 carried, 1 dropping, 2 landed, 3 rising. */
