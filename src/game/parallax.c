@@ -8,7 +8,11 @@
  * destroyed once the player is below y 2400. Images are split into power-of-two chunks (4 bpp, tools/palettize.py).
  * Fortune Night (session 17, spec_fn_flow 4): the 16 BGStar_16 on layer 0 are placed every frame relative to piece0a (7466:
  * x = piece.x + A, y = piece.y + B, INFERRED from the operands); the importer draws them into one image, exported as a piece
- * with flag 1024: drawn once (no tiling) at the parent piece's position (handle in y0) + (bw, bh). */
+ * with flag 1024: drawn once (no tiling) at the parent piece's position (handle in y0) + (bw, bh).
+ * Sky Battalion (session 19, spec_sb_flow 4): 9198 replaces 3542 in every SB act, K = (vt + 20 sin(g3 deg) - 20) E + C (the
+ * whole sky bobs with the frame counter g3, flag 2048; the port's g3 is the stage frame counter); Zao's airship
+ * (LevelParallaxZaoShip_2243, a layer-0 SystemBox at a world position) is drawn once at (D, y0) in world coordinates in its
+ * place between the pieces (flag 4096). */
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -125,11 +129,14 @@ static void draw_pieces_pass(int gframe, int front) {
             draw_image(p->img, qx + p->bw, qy + p->bh, -32768, 32767);
             continue;
         }
+        if (p->flags & 4096) { draw_image(p->img, (int)p->D - vl, p->y0 - vt, -32768, 32767); continue; }   /* SB Zao's airship (world) */
         int A = p->bw, ih = IMG[p->img].h, iw = IMG[p->img].w;   /* box width (AT4 piece6_853: 400 for a 384-px image) */
         double C = p->y0;
+        double bvt = vt;
+        if (p->flags & 2048) bvt = vt + 20.0 * sin(gframe * 0.017453292519943295) - 20.0;   /* SB 9198 (g3 = 180: sin 0 exactly, the same value) */
         if (p->flags & 4) { static const int off[4] = { -360, 0, -360, -720 }; C += off[(gframe / 8) % 4]; }   /* 5094 */
         int sx = (int)fmod(trunc(p->D * vl + p->F - vl), (double)A);
-        int sy = (int)trunc(p->E * vt + C) - vt;
+        int sy = (int)trunc(p->E * bvt + C) - vt;
         int boxw = A * ((427 / A) + 2), y1 = sy + p->bh;
         if (p->flags & 8) {                               /* AT3 / AT4 (4532 / 4527): endless in y as well */
             int B = p->bh;

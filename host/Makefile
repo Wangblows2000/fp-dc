@@ -6,6 +6,7 @@ SRC += ../src/game/fn_gima.c   # Fortune Night acts 1-3 gimmicks
 SRC += ../src/game/fn_gimb.c   # Fortune Night acts 4-5 gimmicks
 SRC += ../src/game/rm_claw.c   # RM3 Claw sequence
 SRC += ../src/game/fn_flow.c   # Fortune Night stage flow
+SRC += ../src/game/sb_flow.c   # Sky Battalion stage flow (session 19)
 SRC += ../src/game/fn_enemy.c   # Fortune Night enemies
 SRC += ../src/game/fn_panther.c   # Fortune Night Panther (FN5 chase, FN6 boss)
 SRC += ../src/game/fn_assist.c    # FN6 partner assist and the plane (session 18)
