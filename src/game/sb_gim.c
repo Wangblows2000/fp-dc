@@ -211,6 +211,16 @@ static void cannons(void) {
 }
 int sb_gim_cannon_kills(void) { return S.kills; }
 
+/* ================================================================ SwitchDoor_2102 (SB2 9341 / 9342, SB4 9832 / 9833; RE)
+ * The pad events: while the player stands on a SwitchPlatform (L 1, O < 30 or > 330) whose B is still below 24 after this frame's
+ * sink (+0.5), the door with A = the pad's C rises 2 px (y - 2, C + 2): 47 frames, 94 px for the 24-px sink. No other door event
+ * (the door is a plain Q7 solid; it never comes back down). av: [0] A index, [2] C risen. */
+void sb_gim_door_rise(int c) {
+    if (!S.on || !N(OT_SB_DOOR)) return;
+    obj_t *o;
+    EACH(OT_SB_DOOR, o) if ((int)o->av[0] == c) { o->y -= 2; o->av[2] += 2; }
+}
+
 /* ================================================================ fire jets (9332-9340; 9765: A = index 20 at the start) */
 static void fires(player_t *p) {
     obj_t *o;
@@ -502,6 +512,8 @@ void sb_gim_spawn(void) {
     }
     EACH(OT_SB_CUPLAND, o) set_s(o, "sbs_land");
     EACH(OT_SB_PBLOCK4, o) set_s(o, "sbq_block");
+    n = N(OT_SB_DOOR); k = 0;                        /* 9216 (start): door A = index (newest first), the pads' C likewise (sb_flow.c) */
+    EACH(OT_SB_DOOR, o) { set_s(o, "door");   /* the shared 'door' row: the placed handle's image (1098) */ o->av[0] = n - 1 - k++; o->av[2] = 0; }
     EACH(OT_SB_BTUNNEL, o) set_s(o, o->par ? "sbt_tun1" : "sbt_tun0");
 }
 

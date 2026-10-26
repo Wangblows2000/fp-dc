@@ -432,6 +432,148 @@ static void magnet_frame(obj_t *o, player_t *p) {
     EACH(OT_SB_MLINE, c) if (c->par == (int)(o - G.o)) { c->x = o->x; c->y = o->y + 12; }
 }
 
+/* ================================================================ SB1: the enemy airships' fire on the deck (group 0x2283b; session 19b)
+ * RE (handle_frame_36: 8996-9004, start 9223-9227, col_9_35; group 0x2283b is on from on_frame_36_init and goes off at the night,
+ * 9005): EffectWarning_1528 (3 on the deck, invisible, ctor) av: [0] A timer, [1] B shown, [2] C centre x, [3] I index.
+ *  - start 9227: index I newest first, A = 10 I, C = x. Before it, 9223-9225 (ML flags 0x10 / 0x20 / 0x40) destroy the warnings
+ *    with I = 0 / 1 / 2, while every I is still 0: a done red ship (0x10) removes all three, the other flags none (RE quirk).
+ *  - 8996 A > 60: x = C - 100 + R(201), A = -R(90); a GimmickCannonBullet_2098 at (x, y - 800) on its layer gets A = x, B = y,
+ *    D 270 (ctor C 12: it falls 12 px a frame); the warning shows for 60 frames (B 60, 8997 B - 1 while > 1, 8998 at 1 hidden).
+ *    (More than one warning firing in one frame: only the first ball gets A / B / D, the rest sit at (0, 0) moving right; not
+ *    created here, INFERRED unseen.)
+ *  - 9004: ball x = A, y = B, A += C cos D, B -= C sin D; then every warning A + 1.
+ *  - col_9_35: a ball on a q8 obstacle (the deck: ShipPlatform1/2/3, baked into the port's collision; the hover platforms) ->
+ *    MonitorIcon frame 9 at the ball (the bomb blast: aqua_blast, 20 damage, sound 38) and the ball is destroyed. Only while the
+ *    ball is active (inside the view + 64 / 16, active_at): RV hub (session 19b) the balls beyond it fall through the deck, and the
+ *    blast appears 12 px above the ball's overlapping position (its previous y) in the frame the ball last shows.
+ * The airships (LevelAirship1, layer 1 at 0.25; I = index newest first, 9227) fire ShipBullet_2106 (8999-9001): every frame
+ * with g3 % 17 = 0 or g3 % 22 = 0, airship I = k while ML flag 0x10 << k is off -> a shot at (x - 56 + R(150), y + 18) on its
+ * layer; 9002 from its animation frame 1 (speed 50: two frames) y - 8, A + 1; 9003 A > 20 destroyed. Decor (no collision). */
+#define NHUB 8
+static struct { int n, w[4], air[3], nair, obst[NHUB], nobst; } HUB;
+static void hub_spawn(void) {
+    memset(&HUB, 0, sizeof HUB);
+    const level_def_t *L = level_cur();
+    if (L->stage != 4 || L->act != 1) return;                                   /* (sb_flow_spawn runs after the objects' spawn) */
+    int nw = 0, k = 0; obj_t *o;
+    EACH(OT_SB_WARN, o) nw++;
+    EACH(OT_SB_WARN, o) {
+        o->hidden = 1; set_a(o, "sbwarn");
+        if (G.stage_flags & 0x10) { o->alive = 0; continue; }                     /* 9223 (all I = 0 before 9227) */
+        o->av[3] = nw - 1 - k++; o->av[0] = 10 * o->av[3]; o->av[1] = 0; o->av[2] = floorf(o->x);   /* 9227 */
+        if (HUB.n < 4) HUB.w[HUB.n++] = (int)(o - G.o);
+    }
+    int na = 0;
+    for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == OT_SB_AIRSHIP && na < 3) HUB.air[na++] = i;
+    HUB.nair = na;
+    for (int i = 0; i < G.nobjs && HUB.nobst < NHUB; i++) {                     /* q8 objects a ball can land on (the hover platforms) */
+        const obj_t *q = &G.o[i];
+        if (q->alive && q->an.b && obj_in_group(q->type, OBJGRP_OBSTACLE)) HUB.obst[HUB.nobst++] = i;
+    }
+}
+/* Chowdren's INACTIVE flag (FrameObject::update_inactive, Layer::update_position; RE): an object whose box misses the layer's
+ * active rectangle (view - 64 .. view + 426 + 64 across, view - 16 .. view + 240 + 16 down, in the layer's scrolled coordinates)
+ * is skipped by test_collisions and its animation does not advance (RV hub: balls beyond the view + 64 fall through the deck,
+ * shots of the far airship stay on their first frame). k = the layer's scroll coefficient. */
+static int active_at(const obj_t *o, double k) {
+    const frame_t *f = o->an.b ? anim_frame(&o->an) : NULL;
+    float x0 = floorf(o->x) - (f ? f->hx : 0), y0 = floorf(o->y) - (f ? f->hy : 0), x1 = x0 + (f ? f->w : 1), y1 = y0 + (f ? f->h : 1);
+    float vx = (float)trunc(k * G.camx), vy = (float)trunc(k * G.camy);
+    return x1 >= vx - 64 && x0 <= vx + SCREEN_W + 64 && y1 >= vy - 16 && y0 <= vy + SCREEN_H + 16;
+}
+static int hubball_hit(const obj_t *b) {                                         /* col_9_35: a q8 obstacle (the baked deck, the hover platforms) */
+    if (!active_at(b, 1.0)) return 0;
+    if (obj_overlaps_bg(b)) return 1;
+    for (int k = 0; k < HUB.nobst; k++) { const obj_t *q = &G.o[HUB.obst[k]]; if (q->alive && fabsf(q->x - b->x) < 200 && fabsf(q->y - b->y) < 120 && obj_obj_hit(b, q)) return 1; }
+    return 0;
+}
+static void hub_frame(void) {
+    if (!HUB.n && !NLS[OT_SB_HUBBALL - RT0] && !NLS[OT_SB_SHIPSHOT - RT0]) return;
+    int on = !sb_flow_night();                                                   /* group 0x2283b (off at 9005: balls in the air freeze) */
+    obj_t *b, *w;
+    if (on) {
+        int first = 1;
+        for (int k = 0; k < HUB.n; k++) {                                        /* 8996 (selection order newest first: a lower I fires first) */
+            w = &G.o[HUB.w[HUB.n - 1 - k]];
+            if (!w->alive || w->av[0] <= 60) continue;
+            w->x = (float)(w->av[2] - 100 + R(201)); w->av[0] = -R(90);
+            if (first) {
+                first = 0;
+                obj_t *nb = spawn(OT_SB_HUBBALL, "sbc_ball", w->x, w->y - 800);
+                if (nb) { nb->av[0] = w->x; nb->av[1] = w->y - 800; nb->av[2] = 12; nb->av[3] = 270; nb->layer = w->layer; nb->ang = 270; }
+            }
+            w->av[1] = 60; w->hidden = 0;
+        }
+        for (int k = 0; k < HUB.n; k++) { w = &G.o[HUB.w[k]]; if (w->alive && w->av[1] > 1) w->av[1] -= 1; else if (w->alive && w->av[1] == 1) { w->av[1] = 0; w->hidden = 1; } }   /* 8997 / 8998 */
+        int g3 = G.frame;
+        if (g3 % 17 == 0 || g3 % 22 == 0)                                        /* 8999-9001 */
+            for (int k = 0; k < HUB.nair; k++) {
+                const obj_t *a = &G.o[HUB.air[k]];
+                int I = HUB.nair - 1 - k;
+                if (!a->alive || (G.stage_flags & (0x10 << I))) continue;
+                obj_t *s = spawn(OT_SB_SHIPSHOT, "sbshot", (float)((int)a->x - 56), (float)((int)a->y + 18));
+                if (s) { s->x += (float)R(150); s->hidden = 1; s->layer = a->layer; s->tm = 0; }
+            }
+    }
+    EACH(OT_SB_SHIPSHOT, b) {                                                    /* 9002 / 9003: from its animation frame 1 (speed 50: the 2nd active frame) */
+        if (b->born != G.frame && b->tm < 2 && active_at(b, 0.25)) b->tm++;
+        if (b->tm >= 2 && on) { b->an.frame = 1; b->y -= 8; b->A += 1; }
+        if (b->A > 20) b->alive = 0;
+    }
+    if (on) {
+        EACH(OT_SB_HUBBALL, b) {                                                 /* 9004, then the q8 test (RV: the blast at the ball's previous y) */
+            b->x = (float)(int)b->av[0]; b->y = (float)(int)b->av[1];
+            b->av[0] += b->av[2] * c_cos(b->av[3]); b->av[1] -= b->av[2] * c_sin(b->av[3]);
+            if (b->born != G.frame && hubball_hit(b)) { aqua_blast(b->x, b->y - 12); b->alive = 0; }
+            else if (b->y > G.lvl.h + 64) b->alive = 0;                          /* (the original keeps it falling forever) */
+        }
+        for (int k = 0; k < HUB.n; k++) { w = &G.o[HUB.w[k]]; if (w->alive) w->av[0] += 1; }
+    }
+}
+
+/* ================================================================ SB3: the DNA cannons' off-screen warnings (9854-9858)
+ * RE: EffectWarning k is paired with EnemyDNACannon k (spread selection; both 7, the json orders agree). 9854: every warning
+ * hidden, y = its cannon's y, B = the cannon's G (facing), A = the cannon's H (the last frame's); 9855 cannons H = 0; 9856 a cannon
+ * not defeated, inside the view grown by 200, right of the view (x > view x + 426) facing left (G -1) or left of it (x < view x)
+ * facing right (G 1): H = 1; 9857 A = 1 and B = -1: shown at x = view x - 32 + g16 - (105 - 53 g19) (RV g16 426, g19 2: + 395),
+ * 9858 A = 1 and B = 1: shown at view x + 32 (move_front). Cannon H in av[4]. */
+static void dna_warnings(void) {
+    obj_t *w, *c;
+    int nc = 0, k = 0;
+    EACH(OT_SB_DNA, c) nc++;
+    if (!nc) return;
+    EACH(OT_SB_WARN, w) {                                                        /* 9854 */
+        obj_t *cc = NULL; int j = 0;
+        EACH(OT_SB_DNA, c) if (j++ == k % nc) { cc = c; break; }
+        k++;
+        w->hidden = 1;
+        if (!cc) continue;
+        w->y = (float)(int)cc->y; w->av[1] = cc->av[2]; w->av[0] = cc->av[4];
+    }
+    EACH(OT_SB_DNA, c) {                                                         /* 9855 / 9856 */
+        c->av[4] = 0;
+        int X = (int)floorf(c->x);
+        if (!DEFEATED(c) && in_view(c, 200) && ((X > G.camx + 426 && c->av[2] == -1) || (X < G.camx && c->av[2] == 1))) c->av[4] = 1;
+    }
+    EACH(OT_SB_WARN, w) {                                                        /* 9857 / 9858 */
+        if (w->av[0] != 1) continue;
+        if (w->av[1] == -1) { w->hidden = 0; w->x = (float)((int)G.camx - 32 + 426 - (105 - 53 * 2)); }
+        else if (w->av[1] == 1) { w->hidden = 0; w->x = (float)((int)G.camx + 32); }
+    }
+}
+
+/* the ship shots are on SB1's layer 1, which scrolls at 0.25 (the airships' layer, sb_flow.c draws them in pass 0) */
+void sb_enemy_draw(int pass) {
+    if (!S.on || pass != 0 || !NLS[OT_SB_SHIPSHOT - RT0]) return;
+    obj_t *s;
+    EACH(OT_SB_SHIPSHOT, s) {
+        if (!s->an.b) continue;
+        float sx = floorf(s->x - (float)trunc(0.25 * G.camx)), sy = floorf(s->y - (float)trunc(0.25 * G.camy));
+        if (sx < -16 || sx > SCREEN_W + 16 || sy < -16 || sy > SCREEN_H + 16) continue;
+        frame_draw(s->an.b, anim_frame(&s->an), sx, sy, 0, 0xffffffff);
+    }
+}
+
 /* ================================================================ spawn / passes */
 static void spikebit_frame(obj_t *o) {                                           /* 9401 / 9402: C 0.3 gravity, removed below the view */
     o->x += o->vx; o->vy += 0.3f; o->y += o->vy; o->ang += 12;
@@ -467,16 +609,23 @@ void sb_enemy_spawn(void) {
         case OT_SB_MCRATE: set_a(o, "sbg_crate"); break;
         case OT_SB_MHAND: set_a(o, "sbg_hand"); break;
         case OT_SB_MLINE: set_a(o, "sbg_line"); break;
+        case OT_SB_WARN: set_a(o, "sbwarn"); o->hidden = 1; break;                  /* ctor set_visible(0) */
         default: o->alive = 0; break;
         }
     }
+    hub_spawn();
     /* pairing by placement (the spikes / magnet parts with their owner: nearest of the type) */
     obj_t *o, *q;
     EACH(OT_SB_ROTORSPK, o) { float best = 1e9f; EACH(OT_SB_ROTOR, q) { float d = fabsf(q->x - o->x) + fabsf(q->y - o->y); if (d < best) { best = d; o->par = (int)(q - G.o); } } }
     for (int t = OT_SB_MCRATE; t <= OT_SB_MLINE; t++)
         EACH(t, o) { float best = 1e9f; EACH(OT_SB_MAGNET, q) { float d = fabsf(q->x - o->x); if (d < best) { best = d; o->par = (int)(q - G.o); } } }
 }
-void sb_enemy_pre(player_t *p) { (void)p; }                                     /* (the projectiles' handlers run in their own events) */
+void sb_enemy_pre(player_t *p) {                                                /* (the projectiles' handlers run in their own events) */
+    (void)p;
+    if (!S.on) return;
+    if (sb_flow_act() == 1) hub_frame();                                         /* SB1 deck fire (8996-9004, col_9_35) */
+    else if (NLS[OT_SB_WARN - RT0]) dna_warnings();                              /* SB3 DNA warnings (9854-9858) */
+}
 int sb_enemy_obj(obj_t *o, player_t *p) {
     if (!S.on) return 0;
     switch (o->type) {

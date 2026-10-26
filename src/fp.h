@@ -395,9 +395,11 @@ enum { OT_SBE_FIRST = 1024, OT_SB_HOPPER = 1024 /* EnemyHopperMkII_2189 (Q20) */
        OT_SB_DNA = 1032 /* EnemyDNACannon_2260 (Q20) */, OT_SB_DNABASE = 1033 /* EnemyDNACannonBase_2261 */, OT_SB_PELLETIZER = 1034 /* EnemyPelletizer_2303 (Q20) */,
        OT_SB_MAGNET = 1035 /* EnemyMagnetizer_2294 (Q20) */, OT_SB_MCRATE = 1036 /* EnemyMagnetizerCrate_2295 (Q7) */,
        OT_SB_MHAND = 1037 /* EnemyMagnetizerHand_2292 */, OT_SB_MLINE = 1038 /* EnemyMagnetizerLine_2293 */,
+       OT_SB_WARN = 1039 /* EffectWarning_1528 in SB1 (the deck bombardment, 8996-9004) / SB3 (DNA cannon off-screen, 9854-9858) */,
        OT_SB_FRAGBOMB = 1060 /* runtime: EnemyFragBomb_2103 */, OT_SB_ROTORDEATH = 1061 /* EnemyRotorBladeDeath_2231 */,
        OT_SB_SPIKEBIT = 1062 /* BreakableSpike2_2228 */, OT_SB_DLASER = 1063 /* EnemyDroneLaser_2232 */, OT_SB_BULLET = 1064 /* EnemyBullet_2097 */,
-       OT_SB_DNALASER = 1065 /* EnemyDNALaser_2290 */, OT_SBE_LAST = 1099 };
+       OT_SB_DNALASER = 1065 /* EnemyDNALaser_2290 */, OT_SB_SHIPSHOT = 1066 /* runtime: ShipBullet_2106 (SB1 airships, 8999-9003) */,
+       OT_SB_HUBBALL = 1067 /* runtime: GimmickCannonBullet_2098 falling on SB1's deck (8996, 9004, col_9_35) */, OT_SBE_LAST = 1099 };
 /* SB_GIM: Sky Battalion gimmicks (session 19, src/game/sb_gim.c, build/re/spec_sb_gimmicks.md): placed 1100-1139, runtime 1140-1149.
  * Families share a type; the lvobj anim field carries the member index (SBG_SUB, bits 0-7) and the instance layer (bits 8-15) */
 enum { OT_SBG_FIRST = 1100, OT_SB_CANNON = 1100 /* GimmickCannon_2142 */, OT_SB_CANBASE = 1101 /* GimmickCannonBase_2141 (Q7 Q20) */,
@@ -413,7 +415,8 @@ enum { OT_SBG_FIRST = 1100, OT_SB_CANNON = 1100 /* GimmickCannon_2142 */, OT_SB_
        OT_SB_FANBLADE = 1123 /* LevelFanBlade_2193/2264/2297 (sub 0-2) */, OT_SB_FAN = 1124 /* GimmickFan_2223 */, OT_SB_FANSIDE = 1125 /* GimmickFanSide_2245 */,
        OT_SB_SCHAIN = 1126 /* LevelScrollingChainUp/Down_2302/2305 (sub 0-1) */, OT_SB_BACKEYE = 1127 /* SBBackEye_2282 / SBBackEye2_2283 (sub 0-1) */,
        OT_SB_LOOP0 = 1128 /* SBLoop1/4/7_2206/2224/2289, Active3/4_2278/2279 (Q7 Q10) */, OT_SB_LOOP1 = 1129 /* SBLoop2/6_2207/2226, Active/Active2_2276/2277 (Q7 Q11) */,
-       OT_SB_LOOP1B = 1130 /* SBLoop3/5_2208/2225 (Q7 Q11, box) */, OT_SB_PBLOCK4 = 1131 /* PushableBlock4_2259 */, OT_SB_BTUNNEL = 1132 /* LevelBallTunnel2/3_2271/2273 */,
+       OT_SB_LOOP1B = 1130 /* SBLoop3/5_2208/2225 (Q7 Q11, box) */, OT_SB_PBLOCK4 = 1131 /* PushableBlock4_2259 (Q7 Q9 Q14: gimmicks.c pblocks) */,
+       OT_SB_BTUNNEL = 1132 /* LevelBallTunnel2/3_2271/2273 (Q7 Q27: gimmicks.c tunnel_events) */, OT_SB_DOOR = 1133 /* SwitchDoor_2102 (Q7; SB2 / SB4, 9341 / 9342, 9832 / 9833) */,
        OT_SB_CANBULLET = 1140 /* runtime: GimmickCannonBullet_2098 */, OT_SB_FANDEBRIS = 1141 /* GimmickFanDebris_2230 */,
        OT_SB_FLOORPIECE = 1142 /* BreakableFloorPiece2_2229 */, OT_SBG_LAST = 1149 };
 
@@ -779,11 +782,12 @@ int    rm_mantalith_obj(obj_t *o, player_t *p);
  * combat), per-object events, qualifier 20 membership */
 /* src/game/sb_enemy.c (Sky Battalion enemies, SB_ENEMIES) and src/game/sb_gim.c (gimmicks, SB_GIM): spawn, the pre pass (projectile /
  * hazard collision handlers, before combat), per-object events, Q20 membership, the post pass (game.c) and their draw hook */
-void   sb_enemy_spawn(void), sb_enemy_pre(player_t *p);
+void   sb_enemy_spawn(void), sb_enemy_pre(player_t *p), sb_enemy_draw(int pass);
 int    sb_enemy_obj(obj_t *o, player_t *p), sb_enemy_q20(int type);
 void   sb_gim_spawn(void), sb_gim_pre(player_t *p), sb_gim_frame(player_t *p), sb_gim_draw(int pass);
 int    sb_gim_obj(obj_t *o, player_t *p), sb_gim_q20(int type);
 int    sb_gim_cannon_kills(void);                 /* SB2-SB4 cannon bases destroyed (9319: PlayerAssist.I += 1 each) */
+void   sb_gim_door_rise(int c);                   /* 9341 / 9342 (SB2), 9832 / 9833 (SB4): the SwitchDoor with A = c rises 2 px (sb_flow.c pads) */
 void   fn_enemy_spawn(void), fn_enemy_pre(player_t *p);
 int    fn_enemy_obj(obj_t *o, player_t *p), fn_enemy_q20(int type);
 /* src/game/fn_gima.c (Fortune Night acts 1-3 gimmicks, spec_fn_gimmicks_a.md) */
