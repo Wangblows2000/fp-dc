@@ -221,13 +221,19 @@ int level_load(level_t *l, const char *name) {
     size_t need = off + (size_t)l->npieces * 20 + (size_t)l->nobj * 12 + (size_t)l->nuniq * 32 + (size_t)l->tw * l->th * 4;
     if (need > sz || sz - need >= 2048) {   /* the disc pads files (tools/pad_disc.py) */ plat_log("level %s: size %u expected %u\n", name, (unsigned)sz, (unsigned)need); goto bad; }
     l->pieces = malloc(sizeof(piece_t) * (l->npieces ? l->npieces : 1));
+    int np = 0;
     for (int i = 0; i < l->npieces; i++, off += 20) {
-        piece_t *p = &l->pieces[i];
+        piece_t *p = &l->pieces[np++];
         p->x = (int32_t)rd32(d + off); p->y = (int32_t)rd32(d + off + 4);
         p->u = rd16(d + off + 8); p->v = rd16(d + off + 10); p->w = rd16(d + off + 12); p->h = rd16(d + off + 14);
-        p->atlas = d[off + 16]; p->layer = d[off + 17]; p->col = d[off + 18]; p->pad = d[off + 19];
+        p->atlas = d[off + 16]; p->layer = d[off + 17]; p->col = d[off + 18]; p->pad = d[off + 19]; p->tw = p->th = 0;
         if (p->atlas >= l->natlas) goto bad;
+        if (p->pad & 4) {                          /* tiled piece (Quick Backdrop, session 19): the next record holds the size */
+            if (++i >= l->npieces || d[off + 20 + 19] != 0x81) goto bad;
+            off += 20; p->tw = p->w; p->th = p->h; p->w = (uint16_t)rd32(d + off); p->h = (uint16_t)rd32(d + off + 4); p->pad &= ~4;
+        }
     }
+    l->npieces = np;
     l->objs = malloc(sizeof(lvobj_t) * (l->nobj ? l->nobj : 1));
     for (int i = 0; i < l->nobj; i++, off += 12) {
         l->objs[i].type = rd16(d + off); l->objs[i].anim = rd16(d + off + 2);

@@ -584,3 +584,20 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
 - **OT_SPRING_D = 29** (YellowSpringDown_416, FN2 / FN4 ceilings, RE event 3008 = event 3000 with G = 11): dispatched to
   aqua_spring (box contact from below while G <= 0, launch G 11 + gravity, sound 5). Types 20-27 are the parallax piece
   range and must not be reused.
+
+## Session 19: DV3 spike ball, RM Milla background (port: src/game/gimmicks.c, tools/import_frame.py, assets.c, game.c)
+- **Bamboo (gimmicks.c):** dv3_switch_spawn -> bamboo_link: per-type index lists of OT_BAM1..4 (creation order) and the
+  5319 start phases (pivot tm = fmod(10 (N - 1 - j), 50)). bamboo_update per frame: joints, poles (position, then angle),
+  pivot angles, heads, the 5228 contact test (bam_sensor_hit: the character sensor turned by direction (int)(N / 11.25)),
+  then the 5229-5234 state machine. Work is proportional to the bamboo count (no per-object scans). RE_NOTES has the RV data.
+- **Tiled pieces (level format, compatible):** a piece record with pad bit 2 is followed by a size record (s32 w, h at x, y;
+  pad 0x81). level_load folds the pair into one piece_t with tw / th = the tile and w / h = the box; draw_pieces draws only
+  the visible tiles, cutting the last row / column. Levels without Quick Backdrops are byte-identical in layout (only
+  dv3, rm2, rm3, rm5, fn2, fn5 gain tiled pieces; fn4 rebuilds identically). Collision is rasterised from the tiles by the
+  importer, so physics is unchanged in format. piece_t grew to 24 bytes (tw, th).
+- **Synthetic piece images:** a solid Quick Backdrop tiles a 64 x 64 colour block (ids >= QB_BASE). In a split-colour level
+  such blocks go to the colour set with the least image area (RM3: the second set; atlas sizes unchanged).
+- **Rebuild:** dv3 (23), rm2 (26), rm3 (27), rm5 (29), fn2 (31), fn4 (33), fn5 (34) with tools/build_level.sh. RM3 atlases stay
+  [(1024,1024), (1024,512), (1024,512), (1024,128)]; piece records 2702 -> 2782 (79 tiled pairs; the first tiles replace the single placements, + 1 solid box).
+- Flycast to look at: RM3 cart route with Milla (cave wall, supports to the bottom, no parallax crystals in the dark band),
+  RM3 / FN5 performance (draw time of the tiled layer-1 wall), DV3 bamboo swing and its hurt, DV3 rock wall near x 1200, y 1100.
