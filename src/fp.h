@@ -214,7 +214,7 @@ typedef struct { uint16_t type, anim; int32_t x, y; } lvobj_t;
 /* engine object types (tools/import_frame.py ENGINE_TYPES) */
 enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_MON_INVINC = 4, OT_MON_RINGS = 18, OT_MON_1UP = 19, OT_PETAL = 6, OT_SPIKES = 7,
        OT_SPRING = 8, OT_SIGN = 9, OT_TURRETUS = 10, OT_ROCK = 11, OT_MONITOR = 12,
-       OT_SPRING_UL = 13, OT_SPRING_UR = 14, OT_SPRING_R = 15, OT_SPRING_L = 16, OT_HANG = 17,
+       OT_SPRING_UL = 13, OT_SPRING_UR = 14, OT_SPRING_R = 15, OT_SPRING_L = 16, OT_HANG = 17, OT_SPRING_D = 29 /* YellowSpringDown_416 (FN2 / FN4 ceilings; event 3008) */,
        OT_PARALLAX = 20, OT_LADDERTOP = 30, OT_GANSEKI = 31,
        OT_PLAT_VALLEY = 32, OT_PLAT_MOVE2 = 33, OT_PLAT_MOVE3 = 34, OT_BRIDGE = 35, OT_LOG = 36,
        /* session 8 (tools/import_frame.py ENGINE_TYPES) */

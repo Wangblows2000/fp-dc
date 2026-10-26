@@ -493,6 +493,9 @@ void aqua_spring(obj_t *o, player_t *p) {
     case OT_RSPRING_D:                                                                            /* 3000: G = 18 (+ gravity) */
         if (Gv <= 0 && box_sensor(SENS_TOPBIG, x0, y0, x1, y1)) { player_launch(p, 0, -18.25, 5); spring_press(o, "rs_down", "rs_down_b"); }
         break;
+    case OT_SPRING_D:                                                                             /* 3008 (RE): as 3000 with G = 11 (+ gravity); the yellow image's own animation */
+        if (Gv <= 0 && box_sensor(SENS_TOPBIG, x0, y0, x1, y1)) { player_launch(p, 0, -11.25, 5); anim_restart(&o->an); }
+        return;
     case OT_RSPRING_R:                                                                            /* 2998: pushes right, B = 14, O = 5 */
         if (B <= 0 && box_sensor(SENS_LEFTBIG, x0, y0, x1, y1)) { player_spring_side(p, 14); spring_press(o, "rs_right", "rs_right_b"); }
         break;
@@ -674,7 +677,7 @@ int aqua_obj_update(obj_t *o, player_t *p) {
     case OT_DIGSPOT: case OT_FIREFLY: case OT_SLIME: case OT_WHISPMAKER: case OT_ABRICK: case OT_ABRICK2:
     case OT_SLIMEBURST: case OT_WHISP: case OT_ABPIECE: case OT_WJET: case OT_WJET_R: case OT_WJET_B: case OT_WJET_MAKER:
     case OT_JELLY: case OT_WATERHIT: case OT_BOMBX: return 1;    /* handled by the per-frame passes above */
-    case OT_RSPRING_U: case OT_RSPRING_D: case OT_RSPRING_L: case OT_RSPRING_R: case OT_RSPRING_UR: aqua_spring(o, p); return 1;
+    case OT_RSPRING_U: case OT_RSPRING_D: case OT_RSPRING_L: case OT_RSPRING_R: case OT_RSPRING_UR: case OT_SPRING_D: aqua_spring(o, p); return 1;
     case OT_MON_KEYSTONE: case OT_MON_WOOD: aqua_monitor_fall(o); return 0;   /* the monitor code still runs */
     }
     return 0;
