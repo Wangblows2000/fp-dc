@@ -43,7 +43,7 @@ def check(name, cond, info=''):
 rows, ev, out = run('', 30, {'FP_LEVEL': 'sb1', 'FP_CARD_DBG': '1'})
 check('sb1_fresh_start', rows[0]['x'] == 965 and rows[-1]['g4'] == 1 and rows[-1]['act'] == 1, 'x %s g4 %s' % (rows[0]['x'], rows[-1]['g4']))
 check('sb1_music_stage4', [l for _, l in ev if l.startswith('music')][:1] == ['music bgm/m_stage4.adp @0'])
-check('sb1_stage_sounds', 'stage sounds 10' in out)
+check('sb1_stage_sounds', 'stage sounds 11' in out)   # SFX_SB1: 10 flow / Kujacker ids + 99 (the Kujacker's end, sb_boss session 19)
 card = [l for l in out.splitlines() if l.startswith('card sb1')]
 check('sb1_card_images', card and 'stage 0x0' not in card[0] and 'name 0x0' not in card[0], str(card))
 

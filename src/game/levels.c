@@ -166,8 +166,8 @@ static const entry_t EN_SBSHIP[] = { { NULL, -32, 469 + 16, 0, 1, 0 } };
  * monitors' 172 / 173 / 278 / 308 / 316 (bombs, crates, shields: the AT ids, placed in SB2-SB4); enemies / gimmicks 54, 127,
  * 237, 264 (+ 265 / 371 SB3; 75 / 77 / 163 / 171 / 255 / 266 / 438 SB4); bosses: SB1 Kujacker 267-274, 371; SB2 chopper /
  * Spade 103, 156, 195, 446; SB3 satellite 165, 166, 169. The enemy / boss modules add their ids here. */
-static const short SFX_SB1[] = { 62, 267, 268, 269, 270, 271, 272, 273, 274, 371 };
-static const short SFX_SB2[] = { 62, 99, 54, 127, 237, 264, 103, 156, 195, 446, 172, 173, 278, 308, 316 };
+static const short SFX_SB1[] = { 62, 267, 268, 269, 270, 271, 272, 273, 274, 371, 99 };   /* + 99: the Kujacker's end (sb_kujacker.c) */
+static const short SFX_SB2[] = { 62, 99, 54, 127, 237, 264, 103, 156, 195, 446, 172, 173, 278, 308, 316, 71, 155, 240, 445 };   /* + Spade (sb_spade.c) */
 static const short SFX_SB3[] = { 62, 99, 54, 127, 237, 264, 265, 371, 165, 166, 169, 172, 173, 278, 308, 316 };
 static const short SFX_SB4[] = { 62, 99, 54, 127, 237, 264, 75, 77, 163, 171, 255, 266, 438, 172, 173, 278, 308, 316 };
 #define SB(d, f, n, mus) .dir = d, .frame = f, .stage = 4, .act = n, .nacts = 4, .music = mus, .checkpoints = 1, .sfx = SFX_SB##n, .nsfx = N_(SFX_SB##n)

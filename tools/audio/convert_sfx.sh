@@ -16,7 +16,7 @@ IDS="$IDS 111 132 134 146 148 149 151 152"   # RM5 Kingdom Stone / Mantalith (rm
 echo "name,source,duration_s,bytes" > "$OUT/sfx_manifest.csv"
 # Fortune Night stage groups (session 17, D-087): tails below -48 dB are cut (about 30 % of sound RAM); never for looped ids
 # (62, 260, 262) or anything outside the FN groups
-TRIM=" 70 75 99 127 241 288 134 137 143 163 164 165 166 167 168 169 171 187 188 191 192 193 194 195 196 197 198 199 200 208 212 216 217 218 219 223 224 225 226 227 228 229 230 231 243 249 254 256 257 258 259 261 317 371 428 430 436 103 156 237 255 264 265 266 267 268 269 270 271 272 273 274 438 446 "
+TRIM=" 70 75 99 127 241 288 134 137 143 163 164 165 166 167 168 169 171 187 188 191 192 193 194 195 196 197 198 199 200 208 212 216 217 218 219 223 224 225 226 227 228 229 230 231 243 249 254 256 257 258 259 261 317 371 428 430 436 103 156 237 255 264 265 266 267 268 269 270 271 272 273 274 438 446 71 155 445 "
 conv() {  # src dst
   local AF=""; case "$TRIM" in *" $(basename "$2" .wav | sed 's/^s//') "*) AF="-af areverse,silenceremove=start_periods=1:start_threshold=-48dB,areverse";; esac
   ffmpeg -v error -y -i "$1" $AF -ac 1 -ar $RATE -sample_fmt s16 "$TMP/x.wav"
@@ -42,7 +42,8 @@ for i in 127 143 163 164 167 171 187 188 208 212 216 217 218 223 224 225 226 227
 for i in 137 241 254 256 257 258 259 261 436; do R0=$RATE; RATE=11025; conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; RATE=$R0; done
 R0=$RATE; RATE=11025; conv "$VOX/eng/group/teamlilac_madeit.ogg" "$OUT/teamlilac_madeit.wav"; RATE=$R0
 # Sky Battalion (session 19, per-act groups SFX_SB1..4 in levels.c; ids played by the frame 35-38 events and not converted
-# above): SB1 267-274 (events 9044-9099, Kujacker group), SB2 103 156 237 264 446, SB3 265, SB4 255 266 438; half rate, trimmed
-for i in 103 156 237 255 264 265 266 267 268 269 270 271 272 273 274 438 446; do R0=$RATE; RATE=11025; conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; RATE=$R0; done
+# above): SB1 267-274 (events 9044-9099, Kujacker group), SB2 103 156 237 264 446, SB3 265, SB4 255 266 438; half rate, trimmed;
+# SB2 Spade (sb_spade.c: card throw 71, card burst 445, explosion 155)
+for i in 103 156 237 255 264 265 266 267 268 269 270 271 272 273 274 438 446 71 155 445; do R0=$RATE; RATE=11025; conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; RATE=$R0; done
 rm -rf "$TMP"
 awk -F, 'NR>1{s+=$4} END {printf "%d sounds, %.1f KB\n", NR-1, s/1024}' "$OUT/sfx_manifest.csv"
