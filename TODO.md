@@ -50,6 +50,17 @@
 - [ ] Unlock and achievement records (7119, 6900, 7116 / 7117; D-065)
 - [ ] Fortune Night (frame 29) and later stages: RM5 currently ends at the front end
 
+## Fortune Night (session 17)
+- [x] Acts FN1-FN6 for Lilac / Carol / Milla: flow, parallax, enemies, gimmicks A / B, minibosses, Serpentine, samurai,
+      Panther (FN5 chase, FN6 fight), cards, title cards, TA entry, per-act sound groups
+- [ ] Original traces for the INFERRED items: bulldozer facing (T-B1), samurai attack selector (U-E1), Panther mode-2
+      limb pose (U-G2), partner assist helpers (U-G3: defense / projectile helpers not ported), rolling arch entry, lift
+      second firing, trolley capture, restroom entry
+- [ ] Not ported: EffectWarning2 off-screen missile tracker, boss HUD slides, Serpentine escape timer stop / Adventure
+      dialog / beam rotation; Hard-only Serpentine missile untested
+- [ ] Real hardware: FN3 / FN5 / FN6 perf and memory (emulator: 603 vblanks per 600 frames)
+- [ ] FN3 with Carol / Milla has the least VRAM left of any level (see BUILD_AND_TEST_LOG "Session 17")
+
 ## Session 16
 - [x] Seams (offsets), RM3 truck / diamond, thrown petals' layer, basement vignette, VMU portraits, achievements
 - [ ] Verify the seam fix on real hardware

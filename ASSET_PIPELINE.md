@@ -221,3 +221,17 @@ tools/audio/convert_gallery.sh extracted/linux/audio "$G/Data/voices" /home/clau
 - UI: `tasel 6 -x '^bg(1[0-9]|[5-9])layer'` keeps the Fortune Night preview strips bg4layer1-4 (one 1024 atlas).
 - Sounds: SFX_FN = {61, 134} (flow; 61 is a Carol-group id, the stage loader now leaves an id of the current character group
   alone); convert_sfx.sh converts the results group voice group/teamlilac_madeit.ogg -> teamlilac_madeit.wav (11025 Hz).
+
+## Session 17: Fortune Night (lead: colour split, sound groups, limits)
+- Piece atlases are split by colour (import_frame.py `PIECE_COLS = 240`, D-082): the build log prints
+  `pieces: N colours, split into K colour sets [...]`; a single image over 240 colours is median-cut and reported.
+- Stage sounds are one group per act (D-085): `SFX_FN1`, `SFX_FN2`, `SFX_FN3`, `SFX_FN45` (FN4 and FN5), `SFX_FN6` in
+  levels.c, all 11025 Hz. convert_sfx.sh cuts tails below -48 dB for the ids in `TRIM` (D-087; never looped ids 62 / 260
+  / 262). Sizes after trimming: FN1 75, FN2 82, FN3 187, FN4-5 150, FN6 172 KB (RM 206, AT 141).
+- **Sound RAM rule (corrected):** the loader now logs `stage sounds N, sound RAM largest free block X KB` after the
+  stage group. The older "≥ 256 KB" figures were the `sound set` line, measured before the stage group. Measured
+  character free blocks: Lilac 380, Carol 342, Milla 325 KB. RM with Milla (the worst proven case) leaves about 119 KB; keep
+  every new group at or above that margin with the heaviest character (group ≤ about 200 KB).
+- Parallax images may use up to 32 power-of-two chunks (`PMAXCH`, parallax.c; FN2's 5_1802 needs 30).
+- Rebuild order after an importer change: `for i in 1 2 3 4 5 6; do tools/build_level.sh $((29+i)) fn$i converted2; done`
+  (json frames 30-35; the original's set_frame indices are 29-34).

@@ -14,8 +14,12 @@ IDS="$IDS 75 111 260 262"   # Relic Maze acts 3-5 gimmicks (relic_gimb.c): picka
 IDS="$IDS 68 73 96 99 149 312"   # RM3 Claw sequence (rm_claw.c)
 IDS="$IDS 111 132 134 146 148 149 151 152"   # RM5 Kingdom Stone / Mantalith (rm_mantalith.c)
 echo "name,source,duration_s,bytes" > "$OUT/sfx_manifest.csv"
+# Fortune Night stage groups (session 17, D-087): tails below -48 dB are cut (about 30 % of sound RAM); never for looped ids
+# (62, 260, 262) or anything outside the FN groups
+TRIM=" 70 75 99 127 134 137 143 163 164 165 166 167 168 169 171 187 188 191 192 193 194 195 196 197 198 199 200 208 212 216 217 218 219 223 224 225 226 227 228 229 230 231 243 249 254 256 257 258 259 261 317 371 428 430 436 "
 conv() {  # src dst
-  ffmpeg -v error -y -i "$1" -ac 1 -ar $RATE -sample_fmt s16 "$TMP/x.wav"
+  local AF=""; case "$TRIM" in *" $(basename "$2" .wav | sed 's/^s//') "*) AF="-af areverse,silenceremove=start_periods=1:start_threshold=-48dB,areverse";; esac
+  ffmpeg -v error -y -i "$1" $AF -ac 1 -ar $RATE -sample_fmt s16 "$TMP/x.wav"
   "$HERE/wav2adpcm" -t "$TMP/x.wav" "$2" > /dev/null
   echo "$(basename "$2" .wav),$(basename "$1"),$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$1"),$(stat -c %s "$2")" >> "$OUT/sfx_manifest.csv"
 }

@@ -527,7 +527,7 @@ static void bombs_frame(player_t *p) {
         if (!(o->fl & 0x100)) {                                                                   /* 3245 / 4056 */
             int arm = p->state != ST_DEAD && (box_sensor(SENS_LEFTBIG, o->x, o->y, o->x + 32, o->y + 32) || box_sensor(SENS_RIGHTBIG, o->x, o->y, o->x + 32, o->y + 32) ||
                                               box_sensor(SENS_TOPBIG, o->x, o->y, o->x + 32, o->y + 32) || box_sensor(SENS_BOTTOMBIG, o->x, o->y, o->x + 32, o->y + 32));
-            for (int k = 0; k < G.nobjs && !arm; k++) { const obj_t *e = &G.o[k]; if (e->alive && enemy_type(e->type) && e->an.b) { float a0, b0, a1, b1; ibox(e, &a0, &b0, &a1, &b1); arm = box_ov(a0, b0, a1, b1, o->x, o->y, o->x + 32, o->y + 32); } }
+            for (int k = 0; k < G.nobjs && !arm; k++) { const obj_t *e = &G.o[k]; if (e->alive && fabsf(e->x - o->x) < 1100 && fabsf(e->y - o->y) < 1100 && enemy_type(e->type) && e->an.b) {   /* proximity first (a frame is <= 1024 px; session 17 perf) */ float a0, b0, a1, b1; ibox(e, &a0, &b0, &a1, &b1); arm = box_ov(a0, b0, a1, b1, o->x, o->y, o->x + 32, o->y + 32); } }
             if (arm) { o->fl |= 0x100; o->tm = 0; set_ens(o, "mon_bomb_arm"); snd_play_orig(172, 220, 128); }
             continue;
         }
