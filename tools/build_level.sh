@@ -14,7 +14,7 @@ python3 tools/palettize.py "$T/carol" '^carol' --gid=2 '--pal4=0:^caroltail' && 
 # Milla (session 11): same scheme, pal2m.pal
 mkdir -p "$T/milla" && mv "$T"/milla*.tex "$T/milla/"
 python3 tools/palettize.py "$T/milla" '^milla' --gid=2 '--pal4=0:^millatail|^millafx' && mv "$T/milla/pal2.pal" "$T/pal2m.pal"
-python3 tools/palettize.py "$T" "^${N}_p[0-9]" '_par[0-9]' '^lilac' '_obj' '--flex=_ens' '--pal4=1:_p[xw]' '--pal4=2:^lilachair'
+python3 tools/palettize.py "$T" "^${N}_p[0-9]" '_par[0-9]' '^lilac' '_obj' '--flex=_ens' '--flex=_shl' '--pal4=1:_p[xw]' '--pal4=2:^lilachair'
 mv "$T/carol/"*.tex "$T/" && rmdir "$T/carol"
 mv "$T/milla/"*.tex "$T/" && rmdir "$T/milla"
 # parallax sets with more than 15 colours per image (left in ARGB1555 by palettize, Fortune Night): PAL8 in the free top of
