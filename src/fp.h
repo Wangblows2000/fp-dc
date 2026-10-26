@@ -863,6 +863,7 @@ int  game_timer(void);                               /* the stage timer in frame
 /* src/game/fn_panther.c (FN5 intro / chase, FN6 Panther fight, post-boss scene; spec_fn_bosses F / G) */
 void   fn_panther_spawn(void), fn_panther_frame(player_t *p), fn_panther_draw(int pass);   /* draw: objects_draw passes 0-2, 3 = front fades */
 int    fn_panther_q20(int type), fn_panther_input(uint32_t *held), fn_panther_on(void);   /* Q20 hitbox; the scripted pad (floor auto-run) */
+float  fn_panther_hud_dy(void);                       /* FN6 8764: the HUD shifted up 80 px at the closing pose (session 18) */
 /* src/game/fn_assist.c (session 18: FN6 partner assist 0x227c8 8668-8721, the plane / Milla's plane mode 8524-8532; spec_fn_bosses G.10).
  * fn_panther.c passes the fight state each frame (ctx); fn_assist_end at the white flash (8762) */
 typedef struct { const obj_t *hit; int fight, mode2, laser_on; double cannon_d, head_a; float lx, ly, lang; } fn_assist_ctx_t;

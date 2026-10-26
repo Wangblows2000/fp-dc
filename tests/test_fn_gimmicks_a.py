@@ -108,6 +108,49 @@ _, obs, _ = run('fn1', 0, '', 70, '%d:1896,%d:1768,%d:1992' % (ARCH, ARCHBASE, A
 a = obs_of(obs, ARCH, 1896, 69); b = obs_of(obs, ARCHBASE, 1768, 69); w = obs_of(obs, ARCHWHEEL, 1992, 69)
 check('arch_rests_at_180_base_open', a and a[0]['a0'] == 180 and b and (b[0]['fl'] & 1), '')
 check('arch_wheel_at_action_point', w and abs(w[0]['x'] - (1896 - 97)) <= 1 and abs(w[0]['y'] - 416) <= 1, str((w[0]['x'], w[0]['y'])) if w else '')
+# session 18: 7225 / 7226 catch only with the arch at rest on that side (A >= 175 / A <= 5, RE selection loops). RV arch_lf
+# (set_frame 29, Lilac on the spring at (1750, 578) holding right): caught at the ring's left foot (X 1754, Y 411, B 4.797,
+# N 85.9, A 178.2), runs round the upper half (top X 1893 44 frames later) with the arch following her, down the far side to
+# N 270 at the right foot (82 frames after the catch) where the arch lies at 0 and the base stops being solid
+def arch_run(level, ch, script, frames, bx):
+    rows, obs, _ = run(level, ch, script, frames, '%d:%d,%d:%d' % (ARCH, bx + 128, ARCHBASE, bx))
+    a = {o['f']: o for o in obs_of(obs, ARCH, bx + 128)}; b = {o['f']: o for o in obs_of(obs, ARCHBASE, bx)}
+    return rows, a, b
+rows, a, b = arch_run('fn1', 0, '20 TP 1750 560\n21 SETV others E 99999\n20 200 R', 200, 1768)
+c = [r['f'] for r in rows if r['gnd'] and r['ang'] == 90 and r['gsp'] == 5 and r['x'] < 1770]   # the 7225 frame (RV f79: X 1750, Y 416, B 5, N 90)
+c = int(c[0]) if c else None
+r = rows[c + 1] if c else None                                                                    # RV f80
+check('arch_rv_spring_catch', r and abs(rows[c]['x'] - 1750) <= 2 and abs(rows[c]['y'] - 14 - 416) <= 1 and abs(r['x'] - 1754) <= 1 and abs(r['y'] - 14 - 411) <= 1
+      and abs(r['gsp'] - 4.797) < 0.01 and abs(r['ang'] - 85.9) < 0.1 and abs(a[c + 1]['a0'] - 178.22) < 0.3 and not (b[c + 1]['fl'] & 1),
+      str(r and (r['x'], r['y'] - 14, r['gsp'], r['ang'], a[c + 1]['a0'])))
+top = [r['f'] for r in rows if c and r['f'] > c and r['gnd'] and abs(r['x'] - 1893) <= 3]
+n270 = [r['f'] for r in rows if c and r['f'] > c and r['gnd'] and r['ang'] == 270]
+check('arch_rv_round_the_upper_half', top and abs(top[0] - c - 44) <= 2 and abs(rows[int(top[0])]['y'] - 14 - 274) <= 1 and 85 < a[int(top[0])]['a0'] < 95
+      and n270 and abs(n270[0] - c - 82) <= 2 and a[int(n270[0]) + 2]['a0'] == 0 and all(not (b[f]['fl'] & 1) for f in range(c, int(n270[0]) - 2)),
+      'top %s n270 %s (catch %s)' % (top[:1], n270[:1], c))
+# RV arch_l / arch_r: running across the tower top (inside the ring, under the resting arch) is not caught
+for d, x in (('L', 1990), ('R', 1800)):
+    rows, a, b = arch_run('fn1', 0, '20 TP %d 400\n21 SETV others E 99999\n60 200 %s' % (x, d), 200, 1768)
+    check('arch_rv_not_caught_on_the_tower_top_%s' % d, all(o['a0'] == 180 for o in a.values()) and all(r['ang'] == 0 for r in rows if r['f'] < 140) and all(o['fl'] & 1 for o in b.values()))
+# every arch of acts 1-3 (FN1 x3, FN2, FN3 x2), every character (and Carol's bike on FN1's first): caught at the resting side's
+# foot, over the top with the arch pointing up, down the far side with the arch at the other rest; jumping off releases it and the
+# arch falls back (7232 / 7233); the far side catches from outside once the arch rests there (7226, B <= 0)
+for lv, bx, by in (('fn1', 1768, 288), ('fn1', 2152, 288), ('fn1', 9448, 1200), ('fn2', 4640, 376), ('fn3', 8576, 768), ('fn3', 8960, 480)):
+    for ch, nm in CHARS + (((3, 'bike'),) if bx == 1768 else ()):
+        rows, a, b = arch_run(lv, ch, '20 TP %d %d\n21 SETV others E 99999\n20 160 R' % (bx - 13, by + 110), 160, bx)
+        cg = [r['f'] for r in rows if r['gnd'] and 60 < r['ang'] < 100 and abs(r['x'] - bx) < 40]
+        tp = [r['f'] for r in rows if r['gnd'] and abs(r['x'] - (bx + 128)) < 6 and r['y'] - 14 < by]
+        fl = [r['f'] for r in rows if r['gnd'] and r['ang'] == 270 and r['x'] > bx + 240]
+        check('arch_ride_%s_%d_%s' % (lv, bx, nm), cg and tp and fl and cg[0] < tp[0] < fl[0] and 80 < a[int(tp[0])]['a0'] < 100 and a[159]['a0'] == 0,
+              'catch %s top %s far %s A %s' % (cg[:1], tp[:1], fl[:1], a[159]['a0']))
+rows, a, b = arch_run('fn1', 0, '20 TP 1755 398\n21 SETV others E 99999\n20 140 R\n45 50 J', 140, 1768)
+check('arch_jump_off', rows[44]['gnd'] and not (b[44]['fl'] & 1) and not rows[48]['gnd'] and b[48]['fl'] & 1 and a[139]['a0'] == 180 and a[60]['a0'] > a[48]['a0'],
+      'A %s -> %s' % (a[48]['a0'], a[139]['a0']))
+# over the ring and down the far side onto the spring at its foot (no key after f100): the spring throws her up past the right
+# foot with B 0 and the arch resting at 0 there catches her (7226, N 270, B -5)
+rows, a, b = arch_run('fn1', 0, '20 TP 1755 398\n21 SETV others E 99999\n20 100 R', 200, 1768)
+cg = [r['f'] for r in rows if r['f'] > 125 and r['gnd'] and 260 < r['ang'] < 300 and r['x'] > 2020]
+check('arch_far_side_catch_moving_left', cg and a[int(cg[0]) - 1]['a0'] <= 5 and a[int(cg[0]) + 4]['a0'] > 5 and not (b[int(cg[0])]['fl'] & 1), 'catch %s' % cg[:1])
 
 # ---- 5. boost blocks (FN1 (1928, 936), turned down by its marker): in view it arms (flag 5), flies 5 px a frame, crashes on the
 # floor (anim 7, sound 163), waits to D = 80 and flies back reversed; contact hurts (10 = 2 half-petals on Normal)
