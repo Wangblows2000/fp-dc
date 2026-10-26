@@ -859,6 +859,7 @@ int  game_timer(void);                               /* the stage timer in frame
 /* src/game/fn_panther.c (FN5 intro / chase, FN6 Panther fight, post-boss scene; spec_fn_bosses F / G) */
 void   fn_panther_spawn(void), fn_panther_frame(player_t *p), fn_panther_draw(int pass);   /* draw: objects_draw passes 0-2, 3 = front fades */
 int    fn_panther_q20(int type), fn_panther_input(uint32_t *held), fn_panther_on(void);   /* Q20 hitbox; the scripted pad (floor auto-run) */
+float  fn_panther_hud_dy(void);                       /* FN6 8764: the HUD shifted up 80 px at the closing pose (session 18) */
 /* src/game/fn_flow.c (Fortune Night stage script, stage index 3, spec_fn_flow) */
 void   fn_flow_spawn(void), fn_flow_frame(player_t *p);
 /* src/game/fn_boss.c (Fortune Night bosses, spec_fn_bosses A-E): spawn, the test_collisions handlers (before combat), the per-object

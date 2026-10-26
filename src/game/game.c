@@ -373,6 +373,7 @@ int game_init(void) {
     if (plat_start_level()) {
 #ifdef FP_HOST_ENV
         if (getenv("FP_CHAR")) G.character = atoi(getenv("FP_CHAR"));   /* 0 Lilac, 2 Carol, 3 Carol on the bike (global value 1) */
+        { extern int fe_difficulty; if (getenv("FP_DIFF")) fe_difficulty = atoi(getenv("FP_DIFF")); }   /* host tests: global 12 (0 Hard, 1 Normal, 2 Easy, 3 Casual) */
 #else
         { extern int demo_char; if (demo_char >= 0) G.character = demo_char; }   /* verification discs: CHAR n */
 #endif
@@ -870,6 +871,7 @@ void hud_draw(void) {
     hud_dy += results_hud_dy();                                    /* RE 4561: slides up 80 px during the results */
     hud_dy += rm_claw_hud_dy();                                    /* RM3 6206 / 6258 (src/game/rm_claw.c) */
     hud_dy += fn_flow_hud_dy();                                    /* FN3 7712 (src/game/fn_flow.c) */
+    hud_dy += fn_panther_hud_dy();                                 /* FN6 8764 (src/game/fn_panther.c) */
     if (G.card_t < CARD_OUT0) return;
     /* energy meter: fill = guienergy alt A / 100 as x scale (RV en_xs); shine loop while full (RV en_img) */
     int full = p->energy >= PHYS_ENERGY_MAX;
