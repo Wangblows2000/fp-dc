@@ -61,6 +61,21 @@
 - [ ] Real hardware: FN3 / FN5 / FN6 perf and memory (emulator: 603 vblanks per 600 frames)
 - [ ] FN3 with Carol / Milla has the least VRAM left of any level (see BUILD_AND_TEST_LOG "Session 17")
 
+## Sky Battalion (session 19)
+- [x] SB1-SB4 for Lilac, Carol, Milla: flow (hub pads, fly-in, ship openings, night), enemies, gimmicks, object gaps, bosses
+      (Kujacker, Spade / Chopper, Satellite, Grappler), cards, title cards, stage select / TA, sounds, route FN6 -> SB1
+- [x] DV3 bamboo spike traps (pairing, timing, damage); Quick Backdrop tiling (RM3 cave wall for every character)
+- [ ] Play-through from each act's opening to its boss arena per character (skipped by request; host route searches
+      reached SB2 Lilac, SB3 all three; SB4 not re-run after the chain-wall fix)
+- [ ] INFERRED / not ported: Kujacker strike spoke cadence + 20 damage, head/neck geometry, tail targets returning, Milla's
+      tornado shield exemption, player blown off the deck; plane boarding after real cannon kills; dialogue / voices,
+      m_trouble before Spade, HUD shift, CAM.H -50 (9008 / 10081), copilot palettes; Adventure cutscene branches (g4 99)
+- [ ] Gimmick guesses: hover-platform flame follow, cannon bullet removal, lightning cooldown, fan debris, chain-wall mask
+      span, crusher limits / trigger, moving-block trigger, SB3 back eyes fading; Magnetizer stays dormant (RE: never in view)
+- [ ] Hardware: SB1 with Carol has the least VRAM of any level (515 KB free after load; a carried shield takes 256 KB more)
+- [ ] Decision pending: RM3 dirt filler (x 976-7488, y 800-1568) and FN5 (x 11904-15200, y 240-512) are solid now (original's
+      obstacle flag)
+
 ## Fortune Night playtest fixes (session 18)
 - [x] FN6: projectiles, standing (mode 2) pose, stray debris, left edge, HUD slide, partner assists (Carol bike / Lilac
       float / both for Milla), plane petal delivery, closing cast + results; FN5 arena floor; FN1 UFO armour; FN5 dance timing;

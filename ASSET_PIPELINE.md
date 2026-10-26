@@ -271,3 +271,9 @@ tools/audio/convert_gallery.sh extracted/linux/audio "$G/Data/voices" /home/clau
   converted2/ui tasel 6 -x '^bg(1[0-9]|[6-9])layer'` (173 images, one atlas).
 - Sounds: tools/audio/convert_sfx.sh converts 103 156 237 255 264 265 266 267-274 438 446 at 11025 Hz with the -48 dB tail
   trim (SFX_SB1..4 groups in levels.c). Music: m_stage4 m_boss3 m_menu2 m_midboss m_trouble (already in bgm/).
+
+## Session 19: Sky Battalion data (lead)
+- Levels (all 23 after an importer change): add `"36 sb1" "37 sb2" "38 sb3" "39 sb4"` to the session-18 loop.
+- Stage select / TA strips: `python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui tasel 6 -x '^bg(1[0-9]|[6-9])layer'`.
+- Sounds: convert_sfx.sh SB lines (103 156 237 255 263-274 438 446 71 155 445, half rate, trimmed); per-act groups
+  SFX_SB1..4 (81-154 KB).

@@ -370,3 +370,17 @@ plane brings the petal box for Lilac / Carol and leaves at the white flash; the 
 
 **D-093 Gallery sound cards use the genuine clips from the user's PC install** (read-only copy); the 33 s monologue
 (card 70) streams on the music channel like the original's channel 31.
+
+## Session 19 (Sky Battalion)
+
+**D-094 MAX_OT 1280; Sky Battalion types 904-959 (flow), 1024-1099 (enemies), 1100-1149 (gimmicks), 1150-1279 (bosses).**
+
+**D-095 Quick Backdrops are tiled boxes** (RE QuickBackdrop::draw): one tiled piece record (level-format extension, old
+levels load unchanged); solid fills use a shared 64x64 block; an obstacle Quick Backdrop is solid as in the original
+(RM3 dirt filler, FN5 top band; pending the user's confirmation).
+
+**D-096 See-through scenery as ARGB4444 at half resolution** (texture format 4, parallax file v2) only where the original
+blends it (SB mist); everything else stays PAL8 / 4 bpp.
+
+**D-097 SB1 is the stage hub; the route continues FN6 -> SB1 and ends at the front end after SB1's results** (Jade Creek
+not ported), as RM5 / FN6 did before their next stages existed.
