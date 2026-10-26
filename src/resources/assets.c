@@ -1,3 +1,4 @@
+#include <stdint.h>
 /* Resource loading (FPTX/FPPL/FPS2/FPL2) with bounds validation, and the
  * Fusion-style animation player. */
 #include <stdlib.h>
@@ -50,7 +51,9 @@ int pal_load_file(const char *name) {
     return r;
 }
 
+static unsigned bank_gen = 1;                       /* bank loads so far (bank_anim cache, below) */
 int bank_load(bank_t *b, const char *name) {
+    bank_gen++;                                       /* invalidates the bank_anim cache */
     char fn[64]; size_t sz;
     memset(b, 0, sizeof *b); b->tex2.id = -1;
     if (tex_load_file(&b->tex, name) < 0) return -1;
@@ -123,10 +126,29 @@ const tex_t *bank_frame_tex(const bank_t *b, const frame_t *f, int *v) {
     *v = f->v; return &b->tex;
 }
 
-int bank_anim(const bank_t *b, const char *name) {
+/* name -> index cache (session 18 perf: objects set their animation by name every frame; FN levels have 500-700
+ * animations per bank). Keyed by bank and name text; a hit is re-checked against the bank's own name, a miss (-1) is only
+ * trusted for the same bank load (bank_gen). Same results as the plain search. */
+static struct { const bank_t *b; unsigned gen; short idx; char name[26]; } ACACHE[512];
+static int bank_anim_scan(const bank_t *b, const char *name) {
     for (int i = 0; i < b->nanims; i++)
         if (!strcmp(b->anims[i].name, name)) return i;
     return -1;
+}
+int bank_anim(const bank_t *b, const char *name) {
+    if (!b->nanims) return -1;
+    unsigned h = 2166136261u; size_t n = 0;
+    for (const char *c = name; *c; c++, n++) h = (h ^ (unsigned char)*c) * 16777619u;
+    if (n >= sizeof ACACHE[0].name) return bank_anim_scan(b, name);
+    h = (h ^ (unsigned)(uintptr_t)b) * 16777619u;
+    unsigned k = (h ^ (h >> 9)) & 511;
+    if (ACACHE[k].b == b && ACACHE[k].gen == bank_gen && !strcmp(ACACHE[k].name, name)) {
+        int i = ACACHE[k].idx;
+        if (i < 0 || (i < b->nanims && !strcmp(b->anims[i].name, name))) return i;
+    }
+    int i = bank_anim_scan(b, name);
+    ACACHE[k].b = b; ACACHE[k].gen = bank_gen; ACACHE[k].idx = (short)i; memcpy(ACACHE[k].name, name, n + 1);
+    return i;
 }
 
 /* RE (Active::force_animation): an animation change/restart resets the frame but KEEPS the speed counter */

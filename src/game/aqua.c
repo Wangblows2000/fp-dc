@@ -385,7 +385,9 @@ static int disc_box(const player_t *p, float x0, float y0, float x1, float y1) {
     return (cx - px) * (cx - px) + (cy - py) * (cy - py) <= 13.5f * 13.5f;
 }
 static int wh_age;
+static int jets_was;
 static void jets_frame(player_t *p) {
+    if (!objects_alive_type(OT_WJET) && !objects_alive_type(OT_WJET_R) && !objects_alive_type(OT_WJET_B) && !objects_alive_type(OT_WATERHIT)) { jets_was = 0; return; }   /* none: the passes below find nothing (session 18 perf) */
     int M = player_orig_m(p), px = (int)p->x, py = (int)floor(p->y - ORIG_REF_DY);
     int gt = GT();
     obj_t *first = NULL;
@@ -411,9 +413,9 @@ static void jets_frame(player_t *p) {
         if (A < G.camx + 490) o->x = (float)(A + 8 * (gt % 8));                               /* 4137 scroll */
         if (o->y >= py - 15 && o->y <= py + 15 && px - 100 < A && A < px + 40) active = 1;
     }
-    static int was;
+    int was = jets_was;
     if (active && !was && p->cY != 8) { snd_play_orig(14, 220, 128); snd_play_orig(7, 220, 128); }   /* 4138 (once) */
-    was = active;
+    jets_was = active;
     if (active && M != 9 && p->state != ST_DEAD) {                                            /* 4139 */
         if (chr_is_milla(G.character)) p->mE = 0;
         if (p->state != ST_ROLL) { p->state = ST_ROLL; p->state_t = 0; p->tun_lock = 0; }
@@ -521,13 +523,18 @@ static void bomb_explode(float x, float y, int age0) {
 void aqua_monitor_broken(const obj_t *m) { if (m->type == OT_MON_BOMB) bomb_explode(m->x, m->y, 1); }   /* generic break path (2627: A 1 on its first frame) */
 static void bombs_frame(player_t *p) {
     int nb = G.nobjs;
+    if (!objects_alive_type(OT_MON_BOMB) && !objects_alive_type(OT_BOMBX)) return;
+    /* enemies that can arm a bomb (session 18 perf: listed once per frame instead of a full scan per bomb; same order) */
+    static short cand[256]; int nc = -1;
     for (int i = 0; i < nb; i++) {
         obj_t *o = &G.o[i];
         if (!o->alive || o->type != OT_MON_BOMB) continue;
         if (!(o->fl & 0x100)) {                                                                   /* 3245 / 4056 */
             int arm = p->state != ST_DEAD && (box_sensor(SENS_LEFTBIG, o->x, o->y, o->x + 32, o->y + 32) || box_sensor(SENS_RIGHTBIG, o->x, o->y, o->x + 32, o->y + 32) ||
                                               box_sensor(SENS_TOPBIG, o->x, o->y, o->x + 32, o->y + 32) || box_sensor(SENS_BOTTOMBIG, o->x, o->y, o->x + 32, o->y + 32));
-            for (int k = 0; k < G.nobjs && !arm; k++) { const obj_t *e = &G.o[k]; if (e->alive && fabsf(e->x - o->x) < 1100 && fabsf(e->y - o->y) < 1100 && enemy_type(e->type) && e->an.b) {   /* proximity first (a frame is <= 1024 px; session 17 perf) */ float a0, b0, a1, b1; ibox(e, &a0, &b0, &a1, &b1); arm = box_ov(a0, b0, a1, b1, o->x, o->y, o->x + 32, o->y + 32); } }
+            if (!arm && nc < 0) { nc = 0; for (int k = 0; k < G.nobjs; k++) { const obj_t *e = &G.o[k]; if (e->alive && e->an.b && enemy_type(e->type)) { if (nc < 256) cand[nc++] = (short)k; else { nc = -2; break; } } } }
+            if (nc == -2) for (int k = 0; k < G.nobjs && !arm; k++) { const obj_t *e = &G.o[k]; if (e->alive && enemy_type(e->type) && e->an.b) { float a0, b0, a1, b1; ibox(e, &a0, &b0, &a1, &b1); arm = box_ov(a0, b0, a1, b1, o->x, o->y, o->x + 32, o->y + 32); } }
+            else for (int c = 0; c < nc && !arm; c++) { const obj_t *e = &G.o[cand[c]]; if (e->alive && e->an.b && fabsf(e->x - o->x) < 1100 && fabsf(e->y - o->y) < 1100) {   /* proximity first (a frame is <= 1024 px; session 17 perf) */ float a0, b0, a1, b1; ibox(e, &a0, &b0, &a1, &b1); arm = box_ov(a0, b0, a1, b1, o->x, o->y, o->x + 32, o->y + 32); } }
             if (arm) { o->fl |= 0x100; o->tm = 0; set_ens(o, "mon_bomb_arm"); snd_play_orig(172, 220, 128); }
             continue;
         }
@@ -640,20 +647,24 @@ void aqua_update(player_t *p) {
     /* session 13: the passes act on their own object types in any level; a level with none of these objects (every type
      * from OT_DIGSPOT up, placed or made at run time) skips them all, as Dragon Valley always did */
     if (!objects_have_from(OT_DIGSPOT) && !at_act()) { level_flow_frame(p); return; }
-    bursts_frame(p);                         /* 4134 (trigger block), col_8_16, 4130-4133 */
+    /* session 18 perf: a pass whose object types are all absent (objects_alive_type, a superset of the live types) is
+     * skipped; each skipped pass has no other effect when it finds none of its objects */
+#define AL(t) objects_alive_type(t)
+    if (AL(OT_SLIMEBURST)) bursts_frame(p);  /* 4134 (trigger block), col_8_16, 4130-4133 */
     bombs_frame(p);                          /* 3245-3251 bombs, 2630-2672 / 2760 / 4074 / 3243 / col_9_13 explosions */
-    jelly_frame(p);                          /* 4067-4069 (after the platforms) */
-    bricks_frame(p);                         /* 4070-4077 */
+    if (AL(OT_JELLY)) jelly_frame(p);        /* 4067-4069 (after the platforms) */
+    if (AL(OT_ABRICK) || AL(OT_RM_RUINS) || AL(OT_ABPIECE)) bricks_frame(p);   /* 4070-4077 */
     aqua_gim_post(p);                        /* 4078-4100 (aqua_gim.c) */
     if (at_act()) aqua_boss_update(p);       /* Aqua Tunnel's bosses: Iron Worm 4200-4237, Chomper 4410-4463, Chomper Snake 4600-4660 (aqua_boss.c) */
-    fireflies_frame();                       /* 4101-4113 */
-    slimes_frame(p);                         /* 4114-4129 */
-    bursts_timer();                          /* 4130-4133 */
-    whisps_frame();                          /* 4144-4149 */
+    if (AL(OT_FIREFLY)) fireflies_frame();   /* 4101-4113 */
+    if (AL(OT_SLIME)) slimes_frame(p);       /* 4114-4129 */
+    if (AL(OT_SLIMEBURST)) bursts_timer();   /* 4130-4133 */
+    if (AL(OT_WHISPMAKER) || AL(OT_WHISP)) whisps_frame();   /* 4144-4149 */
     jets_frame(p);                           /* 4136-4143 (near the end of the frame) */
     level_flow_frame(p);                     /* checkpoints and the boss camera (level data): 4196 / 4197, 4405, 4598; 4198 / 4199, 4408 / 4409, 4599 */
     maker_frame();                           /* 4453-4455 */
-    dig_events(p);
+    if (AL(OT_DIGSPOT)) dig_events(p); else dig_hint = 0;
+#undef AL
 }
 
 int aqua_obj_update(obj_t *o, player_t *p) {

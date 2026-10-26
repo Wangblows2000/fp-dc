@@ -500,6 +500,20 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
   reusable types (camera limits 368-371, chairs 336, layer switches 283, ...); about 2 ms per frame on the host profile.
   A per-type object index would remove that cost (not done: passes also act on runtime-created objects).
 
+## Session 18: pellet sounds, shield sprites, gallery voices (port: objects.c, player.c, shields.c, game.c, fe_gallery.inc)
+- **Sounds on a pellet (RE col_4_20 / col_7_20 / col_20_20, RV .snd):** shot 28; pellet death (hit or ground) 17 +
+  explosion02 (objects.c explode2, was 80 = Lilac's hurt voice); a hit adds 2414's 25 + the character's hurt voice
+  (Lilac lilac_hurt<n> = Assets 80-83, Carol 114 / 115 / 118 / 119, Milla 179-182; die 128 / 178). player_damage no longer
+  plays 17 (2414 plays 25 + voice only). Host check: `FP_TRACE_SID=1` prints `sid <id>` and now also `voice <name>` for the
+  resident voices (game.c voice_play). tests/test_gameplay.py `pellet_hit_sounds_*` / `pellet_miss_sounds_*`.
+- **Shield sprites:** G.shl = `<dir>/<dir>_shl` (tools/import_frame.py, acts without an on-map shield monitor: DV1 DV4 AT3 RM1
+  RM3 RM5 FN3 FN6), loaded by shields_bank_load() after level_start when G.p.shield != 0, or on the first frame a shield
+  exists without sprites (shl_need, once per act), freed in level_free. VRAM 256 KB while loaded. Host:
+  `FP_SH_DBG=1` prints `shv <frame> <dir> <OTHERS.B> <sprite found> <_shl loaded>` (tests/test_levels.py `shield_*`); the log
+  line `shields: no sprites for <dir> (<dir>/<dir>_shl missing)` means the act's data predates session 18.
+- **Gallery sound cards:** gal/<name>.wav (11025 Hz sample, <= 65534 samples) or gal/<name>.adp (longer: streamed once on
+  the music channel by music_play_once, idle when music_active() drops; Y.play_t = -1 marks it). Only sx_08b02 (card 70).
+
 ## Session 18: the Panther fight fixes (port: src/game/fn_panther.c; tests/test_fn_panther.py s18_*)
 - **Hook order:** fn_panther_input (before player_update) now also runs the FN6 floor events that precede the movement:
   8508 / 8509 (belt latch), 8512 (left edge), 8515-8517 (belt speed, virtual right press); floor_mode (after the movement)

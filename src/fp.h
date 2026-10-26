@@ -529,6 +529,8 @@ typedef struct {
                                     (Lilac's hair PlayerSkinSashHair_424 / Carol's tail PlayerSkinCarolTail_448) */
     bank_t bike;                 /* Carol riding the bike (PlayerSkinCarolBike_460), loaded only for Carol; Milla: millafx (PlayerReflect_463, the cube) */
     bank_t ens;                  /* per-level enemies / bosses / gimmicks (<dir>_ens; tools/import_frame.py ENS) */
+    bank_t shl;                  /* the elemental shields of an act without an on-map shield monitor (<dir>_shl), loaded only
+                                    while a carried shield needs it (shields.c, session 18) */
     tex_t par[12]; int npar;
     player_t p;
     obj_t o[MAX_OBJS];
@@ -918,6 +920,7 @@ int    water_on(void);
 double water_c(void);                      /* ML.C (visual surface) */
 /* src/game/shields.c */
 void   shields_reset(void), shields_update(player_t *p), shields_draw(const player_t *p), shield_on_crystal(player_t *p);
+void   shields_bank_load(void);                    /* after level_start: the act's shield bank when a shield is carried in */
 int    shield_absorb(player_t *p), shield_monitor_type(int ot);
 void   shield_monitor_broken(const obj_t *m), shield_icon_update(obj_t *ic, player_t *p), shield_preview_draw(const obj_t *m, float sx, float sy);
 void   obj_throw_petal(float x, float y);
