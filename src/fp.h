@@ -382,6 +382,12 @@ enum { OT_FNBOSS_FIRST = 800, OT_FN_UFO = 800 /* MinibossUFO_1772 (Q20) */, OT_F
        OT_FN_SAMU_PROBE = 843 /* MinibossSamuFloorCheck_1891 */, OT_FN_SAMU_DEBRIS = 844 /* runtime */, OT_FN_BOSSGATE = 845 /* BossGate_1894 / _2030 (Q7) */,
        OT_FNBOSS_LAST = 859 };
 enum { OT_FN_SERPNPC = 900 /* NPCSerpentine_945 in FN3's exit pass (7710-7725), created by the script */, OT_FN_FLOW_LAST = 909 };
+/* Sky Battalion stage objects (session 19, src/game/sb_flow.c; tools/import_frame.py SB_TYPES; range 904-959) */
+enum { OT_SB_SWPLAT = 904 /* SwitchPlatform_2100: invisible solid box, sinks under the player (8866-8872) */,
+       OT_SB_SWMASK = 905 /* SwitchPlatformMask_2099: its drawn image */, OT_SB_NAME1 = 906, OT_SB_NAME2 = 907, OT_SB_NAME3 = 908 /* LevelShipName1-3 */,
+       OT_SB_AIRSHIP = 909 /* LevelAirship1_2105 (SB1 layer 1, 0.25) */, OT_SB_ZAOFLAG = 910 /* LevelZaoFlag_2107 */,
+       OT_SB_DARKSKY = 911 /* LevelDarkSky_2114 (the Kujacker's night) */, OT_SB_BGPLAT = 913 /* LevelSBBGPlatform_2244 (the opening planks) */,
+       OT_SB_FLOW_LAST = 959 };
 /* Sky Battalion bosses and minibosses (session 19, src/game/sb_boss*.c, build/re/spec_sb_bosses.md): 1150-1279. The lvobj anim
  * field carries the sub id (SBBOSS_SUB) | instance layer << 8 (tools/import_frame.py SB_BOSS). */
 enum { OT_SBB_FIRST = 1150,
@@ -391,7 +397,7 @@ enum { OT_SBB_FIRST = 1150,
        OT_SB_KJ_BASE = 1170 /* BossKujackerBase_2118 */, OT_SB_KJ_HEAD = 1171 /* BossKujackerHead_2125 (Q20) */, OT_SB_KJ_HEAD2 = 1172 /* BossKujackerHead2_2119 */,
        OT_SB_KJ_LEG1 = 1173 /* BossKujackerLeg1_2117 */, OT_SB_KJ_LEG2 = 1174 /* BossKujackerLeg2_2116 */, OT_SB_KJ_PILOT = 1175 /* BossKujackerPilot_2124 */,
        OT_SB_KJ_TAIL = 1176 /* BossKujackerTail_2115 */, OT_SB_KJ_TARGET = 1177 /* BossKujackerTailTarget_2120 (Q20) */, OT_SB_KJ_WING1 = 1178 /* BossKujackerWing1_2122 */,
-       OT_SB_KJ_WING2 = 1179 /* BossKujackerWing2_2123 */, OT_SB_TORNADO = 1180 /* BossTornado_2131 */, OT_SB_DARKSKY = 1181 /* LevelDarkSky_2114 */,
+       OT_SB_KJ_WING2 = 1179 /* BossKujackerWing2_2123 */, OT_SB_TORNADO = 1180 /* BossTornado_2131 */, /* 1181 unused (LevelDarkSky_2114: the flow's OT_SB_DARKSKY 911) */
        OT_SB_KJ_CHARGE = 1182 /* EffectsChargeBeam_2130 */, OT_SB_KJ_BOLT = 1183 /* runtime: BossBolt */, OT_SB_KJ_LIGHTNING = 1184 /* runtime: BossLightning2 */,
        OT_SB_KJ_TRACKER = 1185 /* runtime: BossKujackerTailTracker */, OT_SB_KJ_GUST = 1186 /* runtime: BossGust */, OT_SB_KJ_GUST2 = 1187 /* runtime: BossGust2 */,
        OT_SB_WARNING = 1188 /* runtime: EffectWarning_1528 */,
@@ -880,6 +886,8 @@ typedef struct {
     int res_wipe;                                    /* boss results (path 3) end with the wipe after D = 150 (FN6 8546-8549) */
     const fnenemy_t *fne;                            /* Fortune Night enemies' per-act rules (fn_enemy.c); NULL: defaults */
     const fnboss_t *fnb;                             /* Fortune Night bosses' per-act rules (fn_boss.c); NULL: FN1 / FN2 */
+    /* session 19 (Sky Battalion, spec_sb_flow) */
+    int clear_free;                                  /* the act-end fade leaves the player alone (no 3311 walk, control kept): SB1's launch pads (8874-8878) */
 } level_def_t;
 const char *level_music_slot(int slot);              /* the current act's music for a play_music(slot) of its scripts (NULL: none) */
 void level_lock_markers(void);                       /* CAM.M = 1: the boss bounds of the CameraLimitBoss markers (as placed / moved) */
@@ -897,6 +905,17 @@ int    fn_assist_cpu_finish(const obj_t *hit), fn_assist_last_hit(void);   /* ac
 int    fn_assist_closing(int D), fn_assist_cast_on(void);   /* the closing scene's cast (8764-8785): the head's D; the player hidden */
 /* src/game/fn_flow.c (Fortune Night stage script, stage index 3, spec_fn_flow) */
 void   fn_flow_spawn(void), fn_flow_frame(player_t *p);
+/* src/game/sb_flow.c (Sky Battalion stage script, stage index 4, spec_sb_flow). Hooks for the boss / gimmick modules:
+ *   sb_flow_ship_done(flag): a ship's boss is beaten (SB2 0x10, SB3 0x20, SB4 0x40; RE 9597 / 9698 / 9925 / 10112): MasterLevel
+ *     flag, camera released (CAM.M 2, U 0), play_music(5). Call it where the boss's end event runs.
+ *   sb_flow_night(): 0, 1 = the night is falling (9005-9008), 2 = 9009 fired (group 0x22840: start the Kujacker).
+ *   sb_flow_intro(): SB2-SB4 opening (0x228f3): 0 none, 1 hold the hover platforms (9461: I -160), 2 release them (9468 /
+ *     9873: flag 0x800).
+ *   sb_flow_pad_down(i): SwitchPlatform with index C = i fully sunk (flag 4, 8872): SB2 / SB4 door logic.
+ * The Kujacker's end starts the results with results_begin_boss(time) (the sb1 row adds the wipe 8873-8881 -> frame 8). */
+void   sb_flow_spawn(void), sb_flow_frame(player_t *p), sb_flow_draw(int pass), sb_flow_ship_done(int flag);
+int    sb_flow_act(void), sb_flow_night(void), sb_flow_intro(void), sb_flow_pad_down(int i);
+float  sb_flow_hud_dy(void);
 /* src/game/fn_boss.c (Fortune Night bosses, spec_fn_bosses A-E): spawn, the test_collisions handlers (before combat), the per-object
  * dispatch (1: handled; every rule runs in fn_boss_frame after the gimmicks), draw (1: drawn / skipped), scripted pad (CTRL.M) */
 void   fn_boss_spawn(void), fn_boss_pre(player_t *p), fn_boss_frame(player_t *p);

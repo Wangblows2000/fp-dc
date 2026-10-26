@@ -82,8 +82,8 @@ int r_tex_load(tex_t *t, const void *data, size_t size) {
     if (size < 16 || memcmp(d, "FPTX", 4) || slot >= MAXTEX) return -1;
     memcpy(hdr, d + 4, 12);
     int w = hdr[0], h = hdr[1], fmt = hdr[2], grp = hdr[5];
-    size_t bytes = fmt == 3 ? (size_t)w * h / 2 : fmt >= 1 ? (size_t)w * h : (size_t)w * h * 2;   /* fmt 1: PAL8 linear, 2: PAL8 pre-twiddled (tools/twiddle_disc.py), 3: PAL4 linear */
-    if (fmt > 3 || (fmt >= 1 && fmt <= 2 && grp > 3) || (fmt == 3 && grp > 63) || w < 8 || h < 8 || (w & (w - 1)) || (h & (h - 1)) || bytes + 16 > size) return -1;
+    size_t bytes = fmt == 3 ? (size_t)w * h / 2 : fmt == 4 ? (size_t)w * h * 2 : fmt >= 1 ? (size_t)w * h : (size_t)w * h * 2;   /* fmt 1: PAL8 linear, 2: PAL8 pre-twiddled (tools/twiddle_disc.py), 3: PAL4 linear, 4: ARGB4444 linear */
+    if (fmt > 4 || (fmt >= 1 && fmt <= 2 && grp > 3) || (fmt == 3 && grp > 63) || w < 8 || h < 8 || (w & (w - 1)) || (h & (h - 1)) || bytes + 16 > size) return -1;
     pvr_ptr_t p = pvr_mem_malloc(bytes);
     if (!p) { plat_log("VRAM exhausted (%dx%d)\n", w, h); return -1; }
     int txfmt;
@@ -96,6 +96,9 @@ int r_tex_load(tex_t *t, const void *data, size_t size) {
     } else if (fmt == 1) { /* 8-bit palettized, linear: KOS twiddles every texel while uploading */
         pvr_txr_load_ex(d + 16, p, w, h, PVR_TXRLOAD_8BPP);
         txfmt = PVR_TXRFMT_PAL8BPP | PVR_TXRFMT_8BPP_PAL(grp);
+    } else if (fmt == 4) {  /* ARGB4444 (session 19: Sky Battalion's mist, per-pixel alpha; drawn with vertex alpha < 255 = TR list) */
+        pvr_txr_load(d + 16, p, w * h * 2);
+        txfmt = PVR_TXRFMT_ARGB4444 | PVR_TXRFMT_NONTWIDDLED;
     } else {
         pvr_txr_load(d + 16, p, w * h * 2);
         txfmt = PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_NONTWIDDLED;

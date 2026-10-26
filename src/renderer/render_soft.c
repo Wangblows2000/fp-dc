@@ -31,7 +31,7 @@ int r_tex_load(tex_t *t, const void *data, size_t size) {
         return 0;
     }
     size_t bpp = hdr[2] == 1 ? 1 : 2;
-    if (hdr[2] > 1 || (size_t)hdr[0] * hdr[1] * bpp + 16 > size || (hdr[2] == 1 && hdr[5] > 3)) return -1;
+    if ((hdr[2] > 1 && hdr[2] != 4) || (size_t)hdr[0] * hdr[1] * bpp + 16 > size || (hdr[2] == 1 && hdr[5] > 3)) return -1;
     texs[slot].w = hdr[0]; texs[slot].h = hdr[1]; texs[slot].fmt = hdr[2]; texs[slot].grp = hdr[5];
     if (hdr[2] == 1) {
         texs[slot].idx = malloc((size_t)hdr[0] * hdr[1]);
@@ -108,6 +108,12 @@ void r_sprite(const tex_t *t, int u, int v, int uw, int vh, float x, float y, fl
             int tu = flip ? u + uw - 1 - (int)fu : u + (int)fu;
             if (tu < 0 || tu >= tw) continue;
             uint16_t c = ix ? pal[ix[tv * tw + tu]] : px[tv * tw + tu];
+            if (texs[t->id].fmt == 4) {                  /* ARGB4444 (session 19): alpha = texel alpha x vertex alpha (PVR MODULATEALPHA) */
+                uint32_t ta = (c >> 12) * 17; if (!ta) continue;
+                uint32_t rgb4 = (((c >> 8) & 15) * 17 << 16) | (((c >> 4) & 15) * 17 << 8) | ((c & 15) * 17);
+                fb[sy * SCREEN_W + sx] = blend(fb[sy * SCREEN_W + sx], modulate(rgb4, argb), ta * (argb >> 24) / 255);
+                continue;
+            }
             if (!(c & 0x8000)) continue;
             uint32_t rgb = (((c >> 10) & 31) << 19) | (((c >> 5) & 31) << 11) | ((c & 31) << 3);
             if (invert_on) rgb ^= 0xffffff;
