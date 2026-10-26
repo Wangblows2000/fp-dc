@@ -884,6 +884,7 @@ void objects_draw(int pass) {
     if (pass == 1) combat_draw_shields(1);           /* visible slash shields, behind Lilac */
     fn_gima_draw(pass);                              /* Fortune Night: additive / scaled / depth-sorted gimmick parts (fn_gima.c) */
     fn_panther_draw(pass);                           /* FN6: panther flash copies, wheel, laser, glow, speed back (fn_panther.c) */
+    sb_flow_draw(pass);                              /* SB: airships (0.25 layer), opening planks (0.8), the night sky (sb_flow.c) */
     sb_gim_draw(pass);                               /* Sky Battalion gimmick parts drawn out of the object order (sb_gim.c) */
 }
 

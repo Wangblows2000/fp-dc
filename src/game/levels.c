@@ -152,6 +152,26 @@ static const fnenemy_t FNE_FN1 = { 1500, 1, 0, 0 }, FNE_FN2 = { 0, 0, 1, 0 }, FN
 #define FN(d, f, n, mus) .dir = d, .frame = f, .stage = 3, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_FN##n, .nsfx = N_(SFX_FN##n)
 #define FN_M123 .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage3.adp", .mus7 = "bgm/m_stage3.adp"
 #define FN_M45 .mus4 = "bgm/m_boss.adp", .mus6 = "bgm/m_stage3b.adp", .mus7 = "bgm/m_stage3b.adp"
+/* Sky Battalion (session 19, spec_sb_flow): checkpoints (SB2 9550 / 9551; SB3 9876 / 9877 and SB4 10076 / 10077 up to W - 100,
+ * SB4's second with MV.Y > 830), the ships' right-edge exit back to SB1 (9455-9458, B > 0, g4 -1), the entries: SB1 from a
+ * ship (8882: X -40, Y = start y + 16 - 400, B 15 while the fade runs; G -5 in sb_flow.c), a ship from SB1 (2955-2957: x -32,
+ * start y + 16; no B event: the opening of sb_flow.c holds the player on the first hover platform) */
+static const cpzone_t CP_SB2[] = { { 7192, 7392, 2, 7192, 616, 0, 0 }, { 10800, 10900, 3, 10872, 588, 0, 0 } };
+static const cpzone_t CP_SB3[] = { { 5920, 14300, 2, 5920, 580, 0, 0 }, { 10100, 14300, 3, 10290, 710, 0, 0 } };
+static const cpzone_t CP_SB4[] = { { 5980, 15524, 2, 5980, 266, 0, 0 }, { 12090, 15524, 3, 12090, 1160, 830, 0 } };
+static const exit_t EX_SBSHIP[] = { { 1, 0, -50, 0, 0, "sb1" } };
+static const entry_t EN_SB1[] = { { NULL, -40, 1189 + 16 - 400, 0, 1, 15 } };
+static const entry_t EN_SBSHIP[] = { { NULL, -32, 469 + 16, 0, 1, 0 } };
+/* stage sounds per act (11025 Hz; Media::play_id of the frames' own events, tools: spec_sb_flow 7): pads 62, planks 99, the
+ * monitors' 172 / 173 / 278 / 308 / 316 (bombs, crates, shields: the AT ids, placed in SB2-SB4); enemies / gimmicks 54, 127,
+ * 237, 264 (+ 265 / 371 SB3; 75 / 77 / 163 / 171 / 255 / 266 / 438 SB4); bosses: SB1 Kujacker 267-274, 371; SB2 chopper /
+ * Spade 103, 156, 195, 446; SB3 satellite 165, 166, 169. The enemy / boss modules add their ids here. */
+static const short SFX_SB1[] = { 62, 267, 268, 269, 270, 271, 272, 273, 274, 371 };
+static const short SFX_SB2[] = { 62, 99, 54, 127, 237, 264, 103, 156, 195, 446, 172, 173, 278, 308, 316 };
+static const short SFX_SB3[] = { 62, 99, 54, 127, 237, 264, 265, 371, 165, 166, 169, 172, 173, 278, 308, 316 };
+static const short SFX_SB4[] = { 62, 99, 54, 127, 237, 264, 75, 77, 163, 171, 255, 266, 438, 172, 173, 278, 308, 316 };
+#define SB(d, f, n, mus) .dir = d, .frame = f, .stage = 4, .act = n, .nacts = 4, .music = mus, .checkpoints = 1, .sfx = SFX_SB##n, .nsfx = N_(SFX_SB##n)
+#define SB_M34 .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage4.adp", .mus7 = "bgm/m_stage4.adp"
 #define RM(d, f, n, mus) .dir = d, .frame = f, .stage = 2, .act = n, .nacts = 5, .music = mus, .checkpoints = 1, .sfx = SFX_RM, .nsfx = N_(SFX_RM)
 static const level_def_t LEVELS[] = {
     /* Dragon Valley: frame index 20-23 (RE loop_play_music_N_20..23), water DV2 / DV3 (5109 / 5314), DV4 results at the
@@ -197,6 +217,22 @@ static const level_def_t LEVELS[] = {
     { FN("fn5", 33, 5, "bgm/m_stage3b.adp"), FN_M45, .fne = &FNE_FN5, .fnb = &FNB_FN5, .wplate_cyclone = 1, .fnb_disco = 1, .card_first = 39, .cps = CP_FN5, .ncps = N_(CP_FN5), .exits = EX_FN45, .nexits = N_(EX_FN45), .cam_right = 15288 + 213 },
     { FN("fn6", 34, 6, "bgm/m_boss.adp"), .mus4 = "bgm/m_boss.adp", .mus6 = "bgm/m_boss.adp", .mus7 = "bgm/m_boss.adp", .walkin_minx = 400, .walkin_free = 1,
       .cam_box = &BOX_FN6, .death_to = "fn5", .death_g4 = 2, .res_voice = "teamlilac_madeit", .res_wipe = 1 },
+    /* Sky Battalion: frame index 35-38 (session 19, spec_sb_flow; sb_flow.c): sb1 = json 36 = Zao's airship, the hub. A fresh
+     * start (g4 0 -> 1, 5839) shows the card; its pads send the player to the ships (g4 -1, 8876-8878, the free fade); the
+     * ships end at their right edge back to sb1 (9455-9458), where she flies in from x -40, 400 px up, B 15, G -5 (8882 /
+     * 8883, 5047). The Kujacker and the results are in sb1 (results wipe 8873-8881). Cards 41-50 (counters 9763 / inline:
+     * 41, 44, 48; sb1 has none). Music per frame loop table (tools/re/bgm_refs.py + the wrappers): sb1 4 m_boss3, 5 / 7
+     * m_stage4, 6 m_menu2; sb2 4 m_midboss, 5 / 6 m_stage4, 7 m_trouble; sb3 / sb4 4 m_midboss, 5-7 m_stage4. Deaths
+     * restart the act (1990, g4 kept). Checkpoints 9550 / 9551, 9876 / 9877, 10076 / 10077 (X < W - 100; SB4's second
+     * needs MV.Y > 830). No 2860 in any SB frame: the right camera bound is the frame width. */
+    { SB("sb1", 35, 1, "bgm/m_stage4.adp"), .mus4 = "bgm/m_boss3.adp", .mus6 = "bgm/m_menu2.adp", .mus7 = "bgm/m_stage4.adp", .start_card = 1,
+      .entries = EN_SB1, .nentries = N_(EN_SB1), .clear_free = 1, .res_wipe = 1 },
+    { SB("sb2", 36, 2, "bgm/m_stage4.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage4.adp", .mus7 = "bgm/m_trouble.adp", .card_first = 41,
+      .cps = CP_SB2, .ncps = N_(CP_SB2), .exits = EX_SBSHIP, .nexits = N_(EX_SBSHIP), .entries = EN_SBSHIP, .nentries = N_(EN_SBSHIP), .walkin_free = 1 },
+    { SB("sb3", 37, 3, "bgm/m_stage4.adp"), SB_M34, .card_first = 44,
+      .cps = CP_SB3, .ncps = N_(CP_SB3), .exits = EX_SBSHIP, .nexits = N_(EX_SBSHIP), .entries = EN_SBSHIP, .nentries = N_(EN_SBSHIP), .walkin_free = 1 },
+    { SB("sb4", 38, 4, "bgm/m_stage4.adp"), SB_M34, .card_first = 48,
+      .cps = CP_SB4, .ncps = N_(CP_SB4), .exits = EX_SBSHIP, .nexits = N_(EX_SBSHIP), .entries = EN_SBSHIP, .nentries = N_(EN_SBSHIP), .walkin_free = 1 },
 };
 static const level_def_t DEFAULT = { .dir = "", .frame = -1, .stage = -1, .act = 1, .nacts = 1, .music = "bgm/m_stage1.adp" };
 
@@ -297,10 +333,11 @@ const entry_t *level_entry(const char *from) {
     for (int k = 0; k < L->nentries; k++) if (!L->entries[k].from || (from && !strcmp(L->entries[k].from, from))) return &L->entries[k];
     return NULL;
 }
-/* Classic route after a stage (RE frame 8, spec_records_saves 1 / spec_rm_flow 1.1 / spec_fn_flow 1.1): Aqua Tunnel (s 0) and
- * Dragon Valley (s 1) -> Relic Maze (s 2) -> Fortune Night (s 3, MenuSequence.I = 2 -> frame 29 for every character); after
- * Fortune Night frame 8 goes to Sky Battalion (frame 35), not ported (NULL: back to the front end) */
-const char *level_route_next(int stage) { return stage == 0 || stage == 1 ? level_first_of_stage(2) : stage == 2 ? level_first_of_stage(3) : NULL; }
+/* Classic route after a stage (RE frame 8, spec_records_saves 1 / spec_rm_flow 1.1 / spec_fn_flow 1.1 / spec_sb_flow 1): Aqua Tunnel
+ * (s 0) and Dragon Valley (s 1) -> Relic Maze (s 2) -> Fortune Night (s 3, MenuSequence.I = 2 -> frame 29 for every character)
+ * -> Sky Battalion (s 4, I = 3 -> frame 35 = sb1 for every character); after Sky Battalion frame 8 goes to Jade Creek (I = 4
+ * -> frame 39), not ported (NULL: back to the front end) */
+const char *level_route_next(int stage) { return stage == 0 || stage == 1 ? level_first_of_stage(2) : stage == 2 ? level_first_of_stage(3) : stage == 3 ? level_first_of_stage(4) : NULL; }
 /* RM5 labyrinth warps (spec_rm_flow 2.5): the player is in a warp zone moving its way */
 const warp_t *level_warp_check(const player_t *p) {
     const level_def_t *L = level_cur();
