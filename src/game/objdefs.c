@@ -599,6 +599,16 @@ static const objdef_t DEFS[] = {
     { OT_FNP_SLINE,     0,                                     NULL         }, /* - (EffectSpeedLine_2050) */
     { OT_FNP_SHIELD,    0,                                     NULL         }, /* - (ShieldSerpentine_1872, the rider's) */
     { OT_FNP_INSTA,     0,                                     NULL         }, /* - (the partner's ShieldInstaShield) */
+    /* Sky Battalion stage objects (session 19, sb_flow.c; RE on_frame_36..39_init qualifiers: SwitchPlatform is in q7) */
+    { OT_SB_SWPLAT,     OD_SOLID|OD_BOXCOL|OD_HIDDEN,          "sbswplat"   }, /* switchplatform_2100 (invisible box; its mask is drawn) */
+    { OT_SB_SWMASK,     0,                                     "sbswmask"   }, /* switchplatformmask_2099 */
+    { OT_SB_NAME1,      0,                                     "sbname1"    }, /* levelshipname1_2111 */
+    { OT_SB_NAME2,      0,                                     "sbname2"    }, /* levelshipname2_2112 */
+    { OT_SB_NAME3,      0,                                     "sbname3"    }, /* levelshipname3_2113 */
+    { OT_SB_AIRSHIP,    OD_HIDDEN,                             "sbairship0" }, /* levelairship1_2105 (drawn on the 0.25 layer by sb_flow.c) */
+    { OT_SB_ZAOFLAG,    0,                                     "sbflag"     }, /* levelzaoflag_2107 */
+    { OT_SB_DARKSKY,    OD_HIDDEN,                             NULL         }, /* leveldarksky_2114 (a full-view rectangle, sb_flow.c) */
+    { OT_SB_BGPLAT,     OD_HIDDEN,                             "sbbgplat"   }, /* levelsbbgplatform_2244 (the opening planks, layer 1 at 0.8) */
 };
 static objdef_t BY_TYPE[MAX_OT];
 static int built;
