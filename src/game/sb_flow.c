@@ -120,6 +120,7 @@ static void pads(player_t *p) {
             if (SB.padB[k] == 0) snd_play_orig(62, 200, 128);
             double ny = (int)(SB.padA[k] + fmin(SB.padB[k] + 0.5, 24)), dy = ny - o->y;
             SB.padB[k] = fmin(SB.padB[k] + 0.5, 24); o->y = (float)ny; p->y += dy;
+            if (SB.padB[k] < 24) sb_gim_door_rise(k);              /* 9341 / 9342, 9832 / 9833: its SwitchDoor (A = C) rises 2 (sb_gim.c) */
         }
         if (!(SB.padfl[k] & 2) && SB.padB[k] >= 24) { SB.padfl[k] |= 2 | 4; snd_play_orig(49, 220, 128); SBLOG("pad %d down", k); }
         o->y = (float)(int)(SB.padA[k] + SB.padB[k]);
