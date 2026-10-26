@@ -499,3 +499,19 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
 - The AT / RM family passes (aqua_update, relic_frame, relic_gima_post) still run in FN because FN places RM-range
   reusable types (camera limits 368-371, chairs 336, layer switches 283, ...); about 2 ms per frame on the host profile.
   A per-type object index would remove that cost (not done: passes also act on runtime-created objects).
+
+## Session 18: Fortune Night playtest fixes (port: tools/import_frame.py, fn_boss.c, fn_gimb.c, fn_gima.c)
+- **Importer:** FNA_TYPES_ID maps BreakableFloor1/2 **1996 / 1997** (FN5) to OT_FN_BFLOOR (sub 1 = Floor2); their ens rows use
+  the handle substitution (fnbfloor0 / 1 from the placed handle's images); piece rows: 1764 limited to json 30-32 / 35, 1995
+  (FN5) added for json 34, both named fnbfpiece. fn5 exports 886 objects (was 830). **The lead must rebuild converted2/fn5**
+  (`rm converted2/fn5; tools/build_level.sh 34 fn5 converted2`); other levels are unchanged.
+- **fn_boss.c ufo_a1:** flag 5 (F_ARM) is set while G = 0 and no longer cleared (7367 only).
+- **fn_gimb.c disco:** S.idle_t is the sash idle clock; dance when DiscoLight A >= 64, still (ground, B 0, M 0, no keys), not
+  on the bike and ((idle_t - 1) * 14 / 100) % 12 > 10.
+- **fn_gima.c arches:** 7225 `A >= 175`, 7226 `A <= 5`; the per-arch proximity test is the base's 256 x 128 box + 48 px (the
+  old 200-px radius around the base's top-left corner dropped the ring's right half: the base went non-solid under her).
+- Host tests: test_fn_bosses (ufo armour in every state, clangs without damage, floor cut and fly-off despite hits for the
+  three characters, reset after a death, dormant after the checkpoint restart; FN5 56 floors, landing on them, rows break,
+  entry -> defeat -> out of the arena -> FN6 for the three characters), test_fn_gimmicks_a (RV arch_lf catch and ride, RV
+  arch_l / arch_r no catch, every arch of FN1-FN3 for the three characters + the bike, jump-off, far-side catch),
+  test_fn_gimmicks_b (RV dance timing for the three, cancel / restart, walk-in, no dance on the bike).
