@@ -438,6 +438,8 @@ static void spikebit_frame(obj_t *o) {                                          
     if (o->y > G.camy + SCREEN_H + 64) o->alive = 0;
 }
 void sb_enemy_spawn(void) {
+    static int reg;
+    if (!reg) { reg = 1; snap_register(&S, sizeof S); snap_register(LST, sizeof LST); snap_register(NLS, sizeof NLS); }   /* host search snapshots */
     memset(&S, 0, sizeof S); memset(NLS, 0, sizeof NLS);
     for (int t = OT_SBE_FIRST; t <= OT_SBE_LAST && !S.on; t++) S.on = objects_have(t);
     if (!S.on) return;

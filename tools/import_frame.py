@@ -737,6 +737,48 @@ SBE_ENS_WITH = {'enemyfragbomb_2103': ('enemyhoppermkii',), 'effectsdust01_369':
     'effectsdebris_427': _SBE_KS, 'effectsexplosion06_435': ('enemydnacannon',)}
 ENGINE_TYPES_ID.update(SBE_TYPES_ID); ENS += SBE_ENS   # SB_ENEMIES
 for _k, _v in SBE_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # SB_ENEMIES
+# ---- SB_GIM: Sky Battalion gimmicks (session 19, build/re/spec_sb_gimmicks.md; src/game/sb_gim.c), engine types 1100-1149 (fp.h
+# OT_SB_*). Families share a type; SBG_SUB gives the member index (lvobj anim bits 0-7, the instance layer in bits 8-15).
+SBG_TYPES_ID = {('gimmickcannon', 2142): 1100, ('gimmickcannonbase', 2141): 1101, ('gimmickcannonbase2', 2176): 1102,
+    ('hazardfireup', 2237): 1105, ('hazardfiredown', 2238): 1105, ('hazardfireleft', 2241): 1105, ('hazardfireright', 2240): 1105,
+    ('hazardlightningradial', 2254): 1106, ('hazardlightningradial2', 2256): 1107, ('gimmickflamethrower', 2182): 1108,
+    ('gimmickspincup', 2269): 1109, ('gimmickspincupstartpoint', 2275): 1110, ('gimmickspincuplandpoint', 2270): 1111,
+    ('gimmickchainwallup', 2307): 1112, ('gimmickchainwalldown', 2308): 1112, ('gimmickchainwallmaskup', 2304): 1113,
+    ('gimmickchainwallmaskdown', 2306): 1113, ('gimmickcrusherplatform', 2310): 1114, ('gimmickcrusherchain', 2309): 1115,
+    ('levelsbmovingblock1', 2318): 1116, ('levelsbplatform1', 2095): 1117, ('levelsbplatformflame1', 2096): 1118,
+    ('levelsbplatform3', 2188): 1119, ('gimmicksbbar', 2314): 1121, ('gimmicksbbarmask', 2313): 1122,
+    ('levelfanblade', 2193): 1123, ('levelfanblade', 2264): 1123, ('levelfanblade', 2297): 1123, ('gimmickfan', 2223): 1124,
+    ('gimmickfanside', 2245): 1125, ('levelscrollingchainup', 2302): 1126, ('levelscrollingchaindown', 2305): 1126,
+    ('sbbackeye', 2282): 1127, ('sbbackeye2', 2283): 1127, ('sbloop1', 2206): 1128, ('sbloop4', 2224): 1128, ('sbloop7', 2289): 1128,
+    ('active3', 2278): 1128, ('active4', 2279): 1128, ('sbloop2', 2207): 1129, ('sbloop6', 2226): 1129, ('active', 2276): 1129,
+    ('active2', 2277): 1129, ('sbloop3', 2208): 1130, ('sbloop5', 2225): 1130, ('pushableblock4', 2259): 1131,
+    ('levelballtunnel2', 2271): 1132, ('levelballtunnel3', 2273): 1132}
+SBG_SUB = {'hazardfiredown_2238': 1, 'hazardfireleft_2241': 2, 'hazardfireright_2240': 3, 'gimmickchainwalldown_2308': 1,
+    'gimmickchainwallmaskdown_2306': 1, 'levelfanblade_2264': 1, 'levelfanblade_2297': 2, 'levelscrollingchaindown_2305': 1,
+    'sbbackeye2_2283': 1, 'sbloop4_2224': 1, 'sbloop7_2289': 2, 'active3_2278': 3, 'active4_2279': 4, 'sbloop6_2226': 1,
+    'active_2276': 2, 'active2_2277': 3, 'sbloop5_2225': 1, 'levelballtunnel3_2273': 1}
+SBG_ENS = [(c, 0, '0', nm) for c, nm in (
+    ('gimmickcannon_2142', 'sbc_cannon'), ('gimmickcannonbase_2141', 'sbc_base'), ('gimmickcannonbase2_2176', 'sbc_base2'),
+    ('gimmickcannonbullet_2098', 'sbc_ball'), ('hazardfireup_2237', 'sbf_up'), ('hazardfiredown_2238', 'sbf_down'),
+    ('hazardfireleft_2241', 'sbf_left'), ('hazardfireright_2240', 'sbf_right'), ('hazardlightningradial_2254', 'sbz_ray'),
+    ('hazardlightningradial2_2256', 'sbz_ray2'), ('gimmickflamethrower_2182', 'sbf_thrower'), ('gimmickspincup_2269', 'sbs_cup'),
+    ('gimmickspincupstartpoint_2275', 'sbs_start'), ('gimmickspincuplandpoint_2270', 'sbs_land'), ('gimmickchainwallup_2307', 'sbw_up'),
+    ('gimmickchainwalldown_2308', 'sbw_down'), ('gimmickchainwallmaskup_2304', 'sbw_mup'), ('gimmickchainwallmaskdown_2306', 'sbw_mdown'),
+    ('gimmickcrusherplatform_2310', 'sbk_plat'), ('gimmickcrusherchain_2309', 'sbk_chain'), ('levelsbmovingblock1_2318', 'sbk_block'),
+    ('levelsbplatform1_2095', 'sbp_plat1'), ('levelsbplatformflame1_2096', 'sbp_flame'), ('levelsbplatform3_2188', 'sbp_plat3'),
+    ('gimmicksbbar_2314', 'sbb_bar'), ('gimmicksbbarmask_2313', 'sbb_mask'), ('levelfanblade_2193', 'sbv_blade0'),
+    ('levelfanblade_2264', 'sbv_blade1'), ('levelfanblade_2297', 'sbv_blade2'), ('gimmickfan_2223', 'sbv_fan'),
+    ('gimmickfanside_2245', 'sbv_fanside'), ('gimmickfandebris_2230', 'sbv_debris'), ('levelscrollingchainup_2302', 'sbv_chain'),
+    ('sbbackeye_2282', 'sbv_eye0'), ('sbbackeye2_2283', 'sbv_eye1'), ('sbloop1_2206', 'sbl_0_0'), ('sbloop4_2224', 'sbl_0_1'),
+    ('sbloop7_2289', 'sbl_0_2'), ('active3_2278', 'sbl_0_3'), ('active4_2279', 'sbl_0_4'), ('sbloop2_2207', 'sbl_1_0'),
+    ('sbloop6_2226', 'sbl_1_1'), ('active_2276', 'sbl_1_2'), ('active2_2277', 'sbl_1_3'), ('sbloop3_2208', 'sbl_2_0'),
+    ('sbloop5_2225', 'sbl_2_1'), ('pushableblock4_2259', 'sbq_block'), ('levelballtunnel2_2271', 'sbt_tun0'),
+    ('levelballtunnel3_2273', 'sbt_tun1'), ('breakablefloorpiece2_2229', 'sbq_fpiece'))] + \
+    [('hazardfire%s_%d' % (n, h), 0, '1', 'sbf_%s1' % n) for n, h in (('up', 2237), ('down', 2238), ('left', 2241), ('right', 2240))]
+SBG_ENS_WITH = {'gimmickcannonbullet_2098': ('gimmickcannon',), 'gimmickfandebris_2230': ('gimmickfan',),
+    'breakablefloorpiece2_2229': ('breakablefloor1', 'breakablefloor2')}
+ENGINE_TYPES_ID.update(SBG_TYPES_ID); ENS += SBG_ENS   # SB_GIM
+for _k, _v in SBG_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # SB_GIM
 SHL_CLASSES = {'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 ENS_ONLY_WITH = {'guiweaponslot_426', 'effectswatersplash_379', 'bubblepatch_804', 'mediumbubble_805', 'generalwaterhorizon_377', 'bubblenumbers_405', 'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 # classes whose untrimmed image box matters (spring top edges RV, box-collision platforms/logs, invisible
@@ -1516,6 +1558,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         if 560 <= o['type'] < 680: a = o.get('fna', 0)            # FN_GIMA: member index | act flags | layer << 8 (fn_gima.c)
         if 680 <= o['type'] < 800: a = FNB_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # FN_GIMB (fn_gimb.c): member index | instance layer << 8
         if 800 <= o['type'] < 860: a = FNBOSS_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # FN_BOSS (fn_boss.c): sub id | instance layer << 8
+        if 1100 <= o['type'] < 1150: a = SBG_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # SB_GIM (sb_gim.c): member index | instance layer << 8
         d += struct.pack('<2H2i', o['type'], a, o['x'], o['y'])
     for t in table: d += t
     d += struct.pack('<%dH' % len(smap), *smap)
