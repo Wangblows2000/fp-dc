@@ -63,5 +63,52 @@ rows, ev, out = run('5 TP 2600 960\n', 300, {'FP_LEVEL': 'sb2'})
 check('rotor_pops', len(sids(ev, 7)) >= 1, str(sids(ev, 7)[:3]))
 check('rotor_lands', len(sids(ev, 54)) >= 1, str(sids(ev, 54)[:3]))
 
+
+# ---- session 19b: SB1's deck fire (8996-9004, col_9_35; RV hub) and SB3's DNA warnings (9854-9858; RV dnaw)
+def track(script, frames, env, spec):
+    """'ob' rows of FP_TRACK=spec: (frame, type, x, y, hidden)"""
+    e = dict(env); e['FP_TRACK'] = spec
+    rows, ev, out = run(script, frames, e)
+    obs = []
+    for l in out.splitlines():
+        t = l.split()
+        if t and t[0] == 'ob': obs.append((int(t[1]), int(t[2]), float(t[5]), float(t[7]), int(t[t.index('hd') + 1])))
+    return rows, ev, obs
+rows, ev, obs = track('', 700, {'FP_LEVEL': 'sb1'}, '1039:-1,1067:-1,1066:-1')
+warn = [o for o in obs if o[1] == 1039]
+shown = {}
+for f, t, x, y, hd in warn:
+    if not hd: shown.setdefault(round(y), []).append(f)
+# warning shown in streaks of 58 frames (B 60, 8997 / 8998; RV hub: B 59 .. 2); three warnings, RV first shots of I 2 / 1 / 0 at A > 60 (A = 10 I start)
+streaks = []
+for k in range(3):                                # the k-th warning (FP_TRACK keeps the object order)
+    vis = [f for i, (f, t, x, y, hd) in enumerate(warn) if i % 3 == k and not hd]
+    st = None
+    for f in vis:
+        if st is None or f != st[1] + 1: st = [f, f]; streaks.append(st)
+        else: st[1] = f
+streaks = [s_ for s_ in streaks if s_[1] < 690]
+check('hub_warning_58', streaks and all(b - a + 1 == 58 for a, b in streaks), str([(a, b - a + 1) for a, b in streaks[:4]]))
+first = sorted({min(f for f, t, x, y, hd in warn if not hd and abs(x - c) <= 100) for c in (2156, 1180, 1460)
+                if any(not hd and abs(x - c) <= 100 for f, t, x, y, hd in warn)})
+check('hub_first_shots_A10I', first[:3] == [41, 51, 61] or (len(first) >= 3 and first[1] - first[0] == 10 and first[2] - first[1] == 10), str(first[:3]))
+balls = [o for o in obs if o[1] == 1067]
+b0 = [o for o in balls if o[0] == 42]
+check('hub_ball_from_800_above', b0 and all(abs(y - (1192 - 800 + 12)) <= 1 for f, t, x, y, hd in b0), str(b0[:2]))
+dy = [b[3] - a[3] for a, b in zip(balls, balls[1:]) if b[0] == a[0] + 1 and a[2] == b[2]]
+check('hub_ball_falls_12', dy and max(dy) == 12 and min(dy) == 12, str(sorted(set(dy))[:4]))
+check('hub_blast_sound_38', len(sids(ev, 38)) >= 2, str(sids(ev, 38)[:5]))
+shots = sorted(set(f for f, t, x, y, hd in obs if t == 1066))
+check('hub_ship_shots', len(shots) > 100, str(len(shots)))
+# a done red ship (ML 0x10) removes the three warnings at the start (9223, all I still 0: RE)
+rows, ev, obs = track('1 FLAGS 16\n2 LOAD sb1\n', 200, {'FP_LEVEL': 'sb2'}, '1039:-1')
+check('hub_no_warnings_after_sb2', not [o for o in obs if o[0] > 20 and o[1] == 1039], str(len(obs)))
+# SB3 DNA cannon 0 (1999, 756) turned left by the player below-left, off the right edge: warning at view x + 395 (RV dnaw: 1898 at f203)
+rows, ev, obs = track('5 TP 1960 770\n6 SETV others E 99999\n200 TP 1700 714\n', 260, {'FP_LEVEL': 'sb3'}, '1039:2052')
+w203 = [o for o in obs if o[0] == 203]
+check('dna_warning_right_edge', w203 and w203[0][2] == 1898 and w203[0][4] == 0, str(w203))
+w199 = [o for o in obs if o[0] == 199]
+check('dna_warning_hidden_on_screen', w199 and w199[0][4] == 1, str(w199))
+
 print('%d failures' % fails)
 sys.exit(1 if fails else 0)

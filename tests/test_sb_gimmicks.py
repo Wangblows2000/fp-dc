@@ -94,5 +94,40 @@ check('lightning_hurts', len(sids(ev, 371)) >= 1 or min(r['hp'] for r in rows[10
 rows, ev, out = run('5 TP 5760 700\n', 600, {'FP_LEVEL': 'sb4'})
 check('crusher_slams', len(sids(ev, 75)) >= 1, str(sids(ev, 75)[:3]))
 
+
+# ---- session 19b (RV traces s19m orig / orig2: door, door4, pblock, cup2, pad, swing)
+def track(script, frames, env, spec):
+    e = dict(env); e['FP_TRACK'] = spec
+    rows, ev, out = run(script, frames, e)
+    obs = []
+    for l in out.splitlines():
+        t = l.split()
+        if t and t[0] == 'ob': obs.append((int(t[1]), int(t[2]), float(t[5]), float(t[7])))
+    return rows, ev, obs
+# SwitchDoor_2102 (9341 / 9342; SB4 9832 / 9833): rises 2 px a frame while its pad sinks, 94 px in all (RV door 376 -> 282, door4 856 -> 762)
+rows, ev, obs = track('5 TP 2904 480\n', 120, {'FP_LEVEL': 'sb2'}, '1133:2976')
+ys = [y for f, t, x, y in obs]
+st = [b - a for a, b in zip(ys, ys[1:]) if b != a]
+check('door_sb2_rises_94', ys and ys[0] == 376 and ys[-1] == 282 and set(st) == {-2}, '%s -> %s steps %s' % (ys[0] if ys else None, ys[-1] if ys else None, sorted(set(st))))
+rows, ev, obs = track('5 TP 12712 990\n', 120, {'FP_LEVEL': 'sb4'}, '1133:-1')
+ys = [y for f, t, x, y in obs]
+check('door_sb4_rises_94', ys and ys[0] == 856 and ys[-1] == 762, '%s -> %s' % (ys[0] if ys else None, ys[-1] if ys else None))
+# PushableBlock4 (SB3 6864, 176; the shared 2711-2735 with its 64 x 64 box): pushed 1 px a frame, resting (RV pblock: 6866 at f100, 6917 at f160)
+rows, ev, obs = track('5 TP 6830 226\n90 150 R\n', 170, {'FP_LEVEL': 'sb3'}, '1131:-1')
+b = {f: x for f, t, x, y in obs}
+check('pblock4_pushed', 6863 <= b.get(100, 0) <= 6868 and 6910 <= b.get(160, 0) <= 6920 and all(y == 176 for f, t, x, y in obs), '%s %s' % (b.get(100), b.get(160)))
+# SB3 spin cup (col_11_37 grab, M 43) -> land point -> LevelBallTunnel2 (q27 roll, MV.S 0) -> springs at 6383 (RV cup2: 6383 from f108)
+rows, ev, out = run('5 TP 5985 386\n6 SETV others E 99999\n', 130, {'FP_LEVEL': 'sb3'})
+check('cup_grab_sound_7', len(sids(ev, 7)) >= 1, str(sids(ev, 7)[:3]))
+check('cup_to_tunnel_roll', any(r['st'] == 16 for r in rows[60:100]), str([r['st'] for r in rows[60:100:8]]))
+check('cup_tunnel_exit_springs', abs(rows[111]['x'] - 6383) <= 4, '%.1f' % rows[111]['x'])
+# Carol's SB2 jump pads (9309 / 5357 / 9310: A 0 lit, A 2 the chain end): the ride from pad 0 lands on pad 1 (RV pad: 4224, 285 at f132)
+rows, ev, out = run('5 TP 3984 630\n6 SETV others E 99999\n110 114 J\n', 160, {'FP_LEVEL': 'sb2', 'FP_CHAR': '2'})
+check('carol_pad_ride', abs(rows[140]['x'] - 4224) <= 1 and abs(rows[140]['y'] - 14 - 285) <= 2, '%.1f %.1f' % (rows[140]['x'], rows[140]['y'] - 14))
+# SB4's GimmickSwingSpawner2_2322 (ctor A 8, B 0): starts horizontal right, the mirror of spawner 824 (RV swing: mirrored)
+rows, ev, obs = track('5 TP 11888 240\n', 40, {'FP_LEVEL': 'sb4'}, '202:-1')
+p1 = [o for o in obs if o[0] == 30]
+check('swing2_mirror', len(p1) == 2 and abs((p1[0][2] - 11496.5) + (p1[1][2] - 11888.5)) <= 1 and p1[0][3] == p1[1][3], str(p1))
+
 print('%d failures' % fails)
 sys.exit(1 if fails else 0)

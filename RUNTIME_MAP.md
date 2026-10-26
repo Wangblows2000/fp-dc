@@ -648,3 +648,19 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
 - Hooks used: sb_flow_intro() (platform hold / release). Exported: sb_gim_cannon_kills() (PlayerAssist.I for the boss agent).
 - Sounds: SFX_SB2 + 312 263, SFX_SB3 + 312, SFX_SB4 + 312 (263 new, 11025 Hz trimmed); groups 81 / 130 / 154 / 124 KB.
 - Tests: tests/test_sb_enemies.py (RV cycles), tests/test_sb_gimmicks.py (opening ride, data rows, hazards).
+
+## Session 19: Sky Battalion object gaps (port: src/game/sb_enemy.c, sb_gim.c, gimmicks.c, aqua_gim.c, levels.c, player.c, sb_flow.c, objects.c, tools/import_frame.py)
+- **Types:** OT_SB_WARN 1039 (SB1 / SB3 placed EffectWarning_1528; the importer remaps frames 36 / 38, SB4's stays the boss
+  module's 1188), runtime OT_SB_SHIPSHOT 1066, OT_SB_HUBBALL 1067; OT_SB_DOOR 1133 (SwitchDoor_2102, was DV's 96).
+- **sb_enemy.c:** hub_spawn / hub_frame (SB1 deck fire, from sb_enemy_pre; per-type lists, the q8 obstacles collected once at
+  spawn), active_at() (Chowdren's INACTIVE rule), dna_warnings() (SB3), sb_enemy_draw(0) draws the ship shots on the 0.25 layer
+  (objects.c after sb_flow_draw).
+- **sb_gim.c:** sb_gim_door_rise(c) (called by sb_flow.c pads() after a sink step below 24), the spin-cup grab rule (grab_ok,
+  sound 7, MV.S 0 via c_nospd until airborne after landing). player.c roll_move honours c_nospd for every character.
+- **gimmicks.c:** pb_is / pblock_box include OT_SB_PBLOCK4 (64 x 64 box); q27_type includes OT_SB_BTUNNEL (objdefs: solid +
+  hidden). **aqua_gim.c:** SB4's spawner 2 = 8 links, start angle 0. **levels.c:** PADS_SB2 / SB3 / SB4.
+- **Importer:** ROW_FRAMES ('sbwarn' SB3 only; SB1 uses the boss block's 'sbk_warn'), the mt_warn / fp_warn rows kept to their
+  old frames (they no longer duplicate into SB1 / SB4), DV's 'warning' row skipped in SB, ROW_HANDLE_SUB (SB4 swing parts take
+  2319-2321's images), 'sbshot' / 'sbc_ball' / explosion06 exported with the SB1 airships.
+- **Rebuild:** sb1-sb4 (json 36-39). Flycast to look at: SB1 deck fire (warnings, the ball, the blast near the player, the
+  ship shots over the airships), SB3 DNA warnings at the edges, SB2 / SB4 doors, SB3 cup -> tunnel ride, SB4 swings' images.

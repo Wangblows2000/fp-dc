@@ -287,6 +287,7 @@ static void swing_spawn(void) {
     for (int i = 0; i < n; i++) {
         obj_t *s = &G.o[i]; if (!s->alive || (s->type != OT_SWSPAWN1 && s->type != OT_SWSPAWN1B && s->type != OT_SWSPAWN2)) continue;
         int links = s->type == OT_SWSPAWN1 ? 8 : 6; double D = s->type == OT_SWSPAWN2 ? 220 : 180;   /* ctor A, B: 824 8 links, 848 / 2 6 */
+        if (s->type == OT_SWSPAWN2 && level_cur()->stage == 4) { links = 8; D = 0; }                 /* SB4's GimmickSwingSpawner2_2322: ctor A 8, B unset (0) (RE, session 19b) */
         double d = s->y + 72 - wl, F = d < 0 ? 0.04 : d <= 1 ? 0.04 - 0.015 * d : 0.025;
         swing_part(OT_SWBASE, s, 0, D, F, links);                                                     /* 4336 */
         for (int k = 0; k < links; k++) swing_part(OT_SWCHAIN, s, 16 * (k + 1), D, F, links);        /* 4334 */

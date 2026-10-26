@@ -794,6 +794,10 @@ SBE_ENS += [('effectwarning_1528', 0, '0', 'sbwarn'), ('shipbullet_2106', 0, '0'
 SBE_ENS_WITH.update({'shipbullet_2106': ('levelairship1',)})
 SBE_ENS_WITH['effectsexplosion06_435'] = SBE_ENS_WITH['effectsexplosion06_435'] + ('levelairship1',)
 SBE_WARN_FRAMES = {36, 38}
+# SB4's swing spawners create their own part classes (9949-9951: SwingChain_2320, SwingPlatform_2321 (96 x 24), SwingBase_2319),
+# AT's rows 'swbase' / 'swchain' / 'swplat' take those images there (RE, session 19b)
+ROW_HANDLE_SUB = {39: {'gimmickswingbase_821': 'gimmickswingbase_2319', 'gimmickswingchain_822': 'gimmickswingchain_2320',
+                       'gimmickswingplatform_823': 'gimmickswingplatform_2321'}}
 ROW_FRAMES = {'sbwarn': {38}}   # SB1 draws them with the boss block's 'sbk_warn' row (same images)   # row-level frame filter (the class-level ENS_FRAMES keeps RM5 / FN6's rows as they were)
 ENGINE_TYPES_ID.update(SBE_TYPES_ID); ENS += SBE_ENS   # SB_ENEMIES
 for _k, _v in SBE_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # SB_ENEMIES
@@ -1344,6 +1348,7 @@ def main():
         cls, ai, dk, nm = e[:4]
         if nm in ROW_FRAMES and n not in ROW_FRAMES[nm]: continue      # row-level frames (session 19b)
         if nm in ROW_FRAMES_OLD and n not in ROW_FRAMES_OLD[nm]: continue
+        if nm == 'warning' and n in SB_FRAMES: continue                  # DV's EffectWarning_1100 row: its class name matches SB's 1528 (a duplicate)
         if cls in ENS_FRAMES and n not in ENS_FRAMES[cls] and nm not in ROW_FRAMES: continue
         if len(e) > 5 and not any(w in placed for w in e[5]): continue   # rows tied to their creators (FN_ENEMIES)
         base = cls.rsplit('_', 1)[0]
@@ -1355,6 +1360,7 @@ def main():
         # the frame's own object (class + handle): when the row names a handle this frame does not place but the frame
         # places the class under another handle (another stage's object: its own images), the sprite comes from the
         # placed handle (session 14; e.g. AT4's spikes 671, DV3's wall plate 1029 and door 1066, RM's spikes 1106-1109)
+        cls = ROW_HANDLE_SUB.get(n, {}).get(cls, cls)                   # created children with their own handle in this frame (session 19b)
         hs = placed_handles.get(base, set())
         if hs and int(cls.rsplit('_', 1)[1]) not in hs:
             for h2 in sorted(hs):
