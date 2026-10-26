@@ -127,11 +127,16 @@ static void hangers(player_t *p) {
             else if (q && G.input_lock) G.input_lock = 0;                                /* 5875 / 5876: reached the stop */
         }
     }
+    /* the handles in slot order, listed once (session 18 perf: was a scan per visual; same pairing) */
+    short hs[64], hm[64]; int nhs = 0, nhm = 0;
+    for (int j = 0; j < G.nobjs; j++) { const obj_t *h = &G.o[j]; if (!h->alive) continue;
+        if (h->type == OT_RM_IDLESW && nhs < 64) hs[nhs++] = (short)j; else if (h->type == OT_HIMOVER && nhm < 64) hm[nhm++] = (short)j; }
     for (int i = 0, si = 0, mi = 0; i < G.nobjs; i++) {                                  /* 5874: the visuals at their paired handles (index pairing) */
         obj_t *v = &G.o[i];
         if (!v->alive || (v->type != OT_HSWITCHV && v->type != OT_HMOVERV)) continue;
-        int want = v->type == OT_HSWITCHV ? OT_RM_IDLESW : OT_HIMOVER,   /* the switch handle: relic_gimb.c's type (one implementation, every act) */ k = v->type == OT_HSWITCHV ? si++ : mi++;
-        for (int j = 0, n = 0; j < G.nobjs; j++) if (G.o[j].alive && G.o[j].type == want && n++ == k) { v->x = G.o[j].x - 1; v->y = G.o[j].y; break; }
+        /* the switch handle: relic_gimb.c's type (one implementation, every act) */
+        int sw = v->type == OT_HSWITCHV, k = sw ? si++ : mi++;
+        if (k < (sw ? nhs : nhm)) { const obj_t *h = &G.o[sw ? hs[k] : hm[k]]; v->x = h->x - 1; v->y = h->y; }
     }
 }
 
