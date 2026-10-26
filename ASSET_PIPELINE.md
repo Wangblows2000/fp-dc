@@ -235,3 +235,21 @@ tools/audio/convert_gallery.sh extracted/linux/audio "$G/Data/voices" /home/clau
 - Parallax images may use up to 32 power-of-two chunks (`PMAXCH`, parallax.c; FN2's 5_1802 needs 30).
 - Rebuild order after an importer change: `for i in 1 2 3 4 5 6; do tools/build_level.sh $((29+i)) fn$i converted2; done`
   (json frames 30-35; the original's set_frame indices are 29-34).
+
+## Session 18: shield bank, gallery voices
+- **Levels:** tools/import_frame.py writes `<dir>_shl.spr/.tex` (the five elemental shields + leaves / bubbles, cropped,
+  71 frames, 512x512 PAL8) for every stage frame that places Lilac's off-map shield objects but no on-map shield monitor
+  (DV1 DV4 AT3 RM1 RM3 RM5 FN3 FN6); build_level.sh palettizes it with `--flex=_shl` after `_ens` (the _ens bank and
+  its colours are unchanged; FN3 / RM3 / RM5 merge 7-23 shield shades into the nearest kept colour). Rebuild those acts:
+  `for l in "21 dv1" "24 dv4" "19 at3" "25 rm1" "27 rm3" "29 rm5" "32 fn3" "35 fn6"; do set -- $l; tools/build_level.sh $1 $2 converted2; done`
+  (acts with a shield monitor are byte-identical to a build without this change).
+- **Gallery voices:** the 15 clips missing from the upload come from the user's PC install
+  (`C:\Users\wobbles\Desktop\Freedom Planet\Data\voices\eng\{ca,mi,se,da,sx}`, staged read-only to
+  `/mnt/user-data/uploads/Freedom Planet/Data/voices`; re-stage them on a new VM). `<voices_dir>` may now be a ':' list:
+  ```sh
+  G="/mnt/user-data/uploads/Freedom Planet/game"
+  tools/audio/convert_gallery.sh extracted/linux/audio "$G/Data/voices:/mnt/user-data/uploads/Freedom Planet/Data/voices" \
+    /home/claude/fprun/Data/voices converted2/gal          # prints PLACEHOLDER <name> for any clip taken from fprun
+  ```
+  A clip over 65534 samples at 11025 Hz becomes `gal/<name>.adp` (stereo ADPCM 32 kHz, sealed; streamed) instead of a
+  `.wav`: sx_08b02 (33 s, 1.03 MB). `make cdi` copies `gal/*.adp` too. 19 clips: 18 .wav (5-25 KB, <= 56 KB) + 1 .adp.

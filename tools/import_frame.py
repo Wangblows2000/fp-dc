@@ -669,6 +669,7 @@ ENS_FRAMES.update({e[0]: ({34, 35} if any(w in e[0] for w in FNP_A5) else {35}) 
                    if e[0] not in ENS_FRAMES and e[0] not in ('shieldserpentine_1872', 'bossrapidbullet_1866', 'effectgunspark_1887')})   # FN_PANTHER (shared A3 classes left open)
 ENS_FRAMES['effectwarning_1528'] = ENS_FRAMES.get('effectwarning_1528', set()) | {34, 35}   # FN_PANTHER: the mortar's ground warning (shared with RM5's row)
 for _k, _v in FNP_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # FN_PANTHER
+SHL_CLASSES = {'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 ENS_ONLY_WITH = {'guiweaponslot_426', 'effectswatersplash_379', 'bubblepatch_804', 'mediumbubble_805', 'generalwaterhorizon_377', 'bubblenumbers_405', 'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 # classes whose untrimmed image box matters (spring top edges RV, box-collision platforms/logs, invisible
 # sensors): their images are never cropped. Everything else in the object bank is cropped to its opaque pixels.
@@ -1052,6 +1053,12 @@ def main():
     # ---- enemies / bosses / gimmicks bank (cropped; their collision uses masks relative to the hotspot)
     placed = {o['cls'].rsplit('_', 1)[0] for o in fr['objects']}
     if any(o['cls'].startswith('monitor') and o['cls'].endswith('shield') and o['x'] >= 0 for o in fr['objects']): placed.add('shieldmonitor_onmap')
+    # Lilac's own shields (spec_shields 0): every stage frame places the six off-map q21 instances and runs 2673-2705 (RE,
+    # build/re/f17..f29_calls), and OTHERS.B is global, so a shield carried into an act without an on-map shield monitor is
+    # still drawn there. Those acts get the shield rows in a separate bank <name>_shl, loaded only when a shield is carried
+    # in (src/game/shields.c; it would grow the _ens atlas, e.g. FN3 +512 KB of VRAM): session 18
+    shl = {'name': name + '_shl', 'anims': []} if ({'shieldwood', 'shieldearth', 'shieldwater', 'shieldmagnetic', 'shieldflamefront', 'shieldflameback'} <= placed
+                                                 and 'shieldmonitor_onmap' not in placed) else None
     if n in WATER_FRAMES: placed.add('water_level')   # DV2 / DV3: MasterLevel A = 1 (5109 / 5314); AT1 / AT2 / AT4 (4309 / 4478 / 4685)
     ens = {'name': name + '_ens', 'anims': [], 'keep_box': set()}
     placed_handles = {}
@@ -1061,8 +1068,10 @@ def main():
         if cls in ENS_FRAMES and n not in ENS_FRAMES[cls]: continue
         if len(e) > 5 and not any(w in placed for w in e[5]): continue   # rows tied to their creators (FN_ENEMIES)
         base = cls.rsplit('_', 1)[0]
+        dst = ens
         if cls in ENS_ONLY_WITH:                     # off-map templates do not count (shields: only with an on-map shield monitor)
-            if not any(w in placed for w in ENS_WITH.get(cls, ())): continue
+            if shl is not None and cls in SHL_CLASSES: dst = shl   # ... else in the act's separate shield bank (session 18)
+            elif not any(w in placed for w in ENS_WITH.get(cls, ())): continue
         elif base not in placed and not any(w in placed for w in ENS_WITH.get(cls, ())): continue
         # the frame's own object (class + handle): when the row names a handle this frame does not place but the frame
         # places the class under another handle (another stage's object: its own images), the sprite comes from the
@@ -1075,7 +1084,8 @@ def main():
         try: d = an[cls]['anims'][ai][dk]
         except (KeyError, IndexError, TypeError): report.append('  ens: missing %s anim %d dir %s' % (cls, ai, dk)); continue
         fr_ = d['frames'][e[4]] if len(e) > 4 and e[4] is not None else d['frames']
-        ens['anims'].append({'name': nm, 'frames': fr_, 'speed': d['max_speed'], 'loop': d['loop'], 'back_to': d['back_to']})
+        dst['anims'].append({'name': nm, 'frames': fr_, 'speed': d['max_speed'], 'loop': d['loop'], 'back_to': d['back_to']})
+    if shl and shl['anims']: write_bank2(src, shl, out, report); report.append('shield bank: %s' % [a['name'] for a in shl['anims']])
     for cls, nm, frames in FNA_ENS_IMG:   # FN_GIMA: SystemBox images (one frame, no animation table)
         if cls.rsplit('_', 1)[0] in placed: ens['anims'].append({'name': nm, 'frames': frames, 'speed': 0, 'loop': -1, 'back_to': 0})
     if ens['anims']: write_bank2(src, ens, out, report)
@@ -1199,7 +1209,7 @@ def write_bank2(src, bank, out, report):
     # Lilac's skin and hair banks too: her collision is the separate sensor objects, never the sprite box
     whole = bank['name'] in ('lilac2', 'lilachair', 'carol2', 'caroltail', 'carolbike', 'milla2', 'millatail', 'millafx')
     keep = bank.get('keep_box', set())
-    if bank['name'].endswith('_ens'):
+    if bank['name'].endswith(('_ens', '_shl')):
         crop_ids = {i for a in bank['anims'] for i in a['frames']}
     elif bank['name'].endswith('_obj'):
         keep_ids = {i for a in bank['anims'] if a['name'] in keep for i in a['frames']}
