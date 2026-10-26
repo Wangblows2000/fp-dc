@@ -458,7 +458,7 @@ static void hub_spawn(void) {
     int nw = 0, k = 0; obj_t *o;
     EACH(OT_SB_WARN, o) nw++;
     EACH(OT_SB_WARN, o) {
-        o->hidden = 1; set_a(o, "sbwarn");
+        o->hidden = 1;
         if (G.stage_flags & 0x10) { o->alive = 0; continue; }                     /* 9223 (all I = 0 before 9227) */
         o->av[3] = nw - 1 - k++; o->av[0] = 10 * o->av[3]; o->av[1] = 0; o->av[2] = floorf(o->x);   /* 9227 */
         if (HUB.n < 4) HUB.w[HUB.n++] = (int)(o - G.o);
@@ -609,7 +609,7 @@ void sb_enemy_spawn(void) {
         case OT_SB_MCRATE: set_a(o, "sbg_crate"); break;
         case OT_SB_MHAND: set_a(o, "sbg_hand"); break;
         case OT_SB_MLINE: set_a(o, "sbg_line"); break;
-        case OT_SB_WARN: set_a(o, "sbwarn"); o->hidden = 1; break;                  /* ctor set_visible(0) */
+        case OT_SB_WARN: set_a(o, ens_anim("sbwarn") >= 0 ? "sbwarn" : "sbk_warn"); o->hidden = 1; break;   /* SB1: the boss row's copy */                  /* ctor set_visible(0) */
         default: o->alive = 0; break;
         }
     }
