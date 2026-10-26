@@ -323,3 +323,26 @@ needed (visible only as merged near shades).
 
 **D-081 The stage timer can stop (G.timer_stop, game_timer()).** FN3 7710 switches the timer group off for the exit pass;
 the stopped value carries into FN4.
+
+**D-082 Colour-aware piece atlases (tools/import_frame.py, PIECE_COLS 240).** Level piece images are partitioned
+greedily into colour sets of at most 240 ARGB1555 colours, one atlas set each, so palettize.py can place each atlas in a
+palette group with room. A single image over the limit is median-cut quantized and reported (FN4 image 7550: 273 -> 202).
+Levels whose pieces already fit are unchanged.
+
+**D-083 MAX_OT / MAX_OBJS 1024.** FN4 places 873 objects; the type table holds FN's ranges (512-559 enemies,
+560-679 gimmicks A, 680-799 gimmicks B, 800-859 bosses, 860-899 Panther, 900 Serpentine NPC).
+
+**D-084 Fortune Night bosses follow spec_fn_bosses with marked inferences (src/game/fn_boss.c).** Bulldozer facing is +1
+(the spec's -1 mirrors every part against its placement; INFERRED until trace T-B1); the samurai's attack selector is
+UNKNOWN (U-E1) and the port rotates charge / smash / lasers every 90 hover frames.
+
+**D-085 One stage sound group per FN act** instead of one shared group: the shared set was about 420 KB, beyond the
+>= 256 KB free sound-RAM rule with the heaviest character. FN1 106, FN2 108, FN3 272, FN4-5 207 KB at 11025 Hz; each id
+was assigned from the module code and the act's object classes. Flycast check pending.
+
+**D-086 Parallax images may have up to 32 power-of-two chunks** (FN2's 5_1802, 380 x 460, needs 30; with 24 the act
+loaded no parallax).
+
+**D-087 Trailing silence of FN stage sounds is cut at -48 dB** (convert_sfx.sh TRIM): about 30 % less sound RAM with no
+audible change; looped ids are excluded so loop lengths stay the original's. RM's shared ids (70, 75, 99, 134, 219)
+shrink too.

@@ -286,6 +286,7 @@ static void snd_stage_load(const short *ids, int n) {
         int id = ids[i];
         if (snd_handle[id] < 0) { snprintf(nm, sizeof nm, "sfx/s%d.wav", id); snd_handle[id] = snd_load(nm); loading_tick(); }
     }
+    if (n) plat_log("stage sounds %d, sound RAM largest free block %d KB\n", n, snd_mem_free_kb());   /* budget >= 256 KB (ASSET_PIPELINE) */
 }
 static int in_group(const int *g, int n, int id) { for (int i = 0; i < n; i++) if (g[i] == id) return 1; return 0; }
 uint32_t prof_acc[PS_N], prof_max[PS_N];
