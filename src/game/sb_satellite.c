@@ -1,6 +1,6 @@
 /* SB3 boss: the satellite (BossSatellite_2286 + Top_2284, Thrusters_2285, eight BossSatelliteArm_2287, eight MinibossUFOBeam2_2288
  * and the main MinibossUFOBeam_1769). RE handle_frame_38_events group 0x22964, events 9878-9927 and the start event 9940 (spec_sb_bosses
- * Part C); RV trace s1 (build/orig_traces/sb_boss). Everyone fights it (no MV.A test).
+ * Part D); RV trace s1 (build/orig_traces/sb_boss). Everyone fights it (no MV.A test).
  * Satellite alterables: A HP 80 (Q20), D state (-2 waiting under the deck, -1 rising, 0 roaming, 1 beam, 2 dive, 6 defeated), E timer,
  * G base y, H bob phase, I rest y, J direction, K home x, L roam half-width 200, R the defeat explosion counter, flag 2 the next
  * attack (set: beam), flag 16 (no death flight). Arm alterables: D radius, E angle, F home radius, X / Y fall velocity, flags 5 / 6. */
