@@ -207,7 +207,7 @@ int  pal_load_file(const char *name);
 
 /* ---------------------------------------------------------------- level (FPL2) */
 enum { COL_NONE, COL_SOLID, COL_PLATFORM, COL_LADDER };
-typedef struct { int32_t x, y; uint16_t u, v, w, h; uint8_t atlas, layer, col, pad; } piece_t;
+typedef struct { int32_t x, y; uint16_t u, v, w, h; uint8_t atlas, layer, col, pad; uint16_t tw, th; } piece_t;   /* tw > 0: tiled (session 19): the tile u, v, tw x th repeats over w x h */
 typedef struct { uint16_t type, anim; int32_t x, y; } lvobj_t;
 
 #define MAX_OT 1280                /* engine types are < MAX_OT (object-presence bits, registry, groups); 1024-1279: Sky Battalion (session 19) */
