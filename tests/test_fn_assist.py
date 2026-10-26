@@ -39,7 +39,7 @@ def run(script, frames, ch):
                              'odir': int(t[14]), 'ox': float(t[15]), 'oy': float(t[16]), 'F': float(t[18]), 'I': float(t[20]),
                              'C': float(t[22]), 'D': float(t[24]), 'E': float(t[26]), 'grp': t[28], 'mon': int(t[30])})
         elif t[0] == 'fpas': R['ev'].append((int(t[1]), t[2], [num(v) for v in t[3:]]))
-        elif t[0] == 'fpcast': R['cast'].append({'f': int(t[1]), 'D': int(t[3]), 'L': float(t[5]), 'C': float(t[7]), 'M': float(t[9]), 'T': float(t[11])})
+        elif t[0] == 'fpcast': R['cast'].append({'f': int(t[1]), 'D': int(t[3]), 'L': float(t[5]), 'C': float(t[8]), 'M': float(t[11]), 'T': float(t[14])})
         elif t[0] == 'fp': d = {t[i]: num(t[i + 1]) for i in range(2, len(t) - 1, 2)}; d['f'] = int(t[1]); R['fp'].append(d)
         elif t[0] == 'sid': R['sid'].append((fno, int(t[1])))
     return R
@@ -93,8 +93,8 @@ if jp:
           str(sorted({r['oy'] for r in drive})))
     xs = [r['ox'] for r in drive if r['f'] > arr[0][0] + 2]
     check('lilac_carol_drives_right_5', len(xs) > 5 and xs[3] - xs[2] == 5, str(xs[:5]))
-    air = [r for r in fa if j0 < r['f'] < j0 + 40]
-    check('lilac_carol_jumps_d_minus_8', air and min(r['oy'] for r in air) < 200 and abs(air[0]['D'] - (-7.7)) < 0.01, str(air[:1] and air[0]['D']))
+    air = [r for r in fa if j0 <= r['f'] < j0 + 40]
+    check('lilac_carol_jumps_d_minus_8', air and min(r['oy'] for r in air) < 200 and abs(air[0]['D'] - (-7.7)) < 0.01, str(air[:1] and air[0]['D']))   # 8678 -8, 8679 + 0.3 (RV -7.7)
     st = [e[0] for e in evs(R, 'strike') if j0 <= e[0] <= j0 + 60]
     gaps = [b - a for a, b in zip(st, st[1:])]
     check('lilac_carol_10_strikes_rv_cadence', len(st) == 10 and gaps == [6, 4, 6, 6, 4, 6, 6, 4, 6] and st[0] - j0 == 3, str((st[:1], gaps)))   # RV 1759 / 1762..1810
@@ -162,7 +162,7 @@ for ch in ('0', '2', '4'):
     check('ch%s_cast_lilac_carol_torque_milla_rv' % ch, last and last['L'] == 483 and last['C'] == 530 and last['T'] == 396 and last['M'] == 435,
           str(last))                                                                                  # RV 483 / 530 / 396 / 435
     walk = first(c, lambda r: r['D'] == 131)
-    check('ch%s_crew_walks_in_after_lilac' % ch, walk and walk['L'] == 483 and walk['T'] == 120 and walk['M'] == 120, str(walk))
+    check('ch%s_crew_walks_in_after_lilac' % ch, walk and walk['L'] == 483 and walk['T'] <= 124 and walk['M'] <= 125, str(walk))   # from 120 (8769)
     res = first(fp, lambda r: r['res'] == 1)
     check('ch%s_results_after_defeat_883' % ch, res and d7 and abs(res['f'] - d7['f'] - 883) <= 20, str(res and d7 and res['f'] - d7['f']))
 

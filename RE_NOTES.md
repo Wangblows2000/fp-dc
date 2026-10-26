@@ -862,3 +862,56 @@ shared build/ (not in git): this section is the session's addendum to it (spec Â
   (snd_sfx_load <= 65534 samples = 5.9 s at 11025 Hz) and the gallery's 56 KB clip budget, so it is streamed once on the
   music channel (stereo ADPCM 32 kHz like the BGM; the original also plays it on channel 31). INFERRED: its volume follows
   the music volume option (the sample clips play at 255).
+
+## Session 18: the partner assist and the plane (FN6; port src/game/fn_assist.c, tests/test_fn_assist.py)
+RE of handle_frame_35 events 8668-8721 / 8762-8785 / 8814 / 8819 (frame-35 member names from the constructors' ids) plus new
+original traces (tools/orig, FRAME=34 idle with SETV others E 9999, CHAR 0 / 2 / 4, objects PlayerAssist / Defense / Offense /
+Projectile / PlanePlatform / the cast skins, XLIST monitors / InstaShields; defeat runs with SETV hit A 0 + screenshots). Trace
+frame f = act frame f + 121 (offense I 1200 ctor, 1079 at f0) = port frame f + 118. Superseded: G.12's "Port INFERRED (reduced)".
+- **Who helps (RE 8819 / 8672 / 8673):** 0x227c8 on for every MV.A except 1 (Spade, not playable). AssistOffense direction 1 =
+  Carol on the bike for Lilac (MV.A 0, subgroup 0x227c4), direction 0 = Lilac for Carol (MV.A 2 / 3, 0x227be, + the visible
+  PlayerAssistProjectile purple slashes), Milla (4 / 5): alterable flag 5 toggles on each arrival -> Lilac, Carol, Lilac... (RV);
+  8814 (Milla) destroys AssistDefense and sets I 60 (RV first Lilac at act 58), plane on layer 3; 8528 switches 0x227c0/c1/c3 off.
+- **Cooldown (RE + RV):** ctor C 5, I 1200; 8668 I > 2 -> I - 1; 8669 I 2 and not (0x227ba and 0x227bf) and cannon D not 3..5 ->
+  I 1; 8672 / 8673 need I 1 and A < view x - 50: A = X(o), B = Y(o), C 5, I 0, flag 1 off, flag 5 toggled; 8687 / 8701 A < 0 and
+  I 0 -> I 600 (RV arrivals 598 frames apart). 8670 (MV.A 0) / 8671 (MV.A 4-5, Carol's turn): sound 126 once.
+- **Carol (0x227c4, RE 8674-8687, RV):** x = max(A, -50), y = B; A += C, B += D (instance G 267 = the floor line); A > view x +
+  100 and flag 1 off: C - 0.1 (>= 1); F 0: anim 0, E - 1, D + 0.2, B = min(B, G) (she stays on the ground); F 0, E 0, hitbox.x - 9
+  <= X <= hitbox.x + 39, head A <= 0 -> F 1, D -8, G = B (8678); F 1: D + 0.3, anim 7; anim 7 frames 2 / 5 / 7 (latch flag 2) ->
+  sound 137 + ShieldInstaShield at her (direction 16, A 1, force_speed 100, flag 4), H = (H + 1) mod 3 (8680); flag-4 shields
+  follow her (8681); landing (F 1, D > 0, B >= G) -> flag 1, F 0, D 0, E 30, B = G, C -3 (8683): she drives back left and can
+  jump again when she passes the hitbox (RV); F 0 touching a plasma / laser / missile / rapid bullet -> F 2, sound 25, D -4, C -4,
+  anim 8 (8684); F 2: D + 0.4 (8685); anim 8 over -> flag 1, F 0 (8686). RV: 53-frame jump, 137 cadence 6/4/6/6/4/6/6/4/6.
+- **Lilac (0x227be, RE 8688-8701, RV):** as Carol without the -50 clamp (a re-arrival starts from far left: RV A -2158), D 0 on
+  the ground (8691), jump D -5 + sound 288 (8692), F 1: D + 0.1 (a 100-frame float), anim 7 at force_speed 4|D| + 30 (offense
+  and projectile, 8693), every 6th frame an invisible ShieldInstaShield direction 8 A 2 flag 4 + a RingSparkle at +-20 (8694).
+- **The strike (RE 2740):** the shared shield hit, damage (4 - A) + |MV.B| / 10 (RV 4.019 for Carol with B 10.19, 3.003 for
+  Lilac), C 5 + A; flag 4 makes 2740 / 2741 leave OTHERS.K at 0 (the player keeps running on the treadmill, RV).
+- **The plane (0x227c1, RE 8702-8712, RV):** x = A + 32 sin C, y = B + 8 cos(2C + 90), C + 0.7, Milla at the plane, A += D,
+  B += E; instance B = F = 104; X > frame width and G 0 -> D 3, A = view x - 2000 (first frame: view x 0, A -2000, RV); G 0, X >
+  LimitLeft + 240 (464): D - 0.05 to 0; G 0, 464 < X < 640, D <= 0, Milla A 0 -> Milla A 1; G 1: D - 0.05 (>= -3), E - 0.03 (>= -4);
+  G 1, Y < view y - 80 -> G 2, A = view x - 80, B = F; G 2: direction 1 (the small far plane, also Milla), A + 1 to 464, H + 1;
+  **8710: G 2 and petals <= 6, or petals <= 12 and H > 600 -> G 3** (at full petals the plane stays far away); G 3: A - 1; G 3, X <
+  view x - 100 -> G 0, D 3, A = view x - 200, direction 0. 8705: an EffectsDust01 puff behind (x - 64, y + 8) each frame in
+  direction 0 (speed 50 + rand 50, angle rand 4 x 90; the 3.125 px/frame drift is INFERRED from the original's trail length).
+- **Milla's delivery (0x227c0, RE 8715-8721, RV):** A 1: anim 7, B + 1; B > 60 -> A 4, MonitorRings_357 (the life-petal box)
+  created at her, held (flag 2), sound 241; A 4: anim 11, the box at her action point - (16, 32); B > 60 -> the box thrown (A 2,
+  Y 4, flag 0 off, the player's layer), Milla A 3; A 3: anim 10, B > 40 -> A 0, plane G 1. The box breaks on the scrolling floor
+  (col_19_34 / 8503: flag 6) -> 6 petals. RV (Lilac): Milla A 1 f784, sound 241 f844, drop f906, break f934 (sound 12), the plane
+  leaves f947, 6 petals collected f967-974. 8713 / 8714 / 0x227c3 (Milla's shield cube PlayerReflect thrown from the plane) need
+  AssistDefense A 2, which no event sets: unreachable (RE). 0x227bc (8722-8734) is Torque's (g1 > 4, not playable).
+- **After the defeat (RE 8762, RV):** 0x227c8 stays on through the explosions, so the plane keeps cycling (RV screenshots at
+  defeat +440 / +510: the plane with Torque and Milla); at the white flash's peak 8762 destroys PlayerAssist, AssistDefense and
+  AssistOffense (the projectile hidden). **Closing scene (RE 8764-8785, RV):** at C 2 the MonitorRings are destroyed; skins are
+  created for the absent heroines (8765-8768) so the cast is always Lilac (345, sits 41/31, D 80 gets up 41/30, D 130 walks +3
+  to Carol - 49 = 483), Carol (530, lies, D 110 gets up, stands 40/16), Torque (+4 to Lilac - 90 = 396, anim 1) and Milla (+5,
+  anim 2, to Lilac - 50 = 435) walking in from x 120 at D 131; Lilac turns when Milla passes Lilac - 180; both there -> D 132;
+  D > 160: anim 37 for all and Sign.B 179 (results at defeat + 883, RV 2844 - 1961). The player itself is not drawn (MV.M 50).
+- **Achievement 21 (RE 8790 / 8792):** head A == 1 and a flag-4 InstaShield overlapping the hitbox (the port's former 8-frame
+  window is replaced); the other branch (rider +0x10370 A > 0 and MV.A != 4) is not ported (rider A's meaning unknown).
+- **INFERRED / not ported:** 8684's is_near_border(-30) test (RV knocks at x -2 and 109, outside the view, contradict the
+  reading; the port knocks anywhere); the plane / Milla / projectile drawing order vs the panther parts (json order puts them
+  behind; the port draws the projectile over); Carol's exhaust dust 8675; Milla's / Carol's tails in the cast (their positioning
+  events belong to the player); the petals' treadmill ride (port items only land on tiles: in FN6 they land on y 280 and ride
+  left at 10 px a frame, 6 collected ~60 frames after the break vs RV 33-40); the wreck placement 8769 and the HUD slide 8764
+  (panther / flow, not in this module).

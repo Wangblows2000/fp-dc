@@ -2,7 +2,7 @@
  * Ship2.B, events 8370-8419) and the act-6 fight (frame index 34, fight group 0x227ba, events 8507-8785): the walking rig, the
  * front cannon (plasma volleys, the laser), the rider's mortar, the back-cannon missiles, the mode-2 wheel stance with its foot
  * missiles, the hitbox HP model (pools 60 / 60 / 70 / 80 / 90 with jaw exposure), the treadmill floor for Lilac / Carol and
- * the plane for Milla, the speed effects, the partner assist (reduced), the defeat, the post-boss scene and the results.
+ * the plane for Milla, the speed effects (the partner assist and the plane: fn_assist.c), the defeat, the post-boss scene and the results.
  * Sources: build/re/spec_fn_bosses.md parts F, G, X (with its section U settled here: U-G1 the rig chain, U-G3 the assist,
  * see the spec's "Session 17 additions"), spec_fn_flow.md 5.3 / 5.4, and the original traces T-G1 / T-G2 / T-G3 / T-F1
  * (tools/orig, recorded in session 17: RV). Labels: RE read from code, RV measured in the original, INFERRED reasoned.
