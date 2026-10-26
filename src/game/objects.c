@@ -113,6 +113,7 @@ void objects_spawn(void) {
     fn_enemy_spawn();                             /* Fortune Night enemies (src/game/fn_enemy.c) */
     fn_gima_spawn();                              /* Fortune Night acts 1-3 gimmicks (src/game/fn_gima.c) */
     fn_boss_spawn();                              /* Fortune Night bosses (src/game/fn_boss.c) */
+    sb_boss_spawn();                              /* Sky Battalion bosses (src/game/sb_boss.c) */
     fn_panther_spawn();                           /* FN5 / FN6 Panther (src/game/fn_panther.c) */
     wlogs_spawn(); dv3_switch_spawn(); switches_spawn(); tunnels_reset(); shields_reset(); water_reset();
     /* 3566 / 3567: 12 logs per bridge at (bx + 16k, by + 56), A = k, B = base y */
@@ -689,6 +690,7 @@ void objects_update(void) {
     enemies_absorb_crystals();
     fn_enemy_pre(p);                                  /* Fortune Night: projectile collision handlers, 7282 / 7285 (fn_enemy.c) */
     fn_boss_pre(p);                                   /* Fortune Night bosses: their test_collisions handlers (fn_boss.c) */
+    sb_boss_pre(p);                                   /* Sky Battalion bosses: their test_collisions handlers (sb_boss.c) */
     /* Lilac's attacks and contact, shared enemy events (2731-2767) */
     combat_frame(p);
     /* minibosses / bosses (their event blocks follow the enemies') */
@@ -704,6 +706,7 @@ void objects_update(void) {
         if (o->type >= OT_SHRINE3 && o->type <= OT_CLAW_LAST && rm_claw_obj(o, p)) continue;   /* RM3 Claw set (src/game/rm_claw.c) */
         if (o->type >= OT_FN_E_FIRST && o->type <= OT_FN_E_LAST && fn_enemy_obj(o, p)) continue;   /* Fortune Night enemies (src/game/fn_enemy.c) */
         if (o->type >= OT_FNBOSS_FIRST && o->type <= OT_FNBOSS_LAST && fn_boss_obj(o, p)) continue;   /* Fortune Night bosses (src/game/fn_boss.c) */
+        if (o->type >= OT_SBB_FIRST && o->type <= OT_SBB_LAST && sb_boss_obj(o, p)) continue;   /* Sky Battalion bosses (src/game/sb_boss.c) */
         if (o->type >= OT_IRIS && relic_obj_update(o, p)) continue;                  /* Relic Maze enemies (src/game/relic.c) */
         if (o->type >= OT_DIGSPOT || o->type == OT_MON_KEYSTONE || o->type == OT_MON_WOOD || o->type == OT_SPRING_D) { if (aqua_obj_update(o, p)) continue; }   /* Aqua Tunnel objects (src/game/aqua.c) */
         switch (o->type) {
@@ -854,6 +857,7 @@ void objects_draw(int pass) {
         if (!o->alive || !o->an.b || o->type == OT_HANG || o->type == OT_LADDERTOP || o->type == OT_BRIDGE) continue;   /* sensors / LadderTop are invisible */
         if ((pass == 0 && o->layer > 1) || (pass == 1 && o->layer != 2) || (pass == 2 && o->layer < 3)) continue;
         if (o->type >= OT_FNBOSS_FIRST && o->type <= OT_FNBOSS_LAST && fn_boss_draw_obj(o, pass)) continue;   /* FN bosses: UFO rig order, scaled beam / glow (fn_boss.c) */
+        if (o->type >= OT_SBB_FIRST && o->type <= OT_SBB_LAST && sb_boss_draw_obj(o, pass)) continue;   /* SB bosses: rig order, scaled parts (sb_boss.c) */
         float sx = floorf(o->x - G.camx), sy = floorf(o->y - G.camy);
         { const frame_t *cf = anim_frame(&o->an); float m = 96; if (cf->w > m) m = cf->w; if (cf->h > m) m = cf->h; if (cf->w + cf->h > m && o->ang != 0) m = cf->w + cf->h;
           if (sx < -m || sx > SCREEN_W + m || sy < -m || sy > SCREEN_H + m) continue; }
