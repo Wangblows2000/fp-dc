@@ -688,6 +688,7 @@ FNP_A5 = ('head', 'jaw', 'rider', 'shoulderf', 'hipf', 'kneef', 'legf', 'footf',
 ENS_FRAMES.update({e[0]: ({34, 35} if any(w in e[0] for w in FNP_A5) else {35}) for e in FNP_ENS
                    if e[0] not in ENS_FRAMES and e[0] not in ('shieldserpentine_1872', 'bossrapidbullet_1866', 'effectgunspark_1887')})   # FN_PANTHER (shared A3 classes left open)
 ENS_FRAMES['effectwarning_1528'] = ENS_FRAMES.get('effectwarning_1528', set()) | {34, 35}   # FN_PANTHER: the mortar's ground warning (shared with RM5's row)
+ROW_FRAMES_OLD = {'mt_warn': set(ENS_FRAMES['effectwarning_1528']), 'fp_warn': set(ENS_FRAMES['effectwarning_1528'])}   # (session 19b: unchanged)
 for _k, _v in FNP_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # FN_PANTHER
 # ---- SB_FLOW: Sky Battalion stage objects (session 19, build/re/spec_sb_flow.md; src/game/sb_flow.c). Types 904-959 mirror
 # src/fp.h (OT_SB_SWPLAT ...). SB1 (json 36) is Zao's airship, the hub: the three launch pads (SwitchPlatform_2100, an
@@ -735,6 +736,14 @@ SBE_ENS_WITH = {'enemyfragbomb_2103': ('enemyhoppermkii',), 'effectsdust01_369':
     'enemyrotorbladedeath_2231': ('enemyrotorblade',), 'breakablespike2_2228': ('enemyrotorblade',), 'effectsgroundspark_2053': ('enemyrotorblade',),
     'enemybullet_2097': ('enemyaxleturret',), 'effectsdust_437': ('enemypelletizer',), 'objectkeystone_429': _SBE_KS,
     'effectsdebris_427': _SBE_KS, 'effectsexplosion06_435': ('enemydnacannon',)}
+# session 19b: EffectWarning_1528 in SB1 (the deck bombardment) / SB3 (the DNA cannons' off-screen warning) is OT_SB_WARN (1039;
+# remapped per frame below, SB4's stays the boss agent's); SB1's airships fire ShipBullet_2106 and drop GimmickCannonBullet_2098
+# balls whose blast is the bomb's (explosion06): exported with LevelAirship1 (SB1 only)
+SBE_ENS += [('effectwarning_1528', 0, '0', 'sbwarn'), ('shipbullet_2106', 0, '0', 'sbshot')]
+SBE_ENS_WITH.update({'shipbullet_2106': ('levelairship1',)})
+SBE_ENS_WITH['effectsexplosion06_435'] = SBE_ENS_WITH['effectsexplosion06_435'] + ('levelairship1',)
+SBE_WARN_FRAMES = {36, 38}
+ROW_FRAMES = {'sbwarn': SBE_WARN_FRAMES}   # row-level frame filter (the class-level ENS_FRAMES keeps RM5 / FN6's rows as they were)
 ENGINE_TYPES_ID.update(SBE_TYPES_ID); ENS += SBE_ENS   # SB_ENEMIES
 for _k, _v in SBE_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # SB_ENEMIES
 # ---- SB_GIM: Sky Battalion gimmicks (session 19, build/re/spec_sb_gimmicks.md; src/game/sb_gim.c), engine types 1100-1149 (fp.h
@@ -752,7 +761,7 @@ SBG_TYPES_ID = {('gimmickcannon', 2142): 1100, ('gimmickcannonbase', 2141): 1101
     ('sbbackeye', 2282): 1127, ('sbbackeye2', 2283): 1127, ('sbloop1', 2206): 1128, ('sbloop4', 2224): 1128, ('sbloop7', 2289): 1128,
     ('active3', 2278): 1128, ('active4', 2279): 1128, ('sbloop2', 2207): 1129, ('sbloop6', 2226): 1129, ('active', 2276): 1129,
     ('active2', 2277): 1129, ('sbloop3', 2208): 1130, ('sbloop5', 2225): 1130, ('pushableblock4', 2259): 1131,
-    ('levelballtunnel2', 2271): 1132, ('levelballtunnel3', 2273): 1132,
+    ('levelballtunnel2', 2271): 1132, ('levelballtunnel3', 2273): 1132, ('switchdoor', 2102): 1133,
     ('breakablefloor1', 2196): 1103, ('breakablefloor2', 2197): 1103, ('breakablefloor1', 2298): 1103, ('breakablefloor2', 2299): 1103}
 SBG_SUB = {'hazardfiredown_2238': 1, 'hazardfireleft_2241': 2, 'hazardfireright_2240': 3, 'gimmickchainwalldown_2308': 1,
     'gimmickchainwallmaskdown_2306': 1, 'levelfanblade_2264': 1, 'levelfanblade_2297': 2, 'levelscrollingchaindown_2305': 1,
@@ -783,6 +792,7 @@ SBG_ENS_WITH = {'gimmickcannonbullet_2098': ('gimmickcannon',), 'gimmickfandebri
     'breakablefloorpiece2_2229': ('breakablefloor1', 'breakablefloor2'), 'minibossflame_1264': ('gimmickflamethrower',),
     'effectsexplosion06_435': ('gimmickcannonbase',)}
 ENGINE_TYPES_ID.update(SBG_TYPES_ID); ENS += SBG_ENS   # SB_GIM
+SBG_ENS_WITH['gimmickcannonbullet_2098'] = SBG_ENS_WITH['gimmickcannonbullet_2098'] + ('levelairship1',)   # SB1's falling balls (session 19b)
 for _k, _v in SBG_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # SB_GIM
 SHL_CLASSES = {'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 ENS_ONLY_WITH = {'guiweaponslot_426', 'effectswatersplash_379', 'bubblepatch_804', 'mediumbubble_805', 'generalwaterhorizon_377', 'bubblenumbers_405', 'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
@@ -1075,6 +1085,8 @@ def main():
             objs.append({'type': t, 'x': o['x'], 'y': o['y'], 'cls': key, 'layer': o['layer'] or 0})
 
     objs = [o for o in objs if not (800 <= o['type'] < 860 and n not in FNBOSS_FRAMES)]   # FN_BOSS: its classes only in FN1-FN3 / FN5
+    for o in objs:                                   # SB_ENEMIES (session 19b): SB1 / SB3's EffectWarning_1528 (RM5's 478 elsewhere)
+        if o['cls'] == 'effectwarning_1528' and n in SBE_WARN_FRAMES: o['type'] = 1039
     for o in objs: o['fna'] = FNA_SUB.get(o['cls'], 0) | FNA_FLAGS.get((o['cls'], n), 0) | (o['layer'] << 8)   # FN_GIMA (fn_gima.c)
     objs += [{'type': 604, 'x': v, 'y': k, 'cls': 'fnparam', 'layer': 0, 'fna': 0} for k, v in FNA_PARAMS.get(n, ())]   # FN_GIMA parameters
     # ---- piece atlases
@@ -1275,7 +1287,9 @@ def main():
     for o in fr['objects']: placed_handles.setdefault(o['cls'], set()).add(o['id'])
     for e in ENS:
         cls, ai, dk, nm = e[:4]
-        if cls in ENS_FRAMES and n not in ENS_FRAMES[cls]: continue
+        if nm in ROW_FRAMES and n not in ROW_FRAMES[nm]: continue      # row-level frames (session 19b)
+        if nm in ROW_FRAMES_OLD and n not in ROW_FRAMES_OLD[nm]: continue
+        if cls in ENS_FRAMES and n not in ENS_FRAMES[cls] and nm not in ROW_FRAMES: continue
         if len(e) > 5 and not any(w in placed for w in e[5]): continue   # rows tied to their creators (FN_ENEMIES)
         base = cls.rsplit('_', 1)[0]
         dst = ens

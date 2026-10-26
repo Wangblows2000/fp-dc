@@ -624,6 +624,9 @@ static const objdef_t DEFS[] = {
     { OT_SB_MAGNET,     0,                                     NULL         }, /* enemymagnetizer_2294 (q20) */
     { OT_SB_MHAND,      0,                                     NULL         }, /* enemymagnetizerhand_2292 */
     { OT_SB_MLINE,      0,                                     NULL         }, /* enemymagnetizerline_2293 */
+    { OT_SB_WARN,       OD_HIDDEN,                             NULL         }, /* effectwarning_1528 in SB1 / SB3 (ctor invisible; shown by the events) */
+    { OT_SB_SHIPSHOT,   OD_HIDDEN,                             NULL         }, /* shipbullet_2106 (runtime; drawn on the 0.25 layer by sb_enemy_draw) */
+    { OT_SB_HUBBALL,    0,                                     NULL         }, /* gimmickcannonbullet_2098 falling on SB1's deck (runtime) */
     { OT_SB_DLASER,     0,                                     NULL         }, /* enemydronelaser_2232 (runtime) */
     { OT_SB_DNALASER,   0,                                     NULL         }, /* enemydnalaser_2290 (runtime) */
     { OT_SB_CANNON,     0,                                     NULL         }, /* gimmickcannon_2142 */
@@ -661,7 +664,8 @@ static const objdef_t DEFS[] = {
     { OT_SB_LOOP1,      OD_SOLID|OD_LAYER1,                    NULL         }, /* sbloop2 / 6, active / active2 (q7 q11) */
     { OT_SB_LOOP1B,     OD_SOLID|OD_BOXCOL|OD_LAYER1,          NULL         }, /* sbloop3 / 5 (q7 q11, box collision) */
     { OT_SB_PBLOCK4,    OD_SOLID|OD_BOXCOL|OD_NOEDGE,          NULL         }, /* pushableblock4_2259 (q7 q9 q14) */
-    { OT_SB_BTUNNEL,    OD_HIDDEN,                             NULL         }, /* levelballtunnel2 / 3 (q27, invisible) */
+    { OT_SB_BTUNNEL,    OD_SOLID|OD_HIDDEN,                    NULL         }, /* levelballtunnel2 / 3 (q7 q27, invisible: the roll tube mask) */
+    { OT_SB_DOOR,       OD_SOLID,                              NULL         }, /* switchdoor_2102 (q7; rises with its pad, sb_gim.c) */
 };
 static objdef_t BY_TYPE[MAX_OT];
 static int built;
