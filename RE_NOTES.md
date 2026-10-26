@@ -1115,6 +1115,31 @@ inventory build/re/sb_inventory.md. Port: src/game/sb_flow.c, levels.c rows sb1-
 - Not verified: pad stand box, g3 phase (port: G.frame), Adventure g4 99 branches (Magister dialog -> 82, zaoship falling ->
   79), zaoship colours after par_top (138 -> 117).
 
+## Session 19: Sky Battalion bosses
+Labels: RE read from code (handle_frame_36..39_events, start events 9940 / 10151, collision handlers), RV original traces
+(build/orig_traces/sb_boss: k_def / k_end / k_kill, c_idle / c_kill, p_idle / p_kill, s1 / s_kill, g_idle / g_kill), INFERRED
+reasoned. Full spec: build/re/spec_sb_bosses.md. Port: src/game/sb_boss.c + sb_kujacker.c / sb_chopper.c / sb_spade.c /
+sb_satellite.c / sb_grappler.c; tests/test_sb_bosses.py.
+- **Who (RE):** SB1 the Kujacker (everyone, after the three ships: the night), SB2 Spade for Lilac (9598: MV.A == 0) and the
+  chopper for Carol / Milla (9553), SB3 the satellite, SB4 the grappler with the crystal spire (everyone). Ends: 9698 / 9597
+  flag 0x10, 9925 0x20, 10112 0x40 (crystals at the railings, sound 40, gates open, compass); SB1's end starts the results.
+- **Kujacker (RE 9010-9175, RV k_def / k_end: base alterables identical frame by frame up to the RNG):** the head (Q20, A 1) is
+  shielded (C held at 5, 9146 / 9148) while any of the nine tail targets (A 3) stands or its hit is counted; each head hit (47)
+  flies it off for four dash passes at the warned height (268 / 269, 16 px a frame, turning 4 a frame after passing the player,
+  10 damage on contact); attacks by R sequence: bolts (274, grow 50 frames, chase in 32 directions), the tornado (267, pushes
+  the player away at up to 6 px a frame), and after two hits the lightning (272 / 271 / 270: rings of 16 spokes, the strike
+  hurts 20). Phase B += J + 0.1 C on the down-beat (B > 270 or < 90), H decays in every mode (two separate events), F = tornado.Y
+  - 500 at the night and after a dash. Five hits: slow motion (every 6th frame, explosions 98 / 99 / 311), flash 76 at +438,
+  scene reset (base 1556 / 1052, player 1460 / 1192), the fly-off, results when the base is above y 400 (+785).
+- **Spade (RV p_kill, zero diffs):** Active::update keeps the counter when an animation ends (the port's anim_tick subtracts
+  100: compensated), the run's force_speed 5|C| + 14 / 2|C| + 27, the card fans / rain, stagger per 20 HP.
+- **Chopper / satellite / grappler (RV c_kill / s_kill / g_kill):** sound timelines identical (chopper: explosions every 7
+  frames, crystals 132 frames after the first; satellite: arms burst outside-in every 20 frames from E 10, crystals at E 121;
+  grappler: four stage hits, slams every ~605 frames, crystals at 2051).
+- **Plane (RE 9737-9745):** flies in when two cannon bases are down (9319), parks over the player, a jump boards it (MV.M 43),
+  then it speeds to 16 and leaves by the right edge (SB1).
+- Not verified: the Kujacker's strike spoke cadence, head / neck / wing2 geometry (fits, max error 15 px), the warning rule
+  form, target revival; Hard mode (no difficulty test seen in these events); dialogue / voices; the copilot palettes.
 ## Session 19: Sky Battalion enemies and gimmicks
 Specs: build/re/spec_sb_enemies.md, build/re/spec_sb_gimmicks.md. Port: src/game/sb_enemy.c (types 1024-1099), sb_gim.c
 (1100-1149). Labels RE / RV / INFERRED as usual; RV traces: sbe/{hop_idle, hop_hit, mag_idle, axle_idle, rotor_idle,

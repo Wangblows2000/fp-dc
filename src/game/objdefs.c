@@ -557,6 +557,61 @@ static const objdef_t DEFS[] = {
     { OT_FN_SAMU_PROBE,   OD_HIDDEN,                           NULL         }, /* minibosssamufloorcheck_1891 */
     { OT_FN_SAMU_DEBRIS,  0,                                   NULL         }, /* - (MinibossSamuDebris_1892) */
     { OT_FN_BOSSGATE,     OD_SOLID,                            NULL         }, /* bossgate_1894 / _2030 (Q7) */
+    /* Sky Battalion bosses (sb_boss*.c, spec_sb_bosses; sprites set by sb_boss_spawn). OD_HIDDEN: the constructor's set_visible(0) */
+    { OT_SB_ASSIST,      OD_HIDDEN,                             NULL         }, /* playerassist_2205 (shown by 9738) */
+    { OT_SB_COPILOT,     OD_HIDDEN,                             NULL         }, /* playerassistcopilot_2220 (shown by 9744) */
+    { OT_SB_COMPASS,     OD_HIDDEN,                             NULL         }, /* guicompass_2246 (shown at the boss end) */
+    { OT_SB_SAT,         0,                                     NULL         }, /* bosssatellite_2286 (Q20) */
+    { OT_SB_SAT_TOP,     0,                                     NULL         }, /* bosssatellitetop_2284 */
+    { OT_SB_SAT_THR,     0,                                     NULL         }, /* bosssatellitethrusters_2285 */
+    { OT_SB_SAT_ARM,     0,                                     NULL         }, /* bosssatellitearm_2287 */
+    { OT_SB_SAT_BEAM,    OD_HIDDEN,                             NULL         }, /* minibossufobeam_1769 (SB3) */
+    { OT_SB_SAT_BEAM2,   OD_HIDDEN,                             NULL         }, /* minibossufobeam2_2288 */
+    { OT_SB_KJ_BASE,     0,                                     NULL         }, /* bosskujackerbase_2118 */
+    { OT_SB_KJ_HEAD,     0,                                     NULL         }, /* bosskujackerhead_2125 (Q20) */
+    { OT_SB_KJ_HEAD2,    0,                                     NULL         }, /* bosskujackerhead2_2119 */
+    { OT_SB_KJ_LEG1,     0,                                     NULL         }, /* bosskujackerleg1_2117 */
+    { OT_SB_KJ_LEG2,     0,                                     NULL         }, /* bosskujackerleg2_2116 */
+    { OT_SB_KJ_PILOT,    0,                                     NULL         }, /* bosskujackerpilot_2124 */
+    { OT_SB_KJ_TAIL,     0,                                     NULL         }, /* bosskujackertail_2115 */
+    { OT_SB_KJ_TARGET,   OD_HIDDEN,                             NULL         }, /* bosskujackertailtarget_2120 (Q20) */
+    { OT_SB_KJ_WING1,    0,                                     NULL         }, /* bosskujackerwing1_2122 */
+    { OT_SB_KJ_WING2,    0,                                     NULL         }, /* bosskujackerwing2_2123 */
+    { OT_SB_TORNADO,     OD_HIDDEN,                             NULL         }, /* bosstornado_2131 */
+    { OT_SB_KJ_CHARGE,   0,                                     NULL         }, /* effectschargebeam_2130 */
+    { OT_SB_KJ_BOLT,     0,                                     NULL         }, /* - (BossBolt) */
+    { OT_SB_KJ_LIGHTNING, 0,                                     NULL         }, /* - (BossLightning2) */
+    { OT_SB_KJ_TRACKER,  0,                                     NULL         }, /* - (BossKujackerTailTracker) */
+    { OT_SB_KJ_GUST,     0,                                     NULL         }, /* - (BossGust) */
+    { OT_SB_KJ_GUST2,    0,                                     NULL         }, /* - (BossGust2) */
+    { OT_SB_WARNING,     0,                                     NULL         }, /* - (EffectWarning_1528) */
+    { OT_SB_CH,          0,                                     NULL         }, /* bosschopper_2216 (Q20) */
+    { OT_SB_CH_BLADE,    0,                                     NULL         }, /* bosschopperblade_2217 */
+    { OT_SB_CH_TAIL,     0,                                     NULL         }, /* bosschoppertail_2215 */
+    { OT_SB_CH_TBLADE,   0,                                     NULL         }, /* bosschoppertailblade_2218 */
+    { OT_SB_CH_TBLADE2,  0,                                     NULL         }, /* bosschoppertailblade2_2214 */
+    { OT_SB_CH_BARS,     0,                                     NULL         }, /* bosschopperbars_2212 */
+    { OT_SB_CH_BARS2,    0,                                     NULL         }, /* bosschopperbars2_2213 */
+    { OT_SB_MISSILE,     0,                                     NULL         }, /* - (BossMissile_2219) */
+    { OT_SB_TREDD,       0,                                     NULL         }, /* - (MinibossTreddBomb_1060) */
+    { OT_SB_SHIPFALL,    0,                                     NULL         }, /* zaoshipfalling */
+    { OT_SB_SP_MASK,     OD_HIDDEN,                             NULL         }, /* bossspademask_2248 (state holder) */
+    { OT_SB_SPADE,       0,                                     NULL         }, /* bossspade_2247 */
+    { OT_SB_SP_HIT,      OD_HIDDEN,                             NULL         }, /* bossspadehitbox_2250 (Q20) */
+    { OT_SB_SP_CARD,     0,                                     NULL         }, /* - (BossSpadeCard) */
+    { OT_SB_SP_IMG,      0,                                     NULL         }, /* - (EffectsSpadeImage_456) */
+    { OT_SB_GR,          0,                                     NULL         }, /* bossgrappler_2331 (Q20) */
+    { OT_SB_GR_HANDL,    0,                                     NULL         }, /* bossgrapplerhandleft_2330 */
+    { OT_SB_GR_HANDR,    0,                                     NULL         }, /* bossgrapplerhandright_2329 */
+    { OT_SB_GR_ARML,     0,                                     NULL         }, /* bossgrapplerarmleft_2327 */
+    { OT_SB_GR_ARMR,     0,                                     NULL         }, /* bossgrapplerarmright_2328 */
+    { OT_SB_SPIRE,       OD_SOLID,                              NULL         }, /* bosscrystalspire_2333 (Q7) */
+    { OT_SB_SPAWN1,      OD_HIDDEN,                             NULL         }, /* bosscrystalspikespawner1_2325 */
+    { OT_SB_SPAWN2,      OD_HIDDEN,                             NULL         }, /* bosscrystalspikespawner2_2326 */
+    { OT_SB_SPIKE,       0,                                     NULL         }, /* - (BossCrystalSpike) */
+    { OT_SB_SPARK,       0,                                     NULL         }, /* - (BossHomingSpark) */
+    { OT_SB_CPLAT,       OD_OBSTACLE|OD_HIDDEN,                 NULL         }, /* crystalplatform_2334 (Q8) */
+    { OT_SB_LSPIKE,      0,                                     NULL         }, /* - (LevelCrystalSpike_2268) */
     /* Fortune Night Panther (fn_panther.c, spec_fn_bosses G.1; sprites set by fn_panther_spawn). The scrolling floor is the
      * arena's floor (Q7 box: the frame's floor backdrops start at x 672, outside the 640-wide arena; RV T-G1: the player
      * stands at feet y 280 = its top); the plane platform carries Milla (Q8 / Q9, INFERRED from 8524-8527) */
