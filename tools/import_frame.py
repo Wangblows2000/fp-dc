@@ -659,11 +659,28 @@ FNP_ENS = [(c, a, d, nm) for c, a, d, nm in (
     ('scrollingfloor_2037', 0, '0', 'fp_floor'), ('planeplatform_2054', 0, '0', 'fp_plane'), ('playerassist_2045', 0, '0', 'fp_assist'),
     ('playerassist_2045', 0, '1', 'fp_assist1'), ('playerassistoffense_2048', 0, '0', 'fp_aoff0'), ('playerassistoffense_2048', 0, '1', 'fp_aoff1'),
     ('playerassistoffense_2048', 7, '0', 'fp_aoff7'), ('playerassistoffense_2048', 7, '1', 'fp_aoff7b'), ('playerassistdefense_2046', 0, '0', 'fp_adef'),
+    # session 18 (src/game/fn_assist.c): Milla in the plane (far pass 1, hold-up 7, drop 11, after 10), the helpers knocked (8),
+    # Lilac's purple slashes (PlayerAssistProjectile_2051 0 / 7 / 8)
+    ('playerassistdefense_2046', 0, '1', 'fp_adef1'), ('playerassistdefense_2046', 7, '0', 'fp_adef7'), ('playerassistdefense_2046', 10, '0', 'fp_adef10'),
+    ('playerassistdefense_2046', 11, '0', 'fp_adef11'), ('playerassistoffense_2048', 8, '0', 'fp_aoff8'), ('playerassistoffense_2048', 8, '1', 'fp_aoff8b'),
+    ('playerassistprojectile_2051', 0, '0', 'fp_aproj'), ('playerassistprojectile_2051', 7, '0', 'fp_aproj7'), ('playerassistprojectile_2051', 8, '0', 'fp_aproj8'),
     ('ship1_2024', 0, '0', 'fp_ship1'), ('ship2_2025', 0, '0', 'fp_ship2'), ('shipcable_2026', 0, '0', 'fp_cable'), ('shipcable2_2027', 0, '0', 'fp_cable2'))]
 FNP_ENS = [e + ((None, ('scrollingfloor',)) if e[3] in ('fp_jaw7', 'fp_rider1', 'fp_rider12', 'fp_rider13', 'fp_footfr7', 'fp_footfr8') else ()) for e in FNP_ENS]   # FN6-only rows of FN5 classes
 FNP_ENS_WITH = {c: ('scrollingfloor',) for c in ('bossplasmashot_2040', 'bossmissile_2041', 'bossrapidbullet_1866', 'effectgunspark_1887',
     'effectspeedline_2050', 'effectsexplosion06_435', 'effectsdebris_427')}
 ENGINE_TYPES_ID.update(FNP_TYPES_ID); ENS += FNP_ENS   # FN_PANTHER
+# session 18 (fn_assist.c, RE 8765-8785, RV session-18 traces): the closing scene's cast. Lilac (sits 41/31, gets up 41/30, walks 1,
+# stands 40 frame 0 both facings, victory 37/16), Carol (lies 41/31, gets up 41/30, 40/16 frame 0, 37/16), Milla (runs 2, 40 frame 0,
+# 37) and Torque (walks 1, 40 frame 0, 37) walk in from the plane; FN6 only (the player's own bank is not used: any character)
+_C1 = slice(0, 1)
+FNP_CAST = [('playerskinsash_341', 41, '31', 'fc_l41s', None), ('playerskinsash_341', 41, '30', 'fc_l41g', None),
+    ('playerskinsash_341', 1, '0', 'fc_l1', None), ('playerskinsash_341', 40, '0', 'fc_l40', _C1), ('playerskinsash_341', 40, '16', 'fc_l40l', _C1),
+    ('playerskinsash_341', 37, '16', 'fc_l37l', None), ('playerskincarol_449', 41, '31', 'fc_c41s', None),
+    ('playerskincarol_449', 41, '30', 'fc_c41g', None), ('playerskincarol_449', 40, '16', 'fc_c40l', _C1), ('playerskincarol_449', 37, '16', 'fc_c37l', None),
+    ('playerskinmilla_461', 2, '0', 'fc_m2', None), ('playerskinmilla_461', 40, '0', 'fc_m40', _C1), ('playerskinmilla_461', 37, '0', 'fc_m37', None),
+    ('playerskintorque_466', 1, '0', 'fc_t1', None), ('playerskintorque_466', 40, '0', 'fc_t40', _C1), ('playerskintorque_466', 37, '0', 'fc_t37', None)]
+ENS += FNP_CAST
+for _e in FNP_CAST: ENS_FRAMES[_e[0]] = ENS_FRAMES.get(_e[0], set()) | {35}
 FNP_A5 = ('head', 'jaw', 'rider', 'shoulderf', 'hipf', 'kneef', 'legf', 'footf', 'ribs', 'tail', 'ship', 'cable')   # the rig parts FN5 shows (the rest: FN6 only)
 ENS_FRAMES.update({e[0]: ({34, 35} if any(w in e[0] for w in FNP_A5) else {35}) for e in FNP_ENS
                    if e[0] not in ENS_FRAMES and e[0] not in ('shieldserpentine_1872', 'bossrapidbullet_1866', 'effectgunspark_1887')})   # FN_PANTHER (shared A3 classes left open)
