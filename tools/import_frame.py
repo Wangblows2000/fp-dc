@@ -689,6 +689,39 @@ ENS_FRAMES.update({e[0]: ({34, 35} if any(w in e[0] for w in FNP_A5) else {35}) 
                    if e[0] not in ENS_FRAMES and e[0] not in ('shieldserpentine_1872', 'bossrapidbullet_1866', 'effectgunspark_1887')})   # FN_PANTHER (shared A3 classes left open)
 ENS_FRAMES['effectwarning_1528'] = ENS_FRAMES.get('effectwarning_1528', set()) | {34, 35}   # FN_PANTHER: the mortar's ground warning (shared with RM5's row)
 for _k, _v in FNP_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # FN_PANTHER
+# ---- SB_ENEMIES: Sky Battalion enemies (session 19, build/re/spec_sb_enemies.md; src/game/sb_enemy.c), engine types 1024-1099
+# (fp.h OT_SB_*). Rows '' = direction 0, '_l' = 16. Runtime children are exported with their creators (ENS_WITH). Placed off-map
+# templates (the lasers) map to the runtime types and are dropped at spawn.
+SBE_TYPES_ID = {('enemyhoppermkii', 2189): 1024, ('enemymagmeon', 2203): 1025, ('enemyrotorblade', 2184): 1026,
+    ('enemyrotorbladespikes', 2183): 1027, ('enemyspawntube', 2185): 1028, ('enemydrone', 2138): 1029, ('enemyaxleturret', 2139): 1030,
+    ('enemyaxleturret2', 2140): 1031, ('enemydnacannon', 2260): 1032, ('enemydnacannonbase', 2261): 1033, ('enemypelletizer', 2303): 1034,
+    ('enemymagnetizer', 2294): 1035, ('enemymagnetizercrate', 2295): 1036, ('enemymagnetizerhand', 2292): 1037,
+    ('enemymagnetizerline', 2293): 1038, ('enemydronelaser', 2232): 1063, ('enemydnalaser', 2290): 1065}
+SBE_ENS = [(c, a, d, nm + ('' if d == '0' else '_l')) for c, a, nm in (
+    ('enemyhoppermkii_2189', 0, 'sbh_idle'), ('enemyhoppermkii_2189', 7, 'sbh_crouch'), ('enemyhoppermkii_2189', 8, 'sbh_wreck'),
+    ('enemyhoppermkii_2189', 10, 'sbh_throw'), ('enemyhoppermkii_2189', 11, 'sbh_land'),
+    ('enemymagmeon_2203', 0, 'sbm_idle'), ('enemymagmeon_2203', 1, 'sbm_walk'), ('enemymagmeon_2203', 7, 'sbm_jump'),
+    ('enemymagmeon_2203', 8, 'sbm_dead'), ('enemymagmeon_2203', 10, 'sbm_land'),
+    ('enemydrone_2138', 0, 'sbd_fly'), ('enemydrone_2138', 7, 'sbd_dash'), ('enemydrone_2138', 8, 'sbd_dead'),
+    ('enemydnacannon_2260', 0, 'sbn_idle'), ('enemydnacannon_2260', 8, 'sbn_dead'), ('enemydnacannon_2260', 10, 'sbn_fire'),
+    ('enemydnacannon_2260', 11, 'sbn_charge'), ('enemydnacannonbase_2261', 0, 'sbn_base')) for d in ('0', '16')] + \
+    [(c, a, d, nm) for c, a, d, nm in (
+    ('enemyfragbomb_2103', 0, '0', 'sbh_bomb'), ('enemyfragbomb_2103', 7, '0', 'sbh_bombx'), ('enemymagmeon_2203', 0, '24', 'sbm_feet'),
+    ('effectsdust01_369', 4, '0', 'sbm_smoke'), ('enemyrotorblade_2184', 0, '0', 'sbr_roll'), ('enemyrotorbladedeath_2231', 0, '0', 'sbr_hub'),
+    ('enemyrotorbladespikes_2183', 0, '0', 'sbr_spikes'), ('enemyspawntube_2185', 0, '0', 'sbr_tube'), ('breakablespike2_2228', 0, '0', 'sbr_bit'),
+    ('effectsgroundspark_2053', 4, '0', 'sbr_spark'), ('enemydronelaser_2232', 0, '0', 'sbd_laser'),
+    ('enemyaxleturret_2139', 0, '0', 'sba_idle'), ('enemyaxleturret_2139', 8, '0', 'sba_dead'), ('enemyaxleturret_2139', 10, '0', 'sba_fire'),
+    ('enemyaxleturret2_2140', 0, '0', 'sba_base'), ('enemybullet_2097', 0, '0', 'sba_bullet'), ('enemydnalaser_2290', 0, '0', 'sbn_laser'),
+    ('enemypelletizer_2303', 0, '0', 'sbp_0'), ('enemypelletizer_2303', 0, '1', 'sbp_1'), ('enemypelletizer_2303', 0, '2', 'sbp_2'),
+    ('effectsdust_437', 4, '0', 'sbp_dust'), ('enemymagnetizer_2294', 0, '0', 'sbg_body'), ('enemymagnetizercrate_2295', 0, '0', 'sbg_crate'),
+    ('enemymagnetizerhand_2292', 0, '0', 'sbg_hand'), ('enemymagnetizerline_2293', 0, '0', 'sbg_line'))]
+_SBE_KS = ('enemyhoppermkii', 'enemyrotorblade', 'enemydrone', 'enemyaxleturret', 'enemydnacannon', 'enemypelletizer', 'enemymagnetizer')
+SBE_ENS_WITH = {'enemyfragbomb_2103': ('enemyhoppermkii',), 'effectsdust01_369': ('enemymagmeon',),
+    'enemyrotorbladedeath_2231': ('enemyrotorblade',), 'breakablespike2_2228': ('enemyrotorblade',), 'effectsgroundspark_2053': ('enemyrotorblade',),
+    'enemybullet_2097': ('enemyaxleturret',), 'effectsdust_437': ('enemypelletizer',), 'objectkeystone_429': _SBE_KS,
+    'effectsdebris_427': _SBE_KS, 'effectsexplosion06_435': ('enemydnacannon',)}
+ENGINE_TYPES_ID.update(SBE_TYPES_ID); ENS += SBE_ENS   # SB_ENEMIES
+for _k, _v in SBE_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # SB_ENEMIES
 SHL_CLASSES = {'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 ENS_ONLY_WITH = {'guiweaponslot_426', 'effectswatersplash_379', 'bubblepatch_804', 'mediumbubble_805', 'generalwaterhorizon_377', 'bubblenumbers_405', 'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 # classes whose untrimmed image box matters (spring top edges RV, box-collision platforms/logs, invisible

@@ -722,6 +722,7 @@ void game_update(const input_t *in) {
     relic_gimb_frame(&G.p);                       /* Relic Maze acts 3-5 gimmicks (src/game/relic_gimb.c) */
     fn_gima_frame(&G.p);                          /* Fortune Night acts 1-3 gimmicks (src/game/fn_gima.c) */
     fn_gimb_frame(&G.p);                          /* Fortune Night acts 4-5 gimmicks (src/game/fn_gimb.c) */
+    sb_gim_frame(&G.p);                           /* Sky Battalion gimmicks after the objects pass (src/game/sb_gim.c) */
     fn_boss_frame(&G.p);                          /* Fortune Night bosses (src/game/fn_boss.c) */
     rm_claw_frame(&G.p);                          /* RM3 Claw sequence events 6196-6350 (src/game/rm_claw.c) */
     fn_flow_frame(&G.p);                          /* Fortune Night stage script (src/game/fn_flow.c) */
