@@ -823,6 +823,23 @@ SCROLL08 = {17: 1, 18: 1, 19: 1, 20: 1, 25: 1, 26: 1, 27: 1, 28: 1, 29: 0, 30: 1
 # drawn once at (D, y0) in world coordinates; RE create_levelparallaxzaoship_2243: image 0x131 = 305, 507 x 323)
 PAR_BOB_FRAMES = {36, 37, 38, 39}
 PAR_WORLD = {2243}
+# images with per-pixel alpha (Sky Battalion's mist: pieces 5 / 6 / 7, every pixel alpha 1..~100, RE images 8426 / 8421 / 8425):
+# flag 1 = ARGB4444 texture (FPTX fmt 4) drawn through the translucent list, flag 2 = stored at half resolution, drawn x2
+# (soft mist; a quarter of the VRAM: about 200 KB instead of 800 KB). Image id -> flags (session 19)
+PAR_ALPHA = {8426: 3, 8421: 3, 8425: 3}
+
+def write_tex4444(img, path):
+    """FPTX fmt 4: ARGB4444, linear (16 levels of alpha; the PVR's translucent list blends it)"""
+    img = img.convert('RGBA')
+    w, h = 8, 8
+    while w < img.width: w *= 2
+    while h < img.height: h *= 2
+    canvas = Image.new('RGBA', (w, h), (0, 0, 0, 0)); canvas.paste(img, (0, 0))
+    out = bytearray(b'FPTX' + struct.pack('<6H', w, h, 4, img.width, img.height, 0))
+    for r, g, b, a in canvas.getdata():
+        out += struct.pack('<H', ((a >> 4) << 12) | ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4))
+    open(path, 'wb').write(out)
+    return w, h
 
 # invisible static obstacle objects baked into the solid collision map (class_handle; RE: constructor set_visible(0),
 # initialize_active(false) = pixel mask, qualifier 8 obstacle, no event moves them): Sky Battalion's ship decks (session 19)
@@ -850,18 +867,22 @@ def export_parallax(fr, src, name, out, an=None):
         img = PAR_IMG[key]
         if img not in imgidx:
             im, hx, hy = load_img(src, img)
+            fw, fh = im.width, im.height
+            iflags = PAR_ALPHA.get(img, 0)
+            if iflags & 2:                                 # half resolution (drawn x2): premultiplied resize
+                im = im.convert('RGBa').resize(((im.width + 1) // 2, (im.height + 1) // 2), Image.BILINEAR).convert('RGBA')
             chunks = []
             y = 0
             for ch in pow2_split(im.height):
                 x = 0
                 for cw in pow2_split(im.width):
                     sub = im.crop((x, y, min(x + cw, im.width), min(y + ch, im.height)))
-                    tn = '%s_px%d_%d' % (name, len(images), len(chunks))
-                    write_tex(sub, os.path.join(out, tn + '.tex'))
+                    tn = '%s_p%s%d_%d' % (name, 'a' if iflags & 1 else 'x', len(images), len(chunks))   # _pa: ARGB4444, outside the palettize sets
+                    (write_tex4444 if iflags & 1 else write_tex)(sub, os.path.join(out, tn + '.tex'))
                     chunks.append((x, y, sub.width, sub.height))
                     x += cw
                 y += ch
-            imgidx[img] = len(images); images.append((im.width, im.height, chunks))
+            imgidx[img] = len(images); images.append((fw, fh, chunks, iflags))
         D, E, G = PAR_DEG_FRAME.get((fr['frame'], o['id']), PAR_DEG.get(o['id'], (.5, .5, 0)))
         flags = 0
         if has_switch and o['id'] in (491, 891): flags |= 1        # shown while view top < 1360 (5101/5102)
@@ -893,11 +914,11 @@ def export_parallax(fr, src, name, out, an=None):
                 write_tex(sub, os.path.join(out, '%s_px%d_%d.tex' % (name, len(images), len(chunks))))
                 chunks.append((cx, cy, sub.width, sub.height)); cx += cw
             cy += ch
-        images.append((comp.width, comp.height, chunks))
+        images.append((comp.width, comp.height, chunks, 0))
         pieces.append((len(images) - 1, 0., 0., 0., parent, x0, y0, 1024, stars[0]['id']))   # y0 = the parent's handle, (bw, bh) = offset
-    d = bytearray(b'FPPX' + struct.pack('<4H', len(images), len(pieces), 1 if water else 0, 1))   # version 1: + the piece's handle
-    for w, h, chunks in images:
-        d += struct.pack('<3H', w, h, len(chunks))
+    d = bytearray(b'FPPX' + struct.pack('<4H', len(images), len(pieces), 1 if water else 0, 2))   # version 1: + the piece's handle; 2: + image flags
+    for w, h, chunks, iflags in images:
+        d += struct.pack('<4H', w, h, len(chunks), iflags)
         for c in chunks: d += struct.pack('<4H', *c)
     for (ii, D, E, G, y0, bw, bh, fl, hd) in pieces: d += struct.pack('<H3fi4H', ii, D, E, G, y0, bw, bh, fl, hd)
     if water:
