@@ -609,6 +609,59 @@ static const objdef_t DEFS[] = {
     { OT_SB_ZAOFLAG,    0,                                     "sbflag"     }, /* levelzaoflag_2107 */
     { OT_SB_DARKSKY,    OD_HIDDEN,                             NULL         }, /* leveldarksky_2114 (a full-view rectangle, sb_flow.c) */
     { OT_SB_BGPLAT,     OD_HIDDEN,                             "sbbgplat"   }, /* levelsbbgplatform_2244 (the opening planks, layer 1 at 0.8) */
+    /* SB_ENEMIES (sb_enemy.c, spec_sb_enemies 0; sprites set by sb_enemy_spawn; RE on_frame_37..39_init: only the crate is in q7) */
+    { OT_SB_HOPPER,     0,                                     NULL         }, /* enemyhoppermkii_2189 (q20) */
+    { OT_SB_MAGMEON,    0,                                     NULL         }, /* enemymagmeon_2203 (q20) */
+    { OT_SB_ROTOR,      0,                                     NULL         }, /* enemyrotorblade_2184 (q20) */
+    { OT_SB_ROTORSPK,   0,                                     NULL         }, /* enemyrotorbladespikes_2183 */
+    { OT_SB_TUBE,       0,                                     NULL         }, /* enemyspawntube_2185 */
+    { OT_SB_DRONE,      0,                                     NULL         }, /* enemydrone_2138 (q20) */
+    { OT_SB_AXLE,       0,                                     NULL         }, /* enemyaxleturret_2139 (q20) */
+    { OT_SB_AXLE2,      0,                                     NULL         }, /* enemyaxleturret2_2140 */
+    { OT_SB_DNA,        0,                                     NULL         }, /* enemydnacannon_2260 (q20) */
+    { OT_SB_DNABASE,    0,                                     NULL         }, /* enemydnacannonbase_2261 */
+    { OT_SB_PELLETIZER, 0,                                     NULL         }, /* enemypelletizer_2303 (q20) */
+    { OT_SB_MAGNET,     0,                                     NULL         }, /* enemymagnetizer_2294 (q20) */
+    { OT_SB_MHAND,      0,                                     NULL         }, /* enemymagnetizerhand_2292 */
+    { OT_SB_MLINE,      0,                                     NULL         }, /* enemymagnetizerline_2293 */
+    { OT_SB_DLASER,     0,                                     NULL         }, /* enemydronelaser_2232 (runtime) */
+    { OT_SB_DNALASER,   0,                                     NULL         }, /* enemydnalaser_2290 (runtime) */
+    { OT_SB_CANNON,     0,                                     NULL         }, /* gimmickcannon_2142 */
+    { OT_SB_CANBASE2,   0,                                     NULL         }, /* gimmickcannonbase2_2176 */
+    { OT_SB_FLAMER,     0,                                     NULL         }, /* gimmickflamethrower_2182 */
+    { OT_SB_CRUSHCHAIN, 0,                                     NULL         }, /* gimmickcrusherchain_2309 */
+    { OT_SB_PLATFLAME,  0,                                     NULL         }, /* levelsbplatformflame1_2096 */
+    { OT_SB_FANBLADE,   0,                                     NULL         }, /* levelfanblade_2193 / 2264 / 2297 */
+    { OT_SB_FAN,        0,                                     NULL         }, /* gimmickfan_2223 */
+    { OT_SB_FANSIDE,    0,                                     NULL         }, /* gimmickfanside_2245 */
+    { OT_SB_SCHAIN,     0,                                     NULL         }, /* levelscrollingchainup / down_2302 / 2305 */
+    { OT_SB_BACKEYE,    0,                                     NULL         }, /* sbbackeye / 2_2282 / 2283 */
+    { OT_SB_CANBULLET,  0,                                     NULL         }, /* gimmickcannonbullet_2098 (runtime) */
+    { OT_SB_FANDEBRIS,  0,                                     NULL         }, /* gimmickfandebris_2230 (runtime) */
+    { OT_SB_FLOORPIECE, 0,                                     NULL         }, /* breakablefloorpiece2_2229 (runtime) */
+    { OT_SB_MCRATE,     OD_SOLID|OD_BOXCOL,                    NULL         }, /* enemymagnetizercrate_2295 (q7 q9) */
+    /* SB_GIM (sb_gim.c, spec_sb_gimmicks 0; sprites set by sb_gim_spawn; RE on_frame_37..39_init qualifiers, constructors) */
+    { OT_SB_CANBASE,    OD_SOLID|OD_BOXCOL,                    NULL         }, /* gimmickcannonbase_2141 (q7 q20) */
+    { OT_SB_BFLOOR,     OD_SOLID,                              NULL         }, /* breakablefloor1 / 2_2196 / 2197 / 2298 / 2299 (q7) */
+    { OT_SB_CHAINWALL,  OD_SOLID|OD_BOXCOL,                    NULL         }, /* gimmickchainwallup / down_2307 / 2308 (q7) */
+    { OT_SB_CHAINMASK,  OD_SOLID|OD_HIDDEN,                    NULL         }, /* gimmickchainwallmaskup / down_2304 / 2306 (q7, invisible mask) */
+    { OT_SB_CRUSHER,    OD_SOLID|OD_BOXCOL,                    NULL         }, /* gimmickcrusherplatform_2310 (q7) */
+    { OT_SB_MBLOCK,     OD_SOLID|OD_BOXCOL,                    NULL         }, /* levelsbmovingblock1_2318 (q7) */
+    { OT_SB_PLAT1,      OD_OBSTACLE|OD_NOEDGE,                 NULL         }, /* levelsbplatform1_2095 (q8 q9 q12 q13) */
+    { OT_SB_PLAT3,      OD_OBSTACLE|OD_NOEDGE|OD_BOXCOL,       NULL         }, /* levelsbplatform3_2188 (q8 q9 q13) */
+    { OT_SB_BARMASK,    OD_BOXCOL|OD_HIDDEN|OD_HANG,           NULL         }, /* gimmicksbbarmask_2313 (q13 q23: the hang handle) */
+    { OT_SB_BAR,        OD_BOXCOL,                             NULL         }, /* gimmicksbbar_2314 (q13) */
+    { OT_SB_LIGHTNING,  OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* hazardlightningradial_2254 (invisible) */
+    { OT_SB_LIGHTNING2, OD_BOXCOL,                             NULL         }, /* hazardlightningradial2_2256 */
+    { OT_SB_FIRE,       OD_BOXCOL,                             NULL         }, /* hazardfire up / down / left / right */
+    { OT_SB_CUPSTART,   OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* gimmickspincupstartpoint_2275 */
+    { OT_SB_CUPLAND,    OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* gimmickspincuplandpoint_2270 */
+    { OT_SB_SPINCUP,    OD_BOXCOL,                             NULL         }, /* gimmickspincup_2269 */
+    { OT_SB_LOOP0,      OD_SOLID|OD_LAYER0,                    NULL         }, /* sbloop1 / 4 / 7, active3 / 4 (q7 q10) */
+    { OT_SB_LOOP1,      OD_SOLID|OD_LAYER1,                    NULL         }, /* sbloop2 / 6, active / active2 (q7 q11) */
+    { OT_SB_LOOP1B,     OD_SOLID|OD_BOXCOL|OD_LAYER1,          NULL         }, /* sbloop3 / 5 (q7 q11, box collision) */
+    { OT_SB_PBLOCK4,    OD_SOLID|OD_BOXCOL|OD_NOEDGE,          NULL         }, /* pushableblock4_2259 (q7 q9 q14) */
+    { OT_SB_BTUNNEL,    OD_HIDDEN,                             NULL         }, /* levelballtunnel2 / 3 (q27, invisible) */
 };
 static objdef_t BY_TYPE[MAX_OT];
 static int built;
