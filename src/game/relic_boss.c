@@ -544,7 +544,7 @@ void rmboss_spawn(void) {
     ge_spawn(); bg_spawn();
 }
 void rmboss_frame(player_t *p) {
-    if (!objects_have(OT_GEYE) && !objects_have(OT_BGCORE) && !first_of(OT_GSHOT) && !first_of(OT_SHOCK)) return;
+    if (!objects_have(OT_GEYE) && !objects_have(OT_BGCORE) && !(objects_alive_type(OT_GSHOT) && first_of(OT_GSHOT)) && !(objects_alive_type(OT_SHOCK) && first_of(OT_SHOCK))) return;
     ge_frame(p);
     ge_shots(p);
     bg_frame(p);
