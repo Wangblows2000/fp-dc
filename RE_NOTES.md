@@ -1086,3 +1086,31 @@ src/resources/assets.c + src/game/game.c (Quick Backdrops); tests/test_dv3_bambo
   between the Claw route and the cart route; 19347 tiles), FN5 x 11904-15200, y 240-512 is now solid (3462 tiles). The other
   levels' collision is unchanged. RM / FN host suites pass with it.
 - Not verified: gradient Quick Backdrops (none in the ported levels; the importer skips them).
+
+## Session 19: Sky Battalion flow
+Labels: RE read from code (handle_frame_36..39_events, on_frame_36..39_start / init disassembly), RV original screenshots
+(set_frame 35 / 36: build/orig/sb_sb1fresh_*, sb_sb2walk_*), INFERRED reasoned. Full spec: build/re/spec_sb_flow.md;
+inventory build/re/sb_inventory.md. Port: src/game/sb_flow.c, levels.c rows sb1-sb4, parallax.c; tests/test_sb_flow.py.
+- **Structure (RE):** SB1 (json 36, frame index 35) is Zao's airship, the stage hub; SB2 / SB3 / SB4 (json 37-39) are the
+  red / blue / green ships. SB1 pads (SwitchPlatform_2100, index C newest first, 9216) send the player to frame 0x24 / 0x25
+  / 0x26 (8876-8878, g4 -1); each ship ends at X > W - 50 back to SB1 (9455-9458), where she flies in (8882 / 8883: X -40,
+  Y start.y + 16 - 400, B 15, G -5). Pad C -> ship by json order is INFERRED (agrees with the name signs).
+- **Pads (RE 8866-8872):** standing on flat ground (O < 30 or > 330) sinks B by 0.5 to 24, the player follows; sound 62,
+  then 49 and flags 2 | 4; 8874 / 8875 fade with control kept. A done ship (MasterLevel 0x10 / 0x20 / 0x40, set by the
+  boss ends 9597 / 9698, 9925, 10112) keeps its pad down and hides its name sign (9220-9222).
+- **Night (RE 9005-9009):** grounded past X 1200 with the three flags: LevelDarkSky (8,0,0) at alpha (128 - B) 2, B 128
+  -0.5 / frame to 64, music fades 4 s, timer off; 50 frames later group 0x22840 (the Kujacker) and the timer. CAM.H -> -50
+  (9008) and the hub fire group 0x2283b (8996-9004, 9223-9227) are not ported.
+- **Ship opening (RE 9460-9470 / 9868-9875, RV):** after a 32-frame fade Zao's airship (levelparallaxzaoship_2243, a layer-0
+  SystemBox at world 128,112) fires its four planks (LevelSBBGPlatform) one per 20 frames (g3 % 20; explosion, sound 99,
+  B -8), then releases the hover platforms (flag 0x800), the timer and HUD return and g4 = 1.
+- **Checkpoints / locks (RE):** SB2 9550 / 9551, SB3 9876 / 9877, SB4 10076 / 10077; boss locks 9552 (+600, once) / 9554,
+  9878 (+200, re-lockable) / 9879, 10078 (+0x50, once) / 10079. SB2's boss depends on the character (9553 / 9471).
+- **Data (RE):** music tables 35: 4 m_boss3 5 m_stage4 6 m_menu2 7 m_stage4; 36: 4 m_midboss 5 / 6 m_stage4 7 m_trouble;
+  37 / 38: 4 m_midboss 5-7 m_stage4. Cards SB2 41, SB3 44, SB4 48 (counters inline in on_frame_38/39 start). Frame 8:
+  Classic I = 3 -> 35 (SB1). Results 4561-4586 / 5394 run in SB1, 8873 wipe -> frame 8.
+- **Parallax (RE, RV):** 9198 replaces 3542 with a bob K = (viewY + 20 sin(g3 deg) - 20) E + C; D / E / G per piece in the
+  spec. Pieces 2064 / 2065 / 2094 (images 8426 / 8421 / 8425) are semi-transparent mist (RV: the deck shows through). SB1
+  layer 1 scrolls 0.25 (the enemy airships), SB2-4 layer 1 0.8. ShipPlatform1/2/3 are invisible q8 masks (no events).
+- Not verified: pad stand box, g3 phase (port: G.frame), Adventure g4 99 branches (Magister dialog -> 82, zaoship falling ->
+  79), zaoship colours after par_top (138 -> 117).
