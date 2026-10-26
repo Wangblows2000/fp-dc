@@ -784,6 +784,41 @@ shared build/ (not in git): this section is the session's addendum to it (spec ย
 - RV screenshots (original, set_frame 29 / 30 / 32, build/orig/fn_start_*.png): FN2's start shows parallax piece 5_1802
   (image 3612, the blue-roofed towers over water) behind the starting wall, confirming spec_fn_flow 4's FN2 table.
 
+## Session 18: Fortune Night playtest fixes (FN5 arena floor, FN1 UFO armour, FN5 dance timing, rolling arches)
+Original traces (set_frame 29 / 33, `flock` run of tools/orig/run_trace.sh; CSV / .xl / screenshots in
+build/orig_traces/fn_s18/, scripts session1.sh / session2.sh there): arch_l, arch_r, arch_lf, arch_rf, arch_spr (FN1 arch at
+pivot (1896, 416)), ufo_hit (FN1), disco_c0 / c2 / c4 and samu (FN5).
+- **FN5 samurai arena floor (RE + RV).** The arena floor is 8 x 7 BreakableFloor1/2 at x 9920..10368, y 576..864 over the
+  spikes at y 928, placed under handles **1996 / 1997** (ctors: the same object ids 0x39a / 0x39b = Frames +0xe6b0 / +0xe6f0
+  as acts 1-3's 1766 / 1767, images 7662 / 8683; piece 1995 = id 0x399, image 8684). The importer only mapped 1766 / 1767,
+  so FN5 had no floor (fn5_report "skipped classes: breakablefloor1 28, breakablefloor2 28"): the player dropped onto the
+  spikes and could not climb back to the exit (the playtest report). A5 runs the samurai's floor breakers 8031 / 8032 (body
+  charge, A3 events reused) and its own 8439 / 8440 / 8447 / 8448 (hands), and shatters flagged floors with 8343-8346 (A5
+  copies of 7220 / 7221 with piece 1995). RV samu (Lilac idle, invulnerable): the floors exist and break progressively
+  (56 -> 49 at f300, 39 at f600, 35 at f1100; she reaches the spikes after ~1100 frames). **Port (INFERRED smash / charge
+  timings, U-E1) digs slower than RV** (idle: one row per ~600 frames); not changed here.
+- **FN1 UFO armour (RE + RV).** Among the events that select MinibossUFO (Frames +0xe838) only 7367 writes flag 5, and only
+  to set it (with C = 5) while G = 0; flag 5 is cleared only by 7441 (bulldozer door) and 7815 (FN3 samurai lock) - never for
+  the UFO, and none of the Q20 hit events 2730-2767 clears it. RV ufo_hit: flag 0x20 and A 200 in every state G 0-5 (flag 1
+  joins at the camera release). The session-17 port cleared the armour at G 1 (INFERRED), so 200 HP of hits made it fly away
+  (2765) before the beam had cut the floor. Now armoured for the whole encounter: hits clang (sound 30) and set C = 5, which
+  only pauses L and the beam growth (7387 / 7395).
+- **FN5 dance trigger (RE + RV).** 8306-8308 test the frame of the object at Frames +0x47b0 (Lilac's PlayerSkinSash, the
+  same object for every character) for "not anim 40 and frame > 10". RV disco_c0 / c2 / c4: Lilac, Carol and Milla all
+  reach M 50 / skin anim 40 dir 8 at the same frame, 79 frames after landing (the sash idle: 12 frames at speed 14, frame 11
+  at 78.6 frames), 29 frames after DiscoLight A = 64; OTHERS.Y = 50 the frame after. The port's 10 idle frames (INFERRED)
+  became the sash idle clock. **The reported "no dance" did not reproduce on the host** (the dance starts for all three in
+  every arrival tested: TP, walk-in, run + skid, jump, after FN4 -> FN5): emulator check needed.
+- **Rolling arch entry (RE + RV).** 7225 / 7226 keep the arches with **A >= 175 / A <= 5** (the selection loops remove A < 175
+  / A > 5); spec_fn_gimmicks_a ยง4 and the session-17 port had them inverted, so an arch resting at 180 / 0 never caught the
+  player. RV arch_lf: Lilac sprung up from the spring at the tower's left side holding right is caught at the ring's left
+  foot (frame of 7225: X 1750 Y 416 B 5 N 90; next: X 1754 Y 411 B 4.797 N 85.9, arch A 178.2), runs round the ring's upper
+  half (top X 1893 44 frames later, A ~90) and down the far side to N 270 (82 frames after the catch) while the arch follows
+  her (7229); A = 0 and the base not solid again when she leaves it. RV arch_l / arch_r: running across the tower top under
+  the resting arch is not caught (both sensors on it). The other arch rules (7229-7234) read as in the spec (checked).
+- Collision semantics left as they were: the arch is a box object; the port tests its rotated mask (Chowdren: rotated
+  bounding box, INFERRED); both agree at rest (0 / 180), where the entry tests run.
+
 ## Session 18: pellet sounds, shield sprites across acts, gallery voices (shared systems)
 ### Pellet hit / miss sounds (src/game/objects.c explode2, src/characters/player.c player_damage)
 - **Report:** a pellet enemy plays its shot (28), then Lilac's pain sound, even when the shot misses, for every character.

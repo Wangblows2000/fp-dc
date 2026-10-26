@@ -465,6 +465,7 @@ FNA_TYPES_ID = {
     ('gimmickverticalhalfpipe1', 1828): 575, ('gimmickverticalhalfpipe2', 1829): 575, ('gimmickverticalhalfpipe3', 1830): 575,
     ('gimmickverticalhalfpipe4', 1838): 575, ('gimmickverticalhalfpipe5', 1839): 575, ('gimmickverticalhalfpipe6', 1840): 575,
     ('gimmickteetertotter', 1831): 576, ('breakablewall', 1637): 577, ('breakablefloor1', 1766): 579, ('breakablefloor2', 1767): 579,
+    ('breakablefloor1', 1996): 579, ('breakablefloor2', 1997): 579,   # FN5's samurai arena (same objects 922 / 923, own images; session 18)
     ('fireworklauncher', 1735): 581, ('gimmickclothesline2', 1702): 583, ('gimmickhanginglongsensor2', 1703): 584, ('flag', 1701): 585,
     ('paperlantern', 527): 586, ('floatinglantern', 1846): 587, ('gachaponwheel', 1851): 588, ('gachapondoor', 1852): 589,
     ('gachaponfront', 1854): 590, ('signstop', 1698): 591, ('signyield', 1697): 591, ('lamppostfront', 1791): 592,
@@ -477,7 +478,7 @@ FNA_TYPES_ID = {
     ('objectchair', 1797): 336}
 FNA_SUB = {'gimmickdragontunnel2_1733': 1, 'gimmickdragontunnelhead2_1783': 1, 'gimmickdragontunnelmask2_1799': 1,
            'dragontunnelhide2_1859': 1, 'dragontunnelhide3_1787': 2, 'levelferriswheel2_1775': 1, 'levelferriswheel3_1776': 2,
-           'levelferriswheel4_1777': 3, 'goldplatform2_1685': 1, 'goldplatform3_1720': 2, 'breakablefloor2_1767': 1,
+           'levelferriswheel4_1777': 3, 'goldplatform2_1685': 1, 'goldplatform3_1720': 2, 'breakablefloor2_1767': 1, 'breakablefloor2_1997': 1,
            'signyield_1697': 1, 'largesign2_1757': 1, 'largesign3_1849': 2, 'largesign3_1893': 3, 'largecolumn2_1874': 1, 'ramp2_1871': 1,
            'leveltrolleyplatform2_1807': 1, 'leveltrollycarlight2_1813': 1, 'layer0loop2_1711': 1, 'layer0loop3_1856': 2,
            'layer0block_1884': 3, 'layer1loop2_1712': 1, 'layer1loop3_1719': 2,
@@ -501,7 +502,7 @@ FNA_ENS = [(c, 0, '0', nm) for c, nm in (
     ('gimmickrollingarchbase_1659', 'fnarchbase'), ('gimmickrollingarch_1661', 'fnarch'), ('gimmickrollingarch2_1663', 'fnarchwheel'),
     ('gimmickboostblock_1728', 'fnboost'), ('gimmickboostblockturn_1730', 'fnbturn'),
     ('gimmickteetertotter_1831', 'fnteeter0'), ('breakablewall_1637', 'fnbwall'), ('breakablewallpiece_1638', 'fnbwpiece'),
-    ('breakablefloor1_1766', 'fnbfloor0'), ('breakablefloor2_1767', 'fnbfloor1'), ('breakablefloorpiece_1764', 'fnbfpiece'),
+    ('breakablefloor1_1766', 'fnbfloor0'), ('breakablefloor2_1767', 'fnbfloor1'), ('breakablefloorpiece_1764', 'fnbfpiece'), ('breakablefloorpiece_1995', 'fnbfpiece'),
     ('fireworklauncher_1735', 'fnfwl'), ('fireworkparticle_1736', 'fnfwp'), ('gimmickclothesline2_1702', 'fnclothes'),
     ('gimmickhanginglongsensor2_1703', 'fnclstop'), ('flag_1701', 'fnflag'), ('paperlantern_527', 'fnplantern'),
     ('floatinglantern_1846', 'fnflantern'), ('gachaponwheel_1851', 'fngwheel0'),
@@ -524,9 +525,11 @@ FNA_ENS = [(c, 0, '0', nm) for c, nm in (
     [('objectjumppad_1529', 0, '0', 'jpad_rm'), ('objectjumppad_1529', 0, '1', 'jpad_rm_lit')]   # FN's pad handle: its own images (carol_bike.inc)
 FNA_ENS_IMG = [('leveltrollycar_1803', 'fntrolley', [6914])]   # SystemBox (no animation table): its image as a one-frame row
 FNA_ENS_WITH = {'breakablewallpiece_1638': ('breakablewall',), 'breakablefloorpiece_1764': ('breakablefloor1', 'breakablefloor2'),
+                'breakablefloorpiece_1995': ('breakablefloor1', 'breakablefloor2'),
                 'fireworkparticle_1736': ('fireworklauncher',), 'effectsdust01_369': ('gimmickboostblock',),
                 'effectsdebris_427': ('lamppostfront',), 'objectkeystone_429': ('gachaponwheel',)}
-FNA_ENS_FRAMES = {'objectjumppad_1529': {30, 31, 32}}
+FNA_ENS_FRAMES = {'objectjumppad_1529': {30, 31, 32},
+                  'breakablefloorpiece_1764': {30, 31, 32, 35}, 'breakablefloorpiece_1995': {34}}   # FN5 8343-8346 create piece 1995 (its own image)
 ENGINE_TYPES_ID.update(FNA_TYPES_ID); ENS += FNA_ENS; ENS_FRAMES.update(FNA_ENS_FRAMES)
 for _k, _v in FNA_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v
 # ---- FN_GIMB: Fortune Night gimmicks, acts 4-5 (build/re/spec_fn_gimmicks_b.md; src/game/fn_gimb.c). Types 680-707 mirror
