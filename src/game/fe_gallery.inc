@@ -95,6 +95,7 @@ static int gal_row_frame(int r) {
 
 static void gal_voice_free(void) {
     if (Y.voice_h >= 0) { snd_stop_all(); snd_unload(Y.voice_h); Y.voice_h = -1; }
+    if (Y.play_t < 0) { music_stop(); Y.play_t = 0; }   /* a streamed clip */
 }
 /* sound cards (RE 1043-1050): one clip loaded on demand; its length (WAV header) stands for "channel 31 busy" */
 static int gal_voice(const char *name) {
@@ -102,7 +103,13 @@ static int gal_voice(const char *name) {
     gal_voice_free();
     snprintf(nm, sizeof nm, "gal/%s.wav", name);
     uint8_t *d = plat_load_file(nm, &sz);
-    if (!d) return -1;
+    if (!d) {   /* a clip too long for a sample (> 65534 samples at 11025 Hz, tools/audio/convert_gallery.sh): streamed once on the
+                 * music channel, as the original plays every sound card on channel 31 (RE 1043); idle when the stream ends */
+        snprintf(nm, sizeof nm, "gal/%s.adp", name);
+        if (music_play_once(nm) != 0) return -1;
+        Y.play_t = -1;
+        return 0;
+    }
     uint32_t rate = 0, bits = 0, ch = 1, data = 0;
     for (size_t o = 12; o + 8 <= sz;) {
         uint32_t n = d[o + 4] | d[o + 5] << 8 | d[o + 6] << 16 | (uint32_t)d[o + 7] << 24;
@@ -361,7 +368,7 @@ static void gal_update(const input_t *now) {
         }
     }
     if (Y.playing) {                                                                     /* RE 1059: the flag clears when channel 31 is idle */
-        if (gal_type(Y.playing) == 2) { if (--Y.play_t <= 0) { gal_voice_free(); Y.playing = 0; gal_trace("idle"); } }
+        if (gal_type(Y.playing) == 2) { if (Y.play_t < 0 ? !music_active() : --Y.play_t <= 0) { gal_voice_free(); Y.playing = 0; gal_trace("idle"); } }
         else if (!music_active()) { music_stop(); Y.playing = 0; gal_trace("idle"); }
     }
     if (Y.burst_on && Y.burst) { anim_tick(&Y.burst->an, -1); if (Y.burst->an.done) Y.burst_on = 0; }

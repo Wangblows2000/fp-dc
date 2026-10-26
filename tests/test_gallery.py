@@ -141,13 +141,29 @@ check('art_view_sound_443', [x for f, x in ev if ld and f in (ld[0], fr[0])].cou
 check('art_nothing_saved', data is not None and parse(data)['opened'] == {10} or data is None)
 
 # ---- music cards: play / stop on channel 31 (RE 1042 / 1055); card 9 (1up jingle) once; card 19 is a voice clip
-s, f = keys('D J J R R R R R R R R J W300 D J W80')
+s, f = keys('D J J R R R R R R R R J W300 D J W160')   # carol_awesome: 2.21 s (session 18: the genuine clip, was a 1-s placeholder)
 ev, data, out = run(PRE + s, f, make_save(cards=[1, 9, 19], opened=[1, 9, 19]))
 xs = [x for _, x in ev]
 check('music_card_plays_track', 'gal play bgm/m_title.adp loop' in xs and 'gal stop 1' in xs and 'music bgm/m_title.adp' in ' '.join(xs))
 check('music_card_once_goes_idle', 'gal play bgm/m_1up.adp once' in xs and any(x.startswith('music once') for x in xs) and xs.count('gal idle') >= 1)
 check('sound_card_plays_voice', 'gal play carol_awesome' in xs and xs.count('gal idle') == 2, str([x for x in xs if x.startswith('gal')][-6:]))
 check('m_results_not_restarted', [x.split()[1] for x in xs if 'm_results' in x] == ['bgm/m_results.adp'])
+
+# ---- sound cards (session 18): every clip is the genuine Data/voices/eng recording (no /home/claude/fprun placeholder); a clip
+# longer than one sample may be (> 65534 samples at 11025 Hz) streams once on the music channel: card 70 sx_08b02 (33 s)
+man = [l.rstrip('\n').split(',') for l in open(os.path.join(DATA, 'gal', 'gal_manifest.csv'))][1:]
+vo = [m for m in man if not m[0].startswith('s') or m[0].startswith(('serp', 'sx'))]
+check('sound_cards_genuine_voices', len(vo) == 19 and not [m for m in vo if '/home/claude/fprun' in m[1] or m[2] == '1.000000'],
+      str([m[0] for m in vo if '/home/claude/fprun' in m[1] or m[2] == '1.000000']))
+check('sound_cards_fit_sound_ram', all(int(m[3]) <= 56 * 1024 for m in man if os.path.exists(os.path.join(DATA, 'gal', m[0] + '.wav'))) and
+      os.path.exists(os.path.join(DATA, 'gal', 'sx_08b02.adp')) and not os.path.exists(os.path.join(DATA, 'gal', 'sx_08b02.wav')))
+s, f = keys('D D D D D D D R R R R R R R R R J W2100 J W100 J')
+ev, data, out = run(PRE + s, f, make_save(cards=[70], opened=[70]))
+xs = [x for _, x in ev]
+pl = [f for f, x in ev if x == 'gal play sx_08b02']; idle = [f for f, x in ev if x == 'gal idle']; st = [f for f, x in ev if x == 'gal stop 70']
+check('streamed_sound_card_plays_once', len(pl) == 2 and any(x.startswith('music once') or 'gal/sx_08b02.adp' in x for x in xs) and
+      idle and 1980 <= idle[0] - pl[0] <= 1990, 'play %s idle %s' % (pl, idle))
+check('streamed_sound_card_stops', st and st[0] > pl[1], str(st))
 
 # ---- DATA page: marks with the YES / NO panel (cursor starts on NO, RV), deletes applied on leaving, one save
 rec = {(1, 0): (60000, 300), (2, 1): (90000, 250)}

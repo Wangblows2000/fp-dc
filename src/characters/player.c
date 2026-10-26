@@ -164,8 +164,8 @@ void player_damage(player_t *p, int amount) {
     if (fe_difficulty >= 3) return;
     int mult = fe_difficulty == 0 ? 2 : 1;
     p->hp -= mult * amount / 5;
-    snd_play_orig(25, 220, 128);    /* RE: Media::play_id 25 */
-    snd_play_orig(17, 220, 128);    /* RV: id 17 logged on the same frame */
+    snd_play_orig(25, 220, 128);    /* RE: Media::play_id 25 (2414 plays only 25 + sound_hurt<n>; the 17 of a pellet hit is
+                                     * col_4_20's, objects.c explode2: RV tredd / dv4_chase / snake_t1 hurts log 25 + voice only) */
     if (chr_is_milla(G.character)) {               /* Milla's voice set (0x216b7, RE loop_sound_hurt0-3 / die): 179 180 181 182, die 178 */
         static const int vm[4] = { 179, 180, 181, 182 };
         if (p->hp > 0) snd_play_orig(vm[rand() & 3], 255, 128); else snd_play_orig(178, 255, 128);

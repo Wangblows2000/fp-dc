@@ -47,6 +47,31 @@ void shield_icon_update(obj_t *ic, player_t *p) {
     }
 }
 
+/* Shield sprites (session 18). RE: every stage frame places Lilac's six shield objects (off-map q21 instances) and runs the
+ * shield events 2673-2705 / 2804-2808 (build/re/f17..f29_calls.txt), and OTHERS.B is global, so a shield carried over an
+ * act or stage change works AND shows in the next act. The port's per-act _ens bank holds the shield rows only where a
+ * shield monitor is on the map; the other acts have them in <dir>_shl (tools/import_frame.py), loaded when the shield is
+ * carried in (level load, or the first frame a shield exists without its sprites, e.g. a Continue: one load per act). */
+static int shl_tried;
+static int sh_anim(const char *nm, const bank_t **b) {
+    int a = ens_anim(nm);
+    if (a >= 0) { *b = &G.ens; return a; }
+    if (G.shl.nframes && (a = bank_anim(&G.shl, nm)) >= 0) { *b = &G.shl; return a; }
+    return -1;
+}
+static void shl_need(void) {
+    const bank_t *b;
+    if (shl_tried || G.shl.nframes) return;
+    shl_tried = 1;                                                           /* one check / load per act */
+    if (sh_anim("shw", &b) >= 0) return;                                     /* the act's _ens has them */
+    char nm[48]; snprintf(nm, sizeof nm, "%s/%s_shl", G.lvdir, G.lvdir);
+    if (bank_load(&G.shl, nm) < 0) { memset(&G.shl, 0, sizeof G.shl); G.shl.tex.id = -1; plat_log("shields: no sprites for %s (%s missing)\n", G.lvdir, nm); }
+#ifdef FP_HOST_ENV
+    else if (getenv("FP_TRACE_SID")) printf("shields: bank %s\n", nm);
+#endif
+}
+void shields_bank_load(void) { shl_tried = 0; if (G.p.shield) shl_need(); }
+
 /* 2412 / 2413 (before the hurt event): returns 1 when the shield took the hit */
 int shield_absorb(player_t *p) {
     if (!p->shield) return 0;
@@ -84,6 +109,10 @@ static void magnet(player_t *p, int type) {
 /* the frame's shield events after Lilac's movement (2673-2705), particles and the follow rule (2804-2812) */
 void shields_update(player_t *p) {
     SH.gt++;
+    if (p->shield) shl_need();                                               /* a shield set after the level load (Continue) */
+#ifdef FP_HOST_ENV
+    if (getenv("FP_SH_DBG")) { const bank_t *b; printf("shv %d %s %d %d %d\n", G.frame, G.lvdir, p->shield, p->shield ? sh_anim(SH_ANIM[p->shield - 1], &b) >= 0 : -1, G.shl.nframes > 0); }   /* host tests */
+#endif
     if (p->state == ST_DEAD) { if (p->shield) { p->shield = 0; } }          /* 3082 */
     if (p->shield && p->shield != p->shield_shown) {                         /* 2679 / 2688 / 2692 / 2694 / 2701 */
         if (p->shield_shown) { SH.out_type = p->shield_shown; SH.out_t = 0; }
@@ -131,10 +160,11 @@ void shields_update(player_t *p) {
 }
 
 static void draw_shield_anim(const char *nm, float sx, float sy, uint32_t col) {
-    int a = ens_anim(nm);
+    const bank_t *b;
+    int a = sh_anim(nm, &b);
     if (a < 0) return;
-    animator_t an; memset(&an, 0, sizeof an); anim_set(&an, &G.ens, a);
-    const bank_t *b = &G.ens; int nf = b->anims[a].count; if (nf < 1) return;
+    animator_t an; memset(&an, 0, sizeof an); anim_set(&an, b, a);
+    int nf = b->anims[a].count; if (nf < 1) return;
     int sp = b->anims[a].speed > 0 ? b->anims[a].speed : 20, f;
     if (strstr(nm, "_in") || strstr(nm, "_out")) f = (int)(SH.t * sp / 100); else f = (int)((long)SH.gt * sp / 100) % nf;
     if (f >= nf) f = nf - 1;
@@ -150,8 +180,8 @@ void shields_draw(const player_t *p) {
     cx = floorf(cx); cy = floorf(cy);
     r_set_additive(1);
     for (int k = 0; k < 48; k++) if (PT[k].alive) {                          /* EffectsShield (behind the hair in the original) */
-        int pa = ens_anim("shpart"); if (pa < 0) break;
-        animator_t an; memset(&an, 0, sizeof an); anim_set(&an, &G.ens, pa); an.frame = PT[k].kind;
+        const bank_t *pb; int pa = sh_anim("shpart", &pb); if (pa < 0) break;
+        animator_t an; memset(&an, 0, sizeof an); anim_set(&an, pb, pa); an.frame = PT[k].kind;
         uint32_t col = ((uint32_t)PT[k].alpha << 24) | 0xffffff;
         frame_draw_rot(an.b, anim_frame(&an), floorf((float)p->x + PT[k].a - G.camx), floorf((float)(p->y - ORIG_REF_DY) - 10 + PT[k].b - G.camy), PT[k].rot, 0, col);
     }
