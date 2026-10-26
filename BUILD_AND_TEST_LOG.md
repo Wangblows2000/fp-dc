@@ -429,3 +429,35 @@ Labels: original-trace (RV), RE, host-test, emulator (Flycast, emulated time). *
 - **Original runs:** RM3 truck screenshot (FRAME=26, TP 6600 440). An AT1 attempt did not start (tracer timeout).
 - **Flycast:** title menu, RM3 truck, RM2 vignette, VMU portraits; DC build 0 warnings. **The seam fix and the rest
   are emulator-only; nothing was run on real hardware.**
+
+## Session 17 (2026-10-25/26): Fortune Night
+- **Agents' focused suites** (one per module, private data overlays): test_fn_enemies, test_fn_gimmicks_a,
+  test_fn_gimmicks_b, test_fn_flow, test_fn_bosses, test_fn_panther (44 checks); after each merge the lead rebuilt
+  fn1-fn6 on main (json frames 30-35) and re-ran the merged module's suite.
+- **Milestone suites (after the last merge):** gameplay, frontend, carol, milla, aqua, levels, saves, rm_gimmicks_b,
+  rm_claw, rm_mantalith, gallery, achievements, fn_enemies, fn_gimmicks_a, fn_gimmicks_b, fn_bosses, fn_panther,
+  fn_flow: 0 failures. Trace comparers: cmp_all 76/76 strict 11311/11377 (99.4 %), cmp_carol 43/53, cmp_at 21/35
+  (unchanged); cmp_milla 37/43, the same as the session-16 code run on the same data (m_lift_throw_dv1 fails at both).
+  After the bomb-arming change: aqua, fn_bosses 0 failures, cmp_at 21/35.
+- **Original game (RV screenshots, set_frame 29 / 30 / 32):** FN1, FN2 and FN4 starts match the host renders after the
+  FN2 parallax fix (the act had loaded no parallax: 30 chunks > 24).
+- **Flycast (lean verification discs, `CHAR` / `LEVEL` demos holding right; build/verify17):**
+
+  | Act / character | VRAM free after load | Sound RAM free after the stage group | vblanks / 600 frames |
+  |---|---|---|---|
+  | FN1 Lilac | 2177 KB | (group 75 KB) | 603 |
+  | FN2 Carol | 1112 KB | (group 82 KB) | 603 |
+  | FN3 Lilac | 1153 KB | 193 KB | 603 |
+  | FN3 Carol | 625 KB | about 160 KB | 603 |
+  | FN3 Milla | 793 KB | 137 KB | 603 (618 before the bomb-scan fix) |
+  | FN4 Milla | 1825 KB | about 175 KB | 603 |
+  | FN5 Milla | 1185 KB | 175 KB | 603 |
+  | FN6 Lilac | 3615 KB | 208 KB | 602 |
+  | FN6 Milla | 3255 KB | 152 KB | 602 |
+
+  The first 600-frame window of each run includes the load (619-692). No AICA allocation errors. Before the per-act
+  groups and tail trimming the free sound RAM was 77-108 KB (FN3-FN5).
+- **Fixed during the session:** FN2/4/5 palette overflow (colour-split atlases), shared-data races between agents
+  (private overlays), an original-game lock held by an Xvfb (start_orig.sh), test_fn_enemies vs the FN4 chair, FN2
+  parallax chunk limit, FN3 Milla frame time (bomb arming scanned every object for every bomb).
+- **DC build:** 0 warnings. **Emulator only; nothing measured on real hardware.**
