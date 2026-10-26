@@ -60,7 +60,7 @@ typedef struct { double a[26]; unsigned fl; } alt_t;   /* an object's alterables
 enum { NRIB = 7, NTAIL = 6, NFLOOR = 12 };
 static struct {
     int on, act;                       /* act 5 (intro / chase) or 6 (fight) */
-    obj_t *val, *p[P_N], *rib[NRIB], *tail[NTAIL], *hit, *laser, *target, *glow, *wheel, *sback, *plane, *assist, *aoff, *adef, *aproj;
+    obj_t *val, *p[P_N], *rib[NRIB], *tail[NTAIL], *hit, *laser, *target, *glow, *wheel, *sback;   /* the assist set / plane: fn_assist.c */
     obj_t *shield, *ship2;
     int nrib, ntail, floor_i[NFLOOR], nfloor;
     alt_t v, fc, bc, rd, jw, ff, hd, s2;   /* values (controller), front cannon, back cannon, rider, jaw, foot FR, head, shoulder F2 */
@@ -79,11 +79,6 @@ static struct {
     /* A5 chase */
     int chase_on, lock8370, shown, milla_pan, mus_boss, ctl_back, taunted, pose;
     double camA;
-    /* assist (reduced, see U-G3) */
-    int as_I, as_st, as_t, as_hits, as_voice, as_dir, last_hit_assist;
-    double as_x, as_y, as_vx;
-    /* plane (Milla) */
-    double plA, plB, plC;
     int glow_vis, wheel_vis, sb_vis;   /* the glow / wheel / speed back are drawn here (their objs stay hidden for objects_draw) */
     float limR;
     int dbg;
@@ -141,11 +136,6 @@ void fn_panther_spawn(void) {
         case OT_FNP_WHEEL: FP.wheel = o; setan(o, S_WHEEL); o->hidden = 1; o->layer = 0; o->scale = 0.01f; break;   /* json layer 1 (0.8): drawn by us */
         case OT_FNP_FLOOR: if (FP.nfloor < NFLOOR) FP.floor_i[FP.nfloor++] = i; else o->alive = 0; setan(o, S_FLOOR); o->av[0] = 672 - o->x; break;   /* A = values.x - x (RV: x = 672 - A) */
         case OT_FNP_SPEEDBACK: FP.sback = o; setan(o, S_SBACK); o->hidden = 1; break;
-        case OT_FNP_PLANE: FP.plane = o; setan(o, S_PLANE); o->hidden = 1; break;
-        case OT_FNP_ASSIST: FP.assist = o; setan(o, S_ASSIST); o->hidden = 1; break;
-        case OT_FNP_AOFF: FP.aoff = o; setan(o, S_AOFF0); o->hidden = 1; break;
-        case OT_FNP_ADEF: FP.adef = o; setan(o, S_ADEF); o->hidden = 1; break;
-        case OT_FNP_APROJ: FP.aproj = o; o->hidden = 1; break;
         case OT_FNP_SHIP1: setan(o, S_SHIP1); o->layer = 0; break;
         case OT_FNP_SHIP2: FP.ship2 = o; setan(o, S_SHIP2); o->layer = 0; break;
         case OT_FNP_CABLE: setan(o, S_CABLE); o->layer = 0; break;
@@ -172,12 +162,11 @@ void fn_panther_spawn(void) {
         FP.hit->A = 60; FP.hit->bd = 0; FP.hit->fl = F_NOFLY; FP.hit->c = 0; FP.hF = 0;   /* ctor A 60; 8818 F = 0 */
         FP.g_fight = 1; FP.g_m1 = 1; FP.g_c7 = 1; FP.g_assist = 1;             /* on_frame_35_init groups (spec_fn_flow 5.4) */
         if (is_milla()) { FP.g_plane = 1; FP.g_floor = 0; } else FP.g_floor = 1;   /* 8814 / 8815 */
-        FP.as_I = 1200;                                                          /* INFERRED (RV T-G1: first partner arrival ~frame 1200) */
-        FP.as_dir = G.character == CHR_LILAC ? 1 : 0;                            /* INFERRED: Carol helps Lilac, Lilac the others */
-        FP.plB = 200; FP.cam_left = 214;
+        FP.cam_left = 214;
         FP.shield = spawn(OT_FNP_SHIELD, S_SHIELD, -80, 0, 2); if (FP.shield) FP.shield->hidden = 1;
         for (int k = 0; k < P_N; k++) FP.p[k]->hidden = 0;
         if (FP.ship2) FP.ship2->hidden = 1;
+        fn_assist_spawn();                                                       /* the partner assist and the plane (fn_assist.c) */
     } else {                                                                     /* A5: the rig waits off-screen, hidden (8373 / 8395 show it) */
         V('K') = FP.p[P_SHF]->x; V('L') = 96;                                   /* RV T-F1: K 11868 (= shoulder F's json x), L 96 at the start */
         for (int k = 0; k < P_N; k++) FP.p[k]->hidden = 1;
@@ -310,23 +299,6 @@ static void floor_scroll(int plane) {                                           
         if (f->av[0] > 800) { f->alive = 0; FP.floor_i[k] = -1; }
     }
 }
-static void plane_mode(player_t *p) {                                            /* 8524-8528 (Milla on PlayerAssist's plane) */
-    if (!FP.plane || !FP.assist) return;
-    if (FP.t < 4) { p->x = 520; p->y = 170 + ORIG_REF_DY; FP.plA = 520; FP.plB = 200; }   /* 8524 (g3 < 4) */
-    uint32_t h = p->held;
-    if (h & BTN_UP) FP.plB = fmax(FP.plB - 2, 70);                               /* 8526 (CTRL.A) */
-    if (h & BTN_DOWN) FP.plB = fmin(FP.plB + 2, 230);                            /* 8527 (CTRL.B) */
-    double oldy = FP.plane->y;
-    FP.assist->hidden = 0; FP.assist->x = (float)(int)p->x;                      /* 8525 */
-    FP.assist->y = (float)(int)(FP.plB + 8 * c_cos(2 * FP.plC + 90));
-    FP.plC = fmod(FP.plC + 0.7, 360);
-    FP.plane->x = (float)(int)p->x; FP.plane->y = FP.assist->y;
-    if (p->ground && fabs((p->y) - oldy) <= 3) p->y = FP.plane->y;               /* standing on the platform: carried (INFERRED) */
-    G.cam.H = (float)(100 - 0.5 * PY(p));
-    if (p->x > G.lvl.w) p->x = G.lvl.w;
-    setan(FP.assist, S_ASSIST);
-}
-
 /* ===================================================================================================== A6: the fight (0x227ba) */
 static void body_moves(const player_t *p) {                                      /* 8561-8566, mode 2 8620 / 8621 */
     double K = V('K'), vx = G.camx, D = FC('D');
@@ -590,52 +562,6 @@ static void runtime_pass(player_t *p) {
     if (FP.shield && !FP.shield->hidden && !dead && csens_hit(p, FP.shield) && vulnerable(p)) hurt(p, 5, "shield");
 }
 
-/* ---- the partner (group 0x227c8; reduced port of 8668-8747: U-G3) */
-static void assist(player_t *p) {
-    obj_t *a = FP.aoff, *h = FP.hit;
-    if (!a || !FP.g_assist) return;
-    if (FP.as_st == 0) {
-        if (FP.as_I > 2) FP.as_I--;                                              /* 8668 */
-        if (FP.as_I == 2 && !FP.g_m2 && !(FC('D') >= 3 && FC('D') <= 5)) {       /* 8669 */
-            FP.as_I = 1; FP.as_st = 1; FP.as_t = 0; FP.as_x = G.camx - 40; FP.as_y = h->y; FP.as_hits = 0;
-            if (!FP.as_voice) { FP.as_voice = 1; snd_play_orig(126, 220, 128); }  /* 8670 / 8671 (once) */
-        }
-        a->hidden = 1; return;
-    }
-    a->hidden = 0;
-    double tx = h->x - 40, ty = h->y - 10;
-    FP.as_t++;
-    if (FP.as_st == 1) {                                                         /* fly in */
-        FP.as_x += (tx - FP.as_x) * 0.08; FP.as_y += (ty - FP.as_y) * 0.08;
-        setan(a, FP.as_dir ? S_AOFF1 : S_AOFF0);
-        if (fabs(tx - FP.as_x) < 8 || FP.as_t > 120) { FP.as_st = 2; FP.as_t = 0; }
-    } else if (FP.as_st == 2) {                                                  /* 10 strikes, one every 6 frames (RV: sound 137 x 10) */
-        FP.as_x = tx; FP.as_y = ty;
-        setan(a, FP.as_dir ? S_AOFF7B : S_AOFF7);
-        if (FP.as_t % 6 == 0) {
-            snd_play_orig(137, 220, 128);
-            obj_t *s = spawn(OT_FNP_INSTA, -1, (float)(FP.as_x + 20), (float)FP.as_y, 2);
-            (void)s;
-            if (h->c <= 0 && !DEFEATED(h) && !(h->fl & 0x20)) {                  /* the shared hit on Q20 (RV: ~4 HP per strike, C 5) */
-                h->c = 5; h->A -= 4; h->inv = 1; snd_play_orig(24, 220, 128); FP.last_hit_assist = G.frame;
-            }
-            if (++FP.as_hits >= 10) { FP.as_st = 3; FP.as_t = 0; }
-        }
-    } else {                                                                     /* leave */
-        FP.as_x -= 6; FP.as_y -= 2;
-        if (FP.as_x < G.camx - 80) { FP.as_st = 0; FP.as_I = 600; a->hidden = 1; }   /* 8687: I = 600 */
-    }
-    if (FP.as_st && FP.as_st != 3) {                                             /* 8684: knocked away by the panther's shots (sound 25) */
-        for (int i = 0; i < G.nobjs; i++) {
-            obj_t *o = &G.o[i];
-            if (!o->alive || (o->type != OT_FNP_PLASMA && o->type != OT_FNP_RBULLET)) continue;
-            if (fabs(o->x - FP.as_x) < 20 && fabs(o->y - FP.as_y) < 20) { snd_play_orig(25, 220, 128); FP.as_st = 3; FP.as_t = 0; o->alive = 0; break; }
-        }
-    }
-    a->x = (float)(int)FP.as_x; a->y = (float)(int)FP.as_y;
-    (void)p;
-}
-
 /* ---- post-boss (0x227c5, 8748-8785) and the results */
 static void post_boss(player_t *p) {
     obj_t *hd = FP.p[P_HEAD];
@@ -651,7 +577,7 @@ static void post_boss(player_t *p) {
             fx((float)(hd->x + R(81)), (float)(hd->y - 40 + R(81)), "explosion06");
             HD('A') += 1;
             static const int S[3] = { 311, 98, 99 }; snd_play_orig(S[R(3)], 220, 128);   /* "sound_explode" + rand(3) */
-            if (HD('A') == 1) { ach_boss_finish(); if (G.frame - FP.last_hit_assist < 8) ach_earn(21); }   /* 8790-8801 (21: the partner's strike, INFERRED window) */
+            if (HD('A') == 1) { ach_boss_finish(); if (fn_assist_cpu_finish(FP.hit)) ach_earn(21); }   /* 8790-8801 (21: a partner's flag-4 shield on the hitbox, RE 8790 / 8792) */
             if (HD('A') == 60) { HD('B') = 640; snd_play_orig(256, 220, 128); }  /* 8757 (RV: B 640, -4 a frame) */
         } else if (HD('A') >= 60) {
             if (G.frame % 4 == 0 && HD('A') < 100) {                             /* 8753-8755 */
@@ -668,17 +594,15 @@ static void post_boss(player_t *p) {
         HD('D') += 1;
         if (FP.fade >= 255 && FP.fade_dir > 0) {                                 /* 8762 */
             FP.fade_dir = 0; G.input_lock = 1; FP.g_floor = 0; FP.g_fight = 0; FP.g_assist = 0; FP.g_plane = 0;
-            p->vx = 0; p->gsp = 0; if (FP.aoff) FP.aoff->hidden = 1; FP.sb_vis = 0;
+            p->vx = 0; p->gsp = 0; fn_assist_end(); FP.sb_vis = 0;               /* 8762: plane, Milla, the helper destroyed (fn_assist.c) */
             par_set_drift(1629, 0); par_set_drift(1640, -0.25f);                 /* piece0a G 0, boat1 G + 0.1 */
             if (G.character == CHR_CAROL_BIKE) player_bike_off(p, 0);            /* 8763 */
-            if (FP.assist) FP.assist->hidden = !is_milla();
         }
         if (HD('D') >= 100) { HD('C') = 2; HD('D') = 1; FP.fade_dir = -1; }     /* (RV T-G2: C 2 99 frames after the flash) */
     }
     if (HD('C') == 2) {
         if (FP.fade_dir < 0) { FP.fade = FP.fade - 4 < 0 ? 0 : FP.fade - 4; if (FP.fade <= 0) FP.fade_dir = 0; }   /* 8772 / 8773 */
-        if (HD('D') == 130 && FP.hold < 113) FP.hold++;                          /* (RV: D waits ~113 frames near 130; INFERRED pose wait) */
-        else HD('D') += 1;
+        HD('D') = fn_assist_closing((int)HD('D'));                               /* 8769-8784: the cast walks in, D waits at 130 / 131 (fn_assist.c) */
         if (HD('D') > 160 && !FP.res_on) {                                       /* 8785: Sign.B 179 -> the results */
             FP.res_on = 1; G.input_lock = 0; if (p->state != ST_DEAD) p->state = ST_NORMAL;
             results_begin_boss(FP.kill_time);
@@ -772,7 +696,7 @@ void fn_panther_frame(player_t *p) {
         if (FP.autod && p->ground && M != 5 && M != 9 && (FP.autod == 2 || p->gsp < 10)) p->gsp = fmin(p->gsp + 0.2, PHYS_MAXSPD);   /* 8517 (RV T-G1: holds 10.08) */
     }
     if (FP.g_floor || FP.g_plane) floor_scroll(FP.g_plane);
-    if (FP.g_plane) plane_mode(p);
+    if (FP.g_plane) fn_assist_plane_mode(p);                                     /* 8524-8532 (fn_assist.c) */
     if (FP.g_fight) {
         if (p->x > G.lvl.w - 24) p->x = G.lvl.w - 24;                             /* 8552 */
         if (!is_milla() && p->ground && p->gsp > 10 && pm(p) != 5) { }
@@ -784,11 +708,14 @@ void fn_panther_frame(player_t *p) {
         hits();
         speed_fx();
         defeat(p);
-        assist(p);
     } else if (FP.g_post) {
         rig(32, 1);
     }
     runtime_pass(p);
+    if (FP.g_assist) {                                                           /* 0x227c8 (8668-8721) after the projectiles (8652-8667) */
+        fn_assist_ctx_t c = { FP.hit, FP.g_fight, FP.g_m2, FP.laser_on, FC('D'), HD('A'), FP.lx, FP.ly, FP.lang };
+        fn_assist_frame(p, &c);
+    }
     if (FP.g_post) post_boss(p);
     for (int k = 0; k < P_N; k++) FP.p[k]->inv = 0;                               /* the flash is drawn by fn_panther_draw */
 out:;
@@ -796,7 +723,7 @@ out:;
     if (FP.dbg) printf("fp %d act %d K %.2f L %.2f M %.1f N %.2f I %.0f hA %.2f hC %d hD %.0f hF %.0f jaw %.0f fcD %.0f fcE %.0f fcF %.0f bcD %.0f rd %d m2 %d post %d hdA %.0f hdC %.0f hdD %.0f res %d chase %d s2B %.0f s2A %.3f as %d shv %d pl %d t %d px %.2f py %.2f B %.3f\n",
                        G.frame, FP.act, V('K'), V('L'), V('M'), V('N'), V('I'), FP.hit ? FP.hit->A : 0., FP.hit ? FP.hit->c : 0, FP.hD, FP.hF, JW('A'),
                        FC('D'), FC('E'), FC('F'), BC('D'), FP.g_rider, FP.g_m2, FP.g_post, HD('A'), HD('C'), HD('D'), FP.res_on, FP.chase_on,
-                       FP.ship2 ? FP.ship2->av[1] : FP.hd.a[1], AV(FP.s2, 'A'), FP.as_st, FP.shield && !FP.shield->hidden, FP.g_plane, FP.t, p->x, p->y - ORIG_REF_DY, p->ground ? p->gsp : p->vx);
+                       FP.ship2 ? FP.ship2->av[1] : FP.hd.a[1], AV(FP.s2, 'A'), fn_assist_last_hit(), FP.shield && !FP.shield->hidden, FP.g_plane, FP.t, p->x, p->y - ORIG_REF_DY, p->ground ? p->gsp : p->vx);
     if (FP.dbg && getenv("FP_DBG_FP")[0] == '2') {                               /* every part: x y angle */
         printf("fpp %d", G.frame);
         for (int k = 0; k < P_N; k++) printf(" %d:%.0f,%.0f,%.2f", k, FP.p[k]->x, FP.p[k]->y, FP.p[k]->ang);
@@ -830,10 +757,12 @@ void fn_panther_draw(int pass) {
             static const int FL[] = { P_FOOTFL, P_FOOTFR, P_HEAD, P_JAW, P_SHF, P_FCAN, P_HIP, P_LEGFR, P_KNEE, P_LEGFL, P_SHF2 };
             for (unsigned k = 0; k < sizeof FL / sizeof *FL; k++) draw_obj_add(FP.p[FL[k]]);
         }
+        fn_assist_draw(0);                                                       /* the partner's projectile (fn_assist.c) */
         if (FP.flash_t) { r_set_invert(1); for (int k = P_HEAD; k <= P_FCAN; k++) if (!FP.p[k]->hidden && FP.p[k]->an.b) frame_draw_rot(FP.p[k]->an.b, anim_frame(&FP.p[k]->an), floorf(FP.p[k]->x - G.camx), floorf(FP.p[k]->y - G.camy), FP.p[k]->ang, 0, 0xffffffff); r_set_invert(0); }   /* 8636 */
         return;
     }
     if (pass != 1) return;
+    fn_assist_draw(1);                                                           /* the partner (layer 3, fn_assist.c) */
     if (FP.laser_on && FP.laser && FP.laser->an.b) {                             /* BossPantherLaser_2047: x scale 16 (RE 8581 / 8583: 16, back to 1) */
         r_set_xscale(16); r_set_additive(1);                                     /* (additive: INFERRED) */
         frame_draw_rot(FP.laser->an.b, anim_frame(&FP.laser->an), floorf(FP.lx - G.camx), floorf(FP.ly - G.camy), FP.lang, 0, 0xffffffff);

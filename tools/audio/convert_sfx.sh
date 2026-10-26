@@ -16,7 +16,7 @@ IDS="$IDS 111 132 134 146 148 149 151 152"   # RM5 Kingdom Stone / Mantalith (rm
 echo "name,source,duration_s,bytes" > "$OUT/sfx_manifest.csv"
 # Fortune Night stage groups (session 17, D-087): tails below -48 dB are cut (about 30 % of sound RAM); never for looped ids
 # (62, 260, 262) or anything outside the FN groups
-TRIM=" 70 75 99 127 134 137 143 163 164 165 166 167 168 169 171 187 188 191 192 193 194 195 196 197 198 199 200 208 212 216 217 218 219 223 224 225 226 227 228 229 230 231 243 249 254 256 257 258 259 261 317 371 428 430 436 "
+TRIM=" 70 75 99 127 241 288 134 137 143 163 164 165 166 167 168 169 171 187 188 191 192 193 194 195 196 197 198 199 200 208 212 216 217 218 219 223 224 225 226 227 228 229 230 231 243 249 254 256 257 258 259 261 317 371 428 430 436 "
 conv() {  # src dst
   local AF=""; case "$TRIM" in *" $(basename "$2" .wav | sed 's/^s//') "*) AF="-af areverse,silenceremove=start_periods=1:start_threshold=-48dB,areverse";; esac
   ffmpeg -v error -y -i "$1" $AF -ac 1 -ar $RATE -sample_fmt s16 "$TMP/x.wav"
@@ -38,8 +38,8 @@ for i in 165 166 168 169 191 192 193 194 195 196 197 198 199 200 317; do R0=$RAT
 # Fortune Night enemies / gimmicks (fn_enemy.c, fn_gima.c, fn_gimb.c): per-act groups SFX_FNA / SFX_FNB in levels.c, half rate
 for i in 127 143 163 164 167 171 187 188 208 212 216 217 218 223 224 225 226 227 228 229 230 231 243 249 371 428 430; do R0=$RATE; RATE=11025; conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; RATE=$R0; done
 # Fortune Night Panther (fn_panther.c, SFX_FN6; 165-200 above, 99 / 126 / 219 in IDS): assist strike 137, back cannon 254,
-# laser 256 / 257, voices 258 / 259, defeat 261, plasma 436, half rate
-for i in 137 254 256 257 258 259 261 436; do R0=$RATE; RATE=11025; conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; RATE=$R0; done
+# laser 256 / 257, voices 258 / 259, defeat 261, plasma 436, half rate; session 18 (fn_assist.c): 241 = Milla drops the box
+for i in 137 241 254 256 257 258 259 261 436; do R0=$RATE; RATE=11025; conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; RATE=$R0; done
 R0=$RATE; RATE=11025; conv "$VOX/eng/group/teamlilac_madeit.ogg" "$OUT/teamlilac_madeit.wav"; RATE=$R0
 rm -rf "$TMP"
 awk -F, 'NR>1{s+=$4} END {printf "%d sounds, %.1f KB\n", NR-1, s/1024}' "$OUT/sfx_manifest.csv"
