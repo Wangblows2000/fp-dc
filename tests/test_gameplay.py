@@ -317,6 +317,34 @@ check('invincibility_monitor_shatter_sound', i >= 2 and m[i - 2:i] == ['308', '3
 r = sids(open(os.path.join(HERE, 'orig_extra_spiral_dv1.txt')).read(), 380, {'FP_LEVEL': 'dv1'})
 check('rock_break_sound_not_hurt', '13' in r and not {'80', '81', '82'} & set(r), ' '.join(r))
 
+# Pellets (session 18; RE col_4_20 / col_7_20 / col_20_20 play Media slot 136/8 = 17 with explosion02, RE 2414 plays 25 +
+# sound_hurt<n> only; RV hurt_turretus 17 25 81, c_claw_hit 17 25 114, m_super_turret 17 25 181, a miss 17 alone): a hit plays
+# 25 + 17 + the character's own hurt voice once, a miss 17 only; never one of Lilac's 80-83 for Carol / Milla, nor twice
+def sid_frames(script, frames, env):
+    with tempfile.NamedTemporaryFile('w', suffix='.txt', delete=False) as f:
+        f.write(script); name = f.name
+    out = subprocess.run([BIN, DATA, str(frames), name], capture_output=True, text=True, check=True,
+                         env={**os.environ, 'FP_TRACE_SID': '1', **env}).stdout
+    os.unlink(name)
+    res, pend = {}, []
+    for l in out.splitlines():
+        t = l.split()
+        if t and t[0] in ('sid', 'voice'): pend.append(t[1])
+        elif t and t[0] == 'f':
+            if pend: res[int(float(t[1]))] = pend
+            pend = []
+    return res
+HURTV = {0: {'lilac_hurt0', 'lilac_hurt1', 'lilac_hurt2', 'lilac_hurt3'}, 2: {'114', '115', '118', '119'}, 4: {'179', '180', '181', '182'}}
+for ch, nm in ((0, 'lilac'), (2, 'carol'), (4, 'milla')):
+    hit = sid_frames('5 TP 68.715 440\n100 TP 1190 420\n', 230, {'FP_LEVEL': 'dv1', 'FP_CHAR': str(ch)})
+    miss = sid_frames('5 TP 68.715 440\n100 TP 1000 420\n', 230, {'FP_LEVEL': 'dv1', 'FP_CHAR': str(ch)})
+    hf = [s for f, s in sorted(hit.items()) if '25' in s]
+    check('pellet_hit_sounds_' + nm, len(hf) == 1 and hf[0].count('17') == 1 and len(set(hf[0]) & HURTV[ch]) == 1 and
+          len(hf[0]) == 3 and not {'80', '81', '82', '83'} & set(sum(hit.values(), [])), str(sorted(hit.items())))
+    ms = sum(miss.values(), [])
+    check('pellet_miss_sounds_' + nm, '28' in ms and '17' in ms and not {'25', '80', '81', '82', '83'} & set(ms) and
+          not HURTV[ch] & set(ms), str(sorted(miss.items())))
+
 # DV2 pressure plate (5182-5186 + 4971): the door sinks 8 px/frame while pressed (RV plate3: 1016 -> 1144, top stays in
 # view), and a pushable block resting over the plate presses it (4971; reach over the pit = port deviation D-036)
 def objs_at(script, f, env):
