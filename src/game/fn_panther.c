@@ -138,7 +138,7 @@ void fn_panther_spawn(void) {
         case OT_FNP_LASER: FP.laser = o; setan(o, S_LASER); o->hidden = 1; break;
         case OT_FNP_TARGET: FP.target = o; setan(o, S_TARGET); o->hidden = 1; break;   /* invisible aiming point (INFERRED) */
         case OT_FNP_GLOW: FP.glow = o; setan(o, S_GLOW); o->hidden = 1; break;
-        case OT_FNP_WHEEL: FP.wheel = o; setan(o, S_WHEEL); o->hidden = 1; o->layer = 0; o->scale = 0.01f; break;   /* json layer 1 (0.8): drawn by us */
+        case OT_FNP_WHEEL: FP.wheel = o; setan(o, S_WHEEL); o->hidden = 1; o->layer = 0; o->scale = 1.f; break;   /* json layer 1 (0.8): drawn by us; x scale 1 (RV t4) */
         case OT_FNP_FLOOR: if (FP.nfloor < NFLOOR) FP.floor_i[FP.nfloor++] = i; else o->alive = 0; setan(o, S_FLOOR); o->av[0] = 672 - o->x; break;   /* A = values.x - x (RV: x = 672 - A) */
         case OT_FNP_SPEEDBACK: FP.sback = o; setan(o, S_SBACK); o->hidden = 1; break;
         case OT_FNP_PLANE: FP.plane = o; setan(o, S_PLANE); o->hidden = 1; break;
@@ -171,7 +171,10 @@ void fn_panther_spawn(void) {
         V('K') = 216; V('L') = 152;                                             /* INFERRED from RV T-G1 frame 0 (K 219 after 3 frames of 8562) */
         FP.hit->A = 60; FP.hit->bd = 0; FP.hit->fl = F_NOFLY; FP.hit->c = 0; FP.hF = 0;   /* ctor A 60; 8818 F = 0 */
         FP.g_fight = 1; FP.g_m1 = 1; FP.g_c7 = 1; FP.g_assist = 1;             /* on_frame_35_init groups (spec_fn_flow 5.4) */
-        if (is_milla()) { FP.g_plane = 1; FP.g_floor = 0; } else FP.g_floor = 1;   /* 8814 / 8815 */
+        if (is_milla()) { FP.g_plane = 1; FP.g_floor = 0; } else { FP.g_floor = 1; FP.vlatch = 1; }   /* 8814 / 8815; values flag 0 starts set:
+                                                                                  * the first grounded frame gets 8509's B + 10 (RV t5 session 18: B 0 -> 9.63
+                                                                                  * at frame 1, X 400 -> 498 by frame 40; without it the treadmill dragged the
+                                                                                  * player back to X 262, far left of the original's 504) */
         FP.as_I = 1200;                                                          /* INFERRED (RV T-G1: first partner arrival ~frame 1200) */
         FP.as_dir = G.character == CHR_LILAC ? 1 : 0;                            /* INFERRED: Carol helps Lilac, Lilac the others */
         FP.plB = 200; FP.cam_left = 214;
@@ -199,38 +202,54 @@ static void gait(double blend) {                                                
     V('F') = (10 - 60 * sq(c_sin(p - 80))) * blend;
 }
 static void place_at_ap(obj_t *child, const obj_t *parent) { double x, y; act_point(parent, &x, &y); child->x = (float)(int)x; child->y = (float)(int)y; }
+static void pose_m2(double I) {                                                  /* 8613 (session 18, RE + RV t4: foot FR 333 at I 90): the
+                                                                                  * mode-2 pose blend; w = 1 below I 40, 0 above I 70 */
+    double t = I - 40, w = t > 30 ? 0 : t > 0 ? (30 - t) / 30 : 1, P = V('P');
+    V('B') = V('B') * w + I; V('E') = V('E') * w; V('D') = V('D') * w + I; V('G') = V('G') * w - 2 * I;
+    V('A') = V('A') * w - I - P; V('C') = V('C') * w - 0.8 * I - 0.5 * P; V('F') = V('F') * w - 1.3 * I;
+}
 static void rig(double amp, double blend) {
     double I = V('I'), K = V('K'), L = V('L'), M = V('M'), sI = c_sin(I), cI = c_cos(I);
+    int m2 = FP.act == 6 && FP.g_m2;                                             /* mode 2 (0x227bf): 8611-8618 instead of 8554-8559 */
     for (int a = 0; a < FP.nrib; a++) {                                          /* 8554 (U-G1, RE + RV T-G1) */
         double s = c_sin(20 * a + M);
         FP.rib[a]->x = (float)(int)(K + amp * s * sI - 20 * a * cI);
         FP.rib[a]->y = (float)(int)(L + amp * s * cI + 20 * a * sI);
         FP.rib[a]->ang = (float)I;
     }
-    gait(blend);                                                                 /* 8555 */
-    obj_t **P = FP.p;                                                            /* 8556 angles */
+    gait(blend);                                                                 /* 8555 / 8612 */
+    if (m2) pose_m2(I);                                                          /* 8613 */
+    obj_t **P = FP.p;                                                            /* 8556 / 8614 angles */
     P[P_SHF]->ang = (float)(V('A') + I); P[P_LEGFR]->ang = (float)(V('C') + I); P[P_FOOTFR]->ang = (float)(V('F') + I);
     P[P_HIP]->ang = (float)(V('B') + I); P[P_KNEE]->ang = (float)(V('E') + I); P[P_LEGFL]->ang = (float)(V('D') + I);
-    P[P_FOOTFL]->ang = (float)(V('G') + I); P[P_SHF2]->ang = (float)(0.5 * V('A') - 45 + I); P[P_HEAD]->ang = (float)I;
-    P[P_RIDER]->ang = (float)I; P[P_FCAN]->ang = (float)(I + FC('A')); P[P_BCAN]->ang = (float)(I + BC('A')); P[P_JAW]->ang = (float)(I + JW('A'));
+    P[P_FOOTFL]->ang = (float)(V('G') + I); P[P_SHF2]->ang = (float)(0.5 * V('A') - 45 + I); P[P_BCAN]->ang = (float)(I + BC('A'));
+    if (!m2) { P[P_HEAD]->ang = (float)I; P[P_RIDER]->ang = (float)I; P[P_FCAN]->ang = (float)(I + FC('A')); P[P_JAW]->ang = (float)(I + JW('A')); }
+    else {                                                                       /* 8614: head / rider keep their angle (the head stays level, RV
+                                                                                  * t4 angle 0 at I 90), cannon / jaw take their own A, the wheel turns */
+        P[P_FCAN]->ang = (float)FC('A'); P[P_JAW]->ang = (float)JW('A');
+        if (FP.wheel) FP.wheel->ang = (float)fmod(FP.wheel->ang - 27 + 360, 360);   /* the float at 0x21b69f0 (27; RV t4 -27 a frame) */
+    }
     obj_t *r0 = FP.rib[0], *r6 = FP.rib[FP.nrib - 1];
     place_at_ap(P[P_SHF], r0);                                                   /* 8557: shoulder F at rib 0's action point */
     { double s = c_sin(M - 20);                                                  /*       head: the rib before rib 0 (20 (A - 1) + M) */
-      P[P_HEAD]->x = (float)(int)(K + amp * s * sI); P[P_HEAD]->y = (float)(int)(L + amp * s * cI); }
+      P[P_HEAD]->x = (float)(int)(K + amp * s * sI); P[P_HEAD]->y = (float)(int)(L + amp * s * cI - (m2 ? 0.5 * I : 0)); }   /* 8616: - 0.5 I (RV t4: y 75 at L 120.5) */
     P[P_BCAN]->x = r0->x; P[P_BCAN]->y = r0->y;                                  /*       back cannon on rib 0 */
     P[P_HIP]->x = r6->x; P[P_HIP]->y = r6->y;                                    /* 8558: hip on rib 6 */
-    place_at_ap(P[P_LEGFR], P[P_SHF]); place_at_ap(P[P_FOOTFR], P[P_LEGFR]);    /* 8559 */
-    for (int a = 0; a < FP.ntail; a++) {
-        double A = FP.tail[a]->av[0], w = 30 * c_sin(20 * A + V('J')) - I;
-        FP.tail[a]->x = (float)(int)(P[P_HIP]->x - 24 * A * c_cos(w)); FP.tail[a]->y = (float)(int)(P[P_HIP]->y - 24 * A * c_sin(w));
+    if (m2) P[P_HIP]->y += (float)(G.frame % 3);                                 /* 8617: + g3 mod 3 (the wheel's rumble) */
+    place_at_ap(P[P_LEGFR], P[P_SHF]); place_at_ap(P[P_FOOTFR], P[P_LEGFR]);    /* 8559 / 8618 */
+    for (int a = 0; a < FP.ntail; a++) {                                         /* 8618 (mode 2): the wave without - I, y - 0.5 I */
+        double A = FP.tail[a]->av[0], w = 30 * c_sin(20 * A + V('J')) - (m2 ? 0 : I);
+        FP.tail[a]->x = (float)(int)(P[P_HIP]->x - 24 * A * c_cos(w)); FP.tail[a]->y = (float)(int)(P[P_HIP]->y - 24 * A * c_sin(w) - (m2 ? 0.5 * I : 0));
     }
     place_at_ap(P[P_KNEE], P[P_HIP]); place_at_ap(P[P_LEGFL], P[P_KNEE]); place_at_ap(P[P_FOOTFL], P[P_LEGFL]);
     P[P_SHF2]->x = P[P_SHF]->x; P[P_SHF2]->y = P[P_SHF]->y;
     place_at_ap(P[P_RIDER], P[P_HEAD]);
-    P[P_FCAN]->x = (float)(int)(P[P_HEAD]->x + FC('B') * cI + FC('C') * sI); P[P_FCAN]->y = (float)(int)(P[P_HEAD]->y - FC('B') * sI + FC('C') * cI);
+    double rI = m2 ? 0 : I, sR = c_sin(rI), cR = c_cos(rI);                      /* 8618: cannon / jaw = head + (B, C), not rotated */
+    P[P_FCAN]->x = (float)(int)(P[P_HEAD]->x + FC('B') * cR + FC('C') * sR); P[P_FCAN]->y = (float)(int)(P[P_HEAD]->y - FC('B') * sR + FC('C') * cR);
     if (FP.glow && FP.glow_vis) place_at_ap(FP.glow, P[P_FCAN]);
     if (FP.shield && !FP.shield->hidden) { FP.shield->x = P[P_RIDER]->x; FP.shield->y = P[P_RIDER]->y; }
-    P[P_JAW]->x = (float)(int)(P[P_HEAD]->x + JW('B') * cI + JW('C') * sI); P[P_JAW]->y = (float)(int)(P[P_HEAD]->y - JW('B') * sI + JW('C') * cI);
+    if (m2 && FP.wheel) { FP.wheel->x = P[P_HIP]->x; FP.wheel->y = P[P_HIP]->y; }   /* 8618: the wheel at the hip (RV t4: hip y 241, on the floor) */
+    P[P_JAW]->x = (float)(int)(P[P_HEAD]->x + JW('B') * cR + JW('C') * sR); P[P_JAW]->y = (float)(int)(P[P_HEAD]->y - JW('B') * sR + JW('C') * cR);
     if (FP.hit) { FP.hit->x = P[P_JAW]->x; FP.hit->y = P[P_JAW]->y; }
     V('M') = fmod(V('M') - V('N'), 360); V('J') = fmod(V('J') - V('N'), 360);  /* 8560 */
 }
@@ -242,6 +261,20 @@ static void parts_visible(int vis) {
 
 /* ===================================================================================================== projectiles */
 static void fx(float x, float y, const char *name) { obj_effect(x, y, name); }
+static void debris_fx(float x, float y) {                                        /* EffectsDebris_427 (8644 / 8753-8755): a falling piece (OT_DEBRIS:
+                                                                                  * gravity 0.4, removed 100 px outside the view, bosses.c). Session 17 made
+                                                                                  * them static effects whose 11-frame image strip never ended: they hung in
+                                                                                  * the air into the results (the stray objects). Launch speed INFERRED (RV
+                                                                                  * t2 shots: pieces scatter and fall) */
+    static uint32_t seed = 12345;                                                /* cosmetic: its own generator, the shared cross_rand order is kept */
+    obj_t *d = spawn(OT_DEBRIS, -1, x, y, 3);
+    int a = ens_anim("debris");
+    if (!d || a < 0) { if (d) d->alive = 0; return; }
+    anim_set(&d->an, &G.ens, a);
+    seed = seed * 1103515245u + 12345u; uint32_t r = seed >> 8;
+    { const anim_t *an = &d->an.b->anims[d->an.anim]; d->an.frame = an->count > 0 ? (int)(r % (uint32_t)an->count) : 0; }
+    d->vx = (float)((int)((r >> 4) % 13) - 6) * 0.5f; d->vy = (float)-(2 + (int)((r >> 9) % 5));
+}
 static obj_t *ball_new(int type, int s, double x, double y, int dir, double speed, int layer) {   /* BallMovement: speed 1/8 px per frame */
     obj_t *o = spawn(type, s, (float)x, (float)y, layer);
     if (o) { o->av[3] = dir & 31; o->av[4] = speed; o->av[5] = o->av[6] = 0; o->av[7] = 0; o->dir = dir & 31; }
@@ -260,9 +293,10 @@ static int solid_here(const obj_t *o) { return o->y >= FP.floor_y || obj_overlap
 static void plasma_new(void) {                                                   /* 8575: BossPlasmaShot_2040 at the muzzle (speed 100) */
     double x, y; act_point(FP.p[P_FCAN], &x, &y);
     const player_t *p = &G.p;
-    double tx = is_milla() && FP.target ? FP.target->x : PX(p), ty = is_milla() && FP.target ? FP.target->y : PY(p);
-    double th = atan2(-(ty - y), tx - x) * 57.29577951308232; if (th < 0) th += 360;   /* aimed at the player (INFERRED: the decompile drops the atan2 operands) */
-    ball_new(OT_FNP_PLASMA, S_PLASMA, x, y, (int)(th / 11.25), 100, 2);
+    double tx = FP.target ? FP.target->x : PX(p), ty = FP.target ? FP.target->y : PY(p);
+    double th = atan2(-(ty - y), tx - x) * 57.29577951308232; if (th < 0) th += 360;   /* at the target: 8658 re-aims it the same frame (RE) */
+    obj_t *o = ball_new(OT_FNP_PLASMA, S_PLASMA, x, y, (int)(th / 11.25), 100, 2);
+    if (o) o->tm = 0;
     fx((float)x, (float)y, "fp_spark");                                          /* EffectGunSpark_1887 */
     snd_play_orig(436, 220, 128);
 }
@@ -277,12 +311,12 @@ static void missile_new(double x, double y, int dir, double speed, int turning) 
 static void floor_mode(player_t *p) {
     int M = pm(p);
     if (G.character == CHR_CAROL_BIKE) p->rev = p->rev;                         /* 8507: MV.E = 0.074 (bike acceleration, not modelled) */
-    if (!p->ground && !FP.vlatch) { FP.vlatch = 1; if (p->vx > -100) p->vx -= 10; }   /* 8508: leaving the floor: B -= 10 */
-    if (p->ground && FP.vlatch) { FP.vlatch = 0; p->gsp += 10; }                 /* 8509: landing: B += 10 */
-    if (M == 9 && p->x < G.camx + 16) p->x = G.camx + 16;                        /* 8512 */
+    /* 8508 / 8509, 8512 and 8515-8517 run in fn_panther_input, before the player's movement as in the original */
     if (p->ground && M == 5) p->x += 10;                                         /* 8513: the boost runs with the world */
     if (p->ground && M == 5 && p->state == ST_CHARGE) p->x = fmax(p->x - 10, G.camx);   /* 8514: charging (OTHERS.N < 30) */
     if (p->ground && M != 8 && M != 9 && p->hitstop <= 0) p->x -= 10;            /* 8518: the treadmill */
+    if (G.act_in && level_cur()->walkin_minx && p->x < level_cur()->walkin_minx) p->x = level_cur()->walkin_minx;   /* 8550 runs after 8518 (RV t5: X 400 at
+                                                                                  * the walk-in's first frames, not 390) */
     if (p->ground && M == 4) p->skidding = 0;                                    /* 8519: M 4 -> 0 */
     if (p->state == ST_WALL && p->vx < 0 && p->x <= G.cam_nC + 18) { p->x = G.cam_nC + 18; p->vx = -1; }   /* 8523 (OTHERS.Y 7) */
 }
@@ -341,7 +375,12 @@ static void body_moves(const player_t *p) {                                     
         if (K > vx + 236) { V('K') = K -= 2; FC('E') = -60; }
         if (K < vx + 216) { V('K') = K += 2; FC('E') = -60; }
     }
-    if (FP.g_m2) { if (K > vx + 266) V('K') = K - 2; else if (K < vx + 266) V('K') = K + 2; }   /* (spec G.2, INFERRED step) */
+    if (FP.g_m2 && D > -2) {                                                     /* 8620 / 8621 (RE, session 18): the player - 180 / - 220 rule of
+                                                                                  * 8561 / 8562 at 2 px a frame, capped at view_x + 266 (RV t4: K holds 392
+                                                                                  * with the player at 575) */
+        if (K > fmin(vx + 266, (int)PX(p) - 180)) V('K') = K -= 2;
+        if (K < fmin(vx + 266, (int)PX(p) - 220)) V('K') = K += 2;
+    }
 }
 static void cannon(player_t *p) {                                                /* 8567-8586 (mode 1, group 0x227bd) */
     obj_t *fc = FP.p[P_FCAN];
@@ -387,13 +426,14 @@ static void cannon(player_t *p) {                                               
         FC('E') = -120; FC('F') = 0; FP.fc.fl ^= 4; BC('D') += 1; snd_play_orig(254, 220, 128);
     }
 }
-static void rapid_new(void) {                                                    /* 8590 / 8591: BossRapidBullet_1866 from the rider */
+static void rapid_new(void) {                                                    /* 8590 / 8591: BossRapidBullet_1866 at the rider's action point */
     obj_t *r = FP.p[P_RIDER];
-    obj_t *b = spawn(OT_FNP_RBULLET, S_RBUL, r->x, r->y, 2);
+    double ax, ay; act_point(r, &ax, &ay);                                       /* (RV t2: x alternates 452 / 477 with anim 13 frames 5 / 8) */
+    obj_t *b = spawn(OT_FNP_RBULLET, S_RBUL, (float)(int)ax, (float)(int)ay, 2);
     if (!b) return;
-    int e = (int)RD('E') & 1;
-    b->av[2] = e + 2; b->av[3] = 2 * e - 1; b->av[0] = 0; b->av[1] = 0;          /* C, D (RE), A phase, B counter */
-    RD('E') = e ^ 1;
+    double E = RD('E');                                                          /* RE disasm 0x11f73ad: C = E + 2 (not E mod 2 + 2), D = 2 (E mod 2) - 1, */
+    b->av[2] = E + 2; b->av[3] = 2 * fmod(E, 2) - 1; b->av[0] = 0; b->av[1] = 0; /* E += 1 (E = 0 at 8588): the 30 shells land 32, 48, 64 ... */
+    RD('E') = E + 1;                                                             /* 496 px left / right of the rider (RV t2: 420, 525, 388, 557 ...) */
     snd_play_orig(194, 220, 128);
 }
 static void rider(void) {                                                        /* 8587-8595 (0x227c9) */
@@ -419,9 +459,10 @@ static void back_cannon(void) {                                                 
     obj_t *bc = FP.p[P_BCAN];
     if (BC('D') == 0) {
         BC('A') = fmax(BC('A') - 10, 0);                                         /* 8597 */
-        if (!FP.voice_bc) {                                                      /* 8598-8601: the character's voice (once each opening) */
-            FP.voice_bc = 1;
-            snd_play_orig(G.character == CHR_LILAC ? 258 : is_milla() ? 259 : 259, 220, 128);   /* MV.A 0 -> 258, 1 / 3-4 -> 259, 5 -> 452 (RE) */
+        if (BC('A') <= 0 && !FP.voice_bc) {                                      /* 8598-8601 (RE): D 0 and A <= 0, i.e. the frame it is open; MV.A 0 */
+            FP.voice_bc = 1;                                                     /* -> 258, 1 / 3-4 -> 259, 5 -> 452, Carol on foot (2) none */
+            if (G.character == CHR_LILAC) snd_play_orig(258, 220, 128);
+            else if (G.character == CHR_CAROL_BIKE || is_milla()) snd_play_orig(259, 220, 128);
         }
         if (BC('A') <= 0) { BC('D') = 1; setan(bc, S_BCAN1); BC('F') = 0; BC('E') = 0; }   /* 8602 */
     }
@@ -480,7 +521,7 @@ static void hits(void) {                                                        
     if (FP.hE == 1) FP.hE = 0;                                                   /* 8642 */
     if (f6 && FP.hD == 0 && FP.hF >= 4 && !jaw->hidden) {                        /* 8644: the jaw is destroyed */
         jaw->hidden = 1; snd_play_orig(29, 220, 128); snd_play_orig(257, 220, 128); fx(jaw->x, jaw->y, "explosion06");
-        for (int k = 0; k < 5; k++) fx((float)(jaw->x - 16 + R(33)), (float)(jaw->y - 16 + R(33)), "debris");
+        for (int k = 0; k < 5; k++) debris_fx((float)(jaw->x - 16 + R(33)), (float)(jaw->y - 16 + R(33)));
     }
     if (FP.hF >= 4) setan(jaw, S_JAW7);                                          /* 8643 */
     if (f6 && FP.hD == 1 && FP.hF >= 4) {                                        /* 8645: stays exposed */
@@ -506,23 +547,50 @@ static void defeat(player_t *p) {                                               
 }
 
 /* ---- runtime objects: one pass (8652-8667 + the collision handlers) */
+static void blast_step(obj_t *o) {                                               /* foreach_m_2041_2_34 (RE disasm 0x11ebc20), every frame while E < 45:
+                                                                                  * an Explosion06 at (x + sin 132E (8 + 40 sin 2E), y - 80 sin 5E), E += 1,
+                                                                                  * the missile hidden on anim 8, its movement stopped and x - 10 (it rides
+                                                                                  * the treadmill: RV t3 -10 px a frame for 45 frames) */
+    double E = o->tm;
+    fx((float)(int)(o->x + c_sin(132 * E) * (8 + 40 * c_sin(2 * E))), (float)(int)(o->y - 80 * c_sin(5 * E)), "explosion06");
+    o->tm++; o->x -= 10;
+}
 static void runtime_pass(player_t *p) {
     int dead = p->state == ST_DEAD || p->hp <= 0;
+    if (FP.target && !is_milla()) { FP.target->x = (float)(int)(V('K') + 260); FP.target->y = (float)(int)(V('L') + 140); }   /* 8657 (not MV.A 4 / 5) */
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i];
         if (!o->alive || o->type < OT_FNP_PLASMA || o->type > OT_FNP_INSTA) continue;
-        if (o->born == G.frame) continue;                                        /* created by this frame's events: moved next frame */
+        if (o->born == G.frame) {                                                /* created by this frame's events: moved next frame */
+            if (o->type == OT_FNP_MISSILE && !(o->fl & 2) && G.frame % 2 == 0)   /* but 8659 / 8663 already turn a new missile (RV t3: the first */
+                o->av[3] = ((int)o->av[3] + 31) & 31;                            /* flies at direction 3, not 4) */
+            if (o->type == OT_FNP_MISSILE && (o->fl & 2)) {                      /* 8662 / 8664 for the mode-2 ones (flag 1 at creation) */
+                o->av[4] += 2; o->av[7] = 0;
+                if ((int)o->av[3] != 16 && G.frame % 4 == 0) o->av[3] = ((int)o->av[3] + 31) & 31;
+            }
+            continue;
+        }
+#ifdef FP_HOST_ENV
+        if (FP.dbg && getenv("FP_DBG_FP")[0] == '3') printf("fpo %d %d %d %d %.0f %.0f %d %d %d\n", G.frame, i, o->born, o->type, o->x, o->y, o->st, o->tm, o->hidden);   /* runtime objects (tests) */
+#endif
         switch (o->type) {
         case OT_FNP_PLASMA:                                                      /* col_14_34 / col_18_34 */
-            if (is_milla() && FP.target) {                                       /* 8658: re-aimed at the target */
-                double th = atan2(-(FP.target->y - o->y), FP.target->x - o->x) * 57.29577951308232; if (th < 0) th += 360;
-                o->av[3] = (int)(th / 11.25);
+            if (FP.target) {                                                     /* 8658 (RE: every shot, every character; RV t2: the shots home on */
+                double th = atan2(-(FP.target->y - o->y), FP.target->x - o->x) * 57.29577951308232; if (th < 0) th += 360;   /* K + 260, L + 140, */
+                o->av[3] = (int)(th / 11.25);                                    /* not on Lilac) */
             }
             ball_move(o); o->dir = (int)o->av[3];
+            o->ang = (float)fmod(o->ang - 45 + 360, 360);                        /* 8658: angle - 45 a frame (the float at 0x21b6628) */
             if (solid_here(o)) { fx(o->x, o->y, "explosion02"); o->alive = 0; break; }
-            if (!dead && csens_hit(p, o) && vulnerable(p)) { hurt(p, 5, "plasma"); o->alive = 0; break; }
+            if (!dead && csens_hit(p, o)) {                                      /* col_18_34 (RE): 5 damage when MV.R 0 and OTHERS.E <= 0, but the */
+                if (vulnerable(p)) hurt(p, 5, "plasma");                         /* shot bursts on the player either way (RV t3: invulnerable Milla, */
+                fx(o->x, o->y, "explosion02"); o->alive = 0; break;              /* the shots end at her X 520) */
+            }
             if (player_cube_state() >= 4 && player_cube_hits(o)) { o->alive = 0; break; }   /* col_20_34: Milla's cube absorbs it */
-            if (o->x < G.camx - 64 || o->x > G.camx + SCREEN_W + 64 || o->y < G.camy - 64) o->alive = 0;
+            if (is_milla() && FP.target && obj_obj_hit(o, FP.target)) { fx(o->x, o->y, "explosion02"); o->alive = 0; break; }   /* col_16_34 (MV.A 4-5): the shot
+                                                                                  * reaches the mirrored target and bursts (RV t3: 11-12 frames, no circling) */
+            if (o->x < G.camx - 64 || o->x > G.camx + SCREEN_W + 64 || o->y < G.camy - 64 || ++o->tm > 300) o->alive = 0;   /* (300: a safety net for a
+                                                                                  * shot circling Milla's mirrored target, INFERRED; RV shots live 8-13 frames) */
             break;
         case OT_FNP_MISSILE:
             if (o->st == 0) {                                                    /* flying */
@@ -537,16 +605,17 @@ static void runtime_pass(player_t *p) {
                 if (player_cube_state() >= 4 && player_cube_hits(o)) { snd_play_orig(219, 220, 128); hit = 1; }   /* col_10_34 */
                 if (hit) {                                                       /* flag 6 -> the blast (8665) */
                     if (is_milla()) snd_play_orig(38, 220, 128);
-                    o->st = 1; o->tm = 0; o->ang = 0; setan(o, S_MBLAST);
+                    o->st = 1; o->tm = 0; o->ang = 0; setan(o, S_MBLAST); o->hidden = 1;   /* anim 8, hidden (the collision box stays) */
 #ifdef FP_HOST_ENV
                     if (FP.dbg) printf("fpev %d blast %.0f %.0f\n", G.frame, o->x, o->y - ORIG_REF_DY);
 #endif
- fx(o->x, o->y, "explosion06"); snd_play_orig(29, 220, 128);
+                    snd_play_orig(29, 220, 128);
                 }
-                if (o->x < G.camx - 200 || o->x > G.camx + SCREEN_W + 200 || o->y < G.camy - 400) o->alive = 0;
-            } else {                                                             /* the blast */
-                o->tm++;
-                if (o->tm < 30 && !dead && csens_hit(p, o) && vulnerable(p) && p->shield != 2) { hurt(p, 10, "missile"); p->vy = -8; p->ground = 0; }   /* 8666 */
+                else if (o->x < G.camx - 200 || o->x > G.camx + SCREEN_W + 200 || o->y < G.camy - 400) { o->alive = 0; break; }
+            }
+            if (o->st == 1) {                                                    /* the blast (from the frame the flag is set, as 8665-8667) */
+                if (o->tm < 45) blast_step(o);                                   /* 8665 */
+                if (o->tm < 30 && !dead && csens_hit(p, o) && vulnerable(p) && p->shield != 2) { hurt(p, 10, "missile"); p->vy = -8; p->ground = 0; }   /* 8666 (E < 30) */
                 if (o->tm >= 45) o->alive = 0;                                   /* 8667 */
             }
             break;
@@ -559,8 +628,8 @@ static void runtime_pass(player_t *p) {
                     if (FP.dbg) printf("fpev %d rfall %.0f %.0f\n", G.frame, o->x, o->y - ORIG_REF_DY);
 #endif
 
-                    obj_t *w = spawn(OT_FNP_WARN, S_WARN, o->x, (float)(V('L') + 120), 2);
-                    if (w) { w->av[0] = i; if (is_milla()) w->y = G.camy + 20; }   /* 8655: Milla's warning at the view top */
+                    obj_t *w = spawn(OT_FNP_WARN, S_WARN, o->x, (float)(int)(V('L') + 120), 2);
+                    if (w) { w->tm = 0; if (is_milla()) w->y = G.camy + 20; }    /* 8655: Milla's warning at the view top */
                 }
             } else {
                 o->y += 16;
@@ -573,13 +642,11 @@ static void runtime_pass(player_t *p) {
             }
             if (o->y > G.lvl.h + 64) o->alive = 0;
             break;
-        case OT_FNP_WARN: {                                                      /* gone with its bullet (INFERRED) */
-            int b = (int)o->av[0];
-            if (b < 0 || b >= G.nobjs || !G.o[b].alive || G.o[b].type != OT_FNP_RBULLET) o->alive = 0;
+        case OT_FNP_WARN:                                                        /* 8658 A += 1, 8061 A > 30: destroyed (RE; RV t2: 31 frames each, */
+            if (++o->tm >= 31) o->alive = 0;                                     /* not tied to the shell) */
             break;
-        }
         case OT_FNP_SLINE:                                                       /* 8648 / 8650 */
-            o->x -= 32; if (o->x < -51 + G.camx - 214 + 214) o->alive = 0; if (!FP.g_m2 && !FP.g_post) o->alive = 0;
+            o->x -= 32; if (o->x < -51 + G.camx - 214 + 214) o->alive = 0; if ((!FP.g_m2 && !FP.g_post) || !FP.g_fight) o->alive = 0;   /* (8762 hides them) */
             break;
         case OT_FNP_INSTA:                                                       /* the partner's attack (ShieldInstaShield_407, flag 4) */
             if (++o->tm > 6) o->alive = 0;
@@ -655,11 +722,13 @@ static void post_boss(player_t *p) {
             if (HD('A') == 60) { HD('B') = 640; snd_play_orig(256, 220, 128); }  /* 8757 (RV: B 640, -4 a frame) */
         } else if (HD('A') >= 60) {
             if (G.frame % 4 == 0 && HD('A') < 100) {                             /* 8753-8755 */
-                fx((float)(hd->x + R(81)), (float)(hd->y - 40 + R(81)), "explosion06"); fx((float)(hd->x + R(81)), (float)(hd->y - 40 + R(81)), "debris");
+                fx((float)(hd->x + R(81)), (float)(hd->y - 40 + R(81)), "explosion06"); debris_fx((float)(hd->x + R(81)), (float)(hd->y - 40 + R(81)));
                 HD('A') += 1;
             }
             if (G.frame % 5 == 0) { static const int S[3] = { 311, 98, 99 }; snd_play_orig(S[R(3)], 220, 128); }   /* 8756 */
             if (HD('B') > 0) HD('B') -= 4;
+            if (V('K') > HD('B')) V('K') -= 4;                                   /* 8759 (RE, session 18): the burning panther backs off to the left
+                                                                                  * (K > head B: K - 4), out of the view before the flash */
             if (HD('B') <= 0) { HD('C') = 1; HD('D') = 0; snd_play_orig(76, 230, 128); FP.fade = 0; FP.fade_dir = 1; }   /* 8760 */
         }
     }
@@ -676,6 +745,12 @@ static void post_boss(player_t *p) {
         if (HD('D') >= 100) { HD('C') = 2; HD('D') = 1; FP.fade_dir = -1; }     /* (RV T-G2: C 2 99 frames after the flash) */
     }
     if (HD('C') == 2) {
+        if (HD('D') < 80) {                                                      /* 8764 / 8769 (RE, session 18): the wreck on the floor under the
+                                                                                  * flash (RV t2 f1725+: five pieces, the rest of the rig left off-screen) */
+            static const struct { int k; short x, y; } W[5] = { { P_FOOTFR, 283, 280 }, { P_HIP, 386, 282 }, { P_LEGFR, 592, 282 },
+                                                                { P_LEGFL, 423, 281 }, { P_SHF2, 260, 281 } };
+            for (int k = 0; k < 5; k++) { obj_t *o = FP.p[W[k].k]; o->x = W[k].x; o->y = W[k].y; o->hidden = 0; }
+        }
         if (FP.fade_dir < 0) { FP.fade = FP.fade - 4 < 0 ? 0 : FP.fade - 4; if (FP.fade <= 0) FP.fade_dir = 0; }   /* 8772 / 8773 */
         if (HD('D') == 130 && FP.hold < 113) FP.hold++;                          /* (RV: D waits ~113 frames near 130; INFERRED pose wait) */
         else HD('D') += 1;
@@ -740,13 +815,28 @@ static void chase(player_t *p) {
 /* ===================================================================================================== hooks */
 int fn_panther_input(uint32_t *held) {                                           /* the scripted pad: floor auto-run (8516 / 8517), poses */
     if (!FP.on) return 0;
-    if (FP.act == 6 && FP.g_floor) {
+    if (FP.act == 6 && FP.g_floor && pm(&G.p) != 9 && G.p.x < G.camx + 16)      /* 8512 (RE: skipped for M 9; session 17 had it inverted): the */
+        G.p.x = G.camx + 16;                                                     /* left edge, before 8518's treadmill and the movement (FN6 event
+                                                                                  * order 8506-8532 then 1537-1652; RV t1: X stays >= 224.85) */
+    if (FP.act == 6 && FP.g_floor) {                                             /* 8515-8517 (RE, session 18), before the movement as in the original;
+                                                                                  * CTRL.C = left held, CTRL.D = right held (RE_NOTES "Controller") */
+        player_t *p = &G.p;
         uint32_t h = *held;
-        int lr = (h & (BTN_LEFT | BTN_RIGHT)) != 0;
-        if (G.act_in) FP.autod = 2;                                              /* the walk-in: CTRL.D held (RV T-G1: B + 0.2 a frame to the top speed) */
-        else if (FP.autod == 2) FP.autod = 0;                                    /* 5047: control back, the virtual press released (RV: B falls by 0.57 a frame) */
-        if (lr && !G.act_in) FP.autod = 0;                                       /* CTRL.C: a direction is held */
-        if (FP.autod && !lr) { *held = h | BTN_RIGHT; return 1; }
+        if (!p->ground && !FP.vlatch) { FP.vlatch = 1; if (p->vx > -100) p->vx -= 10; }   /* 8508: leaving the floor: B -= 10 */
+        if (p->ground && FP.vlatch) { FP.vlatch = 0; p->gsp += 10; }             /* 8509: landing: B += 10 (also the first frame: RV t5 B 9.63) */
+        int M = pm(p), left = (h & BTN_LEFT) != 0, right = (h & BTN_RIGHT) != 0 || (G.act_in > 1 && G.act_in <= 30);   /* the walk-in holds
+                                                                                  * CTRL.D from its second frame for 29 frames (RV t5: B 0 -> 9.63 -> 9.83,
+                                                                                  * + 0.2 a frame to 15, falling from f31) */
+        FP.autod = 0;
+        if (p->ground && M != 5 && M != 9) {
+            if (left || (p->gsp > 10 && !right)) p->gsp = p->gsp >= 5.05 ? p->gsp - 0.2 : 4.85;   /* 8515: walking left on the belt keeps B >= 4.85 (RV t1 4.41) */
+            if (!left && p->gsp < 10 && !right) { right = 1; FP.autod = 1; }    /* 8516: the virtual right press while B < 10 */
+            if (right) p->gsp = fmin(p->gsp + 0.2, PHYS_MAXSPD);                 /* 8517: + 0.2 while right is held (no cap but the movement's top
+                                                                                  * speed: holding right runs forward; session 17 skipped it with a real
+                                                                                  * press, so a held right left B at C and the belt carried the player
+                                                                                  * to the left edge) */
+        }
+        if (right && !(h & BTN_RIGHT)) { *held = h | BTN_RIGHT; return 1; }
         return 0;
     }
     if (FP.act == 5 && FP.pose) { *held = 0; return 1; }
@@ -765,16 +855,14 @@ void fn_panther_frame(player_t *p) {
     /* ---- act 6 */
     FP.t++;
     if (FP.g_floor) {
-        floor_mode(p);
-        int M = pm(p), lr = (p->held & (BTN_LEFT | BTN_RIGHT)) != 0 && FP.autod == 0;
-        if (!G.act_in && !FP.autod && !lr && p->ground && M != 5 && M != 9 && p->gsp > 10) p->gsp = p->gsp >= 5.05 ? p->gsp - 0.2 : 4.85;   /* 8515 (no press) */
-        if (!G.act_in && !lr && p->ground && M != 5 && M != 9 && p->gsp < 10) FP.autod = 1;   /* 8516: CTRL.D = 1 (latched until a direction is pressed) */
-        if (FP.autod && p->ground && M != 5 && M != 9 && (FP.autod == 2 || p->gsp < 10)) p->gsp = fmin(p->gsp + 0.2, PHYS_MAXSPD);   /* 8517 (RV T-G1: holds 10.08) */
+        floor_mode(p);                                                           /* (8512 / 8515-8517: fn_panther_input) */
     }
     if (FP.g_floor || FP.g_plane) floor_scroll(FP.g_plane);
     if (FP.g_plane) plane_mode(p);
     if (FP.g_fight) {
-        if (p->x > G.lvl.w - 24) p->x = G.lvl.w - 24;                             /* 8552 */
+        if (p->x > G.lvl.w - 24 && !is_milla()) {                                 /* 8552: X <= frame width - 24, B <= 10 (not MV.A 4 / 5) */
+            p->x = G.lvl.w - 24; double *b = p->ground ? &p->gsp : &p->vx; if (*b > 10) *b = 10;
+        }
         if (!is_milla() && p->ground && p->gsp > 10 && pm(p) != 5) { }
         rig(32, 1);                                                              /* 8554-8560 (mode 2 8611-8619: the same chain, U-G2) */
         body_moves(p);
@@ -785,9 +873,7 @@ void fn_panther_frame(player_t *p) {
         speed_fx();
         defeat(p);
         assist(p);
-    } else if (FP.g_post) {
-        rig(32, 1);
-    }
+    }                                                                            /* (after 8762 the fight group is off: the rig stops, RE) */
     runtime_pass(p);
     if (FP.g_post) post_boss(p);
     for (int k = 0; k < P_N; k++) FP.p[k]->inv = 0;                               /* the flash is drawn by fn_panther_draw */
@@ -800,7 +886,8 @@ out:;
     if (FP.dbg && getenv("FP_DBG_FP")[0] == '2') {                               /* every part: x y angle */
         printf("fpp %d", G.frame);
         for (int k = 0; k < P_N; k++) printf(" %d:%.0f,%.0f,%.2f", k, FP.p[k]->x, FP.p[k]->y, FP.p[k]->ang);
-        printf(" r0:%.0f,%.0f r6:%.0f,%.0f t0:%.0f,%.0f\n", FP.rib[0]->x, FP.rib[0]->y, FP.rib[FP.nrib - 1]->x, FP.rib[FP.nrib - 1]->y, FP.tail[0]->x, FP.tail[0]->y);
+        printf(" r0:%.0f,%.0f r6:%.0f,%.0f t0:%.0f,%.0f w:%.0f,%.0f,%d,%.2f,%.0f\n", FP.rib[0]->x, FP.rib[0]->y, FP.rib[FP.nrib - 1]->x, FP.rib[FP.nrib - 1]->y, FP.tail[0]->x, FP.tail[0]->y,
+               FP.wheel ? FP.wheel->x : 0, FP.wheel ? FP.wheel->y : 0, FP.wheel_vis, FP.wheel ? FP.wheel->scale : 0, FP.wheel ? FP.wheel->ang : 0);   /* the wheel: x, y, shown, scale, angle */
     }
 #endif
 }
@@ -820,17 +907,17 @@ void fn_panther_draw(int pass) {
             int al = (int)(FP.sback->av[0] * 255 / 80) / 2; if (al > 255) al = 255;
             frame_draw_scaled(FP.sback->an.b, anim_frame(&FP.sback->an), 0, 0, SCREEN_W, SCREEN_H, ((uint32_t)al << 24) | 0xffffff);
         }
-        if (FP.wheel && FP.wheel_vis && FP.wheel->an.b) {                   /* BossPantherWheel (layer 1, 0.8): under the front foot */
-            const obj_t *ff = FP.p[P_FOOTFR];
+        if (FP.wheel && FP.wheel_vis && FP.wheel->an.b) {                   /* BossPantherWheel (layer 1, 0.8): at the hip (8618, set by the rig) */
             r_set_scale(FP.wheel->scale);
-            frame_draw_rot(FP.wheel->an.b, anim_frame(&FP.wheel->an), floorf(ff->x - G.camx), floorf(ff->y - G.camy), (float)(-G.frame * 20 % 360), 0, 0xffffffff);
+            frame_draw_rot(FP.wheel->an.b, anim_frame(&FP.wheel->an), floorf(FP.wheel->x - G.camx), floorf(FP.wheel->y - G.camy), FP.wheel->ang, 0, 0xffffffff);
             r_set_scale(1.f);
         }
-        if (FP.hE > 1 && ((int)FP.hE & 1)) {                                     /* 8641: the parts' flash direction */
+        if (FP.g_fight && FP.hE > 1 && ((int)FP.hE & 1)) {                       /* 8641: the parts' flash direction (fight group only: 8764 sets
+                                                                                  * the wreck's direction 0) */
             static const int FL[] = { P_FOOTFL, P_FOOTFR, P_HEAD, P_JAW, P_SHF, P_FCAN, P_HIP, P_LEGFR, P_KNEE, P_LEGFL, P_SHF2 };
             for (unsigned k = 0; k < sizeof FL / sizeof *FL; k++) draw_obj_add(FP.p[FL[k]]);
         }
-        if (FP.flash_t) { r_set_invert(1); for (int k = P_HEAD; k <= P_FCAN; k++) if (!FP.p[k]->hidden && FP.p[k]->an.b) frame_draw_rot(FP.p[k]->an.b, anim_frame(&FP.p[k]->an), floorf(FP.p[k]->x - G.camx), floorf(FP.p[k]->y - G.camy), FP.p[k]->ang, 0, 0xffffffff); r_set_invert(0); }   /* 8636 */
+        if (FP.flash_t && FP.g_fight) { r_set_invert(1); for (int k = P_HEAD; k <= P_FCAN; k++) if (!FP.p[k]->hidden && FP.p[k]->an.b) frame_draw_rot(FP.p[k]->an.b, anim_frame(&FP.p[k]->an), floorf(FP.p[k]->x - G.camx), floorf(FP.p[k]->y - G.camy), FP.p[k]->ang, 0, 0xffffffff); r_set_invert(0); }   /* 8636 */
         return;
     }
     if (pass != 1) return;
@@ -846,3 +933,4 @@ void fn_panther_draw(int pass) {
     }
 }
 int fn_panther_on(void) { return FP.on; }
+float fn_panther_hud_dy(void) { return FP.on && FP.act == 6 && FP.g_post && HD('C') >= 2 ? -80.f : 0.f; }   /* 8764: loop_gui_shiftup_14 x 80 in one frame */
