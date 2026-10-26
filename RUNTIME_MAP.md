@@ -626,8 +626,8 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
   order) and calls each encounter's spawn; sb_boss_pre / sb_boss_frame / sb_boss_draw_obj dispatch to sbs_* (SB3), sbk_* (SB1),
   sbc_* (SB2 chopper), sbp_* (SB2 Spade), sbg_* (SB4); each returns at once when its boss is not placed. Shared helpers in
   sb_boss.h (sbb_get / sbb_count / sbb_spawn, sbb_hurt / sbb_vulnerable / sbb_csens_hit, sbb_fight_start, sbb_arena_end,
-  sbb_lock_edge, sbb_draw / sbb_draw_yscaled); the exit plane and the compass; sb_boss_q20 (combat.c), sb_boss_cannon_down()
-  (for the gimmicks: GimmickCannonBase destroyed, 9319).
+  sbb_lock_edge, sbb_draw / sbb_draw_yscaled); the exit plane and the compass; sb_boss_q20 (combat.c); the plane's I = sb_gim_cannon_kills()
+  (sb_gim.c, 9319) + sb_boss_cannon_down() calls.
 - **Hooks used:** sb_flow_night() (SB1 start), sb_flow_ship_done(flag) via sbb_arena_end, results_begin_boss() (SB1 end),
   level_music_slot(4) via sbb_fight_start, the flow's camera locks (level_cam_locked).
 - **objects.c:** anim_tick speed for OT_SB_SPADE (force_speed in o->c). **fp.h:** OT_SB_* (Kujacker 1170-1188, chopper
@@ -638,3 +638,13 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
 - **Sounds (tools/audio/convert_sfx.sh, 11025 Hz, trimmed):** + 71 155 445 (Spade). Groups: SFX_SB1 91 KB, SFX_SB2 126 KB.
 - Flycast to look at: the Kujacker (many parts and up to ~220 lightning spokes on screen during the charge), sb2's _ens texture
   (about 1 MB: Spade + chopper), the satellite beams' y-scaling on PVR, sound RAM per act.
+## Session 19: Sky Battalion enemies and gimmicks (port: src/game/sb_enemy.c, sb_gim.c, objdefs.c, tools/import_frame.py)
+- Types: fp.h SB_ENEMIES 1024-1099 (1024 hopper ... 1038 magnetizer line, runtime 1060-1065), SB_GIM 1100-1149 (1103 the
+  breakable floors, 1117 / 1118 / 1119 platforms, runtime 1140-1142). Importer blocks SB_ENEMIES / SB_GIM (SBG_SUB member
+  index | layer << 8 in the lvobj anim field).
+- Passes: objects.c spawn (sb_gim_spawn then sb_enemy_spawn), objects_platforms sb_gim_pre (one-way flags), per-object
+  sb_enemy_obj / sb_gim_obj, game.c sb_gim_frame (paths, carry, opening hold / release, families). Q20 via combat.c
+  enemy_type_list (sb_enemy_q20 / sb_gim_q20: the cannon base). Per-type instance lists; nothing runs without the types.
+- Hooks used: sb_flow_intro() (platform hold / release). Exported: sb_gim_cannon_kills() (PlayerAssist.I for the boss agent).
+- Sounds: SFX_SB2 + 312 263, SFX_SB3 + 312, SFX_SB4 + 312 (263 new, 11025 Hz trimmed); groups 81 / 130 / 154 / 124 KB.
+- Tests: tests/test_sb_enemies.py (RV cycles), tests/test_sb_gimmicks.py (opening ride, data rows, hazards).

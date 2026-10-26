@@ -1140,3 +1140,40 @@ sb_satellite.c / sb_grappler.c; tests/test_sb_bosses.py.
   then it speeds to 16 and leaves by the right edge (SB1).
 - Not verified: the Kujacker's strike spoke cadence, head / neck / wing2 geometry (fits, max error 15 px), the warning rule
   form, target revival; Hard mode (no difficulty test seen in these events); dialogue / voices; the copilot palettes.
+## Session 19: Sky Battalion enemies and gimmicks
+Specs: build/re/spec_sb_enemies.md, build/re/spec_sb_gimmicks.md. Port: src/game/sb_enemy.c (types 1024-1099), sb_gim.c
+(1100-1149). Labels RE / RV / INFERRED as usual; RV traces: sbe/{hop_idle, hop_hit, mag_idle, axle_idle, rotor_idle,
+drone_idle, dna_idle, pel_idle, magn_idle} (frames 36-38).
+- **Hover platforms (RE 9461 / 9468 / 9548 / 9549 / 9766):** LevelSBPlatform1 ctor A 90 B 1 C 40 F 2 G 10 H 1 (x = I + 40 cos A,
+  y = J + 10 sin E), 9766: E = index 180, A = E + 90 (newest first). Opening: 9461 (group 0x228f3) Q = I, I = -160, C = 0 for
+  0 < I < 1200 without flag 11; 9468 (planks A 2) flag 0x800 on I < 0; 9548 I = min(I + 4, Q), C = min(C + 0.5, 40); 9549
+  clears the flag at Q. The arriving player (x -32) stands on the held platform and is carried in (host: 167 frames held).
+  LevelSBPlatformFlame1 has no events or alterables; it follows its platform at (-1, +18) (INFERRED, every pair placed so).
+  Platform3: ctor B 2 C 128, A = index 20; 9344 / 9345 solid only when its y > PLAYER.Y + 8.
+- **Cannons (RE 9311-9324, SB3 9819-9822, SB4 9993):** A angle, B target, C counter (ctor 30 / 30 / 20); A steps 4 to B in
+  view(100); A == B -> flag 1, C + 1 (stops at 10 / 30 / 50 until one random cannon of those fires: anim 7, bullet at the
+  action point, sound 99, CAM.Z 4); C > 120 -> B = (B + 20) mod 50, C = Random(40). Bullet: A += 12 cos D, B -= 12 sin D,
+  no damage event. Base: Q20 A 15; defeat 9319 anim 8, PlayerAssist.I + 1 (exported sb_gim_cannon_kills()), 9320 jitter to
+  D 30, 9322 sound 38 hidden, 9323 explosion06 while E < 45.
+- **Fire jets (RE 9332-9340, 9765):** A = (A + 1) mod 180, direction 1 while A > 90; they burn on test_directions(1) = mask
+  bit 0 = **direction 0** (the tall jet; first port read it as direction 1): PLAYER + PlayerSensorTopBig (up) / none (down) /
+  LeftBig / RightBig, R-hurt 5 with OTHERS.R 30 and blend 0x80a0ff, not the fire shield.
+- **Flamethrower (RE 9325-9330, 9292):** ctor C 90 D 60 E 2: A = C - D sin B, B += E; flag 1 when B in (150, 210), > 330 or
+  <= 30; sound 263 once per window; every 3rd frame a MinibossFlame_1264 (C = 6 cos A, D = -6 sin A) at the action point.
+  9325: each EnemyLimiter on a thrower turns it (C + 90, B - 90) and is destroyed.
+- **Lightning (RE 9823-9826):** radial A = index 120 (start), B 3; A += B; limiter -> B = -B; hurts the character sensor 10
+  (sound 371, CAM.Z 3) unless the metal shield (OTHERS.B 3). Radial2 rides its radial.
+- **Fans (RE 9347-9352):** debris every 3 frames on screen; the column |X - PX| <= 63, 0 < fan.Y - PY <= 399: M 40,
+  G - 0.2 (Milla another 0.1). Net effect with gravity: a slowed fall (host max vy 2.3).
+- **Breakable floors (RE 9353-9358, 7219, 10015 / 10016, 10024 / 10025):** same members as FN's 922 / 923; broken by the bomb
+  blast, the crusher (C 2) and the falling block; 8 Piece2_2229 like FN (A = X - 4 + R8, B = Y - 4 + R4, C 0.3).
+- **SB4 (RE 9996-10026, 10146 / 10147):** scrolling chains y = A + 64 - (3 g3 mod 64) / A + (3 g3 mod 64); chain masks
+  y = A + B, B -/+ 3, pushed off the top (9997-10000), crushed under a rising one (10001); crusher C 0 rise 2 / 1 wait /
+  2 fall B + 0.25 to A (sound 75, CAM.Z 4) / > 2 count to 60; R-hurt 15 on the top sensor, crushed against the ceiling
+  (10012); moving block falls A + 0.25 to 15 once stood on, sound 17 on landing; bars ctor F 1 G 168, E = index 36, layer 2
+  while E <= 180, the hang drops at E > 180 (10008).
+- **SB3 spin cups (RE 9836-9838, 9938), back eyes (9835).** Cup A - 3 a frame; held: M 43 at the action point, B = 6 cos A,
+  G = -6 sin A; the land point releases (B 60).
+- **Enemies:** see spec_sb_enemies.md; corrected this session: DNA cannon 9848 F = -40 after a shot (cycle 181, RV).
+- Unverified: lightning turn cooldown, crusher top / trigger box, moving-block trigger, chain-mask reset span (600), spin cup
+  grab, fan debris speed, cannon bullets never destroyed in the original (port: off view 200), back eye alpha (hidden only).

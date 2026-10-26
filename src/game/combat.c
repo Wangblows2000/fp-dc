@@ -164,7 +164,8 @@ static int enemy_type_list(int t) {
            sb_boss_q20(t) ||                        /* Sky Battalion bosses (sb_boss.c) */
            rm_claw_enemy(t) ||                      /* RM3 Claw set: Shrine3, BossClawHitbox, CaravanEngine (rm_claw.c) */
            fn_panther_q20(t) ||                     /* FN6: the panther hitbox (fn_panther.c) */
-           fn_gima_enemy(t);                        /* Fortune Night: lampposts, boost blocks (fn_gima.c) */
+           fn_gima_enemy(t) ||                      /* Fortune Night: lampposts, boost blocks (fn_gima.c) */
+           sb_enemy_q20(t) || sb_gim_q20(t);        /* Sky Battalion Q20 (sb_enemy.c / sb_gim.c) */
 }
 /* per-type table of the list above (called for every slot several times a frame: the chain of compares cost ~1 ms in RM) */
 int enemy_type(int t) {
