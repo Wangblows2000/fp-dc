@@ -32,7 +32,7 @@
 static short LST[NRT][LMAX]; static int NLS[NRT];
 #define EACH(T, OB) for (int _k = 0; _k < NLS[(T) - RT0]; _k++) if (((OB) = &G.o[LST[(T) - RT0][_k]])->alive && (OB)->type == (T))
 #define N(T) NLS[(T) - RT0]
-static struct { int on, kills; double Q[LMAX]; short lim_x[64], lim_y[64]; int nlim; } S;   /* Q: platform1 alterable Q (its I before the hold) by list slot */
+static struct { int on, kills, nospd; double Q[LMAX]; short lim_x[64], lim_y[64]; int nlim; } S;   /* Q: platform1 alterable Q (its I before the hold) by list slot */
 
 static double PX(const player_t *p) { return floor(p->x); }
 static double PY(const player_t *p) { return floor(p->y - ORIG_REF_DY); }
@@ -211,6 +211,16 @@ static void cannons(void) {
 }
 int sb_gim_cannon_kills(void) { return S.kills; }
 
+/* ================================================================ SwitchDoor_2102 (SB2 9341 / 9342, SB4 9832 / 9833; RE)
+ * The pad events: while the player stands on a SwitchPlatform (L 1, O < 30 or > 330) whose B is still below 24 after this frame's
+ * sink (+0.5), the door with A = the pad's C rises 2 px (y - 2, C + 2): 47 frames, 94 px for the 24-px sink. No other door event
+ * (the door is a plain Q7 solid; it never comes back down). av: [0] A index, [2] C risen. */
+void sb_gim_door_rise(int c) {
+    if (!S.on || !N(OT_SB_DOOR)) return;
+    obj_t *o;
+    EACH(OT_SB_DOOR, o) if ((int)o->av[0] == c) { o->y -= 2; o->av[2] += 2; }
+}
+
 /* ================================================================ fire jets (9332-9340; 9765: A = index 20 at the start) */
 static void fires(player_t *p) {
     obj_t *o;
@@ -330,7 +340,7 @@ static void chains(player_t *p) {
         if (p->ground && sens_hit(SENS_BOTTOMBIG, o)) {                             /* 9997-10000: no standing on top: pushed off */
             p->ground = 0; p->vx = p->gsp + (PX(p) < o->x ? -2 : 2);
         }
-        if (!o->par && sens_hit(SENS_TOPBIG, o) && p->ground) kill_player(p);      /* 10001: pinned under a rising wall (Z = 1: INFERRED = grounded) */
+        if (!o->par && sens_hit(SENS_BOTTOMBIG, o) && sens_on_bg(SENS_TOPBIG)) kill_player(p);   /* 10001 (RE, session 19b): on a rising wall's mask (BottomBig) with the ceiling on TopBig (its Z) -> M 9; before: TopBig on the mask + grounded, which let the wall push her through the ceiling */
     }
 }
 static void crushers(player_t *p) {
@@ -376,14 +386,31 @@ static void bars(player_t *p) {
 }
 
 /* ================================================================ SB3: spin cups (9836-9838, 9938), back eyes (9835) */
+/* col_11_37 (test_collisions_37: PLAYER overlapping a GimmickSpinCupStartPoint): the cup with D = the start point's A (its pair),
+ * flag 1 off and B <= 0 takes the player unless MV.M is 6 (roll), 9 (dead), 10 or 43 (already in a cup): flag 1, sound 7, the
+ * cup moves to the player's layer (RE session 19b; before: INFERRED) */
+static int grab_ok(const player_t *p) {
+    int m = player_orig_m(p); obj_t *c;
+    if (m == 6 || m == 9 || m == 10 || m == 43) return 0;
+    EACH(OT_SB_SPINCUP, c) if (c->fl & F1) return 0;                            /* M 43: held by another cup (the port keeps M) */
+    return 1;
+}
 static void cups(player_t *p) {
     obj_t *o;
+    if (S.nospd) {                                                              /* 1: in the cup / released in the air, 2: back on the ground */
+        int held = 0; EACH(OT_SB_SPINCUP, o) if (o->fl & F1) held = 1;
+        if (!held && p->ground) S.nospd = 2;
+        else if (S.nospd == 2 && !p->ground) { p->c_nospd = 0; S.nospd = 0; }
+    }
     EACH(OT_SB_SPINCUP, o) {
         o->av[0] = nrm(o->av[0] + 357); o->ang = (float)o->av[0];                   /* 9836: A = (A - 3) mod 360 */
         o->av[1] = fmax(o->av[1] - 1, 0);
         obj_t *s = o->par >= 0 ? &G.o[o->par] : NULL;                               /* the start point rides the action point */
         if (s && s->alive) { float x, y; act_pt(o, &x, &y); s->x = x; s->y = y; }
-        if (!(o->fl & F1) && o->av[1] <= 0 && s && !dead(p) && disc_hit(p, s)) o->fl |= F1;   /* the grab (INFERRED: the handler is not in the event list) */
+        if (!(o->fl & F1) && o->av[1] <= 0 && s && !dead(p) && disc_hit(p, s) && grab_ok(p)) {   /* col_11_37 (RE) */
+            o->fl |= F1; snd_play_orig(7, 220, 128);
+            p->c_nospd = 1; S.nospd = 1;                                        /* M 43's group: MV.S = 0 until she leaves the ground (RV cup2: S 0 from the grab through the tunnel roll to M 1) */
+        }
         if (o->fl & F1) {                                                           /* 9837: M 43 on the cup's action point, OTHERS.Y 8 */
             float x, y; act_pt(o, &x, &y);
             p->x = x; p->y = y + ORIG_REF_DY; p->ground = 0; p->cY = 8;
@@ -502,6 +529,8 @@ void sb_gim_spawn(void) {
     }
     EACH(OT_SB_CUPLAND, o) set_s(o, "sbs_land");
     EACH(OT_SB_PBLOCK4, o) set_s(o, "sbq_block");
+    n = N(OT_SB_DOOR); k = 0;                        /* 9216 (start): door A = index (newest first), the pads' C likewise (sb_flow.c) */
+    EACH(OT_SB_DOOR, o) { set_s(o, "door");   /* the shared 'door' row: the placed handle's image (1098) */ o->av[0] = n - 1 - k++; o->av[2] = 0; }
     EACH(OT_SB_BTUNNEL, o) set_s(o, o->par ? "sbt_tun1" : "sbt_tun0");
 }
 

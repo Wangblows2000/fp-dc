@@ -850,7 +850,7 @@ static void roll_move(player_t *p, const input_t *in) {
     p->x = m.X; p->y = m.Y + ORIG_REF_DY; p->N = m.N; p->O = m.O; p->ground = m.L;
     if (m.L) { p->gsp = m.B; p->vy = 0; } else { p->vx = m.B; p->vy = m.G; }
     if (r & MV_LANDED) { p->springing = 0; p->jumping = 0; p->cyclone_used = 0; p->boost_used = 0; }
-    if (!(is_carol() && p->c_nospd)) { horiz_accel(p, in, 1, 1); wall_stop(p); }   /* Carol's roll entries set MV.S = 0 (RV c_run_down) */
+    if (!p->c_nospd) { horiz_accel(p, in, 1, 1); wall_stop(p); }   /* Carol's roll entries set MV.S = 0 (RV c_run_down); SB3's spin cup (M 43) too, any character (RV cup2) */
     if (!p->ground) {
         air_speed_update(p, in, 0, PHYS_GRAV);
         if (p->vy < 0 && mv_sensor_top_big()) p->vy = 0;

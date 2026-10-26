@@ -544,6 +544,7 @@ static int sbb_on_type(int type) {                       /* S_BB overlaps any in
 static int q27_type(void) {                              /* QualifierList +0x22210: spiral mask (DV1/DV2), ball tunnel (DV3): whichever the level places */
     if (objects_have(OT_SPIRAL_MASK)) return OT_SPIRAL_MASK;
     if (objects_have(OT_BALLTUNNEL)) return OT_BALLTUNNEL;
+    if (objects_have(OT_SB_BTUNNEL)) return OT_SB_BTUNNEL;     /* SB3: LevelBallTunnel2 / 3 (q27; handle_frame_38 calls 4739-4745 + 5181, as DV3) */
     return -1;
 }
 static struct { int g40, g41, g42, g43, g44, push_prev11, skinL; } TN;
@@ -676,8 +677,13 @@ void spinlogs_update(player_t *p) {
 static int obst(int x, int y) { return solid_at(&G.lvl, (float)x, (float)y); }
 /* PushableBlock3_1287 (RM3, on the caravan truck; spec_rm_claw 8) is the same Q14 block with its own image: 48x48,
  * hotspot (21, 30) -> box X-21..X+27, Y-30..Y+18 (PushableBlock1: hotspot (21, 41)) */
-static int pb_is(int t) { return t == OT_PBLOCK1 || t == OT_PBLOCK3; }
-void pblock_box(const obj_t *b, int *x1, int *y1, int *x2, int *y2) { int hy = b->type == OT_PBLOCK3 ? 30 : 41; *x1 = (int)b->x - 21; *y1 = (int)b->y - hy; *x2 = (int)b->x + 27; *y2 = (int)b->y + 48 - hy; }
+/* PushableBlock4_2259 (SB3; handle_frame_38 calls the same 2711-2735, RE) is the Q14 block with a 64 x 64 image, hotspot (0, 0):
+ * box X..X+64, Y..Y+64 */
+static int pb_is(int t) { return t == OT_PBLOCK1 || t == OT_PBLOCK3 || t == OT_SB_PBLOCK4; }
+void pblock_box(const obj_t *b, int *x1, int *y1, int *x2, int *y2) {
+    if (b->type == OT_SB_PBLOCK4) { *x1 = (int)b->x; *y1 = (int)b->y; *x2 = (int)b->x + 64; *y2 = (int)b->y + 64; return; }
+    int hy = b->type == OT_PBLOCK3 ? 30 : 41; *x1 = (int)b->x - 21; *y1 = (int)b->y - hy; *x2 = (int)b->x + 27; *y2 = (int)b->y + 48 - hy;
+}
 void pblocks_update(player_t *p) {
     int any = 0;
     p->push_s = p->push_s > 0 ? p->push_s - 1 : 0;                                          /* 2711 */

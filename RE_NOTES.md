@@ -1177,3 +1177,40 @@ drone_idle, dna_idle, pel_idle, magn_idle} (frames 36-38).
 - **Enemies:** see spec_sb_enemies.md; corrected this session: DNA cannon 9848 F = -40 after a shot (cycle 181, RV).
 - Unverified: lightning turn cooldown, crusher top / trigger box, moving-block trigger, chain-mask reset span (600), spin cup
   grab, fan debris speed, cannon bullets never destroyed in the original (port: off view 200), back eye alpha (hidden only).
+
+## Session 19: Sky Battalion object gaps
+Spec: build/re/spec_sb_objgaps.md. Labels RE / RV / INFERRED; RV traces (original, session 19b): hub (SB1 deck fire), dnaw (SB3
+DNA warning), door / door4 (SB2 / SB4 doors), magn0 / magn2 / magn4 / magnhi (SB4 magnetizer, Lilac / Carol / Milla), pblock,
+cup / cup2 (SB3 block, spin cup and tunnel), tun3, pad (Carol's SB2 pads), swing (SB4 swings).
+- **SB1 deck fire (RE 8996-9004, 9223-9227, col_9_35; RV hub):** three EffectWarning_1528 (I newest first, A = 10 I, C = x);
+  A > 60 -> x = C - 100 + R(201), A = -R(90), a GimmickCannonBullet_2098 800 px above falls 12 px a frame (only the first ball of
+  a frame gets its A / B / D), the warning shows 58 frames (8997 then 8998 in one frame: RV B 59 .. 2). The ball explodes as the
+  bomb blast (MonitorIcon frame 9: sound 38, 20 damage) on a q8 obstacle (the baked deck, the hover platforms) **only while
+  active**: Chowdren's FrameObject::update_inactive / Layer::update_position mark objects outside the view - 64 .. + 490 across,
+  - 16 .. + 256 down (in the layer's scrolled coordinates) INACTIVE, and test_collisions skips them (RV: balls 40+ px beyond the
+  view fall through the deck forever). RV: the blast appears 12 px above the ball's overlapping position. Airships fire
+  ShipBullet_2106 every g3 % 17 or % 22 frame (x - 56 + R(150), y + 18; 9002 from animation frame 1: y - 8, destroyed at A > 20);
+  shots of an inactive (far) airship never animate (RV: frozen at the muzzle). A done red ship (ML 0x10) removes all three
+  warnings at the start (9223 runs before 9227 numbers them: RE quirk); the night stops the group (balls in the air freeze).
+- **SB3 DNA warnings (RE 9854-9858; RV dnaw):** warning k shows at the view edge (x + 395 right / x + 32 left, y = its cannon's)
+  while cannon k is off that edge within 200 px and faces the view (the previous frame's H). RV x 1898 at f203 = port.
+- **SwitchDoor_2102 (RE 9341 / 9342 SB2, 9832 / 9833 SB4, 9216):** not DV's door: it rises 2 px a frame (94 px in all) while the
+  player sinks its pad (door A = pad C, both newest first); it never closes. RV door 376 -> 282, door4 856 -> 762.
+- **Magnetizer (RE 10028-10065, 10149; RV magn*):** every state starts from "box inside the view grown by 100" (10028 / 10031);
+  placed at (5976, -293) above the frame top and the view top is clamped at 0 (Frame::set_display_center): it never activates,
+  for any character (RV: 300 frames at checkpoint 2 with Lilac, Carol, Milla; Lilac above the frame top). Dormant in the port.
+- **PushableBlock4 / LevelBallTunnel2-3 (RE handle_frame_38: the shared 2711-2735 and 4739-4745 + 5181, no own events):** the
+  block is the Q14 pushable (64 x 64, hotspot 0,0); RV pblock 1 px a frame, resting. The tunnels are q27 solid masks entered
+  from the spin cup (col_11_37: start point A = cup D, flag 1 off, B <= 0, M not 6 / 9 / 10 / 43 -> flag 1, sound 7; RE, the
+  grab was INFERRED before). M 43 sets MV.S 0 until she leaves the ground: the roll in the tunnel keeps its speed (RV cup2 B ~6,
+  springs at 6383).
+- **Reused engine types:** spikes / monitors / springs / hang sensor / jump pads / layer switches / slime use the same Frames
+  member lists as their ported handles (RE sb_members). SB4's GimmickSwingSpawner2_2322: ctor A 8, B 0 (port mapped it to AT3's
+  852: 6 links, 220) and its own part classes 2319-2321 (9949-9951; platform 96 x 24); RV swing: mirrored platforms. Carol's
+  ObjectJumpPad_539 chains were missing (no level table): SB2 9309 / 5357 / 9310, SB3 4950 / 5357 / 9310 / 5172 / 9816-9818,
+  SB4 5169 / 5170 / 9988 / 9989 (RV pad: pad 0 -> pad 1 in 22 frames).
+- **SB4 rising chain wall (RE 10001):** death needs BottomBig on the mask AND the ceiling on TopBig (its Z); the port tested TopBig
+  on the mask + grounded, so a player standing on a rising wall was pushed through the ceiling and rose for ever (found by a host
+  route search at x 5113). Fixed in sb_gim.c (not RV).
+- Not verified: the ball / blast offset reason (12 px), the shots' y active range, Carol / Milla through the cup, the hub fire
+  with ML 0x10 set (RE only), SB3's tunnel 3 entry.
