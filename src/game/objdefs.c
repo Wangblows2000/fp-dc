@@ -28,6 +28,7 @@ static const objdef_t DEFS[] = {
     { OT_SPRING_UR,     OD_NOEDGE,                             NULL         }, /* yellowspringupright */
     { OT_SPRING_R,      OD_SOLID|OD_NOEDGE,                    NULL         }, /* yellowspringright */
     { OT_SPRING_L,      0,                                     NULL         }, /* yellowspringleft */
+    { OT_SPRING_D,      OD_SOLID|OD_NOEDGE|OD_BOXCOL,          NULL         }, /* yellowspringdown (as redspringdown) */
     { OT_HANG,          OD_HANG,                                     NULL         }, /* gimmickhangingidlesensor */
     { OT_MON_RINGS,     OD_SOLID|OD_NOEDGE,                    NULL         }, /* monitorrings */
     { OT_MON_1UP,       OD_SOLID|OD_NOEDGE,                    NULL         }, /* monitor1up */
