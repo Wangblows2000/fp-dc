@@ -1030,3 +1030,59 @@ frame f = act frame f + 121 (offense I 1200 ctor, 1079 at f0) = port frame f + 1
 - RV (original screenshots build/orig/fn6_blast_*.png, set_frame 34): the back-cannon missile blasts leave long arcs of
   Explosion06 with dark smoke rings, as in the port; the reported "black boxes" were not seen in Flycast (the dark frames
   are the smoke rings).
+
+## Session 19: DV3 spike ball, RM Milla background
+Labels: RE read from code, RV original trace / screenshot (set_frame 22 / 25 / 26 / 30 / 33, `tools/orig/run_trace.sh`,
+XVT_EXTRA on the four bamboo classes), INFERRED reasoned. Port: src/game/gimmicks.c (bamboo), tools/import_frame.py +
+src/resources/assets.c + src/game/game.c (Quick Backdrops); tests/test_dv3_bamboo.py.
+
+**DV3 bamboo spike traps (GimmickBambooSpike_1070 pivot, 2_1071 joint "spike ball", 3_1069 pole, 4_1072 head; x 8512 /
+8848 / 9040; DV3 only).**
+- Root cause (port): bamboo_update paired the parts with their pivot every frame by equal x (|dx| < 4). The joint and pole
+  are moved onto the pivot's tip, so once the pivot leaned past ~4 degrees the pairing failed: only the pivot swung, the
+  joint / pole / head froze where they were, and the damage check (which needed the joint found) never ran. Fix: pair once
+  at spawn by instance order.
+- Pairing (RE 5227): Chowdren walks the joint (and pole) list from the last instance down and picks pivot slot
+  N1 - (k % N1) for the k-th: instance i of a part goes with instance i of the pivot (head: of the pole). DV3's json order
+  pairs by equal x.
+- Event order (RE 5227 / RV): joint and pole -> the pivot's action point with LAST frame's pivot angle; pole angle =
+  -(pivot angle) (stored 0-360, RV 290 for -70); pivot angle = C * D; head -> the pole's action point (this frame's pole).
+  The head therefore stays over the pivot (zig-zag).
+- Action point after rotation (RV, all 29 angles of the trace): both the hotspot (8,52) and the action point (8,-5) of image
+  3499 are rotated about the image origin and truncated separately: offset = trunc(R act) - trunc(R hot),
+  R(x, y) = (x cos a + y sin a, -x sin a + y cos a). The former -57 sin / -57 cos was off by one at 22 of 29 angles.
+- Start phases (RE 5319, start of frame; RV): spread value B = 0, 1, 2 over the pivots from the last-created one, then
+  B = fmod(10 B, 50): 8848 / 9040 / 8512 start 20 / 10 / 0 frames into the first wait (RV start trace: swings begin at rows
+  29 / 39 / 49). The port started all three in phase.
+- Cycle (RE 5229-5234, RV): wait until B > 50, C += 5 per frame to 70 (13 frames), hold 51, back to 0, D = -D: 128 frames a
+  side, RV-equal in the port.
+- Damage (RE 5228): OTHERS.D == 0 and OTHERS.B != 3 (metal shield) and PlayerCharacterSensor overlaps a joint -> MV.R = 1,
+  LIFE.B += 5 (applied by 2414: invulnerability, the other shields' absorb, Casual). Only the joint hurts; pivot, pole, head
+  are harmless and not solid. Same for Carol and Milla (no state test).
+- Turned character sensor (RV walk trace, row 143): walking under the upright joint on DV3's slope (N 351.87 = direction 31)
+  the original hurts although the upright 15 x 46 sensor misses the joint's bottom row by 2 px; the sensor is in direction
+  (int)(N / 11.25) (spec_combat 3), so its top corner reaches the joint. The port tests the joint's pixels inside the turned
+  box (bam_sensor_hit; pixel rounding of Fusion's rotated direction images INFERRED). RV hurts (walk: rows 143 / 224 / 318 /
+  387 / 450; idle: 195) are matched by the host within 2-4 frames (host TP lands earlier).
+- Not verified: the joint's own 4-frame animation timing; the sensor's direction images for other directions.
+
+**Relic Maze 3 hand-car background (Milla's cart route, x ~1100-7000, y 1600-2000; also seen by Lilac / Carol there).**
+- The debug readout "V9628 D7042" is not a position: it is the FP_PROFILE line "U<update us> D<draw us>" (game.c hud_draw).
+- RV (screenshots set_frame 26, Lilac and Milla): the area shows a dark dirt cave wall fading to near black (0,8,8) below,
+  the track supports run down to the screen bottom. The port showed RM3's jungle sky piece 2r and, under it, parallax
+  piece 9's black band with crystals; the supports stopped after 32 px.
+- Root cause (importer): Quick Backdrops. RE QuickBackdrop::draw (0x203b530): a box of width +0x4c x height +0x50 at x, y;
+  with an image the image tiles the box from its top-left (no hotspot; the visible range only); without one draw_gradient
+  fills it with colour +0xc4..c7 (gradient to +0xcc..cf when +0xc8 = 1). tools/import_frame.py placed the image once and
+  skipped image-less ones. RM3 has quickbackdrop_1352 (0,928) 6720 x 288 of 3384, quickbackdrop2_1353 (0,1216) 6720 x 288
+  of 3418 (the fade), quickbackdrop3_1355 (0,1504) 6720 x 576 solid (0,8,8) (all layer 1, scroll 0.8),
+  quickbackdrop4_1435 x 75 (16 x 2176 of a 16 x 32 support) and rmhugedirtpattern_1430 (960,800) 6528 x 768 of 2451, box
+  obstacle (0xac 9). Other ported levels with boxes larger than their image: DV3 quickbackdrop_1073 (240,1048) 3840 x 252
+  (layer 2 rock wall), RM2 rmdungeonbg_1272 (0,1200) 2112 x 1536 (layer 1), RM5 rmpurplebrickback_1561 (0,200) 1920 x 2048
+  (layer 0), FN2 railroad1_1804 / railroad2_1805 (-32,1560 / 1624) 7168 wide (the trestle), FN5 quickbackdrop_2028
+  (11904,224) 3328 x 288 box obstacle. FN4's fnlullaby_1993 is its image's size (unchanged). RV screenshots (DV3 1200,1180;
+  FN2 1000,1500; RM2 600,1500; RM3 3000,1650; FN5 12400,150) match the rebuilt port.
+- Collision change (RE, follows from the obstacle boxes): RM3 x 976-7488, y 800-1568 is now solid (the huge dirt filler
+  between the Claw route and the cart route; 19347 tiles), FN5 x 11904-15200, y 240-512 is now solid (3462 tiles). The other
+  levels' collision is unchanged. RM / FN host suites pass with it.
+- Not verified: gradient Quick Backdrops (none in the ported levels; the importer skips them).
