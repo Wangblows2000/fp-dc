@@ -106,6 +106,40 @@ _, out = run(open(os.path.join(HERE, 'play', 'route_dv1_search.txt')).read(), 14
 loads = [l.split('[', 1)[1].split(']', 1)[0] for l in out.splitlines() if l.startswith('load[')]
 check('dv1_route_by_input_reaches_dv2', 'dv2' in loads, str(loads))
 
+# ---- elemental shields across act changes (session 18; RE spec_shields: OTHERS.B is global and every stage frame places
+# Lilac's six shield objects and runs 2673-2705, so a carried shield keeps working AND showing). Every act without an on-map
+# shield monitor has its shield sprites in <dir>_shl (tools/import_frame.py), loaded when a shield is carried in; the
+# FP_SH_DBG line is 'shv <frame> <dir> <OTHERS.B> <sprite found> <_shl loaded>'
+def shv(out): return [l.split()[1:] for l in out.splitlines() if l.startswith('shv ')]
+SHT = {151: 1, 152: 5, 153: 2, 154: 3, 155: 4}   # MON type -> OTHERS.B (wood, earth, fire, metal, water)
+for lv, nxt, ch, mon, keys, tp in (('fn2', 'fn3', '0', 152, '70 73 X', '160 TP 12100 800\n165 450 R'),
+                                   ('fn2', 'fn3', '2', 151, '70 73 X', '160 TP 12100 800\n165 450 R'),
+                                   ('fn2', 'fn3', '4', 154, '70 80 B', '160 TP 12100 800\n165 450 R'),
+                                   ('dv3', 'dv4', '0', 153, '70 73 X', '160 TP 9240 1700\n165 450 R'),
+                                   ('at2', 'at3', '4', 155, '110 120 B', '200 TP 11500 1000\n205 450 R')):
+    first = keys.split()[0]
+    _, out = run('%d MON %d\n%s\n%s\n' % (int(first) - 10, mon, keys.replace(' ', ' ', 1), tp), 450, {'FP_LEVEL': lv, 'FP_CHAR': ch, 'FP_SH_DBG': '1'})
+    v = shv(out); t = SHT[mon]
+    a = [x for x in v if x[1] == lv and x[2] == str(t)]; b = [x for x in v if x[1] == nxt]
+    check('shield_%d_carried_%s_%s_ch%s' % (t, lv, nxt, ch), a and b and all(x[2] == str(t) for x in b), str(v[-1:] if v else None))
+    check('shield_%d_shown_in_%s_ch%s' % (t, nxt, ch), b and all(x[3] == '1' for x in a + b) and b[-1][4] == '1', str(b[-1:]))
+# a shield set in an act without shield monitors after its load (a Continue, the debug monitor): its sprites load then;
+# the shield breaks on the 3rd hit (Normal: C = 1, 2412 / 2413) and nothing is drawn or kept afterwards
+_, out = run('60 MON 152\n70 73 X\n200 HURT 10\n300 HURT 10\n', 400, {'FP_LEVEL': 'fn3', 'FP_SH_DBG': '1'})
+v = shv(out); on = [x for x in v if x[2] == '5']
+check('shield_set_after_load_shown_fn3', on and all(x[3] == '1' for x in on), str(on[:1]))
+check('shield_breaks_fn3', on and v[-1][2] == '0', str(v[-1:]))
+# no carried shield, no shield bank (VRAM): a fresh act start
+_, out = run('', 5, {'FP_LEVEL': 'fn3', 'FP_SH_DBG': '1'})
+check('shield_bank_only_when_needed_fn3', shv(out) and all(x[4] == '0' for x in shv(out)), str(shv(out)[-1:]))
+# data: every stage act has its shield sprites (in _ens with an on-map monitor, else in _shl)
+miss = []
+for lv in ('dv1', 'dv2', 'dv3', 'dv4', 'at1', 'at2', 'at3', 'at4', 'rm1', 'rm2', 'rm3', 'rm4', 'rm5', 'fn1', 'fn2', 'fn3', 'fn4', 'fn5', 'fn6'):
+    sp = [os.path.join(DATA, lv, '%s_%s.spr' % (lv, k)) for k in ('ens', 'shl')]
+    blob = b''.join(open(f, 'rb').read() for f in sp if os.path.exists(f))
+    if not all(n.encode() + b'\0' in blob for n in ('shw', 'she', 'shwa', 'shm', 'shff', 'shfb', 'shpart')): miss.append(lv)
+check('shield_sprites_in_every_act', not miss, str(miss))
+
 # ---- menu scenes (UI importer): the Time Attack preview masks (solid quick backdrops, kind 2) and the translucent
 # layers of the semi-transparent images (kind 3: the bottom bar 135, the record panel 87)
 def ui_kinds(path):
