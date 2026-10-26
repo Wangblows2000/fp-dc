@@ -695,7 +695,7 @@ void game_update(const input_t *in) {
     G.frame++;
     input_t none = {0}, rin = results_input(in), sin_ = {0};
     const input_t *pin = ((G.clear_t && !level_cur()->clear_free) || G.act_in || G.input_lock) ? &none : results_on() ? &rin : in;   /* act end / walk-in / results: no control (RE); SB1's launch fade keeps it */
-    { static uint32_t sprev; uint32_t h = pin->held; if (serp4_input(&h) || rm_claw_input(&h) || fn_boss_input(&h) || fn_panther_input(&h)) { sin_.held = h; sin_.pressed = h & ~sprev; sprev = h; pin = &sin_; } else sprev = 0; }   /* DV4 boss exit (5547 lock, 5573-5577) */
+    { static uint32_t sprev; uint32_t h = pin->held; if (serp4_input(&h) || rm_claw_input(&h) || fn_boss_input(&h) || sb_boss_input(&h) || fn_panther_input(&h)) { sin_.held = h; sin_.pressed = h & ~sprev; sprev = h; pin = &sin_; } else sprev = 0; }   /* DV4 boss exit (5547 lock, 5573-5577) */
     PROF(PS_PAR, par_update());                   /* RE 3541: parallax drift */
     aqua_set_input(pin);                          /* AT swings read CTRL.K (4357) */
     PROF(PS_PLAT, objects_platforms(&G.p));       /* RE: platform/bridge events run before Lilac's movement */
@@ -725,6 +725,7 @@ void game_update(const input_t *in) {
     fn_gimb_frame(&G.p);                          /* Fortune Night acts 4-5 gimmicks (src/game/fn_gimb.c) */
     sb_gim_frame(&G.p);                           /* Sky Battalion gimmicks after the objects pass (src/game/sb_gim.c) */
     fn_boss_frame(&G.p);                          /* Fortune Night bosses (src/game/fn_boss.c) */
+    sb_boss_frame(&G.p);                          /* Sky Battalion bosses (src/game/sb_boss.c) */
     rm_claw_frame(&G.p);                          /* RM3 Claw sequence events 6196-6350 (src/game/rm_claw.c) */
     fn_flow_frame(&G.p);                          /* Fortune Night stage script (src/game/fn_flow.c) */
     sb_flow_frame(&G.p);                          /* Sky Battalion stage script (src/game/sb_flow.c) */
@@ -978,7 +979,7 @@ void game_draw(void) {
     draw_pieces(2, 2);
     objects_draw(1);
     water_draw_front();
-    if (!fn_assist_cast_on()) player_draw(&G.p);   /* FN6 closing scene: MV.M 50, the cast stands in (fn_assist.c) */
+    if (!fn_assist_cast_on() && !sb_boss_player_hidden()) player_draw(&G.p);   /* FN6 closing scene: MV.M 50, the cast stands in (fn_assist.c) */
     shields_draw(&G.p);
     fn_gimb_draw_front();                         /* FN: restroom doors / pole-pod shells over the player */
     spiral_front_draw();

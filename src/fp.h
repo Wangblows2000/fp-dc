@@ -388,6 +388,30 @@ enum { OT_SB_SWPLAT = 904 /* SwitchPlatform_2100: invisible solid box, sinks und
        OT_SB_AIRSHIP = 909 /* LevelAirship1_2105 (SB1 layer 1, 0.25) */, OT_SB_ZAOFLAG = 910 /* LevelZaoFlag_2107 */,
        OT_SB_DARKSKY = 911 /* LevelDarkSky_2114 (the Kujacker's night) */, OT_SB_BGPLAT = 913 /* LevelSBBGPlatform_2244 (the opening planks) */,
        OT_SB_FLOW_LAST = 959 };
+/* Sky Battalion bosses and minibosses (session 19, src/game/sb_boss*.c, build/re/spec_sb_bosses.md): 1150-1279. The lvobj anim
+ * field carries the sub id (SBBOSS_SUB) | instance layer << 8 (tools/import_frame.py SB_BOSS). */
+enum { OT_SBB_FIRST = 1150,
+       OT_SB_ASSIST = 1150 /* PlayerAssist_2205 (the plane) */, OT_SB_COPILOT = 1151 /* PlayerAssistCopilot_2220 */, OT_SB_COMPASS = 1152 /* GUICompass_2246 */,
+       OT_SB_SAT = 1160 /* BossSatellite_2286 (Q20) */, OT_SB_SAT_TOP = 1161 /* BossSatelliteTop_2284 */, OT_SB_SAT_THR = 1162 /* BossSatelliteThrusters_2285 */,
+       OT_SB_SAT_ARM = 1163 /* BossSatelliteArm_2287 */, OT_SB_SAT_BEAM = 1164 /* MinibossUFOBeam_1769 (SB3) */, OT_SB_SAT_BEAM2 = 1165 /* MinibossUFOBeam2_2288 */,
+       OT_SB_KJ_BASE = 1170 /* BossKujackerBase_2118 */, OT_SB_KJ_HEAD = 1171 /* BossKujackerHead_2125 (Q20) */, OT_SB_KJ_HEAD2 = 1172 /* BossKujackerHead2_2119 */,
+       OT_SB_KJ_LEG1 = 1173 /* BossKujackerLeg1_2117 */, OT_SB_KJ_LEG2 = 1174 /* BossKujackerLeg2_2116 */, OT_SB_KJ_PILOT = 1175 /* BossKujackerPilot_2124 */,
+       OT_SB_KJ_TAIL = 1176 /* BossKujackerTail_2115 */, OT_SB_KJ_TARGET = 1177 /* BossKujackerTailTarget_2120 (Q20) */, OT_SB_KJ_WING1 = 1178 /* BossKujackerWing1_2122 */,
+       OT_SB_KJ_WING2 = 1179 /* BossKujackerWing2_2123 */, OT_SB_TORNADO = 1180 /* BossTornado_2131 */, /* 1181 unused (LevelDarkSky_2114: the flow's OT_SB_DARKSKY 911) */
+       OT_SB_KJ_CHARGE = 1182 /* EffectsChargeBeam_2130 */, OT_SB_KJ_BOLT = 1183 /* runtime: BossBolt */, OT_SB_KJ_LIGHTNING = 1184 /* runtime: BossLightning2 */,
+       OT_SB_KJ_TRACKER = 1185 /* runtime: BossKujackerTailTracker */, OT_SB_KJ_GUST = 1186 /* runtime: BossGust */, OT_SB_KJ_GUST2 = 1187 /* runtime: BossGust2 */,
+       OT_SB_WARNING = 1188 /* runtime: EffectWarning_1528 */,
+       OT_SB_CH = 1200 /* BossChopper_2216 (Q20) */, OT_SB_CH_BLADE = 1201 /* BossChopperBlade_2217 */, OT_SB_CH_TAIL = 1202 /* BossChopperTail_2215 */,
+       OT_SB_CH_TBLADE = 1203 /* BossChopperTailBlade_2218 */, OT_SB_CH_TBLADE2 = 1204 /* BossChopperTailBlade2_2214 */, OT_SB_CH_BARS = 1205 /* BossChopperBars_2212 */,
+       OT_SB_CH_BARS2 = 1206 /* BossChopperBars2_2213 */, OT_SB_MISSILE = 1207 /* runtime: BossMissile_2219 */, OT_SB_TREDD = 1208 /* runtime: MinibossTreddBomb_1060 */,
+       OT_SB_SHIPFALL = 1209 /* ZaoShipFalling */,
+       OT_SB_SP_MASK = 1220 /* BossSpadeMask_2248 */, OT_SB_SPADE = 1221 /* BossSpade_2247 */, OT_SB_SP_HIT = 1222 /* BossSpadeHitbox_2250 (Q20) */,
+       OT_SB_SP_CARD = 1223 /* runtime: BossSpadeCard */, OT_SB_SP_IMG = 1224 /* runtime: EffectsSpadeImage_456 (dash afterimage) */,
+       OT_SB_GR = 1240 /* BossGrappler_2331 (Q20) */, OT_SB_GR_HANDL = 1241 /* BossGrapplerHandLeft_2330 */, OT_SB_GR_HANDR = 1242 /* BossGrapplerHandRight_2329 */,
+       OT_SB_GR_ARML = 1243 /* BossGrapplerArmLeft_2327 */, OT_SB_GR_ARMR = 1244 /* BossGrapplerArmRight_2328 */, OT_SB_SPIRE = 1245 /* BossCrystalSpire_2333 (Q7) */,
+       OT_SB_SPAWN1 = 1246 /* BossCrystalSpikeSpawner1_2325 */, OT_SB_SPAWN2 = 1247 /* BossCrystalSpikeSpawner2_2326 */, OT_SB_SPIKE = 1248 /* runtime: BossCrystalSpike */,
+       OT_SB_SPARK = 1249 /* runtime: BossHomingSpark */, OT_SB_CPLAT = 1250 /* CrystalPlatform_2334 (Q8) */, OT_SB_LSPIKE = 1251 /* runtime: LevelCrystalSpike_2268 */,
+       OT_SBB_LAST = 1279 };
 /* SB_ENEMIES: Sky Battalion enemies (session 19, src/game/sb_enemy.c, build/re/spec_sb_enemies.md): placed 1024-1059, runtime 1060-1099 */
 enum { OT_SBE_FIRST = 1024, OT_SB_HOPPER = 1024 /* EnemyHopperMkII_2189 (Q20) */, OT_SB_MAGMEON = 1025 /* EnemyMagmeon_2203 (Q20) */,
        OT_SB_ROTOR = 1026 /* EnemyRotorBlade_2184 (Q20) */, OT_SB_ROTORSPK = 1027 /* EnemyRotorBladeSpikes_2183 */, OT_SB_TUBE = 1028 /* EnemySpawnTube_2185 */,
@@ -931,6 +955,13 @@ float  sb_flow_hud_dy(void);
  * dispatch (1: handled; every rule runs in fn_boss_frame after the gimmicks), draw (1: drawn / skipped), scripted pad (CTRL.M) */
 void   fn_boss_spawn(void), fn_boss_pre(player_t *p), fn_boss_frame(player_t *p);
 int    fn_boss_obj(obj_t *o, player_t *p), fn_boss_q20(int type), fn_boss_draw_obj(const obj_t *o, int pass), fn_boss_input(uint32_t *held);
+/* src/game/sb_boss*.c (Sky Battalion bosses, spec_sb_bosses): spawn, the test_collisions handlers (before combat), the per-object
+ * dispatch (1: handled), the encounters' event blocks (after the gimmicks), Q20, draw (1: drawn / skipped), scripted pad, the
+ * player hidden in the plane (MV.M 43), ML.Y (MasterLevel Y = 1 while a boss fight runs: the stage music's switch), the plane's
+ * counter (PlayerAssist I += 1 per destroyed GimmickCannonBase, 9319: the gimmick module calls it) */
+void   sb_boss_spawn(void), sb_boss_pre(player_t *p), sb_boss_frame(player_t *p), sb_boss_cannon_down(void);
+int    sb_boss_obj(obj_t *o, player_t *p), sb_boss_q20(int type), sb_boss_draw_obj(const obj_t *o, int pass), sb_boss_input(uint32_t *held);
+int    sb_boss_player_hidden(void), sb_boss_ml_y(void);
 float  fn_flow_hud_dy(void);                          /* FN3 7712: the HUD slides up during the Serpentine pass */
 void   fn_flow_panther_view(void);                    /* FN5 8370 (the boss script): parallax pieces 1898 / 1899 hidden */
 void   player_bike_off(player_t *p, int park);        /* Carol leaves the bike (MV.A 3 -> 2; park: an ObjectBike is left at her, FN5 8383) */
