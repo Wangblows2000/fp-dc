@@ -438,7 +438,7 @@ static void magnet_frame(obj_t *o, player_t *p) {
  *  - start 9227: index I newest first, A = 10 I, C = x. Before it, 9223-9225 (ML flags 0x10 / 0x20 / 0x40) destroy the warnings
  *    with I = 0 / 1 / 2, while every I is still 0: a done red ship (0x10) removes all three, the other flags none (RE quirk).
  *  - 8996 A > 60: x = C - 100 + R(201), A = -R(90); a GimmickCannonBullet_2098 at (x, y - 800) on its layer gets A = x, B = y,
- *    D 270 (ctor C 12: it falls 12 px a frame); the warning shows for 60 frames (B 60, 8997 B - 1 while > 1, 8998 at 1 hidden).
+ *    D 270 (ctor C 12: it falls 12 px a frame); B 60, 8997 B - 1 while > 1, then 8998 at 1 B 0 hidden: shown 58 frames (RV hub).
  *    (More than one warning firing in one frame: only the first ball gets A / B / D, the rest sit at (0, 0) moving right; not
  *    created here, INFERRED unseen.)
  *  - 9004: ball x = A, y = B, A += C cos D, B -= C sin D; then every warning A + 1.
@@ -504,7 +504,11 @@ static void hub_frame(void) {
             }
             w->av[1] = 60; w->hidden = 0;
         }
-        for (int k = 0; k < HUB.n; k++) { w = &G.o[HUB.w[k]]; if (w->alive && w->av[1] > 1) w->av[1] -= 1; else if (w->alive && w->av[1] == 1) { w->av[1] = 0; w->hidden = 1; } }   /* 8997 / 8998 */
+        for (int k = 0; k < HUB.n; k++) {                                        /* 8997 then 8998 (RV hub: shown 58 frames, B 59 .. 2) */
+            w = &G.o[HUB.w[k]]; if (!w->alive) continue;
+            if (w->av[1] > 1) w->av[1] -= 1;
+            if (w->av[1] == 1) { w->av[1] = 0; w->hidden = 1; }
+        }
         int g3 = G.frame;
         if (g3 % 17 == 0 || g3 % 22 == 0)                                        /* 8999-9001 */
             for (int k = 0; k < HUB.nair; k++) {

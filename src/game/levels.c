@@ -90,6 +90,13 @@ static const rmgim_t RMG_RM3 = { PIL_RM3, N_(PIL_RM3), 0, 1, 0 }, RMG_RM4 = { PI
 static const padcfg_t PADS_RM4[] = { {368,632,0,0,0,0,0}, {496,392,1,0,0,0,0}, {560,632,2,0,1,0,0}, {1656,912,3,0,0,0,0}, {1472,688,4,270,1,0,0} };
 /* Fortune Night pads (ObjectJumpPad_1529; spec_fn_gimmicks_a 16: A = spread newest first, RE 4950 / 7186-7196 (FN1), 4950 / 4951 / 7649 /
  * 4954 / 7650-7654 / 5365 / 7655-7663 (FN3)); FN2's only pad is an off-map template (inert) */
+/* Sky Battalion pads (ObjectJumpPad_539; A = 3564's spread index, newest first, the off-map template (-104, 576) last; RE session 19b):
+ * SB2 9309 (A 0: E 1, B 0), 5357 (A 1: B 180), 9310 (A 2: B 180, D 1); SB3 4950 (A 0: E 1), 5357, 9310, 5172 (A 3: E 1), 9816 (A 4: B 90,
+ * D 1), 9817 (A 5: E 1), 9818 (A 6: B 270, D 1); SB4 5169 (A 0: E 1, B 90), 5170 (A 1: B 270), 9988 (A 2: B 90), 9989 (A 3: B 270, D 1) */
+static const padcfg_t PADS_SB2[] = { {3984,656,0,0,0,1,0}, {4224,272,1,180,0,0,0}, {4496,272,2,180,1,0,0} };
+static const padcfg_t PADS_SB3[] = { {7024,344,0,0,0,1,0}, {7200,176,1,180,0,0,0}, {7488,176,2,180,1,0,0}, {12000,1048,3,0,0,1,0},
+    {12280,720,4,90,1,0,0}, {11664,1048,5,0,0,1,0}, {11392,720,6,270,1,0,0} };
+static const padcfg_t PADS_SB4[] = { {9856,784,0,90,0,1,0}, {9744,600,1,270,0,0,0}, {10224,600,2,90,0,0,0}, {10112,784,3,270,1,0,0} };
 static const padcfg_t PADS_FN1[] = { {3880,1328,0,0,0,1,0}, {3944,1008,1,90,1,0,0}, {3464,1032,2,0,0,1,0}, {3520,744,3,270,0,0,0}, {3584,440,4,270,1,0,0},
     {7528,1072,6,90,0,1,0}, {7208,952,7,180,1,0,0}, {10472,704,8,90,0,1,0}, {10472,416,9,90,0,0,0}, {10472,128,10,90,1,0,0},
     {7656,1168,11,270,0,1,0}, {7784,1016,12,270,0,0,0}, {7912,728,13,270,1,0,0} };
@@ -228,11 +235,11 @@ static const level_def_t LEVELS[] = {
     { SB("sb1", 35, 1, "bgm/m_stage4.adp"), .mus4 = "bgm/m_boss3.adp", .mus6 = "bgm/m_menu2.adp", .mus7 = "bgm/m_stage4.adp", .start_card = 1,
       .entries = EN_SB1, .nentries = N_(EN_SB1), .clear_free = 1, .res_wipe = 1 },
     { SB("sb2", 36, 2, "bgm/m_stage4.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage4.adp", .mus7 = "bgm/m_trouble.adp", .card_first = 41,
-      .cps = CP_SB2, .ncps = N_(CP_SB2), .exits = EX_SBSHIP, .nexits = N_(EX_SBSHIP), .entries = EN_SBSHIP, .nentries = N_(EN_SBSHIP), .walkin_free = 1 },
+      .cps = CP_SB2, .ncps = N_(CP_SB2), .exits = EX_SBSHIP, .nexits = N_(EX_SBSHIP), .entries = EN_SBSHIP, .nentries = N_(EN_SBSHIP), .walkin_free = 1, .pads = PADS_SB2, .npads = N_(PADS_SB2) },
     { SB("sb3", 37, 3, "bgm/m_stage4.adp"), SB_M34, .card_first = 44,
-      .cps = CP_SB3, .ncps = N_(CP_SB3), .exits = EX_SBSHIP, .nexits = N_(EX_SBSHIP), .entries = EN_SBSHIP, .nentries = N_(EN_SBSHIP), .walkin_free = 1 },
+      .cps = CP_SB3, .ncps = N_(CP_SB3), .exits = EX_SBSHIP, .nexits = N_(EX_SBSHIP), .entries = EN_SBSHIP, .nentries = N_(EN_SBSHIP), .walkin_free = 1, .pads = PADS_SB3, .npads = N_(PADS_SB3) },
     { SB("sb4", 38, 4, "bgm/m_stage4.adp"), SB_M34, .card_first = 48,
-      .cps = CP_SB4, .ncps = N_(CP_SB4), .exits = EX_SBSHIP, .nexits = N_(EX_SBSHIP), .entries = EN_SBSHIP, .nentries = N_(EN_SBSHIP), .walkin_free = 1 },
+      .cps = CP_SB4, .ncps = N_(CP_SB4), .exits = EX_SBSHIP, .nexits = N_(EX_SBSHIP), .entries = EN_SBSHIP, .nentries = N_(EN_SBSHIP), .walkin_free = 1, .pads = PADS_SB4, .npads = N_(PADS_SB4) },
 };
 static const level_def_t DEFAULT = { .dir = "", .frame = -1, .stage = -1, .act = 1, .nacts = 1, .music = "bgm/m_stage1.adp" };
 
