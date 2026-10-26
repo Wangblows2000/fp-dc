@@ -732,7 +732,8 @@ SBBOSS_ENS = [(c, a, d, nm, None, w) for c, a, d, nm, w in (
     ('bossgrapplerarmright_2328', 0, '0', 'sbg_ar', _GR), ('bossgrapplerarmright_2328', 7, '0', 'sbg_ar7', _GR),
     ('bosscrystalspire_2333', 0, '0', 'sbg_spire', _GR), ('bosscrystalspike_2324', 0, '0', 'sbg_spike', _GR), ('bosshomingspark_2332', 0, '24', 'sbg_spark', _GR),
     ('bosscrystalspikespawner1_2325', 0, '0', 'sbg_spawn', _GR), ('crystalplatform_2334', 0, '0', 'sbg_plat', _GR), ('effectwarning_1528', 0, '0', 'sbg_warn', _GR))]
-SBBOSS_ENS_WITH = {'effectsexplosion01_367': _SA + _GR, 'effectsexplosion06_435': _SA + _GR, 'effectshade_436': _SA}
+SBBOSS_ENS_WITH = {'effectsexplosion01_367': _SA + _GR, 'effectsexplosion06_435': _SA + _GR, 'effectshade_436': _SA,
+                   'bosscrystalspike_2324': _GR, 'bosshomingspark_2332': _GR}
 ENGINE_TYPES_ID.update(SBBOSS_TYPES_ID); ENS += SBBOSS_ENS   # SB_BOSS
 ENS_FRAMES['effectwarning_1528'] = ENS_FRAMES.get('effectwarning_1528', set()) | {39}   # SB_BOSS: the spire's marker (SB4)
 for _k, _v in SBBOSS_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # SB_BOSS

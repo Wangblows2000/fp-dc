@@ -25,7 +25,7 @@ static void ga(obj_t *o, int k) { if (o && GA[k] >= 0 && (o->an.b != &G.ens || o
 static struct {
     int on;                                     /* group 0x2298b */
     int sub;                                    /* subgroups 0x22989 / 0x2298a / 0x22988 (one switch: they go off together, 10103) */
-    int lock_once, start_once, rel_prev;
+    int start_once;
     double D, E, F, G, H, I, J, K, L; int fl2, dir, hurt;
     double sA;                                  /* the spire's A */
     int warn_vis;
@@ -59,8 +59,23 @@ void sbg_spawn(void) {
     obj_t *w = warn(); if (w) w->hidden = 1;
     obj_t *pl = plat(); if (pl) pl->fl |= 1;                                     /* 10122 sets flag 0 every frame while the spire is carried */
 }
+static void spire_landing(void) {                                               /* col_30_38: the spire overlaps the backdrop (test_collisions,
+                                                                                 * the frame after the move). The decks are Q8 objects in the original
+                                                                                 * (baked into the port's map): its backdrop starts 16 px under the deck
+                                                                                 * (RV g_idle: lands at y 972 (tip 1001, not 991) and at 980 (tip 1009,
+                                                                                 * not 999): its top is y 1000) */
+    obj_t *s = spire(), *pl = plat(); int landed = 0;
+    if (!s || R.sA != 1 || !s->an.b) return;
+    const frame_t *sf = anim_frame(&s->an); int bx = (int)s->x - sf->hx, by = (int)s->y - sf->hy;
+    for (int yy = sf->h - 1; yy >= 0 && !landed; yy--) for (int xx = 0; xx < sf->w; xx++) if (frame_mask_px(s->an.b, sf, xx, yy) && px_solid(&G.lvl, bx + xx, by + yy - 16)) { landed = 1; break; }
+    if (!landed) return;
+    R.sA = 2; R.spfl[0] |= 2; R.spfl[1] |= 2; snd_play_orig(13, 220, 128);
+    if (G.cam.Z < 5) G.cam.Z = 5;
+    R.warn_vis = 0; if (pl) pl->fl &= ~1;
+}
 void sbg_pre(player_t *p) {                                                     /* test_collisions: sparks (col_7_38 / col_13_38 / col_38_38) */
-    if (!body() || !R.nspark) return;
+    if (!body()) return;
+    spire_landing();
     for (int k = 0; k < R.nspark; k++) {
         obj_t *s = sbb_slot(R.spark[k]);
         if (!s || s->type != OT_SB_SPARK) continue;
@@ -121,9 +136,11 @@ static int lim_hit(const obj_t *s) {
     for (int k = 0; k < nlims; k++) { obj_t *l = sbb_slot(lims[k]); if (l && fabsf(l->x - s->x) < 96 && fabsf(l->y - s->y) < 96 && obj_rect_hit(s, (int)l->x - 21, (int)l->y - 18, (int)l->x - 5, (int)l->y + 14)) return 1; }
     return 0;
 }
-static void parts_fall_explode(obj_t *o) {                                      /* 10106-10110: a part reaching y 981 explodes */
+static void explode_named(void) { static const int SX[3] = { 311, 319, 320 }; snd_play_orig(SX[sbb_rand(3)], 220, 128); }   /* a named sound_explode<3..5> sample (RV g_kill: 311 / 319 / 320) */
+static void parts_fall_explode(obj_t *o, int hand) {                            /* 10106-10110: a part reaching y 981 explodes (hands: sound 38) */
     if (!o || o->hidden || o->y < 981) return;
-    obj_effect(o->x, o->y, "explosion01"); o->hidden = 1; snd_play_orig(38, 220, 128); if (G.cam.Z < 3) G.cam.Z = 3;
+    obj_effect(o->x, o->y, "explosion01"); o->hidden = 1; if (G.cam.Z < 3) G.cam.Z = 3;
+    if (hand) snd_play_orig(38, 220, 128); else explode_named();
 }
 
 void sbg_frame(player_t *p) {
@@ -131,12 +148,8 @@ void sbg_frame(player_t *p) {
     if (!b) return;
     double PXv = sbb_px(p), PYv = sbb_py(p);
     int rails = sbb_rails();
-    float LL = sbb_marker(OT_CAMLIM_L, 1), LR = sbb_marker(OT_CAMLIM_R, 1), LB = sbb_marker(OT_CAMLIM_B, 0);
-    if (!R.lock_once && PXv > LL + 80 && PXv < LR && PYv < LB && rails > 0) { R.lock_once = 1; level_lock_markers(); }   /* 10078 (once) */
-    int c79 = PXv < LL && G.cam.lC > LL - 100 && rails > 0;                    /* 10079 (once per crossing) */
-    if (c79 && !R.rel_prev) level_release_camera(0);
-    R.rel_prev = c79;
-    if (level_cam_locked() && !R.start_once && sbb_mly == 0) { R.start_once = 1; sbb_fight_start(); R.on = 1; R.sub = 1; }   /* 10080 */
+    (void)rails;                                                                /* 10078 / 10079: the flow's camera lock (sb_flow.c) */
+    if (level_cam_locked() && !R.start_once && sbb_mly == 0) { R.start_once = 1; sbb_fight_start(); R.on = 1; R.sub = 1; }   /* 10080: CAM.M 1, ML.Y 0 */
     obj_t *s = spire();
     if (R.on) {
         G.cam.H = fmaxf(G.cam.H - 3, -50);                                     /* 10081 */
@@ -172,10 +185,9 @@ void sbg_frame(player_t *p) {
         if ((b->fl & SB_DEF) && R.E == 4) {                                     /* 10103: the defeat */
             R.E = 5; parts_anim(1); R.H = -1; b->A = 30; R.sub = 0; sbb_music_fadeout();
         }
-        if (R.E == 5 && G.frame % 7 == 0) {                                     /* 10104 (g3 % 7: the frame counter) */
+        if (R.E == 5 && !R.parts_gone && G.frame % 7 == 0) {                    /* 10104 (g3 % 7: the game's frame counter; its phase differs) */
             obj_effect((float)((int)b->x - 40 + sbb_rand(81)), (float)((int)b->y - 40 + sbb_rand(81)), "explosion06");
-            static const int SX[3] = { 311, 319, 320 }; snd_play_orig(SX[sbb_rand(3)], 220, 128);   /* a named sound_explode sample (INFERRED as fn_boss.c) */
-            R.L += 1;
+            explode_named(); R.L += 1;
         }
         if (R.E == 5 && R.L > 7) {                                              /* 10105: the fall */
             R.K += 0.2; b->y = (float)(int)(b->y + R.K);
@@ -185,9 +197,9 @@ void sbg_frame(player_t *p) {
             link_rig();
         }
         if (R.E == 5) {                                                         /* 10106-10110 */
-            parts_fall_explode(hand(0));
-            for (int r = 0; r < 2; r++) for (int k = 0; k < NLINK; k++) parts_fall_explode(arm(r, k));
-            parts_fall_explode(b); parts_fall_explode(hand(1));
+            parts_fall_explode(hand(0), 1);
+            for (int r = 0; r < 2; r++) for (int k = 0; k < NLINK; k++) parts_fall_explode(arm(r, k), 0);
+            parts_fall_explode(b, 0); parts_fall_explode(hand(1), 1);
             obj_t *hl = hand(0);
             if (!R.parts_gone && hl && hl->hidden) {                            /* 10111: everything destroyed (INFERRED: once the left hand is down) */
                 R.parts_gone = 1; snd_play_orig(38, 220, 128);
@@ -195,9 +207,10 @@ void sbg_frame(player_t *p) {
                 for (int r = 0; r < 2; r++) for (int k = 0; k < NLINK; k++) { obj_t *a = arm(r, k); if (a) a->alive = 0; }
             }
         }
-        if (R.parts_gone && !R.ended && sbb_bars() > 0) {                       /* 10112: the arena end (+ CrystalPlatform destroyed) */
-            R.ended = 1; sbb_arena_end(1); obj_t *pl = plat(); if (pl) pl->alive = 0;
+        if (R.parts_gone > 1 && !R.ended && sbb_bars() > 0) {                  /* (the next frame: the destroyed hand leaves the list then, RV 2050 / 2051) */                       /* 10112: the arena end (+ CrystalPlatform destroyed) */
+            R.ended = 1; sbb_arena_end(1, 0x40); obj_t *pl = plat(); if (pl) pl->alive = 0;
         }
+        if (R.parts_gone == 1) R.parts_gone = 2;
     }
     if (R.ended && sbb_bars() == 0) G.cam.H = fminf(G.cam.H + 3, 0);           /* 10113 */
     /* sparks 10114-10121 */
@@ -219,11 +232,6 @@ void sbg_frame(player_t *p) {
         if (R.sA == 0) { s->y = (float)(int)b->y; if (pl) pl->fl |= 1; }        /* 10122 */
         if (R.sA == 1) {
             s->y += 10; R.warn_vis = 1;                                         /* 10123 */
-            if (obj_overlaps_bg(s)) {                                           /* col_30_38: landed */
-                R.sA = 2; R.spfl[0] |= 2; R.spfl[1] |= 2; snd_play_orig(13, 220, 128);
-                if (G.cam.Z < 5) G.cam.Z = 5;
-                R.warn_vis = 0; if (pl) pl->fl &= ~1;
-            }
         }
         if (R.sA == 3) {                                                        /* 10125 */
             s->y -= 10;

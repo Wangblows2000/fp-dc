@@ -11,7 +11,7 @@
 #define NARM 8
 static struct {
     int on;                             /* group 0x22964 */
-    int lock_prev, rel_prev;            /* 9878 / 9879 once-conditions */
+    int lock_prev;                      /* the flow's lock state last frame */
     double D, E, G, H, I, J, K, L, R; int fl2;
     double aD[NARM], aE[NARM], aF[NARM], aX[NARM], aY[NARM]; int afl[NARM];   /* afl: 0x20 flag 5, 0x40 flag 6 */
     double bA[NARM]; int bvis[NARM];   /* the arm beams (UFOBeam2 A = y-scale) */
@@ -64,17 +64,13 @@ void sbs_frame(player_t *p) {
     if (!s) return;
     int na = sbb_count(OT_SB_SAT_ARM); if (na > NARM) na = NARM;
     int nb = sbb_count(OT_SB_SAT_BEAM2); if (nb > NARM) nb = NARM;
-    double PXv = sbb_px(p), PYv = sbb_py(p);
+    double PXv = sbb_px(p);
     obj_t *mb = sbb_get(OT_SB_SAT_BEAM, 0), *top = sbb_get(OT_SB_SAT_TOP, 0), *thr = sbb_get(OT_SB_SAT_THR, 0);
     int rails = sbb_rails();
-    /* 9878: the lock (once): X > LimitLeft + 200, X < LimitRight, Y < LimitBottom, railings present */
-    int c78 = PXv > sbb_marker(OT_CAMLIM_L, 1) + 200 && PXv < sbb_marker(OT_CAMLIM_R, 1) && PYv < sbb_marker(OT_CAMLIM_B, 0) && rails > 0;
-    if (c78 && !S.lock_prev) { level_lock_markers(); S.on = 1; }
-    S.lock_prev = c78;
-    /* 9879: the release (once): X <= LimitLeft + 39 while CAM.C > LimitLeft - 100 (CAM.C: the camera's left limit, INFERRED lC) */
-    int c79 = PXv <= sbb_marker(OT_CAMLIM_L, 1) + 39 && G.cam.lC > sbb_marker(OT_CAMLIM_L, 1) - 100 && rails > 0;
-    if (c79 && !S.rel_prev) { level_release_camera(0); S.on = 0; }
-    S.rel_prev = c79;
+    /* 9878 / 9879 (the flow runs the camera lock, sb_flow.c): the group goes on with the lock and off when the player backs out */
+    int e = sbb_lock_edge(&S.lock_prev);
+    if (e > 0 && rails > 0) S.on = 1;
+    if (e < 0 && rails > 0) S.on = 0;
     if (S.on) {
         if (S.D == -2 && s->x - 79 <= PXv) { S.D += 1; snd_play_orig(7, 220, 128); sbb_fight_start(); }   /* 9880 */
         for (int a = 0; a < na; a++) if (!(S.afl[a] & SB_DEF)) { obj_t *o = arm(a); if (o) o->av[7] = S.aE[a] > 180; }   /* 9882 / 9883: front / back */
@@ -169,7 +165,7 @@ void sbs_frame(player_t *p) {
         S.R += 1;
     }
     if (S.on && S.D == 6 && S.E >= 90 && thr) { thr->y = (float)(int)(thr->y - S.thrA); S.thrA += 0.2; if (thr->y < -64) thr->hidden = 1; }   /* 9924 */
-    if (S.on && S.D == 6 && S.E > 120 && sbb_bars() > 0 && !S.ended) { S.ended = 1; sbb_arena_end(1); }   /* 9925 */
+    if (S.on && S.D == 6 && S.E > 120 && sbb_bars() > 0 && !S.ended) { S.ended = 1; sbb_arena_end(1, 0x20); }   /* 9925 */
     if (S.on) {                                                                 /* 9926: an arm in anim 8 touching the player */
         for (int a = 0; a < na; a++) { obj_t *o = arm(a); if (o && !o->hidden && sbb_a_is(o, SS_ARM8) && sbb_csens_hit(p, o)) { sbb_hurt(p, 10); break; } }
     }
