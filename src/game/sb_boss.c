@@ -81,10 +81,11 @@ void sbb_fight_start(void) {
     const char *m = level_music_slot(4); if (m) music_play(m);
 }
 void sbb_music_fadeout(void) { music_fade(90, 0); }                              /* fadeout_music(1500) + lock_music */
+int sbb_lock_edge(int *prev) { int l = level_cam_locked(), r = l && !*prev ? 1 : !l && *prev ? -1 : 0; *prev = l; return r; }
 void sbb_compass_show(void) { obj_t *c = sbb_get(OT_SB_COMPASS, 0); if (c) { c->hidden = 0; c->av[0] = 0; } }
 /* the arena end (9925; SB2 9597 / 9698, SB4 10112): two crystals per railing (y + 12, y + 36), sound 40, railings and barriers
- * destroyed, CAM.M 2 / U 0, ML flag 5, ML.Y 0, the stage music again (play_music(<the stage track>)), the compass shown */
-void sbb_arena_end(int crystals) {
+ * destroyed, ML.Y 0, the compass shown; the flow sets the ML flag, releases the camera and plays the stage track */
+void sbb_arena_end(int crystals, int flag) {
     int ca = bank_anim(&G.objs, "objectcrystal_3");
     for (int k = 0; k < nrails; k++) {
         obj_t *r = sbb_slot(rails[k]);
@@ -98,9 +99,9 @@ void sbb_arena_end(int crystals) {
     snd_play_orig(40, 220, 128);
     for (int k = 0; k < nrails; k++) { obj_t *r = sbb_slot(rails[k]); if (r && r->type == OT_WR_RAIL) r->alive = 0; }
     for (int k = 0; k < nbars; k++) { obj_t *b = sbb_slot(bars[k]); if (b && b->type == OT_WR_BARRIER) b->alive = 0; }
-    level_release_camera(0);
     sbb_mly = 0;
-    music_fade(0, 0); music_play(level_cur()->music);
+    music_fade(0, 0);
+    sb_flow_ship_done(flag);                                                    /* ML flag, CAM.M 2 / U 0, play_music(5) (sb_flow.c) */
     sbb_compass_show();
 }
 
@@ -189,7 +190,8 @@ void sb_boss_spawn(void) {
 void sb_boss_pre(player_t *p) { if (!on) return; sbs_pre(p); sbk_pre(p); sbc_pre(p); sbp_pre(p); sbg_pre(p); }
 void sb_boss_frame(player_t *p) {
     if (!on) return;
-    sbk_frame(p); sbc_frame(p); sbp_frame(p); plane_frame(p); compass_frame(); sbs_frame(p); sbg_frame(p);   /* handle_frame event order (INFERRED) */
+    sbk_frame(p); sbc_frame(p); sbp_frame(p); sbs_frame(p); sbg_frame(p);   /* the bosses' blocks, then the plane 9737-9747 (RE: handle_frame_39 order) */
+    plane_frame(p); compass_frame();
 }
 int sb_boss_obj(obj_t *o, player_t *p) { (void)o; (void)p; return 1; }           /* every rule runs in sb_boss_frame */
 int sb_boss_q20(int t) { return t == OT_SB_SAT || t == OT_SB_KJ_HEAD || t == OT_SB_KJ_TARGET || t == OT_SB_CH || t == OT_SB_SP_HIT || t == OT_SB_GR; }

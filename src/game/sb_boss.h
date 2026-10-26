@@ -51,7 +51,8 @@ void   sbb_draw_yscaled(const obj_t *o, double ys);                             
 extern int sbb_mly;                                                             /* MasterLevel Y (1: a boss fight; the stage music switch) */
 void   sbb_fight_start(void);                                                   /* ML.Y = 1, the boss track (ControllerMusic: play_music(4)) */
 void   sbb_music_fadeout(void);                                                 /* fadeout_music(1500) + lock_music */
-void   sbb_arena_end(int crystals);                                             /* 9925 / 9597 / 9698 / 10112: crystals, gates, CAM.M 2, compass, music */
+void   sbb_arena_end(int crystals, int flag);                                   /* 9925 / 9597 / 9698 / 10112: crystals, gates, compass, sb_flow_ship_done(flag) */
+int    sbb_lock_edge(int *prev);                                                /* the flow's boss lock (CAM.M 1) switched on (1) / off (-1) this frame */
 void   sbb_compass_show(void);
 
 /* ---- encounters (each returns at once when its boss is not placed) */
