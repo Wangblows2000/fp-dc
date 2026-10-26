@@ -818,3 +818,82 @@ pivot (1896, 416)), ufo_hit (FN1), disco_c0 / c2 / c4 and samu (FN5).
   the resting arch is not caught (both sensors on it). The other arch rules (7229-7234) read as in the spec (checked).
 - Collision semantics left as they were: the arch is a box object; the port tests its rotated mask (Chowdren: rotated
   bounding box, INFERRED); both agree at rest (0 / 180), where the entry tests run.
+
+## Session 18: pellet sounds, shield sprites across acts, gallery voices (shared systems)
+### Pellet hit / miss sounds (src/game/objects.c explode2, src/characters/player.c player_damage)
+- **Report:** a pellet enemy plays its shot (28), then Lilac's pain sound, even when the shot misses, for every character.
+  Reproduced on the host (FP_TRACE_SID): DV1 Turretus miss -> `28 ... 80`; hit -> `25 17 80` + Lilac's hurt voice.
+- **Root cause (RE + RV): a sound-id mapping bug, not a handle reuse.** explode2 (every pellet death: the player hit and the
+  ground hit) played id 80, labelled "RV: id 80 with the pellet hit". 80 is Lilac's hurt voice: Frames::loop_sound_hurt0_8
+  plays play_id 0x50 for Lilac (0x72 = 114 Carol, 0xb3 = 179 Milla; RE chowdren.dis 0xac3280), and converted2/sfx/s80.wav is
+  byte-for-byte the size and length of lilac_hurt0.wav (0.4529 s). The 80 in the session-4 trace was the random hurt voice.
+- **The pellet's own sound is 17 (RE):** col_4_20 (pellet vs PlayerCharacterSensor), col_7_20 (Q7 vs pellet) and col_20_20
+  (pellet vs background) destroy it, create effectsexplosion02 and play Media slot `media._136_8_` = 136 / 8 = **17**.
+  RV (original .snd logs): every pellet hit frame logs `17 25 <voice>` (hurt_turretus 17 25 81, c_claw_hit 17 25 114,
+  m_super_turret 17 25 181, m_shield_pellet 17 25 182); a miss logs **17 alone** (frame 123 of ladder_*, turretus_landon,
+  b_wall, c_wall_jump: the port had logged 80 there); non-projectile hurts log 25 + voice only, **no 17** (tredd 25 82,
+  dv4_chase 25 83, snake_t1 25 82, spring_yellow_wall 25 80).
+- **RE 2414** plays only 25 (play_id 0x19) and the `sound_hurt<0..3>` loop: the port's player_damage also played 17 on every
+  hurt (contact, spikes, bosses). Removed; the projectile handlers that play 17 in the original already do it themselves
+  (pellet: explode2; FN boomerang / samurai items fn_boss.c; FN pellets fn_enemy.c) - per spec_fn_enemies / spec_fn_bosses.
+  Spores (col_9_21), acid (4234 / 4235: sound 69), fire sprites and flames play no 17 (spec_dv_enemies 3.1, spec_ironworm).
+- **Handle reuse audited (RE of the port, INFERRED safe):** plat_dc.c snd_load reuses freed slots, so a stale slot index
+  would play another sample. snd_handle[] is always reset to -1 on unload; the boot-cached G.sfx handles (17, 8, 25, ...)
+  are shared ids that no stage or character group frees (checked: the stage sets SFX_RM / SFX_AT / SFX_FN* hold no shared id;
+  their group ids 33 / 61 / 126 are protected by in_char_group); voice / vod / gallery handles are reset on free. Still
+  open: snd_sfx_unload (KOS) does not stop a channel, and snd_sfx_stop_all skips reserved channels, so a looping channel
+  (snd_loop_orig: bike engine, pipes, hand-car, gates, trolley) left running over a level change would loop whatever is
+  loaded next into its freed sound RAM. Every loop owner stops its channel on its own reset; not traced on hardware.
+- Lilac's hurt voice itself is unchanged (voice_play lilac_hurt<n>, the Data/voices copy of the same recordings 80-83).
+
+### Elemental shields across act / stage changes (src/game/shields.c, game.c, tools/import_frame.py)
+- **Report:** a shield (earth: the crystal magnet) keeps working after an act / area change but is invisible.
+- **Root cause:** the shield sprites lived in the act's `_ens` bank only when the act places an on-map shield monitor
+  (import_frame.py ENS_ONLY_WITH, session 8). DV1, DV4, AT3, RM1, RM3, RM5, FN3 and FN6 have none, so a carried shield
+  (p->shield kept by player_reset on act_carry / stage_carry, or restored by a Continue) had no sprite there. Same for all
+  five types and the leaves / bubbles (shpart). Milla's own Barrier / Super Shield are her moves (millafx bank, reset with
+  the player): not affected.
+- **What the original does (RE):** OTHERS (PlayerOthers_126) is a global object, so OTHERS.B persists; every stage frame
+  (json 17-35) places Lilac's six off-map shield instances (shieldwood / earth / water / magnetic / flamefront / flameback),
+  and every stage frame's event list runs the shield groups 2412 / 2413, 2673-2705, 2804-2808, 2843, 3082
+  (build/re/f17..f28_calls.txt; f29 = RM5 lists the same groups but not 2680 / 2689 / 2690 / 2693 / 2695 / 2700 / 2702 /
+  2805, the per-type "visible" and particle-position events: UNKNOWN whether RM5 really skips them or the call list folds
+  identical functions; the port shows the shield in RM5 like everywhere else, INFERRED). So a carried shield
+  works and shows in the next act (with the appear animation: SENSOR.S is not global, spec_shields 2.3). **Decision: keep
+  the shield and show it** (no clearing).
+- **Fix:** acts without an on-map shield monitor get the shield rows in a separate bank `<dir>_shl` (71 frames, 512x512 PAL8
+  = 256 KB, palettize `--flex=_shl` after `_ens`, so _ens is unchanged), loaded only when a shield is carried in
+  (shields_bank_load after level_start) or appears later in such an act (Continue / debug monitor: one load on the first
+  frame). Putting the rows into _ens instead grew FN3's second ens atlas 1024x512 -> 1024x1024 (+512 KB of VRAM; FN3 Carol
+  had 625 KB free). Death / restart clears the shield (1276) and level_free drops the bank. The draw code (sh_anim) takes
+  the frames from _ens or _shl, so there is one shield sprite and no duplicate.
+- Still INFERRED: shield_c (extra hits) after a Continue (the file stores only OTHERS.B; the port keeps the current value).
+  Not traced in the original across an act change (spec_shields 2.3 is RE).
+
+### Gallery sound cards (tools/audio/convert_gallery.sh, src/game/fe_gallery.inc)
+- RE 1043 (spec_gallery 3.2): a speaker card plays `Data/voices/eng/<file>.ogg` once on channel 31. The genuine recording of
+  each card is therefore that file of the user's install. The 15 clips missing from the upload (/mnt/user-data/uploads/
+  Freedom Planet/game) are present in the user's PC install (C:\Users\wobbles\Desktop\Freedom Planet\Data\voices\eng,
+  staged read-only to /mnt/user-data/uploads/Freedom Planet/Data/voices; lilac_wontgiveup.ogg there is byte-identical to
+  the upload's copy). /home/claude/fprun and fprun_user hold 3521-byte 1-second placeholders for every voice (hard links).
+
+  | Card | Label | Recording | Source | Length | Port file |
+  |---|---|---|---|---|---|
+  | 19 | Carol - Totally Awesome | ca/carol_awesome | PC install | 2.21 s | gal/carol_awesome.wav (12 KB) |
+  | 20 | Carol - Feel my power! | ca/carol_feelmypower | PC install | 3.10 s | .wav (17 KB) |
+  | 24 | Milla - Whimper | mi/milla_whimper | PC install | 0.91 s | .wav (5 KB) |
+  | 25 | Milla - Shiny! | mi/milla_shiny | PC install | 0.94 s | .wav (5 KB) |
+  | 30 | Milla - I'm a Super Dog! | mi/milla_superdog | PC install | 1.65 s | .wav (9 KB) |
+  | 40 | Serpentine's Laugh | se/serp_madlaugh | PC install | 2.31 s | .wav (12 KB) |
+  | 47-50 | Lilac - I won't give up / Not today / Hit me if you can / Snake Man | li/lilac_* | upload (already genuine) | 1.3-2.1 s | .wav |
+  | 54 / 55 | Prince Dail Intro 1 / 2 | da/da_04_01 / da_04_02 | PC install | 2.95 / 3.94 s | .wav (16 / 21 KB) |
+  | 57-60 | Serpentine - Got You / Get Over Here / Kung Fu / Annihilation | se/serp_gotyounow / bugeyed / kungfu / annihilation | PC install | 1.7-2.3 s | .wav (9-13 KB) |
+  | 65 | Syntax - Intrusion Detected | sx/sx_intrusion | PC install | 4.16 s | .wav (22 KB) |
+  | 69 | Syntax - Incineration | sx/sx_still | PC install | 4.60 s | .wav (25 KB) |
+  | 70 | Syntax - Imposter... Encaged? | sx/sx_08b02 | PC install | **33.05 s** | **gal/sx_08b02.adp (streamed, 1.03 MB)** |
+  | 35, 68, 75-79 | (no file) | Assets.dat samples 188, 362, 0, 57, 3, 2, 1 (RV t_gal6) | extracted audio | | gal/s<id>.wav (unchanged) |
+
+  **Unavailable audio: none.** sx_08b02 is a 33-s monologue (speech to the end, silencedetect): over one KOS sample
+  (snd_sfx_load <= 65534 samples = 5.9 s at 11025 Hz) and the gallery's 56 KB clip budget, so it is streamed once on the
+  music channel (stereo ADPCM 32 kHz like the BGM; the original also plays it on channel 31). INFERRED: its volume follows
+  the music volume option (the sample clips play at 255).

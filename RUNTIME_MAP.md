@@ -515,3 +515,17 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
   entry -> defeat -> out of the arena -> FN6 for the three characters), test_fn_gimmicks_a (RV arch_lf catch and ride, RV
   arch_l / arch_r no catch, every arch of FN1-FN3 for the three characters + the bike, jump-off, far-side catch),
   test_fn_gimmicks_b (RV dance timing for the three, cancel / restart, walk-in, no dance on the bike).
+
+## Session 18: pellet sounds, shield sprites, gallery voices (port: objects.c, player.c, shields.c, game.c, fe_gallery.inc)
+- **Sounds on a pellet (RE col_4_20 / col_7_20 / col_20_20, RV .snd):** shot 28; pellet death (hit or ground) 17 +
+  explosion02 (objects.c explode2, was 80 = Lilac's hurt voice); a hit adds 2414's 25 + the character's hurt voice
+  (Lilac lilac_hurt<n> = Assets 80-83, Carol 114 / 115 / 118 / 119, Milla 179-182; die 128 / 178). player_damage no longer
+  plays 17 (2414 plays 25 + voice only). Host check: `FP_TRACE_SID=1` prints `sid <id>` and now also `voice <name>` for the
+  resident voices (game.c voice_play). tests/test_gameplay.py `pellet_hit_sounds_*` / `pellet_miss_sounds_*`.
+- **Shield sprites:** G.shl = `<dir>/<dir>_shl` (tools/import_frame.py, acts without an on-map shield monitor: DV1 DV4 AT3 RM1
+  RM3 RM5 FN3 FN6), loaded by shields_bank_load() after level_start when G.p.shield != 0, or on the first frame a shield
+  exists without sprites (shl_need, once per act), freed in level_free. VRAM 256 KB while loaded. Host:
+  `FP_SH_DBG=1` prints `shv <frame> <dir> <OTHERS.B> <sprite found> <_shl loaded>` (tests/test_levels.py `shield_*`); the log
+  line `shields: no sprites for <dir> (<dir>/<dir>_shl missing)` means the act's data predates session 18.
+- **Gallery sound cards:** gal/<name>.wav (11025 Hz sample, <= 65534 samples) or gal/<name>.adp (longer: streamed once on
+  the music channel by music_play_once, idle when music_active() drops; Y.play_t = -1 marks it). Only sx_08b02 (card 70).

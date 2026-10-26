@@ -225,13 +225,19 @@ void spore_update(obj_t *o, player_t *p) {
 /* ---- Ganseki / every Q20 enemy: crystal absorption (col_3_13 + 1290 + 2546). One free crystal per pass;
  * every overlapping living enemy near the view counts it (S += 1, dropped on death by 2766). */
 void enemies_absorb_crystals(void) {
+    if (!objects_alive_type(OT_CRYSTAL)) return;
+    /* the enemies that can absorb, listed once (session 18 perf: was a full scan per crystal in view; same order, and
+     * nothing below changes who qualifies) */
+    static short en[512]; int ne = 0, all = 0;
+    for (int j = 0; j < G.nobjs; j++) { const obj_t *e = &G.o[j]; if (e->alive && enemy_type(e->type) && !DEFEATED(e) && e->an.b) { if (ne < 512) en[ne++] = (short)j; else { all = 1; break; } } }
+    if (!ne) return;
     for (int pass = 0; pass < 8; pass++) {
         int cand[32], nc = 0;
         for (int i = 0; i < G.nobjs && nc < 32; i++) {
             obj_t *c = &G.o[i];
             if (!c->alive || c->type != OT_CRYSTAL || c->st != 0 || !obj_near_view(c, 50)) continue;
-            for (int j = 0; j < G.nobjs; j++) {
-                obj_t *e = &G.o[j];
+            for (int k = 0, n = all ? G.nobjs : ne; k < n; k++) {
+                obj_t *e = &G.o[all ? k : en[k]];
                 if (!e->alive || !enemy_type(e->type) || DEFEATED(e) || !e->an.b) continue;
                 float x0, y0, x1, y1; ibox(c, &x0, &y0, &x1, &y1);
                 if (obj_rect_hit(e, (int)x0, (int)y0, (int)x1, (int)y1)) { cand[nc++] = i; break; }
