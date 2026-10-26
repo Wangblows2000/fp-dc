@@ -12,7 +12,7 @@ objects and levels" for the per-level parameters some objects take from src/game
 | Type | Enum | Classes | Registry | Sprite | Implemented in | Placed in |
 |---|---|---|---|---|---|---|
 | 1 | OT_START | playerstartingpoint |  |  | game/game.c, game/objects.c | at1:1 at2:1 at3:1 at4:1 dv1:1 dv2:1 dv3:1 dv4:1 |
-| 2 | OT_CRYSTAL | objectcrystal |  |  | game/bosses.c, game/enemies.c, game/fn_boss.c, game/fn_gima.c, game/levels.c, game/objects.c, game/relic_gima.c, game/rm_claw.c, game/shields.c | at1:138 at2:137 at3:32 at4:54 dv1:133 dv2:86 dv3:86 dv4:5 |
+| 2 | OT_CRYSTAL | objectcrystal |  |  | game/bosses.c, game/enemies.c, game/fn_boss.c, game/fn_gima.c, game/levels.c, game/objects.c, game/relic_gima.c, game/rm_claw.c, game/sb_boss.c, game/shields.c | at1:138 at2:137 at3:32 at4:54 dv1:133 dv2:86 dv3:86 dv4:5 |
 | 3 | OT_DRAGONFLY | enemydragonfly |  |  | game/chase.c, game/combat.c, game/objects.c, platform/host_bot.c | dv1:10 dv2:5 dv3:3 dv4:7 |
 | 4 | OT_MON_INVINC | monitorinvincibility | SOLID NOEDGE |  | game/aqua.c, game/monitors.c, game/objects.c, game/relic.c, game/relic_gima.c | dv1:1 |
 | 6 | OT_PETAL | objectpetal |  |  | game/fn_assist.c, game/fn_gima.c, game/levels.c, game/objects.c, game/relic_gima.c, game/rm_claw.c, game/serpentine.c, game/shields.c | at1:20 at2:16 at4:10 dv1:26 dv2:18 dv3:35 dv4:4 |
@@ -48,7 +48,7 @@ objects and levels" for the per-level parameters some objects take from src/game
 | 37 | OT_FLOUNDER | enemystarflounder |  |  | game/combat.c, game/objects.c | dv2:3 dv3:15 |
 | 38 | OT_CACTEON | enemycacteon |  |  | game/combat.c, game/objects.c | dv2:2 dv3:5 |
 | 39 | OT_SPOREPOD | enemysporepod |  |  | game/combat.c, game/objects.c | dv2:2 dv3:1 |
-| 40 | OT_LIMITER | enemylimiter |  |  | game/aqua.c, game/enemies.c, game/fn_enemy.c, game/objects.c, game/relic.c | at1:24 at2:12 at3:4 at4:12 dv2:2 dv3:1 |
+| 40 | OT_LIMITER | enemylimiter |  |  | game/aqua.c, game/enemies.c, game/fn_enemy.c, game/objects.c, game/relic.c, game/sb_enemy.c, game/sb_gim.c, game/sb_grappler.c | at1:24 at2:12 at3:4 at4:12 dv2:2 dv3:1 |
 | 41 | OT_CARD | objectcodec |  | card | game/gimmicks.c, game/objects.c | at1:3 at2:3 at3:1 at4:3 dv1:4 dv2:2 dv3:4 |
 | 42 | OT_SPIKES_L | hazardspikesleft | SOLID NOEDGE | spk_left | game/gimmicks.c, game/objects.c | dv1:3 |
 | 43 | OT_SPIKES_R | hazardspikesright | SOLID NOEDGE | spk_right | game/gimmicks.c, game/objects.c, game/rm_claw.c |  |
@@ -67,8 +67,8 @@ objects and levels" for the per-level parameters some objects take from src/game
 | 56 | OT_WR_BASE | minibosswretchnidbase |  |  | game/bosses.c | dv1:1 |
 | 57 | OT_WR_TURRET | minibosswretchnidturret |  |  | game/bosses.c | dv1:1 |
 | 58 | OT_WR_WEAK | minibosswretchnidweakspot |  |  | game/bosses.c, game/combat.c, game/objects.c | dv1:1 |
-| 59 | OT_WR_RAIL | minibossrailing |  |  | game/bosses.c, game/levels.c, game/relic_boss.c, game/relic_gima.c | dv1:5 |
-| 60 | OT_WR_BARRIER | minibossbarrier | SOLID HIDDEN |  | game/bosses.c, game/fn_boss.c, game/relic_boss.c, game/relic_gima.c | dv1:5 |
+| 59 | OT_WR_RAIL | minibossrailing |  |  | game/bosses.c, game/levels.c, game/relic_boss.c, game/relic_gima.c, game/sb_boss.c, game/sb_flow.c | dv1:5 |
+| 60 | OT_WR_BARRIER | minibossbarrier | SOLID HIDDEN |  | game/bosses.c, game/fn_boss.c, game/relic_boss.c, game/relic_gima.c, game/sb_boss.c, game/sb_flow.c | dv1:5 |
 | 61 | OT_WR_LEG | minibosswretchnidleftleg1 |  |  | game/bosses.c | dv1:1 |
 | 62 | OT_WR_LEG + 1 | minibosswretchnidleftleg2 |  |  |  | dv1:1 |
 | 63 | OT_WR_LEG + 2 | minibosswretchnidleftleg3 |  |  |  | dv1:1 |
@@ -108,19 +108,19 @@ objects and levels" for the per-level parameters some objects take from src/game
 | 97 | OT_TRUNK | treetrunk | SOLID |  | game/gimmicks.c, game/objects.c | dv3:2 |
 | 98 | OT_PBLOCK1 | pushableblock1 | SOLID NOEDGE BOXCOL | pblock1 | characters/carol.inc, game/gimmicks.c, game/objects.c, game/relic_boss.c, game/switches.c, platform/plat_host.c | dv2:1 |
 | 99 | OT_PBLOCK2 | pushableblock2 | SOLID NOEDGE BOXCOL |  | characters/carol.inc, game/gimmicks.c, game/relic_boss.c, game/switches.c |  |
-| 100 | OT_EXPLODE | (runtime) |  |  | game/fn_assist.c, game/fn_boss.c, game/fn_enemy.c, game/fn_gimb.c, game/objects.c, game/rm_claw.c, game/serpentine.c |  |
+| 100 | OT_EXPLODE | (runtime) |  |  | game/fn_assist.c, game/fn_boss.c, game/fn_enemy.c, game/fn_gimb.c, game/objects.c, game/rm_claw.c, game/sb_enemy.c, game/serpentine.c |  |
 | 101 | OT_PELLET | (runtime) |  |  | game/fn_enemy.c, game/objects.c |  |
 | 102 | OT_ITEM_FLY | (runtime) |  |  | game/fn_assist.c, game/fn_gima.c, game/objects.c, game/serpentine.c |  |
 | 103 | OT_SHIELD | (runtime) |  |  | characters/carol_bike.inc, game/aqua.c, game/combat.c, game/fn_assist.c, game/objects.c |  |
 | 104 | OT_SPORE | (runtime) |  |  | game/enemies.c, game/objects.c, game/relic.c |  |
 | 105 | OT_FIREBALL | (runtime) |  |  | game/objects.c, game/serpentine.c |  |
-| 106 | OT_TD_BOMB | (runtime) |  |  | game/bosses.c, game/objects.c |  |
-| 107 | OT_DEBRIS | (runtime) |  |  | characters/carol_bike.inc, game/aqua.c, game/bosses.c, game/combat.c, game/fn_boss.c, game/fn_enemy.c, game/fn_gima.c, game/fn_panther.c, game/objects.c, game/relic.c, game/relic_boss.c |  |
+| 106 | OT_TD_BOMB | (runtime) |  |  | game/bosses.c, game/objects.c, game/sb_chopper.c |  |
+| 107 | OT_DEBRIS | (runtime) |  |  | characters/carol_bike.inc, game/aqua.c, game/bosses.c, game/combat.c, game/fn_boss.c, game/fn_enemy.c, game/fn_gima.c, game/fn_panther.c, game/objects.c, game/relic.c, game/relic_boss.c, game/sb_enemy.c |  |
 | 108 | OT_BLAST | (runtime) |  |  | game/bosses.c, game/objects.c |  |
 | 109 | OT_THROWN | (runtime) |  |  |  |  |
 | 110 | OT_BAM1 | gimmickbamboospike |  |  | game/gimmicks.c, game/objects.c | dv3:3 |
-| 111 | OT_BAM2 | gimmickbamboospike2 |  |  | game/gimmicks.c | dv3:3 |
-| 112 | OT_BAM3 | gimmickbamboospike3 |  |  | game/gimmicks.c | dv3:3 |
+| 111 | OT_BAM2 | gimmickbamboospike2 |  |  |  | dv3:3 |
+| 112 | OT_BAM3 | gimmickbamboospike3 |  |  |  | dv3:3 |
 | 113 | OT_BAM4 | gimmickbamboospike4 |  |  | game/gimmicks.c | dv3:3 |
 | 114 | OT_TAOSTONE | objecttaostone |  |  |  | at4:1 dv3:1 |
 | 115 | OT_SPINLOG | spinninglog |  | slog0 | game/gimmicks.c, game/objects.c | dv2:3 |
@@ -189,7 +189,7 @@ objects and levels" for the per-level parameters some objects take from src/game
 | 179 | OT_MON_BOMB | monitorbomb | SOLID NOEDGE |  | game/aqua.c, game/aqua_boss.c, game/levels.c, game/monitors.c, game/objects.c, game/relic.c | at1:2 at2:9 |
 | 180 | OT_MON_CRATE | monitorcrate | SOLID NOEDGE |  | game/aqua.c, game/monitors.c, game/objects.c, game/relic.c | at1:1 |
 | 181 | OT_WATERHIT | (runtime) |  |  | game/aqua.c |  |
-| 182 | OT_BOMBX | (runtime) |  |  | game/aqua.c, game/fn_gima.c |  |
+| 182 | OT_BOMBX | (runtime) |  |  | game/aqua.c, game/fn_gima.c, game/sb_gim.c |  |
 | 183 | OT_ABPLAT | aquabrickplatform | OBSTACLE NOEDGE BOXCOL |  | game/aqua_gim.c | at1:5 |
 | 184 | OT_COLLAPSE | collapsingplatform | SOLID |  | game/aqua_gim.c | at1:1 at2:1 at4:1 |
 | 185 | OT_SDOOR2 | switchdoor2 | SOLID |  | game/switches.c | at1:1 |
@@ -250,7 +250,7 @@ objects and levels" for the per-level parameters some objects take from src/game
 | 241 | OT_FSPRITE | (runtime) |  |  | game/relic.c |  |
 | 242 | OT_SPARK | (runtime) |  |  | game/relic.c |  |
 | 243 | OT_SSPIKE | (runtime) |  |  | game/relic.c, game/rm_mantalith.c |  |
-| 244 | OT_FLAME | (runtime) |  |  | game/fn_boss.c, game/relic.c |  |
+| 244 | OT_FLAME | (runtime) |  |  | game/fn_boss.c, game/relic.c, game/sb_gim.c |  |
 | 245 | OT_FSSHELL | (runtime) |  |  | game/relic.c, game/rm_mantalith.c |  |
 | 246 | OT_RAIL2 | minibossrailing2 |  | rail2 | game/levels.c, game/relic.c, game/relic_gima.c |  |
 | 247 | OT_RPANEL | gimmickrelicpanel | SOLID |  | game/relic_gima.c |  |
@@ -352,10 +352,10 @@ objects and levels" for the per-level parameters some objects take from src/game
 | 365 | OT_BGN4 | minibossbonegolemneck4 |  |  | game/relic_boss.c |  |
 | 366 | OT_BGHEAD | minibossbonegolemhead |  |  | game/relic_boss.c |  |
 | 367 | OT_SHOCK | (runtime) |  |  | game/relic_boss.c, game/rm_mantalith.c |  |
-| 368 | OT_CAMLIM_L | cameralimitbossleft |  |  | game/fn_boss.c, game/levels.c, game/relic_boss.c, game/rm_mantalith.c | at1:1 at2:1 at3:1 at4:1 dv2:1 dv3:1 dv4:1 |
-| 369 | OT_CAMLIM_R | cameralimitbossright |  |  | game/fn_boss.c, game/fn_panther.c, game/levels.c, game/relic_boss.c, game/rm_mantalith.c | at1:1 at2:1 at3:1 at4:1 dv2:1 dv3:1 dv4:1 |
+| 368 | OT_CAMLIM_L | cameralimitbossleft |  |  | game/fn_boss.c, game/levels.c, game/relic_boss.c, game/rm_mantalith.c, game/sb_boss.c, game/sb_flow.c, game/sb_spade.c | at1:1 at2:1 at3:1 at4:1 dv2:1 dv3:1 dv4:1 |
+| 369 | OT_CAMLIM_R | cameralimitbossright |  |  | game/fn_boss.c, game/fn_panther.c, game/levels.c, game/relic_boss.c, game/rm_mantalith.c, game/sb_flow.c, game/sb_spade.c | at1:1 at2:1 at3:1 at4:1 dv2:1 dv3:1 dv4:1 |
 | 370 | OT_CAMLIM_T | cameralimitbosstop |  |  | game/levels.c, game/relic_boss.c | at1:1 at2:1 at3:1 at4:1 dv2:1 dv3:1 dv4:1 |
-| 371 | OT_CAMLIM_B | cameralimitbossbottom |  |  | game/fn_boss.c, game/levels.c, game/relic.c, game/relic_boss.c, game/rm_mantalith.c | at1:1 at2:1 at3:1 at4:1 dv2:1 dv3:1 dv4:1 |
+| 371 | OT_CAMLIM_B | cameralimitbossbottom |  |  | game/fn_boss.c, game/levels.c, game/relic.c, game/relic_boss.c, game/rm_mantalith.c, game/sb_boss.c, game/sb_flow.c | at1:1 at2:1 at3:1 at4:1 dv2:1 dv3:1 dv4:1 |
 | 400 | OT_SHRINE3 | shrine3 |  | shrine3 | game/objects.c, game/rm_claw.c |  |
 | 401 | OT_CLAW | bossclaw |  | claw0 | game/rm_claw.c |  |
 | 402 | OT_CLAW_TALONS | bossclawtalons |  | talons0 | game/rm_claw.c |  |
@@ -583,3 +583,126 @@ objects and levels" for the per-level parameters some objects take from src/game
 | 897 | OT_FNP_SHIELD | (runtime) |  |  | game/fn_panther.c |  |
 | 898 | OT_FNP_INSTA | (runtime) |  |  | game/fn_panther.c |  |
 | 900 | OT_FN_SERPNPC | (runtime) |  |  | game/fn_flow.c |  |
+| 904 | OT_SB_SWPLAT | switchplatform | SOLID BOXCOL HIDDEN | sbswplat | game/sb_flow.c |  |
+| 905 | OT_SB_SWMASK | switchplatformmask |  | sbswmask | game/sb_flow.c |  |
+| 906 | OT_SB_NAME1 | levelshipname1 |  | sbname1 | game/sb_flow.c |  |
+| 907 | OT_SB_NAME2 | levelshipname2 |  | sbname2 |  |  |
+| 908 | OT_SB_NAME3 | levelshipname3 |  | sbname3 |  |  |
+| 909 | OT_SB_AIRSHIP | levelairship1 | HIDDEN | sbairship0 | game/sb_enemy.c, game/sb_flow.c |  |
+| 910 | OT_SB_ZAOFLAG | levelzaoflag |  | sbflag |  |  |
+| 911 | OT_SB_DARKSKY | leveldarksky | HIDDEN |  | game/sb_flow.c |  |
+| 913 | OT_SB_BGPLAT | levelsbbgplatform | HIDDEN | sbbgplat | game/sb_flow.c |  |
+| 1024 | OT_SB_HOPPER | enemyhoppermkii_2189 |  |  | game/sb_enemy.c |  |
+| 1025 | OT_SB_MAGMEON | enemymagmeon_2203 |  |  | game/sb_enemy.c |  |
+| 1026 | OT_SB_ROTOR | enemyrotorblade_2184 |  |  | game/sb_enemy.c |  |
+| 1027 | OT_SB_ROTORSPK | enemyrotorbladespikes_2183 |  |  | game/sb_enemy.c |  |
+| 1028 | OT_SB_TUBE | enemyspawntube_2185 |  |  | game/sb_enemy.c |  |
+| 1029 | OT_SB_DRONE | enemydrone_2138 |  |  | game/sb_enemy.c |  |
+| 1030 | OT_SB_AXLE | enemyaxleturret_2139 |  |  | game/sb_enemy.c |  |
+| 1031 | OT_SB_AXLE2 | enemyaxleturret2_2140 |  |  | game/sb_enemy.c |  |
+| 1032 | OT_SB_DNA | enemydnacannon_2260 |  |  | game/sb_enemy.c |  |
+| 1033 | OT_SB_DNABASE | enemydnacannonbase_2261 |  |  | game/sb_enemy.c |  |
+| 1034 | OT_SB_PELLETIZER | enemypelletizer_2303 |  |  | game/sb_enemy.c |  |
+| 1035 | OT_SB_MAGNET | enemymagnetizer_2294 |  |  | game/sb_enemy.c |  |
+| 1036 | OT_SB_MCRATE | enemymagnetizercrate_2295 | SOLID BOXCOL |  | game/sb_enemy.c |  |
+| 1037 | OT_SB_MHAND | enemymagnetizerhand_2292 |  |  | game/sb_enemy.c |  |
+| 1038 | OT_SB_MLINE | enemymagnetizerline_2293 |  |  | game/sb_enemy.c |  |
+| 1039 | OT_SB_WARN | (runtime) | HIDDEN |  | game/sb_enemy.c |  |
+| 1060 | OT_SB_FRAGBOMB | (runtime) |  |  | game/sb_enemy.c |  |
+| 1061 | OT_SB_ROTORDEATH | (runtime) |  |  |  |  |
+| 1062 | OT_SB_SPIKEBIT | (runtime) |  |  | game/sb_enemy.c |  |
+| 1063 | OT_SB_DLASER | enemydronelaser_2232 |  |  | game/sb_enemy.c |  |
+| 1064 | OT_SB_BULLET | (runtime) |  |  | game/sb_enemy.c |  |
+| 1065 | OT_SB_DNALASER | enemydnalaser_2290 |  |  | game/sb_enemy.c |  |
+| 1066 | OT_SB_SHIPSHOT | (runtime) | HIDDEN |  | game/sb_enemy.c |  |
+| 1067 | OT_SB_HUBBALL | (runtime) |  |  | game/sb_enemy.c |  |
+| 1100 | OT_SB_CANNON | gimmickcannon_2142 |  |  | game/sb_gim.c |  |
+| 1101 | OT_SB_CANBASE | gimmickcannonbase_2141 | SOLID BOXCOL |  | game/sb_gim.c |  |
+| 1102 | OT_SB_CANBASE2 | gimmickcannonbase2_2176 |  |  | game/sb_gim.c |  |
+| 1103 | OT_SB_BFLOOR | breakablefloor1_2196, breakablefloor1_2298, breakablefloor2_2197, breakablefloor2_2299 | SOLID |  | game/sb_gim.c |  |
+| 1105 | OT_SB_FIRE | hazardfiredown_2238, hazardfireleft_2241, hazardfireright_2240, hazardfireup_2237 | BOXCOL |  | game/sb_gim.c |  |
+| 1106 | OT_SB_LIGHTNING | hazardlightningradial_2254 | BOXCOL HIDDEN |  | game/sb_gim.c |  |
+| 1107 | OT_SB_LIGHTNING2 | hazardlightningradial2_2256 | BOXCOL |  | game/sb_gim.c |  |
+| 1108 | OT_SB_FLAMER | gimmickflamethrower_2182 |  |  | game/sb_gim.c |  |
+| 1109 | OT_SB_SPINCUP | gimmickspincup_2269 | BOXCOL |  | game/sb_gim.c |  |
+| 1110 | OT_SB_CUPSTART | gimmickspincupstartpoint_2275 | BOXCOL HIDDEN |  | game/sb_gim.c |  |
+| 1111 | OT_SB_CUPLAND | gimmickspincuplandpoint_2270 | BOXCOL HIDDEN |  | game/sb_gim.c |  |
+| 1112 | OT_SB_CHAINWALL | gimmickchainwalldown_2308, gimmickchainwallup_2307 | SOLID BOXCOL |  | game/sb_gim.c |  |
+| 1113 | OT_SB_CHAINMASK | gimmickchainwallmaskdown_2306, gimmickchainwallmaskup_2304 | SOLID HIDDEN |  | game/sb_gim.c |  |
+| 1114 | OT_SB_CRUSHER | gimmickcrusherplatform_2310 | SOLID BOXCOL |  | game/sb_gim.c |  |
+| 1115 | OT_SB_CRUSHCHAIN | gimmickcrusherchain_2309 |  |  | game/sb_gim.c |  |
+| 1116 | OT_SB_MBLOCK | levelsbmovingblock1_2318 | SOLID BOXCOL |  | game/sb_gim.c |  |
+| 1117 | OT_SB_PLAT1 | levelsbplatform1_2095 | OBSTACLE NOEDGE |  | game/sb_gim.c |  |
+| 1118 | OT_SB_PLATFLAME | levelsbplatformflame1_2096 |  |  | game/sb_gim.c |  |
+| 1119 | OT_SB_PLAT3 | levelsbplatform3_2188 | OBSTACLE NOEDGE BOXCOL |  | game/sb_gim.c |  |
+| 1120 | OT_SB_SHIPPLAT | (runtime) |  |  |  |  |
+| 1121 | OT_SB_BAR | gimmicksbbar_2314 | BOXCOL |  | game/sb_gim.c |  |
+| 1122 | OT_SB_BARMASK | gimmicksbbarmask_2313 | BOXCOL HIDDEN HANG |  | game/sb_gim.c |  |
+| 1123 | OT_SB_FANBLADE | levelfanblade_2193, levelfanblade_2264, levelfanblade_2297 |  |  | game/sb_gim.c |  |
+| 1124 | OT_SB_FAN | gimmickfan_2223 |  |  | game/sb_gim.c |  |
+| 1125 | OT_SB_FANSIDE | gimmickfanside_2245 |  |  | game/sb_gim.c |  |
+| 1126 | OT_SB_SCHAIN | levelscrollingchaindown_2305, levelscrollingchainup_2302 |  |  | game/sb_gim.c |  |
+| 1127 | OT_SB_BACKEYE | sbbackeye2_2283, sbbackeye_2282 |  |  | game/sb_gim.c |  |
+| 1128 | OT_SB_LOOP0 | active3_2278, active4_2279, sbloop1_2206, sbloop4_2224, sbloop7_2289 | SOLID LAYER0 |  | game/sb_gim.c |  |
+| 1129 | OT_SB_LOOP1 | active2_2277, active_2276, sbloop2_2207, sbloop6_2226 | SOLID LAYER1 |  | game/sb_gim.c |  |
+| 1130 | OT_SB_LOOP1B | sbloop3_2208, sbloop5_2225 | SOLID BOXCOL LAYER1 |  | game/sb_gim.c |  |
+| 1131 | OT_SB_PBLOCK4 | pushableblock4_2259 | SOLID BOXCOL NOEDGE |  | game/gimmicks.c, game/sb_gim.c |  |
+| 1132 | OT_SB_BTUNNEL | levelballtunnel2_2271, levelballtunnel3_2273 | SOLID HIDDEN |  | game/gimmicks.c, game/sb_gim.c |  |
+| 1133 | OT_SB_DOOR | switchdoor_2102 | SOLID |  | game/sb_gim.c |  |
+| 1140 | OT_SB_CANBULLET | (runtime) |  |  | game/sb_gim.c |  |
+| 1141 | OT_SB_FANDEBRIS | (runtime) |  |  | game/sb_gim.c |  |
+| 1142 | OT_SB_FLOORPIECE | (runtime) |  |  | game/sb_gim.c |  |
+| 1150 | OT_SB_ASSIST | playerassist_2205 | HIDDEN |  | game/sb_boss.c |  |
+| 1151 | OT_SB_COPILOT | playerassistcopilot_2220 | HIDDEN |  | game/sb_boss.c |  |
+| 1152 | OT_SB_COMPASS | guicompass_2246 | HIDDEN |  | game/sb_boss.c |  |
+| 1160 | OT_SB_SAT | bosssatellite_2286 |  |  | game/sb_boss.c, game/sb_satellite.c |  |
+| 1161 | OT_SB_SAT_TOP | bosssatellitetop_2284 |  |  | game/sb_satellite.c |  |
+| 1162 | OT_SB_SAT_THR | bosssatellitethrusters_2285 |  |  | game/sb_satellite.c |  |
+| 1163 | OT_SB_SAT_ARM | bosssatellitearm_2287 |  |  | game/sb_satellite.c |  |
+| 1164 | OT_SB_SAT_BEAM | (runtime) | HIDDEN |  | game/sb_satellite.c |  |
+| 1165 | OT_SB_SAT_BEAM2 | minibossufobeam2_2288 | HIDDEN |  | game/sb_satellite.c |  |
+| 1170 | OT_SB_KJ_BASE | bosskujackerbase_2118 |  |  | game/sb_kujacker.c |  |
+| 1171 | OT_SB_KJ_HEAD | bosskujackerhead_2125 |  |  | game/sb_boss.c, game/sb_kujacker.c |  |
+| 1172 | OT_SB_KJ_HEAD2 | bosskujackerhead2_2119 |  |  | game/sb_kujacker.c |  |
+| 1173 | OT_SB_KJ_LEG1 | bosskujackerleg1_2117 |  |  | game/sb_kujacker.c |  |
+| 1174 | OT_SB_KJ_LEG2 | bosskujackerleg2_2116 |  |  | game/sb_kujacker.c |  |
+| 1175 | OT_SB_KJ_PILOT | bosskujackerpilot_2124 |  |  | game/sb_kujacker.c |  |
+| 1176 | OT_SB_KJ_TAIL | bosskujackertail_2115 |  |  | game/sb_kujacker.c |  |
+| 1177 | OT_SB_KJ_TARGET | bosskujackertailtarget_2120 | HIDDEN |  | game/sb_boss.c, game/sb_kujacker.c |  |
+| 1178 | OT_SB_KJ_WING1 | bosskujackerwing1_2122 |  |  | game/sb_kujacker.c |  |
+| 1179 | OT_SB_KJ_WING2 | bosskujackerwing2_2123 |  |  | game/sb_kujacker.c |  |
+| 1180 | OT_SB_TORNADO | bosstornado_2131 | HIDDEN |  | game/sb_kujacker.c |  |
+| 1182 | OT_SB_KJ_CHARGE | effectschargebeam_2130 |  |  | game/sb_kujacker.c |  |
+| 1183 | OT_SB_KJ_BOLT | (runtime) |  |  | game/sb_kujacker.c |  |
+| 1184 | OT_SB_KJ_LIGHTNING | (runtime) |  |  | game/sb_kujacker.c |  |
+| 1185 | OT_SB_KJ_TRACKER | (runtime) |  |  | game/sb_kujacker.c |  |
+| 1186 | OT_SB_KJ_GUST | (runtime) |  |  | game/sb_kujacker.c |  |
+| 1187 | OT_SB_KJ_GUST2 | (runtime) |  |  | game/sb_kujacker.c |  |
+| 1188 | OT_SB_WARNING | (runtime) |  |  | game/sb_grappler.c, game/sb_kujacker.c |  |
+| 1200 | OT_SB_CH | bosschopper_2216 |  |  | game/sb_boss.c, game/sb_chopper.c, game/sb_spade.c |  |
+| 1201 | OT_SB_CH_BLADE | bosschopperblade_2217 |  |  | game/sb_chopper.c, game/sb_spade.c |  |
+| 1202 | OT_SB_CH_TAIL | bosschoppertail_2215 |  |  | game/sb_chopper.c, game/sb_spade.c |  |
+| 1203 | OT_SB_CH_TBLADE | bosschoppertailblade_2218 |  |  | game/sb_chopper.c, game/sb_spade.c |  |
+| 1204 | OT_SB_CH_TBLADE2 | bosschoppertailblade2_2214 |  |  | game/sb_chopper.c, game/sb_spade.c |  |
+| 1205 | OT_SB_CH_BARS | bosschopperbars_2212 |  |  | game/sb_chopper.c, game/sb_spade.c |  |
+| 1206 | OT_SB_CH_BARS2 | bosschopperbars2_2213 |  |  | game/sb_chopper.c, game/sb_spade.c |  |
+| 1207 | OT_SB_MISSILE | (runtime) |  |  | game/sb_chopper.c |  |
+| 1208 | OT_SB_TREDD | (runtime) |  |  |  |  |
+| 1209 | OT_SB_SHIPFALL | (runtime) |  |  |  |  |
+| 1220 | OT_SB_SP_MASK | bossspademask_2248 | HIDDEN |  | game/sb_spade.c |  |
+| 1221 | OT_SB_SPADE | bossspade_2247 |  |  | game/objects.c, game/sb_spade.c |  |
+| 1222 | OT_SB_SP_HIT | bossspadehitbox_2250 | HIDDEN |  | game/sb_boss.c, game/sb_spade.c |  |
+| 1223 | OT_SB_SP_CARD | (runtime) |  |  | game/sb_spade.c |  |
+| 1224 | OT_SB_SP_IMG | (runtime) |  |  | game/sb_spade.c |  |
+| 1240 | OT_SB_GR | bossgrappler_2331 |  |  | game/sb_boss.c, game/sb_grappler.c |  |
+| 1241 | OT_SB_GR_HANDL | bossgrapplerhandleft_2330 |  |  | game/sb_grappler.c |  |
+| 1242 | OT_SB_GR_HANDR | bossgrapplerhandright_2329 |  |  | game/sb_grappler.c |  |
+| 1243 | OT_SB_GR_ARML | bossgrapplerarmleft_2327 |  |  | game/sb_grappler.c |  |
+| 1244 | OT_SB_GR_ARMR | bossgrapplerarmright_2328 |  |  | game/sb_grappler.c |  |
+| 1245 | OT_SB_SPIRE | bosscrystalspire_2333 | SOLID |  | game/sb_grappler.c |  |
+| 1246 | OT_SB_SPAWN1 | bosscrystalspikespawner1_2325 | HIDDEN |  | game/sb_grappler.c |  |
+| 1247 | OT_SB_SPAWN2 | bosscrystalspikespawner2_2326 | HIDDEN |  | game/sb_grappler.c |  |
+| 1248 | OT_SB_SPIKE | (runtime) |  |  | game/sb_grappler.c |  |
+| 1249 | OT_SB_SPARK | (runtime) |  |  | game/sb_grappler.c |  |
+| 1250 | OT_SB_CPLAT | crystalplatform_2334 | OBSTACLE HIDDEN |  | game/sb_grappler.c |  |
+| 1251 | OT_SB_LSPIKE | (runtime) |  |  | game/sb_grappler.c |  |

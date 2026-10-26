@@ -128,6 +128,24 @@ spec_rm_golems, spec_rm_claw, spec_rm_mantalith, rm_inventory.
   Mantalith sounds 147 / 214 / 215 not ported; INFERRED items in RE_NOTES. An agent published a private working page
   (spec_rm_enemies) during research; it is still in the user's artifacts (delete only if the user asks).
 
+## Session 19 (2026-10-26): Sky Battalion, DV3 bamboo traps, RM3 background
+Details: RE_NOTES / RUNTIME_MAP "Session 19: ..." sections, DECISIONS D-094 to D-097, BUILD_AND_TEST_LOG "Session 19",
+ASSET_PIPELINE "Session 19". Specs (not committed): build/re/sb_inventory.md, spec_sb_flow.md, spec_sb_enemies.md,
+spec_sb_gimmicks.md, spec_sb_objgaps.md, spec_sb_bosses.md; traces build/orig_traces/sb_boss/.
+- **Sky Battalion (stage index 4, json 36-39 = sb1-sb4, set_frame 35-38):** SB1 is a hub airship: pads launch to the three
+  enemy ships (SB2-SB4), each opening with Zao's planks and the hover platforms; a beaten ship's pad stays down; after the
+  three ships the night falls and the Kujacker attacks on SB1's deck, then the results. Bosses: SB2 Spade (Lilac) or the
+  Chopper (Carol / Milla), SB3 Satellite, SB4 Grappler. Code: sb_flow.c (904-959), sb_enemy.c (1024-1099), sb_gim.c
+  (1100-1149), sb_boss.c / sb_kujacker.c / sb_spade.c (1150-1279); MAX_OT 1280. Route: FN6 -> SB1 -> results -> front end
+  (Jade Creek not ported); Time Attack starts in SB1.
+- **DV3 bamboo spike traps:** parts were matched to the pivot by x each frame (lost past 4 degrees); now paired at spawn,
+  RE 5227 update order, staggered start (RE 5319), 5 damage with the slope-tilted hurt box (RV).
+- **Quick Backdrops tile their box** (RE QuickBackdrop::draw): the importer wrote the image once and skipped solid fills,
+  leaving black areas (RM3's hand-car cave wall for every character, DV3 / RM2 / RM5 / FN2 / FN5 walls). Tiled pieces are
+  a level-format extension (pad bit 2 + size record); two boxes are solid in the original and now in the port (TODO).
+- **Rendering additions:** ARGB4444 half-resolution textures (texture format 4) for SB's see-through mist; parallax file
+  v2 (SB only).
+
 ## Session 18 (2026-10-26): Fortune Night playtest fixes, performance
 Details: RE_NOTES / RUNTIME_MAP "Session 18: ..." (five sections), DECISIONS D-088 to D-093, BUILD_AND_TEST_LOG "Session 18",
 ASSET_PIPELINE "Session 18". Original traces: build/orig_traces/fn_s18/ and fn6_s18/ (not committed).
@@ -252,19 +270,18 @@ D-072, BUILD_AND_TEST_LOG "Session 15". Spec: build/re/fe/spec_gallery.md (not c
   Aqua Tunnel: session 12.)
 
 ## Latest verified
-- host-test (session 18, final code, all 19 levels rebuilt): gameplay, front end, Carol, Milla, Aqua, levels, saves,
+- host-test (session 19, final code, all 23 levels rebuilt): gameplay, front end, Carol, Milla, Aqua, levels, saves,
   rm_gimmicks_b, rm_claw, rm_mantalith, gallery, achievements, fn_enemies, fn_gimmicks_a, fn_gimmicks_b, fn_bosses,
-  fn_panther, fn_assist, fn_flow: all 0 failures. Trace comparers unchanged (cmp_all 76/76 strict 11311/11377, cmp_carol
-  43/53, cmp_milla 37/43, cmp_at 21/35).
-- emulator (Flycast, session 18): FN6 per character (plane, Carol's bike, Lilac's float, Milla on the plane, missile
-  blasts as in the original's screenshots), FN5 disco dance for Lilac / Carol / Milla, perf / VRAM / sound RAM per
-  BUILD_AND_TEST_LOG "Session 18". **Nothing measured on real hardware.**
+  fn_panther, fn_assist, fn_flow, dv3_bamboo, sb_flow, sb_enemies, sb_gimmicks, sb_bosses: all 0 failures. Trace comparers
+  unchanged (cmp_all 76/76 strict 11311/11377, cmp_carol 43/53, cmp_milla 37/43, cmp_at 21/35).
+- emulator (Flycast, session 19): SB1 hub / deck fire / Kujacker, SB2-SB4 openings (hover platforms), every SB boss;
+  perf / VRAM / sound RAM per BUILD_AND_TEST_LOG "Session 19"; FN1 perf unchanged. **Nothing measured on real hardware.**
 
 ## Next actions
-1. Real hardware: FN3 / FN5 (Carol: lowest VRAM, 625 / 953 KB) and FN6 (missile blast overdraw); read `perf:` / `prof`.
-2. Play the FN6 fight to the results per character in Flycast (the plane's second visit, the closing cast).
-3. TODO "Fortune Night playtest fixes (session 18)" open items (player hurt landing, FN3 Serpentine order, samurai rate).
-4. Next stage (Sky Battalion, json frame 36+) via ASSET_PIPELINE "Adding a level".
+1. Real hardware: SB1 (Carol: 515 KB VRAM free), the Kujacker's lightning (up to ~130 spokes), FN3 / FN5 Carol.
+2. Play each SB act through per character (skipped in session 19) and the TODO "Sky Battalion" INFERRED items.
+3. Decide on the RM3 / FN5 solid Quick Backdrops (TODO).
+4. Next stage: Jade Creek (json 40-44, stage index 5) via ASSET_PIPELINE "Adding a level".
 
 ## Carol: verified vs approximated
 - **Matched to original traces (RV, cmp_carol, 53 traces):** on-foot movement, pounce chains, roll and roll jump, crouch

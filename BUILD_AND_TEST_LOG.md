@@ -488,3 +488,21 @@ Labels: original-trace (RV), RE, host-test, emulator (Flycast, emulated time). *
   Visual checks: FN6 plane with Torque and Milla, Carol's bike assist, Milla on the plane, missile blast arcs (as in the
   original); FN5 disco dance with Lilac, Carol and Milla (TP to x 2950, idle).
 - **DC build:** 0 warnings. **Emulator only; nothing measured on real hardware.**
+
+## Session 19 (2026-10-26): Sky Battalion, DV3 bamboo, Quick Backdrops
+- **Agents' focused suites:** test_dv3_bamboo (14, RV traces dv3_bam_*), test_sb_flow (47+), test_sb_enemies,
+  test_sb_gimmicks, test_sb_bosses (71, RV k_def / k_end / p_kill / s_kill / g_kill), plus each agent's shared-code suites.
+- **Milestone (after the last merge, all 23 levels rebuilt):** 24 suites 0 failures; cmp_all 76/76 strict 11311/11377,
+  cmp_carol 43/53, cmp_milla 37/43, cmp_at 21/35 (unchanged).
+- **Flycast (lean discs, build/verify19; vblanks 602-603 per 600 frames after the load window in every run):**
+
+  | Run | VRAM free | Sound RAM free | update ms |
+  |---|---|---|---|
+  | SB1 Lilac hub / Carol deck fire / Milla Kujacker | 1043 / 515 / 683 KB | 303 / 251 / 233 KB | 1.7-2.3 |
+  | SB2 Lilac Spade / Carol Chopper / Milla opening | 1884 / 1356 / 2036 KB | 255 / 202 / 194 KB | 4.9-6.8 |
+  | SB3 Milla Satellite / Carol opening | 1524 / 1868 KB | 171 / 188 KB | 5.1-5.3 |
+  | SB4 Carol Grappler / Milla opening | 1868 / 2036 KB | 218 / 200 KB | 6.5-8.2 |
+  | FN1 Lilac (regression) | 2177 KB | 319 KB | 7.5 (unchanged) |
+
+  Visual: hub, deck-fire warning and ball, mist translucency, hover platforms (idle ride), every SB boss.
+- **DC build:** 0 warnings. **Emulator only; nothing measured on real hardware.**
