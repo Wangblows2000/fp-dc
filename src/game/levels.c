@@ -152,6 +152,7 @@ static const fnenemy_t FNE_FN1 = { 1500, 1, 0, 0 }, FNE_FN2 = { 0, 0, 1, 0 }, FN
 #define FN(d, f, n, mus) .dir = d, .frame = f, .stage = 3, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_FN##n, .nsfx = N_(SFX_FN##n)
 #define FN_M123 .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage3.adp", .mus7 = "bgm/m_stage3.adp"
 #define FN_M45 .mus4 = "bgm/m_boss.adp", .mus6 = "bgm/m_stage3b.adp", .mus7 = "bgm/m_stage3b.adp"
+#define SB(d, f, n, mus) .dir = d, .frame = f, .stage = 4, .act = n, .nacts = 4, .music = mus, .checkpoints = 1
 #define RM(d, f, n, mus) .dir = d, .frame = f, .stage = 2, .act = n, .nacts = 5, .music = mus, .checkpoints = 1, .sfx = SFX_RM, .nsfx = N_(SFX_RM)
 static const level_def_t LEVELS[] = {
     /* Dragon Valley: frame index 20-23 (RE loop_play_music_N_20..23), water DV2 / DV3 (5109 / 5314), DV4 results at the
@@ -197,6 +198,13 @@ static const level_def_t LEVELS[] = {
     { FN("fn5", 33, 5, "bgm/m_stage3b.adp"), FN_M45, .fne = &FNE_FN5, .fnb = &FNB_FN5, .wplate_cyclone = 1, .fnb_disco = 1, .card_first = 39, .cps = CP_FN5, .ncps = N_(CP_FN5), .exits = EX_FN45, .nexits = N_(EX_FN45), .cam_right = 15288 + 213 },
     { FN("fn6", 34, 6, "bgm/m_boss.adp"), .mus4 = "bgm/m_boss.adp", .mus6 = "bgm/m_boss.adp", .mus7 = "bgm/m_boss.adp", .walkin_minx = 400, .walkin_free = 1,
       .cam_box = &BOX_FN6, .death_to = "fn5", .death_g4 = 2, .res_voice = "teamlilac_madeit", .res_wipe = 1 },
+    /* Sky Battalion: frame index 35-38 (session 19, spec_sb_flow): sb1 = json 36 = Zao's airship (the hub: every ship act
+     * starts and ends there, the Kujacker boss and the stage results), sb2-sb4 = the red / blue / green ships. Music
+     * m_stage4 (loop_play_music_5_35 / 5_36, bgm_refs). Provisional rows (session 19 step 1: the levels load) */
+    { SB("sb1", 35, 1, "bgm/m_stage4.adp") },
+    { SB("sb2", 36, 2, "bgm/m_stage4.adp"), .card_first = 41 },
+    { SB("sb3", 37, 3, "bgm/m_stage4.adp"), .card_first = 44 },
+    { SB("sb4", 38, 4, "bgm/m_stage4.adp"), .card_first = 48 },
 };
 static const level_def_t DEFAULT = { .dir = "", .frame = -1, .stage = -1, .act = 1, .nacts = 1, .music = "bgm/m_stage1.adp" };
 

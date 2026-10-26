@@ -771,6 +771,10 @@ PAR_SKY_BELOW = {27: (1112, 1133, 1134, 1137, 1138)} # RM3 6298: destroyed once 
 # layers scrolling at 0.8 (RE Layer::init): Aqua Tunnel and RM1-RM4 layer 1, RM5 layer 0 (spec_rm_flow 2.4); json frame
 SCROLL08 = {17: 1, 18: 1, 19: 1, 20: 1, 25: 1, 26: 1, 27: 1, 28: 1, 29: 0, 30: 1, 31: 1, 32: 1, 33: 1, 34: 1, 35: 1}   # FN (json 30-35): layer 1 (spec_fn_flow 2.4)
 
+# invisible static obstacle objects baked into the solid collision map (class_handle; RE: constructor set_visible(0),
+# initialize_active(false) = pixel mask, qualifier 8 obstacle, no event moves them): Sky Battalion's ship decks (session 19)
+BAKE_SOLID = {'shipplatform1_2088', 'shipplatform2_2089', 'shipplatform3_2091'}
+
 def pow2_split(n, cap=1024):
     out, r = [], n
     while r > 0:
@@ -935,6 +939,10 @@ def main():
         report.append('pieces: %d colours, split into %d colour sets %s' % (len(allc), len(order), [len(sc) for sc, _ in sets]))
     else:
         order = [list(ids)]
+    # images taller than 512 px fit only the first (1024 x 1024) atlas: their colour set goes first and they lead it
+    # (Sky Battalion 1's 996 x 708 airship ship19_2075, session 19; no other level has one, so their order is unchanged)
+    tall = lambda i: imgs[i][0].height > 512
+    order = sorted([sorted(m, key=lambda i: (not tall(i), i)) for m in order], key=lambda m: not any(tall(i) for i in m))
     remaining = []; atlases = []; where = {}
     while order or remaining:
         if not remaining: remaining = order.pop(0)
@@ -971,6 +979,17 @@ def main():
     plat = bytearray(TW * 16 * TH * 16)
     stride = TW * 16
     masks = {}
+    # invisible static obstacle objects (qualifier 8, no events: set_visible(0) in the constructor, pixel mask) are part of
+    # the terrain: Sky Battalion's decks (SB1 has no collision backdrops at all). Rasterised like a mask backdrop at the
+    # object's image top-left (x - hotspot), never drawn (session 19, spec_sb_flow; RE on_frame_36..39_init q8)
+    bimgs = {}
+    for o in fr['objects']:
+        key = '%s_%d' % (o['cls'], o['id'])
+        if key not in BAKE_SOLID or o['x'] is None or (o['layer'] or 0) not in col_layers: continue
+        if key not in bimgs: bimgs[key] = load_img(src, first_anim_frames(an[key])['frames'][0])
+        im, hx, hy = bimgs[key]
+        pieces.append({'img': ('bake', key), 'x': o['x'] - hx, 'y': o['y'] - hy, 'layer': o['layer'], 'col': 1, 'box': False, 'bake': True})
+        imgs[('bake', key)] = (im, 0, 0)
     for p in pieces:
         if p['col'] not in (1, 2) or p['layer'] not in col_layers: continue
         im, hx, hy = imgs[p['img']]; hx = hy = 0   # backdrops ignore the image hotspot (RE Backdrop::draw adds it, draw_image subtracts it)
@@ -988,6 +1007,7 @@ def main():
                 if v:
                     X = x0 + xx
                     if 0 <= X < stride: tgt[base + X] = 1
+    pieces[:] = [p for p in pieces if not p.get('bake')]
     # dedupe 16x16 tiles into 32-byte bit patterns
     uniq = {bytes(32): 0, b'\xff' * 32: 1}
     table = [bytes(32), b'\xff' * 32]
