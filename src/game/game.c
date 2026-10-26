@@ -46,6 +46,7 @@ static void level_start(void) {
     if (at) { G.p.ground = 0; G.p.face = G.walk_b < 0 ? -1 : 1; if (L->start_fall && G.at_g4 == 1) G.p.cY = 3; }   /* L = 0 (2955-2957); AT1 fall pose OTHERS.Y 3 (4308) */
     objects_spawn();
     fn_flow_spawn();                                                /* Fortune Night stage script (src/game/fn_flow.c; stage index 3 only) */
+    sb_flow_spawn();                                                /* Sky Battalion stage script (src/game/sb_flow.c; stage index 4 only) */
     results_reset();
     G.exit_walk = 0; G.timer_stop = 0;
     G.clear_t = 0; G.act_in = 0; G.act_fade = 0; G.frame = 0; G.card_t = 0; G.paused = 0;
@@ -693,7 +694,7 @@ void game_update(const input_t *in) {
     if (pause_try_open(in)) return;                  /* (the original pauses after this frame's gameplay events) */
     G.frame++;
     input_t none = {0}, rin = results_input(in), sin_ = {0};
-    const input_t *pin = (G.clear_t || G.act_in || G.input_lock) ? &none : results_on() ? &rin : in;   /* act end / walk-in / results: no control (RE) */
+    const input_t *pin = ((G.clear_t && !level_cur()->clear_free) || G.act_in || G.input_lock) ? &none : results_on() ? &rin : in;   /* act end / walk-in / results: no control (RE); SB1's launch fade keeps it */
     { static uint32_t sprev; uint32_t h = pin->held; if (serp4_input(&h) || rm_claw_input(&h) || fn_boss_input(&h) || fn_panther_input(&h)) { sin_.held = h; sin_.pressed = h & ~sprev; sprev = h; pin = &sin_; } else sprev = 0; }   /* DV4 boss exit (5547 lock, 5573-5577) */
     PROF(PS_PAR, par_update());                   /* RE 3541: parallax drift */
     aqua_set_input(pin);                          /* AT swings read CTRL.K (4357) */
@@ -712,7 +713,7 @@ void game_update(const input_t *in) {
     if ((G.clear_t || G.exit_walk) && G.exit_b) { /* RM1 inline / RM2 5918: grounded, B = 2 / -2 toward the exit; FN3 6195 from 7710 on */
         G.p.face = G.exit_b > 0 ? 1 : -1;
         if (G.p.ground) G.p.gsp = G.exit_b;
-    } else if (G.clear_t) {                       /* RE 3311: grounded, B = max(B, 2), facing right */
+    } else if (G.clear_t && !level_cur()->clear_free) {   /* RE 3311: grounded, B = max(B, 2), facing right (not in SB1, frame 36) */
         G.p.face = 1;
         if (G.p.ground && G.p.gsp < 2) G.p.gsp = 2;
     }
@@ -725,6 +726,7 @@ void game_update(const input_t *in) {
     fn_boss_frame(&G.p);                          /* Fortune Night bosses (src/game/fn_boss.c) */
     rm_claw_frame(&G.p);                          /* RM3 Claw sequence events 6196-6350 (src/game/rm_claw.c) */
     fn_flow_frame(&G.p);                          /* Fortune Night stage script (src/game/fn_flow.c) */
+    sb_flow_frame(&G.p);                          /* Sky Battalion stage script (src/game/sb_flow.c) */
     fn_panther_frame(&G.p);                       /* FN5 chase / FN6 Panther (src/game/fn_panther.c) */
     if (G.p.state == 6 /* ST_DEAD */ && G.p.dead_t > 120) {     /* death: the act restarts with one life less (RE 1972 / loop_death_13) */
         int lives = G.p.lives - 1, crystals = G.act_crystals, frame = G.frame, ks = G.act_keystones, sc = G.act_stage_crystals;
@@ -887,6 +889,7 @@ void hud_draw(void) {
     hud_dy += rm_claw_hud_dy();                                    /* RM3 6206 / 6258 (src/game/rm_claw.c) */
     hud_dy += fn_flow_hud_dy();                                    /* FN3 7712 (src/game/fn_flow.c) */
     hud_dy += fn_panther_hud_dy();                                 /* FN6 8764 (src/game/fn_panther.c) */
+    hud_dy += sb_flow_hud_dy();                                    /* SB 9006 / 9460 (src/game/sb_flow.c) */
     if (G.card_t < CARD_OUT0) return;
     /* energy meter: fill = guienergy alt A / 100 as x scale (RV en_xs); shine loop while full (RV en_img) */
     int full = p->energy >= PHYS_ENERGY_MAX;

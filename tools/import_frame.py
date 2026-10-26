@@ -689,6 +689,21 @@ ENS_FRAMES.update({e[0]: ({34, 35} if any(w in e[0] for w in FNP_A5) else {35}) 
                    if e[0] not in ENS_FRAMES and e[0] not in ('shieldserpentine_1872', 'bossrapidbullet_1866', 'effectgunspark_1887')})   # FN_PANTHER (shared A3 classes left open)
 ENS_FRAMES['effectwarning_1528'] = ENS_FRAMES.get('effectwarning_1528', set()) | {34, 35}   # FN_PANTHER: the mortar's ground warning (shared with RM5's row)
 for _k, _v in FNP_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # FN_PANTHER
+# ---- SB_FLOW: Sky Battalion stage objects (session 19, build/re/spec_sb_flow.md; src/game/sb_flow.c). Types 904-959 mirror
+# src/fp.h (OT_SB_SWPLAT ...). SB1 (json 36) is Zao's airship, the hub: the three launch pads (SwitchPlatform_2100, an
+# invisible solid box, and its drawn SwitchPlatformMask_2099; SB2 / SB4 use the same pair to open doors), the ship names
+# over the pads, the enemy airships on the 0.25 layer, Zao's flags, the night sky of the Kujacker; SB2-SB4 (json 37-39) open
+# with Zao's airship in the background launching the four planks (LevelParallaxZaoShip_2243 + LevelSBBGPlatform_2244).
+SB_TYPES = {'switchplatform': 904, 'switchplatformmask': 905, 'levelshipname1': 906, 'levelshipname2': 907, 'levelshipname3': 908,
+            'levelairship1': 909, 'levelzaoflag': 910, 'leveldarksky': 911, 'levelsbbgplatform': 913}
+SB_FRAMES = {36, 37, 38, 39}
+ENGINE_TYPES.update(SB_TYPES)
+SB_ENS = [('switchplatform_2100', 0, '0', 'sbswplat'), ('switchplatformmask_2099', 0, '0', 'sbswmask'), ('levelshipname1_2111', 0, '0', 'sbname1'), ('levelshipname2_2112', 0, '0', 'sbname2'),
+          ('levelshipname3_2113', 0, '0', 'sbname3'), ('levelzaoflag_2107', 0, '0', 'sbflag'), ('levelzaoflag_2107', 0, '8', 'sbflag8'),
+          ('levelsbbgplatform_2244', 0, '0', 'sbbgplat')] + \
+         [('levelairship1_2105', 0, d, 'sbairship' + d) for d in ('0', '1', '2', '16')]
+ENS += SB_ENS
+ENS_FRAMES.update({e[0]: SB_FRAMES for e in SB_ENS})
 SHL_CLASSES = {'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 ENS_ONLY_WITH = {'guiweaponslot_426', 'effectswatersplash_379', 'bubblepatch_804', 'mediumbubble_805', 'generalwaterhorizon_377', 'bubblenumbers_405', 'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 # classes whose untrimmed image box matters (spring top edges RV, box-collision platforms/logs, invisible
@@ -756,7 +771,12 @@ PAR_IMG = {'levelparallaxpiece0_491': 16032, 'levelparallaxpiece1_891': 3030, 'l
            'levelparallaxpiece3_1633': 3625, 'levelparallaxpiece2_1632': 3473, 'levelparallaxpiece4_1634': 187,
            'levelparallaxpiece5_1635': 3611, 'levelparallaxpiece5_1802': 3612, 'levelparallaxcar_1725': 7698,
            'levelparallaxpiece2_1631': 7053, 'levelparallaxpiece0m_1897': 3653, 'levelparallaxpiece1_1898': 4358,
-           'levelparallaxpiece2_1899': 4369}
+           'levelparallaxpiece2_1899': 4369,
+           # Sky Battalion (session 19, RE constructors create_levelparallaxpiece*_20xx: SystemBox images, boxes = image size)
+           'levelparallaxpiece0_2059': 4814, 'levelparallaxpiece1_2060': 4822, 'levelparallaxpiece2_2061': 4807,
+           'levelparallaxpiece3_2062': 4812, 'levelparallaxpiece4_2063': 4811, 'levelparallaxpiece5_2064': 8426,
+           'levelparallaxpiece6_2065': 8421, 'levelparallaxpiece7_2094': 8425, 'levelparallaxsbnight1_2134': 4813,
+           'levelparallaxsbnight2_2133': 4815, 'levelparallaxzaoship_2243': 305}
 # piece5_1309 (RM3 layer 3, the caravan-chase foreground, spec_rm_flow 4 / spec_rm_claw 6): exported with flags 256 (layer 3:
 # drawn in front of the player, par_draw_front) + 512 (hidden until rm_claw.c shows it at 6256); D = E = 0 (never written)
 PAR_FRONT = {(27, 1309)}
@@ -782,7 +802,11 @@ PAR_DEG = {491: (.99, .94, 0), 891: (.98, .93, 0), 893: (.95, .91, 0), 894: (.96
            # Fortune Night (spec_fn_flow 4: FN1 inline, FN2 / FN3 7472, FN4 inline, FN5 8318; G = the drift per frame, 3541)
            1629: (.99, .94, 0), 1640: (.99, .94, -.25), 1630: (.90, .90, 0), 1633: (.88, .88, 0), 1632: (.80, .80, 0),
            1634: (.70, .70, 0), 1635: (.65, .65, 0), 1802: (.65, .65, 0), 1725: (.40, .505, -4), 1631: (.40, .50, 0),
-           1897: (.99, .94, 0), 1898: (.72, .72, 0), 1899: (.60, .70, 0)}
+           1897: (.99, .94, 0), 1898: (.72, .72, 0), 1899: (.60, .70, 0),
+           # Sky Battalion (RE 9215 SB1, 9764 SB2, 9934 SB3, 10146 SB4: the same values in every act; G = the drift, 3541)
+           2059: (.99, .99, -.01), 2060: (.97, .97, -.1), 2061: (.95, .95, -.4), 2062: (.98, .98, -.05), 2063: (.96, .96, -.2),
+           2064: (.70, .97, -3), 2065: (.50, .90, -6), 2094: (.60, .94, -4.5), 2133: (.97, .97, -.1), 2134: (.99, .99, -.01),
+           2243: (0, 0, 0)}
 PAR_DEG_FRAME = {(27, 1112): (1.0, .94, 0),          # the same handle with RM3's own D (RE spec_rm_flow 4)
                  (35, 1629): (.99, .94, -.1), (35, 1640): (.99, .94, -.35)}   # FN6's drifting sky (inline, spec_fn_flow 4)
 # BGStar_16 (FN1-FN3, FN6; spec_fn_flow 4): 7471 stores A = x, B = y, C = the instance index and forces frame C; 7466 puts
@@ -792,7 +816,34 @@ PAR_DEG_FRAME = {(27, 1112): (1.0, .94, 0),          # the same handle with RM3'
 PAR_STARS = {}
 PAR_SKY_BELOW = {27: (1112, 1133, 1134, 1137, 1138)} # RM3 6298: destroyed once the player is below y 2400 (one way)
 # layers scrolling at 0.8 (RE Layer::init): Aqua Tunnel and RM1-RM4 layer 1, RM5 layer 0 (spec_rm_flow 2.4); json frame
-SCROLL08 = {17: 1, 18: 1, 19: 1, 20: 1, 25: 1, 26: 1, 27: 1, 28: 1, 29: 0, 30: 1, 31: 1, 32: 1, 33: 1, 34: 1, 35: 1}   # FN (json 30-35): layer 1 (spec_fn_flow 2.4)
+SCROLL08 = {17: 1, 18: 1, 19: 1, 20: 1, 25: 1, 26: 1, 27: 1, 28: 1, 29: 0, 30: 1, 31: 1, 32: 1, 33: 1, 34: 1, 35: 1,   # FN (json 30-35): layer 1 (spec_fn_flow 2.4)
+            37: 1, 38: 1, 39: 1}   # SB2-SB4 layer 1 (the ships' backdrops); SB1's layer 1 scrolls at 0.25 and holds only the airships (sb_flow.c)
+# Sky Battalion (session 19): 9198 replaces 3542 in every SB act: K = (view top + 20 sin(g3 deg) - 20) E + C, the whole sky bobs
+# (flag 2048); LevelParallaxZaoShip_2243 is a SystemBox on layer 0 at a world position, between piece6 and piece7 (flag 4096:
+# drawn once at (D, y0) in world coordinates; RE create_levelparallaxzaoship_2243: image 0x131 = 305, 507 x 323)
+PAR_BOB_FRAMES = {36, 37, 38, 39}
+PAR_WORLD = {2243}
+# images with per-pixel alpha (Sky Battalion's mist: pieces 5 / 6 / 7, every pixel alpha 1..~100, RE images 8426 / 8421 / 8425):
+# flag 1 = ARGB4444 texture (FPTX fmt 4) drawn through the translucent list, flag 2 = stored at half resolution, drawn x2
+# (soft mist; a quarter of the VRAM: about 200 KB instead of 800 KB). Image id -> flags (session 19)
+PAR_ALPHA = {8426: 3, 8421: 3, 8425: 3}
+
+def write_tex4444(img, path):
+    """FPTX fmt 4: ARGB4444, linear (16 levels of alpha; the PVR's translucent list blends it)"""
+    img = img.convert('RGBA')
+    w, h = 8, 8
+    while w < img.width: w *= 2
+    while h < img.height: h *= 2
+    canvas = Image.new('RGBA', (w, h), (0, 0, 0, 0)); canvas.paste(img, (0, 0))
+    out = bytearray(b'FPTX' + struct.pack('<6H', w, h, 4, img.width, img.height, 0))
+    for r, g, b, a in canvas.getdata():
+        out += struct.pack('<H', ((a >> 4) << 12) | ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4))
+    open(path, 'wb').write(out)
+    return w, h
+
+# invisible static obstacle objects baked into the solid collision map (class_handle; RE: constructor set_visible(0),
+# initialize_active(false) = pixel mask, qualifier 8 obstacle, no event moves them): Sky Battalion's ship decks (session 19)
+BAKE_SOLID = {'shipplatform1_2088', 'shipplatform2_2089', 'shipplatform3_2091'}
 
 def pow2_split(n, cap=1024):
     out, r = [], n
@@ -816,18 +867,22 @@ def export_parallax(fr, src, name, out, an=None):
         img = PAR_IMG[key]
         if img not in imgidx:
             im, hx, hy = load_img(src, img)
+            fw, fh = im.width, im.height
+            iflags = PAR_ALPHA.get(img, 0)
+            if iflags & 2:                                 # half resolution (drawn x2): premultiplied resize
+                im = im.convert('RGBa').resize(((im.width + 1) // 2, (im.height + 1) // 2), Image.BILINEAR).convert('RGBA')
             chunks = []
             y = 0
             for ch in pow2_split(im.height):
                 x = 0
                 for cw in pow2_split(im.width):
                     sub = im.crop((x, y, min(x + cw, im.width), min(y + ch, im.height)))
-                    tn = '%s_px%d_%d' % (name, len(images), len(chunks))
-                    write_tex(sub, os.path.join(out, tn + '.tex'))
+                    tn = '%s_p%s%d_%d' % (name, 'a' if iflags & 1 else 'x', len(images), len(chunks))   # _pa: ARGB4444, outside the palettize sets
+                    (write_tex4444 if iflags & 1 else write_tex)(sub, os.path.join(out, tn + '.tex'))
                     chunks.append((x, y, sub.width, sub.height))
                     x += cw
                 y += ch
-            imgidx[img] = len(images); images.append((im.width, im.height, chunks))
+            imgidx[img] = len(images); images.append((fw, fh, chunks, iflags))
         D, E, G = PAR_DEG_FRAME.get((fr['frame'], o['id']), PAR_DEG.get(o['id'], (.5, .5, 0)))
         flags = 0
         if has_switch and o['id'] in (491, 891): flags |= 1        # shown while view top < 1360 (5101/5102)
@@ -838,6 +893,8 @@ def export_parallax(fr, src, name, out, an=None):
         if fr['frame'] == 18 and o['id'] in (677, 676): flags |= 16    # AT2 (4398 / 4399): shown while view left < 7544
         if fr['frame'] == 18 and o['id'] in (836, 837, 842, 843): flags |= 32   # shown while view left > 7544
         if (fr['frame'], o['id']) in PAR_FRONT: flags |= 256 | 512                # layer-3 piece, hidden until shown (RM3 piece5)
+        if fr['frame'] in PAR_BOB_FRAMES and o['id'] not in PAR_WORLD: flags |= 2048   # SB 9198: the sky bobs with g3
+        if o['id'] in PAR_WORLD: flags |= 4096; D = float(o['x'])                  # SB: Zao's airship at its world position
         iw, ih = images[imgidx[img]][0], images[imgidx[img]][1]
         pieces.append((imgidx[img], D, E, G, o['y'], PAR_BOXW.get(key, iw), PAR_BOXH.get(key, ih), flags, o['id']))
     stars = [o for o in fr['objects'] if '%s_%d' % (o['cls'], o['id']) in PAR_STARS and o['x'] is not None]
@@ -857,11 +914,12 @@ def export_parallax(fr, src, name, out, an=None):
                 write_tex(sub, os.path.join(out, '%s_px%d_%d.tex' % (name, len(images), len(chunks))))
                 chunks.append((cx, cy, sub.width, sub.height)); cx += cw
             cy += ch
-        images.append((comp.width, comp.height, chunks))
+        images.append((comp.width, comp.height, chunks, 0))
         pieces.append((len(images) - 1, 0., 0., 0., parent, x0, y0, 1024, stars[0]['id']))   # y0 = the parent's handle, (bw, bh) = offset
-    d = bytearray(b'FPPX' + struct.pack('<4H', len(images), len(pieces), 1 if water else 0, 1))   # version 1: + the piece's handle
-    for w, h, chunks in images:
-        d += struct.pack('<3H', w, h, len(chunks))
+    ver = 2 if any(im[3] for im in images) else 1   # version 1: + the piece's handle; 2 (only with ARGB4444 / half-size images): + image flags
+    d = bytearray(b'FPPX' + struct.pack('<4H', len(images), len(pieces), 1 if water else 0, ver))
+    for w, h, chunks, iflags in images:
+        d += struct.pack('<4H', w, h, len(chunks), iflags) if ver >= 2 else struct.pack('<3H', w, h, len(chunks))
         for c in chunks: d += struct.pack('<4H', *c)
     for (ii, D, E, G, y0, bw, bh, fl, hd) in pieces: d += struct.pack('<H3fi4H', ii, D, E, G, y0, bw, bh, fl, hd)
     if water:
@@ -969,6 +1027,10 @@ def main():
         report.append('pieces: %d colours, split into %d colour sets %s' % (len(allc), len(order), [len(sc) for sc, _ in sets]))
     else:
         order = [list(ids)]
+    # images taller than 512 px fit only the first (1024 x 1024) atlas: their colour set goes first and they lead it
+    # (Sky Battalion 1's 996 x 708 airship ship19_2075, session 19; no other level has one, so their order is unchanged)
+    tall = lambda i: imgs[i][0].height > 512
+    order = sorted([sorted(m, key=lambda i: (not tall(i), i)) for m in order], key=lambda m: not any(tall(i) for i in m))
     remaining = []; atlases = []; where = {}
     while order or remaining:
         if not remaining: remaining = order.pop(0)
@@ -1007,6 +1069,17 @@ def main():
     plat = bytearray(TW * 16 * TH * 16)
     stride = TW * 16
     masks = {}
+    # invisible static obstacle objects (qualifier 8, no events: set_visible(0) in the constructor, pixel mask) are part of
+    # the terrain: Sky Battalion's decks (SB1 has no collision backdrops at all). Rasterised like a mask backdrop at the
+    # object's image top-left (x - hotspot), never drawn (session 19, spec_sb_flow; RE on_frame_36..39_init q8)
+    bimgs = {}
+    for o in fr['objects']:
+        key = '%s_%d' % (o['cls'], o['id'])
+        if key not in BAKE_SOLID or o['x'] is None or (o['layer'] or 0) not in col_layers: continue
+        if key not in bimgs: bimgs[key] = load_img(src, first_anim_frames(an[key])['frames'][0])
+        im, hx, hy = bimgs[key]
+        pieces.append({'img': ('bake', key), 'x': o['x'] - hx, 'y': o['y'] - hy, 'layer': o['layer'], 'col': 1, 'box': False, 'bake': True})
+        imgs[('bake', key)] = (im, 0, 0)
     for p in pieces:
         if p['col'] not in (1, 2) or p['layer'] not in col_layers: continue
         im, hx, hy = imgs[p['img']]; hx = hy = 0   # backdrops ignore the image hotspot (RE Backdrop::draw adds it, draw_image subtracts it)
@@ -1024,6 +1097,7 @@ def main():
                 if v:
                     X = x0 + xx
                     if 0 <= X < stride: tgt[base + X] = 1
+    pieces[:] = [p for p in pieces if not p.get('bake')]
     # dedupe 16x16 tiles into 32-byte bit patterns
     uniq = {bytes(32): 0, b'\xff' * 32: 1}
     table = [bytes(32), b'\xff' * 32]
