@@ -81,6 +81,20 @@ void combat_shield_create(const player_t *p, int dir, int A, int speed) {
     obj_t *o = shield_create(p, dir, A, speed);
     if (o && speed > 0) { o->c = 200; o->fl |= 2; }   /* force_speed(100) (see shield_tick) */
 }
+/* FN6 partner strikes (fn_assist.c, RE 8680 / 8694): a ShieldInstaShield at (x, y) with alterable flag 4 (fl 0x10: the shared
+ * hit 2740 / 2741 leaves OTHERS.K at 0); force: force_speed(100) as Carol's creators; vis 0: set_visible(0) */
+obj_t *combat_shield_at(float x, float y, int dir, int A, int force, int vis) {
+    int k; for (k = 0; k < NSD && SD[k].dir != dir; k++) ;
+    if (k == NSD) return NULL;
+    obj_t *o = obj_alloc();
+    if (!o) return NULL;
+    o->type = OT_SHIELD; o->alive = 1; o->x = (float)(int)x; o->y = (float)(int)y; o->dir = k; o->st = A;
+    o->tm = 0; o->c = 0; o->vx = (float)SD[k].speed; o->fl = 0x10; o->born = G.frame; o->layer = 2;
+    if (force) { o->c = 200; o->fl |= 2; }
+    shield_anim(o, &SD[k]);
+    if (!vis) o->an.b = NULL;
+    return o;
+}
 /* Active::update: counter += speed, advance when it goes above 100 (-100); past the last frame the
  * "finished" byte is set and an object with flag 8 is destroyed on the following update */
 static void shield_tick(obj_t *o) {
@@ -100,6 +114,10 @@ static void shield_tick(obj_t *o) {
 static void shield_rect(const obj_t *o, int *x0, int *y0, int *x1, int *y1) {
     const sbox_t *b = &sdef(o)->f[o->tm];
     *x0 = (int)o->x + b->x0; *x1 = (int)o->x + b->x1; *y0 = (int)o->y + b->y0; *y1 = (int)o->y + b->y1;
+}
+int combat_shield_overlaps(const obj_t *s, const obj_t *e) {   /* a shield's box on an object (achievement 21, fn_assist.c) */
+    int x0, y0, x1, y1; if (!s->alive || s->type != OT_SHIELD) return 0;
+    shield_rect(s, &x0, &y0, &x1, &y1); return obj_rect_hit(e, x0, y0, x1, y1);
 }
 
 /* creators (events 1764/1765, 1831, 2021, 2032, 2043) */
@@ -293,10 +311,11 @@ void combat_frame(player_t *p) {
                     double kx = fmax(3.0 - s->st, fabs(1.5 * B)) * Q;
                     hit_common(p, e, 5 + s->st, kx, 0.5 * Gv, (4 - s->st) + fabs(B) / 10);
                     p->cfl |= 0x8;                 /* 2740: every PlayerSkinCarol gets flag 3 (claw chain from frame 3) */
+                    if (s->fl & 0x10) p->hitstop = 0;   /* 2740: K = 0 for a flag-4 shield (the FN6 partner's, fn_assist.c) */
                     break;
                 }
                 collect(p, AT_SHIELD, 1, s);
-                if (ncand) { deflect(p, 5 + s->st); break; }
+                if (ncand) { deflect(p, 5 + s->st); if (s->fl & 0x10) p->hitstop = 0; break; }
             }
         }
         if (player_cube_state() >= 3) {                                                           /* 2742-2745: Milla's cube (no K gate, no OTHERS.I) */

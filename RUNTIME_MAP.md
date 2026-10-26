@@ -546,3 +546,22 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
   (FP_DBG_FP=2) ends with `w:x,y,shown,scale,angle` (the wheel).
 - **Per frame (SH4):** unchanged structure (one pass over the object list for runtime objects); a missile blast now adds up
   to 45 short Explosion06 effects (as the original; at most ~4 blasts overlap).
+## Session 18: the partner assist and the plane (port: src/game/fn_assist.c; tests/test_fn_assist.py)
+- **Hooks (fn_panther.c, one line each):** fn_assist_spawn() at the end of the act-6 spawn; fn_assist_plane_mode(p) in place of
+  the former plane_mode; fn_assist_frame(p, &ctx) after runtime_pass while 0x227c8 is on (ctx: hitbox, fight / mode-2 flags,
+  cannon D, head A, laser segment); fn_assist_end() at the white flash (8762); HD('D') = fn_assist_closing(D) at C 2;
+  fn_assist_cpu_finish(hit) for achievement 21; fn_assist_draw(0 / 1) from fn_panther_draw. game.c: the player is not drawn
+  while fn_assist_cast_on() (the closing scene's cast stands in).
+- **combat.c:** combat_shield_at(x, y, dir, A, force, vis) creates a ShieldInstaShield with fl 0x10 (alterable flag 4: 2740 /
+  2741 leave the player's K at 0); combat_shield_overlaps(s, e). Shields keep every shared rule (2022's facing flip, the
+  cyclone's "none exists" test) as in the original.
+- **Objects:** the plane (OT_FNP_ASSIST) and Milla (OT_FNP_ADEF) are ordinary layer-1 objects (generic draw); the helper
+  (OT_FNP_AOFF) and the projectile (OT_FNP_APROJ) have no an.b: fn_assist.c animates them (Lilac's forced speed 4|D| + 30,
+  Active::force_animation keeps the counter) and draws them (pass 1 / pass 0). The box is a real OT_MON_RINGS (held: av[4];
+  thrown: av[0] 2, Y 4: monitors.c's flight and objects.c's break, 6 petals). Dust puffs: OT_EXPLODE 'fndust', moved here.
+- **Data:** FN6 ens rows fp_adef1 / 7 / 10 / 11, fp_aoff8 / 8b, fp_aproj / 7 / 8 and the cast fc_l* / fc_c* / fc_m* / fc_t*
+  (tools/import_frame.py FNP_CAST, slices for the 40 poses): fn6_ens is now one 1024x1024 atlas (402 frames; was 1024x512 +
+  256x256: about +470 KB VRAM). Sounds: SFX_FN6 += 241 (half rate, 2 KB) and 288 (Lilac's jump, 22 kHz, trimmed with the FN
+  TRIM rule: 27 -> 12 KB): the FN6 stage group 176 -> 190 KB.
+- **Host:** FP_DBG_FP=1 adds `fpa` (plane / Milla / helper state per frame), `fpas` (drop, arrive, jump, strike, land,
+  knocked `by <object type>`, -1 the laser) and `fpcast` (the closing scene's D and cast x / sprite).

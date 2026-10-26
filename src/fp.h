@@ -662,6 +662,8 @@ enum { ST_NORMAL, ST_ATTACK, ST_CYCLONE, ST_CHARGE, ST_BOOST, ST_HURT, ST_DEAD,
 void combat_frame(player_t *p);
 void combat_draw_shields(int behind);
 void combat_shield_create(const player_t *p, int dir, int A, int speed);   /* ShieldInstaShield_407 at Player_326 (Carol's creators) */
+obj_t *combat_shield_at(float x, float y, int dir, int A, int force, int vis);   /* a flag-4 ShieldInstaShield at (x, y) (FN6 partner, fn_assist.c) */
+int  combat_shield_overlaps(const obj_t *s, const obj_t *e);
 int  enemy_type(int type);
 int  obj_rect_hit(const obj_t *o, int rx0, int ry0, int rx1, int ry1);
 int  obj_obj_hit(const obj_t *a, const obj_t *b);
@@ -862,6 +864,13 @@ int  game_timer(void);                               /* the stage timer in frame
 void   fn_panther_spawn(void), fn_panther_frame(player_t *p), fn_panther_draw(int pass);   /* draw: objects_draw passes 0-2, 3 = front fades */
 int    fn_panther_q20(int type), fn_panther_input(uint32_t *held), fn_panther_on(void);   /* Q20 hitbox; the scripted pad (floor auto-run) */
 float  fn_panther_hud_dy(void);                       /* FN6 8764: the HUD shifted up 80 px at the closing pose (session 18) */
+/* src/game/fn_assist.c (session 18: FN6 partner assist 0x227c8 8668-8721, the plane / Milla's plane mode 8524-8532; spec_fn_bosses G.10).
+ * fn_panther.c passes the fight state each frame (ctx); fn_assist_end at the white flash (8762) */
+typedef struct { const obj_t *hit; int fight, mode2, laser_on; double cannon_d, head_a; float lx, ly, lang; } fn_assist_ctx_t;
+void   fn_assist_spawn(void), fn_assist_frame(player_t *p, const fn_assist_ctx_t *c), fn_assist_plane_mode(player_t *p), fn_assist_end(void);
+void   fn_assist_draw(int pass);
+int    fn_assist_cpu_finish(const obj_t *hit), fn_assist_last_hit(void);   /* achievement 21 (RE 8790 / 8792) */
+int    fn_assist_closing(int D), fn_assist_cast_on(void);   /* the closing scene's cast (8764-8785): the head's D; the player hidden */
 /* src/game/fn_flow.c (Fortune Night stage script, stage index 3, spec_fn_flow) */
 void   fn_flow_spawn(void), fn_flow_frame(player_t *p);
 /* src/game/fn_boss.c (Fortune Night bosses, spec_fn_bosses A-E): spawn, the test_collisions handlers (before combat), the per-object

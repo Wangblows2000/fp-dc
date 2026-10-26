@@ -965,7 +965,7 @@ void game_draw(void) {
     draw_pieces(2, 2);
     objects_draw(1);
     water_draw_front();
-    player_draw(&G.p);
+    if (!fn_assist_cast_on()) player_draw(&G.p);   /* FN6 closing scene: MV.M 50, the cast stands in (fn_assist.c) */
     shields_draw(&G.p);
     fn_gimb_draw_front();                         /* FN: restroom doors / pole-pod shells over the player */
     spiral_front_draw();
