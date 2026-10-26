@@ -22,6 +22,13 @@
 #include "../fp.h"
 #include <math.h>
 #include <string.h>
+#ifdef FP_HOST_ENV
+#include <stdio.h>
+#include <stdlib.h>
+#define SBLOG(...) do { if (getenv("FP_TRACE_SND")) { printf("sbflow "); printf(__VA_ARGS__); printf(" @%d\n", G.frame); } } while (0)   /* host tests */
+#else
+#define SBLOG(...) do { } while (0)
+#endif
 
 #define NPAD 4
 #define NBG 4
@@ -55,7 +62,7 @@ static const char *SHIP_DIR[3] = { "sb2", "sb3", "sb4" };   /* 8876 / 8877 / 887
  * (camera back to the player), play_music(5) (the stage track again). The boss module also removes its railings /
  * barriers and creates the crystals (its own events). */
 void sb_flow_ship_done(int flag) {
-    G.stage_flags |= flag;
+    G.stage_flags |= flag; SBLOG("ship done %x", flag);
     SB.locked = 0;
     level_release_camera(0);
     const char *m = level_music_slot(5); if (m) music_play(m);
@@ -93,8 +100,7 @@ void sb_flow_spawn(void) {
         for (int k = 0; k < SB.nair; k++) { int a = ens_anim(AD[SB.nair - 1 - k]); if (a >= 0) anim_set(&G.o[SB.air[k]].an, &G.ens, a); }
         if (G.at_g4 < 0) G.p.vy = -5;                                /* 8882: flown in from the left, B 15, G -5 (the entry row) */
     } else if (G.at_g4 <= 0) {                                       /* 9789: an arrival from SB1 runs the opening */
-        SB.intro = 1; SB.hud = 40;                                   /* 9460: HUD shifted up 40, timer off */
-        G.timer_stop = G.frame + 1;
+        SB.intro = 1; SB.hud = 40;                                   /* 9460: HUD shifted up 40, timer off (intro()) */
         for (int k = 0; k < SB.nbg; k++) SB.bgA[k] = SB.nbg - k;    /* 9460: A = 1, 2, ... (newest first) */
     }
 }
@@ -115,7 +121,7 @@ static void pads(player_t *p) {
             double ny = (int)(SB.padA[k] + fmin(SB.padB[k] + 0.5, 24)), dy = ny - o->y;
             SB.padB[k] = fmin(SB.padB[k] + 0.5, 24); o->y = (float)ny; p->y += dy;
         }
-        if (!(SB.padfl[k] & 2) && SB.padB[k] >= 24) { SB.padfl[k] |= 2 | 4; snd_play_orig(49, 220, 128); }
+        if (!(SB.padfl[k] & 2) && SB.padB[k] >= 24) { SB.padfl[k] |= 2 | 4; snd_play_orig(49, 220, 128); SBLOG("pad %d down", k); }
         o->y = (float)(int)(SB.padA[k] + SB.padB[k]);
         if (SB.mask[k] >= 0 && G.o[SB.mask[k]].alive && G.o[SB.mask[k]].type == OT_SB_SWMASK) { G.o[SB.mask[k]].x = o->x; G.o[SB.mask[k]].y = o->y; }
     }
@@ -128,36 +134,37 @@ static void hub(player_t *p) {
      * no 3311 in frame 36: the row's clear_free) */
     if (SB.launch < 0 && !G.clear_t)
         for (int k = 0; k < 3 && k < SB.npad; k++) if ((SB.padfl[k] & 4) && !(G.stage_flags & (0x10 << k))) {
-            SB.launch = k; G.clear_t = 1; G.exit_to = SHIP_DIR[k]; G.exit_b = 0; break;
+            SB.launch = k; G.clear_t = 1; G.exit_to = SHIP_DIR[k]; G.exit_b = 0; SBLOG("launch %d %s", k, SHIP_DIR[k]); break;
         }
     /* 9005: grounded past X 1200 with the three ships done: the night falls (darksky shown, A 1), music fades over 4 s,
      * the timer and the ships' fire stop */
     if (!SB.night && p->ground && p->x > 1200 && (G.stage_flags & 0x70) == 0x70) {
-        SB.night = 1; SB.darkA = 1; SB.darkB = 128;
+        SB.night = 1; SB.darkA = 1; SB.darkB = 128; SBLOG("night");
         music_fade(240, 0);
         G.timer_stop = G.frame + 1;
     }
     if (SB.darkA == 1) { SB.darkB -= 0.5; SB.hud = SB.hud + 1 > 40 ? 40 : SB.hud + 1; }   /* 9006: B - 0.5, alpha (128 - B) 2, HUD up */
     if (SB.darkA == 1 && SB.darkB <= 64) SB.darkA = 2;                                    /* 9007 */
     if (SB.darkA == 2 && !SB.kuj) SB.darkC++;                                              /* 9008 (CAM.H to -50: not ported) */
-    if (SB.darkA == 2 && SB.darkC == 50 && !SB.kuj) { SB.kuj = 1; G.timer_stop = 0; }      /* 9009: group 0x22840 (boss module), timer on */
+    if (SB.darkA == 2 && SB.darkC == 50 && !SB.kuj) { SB.kuj = 1; G.timer_stop = 0; SBLOG("kujacker"); }   /* 9009: group 0x22840 (boss module), timer on */
 }
 
 /* SB2-SB4 opening (group 0x228f3) */
 static void intro(void) {
     if (!SB.intro) return;
+    if (SB.zA < 2 && !G.timer_stop) G.timer_stop = G.frame + 1;     /* 9460: timer group off (level_start clears timer_stop after the spawn) */
     if (!G.act_in && SB.zA == 0) SB.zA = 1;                         /* 9463 / 9868: the fade (32 frames) is over */
     if (SB.zA == 1 && G.frame % 20 == 0) SB.zB++;                   /* 9465 / 9870: g3 mod 20 (the port's g3: the stage frame) */
     for (int k = 0; k < SB.nbg; k++) {
         obj_t *o = &G.o[SB.bg[k]];
         if (SB.zA == 1 && SB.bgA[k] == SB.zB && SB.bgB[k] == 0) {   /* 9466 / 9871: fired */
-            o->hidden = 0; obj_effect(o->x, o->y, "explosion01"); snd_play_orig(99, 220, 128); SB.bgB[k] = -8;
+            o->hidden = 0; obj_effect(o->x, o->y, "explosion01"); snd_play_orig(99, 220, 128); SB.bgB[k] = -8; SBLOG("plank %d", k);
         }
         o->x += (float)SB.bgB[k];                                    /* 9464 / 9869: x + B (y = the ship's y + 242) */
     }
-    if (SB.zA == 1 && SB.zB > 7) SB.zA = 2;                         /* 9467 / 9872: the hover platforms go (sb_flow_intro 2) */
+    if (SB.zA == 1 && SB.zB > 7) { SB.zA = 2; SBLOG("release"); }                         /* 9467 / 9872: the hover platforms go (sb_flow_intro 2) */
     if (SB.zA == 2) { G.timer_stop = 0; SB.hud = SB.hud - 2 < 0 ? 0 : SB.hud - 2; }   /* 9874: timer on, HUD down */
-    if (SB.zA == 2 && SB.hud == 0) { SB.intro = 0; G.at_g4 = 1; }    /* 9470 / 9875: control back, g4 1 */
+    if (SB.zA == 2 && SB.hud == 0) { SB.intro = 0; G.at_g4 = 1; SBLOG("intro end"); }    /* 9470 / 9875: control back, g4 1 */
 }
 
 /* boss camera (CAM.M 1 on the CameraLimitBoss markers while a railing / barrier of the arena exists) */
@@ -174,7 +181,7 @@ static void boss_lock(const player_t *p) {
     static const int LOCK_DX[5] = { 0, 0, 600, 200, 80 };           /* SB2 9552 (+600), SB3 9878 (+200), SB4 10078 (+0x50) */
     if (!SB.locked && !SB.lock_once && gates && X > l + LOCK_DX[SB.act] && X < r && Y < b) {
         SB.locked = 1; if (SB.act != 3) SB.lock_once = 1;            /* SB2 / SB4: once (0x2290c, 0x229d0); SB3 again after leaving */
-        level_lock_markers();
+        level_lock_markers(); SBLOG("lock");
     } else if (SB.locked && gates && SB.act >= 3 && X <= l + (SB.act == 3 ? 39 : -1) && G.camx > l - 100) {   /* 9879 / 10079: back out left */
         SB.locked = 0; level_release_camera(0);
     } else if (SB.locked && !gates) {                                 /* 9554 (SB2): the barriers are gone */

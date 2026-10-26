@@ -698,7 +698,7 @@ SB_TYPES = {'switchplatform': 904, 'switchplatformmask': 905, 'levelshipname1': 
             'levelairship1': 909, 'levelzaoflag': 910, 'leveldarksky': 911, 'levelsbbgplatform': 913}
 SB_FRAMES = {36, 37, 38, 39}
 ENGINE_TYPES.update(SB_TYPES)
-SB_ENS = [('switchplatformmask_2099', 0, '0', 'sbswmask'), ('levelshipname1_2111', 0, '0', 'sbname1'), ('levelshipname2_2112', 0, '0', 'sbname2'),
+SB_ENS = [('switchplatform_2100', 0, '0', 'sbswplat'), ('switchplatformmask_2099', 0, '0', 'sbswmask'), ('levelshipname1_2111', 0, '0', 'sbname1'), ('levelshipname2_2112', 0, '0', 'sbname2'),
           ('levelshipname3_2113', 0, '0', 'sbname3'), ('levelzaoflag_2107', 0, '0', 'sbflag'), ('levelzaoflag_2107', 0, '8', 'sbflag8'),
           ('levelsbbgplatform_2244', 0, '0', 'sbbgplat')] + \
          [('levelairship1_2105', 0, d, 'sbairship' + d) for d in ('0', '1', '2', '16')]
@@ -916,9 +916,10 @@ def export_parallax(fr, src, name, out, an=None):
             cy += ch
         images.append((comp.width, comp.height, chunks, 0))
         pieces.append((len(images) - 1, 0., 0., 0., parent, x0, y0, 1024, stars[0]['id']))   # y0 = the parent's handle, (bw, bh) = offset
-    d = bytearray(b'FPPX' + struct.pack('<4H', len(images), len(pieces), 1 if water else 0, 2))   # version 1: + the piece's handle; 2: + image flags
+    ver = 2 if any(im[3] for im in images) else 1   # version 1: + the piece's handle; 2 (only with ARGB4444 / half-size images): + image flags
+    d = bytearray(b'FPPX' + struct.pack('<4H', len(images), len(pieces), 1 if water else 0, ver))
     for w, h, chunks, iflags in images:
-        d += struct.pack('<4H', w, h, len(chunks), iflags)
+        d += struct.pack('<4H', w, h, len(chunks), iflags) if ver >= 2 else struct.pack('<3H', w, h, len(chunks))
         for c in chunks: d += struct.pack('<4H', *c)
     for (ii, D, E, G, y0, bw, bh, fl, hd) in pieces: d += struct.pack('<H3fi4H', ii, D, E, G, y0, bw, bh, fl, hd)
     if water:
