@@ -698,7 +698,30 @@ BOX_TYPES = {8, 13, 14, 15, 16, 17, 30, 32, 33, 34, 35, 36}
 # collide_sprite_sprite); FP_ALPHA_MIN overrides for experiments
 ALPHA_MIN = int(os.environ.get('FP_ALPHA_MIN', '1'))
 
+# Quick Backdrops (session 19, RE QuickBackdrop::draw 0x203b530): a box of width 0x4c x height 0x50 at the instance x, y;
+# with an image (motif) the image tiles it from the box's top-left corner (no hotspot), without one draw_gradient fills it
+# with colour 0xc4-0xc7 (R G B A; 0xc8 = 1: a gradient to 0xcc-0xcf). Before, the importer placed the image once (or skipped
+# an image-less one), leaving most of RM3's layer-1 cave wall, its track supports, RM2's dungeon wall, RM5's brick wall, FN2's
+# rails and DV3's / FN5's strips undrawn (and the box-solid ones without collision). A box larger than its tile is written
+# as one TILED piece (pad bit 2 + a size record, write_lv2; game.c draws only the visible tiles); a solid fill tiles a
+# shared 64 x 64 colour block (synthetic image ids >= QB_BASE). Collision is rasterised from the expanded tiles.
+QB_BASE, QB_SYNTH = 10000000, {}
+def quick_backdrop(src, b):
+    f = b['fields']; W, H = f.get('0x4c', 0), f.get('0x50', 0)
+    if W <= 0 or H <= 0: return None
+    if b['image'] is not None:
+        im, hx, hy = load_img(src, b['image'])
+        return (b['image'], im.width, im.height, W, H)
+    if f.get('0xc8', 0) != 0: return None              # gradients: none in the ported levels (not implemented)
+    rgba = (f.get('0xc4', 0), f.get('0xc5', 0), f.get('0xc6', 0), f.get('0xc7', 255))
+    bw, bh = min(W, 64), min(H, 64)
+    key = ('solid', rgba, bw, bh)
+    if key not in QB_SYNTH:
+        QB_SYNTH[key] = QB_BASE + len(QB_SYNTH); QB_SYNTH[QB_SYNTH[key]] = (Image.new('RGBA', (bw, bh), rgba), 0, 0)
+    return (QB_SYNTH[key], bw, bh, W, H)
+
 def load_img(src, i):
+    if i in QB_SYNTH: return QB_SYNTH[i]
     if i < 0:   # translucent layer of image -i: its semi-transparent pixels made opaque (drawn with vertex alpha)
         im, hx, hy = load_img(src, -i)
         px = [(r, g, b, 255 if 0 < a < 255 else 0) for r, g, b, a in im.getdata()]
@@ -891,7 +914,8 @@ def main():
             skipped['unresolved'] = skipped.get('unresolved', 0) + 1; continue
         if key in bd:
             b = bd[key]
-            if b['image'] is None:
+            qb = quick_backdrop(src, b) if '0x4c' in b['fields'] else None   # session 19: Quick Backdrops fill their own size
+            if b['image'] is None and not qb:
                 skipped['no-image'] = skipped.get('no-image', 0) + 1; continue
             ac = b['fields'].get('0xac')
             col = 0 if ac is None else {9: 1, 8: 1, 11: 3}.get(ac, 0)
@@ -899,6 +923,15 @@ def main():
             invisible = b['fields'].get('0x5f') == 0 and '0x5c' in b['fields']
             if SCROLL08.get(n) == o['layer0']: invisible_extra = 2   # the frame's 0.8 layer (RE Layer::init, spec_at_flow 4.1, spec_rm_flow 2.4)
             else: invisible_extra = 0
+            if qb:                                   # the tiles of a Quick Backdrop (cw, ch: the cropped last row / column)
+                qimg, qtw, qth, qw, qh = qb
+                tiled = qw > qtw or qh > qth
+                for ty in range(0, qh, qth):
+                    for tx in range(0, qw, qtw):
+                        pieces.append({'img': qimg, 'x': o['x'] + tx, 'y': o['y'] + ty, 'layer': o['layer'] or 0, 'layer0': o['layer0'], 'scroll08': invisible_extra,
+                                       'col': col, 'box': box, 'invisible': invisible, 'cls': o['cls'], 'cw': min(qtw, qw - tx), 'ch': min(qth, qh - ty),
+                                       'qb': (qw, qh) if tiled and tx == 0 and ty == 0 else ('tile' if tiled else None)})
+                continue
             pieces.append({'img': b['image'], 'x': o['x'], 'y': o['y'], 'layer': o['layer'] or 0, 'layer0': o['layer0'], 'scroll08': invisible_extra, 'col': col,
                            'box': box, 'invisible': invisible, 'cls': o['cls']})
         else:
@@ -932,9 +965,10 @@ def main():
     if len(allc) > PIECE_COLS:
         sets = []
         for i in sorted(ids, key=lambda i: -len(ccache[i])):
-            best = min(((len(sc | ccache[i]) - len(sc), k) for k, (sc, _) in enumerate(sets) if len(sc | ccache[i]) <= PIECE_COLS), default=None)
+            area = lambda m: sum(imgs[j][0].width * imgs[j][0].height for j in m)   # Quick Backdrop blocks go to the emptier set (session 19)
+            best = min(((0 if i >= QB_BASE else len(sc | ccache[i]) - len(sc), area(m) if i >= QB_BASE else 0, k) for k, (sc, m) in enumerate(sets) if len(sc | ccache[i]) <= PIECE_COLS), default=None)
             if best is None: sets.append((set(ccache[i]), [i]))
-            else: sets[best[1]][0].update(ccache[i]); sets[best[1]][1].append(i)
+            else: sets[best[2]][0].update(ccache[i]); sets[best[2]][1].append(i)
         order = [sorted(m) for _, m in sets]
         report.append('pieces: %d colours, split into %d colour sets %s' % (len(allc), len(order), [len(sc) for sc, _ in sets]))
     else:
@@ -971,7 +1005,9 @@ def main():
         tw, th = write_tex(atlas, os.path.join(out, '%s_p%d.tex' % (name, k)))
         atlases.append((tw, th))
         remaining = [i for i in remaining if i not in take]
-    report.append('pieces: %d placements, %d unique images, %d atlases %s' % (len(pieces), len(ids), len(atlases), atlases))
+    nq = sum(1 for p in pieces if p.get('qb') and p.get('qb') != 'tile')
+    report.append('pieces: %d placements, %d unique images, %d atlases %s' % (len(pieces) - sum(1 for p in pieces if p.get('qb') == 'tile'), len(ids), len(atlases), atlases)
+                  + ('; %d tiled Quick Backdrops' % nq if nq else ''))
 
     # ---- collision rasterisation (alpha >= 128) on collision layers
     TW, TH = (W + 15) // 16, (H + 15) // 16
@@ -998,10 +1034,10 @@ def main():
             masks[mk] = b'\x01' * (im.width * im.height) if p['box'] else im.getchannel('A').point(lambda v: 1 if v >= ALPHA_MIN else 0).tobytes()
         m = masks[mk]; x0 = p['x'] - hx; y0 = p['y'] - hy
         tgt = solid if p['col'] == 1 else plat
-        for yy in range(im.height):
+        for yy in range(p.get('ch', im.height)):
             Y = y0 + yy
             if Y < 0 or Y >= TH * 16: continue
-            row = m[yy * im.width:(yy + 1) * im.width]
+            row = m[yy * im.width:yy * im.width + p.get('cw', im.width)]
             base = Y * stride
             for xx, v in enumerate(row):
                 if v:
@@ -1366,17 +1402,26 @@ def write_bank2(src, bank, out, report):
 
 def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, natlas, bank):
     """'FPL2' u32 w, h (px); u16 npieces, nobj, natlas, nuniq; u16 tw, th; u32 pad
-       piece {s32 x, y (top-left); u16 u, v, w, h; u8 atlas, layer, col, pad}  (20 B)
+       piece {s32 x, y (top-left); u16 u, v, w, h; u8 atlas, layer, col, pad}  (20 B); pad bit 2: a tiled piece (the tile
+             repeats over the size given by the next record's x, y; that record has pad 0x81; session 19 Quick Backdrops)
        obj   {u16 type, anim (index in <name>_obj bank or 0xffff); s32 x, y}  (12 B)
        uniq tiles: 32 B each (16 rows of u16, bit x = pixel x)
        solid map u16[tw*th]; platform map u16[tw*th]"""
     pieces = sorted(pieces, key=lambda p: (p['layer'], p['layer0']))   # stable: keeps the frame's instance (z) order inside a layer (mapped layers keep their original order)
     names = [a['name'] for a in bank['anims']]
-    d = bytearray(b'FPL2' + struct.pack('<2I4H2HI', W, H, len(pieces), len(objs), natlas, len(table), TW, TH, 0))
+    nrec = sum(0 if p.get('qb') == 'tile' else 2 if p.get('qb') else 1 for p in pieces)   # a tiled Quick Backdrop: 2 records
+    d = bytearray(b'FPL2' + struct.pack('<2I4H2HI', W, H, nrec, len(objs), natlas, len(table), TW, TH, 0))
     for p in pieces:
         im, hx, hy = imgs[p['img']]; hx = hy = 0   # backdrop pieces: drawn at the instance x, y (RE Backdrop::draw)
         k, u, v = where[p['img']]
-        d += struct.pack('<2i4H4B', p['x'] - hx, p['y'] - hy, u, v, im.width, im.height, k, p['layer'], p['col'], (1 if p['invisible'] else 0) | p.get('scroll08', 0))
+        qb = p.get('qb')
+        if qb == 'tile': continue                   # the other tiles of a tiled Quick Backdrop (collision only)
+        fl = (1 if p['invisible'] else 0) | p.get('scroll08', 0)
+        if qb:                                      # tiled piece: the tile rect, pad bit 2, then a size record {s32 w, h; 0...; pad 0x80}
+            d += struct.pack('<2i4H4B', p['x'] - hx, p['y'] - hy, u, v, im.width, im.height, k, p['layer'], p['col'], fl | 4)
+            d += struct.pack('<2i4H4B', qb[0], qb[1], 0, 0, 0, 0, k, p['layer'], 0, 0x81)
+            continue
+        d += struct.pack('<2i4H4B', p['x'] - hx, p['y'] - hy, u, v, p.get('cw', im.width), p.get('ch', im.height), k, p['layer'], p['col'], fl)
     for o in objs:
         a = names.index(o['cls'][:15]) if o['cls'][:15] in names else (o.get('par_index', 0xffff) if 20 <= o['type'] < 28 else 0xffff)
         if 139 <= o['type'] <= 143 or o['type'] in (169, 170, 187, 204): a = o.get('layer', 2)   # waterfalls, AT water jets / crushers / slime floor: the instance's layer

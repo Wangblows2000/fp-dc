@@ -796,6 +796,15 @@ static void draw_pieces(int lmin, int lmax) {
         int sx = p->x - cx, sy = p->y - cy;
         if (p->pad & 2) { sx = p->x - (int)trunc(0.800000011920929 * cx); sy = p->y - (int)trunc(0.800000011920929 * cy); }   /* AT layer 1 scrolls at 0.8 */
         if (sx >= SCREEN_W || sy >= SCREEN_H || sx + p->w <= 0 || sy + p->h <= 0) continue;
+        if (p->tw) {                                  /* tiled piece (Quick Backdrop): only the visible tiles, the last row / column cut */
+            int i0 = sx < 0 ? -sx / p->tw : 0, j0 = sy < 0 ? -sy / p->th : 0;
+            for (int ty = j0 * p->th; ty < p->h && sy + ty < SCREEN_H; ty += p->th)
+                for (int tx = i0 * p->tw; tx < p->w && sx + tx < SCREEN_W; tx += p->tw) {
+                    int w = p->w - tx < p->tw ? p->w - tx : p->tw, h = p->h - ty < p->th ? p->h - ty : p->th;
+                    r_sprite(&l->atlas[p->atlas], p->u, p->v, w, h, (float)(sx + tx), (float)(sy + ty), w, h, 0, 0xffffffff);
+                }
+            continue;
+        }
         r_sprite(&l->atlas[p->atlas], p->u, p->v, p->w, p->h, (float)sx, (float)sy, p->w, p->h, 0, 0xffffffff);
     }
 }
