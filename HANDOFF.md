@@ -128,6 +128,29 @@ spec_rm_golems, spec_rm_claw, spec_rm_mantalith, rm_inventory.
   Mantalith sounds 147 / 214 / 215 not ported; INFERRED items in RE_NOTES. An agent published a private working page
   (spec_rm_enemies) during research; it is still in the user's artifacts (delete only if the user asks).
 
+## Session 17 (2026-10-25/26): Fortune Night (FN1-FN6) for Lilac, Carol and Milla
+Details: RE_NOTES / RUNTIME_MAP "Session 17: ..." (flow, enemies, gimmicks A / B, bosses, the Panther), DECISIONS D-079
+to D-087, BUILD_AND_TEST_LOG "Session 17", ASSET_PIPELINE "Session 17". Specs (not committed): build/re/spec_fn_flow.md,
+spec_fn_enemies.md, spec_fn_gimmicks_a.md, spec_fn_gimmicks_b.md, spec_fn_bosses.md (G.12 = the Panther port findings),
+fn_inventory.md.
+- **Route:** RM5 -> FN1 ... FN6 -> results -> front end (Sky Battalion not ported). Title cards, stage-select icon and
+  Time Attack preview (bg4 strips), cards 31 / 33 / 36 / 37 / 39, music m_stage3 / m_stage3b / m_stage3c / m_midboss /
+  m_trouble / m_boss, checkpoints, FN3's scripted Serpentine exit, FN6 deaths back to FN5 (flow: src/game/fn_flow.c +
+  level rows).
+- **Objects:** enemies (fn_enemy.c, types 512-559), acts 1-3 gimmicks (fn_gima.c, 560-679), acts 4-5 gimmicks
+  (fn_gimb.c, 680-799), UFO / bulldozer / beam chase / Serpentine / samurai (fn_boss.c, 800-859), Panther FN5 chase and
+  FN6 fight with Milla's plane mode (fn_panther.c, 860-899). MAX_OT / MAX_OBJS 1024 (FN4 places 873 objects).
+- **Per character:** FN3 Lilac fights Serpentine; Carol / Milla fight the samurai (the flow removes the other set);
+  FN6 Lilac / Carol run on the treadmill floor, Milla rides the plane.
+- **Data:** colour-aware piece atlases (D-082), FN parallax in the free top of the character palette (tools/par_top.py,
+  D-080), parallax images up to 32 chunks (FN2's sky had not loaded, D-086).
+- **Memory:** one stage sound group per act, trailing silence cut (D-085 / D-087). Flycast: sound RAM left after the
+  stage group 137-227 KB (FN3 Milla lowest), VRAM free 625 KB (FN3 Carol, lowest of any level) to 3.6 MB (FN6).
+- **Perf (Flycast):** 602-603 vblanks per 600 frames in every FN act after the first window, including FN3 Milla
+  pushing a wall (618 before the bomb-arming scan fix).
+- **INFERRED / UNKNOWN left:** bulldozer facing, samurai attack selector (U-E1), Panther mode-2 limb pose (U-G2),
+  partner assist helpers (U-G3, only the offense helper ported), the items listed in TODO "Fortune Night".
+
 ## Session 16 (2026-10-25): hardware seams, RM3 chase, petals, vignette, VMU portraits, achievements
 Details: RE_NOTES / RUNTIME_MAP "Session 16", DECISIONS D-073 to D-078, BUILD_AND_TEST_LOG "Session 16". Spec:
 build/re/spec_achievements.md (not committed).
@@ -205,20 +228,21 @@ D-072, BUILD_AND_TEST_LOG "Session 15". Spec: build/re/fe/spec_gallery.md (not c
   Aqua Tunnel: session 12.)
 
 ## Latest verified
-- host-test (session 16, final code): gameplay, front end (VMU portraits for 4 character slots), Carol, Milla, Aqua,
-  levels, saves, rm_gimmicks_b, rm_claw, rm_mantalith, gallery, achievements: all 0 failures; trace comparers
-  unchanged after the importer change (all 13 levels rebuilt).
-- emulator (Flycast, session 16): RM3 truck aligned (matches the original's screenshot), RM2 basement vignette graded
-  (after the r_rect fix), VMU portraits on the Flycast VMU, title menu unchanged. **Seam fix not verifiable in
-  Flycast; nothing measured on real hardware.**
+- host-test (session 17, final code): gameplay, front end, Carol, Milla, Aqua, levels, saves, rm_gimmicks_b, rm_claw,
+  rm_mantalith, gallery, achievements, fn_enemies, fn_gimmicks_a, fn_gimmicks_b, fn_bosses, fn_panther, fn_flow: all 0
+  failures. Trace comparers unchanged (cmp_all 76/76 strict 11311/11377, cmp_carol 43/53, cmp_milla 37/43 = the
+  session-16 code on the same data, cmp_at 21/35).
+- emulator (Flycast, session 17): FN1-FN6 with Lilac / Carol / Milla per BUILD_AND_TEST_LOG "Session 17" (perf, VRAM,
+  sound RAM, no AICA errors). Original-game screenshots of FN1 / FN2 / FN4 starts match the host renders.
+  **Nothing measured on real hardware.**
 
 ## Next actions
-1. Real hardware: the session 14 disc; read the `perf:` / `prof` lines in RM3 / RM4 (the lowest VRAM and the heaviest
-   object load) and check sound in RM with Milla / Carol.
-2. Original traces for the RM RE-only items (TODO "Relic Maze"): golems, Claw, Mantalith, hand-car, RM5 warps, the Eye
-   Golem camera (D-066), shockwave ageing.
-3. Real Carol / Milla result voices; then the next stage (Fortune Night, frame 29) via ASSET_PIPELINE "Adding a level".
-4. Older items: AT card numbering, a story clear across frame 8, Chomper / snake / worm defeats, Carol traces.
+1. Real hardware: FN3 (Carol / Milla: lowest VRAM; Milla: slimmest frame time) and FN6; read `perf:` / `prof` and the
+   `stage sounds ..., sound RAM largest free block` line.
+2. Original traces for the FN INFERRED items (TODO "Fortune Night"): bulldozer facing T-B1, samurai selector U-E1, Panther
+   U-G2 / U-G3.
+3. The session 14 RM hardware check and the RM / AT traces still listed in TODO.
+4. Next stage after Fortune Night (Sky Battalion, json frame 36+) via ASSET_PIPELINE "Adding a level".
 
 ## Carol: verified vs approximated
 - **Matched to original traces (RV, cmp_carol, 53 traces):** on-foot movement, pounce chains, roll and roll jump, crouch

@@ -777,3 +777,9 @@ shared build/ (not in git): this section is the session's addendum to it (spec Â
 - **INFERRED elsewhere:** the plasma aim (atan2; the decompiled offsets are garbled), the floor pieces' slot reuse, the
   mode-2 body x step, the hit flash images (dir 1), achievement 21's window (8 frames after a partner strike), Milla
   carried by the plane when within 3 px, the FN5 back-cannon / rapid images loaded with FN6 only.
+
+## Session 17: Fortune Night lead notes
+- json frame vs set_frame: fn1-fn6 are json frames 30-35 (build_level.sh) and the original's set_frame indices 29-34
+  (goto_frame.sh, level rows' `.frame`).
+- RV screenshots (original, set_frame 29 / 30 / 32, build/orig/fn_start_*.png): FN2's start shows parallax piece 5_1802
+  (image 3612, the blue-roofed towers over water) behind the starting wall, confirming spec_fn_flow 4's FN2 table.

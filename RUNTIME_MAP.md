@@ -487,3 +487,15 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
   11025 Hz); SFX_FN45 += 126 193 (242 KB); convert_sfx.sh converts 137 254 256-259 261 436 at half rate.
 - **Host:** FP_DBG_FP=1 prints `fp` (state), `fpdmg` (damage source / amount), `fpev` (rapid fall / missile blast);
   FP_DBG_FP=2 adds `fpp` (every part's x, y, angle).
+
+## Session 17: Fortune Night lead notes (sounds, parallax, performance)
+- Stage sounds: `level_def_t.sfx` is per act in FN (`FN(d, f, n, mus)` pastes `SFX_FN##n`; SFX_FN4 / SFX_FN5 are both
+  SFX_FN45). snd_stage_load keeps ids shared with the next act and the character group, frees the rest, and logs
+  `stage sounds N, sound RAM largest free block X KB` (game.c).
+- parallax.c: `PMAXCH 32` chunks per parallax image (FN2's 5_1802 needs 30; over the limit par_load fails and the act
+  draws no parallax).
+- aqua.c bombs_frame: the enemy scan that arms a bomb monitor (3245 / 4056) tests distance before enemy_type and the
+  image box; same result (a frame is at most 1024 px), much cheaper with FN's 600-870 objects.
+- The AT / RM family passes (aqua_update, relic_frame, relic_gima_post) still run in FN because FN places RM-range
+  reusable types (camera limits 368-371, chairs 336, layer switches 283, ...); about 2 ms per frame on the host profile.
+  A per-type object index would remove that cost (not done: passes also act on runtime-created objects).
