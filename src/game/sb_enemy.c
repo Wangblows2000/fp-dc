@@ -383,7 +383,7 @@ static void dna_frame(obj_t *o, player_t *p) {
             obj_t *l = spawn(OT_SB_DNALASER, "sbn_laser", ax, ay);
             if (l) { l->av[0] = 8 * *Gd; l->A = 8; l->layer = o->layer; }
         }
-        if (*F > 60) { set_a(o, "sbn_idle"); *E = 0; *F = 0; }                   /* 9848 */
+        if (*F > 60) { set_a(o, "sbn_idle"); *E = 0; *F = -40; }                 /* 9848: F = -40 */
     }
     obj_t *b; EACH(OT_SB_DNABASE, b) if (fabsf(b->x - o->x) < 4 && fabsf(b->y - o->y) < 4) face(b, o->dir);   /* 9853 */
 }
