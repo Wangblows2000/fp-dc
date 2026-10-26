@@ -897,3 +897,64 @@ pivot (1896, 416)), ufo_hit (FN1), disco_c0 / c2 / c4 and samu (FN5).
   (snd_sfx_load <= 65534 samples = 5.9 s at 11025 Hz) and the gallery's 56 KB clip budget, so it is streamed once on the
   music channel (stereo ADPCM 32 kHz like the BGM; the original also plays it on channel 31). INFERRED: its volume follows
   the music volume option (the sample clips play at 255).
+
+## Session 18: the Panther fight fixes (FN6; port src/game/fn_panther.c; tests/test_fn_panther.py `s18_*`)
+User report on the session-17 build: projectiles wrong, the standing-up phase too high, stray objects, the player walks off
+the left edge. New original traces (tools/orig, `FRAME=34`; saved in build/orig_traces/fn6_s18 with their scripts and
+shots): **t1** Lilac holds left 200-800; **t2** hitbox A = 0 every 70 frames from 300 (to the results); **t3** Milla idle;
+**t4** A = 0 six times then idle (mode 2 at 864-1562); **t5 / t6** Lilac / Carol walk-in from frame 0 (`WARM=1`). Trace frame
+0 = act frame ~124 (WARM 120; HUD timer). New tracer option used: `XLIST` on the member lists plasma 0x10970, missile 0x109b0,
+rapid 0xf270, warning 0xa870 (speed lines are 0x10bb0, not 0x10b70 = the speed back).
+- **Floor events run before the movement** (RE: handle_frame_35 calls 8506-8532, then 1537-1652). **8512** is `M != 9: X =
+  max(X, view_x + 16)`; session 17 had the test inverted (M == 9), so nothing held the player when the belt (8518) dragged
+  them: releasing left or holding right at B < C let the belt carry them off-screen. **8515** = (left held) or (B > 10 and
+  right not held): B = B >= 5.05 ? B - 0.2 : 4.85; **8516** left not held, B < 10: CTRL.D = 1 (virtual right); **8517**
+  CTRL.D (right held, real or virtual): B += 0.2 without a cap (CTRL C / D = left / right held, RE_NOTES "Controller").
+  Ported in fn_panther_input (before player_update) with 8508 / 8509. RV t1: walking left holds X 224.85 / B 4.4075, after
+  the release X 224.607 / 224.881 / 225.155 - the port gives the same numbers. Holding right now runs forward.
+- **Walk-in (RV t5 / t6):** values flag 0 starts set, so frame 1 gets 8509's B + 10 (B 0 -> 9.63); CTRL.D held from the
+  second frame for 29 frames (B + 0.2 to 15 Lilac / 12 Carol), then 8515 + friction (-0.569) to the belt speed 10.08 / 10.12.
+  8550 (X >= 400) runs after 8518. Port: X 507.7 vs RV 498.6 when the speed settles (Carol 452.7 vs 449: the first grounded
+  frame is one frame later in the port, INFERRED). The direct `FP_LEVEL=fn6` host start has no walk-in (X ~419).
+- **Mode 2 (the standing phase; RE 8611-8621, RV t4 part positions):** 8611 / 8612 = 8554 / 8555; **8613** (garbled in the
+  decompile, read from the branch structure) blends the gait with w = 1 (I <= 40) ... 0 (I >= 70): B = Bw + I, E = Ew,
+  D = Dw + I, G = Gw - 2I, A = Aw - I - P, C = Cw - 0.8I - 0.5P, F = Fw - 1.3I (P = the foot-missile recoil 8626 / 8628);
+  **8614** angles as 8556 except head / rider not set (they stay level: RV head angle 0 at I 90), front cannon = its A,
+  jaw = its A, wheel angle -= 27 (float 0x21b69f0); **8616** head y - 0.5 I (RV y 75 at L 120.5); **8617** hip y + g3 mod 3;
+  **8618** tail wave without - I and y - 0.5 I, cannon / jaw = head + (B, C) unrotated, laser at the cannon, shield at the
+  rider, **the wheel at the hip** (on the floor, RV hip y 240-242). **8620 / 8621**: K follows the player like 8561 / 8562
+  (player - 180 / - 220, cap view_x + 266) at 2 px, while cannon D > -2. Session 17 rotated the whole head with I (90) and
+  drew the wheel at the raised front foot, so the stance stood high on screen (the "too high" report). Every part matches
+  t4 relative to the shoulder (U-G2 settled).
+- **Projectiles (RE + RV t2 / t3):** **8657** puts the target at (K + 260, L + 140) every frame for MV.A not 4 / 5 and
+  **8658** re-aims every plasma shot at the target every frame (all characters) and turns it -45 a frame (float 0x21b6628):
+  Lilac / Carol's volleys rain on the floor ahead of the panther (RV ends y 268-280), not on the player. **col_18_34**:
+  the shot bursts on the player even when invulnerable (5 damage only if MV.R 0, E <= 0); **col_16_34** (MV.A 4-5): it bursts
+  on Milla's mirrored target (RV t3: 9 of 12 shots end at Milla after 11-12 frames, the rest leave at x ~674; the port's
+  session-17 shots circled the target). **8590**: the rapid shell starts at the rider's action point, **C = E + 2** (disasm
+  0x11f73ad; the spec's "E mod 2 + 2" is wrong, also for FN3's 7877), D = 2 (E mod 2) - 1, E += 1 from 0 (8588): the 30
+  shells land 32, 48, 64 ... 496 px left / right (RV t2 420, 525, 388, 557 ...); 8054 / 8058 rise / fall 16 a frame (RV
+  111-117 frames); shells outside the floor fall for ever in the original (RV t2: y 24797 at the results; invisible) - the
+  port removes them below the level. **Warnings** live 31 frames (8658 A += 1, 8061 A > 30; RV), not until their shell
+  lands. **Missiles**: 8663 turns a new missile on its creation frame (RV first direction 3, not 4); the blast
+  (foreach_m_2041_2_34, disasm 0x11ebc20) hides the missile, makes an Explosion06 each frame E < 45 at (x + sin 132E (8 +
+  40 sin 2E), y - 80 sin 5E) and moves x - 10 a frame (the belt; RV t3 -10 for 44 frames), hurting while E < 30. Back-cannon
+  voices (8598-8601) play when it is open (D 0, A <= 0): Lilac 258, bike-Carol / Milla 259, Carol on foot none.
+  Counts (RV = port): 12 plasma per volley (one per 5 frames, <= 3 alive), 30 shells (<= 30 alive), <= 11 warnings,
+  11 missiles per volley one per 10 frames.
+- **Stray objects:** the jaw's (8644) and the post-boss (8753-8755) EffectsDebris were static effects whose 11-frame strip
+  never finished: they hung in the air for the rest of the fight and into the results. Now OT_DEBRIS (gravity 0.4, removed
+  out of view; launch speed INFERRED, own generator). Post-boss (RE): **8759** K -= 4 while K > head B (the panther backs
+  off left as B counts down); after **8762** the fight group is off, so the rig stops (the port kept running it); **8764**
+  (C 1 -> 2) the HUD shifts up 80 (loop_gui_shiftup_14 x 80) and **8769** (C 2, D < 80) puts the wreck on the floor: foot FR
+  (283, 280), hip (386, 282), leg FR (592, 282), leg FL (423, 281), shoulder F2 (260, 281) (RV t2 shots f1725+). The parts'
+  flash copies and invert draw only in the fight group; speed lines are removed at 8762.
+- **Difficulty:** no FN6 event reads global 12 (RE: 8487-8840 read g3 / g4 / g16 / g17 / g19 / g26 only), so Normal and
+  Hard differ only by the shared damage rule 2414 (Hard 2 half-petals per 5). Host `FP_DIFF=n` sets global 12.
+  FN3 (fn_boss.c, not changed): the Hard-only missile (7828) works in the host when the player is 300-400 px away at the
+  shot's first frame; the port runs 7911 (dash when > 400 px) before the state machine, the original's event order runs
+  7828 first (> 300, no upper bound) - left for the fn_boss.c owner.
+- **INFERRED / not ported:** the closing-pose skins and Serpentine on the floor (8765-8770), the dust (8771, no dust row in
+  fn6_ens), the plasma's 300-frame safety cap, debris launch speeds, the missile layer change (8660), 8653 / 8654 warning
+  shift over backdrops. A mode-2 defeat keeps the mode-2 rules (8622 resets cannon D to 0, so 8620 / 8621 still move K):
+  RE-literal, not traced. Not FN6: EffectWarning2 (FN3 7889-7891) and the FN3 HUD slides (7821 / 7868) are fn_boss.c's.

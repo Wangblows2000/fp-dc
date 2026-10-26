@@ -529,3 +529,20 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
   line `shields: no sprites for <dir> (<dir>/<dir>_shl missing)` means the act's data predates session 18.
 - **Gallery sound cards:** gal/<name>.wav (11025 Hz sample, <= 65534 samples) or gal/<name>.adp (longer: streamed once on
   the music channel by music_play_once, idle when music_active() drops; Y.play_t = -1 marks it). Only sx_08b02 (card 70).
+
+## Session 18: the Panther fight fixes (port: src/game/fn_panther.c; tests/test_fn_panther.py s18_*)
+- **Hook order:** fn_panther_input (before player_update) now also runs the FN6 floor events that precede the movement:
+  8508 / 8509 (belt latch), 8512 (left edge), 8515-8517 (belt speed, virtual right press); floor_mode (after the movement)
+  keeps 8513 / 8514 / 8518 (belt) / 8519 / 8523 and 8550's walk-in X >= 400.
+- **rig():** mode-2 branch (FP.g_m2 in act 6): pose_m2 (8613), the 8614 angles, head y - 0.5 I, hip rumble, tail, unrotated
+  cannon / jaw, the wheel object placed at the hip (drawn by fn_panther_draw pass 0 at its own x / y / angle). body_moves:
+  8620 / 8621 follow the player. No rig after 8762 (fight group off).
+- **runtime_pass:** 8657 target each frame, plasma re-aim / spin / player burst / Milla target burst / 300-frame cap,
+  missile birth-frame turn, blast_step (Explosion06 pattern, x - 10), warnings by age (31 frames). debris_fx = OT_DEBRIS
+  (bosses.c motion). post_boss: 8759, 8769 wreck.
+- **Shared files:** fp.h + game.c: `fn_panther_hud_dy()` added to hud_dy (FN6 8764: -80 from the closing pose); game.c
+  host-only `FP_DIFF` (global 12 for tests).
+- **Host:** FP_DBG_FP=3 prints `fpo frame slot born type x y st tm hidden` for every runtime panther object; the `fpp` row
+  (FP_DBG_FP=2) ends with `w:x,y,shown,scale,angle` (the wheel).
+- **Per frame (SH4):** unchanged structure (one pass over the object list for runtime objects); a missile blast now adds up
+  to 45 short Explosion06 effects (as the original; at most ~4 blasts overlap).
