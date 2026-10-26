@@ -461,3 +461,30 @@ Labels: original-trace (RV), RE, host-test, emulator (Flycast, emulated time). *
   (private overlays), an original-game lock held by an Xvfb (start_orig.sh), test_fn_enemies vs the FN4 chair, FN2
   parallax chunk limit, FN3 Milla frame time (bomb arming scanned every object for every bomb).
 - **DC build:** 0 warnings. **Emulator only; nothing measured on real hardware.**
+
+## Session 18 (2026-10-26): Fortune Night playtest fixes, performance
+- **Agents' focused suites** (private data overlays): test_fn_panther (81 checks incl. 37 `s18_*`), test_fn_assist (new),
+  test_fn_bosses (140), test_fn_gimmicks_a (103), test_fn_gimmicks_b (53), test_fn_flow (67), test_levels (`shield_*`),
+  test_gallery (genuine clips, card 70 streaming), sound-id traces for pellets (DV1 Turretus, FN2 Super Turretus, flare
+  cannon; Lilac / Carol / Milla; hit and miss).
+- **Original runs (RV):** FN6 t1-t6 and al_* (build/orig_traces/fn6_s18/), FN1 ufo_hit, arch_lf / arch_l / arch_r, FN5
+  samu, disco_c0 / c2 / c4 (build/orig_traces/fn_s18/); FN6 missile-blast screenshots (build/orig/fn6_blast_*.png).
+- **Lead perf changes:** each followed by the suites they touch and the trace comparers (identical); host callgrind of
+  FN1 (900 frames held right): game_update 1240 -> 805 M instructions.
+- **Milestone (after the last merge, all 19 levels rebuilt):** all 19 suites 0 failures; cmp_all 76/76 strict
+  11311/11377, cmp_carol 43/53, cmp_milla 37/43, cmp_at 21/35 (unchanged).
+- **Flycast (lean discs, build/verify18):**
+
+  | Run | VRAM free | Sound RAM free (stage group) | update ms (was, session 17) | vblanks / 600 |
+  |---|---|---|---|---|
+  | FN1 Lilac | 2177 KB | 319 KB | 7.5 (13.6) | 603 |
+  | FN2 Carol | 1112 KB | 262 KB | 5.1 (6.8) | 603 |
+  | FN3 Carol | 625 KB | 171 KB | 9.8 (13.9) | 603 |
+  | FN3 Milla | 793 KB | 137 KB | 10.1 (14.3) | 603 |
+  | FN4 Milla | 1825 KB | 175 KB | 8.6 (11.9) | 603 |
+  | FN5 Carol, samurai arena | 953 KB | 217 KB | 10.7 (new) | 603 |
+  | FN6 Lilac / Carol / Milla | 3167 / 2639 / 2807 KB | 221 / 178 / 139 KB | 3.7 / 3.8 / 2.6 | 602 |
+
+  Visual checks: FN6 plane with Torque and Milla, Carol's bike assist, Milla on the plane, missile blast arcs (as in the
+  original); FN5 disco dance with Lilac, Carol and Milla (TP to x 2950, idle).
+- **DC build:** 0 warnings. **Emulator only; nothing measured on real hardware.**

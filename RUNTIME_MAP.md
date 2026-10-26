@@ -565,3 +565,22 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
   TRIM rule: 27 -> 12 KB): the FN6 stage group 176 -> 190 KB.
 - **Host:** FP_DBG_FP=1 adds `fpa` (plane / Milla / helper state per frame), `fpas` (drop, arrive, jump, strike, land,
   knocked `by <object type>`, -1 the laser) and `fpcast` (the closing scene's D and cast x / sprite).
+
+## Session 18: lead notes (performance, ceiling springs)
+- **Per-frame cost cuts (same results; trace comparers and every suite unchanged):**
+  - The AT / RM family passes skip a pass whose object types are all absent (`objects_alive_type`, a superset of the live
+    types rebuilt on allocation): aqua_update's bursts, jelly, bricks, fireflies, slimes, whisps, jets and dig spots;
+    relic_gima_post's paths, carry, wheels, wall plates, spinball, panels, flip panels, fireballs, axles, clocks, basement
+    light and floors; rmboss_frame's shot / shock lookups. FN placed RM-range reusable types, so these passes ran every frame.
+  - bombs_frame lists the enemies once per frame for bomb arming; enemies_absorb_crystals lists the absorbing enemies once
+    per call (was a full scan per crystal in view).
+  - The sensor snapshot (objects.c) has an order-preserving x-bucket index (512 px buckets); a query inside one bucket
+    walks only that list.
+  - bank_anim caches name -> index (keyed by bank and name text, hit re-checked against the bank, misses only for the same
+    bank load).
+  - relic_gima hangers: the handle list is built once per frame; fn_gima dragons: masks sorted by x for the 39 px test.
+- **Flycast effect (update time per frame, holding right):** FN1 Lilac 13.6 -> 7.5 ms, FN2 Carol 6.8 -> 5.1, FN3 Carol
+  13.9 -> 9.8, FN3 Milla 14.3 -> 10.1, FN4 Milla 11.9 -> 8.6; FN5 samurai arena (Carol) 10.7, FN6 2.6-3.7.
+- **OT_SPRING_D = 29** (YellowSpringDown_416, FN2 / FN4 ceilings, RE event 3008 = event 3000 with G = 11): dispatched to
+  aqua_spring (box contact from below while G <= 0, launch G 11 + gravity, sound 5). Types 20-27 are the parallax piece
+  range and must not be reused.

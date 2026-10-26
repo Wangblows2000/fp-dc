@@ -1021,3 +1021,12 @@ frame f = act frame f + 121 (offense I 1200 ctor, 1079 at f0) = port frame f + 1
   -> 394 -> 353) and the plane follows her (8525). The port's hurt arc is RV-equal in the air but ST_HURT ends on landing
   (player.c), while RV keeps the hurt pose and B -1.7068 for 4 more grounded frames (t3 f493-496): 34 px a hit in the port, so
   after three hits 418 vs RV 394 (player core, not changed here).
+
+## Session 18: lead notes
+- YellowSpringDown_416 (RE): `Frames::event_func_3008` is event 3000 (RedSpringDown) with G = 11 instead of 18: same
+  guards (G <= 0, M not 9 / 10), L = 0, M = 40, sound 5, a spring-beam effect on the spring's layer, animation 0 forced.
+  Placed in FN2 (4 at y 1096) and FN4 (7 at y 496); imported since session 18. Not runtime-tested (needs upward motion
+  into the ceiling, which the host scripts cannot set directly).
+- RV (original screenshots build/orig/fn6_blast_*.png, set_frame 34): the back-cannon missile blasts leave long arcs of
+  Explosion06 with dark smoke rings, as in the port; the reported "black boxes" were not seen in Flycast (the dark frames
+  are the smoke rings).
