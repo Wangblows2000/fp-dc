@@ -79,7 +79,7 @@ for ch in (LILAC, CAROL, MILLA):
     check('ufo_%s_states_0_to_5' % tag, order[:6] == [0, 1, 2, 3, 4, 5], str(order[:8]))
     g3 = first(sorted(u), lambda f: u[f]['a0'] == 3)
     check('ufo_%s_hatches_open_sound_168' % tag, g3 is not None and u[g3]['a3'] == 45 and snd(sids, 168) and abs(snd(sids, 168)[0] - g3) <= 1 and snd(sids, 169))
-    check('ufo_%s_unarmoured_after_trigger' % tag, not (u[g3]['fl'] & ARMOURED))
+    check('ufo_%s_armoured_in_every_state' % tag, all(u[f]['fl'] & ARMOURED and u[f]['A'] == 200 for f in u))   # session 18: RE 7367 only sets flag 5, RV ufo_hit
     xs = [u[f]['x'] for f in sorted(u) if u[f]['a0'] in (3, 4)]
     check('ufo_%s_hovers_between_borders' % tag, xs and min(xs) >= 6968 - 80 and max(xs) <= 7424 + 80, '%s..%s' % (min(xs), max(xs)))
     nf0, nf1 = len(of(obs, FLOOR, 0)), len(of(obs, FLOOR, 819))
@@ -92,6 +92,30 @@ rows, obs, sids, music = run('fn1', A1 + ';300 TP 7140 1180', 760, '%d:-1,%d:-1'
 bm = byf(obs, BEAM)
 d = [(f, n) for f, n in hp_drops(rows, 300) if bm.get(f - 1) and bm[f - 1]['hd'] == 0 and abs(rows[f - 1]['x'] - bm[f - 1]['x']) < 40]
 check('ufo_beam_damage_10', d and d[0][1] == 2, 'drops %s' % hp_drops(rows, 300)[:5])
+# session 18 (playtest: enough hits made the UFO fly away before it broke the floor): no event clears its flag 5 (RE: only 7367 writes
+# it for the UFO; 7441 / 7815 clear other bosses' armour) and RV ufo_hit (set_frame 29, Lilac jump-attacking under it) logs flag 0x20
+# and A 200 in every state G 0-5. Hits clang (sound 30, C = 5 pauses L and the beam); the beam still cuts the floor and it leaves.
+for ch in (LILAC, CAROL, MILLA):
+    sc = A1 + ';' + INV + ';' + ';'.join('%d TP 7200 1110;%d %d %s' % (f, f + 1, f + 3, 'B' if ch == MILLA else 'X') for f in range(300, 700, 10))
+    rows, obs, sids, music = run('fn1', sc, 900, '%d:-1,%d:-1' % (UFO, FLOOR), ch=ch)
+    u = byf(obs, UFO)
+    nf0, nf1 = len(of(obs, FLOOR, 0)), len(of(obs, FLOOR, 899))
+    check('ufo_ch%d_hits_clang_no_damage' % ch, len(snd(sids, 30, 300, 700)) >= 5 and all(u[f]['A'] == 200 and u[f]['fl'] & ARMOURED for f in u) and not snd(sids, 24, 300, 700),
+          'clangs %d, A %s' % (len(snd(sids, 30, 300, 700)), sorted({u[f]['A'] for f in u})))
+    check('ufo_ch%d_floor_breaks_and_it_leaves_despite_hits' % ch, nf1 < nf0 - 6 and u[899]['a0'] == 5, '%d -> %d floors, G %s' % (nf0, nf1, u[899]['a0']))
+# re-entry: a death during the encounter restarts the act with the UFO reset (G 0, hidden, armoured, the floors back); the
+# encounter then plays again to the floor cut and the fly-off. After the checkpoint (7366, X > 7700: restart (7700, 1500) below the
+# floors) it stays dormant (no trigger box down there)
+rows, obs, sids, music = run('fn1', A1 + ';400 HP 1;401 HURT 0;700 TP 6900 1000;760 772 R', 1700, '%d:-1,%d:-1' % (UFO, FLOOR))
+u = byf(obs, UFO)
+rs = first(range(402, 700), lambda f: rows[f]['hp'] == 14 and rows[f]['x'] < 1000)
+check('ufo_reset_after_death', rs and u[rs + 1]['a0'] == 0 and u[rs + 1]['hd'] == 1 and u[rs + 1]['fl'] & ARMOURED and len(of(obs, FLOOR, rs + 1)) == len(of(obs, FLOOR, 0)), 'restart %s' % rs)
+g = [u[f]['a0'] for f in range(700, 1700)]
+check('ufo_replays_after_death', [x for i, x in enumerate(g) if i == 0 or g[i - 1] != x][:6] == [0, 1, 2, 3, 4, 5] and len(of(obs, FLOOR, 1699)) < len(of(obs, FLOOR, 0)) - 6)
+rows, obs, sids, music = run('fn1', '5 TP 7760 1400;' + INV + ';120 HP 1;121 HURT 0', 600, '%d:-1' % UFO)
+u = byf(obs, UFO)
+check('ufo_dormant_after_checkpoint_restart', rows[-1]['g4'] == 2 and abs(rows[-1]['x'] - 7700) < 200 and all(u[f]['a0'] == 0 and u[f]['hd'] == 1 for f in range(300, 600)),
+      'g4 %s x %s' % (rows[-1]['g4'], rows[-1]['x']))
 # the player falls 300 px below the UFO: camera released early (7369)
 rows, obs, sids, music = run('fn1', A1 + ';' + INV + ';260 TP 7200 1700', 420, '%d:-1' % UFO)
 u = byf(obs, UFO)
@@ -250,6 +274,27 @@ for ch in (LILAC, CAROL, MILLA):
     check('samu5_%s_no_armour_fight' % tag, not (sm[0]['fl'] & ARMOURED) and sm[40]['a7'] == 1 and sm[40]['a6'] == 0)
     check('samu5_%s_defeat_gate_turret' % tag, sm[799]['a1'] >= 28 and of(obs, GATE, 799)[0]['A'] == 48 and any(round(o['x']) == 10931 for o in of(obs, STURRET) if o['f'] > 300))
     check('samu5_%s_no_music_change' % tag, all(m[1] == 'bgm/m_stage3b.adp' for m in music), str(music))
+# session 18 (playtest: FN5's arena had no floor, the player fell onto the spikes and could not finish the act): the arena floor is
+# 7 rows of BreakableFloor1/2 under handles 1996 / 1997 (the same objects 922 / 923 as acts 1-3, own images; the importer had
+# skipped them). 8 columns x 7 rows at x 9920..10368, y 576..864 over the spikes at 928; the samurai's hand smash (8439 / 8440 /
+# 8447 / 8448) and body charge (8031 / 8032, run in A5 too) break the rows they touch (A5 8343-8346 shatter them)
+rows, obs, sids, music = run('fn5', '5 TP 9850 100;' + INV + ';60 90 R', 200, '%d:-1,%d:-1' % (FLOOR, SAMU))
+fl = of(obs, FLOOR, 0)
+check('samu5_arena_floor_present', len(fl) == 56 and {o['x'] for o in fl} == set(range(9920, 10369, 64)) and {o['y'] for o in fl} == set(range(576, 865, 48)), '%d floors' % len(fl))
+check('samu5_lands_on_the_arena_floor', rows[150]['gnd'] and abs(rows[150]['y'] - 576) < 2 and byf(obs, SAMU)[150]['a7'] == 1, 'y %s' % rows[150]['y'])
+for ch in (LILAC, CAROL, MILLA):
+    tag = 'ch%d' % ch
+    rows, obs, sids, music = run('fn5', '5 TP 9850 100;' + INV + ';60 90 R', 1300, '%d:-1,%d:-1' % (FLOOR, SAMU), ch=ch)
+    sm = byf(obs, SAMU)
+    n0, n1 = len(of(obs, FLOOR, 0)), len(of(obs, FLOOR, 1299))
+    check('samu5_%s_floors_break_row_by_row' % tag, n1 < n0 and n1 >= n0 - 24 and max(r['y'] for r in rows[150:]) < 900 and {3, 5} <= {sm[f]['a0'] for f in sm}, '%d -> %d, max y %s' % (n0, n1, max(r['y'] for r in rows[150:])))
+    # entry -> defeat -> out through the gate -> (past the balloon climb) the Panther road -> exit X > W + 20 -> FN6
+    sc = '5 TP 9850 100;' + INV + ';60 90 R;400 BOSSHP 0;900 1300 R;' + ';'.join('%d %d RJ' % (f, f + 12) for f in range(900, 1300, 40)) + ';1300 TP 11500 100;1301 2600 R'
+    rows, obs, sids, music = run('fn5', sc, 2600, '%d:-1,%d:-1' % (SAMU, GATE), ch=ch)
+    sm = byf(obs, SAMU)
+    out = first(range(900, 1300), lambda f: rows[f]['x'] > 10480)
+    six = first(range(1300, 2600), lambda f: rows[f]['act'] == 6)
+    check('samu5_%s_defeat_exit_and_fn6' % tag, sm[899]['a1'] >= 28 and of(obs, GATE, 899)[0]['A'] == 48 and out is not None and six is not None, 'out of the arena %s, FN6 %s' % (out, six))
 # FN5 8422: no trigger once g4 >= 3 (the second checkpoint, 8421)
 rows, obs, sids, music = run('fn5', '5 TP 10600 500;' + INV + ';40 TP 10100 400', 300, '%d:-1' % SAMU)
 sm = byf(obs, SAMU)

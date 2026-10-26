@@ -37,7 +37,7 @@ static struct {
     int melody;                                       /* 8214 / 8215 done this act */
     int room, behind;                                 /* the restroom slot taken by M39 (-1), skins behind its door (8196-8205) */
     int pod;                                          /* the pod door carrying the player (-1) */
-    int idle_t;                                       /* frames in the idle pose (8306-8308 "frame > 10", INFERRED) */
+    int idle_t;                                       /* frames in the idle pose: the clock of PlayerSkinSash_341's idle animation (8306-8308) */
     uint32_t car_t;                                   /* carousel frames (8347: B = B0 - t) */
 } S;
 
@@ -521,7 +521,13 @@ static void disco(player_t *p) {
     }
     int still = p->state == ST_NORMAL && p->ground && fabs(p->gsp) < 0.01 && !(p->held & (BTN_LEFT | BTN_RIGHT | BTN_JUMP | BTN_UP | BTN_DOWN)) && Mst(p) == 0;
     S.idle_t = still ? S.idle_t + 1 : 0;
-    if (*A >= 64 && still && !p->bike && S.idle_t > 10 && !dead(p)) { p->state = ST_DANCE; p->state_t = 0; }   /* 8306-8308: M 50 (Lilac, Carol on foot, Milla) */
+    /* 8306-8308 test the frame of PlayerSkinSash_341 (Frames +0x47b0: Lilac's skin, which runs its idle animation for every
+     * character) for "not anim 40 and frame > 10" (RE session 18). Its idle is anim 0: 12 frames at speed 14, from frame 0 when
+     * the idle starts, so frame 11 comes 79 frames after the landing and then every 86 frames (RV disco_c0 / c2 / c4: Lilac,
+     * Carol and Milla all start the dance 79 frames after landing, 29 frames after DiscoLight A reached 64). The session-17
+     * port used 10 idle frames (INFERRED). */
+    int sash = S.idle_t > 0 ? (S.idle_t - 1) * 14 / 100 % 12 : 0;              /* frame 0 (counter 0) on the first idle frame */
+    if (*A >= 64 && still && !p->bike && sash > 10 && !dead(p)) { p->state = ST_DANCE; p->state_t = 0; }   /* M 50 (Lilac, Carol on foot, Milla; not the bike: no MV.A = 3 event) */
     if (*A >= 64 && p->state == ST_DANCE) ach_earn(20);                             /* 8313: "Disco Fever" */
 }
 
