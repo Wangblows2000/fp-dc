@@ -717,9 +717,13 @@ SBBOSS_TYPES_ID = {('playerassist', 2205): 1150, ('playerassistcopilot', 2220): 
     ('crystalplatform', 2334): 1250,
     ('bosschopper', 2216): 1200, ('bosschopperblade', 2217): 1201, ('bosschoppertail', 2215): 1202, ('bosschoppertailblade', 2218): 1203,
     ('bosschoppertailblade2', 2214): 1204, ('bosschopperbars', 2212): 1205, ('bosschopperbars2', 2213): 1206,
-    ('bossspademask', 2248): 1220, ('bossspade', 2247): 1221, ('bossspadehitbox', 2250): 1222}
+    ('bossspademask', 2248): 1220, ('bossspade', 2247): 1221, ('bossspadehitbox', 2250): 1222,
+    ('bosskujackerbase', 2118): 1170, ('bosskujackerhead', 2125): 1171, ('bosskujackerhead2', 2119): 1172, ('bosskujackerleg1', 2117): 1173,
+    ('bosskujackerleg2', 2116): 1174, ('bosskujackerpilot', 2124): 1175, ('bosskujackertail', 2115): 1176, ('bosskujackertailtarget', 2120): 1177,
+    ('bosskujackerwing1', 2122): 1178, ('bosskujackerwing2', 2123): 1179, ('bosstornado', 2131): 1180, ('effectschargebeam', 2130): 1182}
 SBBOSS_SUB = {}
 _SA, _AS, _GR, _CH, _SP = ('bosssatellite',), ('playerassist',), ('bossgrappler',), ('bosschopper',), ('bossspade',)
+_KJ = ('bosskujackerbase',)
 SBBOSS_ENS = [(c, a, d, nm, None, w) for c, a, d, nm, w in (
     ('bosssatellite_2286', 0, '0', 'sbs_sat', _SA), ('bosssatellite_2286', 7, '0', 'sbs_sat7', _SA), ('bosssatellite_2286', 8, '0', 'sbs_sat8', _SA),
     ('bosssatellite_2286', 10, '0', 'sbs_sat10', _SA), ('bosssatellitearm_2287', 0, '0', 'sbs_arm', _SA), ('bosssatellitearm_2287', 7, '0', 'sbs_arm7', _SA),
@@ -742,12 +746,14 @@ SBBOSS_ENS = [(c, a, d, nm, None, w) for c, a, d, nm, w in (
     [('bossmissile_2219', 8, '0', 'sbc_mis8', None, _CH)] + \
     [('bossspade_2247', a, d, 'sbp_%d' % a + ('' if d == '0' else '_l'), None, _SP) for a in (0, 1, 2, 8, 15, 21, 24, 26, 29) for d in ('0', '16')] + \
     [(c, a, '0', nm, None, _SP) for c, a, nm in (('bossspadecard_2249', 0, 'sbp_card'), ('bossspadecard_2249', 7, 'sbp_card7'),
-                                                 ('bossspadehitbox_2250', 0, 'sbp_hit'), ('thunderspark_410', 4, 'sbp_tspark'))]
-SBBOSS_ENS_WITH = {'effectsexplosion01_367': _SA + _GR + _CH + _SP, 'effectsexplosion06_435': _SA + _GR + _CH, 'effectshade_436': _SA,
+                                                 ('bossspadehitbox_2250', 0, 'sbp_hit'), ('thunderspark_410', 4, 'sbp_tspark'))] + \
+    [(c, a, d, nm, None, _KJ) for c, a, d, nm in [('bosskujackerbase_2118', 0, '0', 'sbk_base'), ('bosskujackerbase_2118', 7, '0', 'sbk_base7'), ('bosskujackerbase_2118', 11, '0', 'sbk_base11'), ('bosskujackerhead_2125', 0, '0', 'sbk_head'), ('bosskujackerhead_2125', 0, '16', 'sbk_head_l'), ('bosskujackerhead_2125', 0, '24', 'sbk_head_d'), ('bosskujackerhead_2125', 7, '0', 'sbk_head7'), ('bosskujackerhead_2125', 7, '16', 'sbk_head7_l'), ('bosskujackerhead_2125', 8, '0', 'sbk_head8'), ('bosskujackerhead_2125', 9, '0', 'sbk_head9'), ('bosskujackerhead_2125', 10, '0', 'sbk_head10'), ('bosskujackerhead_2125', 11, '24', 'sbk_head11'), ('bosskujackerhead2_2119', 0, '0', 'sbk_neck'), ('bosskujackerhead2_2119', 11, '0', 'sbk_neck11'), ('bosskujackerwing1_2122', 0, '0', 'sbk_w1'), ('bosskujackerwing1_2122', 11, '0', 'sbk_w1_11'), ('bosskujackerwing2_2123', 0, '0', 'sbk_w2'), ('bosskujackerwing2_2123', 11, '0', 'sbk_w2_11'), ('bosskujackerleg1_2117', 0, '0', 'sbk_leg1'), ('bosskujackerleg1_2117', 7, '0', 'sbk_leg1_7'), ('bosskujackerleg1_2117', 7, '16', 'sbk_leg1_7l'), ('bosskujackerleg1_2117', 11, '0', 'sbk_leg1_11'), ('bosskujackerleg2_2116', 0, '0', 'sbk_leg2'), ('bosskujackerleg2_2116', 7, '0', 'sbk_leg2_7'), ('bosskujackerleg2_2116', 7, '16', 'sbk_leg2_7l'), ('bosskujackerleg2_2116', 11, '0', 'sbk_leg2_11'), ('bosskujackertail_2115', 0, '0', 'sbk_tail'), ('bosskujackertail_2115', 10, '0', 'sbk_tail10'), ('bosskujackertail_2115', 11, '0', 'sbk_tail11'), ('bosskujackertailtarget_2120', 0, '0', 'sbk_tt'), ('bosskujackertailtarget_2120', 11, '0', 'sbk_tt11'), ('bosskujackerpilot_2124', 0, '0', 'sbk_pilot'), ('bosskujackerpilot_2124', 7, '0', 'sbk_pilot7'), ('bosskujackerpilot_2124', 7, '16', 'sbk_pilot7_l'), ('bosstornado_2131', 0, '0', 'sbk_tornado'), ('bossbolt_2129', 0, '0', 'sbk_bolt'), ('bosslightning_2121', 0, '0', 'sbk_light'), ('bosslightning2_2132', 0, '0', 'sbk_light2'), ('bosslightning2_2132', 0, '1', 'sbk_light2v'), ('effectschargebeam_2130', 0, '0', 'sbk_beam'), ('effectsgust_2127', 4, '0', 'sbk_gust'), ('effectsgust2_2128', 0, '0', 'sbk_gust2'), ('effectsdust01_369', 4, '0', 'sbk_dust'), ('effectsdust01_369', 4, '16', 'sbk_dust_l'), ('effectsexplosion02_368', 4, '0', 'sbk_exp2'), ('effectwarning_1528', 0, '0', 'sbk_warn')]]
+SBBOSS_ENS_WITH = {'effectsexplosion01_367': _SA + _GR + _CH + _SP, 'effectsexplosion06_435': _SA + _GR + _CH + _KJ, 'effectshade_436': _SA,
                    'bosscrystalspike_2324': _GR, 'bosshomingspark_2332': _GR, 'bossmissile_2219': _CH, 'minibosstreddbomb_1060': _CH, 'monitoricon_363': _CH,
-                   'bossspadecard_2249': _SP, 'thunderspark_410': _SP}
+                   'bossspadecard_2249': _SP, 'thunderspark_410': _SP, 'bossbolt_2129': _KJ, 'bosslightning_2121': _KJ, 'bosslightning2_2132': _KJ,
+                   'effectsgust_2127': _KJ, 'effectsgust2_2128': _KJ, 'effectsdust01_369': _KJ, 'effectsexplosion02_368': _KJ, 'effectwarning_1528': _KJ}
 ENGINE_TYPES_ID.update(SBBOSS_TYPES_ID); ENS += SBBOSS_ENS   # SB_BOSS
-ENS_FRAMES['effectwarning_1528'] = ENS_FRAMES.get('effectwarning_1528', set()) | {39}   # SB_BOSS: the spire's marker (SB4)
+ENS_FRAMES['effectwarning_1528'] = ENS_FRAMES.get('effectwarning_1528', set()) | {36, 39}   # SB_BOSS: the spire's marker (SB4), the Kujacker's dash warnings (SB1)
 for _k, _v in SBBOSS_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # SB_BOSS
 SHL_CLASSES = {'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 ENS_ONLY_WITH = {'guiweaponslot_426', 'effectswatersplash_379', 'bubblepatch_804', 'mediumbubble_805', 'generalwaterhorizon_377', 'bubblenumbers_405', 'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
