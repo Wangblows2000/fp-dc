@@ -417,7 +417,9 @@ static void explode2(float x, float y) {
     e->type = OT_EXPLODE; e->alive = 1; e->x = x; e->y = y;
     if (A_EXPLODE2 >= 0) anim_set(&e->an, &G.objs, A_EXPLODE2);
     else if (A_EXPLODE >= 0) anim_set(&e->an, &G.objs, A_EXPLODE);
-    snd_play_orig(80, 220, 128);   /* RV: id 80 with the pellet hit */
+    /* RE col_4_20 / col_7_20 / col_20_20 (pellet vs the sensor, Q7, the background): explosion02 + Media slot 136/8 = sound 17
+     * (RV hurt_turretus 17 25 81, a miss 17 alone). 80 is Lilac's hurt voice (loop_sound_hurt0_8 play_id 0x50; session 18) */
+    snd_play_orig(17, 220, 128);
 }
 
 /* Turretus events 4767-4774 in their original order, after this frame's animation update */
