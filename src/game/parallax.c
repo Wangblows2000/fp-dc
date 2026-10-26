@@ -24,7 +24,7 @@
 #define PMAXPIECE 24
 typedef struct { int x, y, w, h; tex_t t; } pchunk_t;
 typedef struct { int img; float D, E, G; int y0, bw, bh, flags; double F; int handle; } ppiece_t;   /* handle: the Fusion object (file version 1) */
-static struct { int w, h, n; pchunk_t ch[PMAXCH]; } IMG[PMAXIMG];
+static struct { int w, h, n, fl; pchunk_t ch[PMAXCH]; } IMG[PMAXIMG];   /* fl (file version 2): 1 ARGB4444 (translucent list), 2 half resolution (drawn x2) */
 static ppiece_t PC[PMAXPIECE];
 static int nimg, npc, has_water, water_y;
 static tex_t WT[2];
@@ -50,12 +50,13 @@ int par_load(const char *dir) {
     size_t off = 12;
     if (ni > PMAXIMG || np > PMAXPIECE) { free(d); return -1; }
     for (int i = 0; i < ni; i++) {
-        if (off + 6 > sz) goto bad;
-        IMG[i].w = rd16(d + off); IMG[i].h = rd16(d + off + 2); IMG[i].n = rd16(d + off + 4); off += 6;
+        int ih = ver >= 2 ? 8 : 6;
+        if (off + ih > sz) goto bad;
+        IMG[i].w = rd16(d + off); IMG[i].h = rd16(d + off + 2); IMG[i].n = rd16(d + off + 4); IMG[i].fl = ver >= 2 ? rd16(d + off + 6) : 0; off += ih;
         if (IMG[i].n > PMAXCH || off + 8u * IMG[i].n > sz) goto bad;
         for (int k = 0; k < IMG[i].n; k++, off += 8) {
             IMG[i].ch[k].x = rd16(d + off); IMG[i].ch[k].y = rd16(d + off + 2); IMG[i].ch[k].w = rd16(d + off + 4); IMG[i].ch[k].h = rd16(d + off + 6);
-            char nm[64]; snprintf(nm, sizeof nm, "%s/%s_px%d_%d", dir, dir, i, k);
+            char nm[64]; snprintf(nm, sizeof nm, (IMG[i].fl & 1) ? "%s/%s_pa%d_%d" : "%s/%s_px%d_%d", dir, dir, i, k);   /* _pa: ARGB4444 chunks */
             if (tex_load_file_skip_empty(&IMG[i].ch[k].t, nm) < 0) IMG[i].ch[k].t.id = -1;
         }
         nimg = i + 1;
@@ -87,16 +88,19 @@ void par_update(void) {
 }
 
 static void draw_image(int ii, int x, int y, int clipy0, int clipy1) {
+    int s = (IMG[ii].fl & 2) ? 2 : 1;                     /* half-resolution chunks (SB mist): texel coordinates x 2 on screen */
+    uint32_t col = (IMG[ii].fl & 1) ? 0xfeffffff : 0xffffffff;   /* ARGB4444: drawn through the translucent list */
     for (int k = 0; k < IMG[ii].n; k++) {
         const pchunk_t *c = &IMG[ii].ch[k];
         if (c->t.id < 0) continue;
-        int cy0 = y + c->y, cy1 = cy0 + c->h, cx = x + c->x;
-        if (cx >= SCREEN_W || cx + c->w <= 0 || cy1 <= 0 || cy0 >= SCREEN_H) continue;
-        int v0 = 0, h = c->h;                             /* clip to the box (piece6 160 of 170 rows) */
+        int cw = c->w * s, chh = c->h * s;
+        int cy0 = y + c->y * s, cy1 = cy0 + chh, cx = x + c->x * s;
+        if (cx >= SCREEN_W || cx + cw <= 0 || cy1 <= 0 || cy0 >= SCREEN_H) continue;
+        int v0 = 0, h = chh;                              /* clip to the box (piece6 160 of 170 rows) */
         if (cy0 < clipy0) { v0 = clipy0 - cy0; h -= v0; cy0 = clipy0; }
         if (cy0 + h > clipy1) h = clipy1 - cy0;
         if (h <= 0) continue;
-        r_sprite(&c->t, 0, v0, c->w, h, (float)cx, (float)cy0, (float)c->w, (float)h, 0, 0xffffffff);
+        r_sprite(&c->t, 0, v0 / s, c->w, h / s, (float)cx, (float)cy0, (float)cw, (float)h, 0, col);
     }
 }
 
