@@ -161,6 +161,7 @@ static int enemy_type_list(int t) {
            t == OT_MT_HEAD || t == OT_MT_HIT1 || t == OT_MT_HIT2 ||                    /* RM5 q20: Mantalith head and arm weak points (spec_rm_mantalith 0) */
            fn_enemy_q20(t) ||                       /* Fortune Night Q20 (fn_enemy.c, spec_fn_enemies 0) */
            fn_boss_q20(t) ||                        /* Fortune Night bosses: UFO, bulldozer + door, Serpentine hitbox, samurai (fn_boss.c) */
+           sb_boss_q20(t) ||                        /* Sky Battalion bosses (sb_boss.c) */
            rm_claw_enemy(t) ||                      /* RM3 Claw set: Shrine3, BossClawHitbox, CaravanEngine (rm_claw.c) */
            fn_panther_q20(t) ||                     /* FN6: the panther hitbox (fn_panther.c) */
            fn_gima_enemy(t);                        /* Fortune Night: lampposts, boost blocks (fn_gima.c) */

@@ -689,6 +689,38 @@ ENS_FRAMES.update({e[0]: ({34, 35} if any(w in e[0] for w in FNP_A5) else {35}) 
                    if e[0] not in ENS_FRAMES and e[0] not in ('shieldserpentine_1872', 'bossrapidbullet_1866', 'effectgunspark_1887')})   # FN_PANTHER (shared A3 classes left open)
 ENS_FRAMES['effectwarning_1528'] = ENS_FRAMES.get('effectwarning_1528', set()) | {34, 35}   # FN_PANTHER: the mortar's ground warning (shared with RM5's row)
 for _k, _v in FNP_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # FN_PANTHER
+# ---- SB_BOSS: Sky Battalion bosses and minibosses (build/re/spec_sb_bosses.md; src/game/sb_boss*.c). Types 1150-1279 mirror src/fp.h
+# (OT_SB_*); the lvobj anim field carries the sub id (SBBOSS_SUB) | instance layer << 8. The classes are mapped only in SBBOSS_FRAMES
+# (json 36-39); MinibossUFOBeam_1769 (FN type 803) is the satellite's main beam in SB3 (remapped below). Every sprite row names its
+# creator class (rows exported only where that boss is placed).
+SBBOSS_FRAMES = {36, 37, 38, 39}
+SBBOSS_TYPES_ID = {('playerassist', 2205): 1150, ('playerassistcopilot', 2220): 1151, ('guicompass', 2246): 1152,
+    ('bosssatellite', 2286): 1160, ('bosssatellitetop', 2284): 1161, ('bosssatellitethrusters', 2285): 1162, ('bosssatellitearm', 2287): 1163,
+    ('minibossufobeam2', 2288): 1165,
+    ('bossgrappler', 2331): 1240, ('bossgrapplerhandleft', 2330): 1241, ('bossgrapplerhandright', 2329): 1242, ('bossgrapplerarmleft', 2327): 1243,
+    ('bossgrapplerarmright', 2328): 1244, ('bosscrystalspire', 2333): 1245, ('bosscrystalspikespawner1', 2325): 1246, ('bosscrystalspikespawner2', 2326): 1247,
+    ('crystalplatform', 2334): 1250}
+SBBOSS_SUB = {}
+_SA, _AS, _GR = ('bosssatellite',), ('playerassist',), ('bossgrappler',)
+SBBOSS_ENS = [(c, a, d, nm, None, w) for c, a, d, nm, w in (
+    ('bosssatellite_2286', 0, '0', 'sbs_sat', _SA), ('bosssatellite_2286', 7, '0', 'sbs_sat7', _SA), ('bosssatellite_2286', 8, '0', 'sbs_sat8', _SA),
+    ('bosssatellite_2286', 10, '0', 'sbs_sat10', _SA), ('bosssatellitearm_2287', 0, '0', 'sbs_arm', _SA), ('bosssatellitearm_2287', 7, '0', 'sbs_arm7', _SA),
+    ('bosssatellitearm_2287', 8, '0', 'sbs_arm8', _SA), ('bosssatellitearm_2287', 10, '0', 'sbs_arm10', _SA), ('bosssatellitetop_2284', 0, '0', 'sbs_top', _SA),
+    ('bosssatellitethrusters_2285', 0, '0', 'sbs_thr', _SA), ('minibossufobeam2_2288', 0, '0', 'sbs_beam2', _SA), ('minibossufobeam_1769', 0, '0', 'sbs_beam', _SA),
+    ('playerassist_2205', 0, '0', 'sba_plane', _AS), ('playerassistcopilot_2220', 0, '0', 'sba_cop0', _AS), ('playerassistcopilot_2220', 0, '2', 'sba_cop2', _AS),
+    ('playerassistcopilot_2220', 0, '3', 'sba_cop3', _AS), ('playerassistcopilot_2220', 0, '4', 'sba_cop4', _AS), ('guicompass_2246', 0, '0', 'sba_compass', _AS),
+    ('bossgrappler_2331', 0, '0', 'sbg_gr', _GR), ('bossgrappler_2331', 0, '1', 'sbg_gr1', _GR), ('bossgrappler_2331', 0, '2', 'sbg_gr2', _GR),
+    ('bossgrappler_2331', 7, '0', 'sbg_gr7', _GR), ('bossgrappler_2331', 7, '1', 'sbg_gr71', _GR), ('bossgrappler_2331', 7, '2', 'sbg_gr72', _GR),
+    ('bossgrappler_2331', 8, '0', 'sbg_gr8', _GR), ('bossgrapplerhandleft_2330', 0, '0', 'sbg_hl', _GR), ('bossgrapplerhandleft_2330', 7, '0', 'sbg_hl7', _GR),
+    ('bossgrapplerhandright_2329', 0, '0', 'sbg_hr', _GR), ('bossgrapplerhandright_2329', 7, '0', 'sbg_hr7', _GR),
+    ('bossgrapplerarmleft_2327', 0, '0', 'sbg_al', _GR), ('bossgrapplerarmleft_2327', 7, '0', 'sbg_al7', _GR),
+    ('bossgrapplerarmright_2328', 0, '0', 'sbg_ar', _GR), ('bossgrapplerarmright_2328', 7, '0', 'sbg_ar7', _GR),
+    ('bosscrystalspire_2333', 0, '0', 'sbg_spire', _GR), ('bosscrystalspike_2324', 0, '0', 'sbg_spike', _GR), ('bosshomingspark_2332', 0, '24', 'sbg_spark', _GR),
+    ('bosscrystalspikespawner1_2325', 0, '0', 'sbg_spawn', _GR), ('crystalplatform_2334', 0, '0', 'sbg_plat', _GR), ('effectwarning_1528', 0, '0', 'sbg_warn', _GR))]
+SBBOSS_ENS_WITH = {'effectsexplosion01_367': _SA + _GR, 'effectsexplosion06_435': _SA + _GR, 'effectshade_436': _SA}
+ENGINE_TYPES_ID.update(SBBOSS_TYPES_ID); ENS += SBBOSS_ENS   # SB_BOSS
+ENS_FRAMES['effectwarning_1528'] = ENS_FRAMES.get('effectwarning_1528', set()) | {39}   # SB_BOSS: the spire's marker (SB4)
+for _k, _v in SBBOSS_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # SB_BOSS
 SHL_CLASSES = {'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 ENS_ONLY_WITH = {'guiweaponslot_426', 'effectswatersplash_379', 'bubblepatch_804', 'mediumbubble_805', 'generalwaterhorizon_377', 'bubblenumbers_405', 'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 # classes whose untrimmed image box matters (spring top edges RV, box-collision platforms/logs, invisible
@@ -940,7 +972,11 @@ def main():
                 skipped[o['cls']] = skipped.get(o['cls'], 0) + 1; continue
             objs.append({'type': t, 'x': o['x'], 'y': o['y'], 'cls': key, 'layer': o['layer'] or 0})
 
+    for o in objs:   # SB_BOSS: SB3's MinibossUFOBeam_1769 is the satellite's main beam
+        if o['type'] == 803 and n == 38: o['type'] = 1164
+        if o['type'] == 478 and n == 39: o['type'] = 1188   # SB4's EffectWarning_1528: the spire's drop marker (10123 / col_30_38)
     objs = [o for o in objs if not (800 <= o['type'] < 860 and n not in FNBOSS_FRAMES)]   # FN_BOSS: its classes only in FN1-FN3 / FN5
+    objs = [o for o in objs if not (1150 <= o['type'] < 1280 and n not in SBBOSS_FRAMES)]   # SB_BOSS: its classes only in SB1-SB4
     for o in objs: o['fna'] = FNA_SUB.get(o['cls'], 0) | FNA_FLAGS.get((o['cls'], n), 0) | (o['layer'] << 8)   # FN_GIMA (fn_gima.c)
     objs += [{'type': 604, 'x': v, 'y': k, 'cls': 'fnparam', 'layer': 0, 'fna': 0} for k, v in FNA_PARAMS.get(n, ())]   # FN_GIMA parameters
     # ---- piece atlases
@@ -1429,6 +1465,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         if 560 <= o['type'] < 680: a = o.get('fna', 0)            # FN_GIMA: member index | act flags | layer << 8 (fn_gima.c)
         if 680 <= o['type'] < 800: a = FNB_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # FN_GIMB (fn_gimb.c): member index | instance layer << 8
         if 800 <= o['type'] < 860: a = FNBOSS_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # FN_BOSS (fn_boss.c): sub id | instance layer << 8
+        if 1150 <= o['type'] < 1280: a = SBBOSS_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # SB_BOSS (sb_boss.c): sub id | instance layer << 8
         d += struct.pack('<2H2i', o['type'], a, o['x'], o['y'])
     for t in table: d += t
     d += struct.pack('<%dH' % len(smap), *smap)

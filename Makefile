@@ -16,6 +16,7 @@ OBJS += src/game/fn_enemy.o   # Fortune Night enemies
 OBJS += src/game/fn_panther.o   # Fortune Night Panther (FN5 chase, FN6 boss)
 OBJS += src/game/fn_assist.o    # FN6 partner assist and the plane (session 18)
 OBJS += src/game/fn_boss.o   # Fortune Night bosses
+OBJS += src/game/sb_boss.o src/game/sb_satellite.o src/game/sb_kujacker.o src/game/sb_chopper.o src/game/sb_spade.o src/game/sb_grappler.o   # Sky Battalion bosses (session 19)
 
 FP_GAME ?= /mnt/user-data/uploads/Freedom Planet
 # BGM: music tracks put on the disc (default: the whole ADPCM library). Lean disc with only the
