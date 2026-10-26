@@ -752,11 +752,13 @@ SBG_TYPES_ID = {('gimmickcannon', 2142): 1100, ('gimmickcannonbase', 2141): 1101
     ('sbbackeye', 2282): 1127, ('sbbackeye2', 2283): 1127, ('sbloop1', 2206): 1128, ('sbloop4', 2224): 1128, ('sbloop7', 2289): 1128,
     ('active3', 2278): 1128, ('active4', 2279): 1128, ('sbloop2', 2207): 1129, ('sbloop6', 2226): 1129, ('active', 2276): 1129,
     ('active2', 2277): 1129, ('sbloop3', 2208): 1130, ('sbloop5', 2225): 1130, ('pushableblock4', 2259): 1131,
-    ('levelballtunnel2', 2271): 1132, ('levelballtunnel3', 2273): 1132}
+    ('levelballtunnel2', 2271): 1132, ('levelballtunnel3', 2273): 1132,
+    ('breakablefloor1', 2196): 1103, ('breakablefloor2', 2197): 1103, ('breakablefloor1', 2298): 1103, ('breakablefloor2', 2299): 1103}
 SBG_SUB = {'hazardfiredown_2238': 1, 'hazardfireleft_2241': 2, 'hazardfireright_2240': 3, 'gimmickchainwalldown_2308': 1,
     'gimmickchainwallmaskdown_2306': 1, 'levelfanblade_2264': 1, 'levelfanblade_2297': 2, 'levelscrollingchaindown_2305': 1,
     'sbbackeye2_2283': 1, 'sbloop4_2224': 1, 'sbloop7_2289': 2, 'active3_2278': 3, 'active4_2279': 4, 'sbloop6_2226': 1,
-    'active_2276': 2, 'active2_2277': 3, 'sbloop5_2225': 1, 'levelballtunnel3_2273': 1}
+    'active_2276': 2, 'active2_2277': 3, 'sbloop5_2225': 1, 'levelballtunnel3_2273': 1,
+    'breakablefloor2_2197': 1, 'breakablefloor1_2298': 2, 'breakablefloor2_2299': 3}
 SBG_ENS = [(c, 0, '0', nm) for c, nm in (
     ('gimmickcannon_2142', 'sbc_cannon'), ('gimmickcannonbase_2141', 'sbc_base'), ('gimmickcannonbase2_2176', 'sbc_base2'),
     ('gimmickcannonbullet_2098', 'sbc_ball'), ('hazardfireup_2237', 'sbf_up'), ('hazardfiredown_2238', 'sbf_down'),
@@ -773,10 +775,13 @@ SBG_ENS = [(c, 0, '0', nm) for c, nm in (
     ('sbloop7_2289', 'sbl_0_2'), ('active3_2278', 'sbl_0_3'), ('active4_2279', 'sbl_0_4'), ('sbloop2_2207', 'sbl_1_0'),
     ('sbloop6_2226', 'sbl_1_1'), ('active_2276', 'sbl_1_2'), ('active2_2277', 'sbl_1_3'), ('sbloop3_2208', 'sbl_2_0'),
     ('sbloop5_2225', 'sbl_2_1'), ('pushableblock4_2259', 'sbq_block'), ('levelballtunnel2_2271', 'sbt_tun0'),
-    ('levelballtunnel3_2273', 'sbt_tun1'), ('breakablefloorpiece2_2229', 'sbq_fpiece'))] + \
+    ('levelballtunnel3_2273', 'sbt_tun1'), ('breakablefloorpiece2_2229', 'sbq_fpiece'), ('breakablefloor1_2196', 'sbq_f0'),
+    ('breakablefloor2_2197', 'sbq_f1'), ('breakablefloor1_2298', 'sbq_f2'), ('breakablefloor2_2299', 'sbq_f3'))] + \
+    [('gimmickcannon_2142', 7, '0', 'sbc_fire'), ('gimmickcannonbase_2141', 8, '0', 'sbc_bdead')] + \
     [('hazardfire%s_%d' % (n, h), 0, '1', 'sbf_%s1' % n) for n, h in (('up', 2237), ('down', 2238), ('left', 2241), ('right', 2240))]
 SBG_ENS_WITH = {'gimmickcannonbullet_2098': ('gimmickcannon',), 'gimmickfandebris_2230': ('gimmickfan',),
-    'breakablefloorpiece2_2229': ('breakablefloor1', 'breakablefloor2')}
+    'breakablefloorpiece2_2229': ('breakablefloor1', 'breakablefloor2'), 'minibossflame_1264': ('gimmickflamethrower',),
+    'effectsexplosion06_435': ('gimmickcannonbase',)}
 ENGINE_TYPES_ID.update(SBG_TYPES_ID); ENS += SBG_ENS   # SB_GIM
 for _k, _v in SBG_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # SB_GIM
 SHL_CLASSES = {'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}

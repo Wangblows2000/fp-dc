@@ -613,13 +613,14 @@ static const objdef_t DEFS[] = {
     { OT_SB_MCRATE,     OD_SOLID|OD_BOXCOL,                    NULL         }, /* enemymagnetizercrate_2295 (q7 q9) */
     /* SB_GIM (sb_gim.c, spec_sb_gimmicks 0; sprites set by sb_gim_spawn; RE on_frame_37..39_init qualifiers, constructors) */
     { OT_SB_CANBASE,    OD_SOLID|OD_BOXCOL,                    NULL         }, /* gimmickcannonbase_2141 (q7 q20) */
+    { OT_SB_BFLOOR,     OD_SOLID,                              NULL         }, /* breakablefloor1 / 2_2196 / 2197 / 2298 / 2299 (q7) */
     { OT_SB_CHAINWALL,  OD_SOLID|OD_BOXCOL,                    NULL         }, /* gimmickchainwallup / down_2307 / 2308 (q7) */
     { OT_SB_CHAINMASK,  OD_SOLID|OD_HIDDEN,                    NULL         }, /* gimmickchainwallmaskup / down_2304 / 2306 (q7, invisible mask) */
     { OT_SB_CRUSHER,    OD_SOLID|OD_BOXCOL,                    NULL         }, /* gimmickcrusherplatform_2310 (q7) */
     { OT_SB_MBLOCK,     OD_SOLID|OD_BOXCOL,                    NULL         }, /* levelsbmovingblock1_2318 (q7) */
     { OT_SB_PLAT1,      OD_OBSTACLE|OD_NOEDGE,                 NULL         }, /* levelsbplatform1_2095 (q8 q9 q12 q13) */
     { OT_SB_PLAT3,      OD_OBSTACLE|OD_NOEDGE|OD_BOXCOL,       NULL         }, /* levelsbplatform3_2188 (q8 q9 q13) */
-    { OT_SB_BARMASK,    OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* gimmicksbbarmask_2313 (q13 q23: the hang handle) */
+    { OT_SB_BARMASK,    OD_BOXCOL|OD_HIDDEN|OD_HANG,           NULL         }, /* gimmicksbbarmask_2313 (q13 q23: the hang handle) */
     { OT_SB_BAR,        OD_BOXCOL,                             NULL         }, /* gimmicksbbar_2314 (q13) */
     { OT_SB_LIGHTNING,  OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* hazardlightningradial_2254 (invisible) */
     { OT_SB_LIGHTNING2, OD_BOXCOL,                             NULL         }, /* hazardlightningradial2_2256 */
