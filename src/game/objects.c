@@ -114,7 +114,7 @@ void objects_spawn(void) {
     fn_gima_spawn();                              /* Fortune Night acts 1-3 gimmicks (src/game/fn_gima.c) */
     fn_boss_spawn();                              /* Fortune Night bosses (src/game/fn_boss.c) */
     fn_panther_spawn();                           /* FN5 / FN6 Panther (src/game/fn_panther.c) */
-    sb_enemy_spawn(); sb_gim_spawn();             /* Sky Battalion enemies / gimmicks (src/game/sb_enemy.c, sb_gim.c) */
+    sb_gim_spawn(); sb_enemy_spawn();             /* Sky Battalion enemies / gimmicks (src/game/sb_enemy.c, sb_gim.c) */
     wlogs_spawn(); dv3_switch_spawn(); switches_spawn(); tunnels_reset(); shields_reset(); water_reset();
     /* 3566 / 3567: 12 logs per bridge at (bx + 16k, by + 56), A = k, B = base y */
     int nb = G.nobjs;

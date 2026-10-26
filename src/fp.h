@@ -401,7 +401,7 @@ enum { OT_SBE_FIRST = 1024, OT_SB_HOPPER = 1024 /* EnemyHopperMkII_2189 (Q20) */
 /* SB_GIM: Sky Battalion gimmicks (session 19, src/game/sb_gim.c, build/re/spec_sb_gimmicks.md): placed 1100-1139, runtime 1140-1149.
  * Families share a type; the lvobj anim field carries the member index (SBG_SUB, bits 0-7) and the instance layer (bits 8-15) */
 enum { OT_SBG_FIRST = 1100, OT_SB_CANNON = 1100 /* GimmickCannon_2142 */, OT_SB_CANBASE = 1101 /* GimmickCannonBase_2141 (Q7 Q20) */,
-       OT_SB_CANBASE2 = 1102 /* GimmickCannonBase2_2176 */, /* 1103 / 1104 unused: SwitchPlatform / Mask are sb_flow.c's 904 / 905 */
+       OT_SB_CANBASE2 = 1102 /* GimmickCannonBase2_2176 */, OT_SB_BFLOOR = 1103 /* BreakableFloor1/2_2196/2197/2298/2299 (Q7, sub 0-3) */,
        OT_SB_FIRE = 1105 /* HazardFireUp/Down/Left/Right_2237/2238/2241/2240 (sub 0-3) */,
        OT_SB_LIGHTNING = 1106 /* HazardLightningRadial_2254 (invisible) */, OT_SB_LIGHTNING2 = 1107 /* HazardLightningRadial2_2256 */,
        OT_SB_FLAMER = 1108 /* GimmickFlamethrower_2182 */, OT_SB_SPINCUP = 1109 /* GimmickSpinCup_2269 */, OT_SB_CUPSTART = 1110 /* _StartPoint_2275 */,
@@ -783,6 +783,7 @@ void   sb_enemy_spawn(void), sb_enemy_pre(player_t *p);
 int    sb_enemy_obj(obj_t *o, player_t *p), sb_enemy_q20(int type);
 void   sb_gim_spawn(void), sb_gim_pre(player_t *p), sb_gim_frame(player_t *p), sb_gim_draw(int pass);
 int    sb_gim_obj(obj_t *o, player_t *p), sb_gim_q20(int type);
+int    sb_gim_cannon_kills(void);                 /* SB2-SB4 cannon bases destroyed (9319: PlayerAssist.I += 1 each) */
 void   fn_enemy_spawn(void), fn_enemy_pre(player_t *p);
 int    fn_enemy_obj(obj_t *o, player_t *p), fn_enemy_q20(int type);
 /* src/game/fn_gima.c (Fortune Night acts 1-3 gimmicks, spec_fn_gimmicks_a.md) */
