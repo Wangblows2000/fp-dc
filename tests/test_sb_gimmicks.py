@@ -129,5 +129,10 @@ rows, ev, obs = track('5 TP 11888 240\n', 40, {'FP_LEVEL': 'sb4'}, '202:-1')
 p1 = [o for o in obs if o[0] == 30]
 check('swing2_mirror', len(p1) == 2 and abs((p1[0][2] - 11496.5) + (p1[1][2] - 11888.5)) <= 1 and p1[0][3] == p1[1][3], str(p1))
 
+# SB4 rising chain wall (10001, RE): standing on its mask with the ceiling on TopBig kills (M 9); before, the wall pushed her up
+# through the ceiling for ever (session 19b, found by the host route search)
+rows, ev, out = run('5 TP 5110 560\n6 200 R\n', 60, {'FP_LEVEL': 'sb4'})
+check('chainwall_crush_kills', any(r['st'] == 6 for r in rows[20:60]) and min(r['y'] for r in rows[5:60]) > 300, 'min y %.0f' % min(r['y'] for r in rows[5:60]))
+
 print('%d failures' % fails)
 sys.exit(1 if fails else 0)

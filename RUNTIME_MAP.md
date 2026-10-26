@@ -657,6 +657,7 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
   (objects.c after sb_flow_draw).
 - **sb_gim.c:** sb_gim_door_rise(c) (called by sb_flow.c pads() after a sink step below 24), the spin-cup grab rule (grab_ok,
   sound 7, MV.S 0 via c_nospd until airborne after landing). player.c roll_move honours c_nospd for every character.
+- **sb_gim.c chains():** the 10001 crush on a rising chain wall now = BottomBig on the mask + ceiling on TopBig (RE).
 - **gimmicks.c:** pb_is / pblock_box include OT_SB_PBLOCK4 (64 x 64 box); q27_type includes OT_SB_BTUNNEL (objdefs: solid +
   hidden). **aqua_gim.c:** SB4's spawner 2 = 8 links, start angle 0. **levels.c:** PADS_SB2 / SB3 / SB4.
 - **Importer:** ROW_FRAMES ('sbwarn' SB3 only; SB1 uses the boss block's 'sbk_warn'), the mt_warn / fp_warn rows kept to their

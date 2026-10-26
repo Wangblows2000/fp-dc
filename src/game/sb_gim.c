@@ -340,7 +340,7 @@ static void chains(player_t *p) {
         if (p->ground && sens_hit(SENS_BOTTOMBIG, o)) {                             /* 9997-10000: no standing on top: pushed off */
             p->ground = 0; p->vx = p->gsp + (PX(p) < o->x ? -2 : 2);
         }
-        if (!o->par && sens_hit(SENS_TOPBIG, o) && p->ground) kill_player(p);      /* 10001: pinned under a rising wall (Z = 1: INFERRED = grounded) */
+        if (!o->par && sens_hit(SENS_BOTTOMBIG, o) && sens_on_bg(SENS_TOPBIG)) kill_player(p);   /* 10001 (RE, session 19b): on a rising wall's mask (BottomBig) with the ceiling on TopBig (its Z) -> M 9; before: TopBig on the mask + grounded, which let the wall push her through the ceiling */
     }
 }
 static void crushers(player_t *p) {

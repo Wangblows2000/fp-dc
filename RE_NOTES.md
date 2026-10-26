@@ -1209,5 +1209,8 @@ cup / cup2 (SB3 block, spin cup and tunnel), tun3, pad (Carol's SB2 pads), swing
   852: 6 links, 220) and its own part classes 2319-2321 (9949-9951; platform 96 x 24); RV swing: mirrored platforms. Carol's
   ObjectJumpPad_539 chains were missing (no level table): SB2 9309 / 5357 / 9310, SB3 4950 / 5357 / 9310 / 5172 / 9816-9818,
   SB4 5169 / 5170 / 9988 / 9989 (RV pad: pad 0 -> pad 1 in 22 frames).
+- **SB4 rising chain wall (RE 10001):** death needs BottomBig on the mask AND the ceiling on TopBig (its Z); the port tested TopBig
+  on the mask + grounded, so a player standing on a rising wall was pushed through the ceiling and rose for ever (found by a host
+  route search at x 5113). Fixed in sb_gim.c (not RV).
 - Not verified: the ball / blast offset reason (12 px), the shots' y active range, Carol / Milla through the cup, the hub fire
   with ML 0x10 set (RE only), SB3's tunnel 3 entry.
