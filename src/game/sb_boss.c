@@ -120,7 +120,8 @@ static void plane_frame(player_t *p) {
 #ifdef FP_HOST_ENV
     { static int once; const char *e = getenv("FP_SB_ASSIST_I"); if (e && !once && G.frame >= atoi(e)) { once = 1; PL.I = 2; } }   /* tests: the cannons */
 #endif
-    if (PL.G == 0 && PL.I >= 2) { PL.D = 5; PL.G = 1; PL.A = G.camx - 500; pl->hidden = 0; }   /* 9738 */
+    double I = PL.I + sb_gim_cannon_kills();                                    /* 9319: PlayerAssist.I + 1 per cannon base (sb_gim.c) */
+    if (PL.G == 0 && I >= 2) { PL.D = 5; PL.G = 1; PL.A = G.camx - 500; pl->hidden = 0; }   /* 9738 */
     if (PL.G == 1 && sbb_px(p) <= PL.A) PL.G = 2;                               /* 9739 */
     if (PL.G == 2) PL.A = sbb_px(p);                                            /* 9740 */
     pl->x = (float)(int)(PL.A + 32 * sbb_sin(PL.C));                            /* 9741 */
@@ -140,7 +141,7 @@ static void plane_frame(player_t *p) {
         if (cp) { p->x = cp->x; p->y = cp->y + ORIG_REF_DY; }
         p->ground = 0; p->vx = PL.D; p->gsp = 0; p->face = 1;                   /* MV.B > 0 for the right-edge exit (9455; INFERRED: M43 moves right) */
     }
-    pl->av[0] = PL.G; pl->av[1] = PL.I; pl->av[2] = PL.A; pl->av[3] = PL.D;
+    pl->av[0] = PL.G; pl->av[1] = I; pl->av[2] = PL.A; pl->av[3] = PL.D;
 }
 static void compass_frame(void) {                                                /* 9746 / 9747 */
     obj_t *c = sbb_get(OT_SB_COMPASS, 0);

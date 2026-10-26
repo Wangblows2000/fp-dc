@@ -412,6 +412,34 @@ enum { OT_SBB_FIRST = 1150,
        OT_SB_SPAWN1 = 1246 /* BossCrystalSpikeSpawner1_2325 */, OT_SB_SPAWN2 = 1247 /* BossCrystalSpikeSpawner2_2326 */, OT_SB_SPIKE = 1248 /* runtime: BossCrystalSpike */,
        OT_SB_SPARK = 1249 /* runtime: BossHomingSpark */, OT_SB_CPLAT = 1250 /* CrystalPlatform_2334 (Q8) */, OT_SB_LSPIKE = 1251 /* runtime: LevelCrystalSpike_2268 */,
        OT_SBB_LAST = 1279 };
+/* SB_ENEMIES: Sky Battalion enemies (session 19, src/game/sb_enemy.c, build/re/spec_sb_enemies.md): placed 1024-1059, runtime 1060-1099 */
+enum { OT_SBE_FIRST = 1024, OT_SB_HOPPER = 1024 /* EnemyHopperMkII_2189 (Q20) */, OT_SB_MAGMEON = 1025 /* EnemyMagmeon_2203 (Q20) */,
+       OT_SB_ROTOR = 1026 /* EnemyRotorBlade_2184 (Q20) */, OT_SB_ROTORSPK = 1027 /* EnemyRotorBladeSpikes_2183 */, OT_SB_TUBE = 1028 /* EnemySpawnTube_2185 */,
+       OT_SB_DRONE = 1029 /* EnemyDrone_2138 (Q20) */, OT_SB_AXLE = 1030 /* EnemyAxleTurret_2139 (Q20) */, OT_SB_AXLE2 = 1031 /* EnemyAxleTurret2_2140 */,
+       OT_SB_DNA = 1032 /* EnemyDNACannon_2260 (Q20) */, OT_SB_DNABASE = 1033 /* EnemyDNACannonBase_2261 */, OT_SB_PELLETIZER = 1034 /* EnemyPelletizer_2303 (Q20) */,
+       OT_SB_MAGNET = 1035 /* EnemyMagnetizer_2294 (Q20) */, OT_SB_MCRATE = 1036 /* EnemyMagnetizerCrate_2295 (Q7) */,
+       OT_SB_MHAND = 1037 /* EnemyMagnetizerHand_2292 */, OT_SB_MLINE = 1038 /* EnemyMagnetizerLine_2293 */,
+       OT_SB_FRAGBOMB = 1060 /* runtime: EnemyFragBomb_2103 */, OT_SB_ROTORDEATH = 1061 /* EnemyRotorBladeDeath_2231 */,
+       OT_SB_SPIKEBIT = 1062 /* BreakableSpike2_2228 */, OT_SB_DLASER = 1063 /* EnemyDroneLaser_2232 */, OT_SB_BULLET = 1064 /* EnemyBullet_2097 */,
+       OT_SB_DNALASER = 1065 /* EnemyDNALaser_2290 */, OT_SBE_LAST = 1099 };
+/* SB_GIM: Sky Battalion gimmicks (session 19, src/game/sb_gim.c, build/re/spec_sb_gimmicks.md): placed 1100-1139, runtime 1140-1149.
+ * Families share a type; the lvobj anim field carries the member index (SBG_SUB, bits 0-7) and the instance layer (bits 8-15) */
+enum { OT_SBG_FIRST = 1100, OT_SB_CANNON = 1100 /* GimmickCannon_2142 */, OT_SB_CANBASE = 1101 /* GimmickCannonBase_2141 (Q7 Q20) */,
+       OT_SB_CANBASE2 = 1102 /* GimmickCannonBase2_2176 */, OT_SB_BFLOOR = 1103 /* BreakableFloor1/2_2196/2197/2298/2299 (Q7, sub 0-3) */,
+       OT_SB_FIRE = 1105 /* HazardFireUp/Down/Left/Right_2237/2238/2241/2240 (sub 0-3) */,
+       OT_SB_LIGHTNING = 1106 /* HazardLightningRadial_2254 (invisible) */, OT_SB_LIGHTNING2 = 1107 /* HazardLightningRadial2_2256 */,
+       OT_SB_FLAMER = 1108 /* GimmickFlamethrower_2182 */, OT_SB_SPINCUP = 1109 /* GimmickSpinCup_2269 */, OT_SB_CUPSTART = 1110 /* _StartPoint_2275 */,
+       OT_SB_CUPLAND = 1111 /* _LandPoint_2270 */, OT_SB_CHAINWALL = 1112 /* GimmickChainWallUp/Down_2307/2308 (Q7) */,
+       OT_SB_CHAINMASK = 1113 /* GimmickChainWallMaskUp/Down_2304/2306 (Q7, invisible) */, OT_SB_CRUSHER = 1114 /* GimmickCrusherPlatform_2310 (Q7) */,
+       OT_SB_CRUSHCHAIN = 1115 /* GimmickCrusherChain_2309 */, OT_SB_MBLOCK = 1116 /* LevelSBMovingBlock1_2318 (Q7) */,
+       OT_SB_PLAT1 = 1117 /* LevelSBPlatform1_2095 (Q8) */, OT_SB_PLATFLAME = 1118 /* LevelSBPlatformFlame1_2096 */, OT_SB_PLAT3 = 1119 /* LevelSBPlatform3_2188 (Q8) */,
+       OT_SB_SHIPPLAT = 1120 /* ShipPlatform2_2089 (Q8, invisible) */, OT_SB_BAR = 1121 /* GimmickSBBar_2314 */, OT_SB_BARMASK = 1122 /* GimmickSBBarMask_2313 (Q23) */,
+       OT_SB_FANBLADE = 1123 /* LevelFanBlade_2193/2264/2297 (sub 0-2) */, OT_SB_FAN = 1124 /* GimmickFan_2223 */, OT_SB_FANSIDE = 1125 /* GimmickFanSide_2245 */,
+       OT_SB_SCHAIN = 1126 /* LevelScrollingChainUp/Down_2302/2305 (sub 0-1) */, OT_SB_BACKEYE = 1127 /* SBBackEye_2282 / SBBackEye2_2283 (sub 0-1) */,
+       OT_SB_LOOP0 = 1128 /* SBLoop1/4/7_2206/2224/2289, Active3/4_2278/2279 (Q7 Q10) */, OT_SB_LOOP1 = 1129 /* SBLoop2/6_2207/2226, Active/Active2_2276/2277 (Q7 Q11) */,
+       OT_SB_LOOP1B = 1130 /* SBLoop3/5_2208/2225 (Q7 Q11, box) */, OT_SB_PBLOCK4 = 1131 /* PushableBlock4_2259 */, OT_SB_BTUNNEL = 1132 /* LevelBallTunnel2/3_2271/2273 */,
+       OT_SB_CANBULLET = 1140 /* runtime: GimmickCannonBullet_2098 */, OT_SB_FANDEBRIS = 1141 /* GimmickFanDebris_2230 */,
+       OT_SB_FLOORPIECE = 1142 /* BreakableFloorPiece2_2229 */, OT_SBG_LAST = 1149 };
 
 #define MAX_ATLAS 4
 typedef struct {
@@ -773,6 +801,13 @@ void   rm_mantalith_spawn(void), rm_mantalith_frame(player_t *p), rm_mantalith_d
 int    rm_mantalith_obj(obj_t *o, player_t *p);
 /* src/game/fn_enemy.c (Fortune Night enemies, spec_fn_enemies.md): spawn, test_collisions handlers + 7282 / 7285 (before
  * combat), per-object events, qualifier 20 membership */
+/* src/game/sb_enemy.c (Sky Battalion enemies, SB_ENEMIES) and src/game/sb_gim.c (gimmicks, SB_GIM): spawn, the pre pass (projectile /
+ * hazard collision handlers, before combat), per-object events, Q20 membership, the post pass (game.c) and their draw hook */
+void   sb_enemy_spawn(void), sb_enemy_pre(player_t *p);
+int    sb_enemy_obj(obj_t *o, player_t *p), sb_enemy_q20(int type);
+void   sb_gim_spawn(void), sb_gim_pre(player_t *p), sb_gim_frame(player_t *p), sb_gim_draw(int pass);
+int    sb_gim_obj(obj_t *o, player_t *p), sb_gim_q20(int type);
+int    sb_gim_cannon_kills(void);                 /* SB2-SB4 cannon bases destroyed (9319: PlayerAssist.I += 1 each) */
 void   fn_enemy_spawn(void), fn_enemy_pre(player_t *p);
 int    fn_enemy_obj(obj_t *o, player_t *p), fn_enemy_q20(int type);
 /* src/game/fn_gima.c (Fortune Night acts 1-3 gimmicks, spec_fn_gimmicks_a.md) */
