@@ -835,7 +835,7 @@ rapid 0xf270, warning 0xa870 (speed lines are 0x10bb0, not 0x10b70 = the speed b
   (C 1 -> 2) the HUD shifts up 80 (loop_gui_shiftup_14 x 80) and **8769** (C 2, D < 80) puts the wreck on the floor: foot FR
   (283, 280), hip (386, 282), leg FR (592, 282), leg FL (423, 281), shoulder F2 (260, 281) (RV t2 shots f1725+). The parts'
   flash copies and invert draw only in the fight group; speed lines are removed at 8762.
-- **Difficulty:** no FN6 event reads global 12 (RE: 8487-8840 read g2 / g3 / g16 / g17 / g19 / g26 only), so Normal and
+- **Difficulty:** no FN6 event reads global 12 (RE: 8487-8840 read g3 / g4 / g16 / g17 / g19 / g26 only), so Normal and
   Hard differ only by the shared damage rule 2414 (Hard 2 half-petals per 5). Host `FP_DIFF=n` sets global 12.
   FN3 (fn_boss.c, not changed): the Hard-only missile (7828) works in the host when the player is 300-400 px away at the
   shot's first frame; the port runs 7911 (dash when > 400 px) before the state machine, the original's event order runs
