@@ -609,6 +609,29 @@ static const objdef_t DEFS[] = {
     { OT_SB_ZAOFLAG,    0,                                     "sbflag"     }, /* levelzaoflag_2107 */
     { OT_SB_DARKSKY,    OD_HIDDEN,                             NULL         }, /* leveldarksky_2114 (a full-view rectangle, sb_flow.c) */
     { OT_SB_BGPLAT,     OD_HIDDEN,                             "sbbgplat"   }, /* levelsbbgplatform_2244 (the opening planks, layer 1 at 0.8) */
+    /* SB_ENEMIES (sb_enemy.c, spec_sb_enemies 0; sprites set by sb_enemy_spawn; RE on_frame_37..39_init: only the crate is in q7) */
+    { OT_SB_MCRATE,     OD_SOLID|OD_BOXCOL,                    NULL         }, /* enemymagnetizercrate_2295 (q7 q9) */
+    /* SB_GIM (sb_gim.c, spec_sb_gimmicks 0; sprites set by sb_gim_spawn; RE on_frame_37..39_init qualifiers, constructors) */
+    { OT_SB_CANBASE,    OD_SOLID|OD_BOXCOL,                    NULL         }, /* gimmickcannonbase_2141 (q7 q20) */
+    { OT_SB_CHAINWALL,  OD_SOLID|OD_BOXCOL,                    NULL         }, /* gimmickchainwallup / down_2307 / 2308 (q7) */
+    { OT_SB_CHAINMASK,  OD_SOLID|OD_HIDDEN,                    NULL         }, /* gimmickchainwallmaskup / down_2304 / 2306 (q7, invisible mask) */
+    { OT_SB_CRUSHER,    OD_SOLID|OD_BOXCOL,                    NULL         }, /* gimmickcrusherplatform_2310 (q7) */
+    { OT_SB_MBLOCK,     OD_SOLID|OD_BOXCOL,                    NULL         }, /* levelsbmovingblock1_2318 (q7) */
+    { OT_SB_PLAT1,      OD_OBSTACLE|OD_NOEDGE,                 NULL         }, /* levelsbplatform1_2095 (q8 q9 q12 q13) */
+    { OT_SB_PLAT3,      OD_OBSTACLE|OD_NOEDGE|OD_BOXCOL,       NULL         }, /* levelsbplatform3_2188 (q8 q9 q13) */
+    { OT_SB_BARMASK,    OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* gimmicksbbarmask_2313 (q13 q23: the hang handle) */
+    { OT_SB_BAR,        OD_BOXCOL,                             NULL         }, /* gimmicksbbar_2314 (q13) */
+    { OT_SB_LIGHTNING,  OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* hazardlightningradial_2254 (invisible) */
+    { OT_SB_LIGHTNING2, OD_BOXCOL,                             NULL         }, /* hazardlightningradial2_2256 */
+    { OT_SB_FIRE,       OD_BOXCOL,                             NULL         }, /* hazardfire up / down / left / right */
+    { OT_SB_CUPSTART,   OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* gimmickspincupstartpoint_2275 */
+    { OT_SB_CUPLAND,    OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* gimmickspincuplandpoint_2270 */
+    { OT_SB_SPINCUP,    OD_BOXCOL,                             NULL         }, /* gimmickspincup_2269 */
+    { OT_SB_LOOP0,      OD_SOLID|OD_LAYER0,                    NULL         }, /* sbloop1 / 4 / 7, active3 / 4 (q7 q10) */
+    { OT_SB_LOOP1,      OD_SOLID|OD_LAYER1,                    NULL         }, /* sbloop2 / 6, active / active2 (q7 q11) */
+    { OT_SB_LOOP1B,     OD_SOLID|OD_BOXCOL|OD_LAYER1,          NULL         }, /* sbloop3 / 5 (q7 q11, box collision) */
+    { OT_SB_PBLOCK4,    OD_SOLID|OD_BOXCOL|OD_NOEDGE,          NULL         }, /* pushableblock4_2259 (q7 q9 q14) */
+    { OT_SB_BTUNNEL,    OD_HIDDEN,                             NULL         }, /* levelballtunnel2 / 3 (q27, invisible) */
 };
 static objdef_t BY_TYPE[MAX_OT];
 static int built;
