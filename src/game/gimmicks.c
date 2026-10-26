@@ -284,6 +284,7 @@ void wlogs_update(const player_t *p) {
 /* ---- boulder switch room (5187-5210). Plate: st = pressed. Trapdoor: c = C (0..90), ang. Boulder: fx, fy = A, B;
  * vx = C, vy = D, ang = E (display), c = H, fl bit 1 active, bit 2 water, bit 4 on ground. */
 static int boulder_latch, boulder_fired;
+static void bamboo_link(void);
 void dv3_switch_spawn(void) {
     boulder_latch = boulder_fired = 0;
     for (int i = 0; i < G.nobjs; i++) {
@@ -296,6 +297,7 @@ void dv3_switch_spawn(void) {
         if (o->type >= OT_BAM1 && o->type <= OT_BAM4) { static const char *bn[4] = { "bam1", "bam2", "bam3", "bam4" }; ens(o, bn[o->type - OT_BAM1]); o->st = 0; o->tm = 0; o->fx = 0; o->dir = 1; }
     }
     snap_register(&boulder_latch, sizeof boulder_latch); snap_register(&boulder_fired, sizeof boulder_fired);
+    bamboo_link();
 }
 static int probe(const obj_t *b, int x0, int x1, int y0, int y1) {     /* probe rect relative to (x, y) on the background */
     for (int y = y0; y <= y1; y++) if (px_span_solid(&G.lvl, (int)b->x + x0, (int)b->x + x1, (int)b->y + y)) return 1;
@@ -398,25 +400,78 @@ void trunks_update(player_t *p) {
 
 /* ---- bamboo spike traps (5227-5234): bam1 pivot (st = A, tm = B, fx = C swing, dir = D side), bam2 joint (hurts),
  * bam3 pole, bam4 head; paired by x. Pole image: hotspot (8,52), action point (8,-5): 57 px up the pole. */
-static obj_t *bam_of(int type, float x) { for (int i = 0; i < G.nobjs; i++) { obj_t *o = &G.o[i]; if (o->alive && o->type == type && fabsf(o->x - x) < 4) return o; } return NULL; }
-static void pole_tip(const obj_t *o, float *x, float *y) { double a = o->ang / 57.29577951308232; *x = o->x + (float)(int)(-57 * fd_sin(a)); *y = o->y + (float)(int)(-57 * fd_cos(a)); }
+/* Session 19 (RE 5227): the parts are paired with their pivot / pole ONCE, by instance order (Chowdren walks both
+ * lists from the last instance down: the j-th of N2 joints takes the pivot N1 - 1 - ((N2 - 1 - j) % N1)); the old
+ * per-frame pairing by equal x lost every part as soon as the pivot leaned more than 4 px, so only the pivot swung,
+ * the joint, pole and head froze and the joint never hurt (playtest). */
+#define BAM_MAX 16
+static short bam_ix[4][BAM_MAX], bam_n[4];     /* G.o indices per part type, creation order */
+static void bamboo_link(void) {
+    memset(bam_n, 0, sizeof bam_n);
+    for (int i = 0; i < G.nobjs; i++) { const obj_t *o = &G.o[i]; int k = o->type - OT_BAM1;
+        if (o->alive && k >= 0 && k < 4 && bam_n[k] < BAM_MAX) bam_ix[k][bam_n[k]++] = (short)i; }
+    /* RE 5319 (start of frame; RV s19 trace): spread B = 0, 1, 2 ... from the last-created pivot down, then
+     * B = fmod(10 B, 50): DV3's pivots at 8848 / 9040 / 8512 start 20 / 10 / 0 frames into their wait */
+    for (int j = 0; j < bam_n[0]; j++) G.o[bam_ix[0][j]].tm = (10 * (bam_n[0] - 1 - j)) % 50;
+}
+static obj_t *bam_partner(int k, int j, int pk) {   /* the pk-type object paired with the j-th of type k */
+    int n = bam_n[k], np = bam_n[pk];
+    if (!np) return NULL;
+    obj_t *o = &G.o[bam_ix[pk][np - 1 - ((n - 1 - j) % np)]];
+    return o->alive && o->type == OT_BAM1 + pk ? o : NULL;
+}
+/* the pole's action point (image 3499: hotspot (8,52), action (8,-5)) at angle a: RV (s19 trace, all 29 angles) the
+ * runtime rotates both points about the image origin and truncates each: trunc(R act) - trunc(R hot),
+ * R(x, y) = (x cos a + y sin a, -x sin a + y cos a) */
+static void pole_tip(const obj_t *o, float *x, float *y) {
+    double a = o->ang / 57.29577951308232, c = fd_cos(a), s = fd_sin(a);
+    *x = o->x + (float)((int)(8 * c - 5 * s) - (int)(8 * c + 52 * s));
+    *y = o->y + (float)((int)(-8 * s - 5 * c) - (int)(-8 * s + 52 * c));
+}
+/* PlayerCharacterSensor_375 against a joint: the sensor sits at (int X, int Y) in direction (int)(N / 11.25) (RE spec_combat
+ * 3), i.e. its 15 x 46 box (x -7..7, y -34..11; the small one 15 x 27, y -13..13) turns with the ground angle. RV (s19 walk
+ * trace, row 143): walking under the upright joint on DV3's slope (N 351.87, direction 31) the turned box's top corner
+ * reaches the joint's bottom row and hurts; the upright box would miss it by 2 px. Pixels of the joint are tested inside
+ * the turned box (the original's rotated direction images may round a pixel differently: INFERRED). */
+static int bam_sensor_hit(const player_t *p, const obj_t *o) {
+    int X = (int)floor(p->x), Y = (int)floor(MVY(p)), small = player_char_sensor_small(p);
+    int ly0 = small ? -13 : -34, ly1 = small ? 14 : 12, d = (int)(fmod(p->N + 360, 360) / 11.25);
+    if (d == 0) return obj_rect_hit(o, X - 7, Y + ly0, X + 8, Y + ly1);
+    double a = d * 11.25 / 57.29577951308232, c = fd_cos(a), s = fd_sin(a);
+    float bx0, by0, bx1, by1; obox(o, &bx0, &by0, &bx1, &by1);
+    int r = 8 - ly0;                                                    /* the turned box stays inside X, Y +- r */
+    int x0 = (int)fmaxf(bx0, (float)(X - r)), x1 = (int)fminf(bx1, (float)(X + r)), y0 = (int)fmaxf(by0, (float)(Y - r)), y1 = (int)fminf(by1, (float)(Y + r));
+    for (int y = y0; y < y1; y++)
+        for (int x = x0; x < x1; x++) {
+            double dx = x - X, dy = y - Y, lx = dx * c - dy * s, ly = dx * s + dy * c;   /* back into the sensor's frame */
+            if (lx >= -7.5 && lx < 7.5 && ly >= ly0 - 0.5 && ly < ly1 - 0.5 && obj_rect_hit(o, x, y, x + 1, y + 1)) return 1;
+        }
+    return 0;
+}
 void bamboo_update(player_t *p) {
-    for (int i = 0; i < G.nobjs; i++) {
-        obj_t *b1 = &G.o[i];
-        if (!b1->alive || b1->type != OT_BAM1) continue;
-        obj_t *b2 = bam_of(OT_BAM2, b1->x), *b3 = bam_of(OT_BAM3, b1->x), *b4 = bam_of(OT_BAM4, b1->x);
-        float tx, ty; pole_tip(b1, &tx, &ty);                                                  /* 5227 */
-        if (b2) { b2->x = tx; b2->y = ty; }
-        if (b3) { b3->x = tx; b3->y = ty; b3->ang = -b1->ang; }
-        b1->ang = b1->fx * b1->dir;
-        if (b3 && b4) { pole_tip(b3, &tx, &ty); b4->x = tx; b4->y = ty; }
+    float tx, ty; obj_t *o, *b;
+    for (int j = 0; j < bam_n[1]; j++)                                                   /* 5227: joint -> pivot's action point */
+        if ((o = &G.o[bam_ix[1][j]])->alive && (b = bam_partner(1, j, 0))) { pole_tip(b, &tx, &ty); o->x = tx; o->y = ty; }
+    for (int j = 0; j < bam_n[2]; j++)                                                   /* pole -> the same point */
+        if ((o = &G.o[bam_ix[2][j]])->alive && (b = bam_partner(2, j, 0))) { pole_tip(b, &tx, &ty); o->x = tx; o->y = ty; }
+    for (int j = 0; j < bam_n[2]; j++)                                                   /* pole angle = -(pivot angle, last frame's) */
+        if ((o = &G.o[bam_ix[2][j]])->alive && (b = bam_partner(2, j, 0))) o->ang = (float)fmod(360 - b->ang, 360);
+    for (int j = 0; j < bam_n[0]; j++) {                                                 /* pivot angle = C * D */
+        obj_t *b1 = &G.o[bam_ix[0][j]];
+        if (b1->alive) b1->ang = (float)fmod(360 + b1->fx * b1->dir, 360);
+    }
+    for (int j = 0; j < bam_n[3]; j++)                                                   /* head -> the pole's action point */
+        if ((o = &G.o[bam_ix[3][j]])->alive && (b = bam_partner(3, j, 2))) { pole_tip(b, &tx, &ty); o->x = tx; o->y = ty; }
+    if (p->shield != 3 && p->state != ST_HURT && p->state != ST_DEAD && !player_invincible(p) && !p->hurt_pending) {   /* 5228: OTHERS.D == 0, B != 3 (metal) */
+        for (int j = 0; j < bam_n[1]; j++)
+            if ((o = &G.o[bam_ix[1][j]])->alive && bam_sensor_hit(p, o)) { player_contact(p, 5); break; }   /* MV.R = 1, LIFE.B += 5 */
+    }
+    for (int j = 0; j < bam_n[0]; j++) {
+        obj_t *b1 = &G.o[bam_ix[0][j]];
+        if (!b1->alive) continue;
         if (b1->st == 0 || b1->st == 2) { b1->tm++; if (b1->tm > 50) { b1->tm = 0; b1->st++; } }   /* 5229 / 5230 */
         if (b1->st == 1) { b1->fx += 5; if (b1->fx >= 70) b1->st = 2; }                        /* 5231 / 5232 */
         if (b1->st == 3) { b1->fx -= 5; if (b1->fx <= 0) { b1->st = 0; b1->dir = -b1->dir; } }  /* 5233 / 5234 */
-        if (b2 && p->shield != 3 && p->state != ST_HURT && p->state != ST_DEAD && !player_invincible(p) && !p->hurt_pending) {   /* 5228 (metal shield immune) */
-            int sx0 = (int)floor(p->x) - 7, sy0 = (int)floor(MVY(p)) - 34;
-            if (obj_rect_hit(b2, sx0, sy0, sx0 + 15, sy0 + 46)) player_contact(p, 5);
-        }
     }
 }
 
