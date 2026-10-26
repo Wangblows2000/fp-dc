@@ -599,6 +599,7 @@ static const objdef_t DEFS[] = {
     { OT_SB_SPADE,       0,                                     NULL         }, /* bossspade_2247 */
     { OT_SB_SP_HIT,      OD_HIDDEN,                             NULL         }, /* bossspadehitbox_2250 (Q20) */
     { OT_SB_SP_CARD,     0,                                     NULL         }, /* - (BossSpadeCard) */
+    { OT_SB_SP_IMG,      0,                                     NULL         }, /* - (EffectsSpadeImage_456) */
     { OT_SB_GR,          0,                                     NULL         }, /* bossgrappler_2331 (Q20) */
     { OT_SB_GR_HANDL,    0,                                     NULL         }, /* bossgrapplerhandleft_2330 */
     { OT_SB_GR_HANDR,    0,                                     NULL         }, /* bossgrapplerhandright_2329 */
