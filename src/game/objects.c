@@ -116,6 +116,7 @@ void objects_spawn(void) {
     sb_boss_spawn();                              /* Sky Battalion bosses (src/game/sb_boss.c) */
     fn_panther_spawn();                           /* FN5 / FN6 Panther (src/game/fn_panther.c) */
     sb_gim_spawn(); sb_enemy_spawn();             /* Sky Battalion enemies / gimmicks (src/game/sb_enemy.c, sb_gim.c) */
+    jc_gim_spawn(); jc_enemy_spawn(); jc_boss_spawn();   /* Jade Creek (src/game/jc_*.c) */
     wlogs_spawn(); dv3_switch_spawn(); switches_spawn(); tunnels_reset(); shields_reset(); water_reset();
     /* 3566 / 3567: 12 logs per bridge at (bx + 16k, by + 56), A = k, B = base y */
     int nb = G.nobjs;
@@ -169,6 +170,7 @@ void objects_platforms(player_t *p) {
     switches_update(p, 0);
     fn_gimb_pre(p);                               /* Fortune Night acts 4-5: air balloons 8104-8113 (before the hang hold) */
     sb_gim_pre(p);                                /* Sky Battalion platforms / switch plates before the movement (sb_gim.c) */
+    jc_gim_pre(p);                                /* Jade Creek platforms before the movement (jc_gim.c) */
     relic_gima_pre(p);                            /* Relic Maze acts 1-2: rolling platform, hanging switch / mover, moving handles */
     if (!objects_have(OT_PLAT_VALLEY) && !objects_have(OT_PLAT_MOVE2) && !objects_have(OT_PLAT_MOVE3) && !objects_have(OT_GEYSER) && !objects_have(OT_BRIDGE)) return;
     double MY = p->y - ORIG_REF_DY;
@@ -694,6 +696,7 @@ void objects_update(void) {
     sb_enemy_pre(p);                                  /* Sky Battalion enemies: their collision handlers (sb_enemy.c) */
     fn_boss_pre(p);                                   /* Fortune Night bosses: their test_collisions handlers (fn_boss.c) */
     sb_boss_pre(p);                                   /* Sky Battalion bosses: their test_collisions handlers (sb_boss.c) */
+    jc_enemy_pre(p); jc_boss_pre(p);                  /* Jade Creek enemies / bosses: their collision handlers (jc_enemy.c, jc_boss.c) */
     /* Lilac's attacks and contact, shared enemy events (2731-2767) */
     combat_frame(p);
     /* minibosses / bosses (their event blocks follow the enemies') */
@@ -710,7 +713,11 @@ void objects_update(void) {
         if (o->type >= OT_FN_E_FIRST && o->type <= OT_FN_E_LAST && fn_enemy_obj(o, p)) continue;   /* Fortune Night enemies (src/game/fn_enemy.c) */
         if (o->type >= OT_SBE_FIRST && o->type <= OT_SBG_LAST && (o->type <= OT_SBE_LAST ? sb_enemy_obj(o, p) : sb_gim_obj(o, p))) continue;   /* Sky Battalion (sb_enemy.c / sb_gim.c) */
         if (o->type >= OT_FNBOSS_FIRST && o->type <= OT_FNBOSS_LAST && fn_boss_obj(o, p)) continue;   /* Fortune Night bosses (src/game/fn_boss.c) */
-        if (o->type >= OT_SBB_FIRST && o->type <= OT_SBB_LAST && sb_boss_obj(o, p)) continue;   /* Sky Battalion bosses (src/game/sb_boss.c) */
+        if (o->type >= OT_SBB_FIRST && o->type <= OT_SBB_LAST && sb_boss_obj(o, p)) continue;
+        if (o->type >= OT_JCF_FIRST && o->type <= OT_JCB_LAST) {                  /* Jade Creek (src/game/jc_*.c) */
+            if (o->type <= OT_JCF_LAST ? jc_flow_obj(o, p) : o->type <= OT_JCE_LAST ? jc_enemy_obj(o, p) :
+                o->type <= OT_JCG_LAST ? jc_gim_obj(o, p) : jc_boss_obj(o, p)) continue;
+        }   /* Sky Battalion bosses (src/game/sb_boss.c) */
         if (o->type >= OT_IRIS && relic_obj_update(o, p)) continue;                  /* Relic Maze enemies (src/game/relic.c) */
         if (o->type >= OT_DIGSPOT || o->type == OT_MON_KEYSTONE || o->type == OT_MON_WOOD || o->type == OT_SPRING_D) { if (aqua_obj_update(o, p)) continue; }   /* Aqua Tunnel objects (src/game/aqua.c) */
         switch (o->type) {
@@ -861,7 +868,8 @@ void objects_draw(int pass) {
         if (!o->alive || !o->an.b || o->type == OT_HANG || o->type == OT_LADDERTOP || o->type == OT_BRIDGE) continue;   /* sensors / LadderTop are invisible */
         if ((pass == -1 && o->layer >= 0) || (pass == 0 && (o->layer > 1 || o->layer < 0)) || (pass == 1 && o->layer != 2) || (pass == 2 && o->layer < 3)) continue;
         if (o->type >= OT_FNBOSS_FIRST && o->type <= OT_FNBOSS_LAST && fn_boss_draw_obj(o, pass)) continue;   /* FN bosses: UFO rig order, scaled beam / glow (fn_boss.c) */
-        if (o->type >= OT_SBB_FIRST && o->type <= OT_SBB_LAST && sb_boss_draw_obj(o, pass)) continue;   /* SB bosses: rig order, scaled parts (sb_boss.c) */
+        if (o->type >= OT_SBB_FIRST && o->type <= OT_SBB_LAST && sb_boss_draw_obj(o, pass)) continue;
+        if (o->type >= OT_JCB_FIRST && o->type <= OT_JCB_LAST && jc_boss_draw_obj(o, pass)) continue;   /* JC bosses (jc_boss.c) */   /* SB bosses: rig order, scaled parts (sb_boss.c) */
         float sx = floorf(o->x - G.camx), sy = floorf(o->y - G.camy);
         if (pass == -1) { sx = floorf(o->x - (float)trunc(0.800000011920929 * G.camx)); sy = floorf(o->y - (float)trunc(0.800000011920929 * G.camy)); }   /* json layer 1 (SB2-SB4: 0.8) */
         { const frame_t *cf = anim_frame(&o->an); float m = 96; if (cf->w > m) m = cf->w; if (cf->h > m) m = cf->h; if (cf->w + cf->h > m && o->ang != 0) m = cf->w + cf->h;
@@ -893,6 +901,7 @@ void objects_draw(int pass) {
     sb_flow_draw(pass);                              /* SB: airships (0.25 layer), opening planks (0.8), the night sky (sb_flow.c) */
     sb_enemy_draw(pass);                             /* SB1: the airships' shots (0.25 layer, sb_enemy.c) */
     sb_gim_draw(pass);                               /* Sky Battalion gimmick parts drawn out of the object order (sb_gim.c) */
+    jc_flow_draw(pass); jc_enemy_draw(pass); jc_gim_draw(pass);   /* Jade Creek (src/game/jc_*.c) */
 }
 
 /* Collision groups tested by Lilac's sensors (RE: QualifierLists of frame 21, read at runtime):
