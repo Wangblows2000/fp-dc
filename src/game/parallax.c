@@ -76,7 +76,7 @@ int par_load(const char *dir) {
     if (has_water == 2 && off + 16 <= sz) {
         water_y = rd32(d + off); JW.nfr = rd16(d + off + 4); JW.fw = rd16(d + off + 6); JW.fh = rd16(d + off + 8);
         JW.hz = rd16(d + off + 10); JW.hzh = rd16(d + off + 12); JW.fol = rd16(d + off + 14); JW.valid = 0;
-        char nm[64]; snprintf(nm, sizeof nm, "%s/%s_pw0", dir, dir);
+        char nm[64]; snprintf(nm, sizeof nm, "%s/%s_pv0", dir, dir);   /* 4 bpp (build_level.sh --pal4=1:_pv) */
         if (JW.nfr < 1 || tex_load_file(&WT[0], nm) < 0) has_water = 0;
     } else if (has_water == 1 && off + 4 <= sz) {
         water_y = rd32(d + off);

@@ -1114,7 +1114,7 @@ def export_parallax(fr, src, name, out, an=None):
         fw, fh = ims[0].width, ims[0].height
         atl = Image.new('RGBA', (fw, fh * len(ims)))
         for k, im in enumerate(ims): atl.paste(im, (0, k * fh))
-        write_tex(atl, os.path.join(out, '%s_pw0.tex' % name))
+        write_tex(atl, os.path.join(out, '%s_pv0.tex' % name))   # _pv: its own 4 bpp set (9 colours; build_level.sh), outside par_top's PAL8 set
         d += struct.pack('<i6H', water, len(ims), fw, fh, 2338, 270, 2374)
     elif water:
         for img in (987, 1078):
