@@ -384,3 +384,22 @@ blends it (SB mist); everything else stays PAL8 / 4 bpp.
 
 **D-097 SB1 is the stage hub; the route continues FN6 -> SB1 and ends at the front end after SB1's results** (Jade Creek
 not ported), as RM5 / FN6 did before their next stages existed.
+
+## Session 20 (bug-fix addendum)
+
+**D-098 Module state that a level's objects create is reset on every level load by its owner**, before any "is this my
+level?" early return (fn_assist_reset from fn_panther_spawn). The FN6 closing cast's flag hid the player in every later level.
+
+**D-099 A music fade belongs to the track it started on.** music_serial() counts track starts; a new track cancels the fade
+(Chowdren's fadeout_music acts on the playing track; SB1's night fade had stopped the Kujacker's music).
+
+**D-100 Json layer 1 of a mapped frame is drawn between the 0.8 pieces and the other layer-1 pieces** (objects_draw(-1),
+sb_flow_draw(-1)); SB_GIM objects mark it with lvobj anim 0x8000 (layer -1, drawn at 0.8). Other levels render
+byte-identically (checked DV1 DV3 AT1 AT3 RM1 RM3 RM5 FN1 FN3 FN5 FN6).
+
+**D-101 Behaviour first, decompilation when needed** (user, session 20): fixes may be behaviour-equivalent rather than 1:1 as
+long as they fit the object generalisation rules; decompile where the behaviour cannot be worked out otherwise.
+
+## D-102 (session 20): one verification disc per batch
+User instruction: do not build a disc per change. Batch all changes, build one verification disc, check everything on it,
+then go back to code if needed; keep other process steps lean (fewer reruns, shorter logs).

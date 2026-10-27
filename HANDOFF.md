@@ -128,6 +128,23 @@ spec_rm_golems, spec_rm_claw, spec_rm_mantalith, rm_inventory.
   Mantalith sounds 147 / 214 / 215 not ported; INFERRED items in RE_NOTES. An agent published a private working page
   (spec_rm_enemies) during research; it is still in the user's artifacts (delete only if the user asks).
 
+## Session 20 (2026-10-27): bug-fix addendum (8 user-reported bugs)
+Restored from fpdc_session19b.bundle (c5fbcc4); toolchain, KOS, mkdcdisc, Flycast, Ghidra 11.4.2, fprun and all 23 levels
+rebuilt (see ASSET_PIPELINE "Session 20"). The user's Ghidra project and traces are unpacked under build/re and
+build/orig_traces (never commit). Fixes, one commit each (root causes in RE_NOTES "Session 20"):
+- **Player invisible after FN (critical):** fn_assist state survived level loads; `fn_assist_reset()` on every load and
+  `game_player_visible()`. Regression test: tests/test_transitions.py (FN6 kill -> SB1 -> DV1 -> RM1 -> FN6, 3 characters).
+- **FN6 Serpentine / camera:** post-boss events 8749/8750 run every frame; closing cast puts the player at Y 260 (RE 8764).
+- **SB Kujacker:** boss music no longer cancelled by the night fade (music serial); tail-feather glow as eye overlays
+  (sbk_tail_d1/d2/d3/d31, rows >= 48 blanked by TOP_ROWS, no VRAM cost).
+- **SB2-SB4 exits:** beaten cannon bases fly away (RE 9319) instead of leaving invisible walls.
+- **SB draw order:** json layer 1 objects drawn at pass -1 between the 0.8-scroll and 1.0 json-2 pieces.
+- **RM red boxes:** hang sensors (types 260/262/263/265) hidden.
+- **RM2 axle softlock:** the start plate press runs after the reset loop (left entrance stays open).
+- **RM3 hand-car:** bumpers at front and rear by direction; bounces and can reverse at wall plates.
+- Renderer: rotated sprites bounded by the farthest corner from the hotspot (soft and PVR).
+- Process (user, D-102): one verification disc per batch of changes, not per change.
+
 ## Session 19 (2026-10-26): Sky Battalion, DV3 bamboo traps, RM3 background
 Details: RE_NOTES / RUNTIME_MAP "Session 19: ..." sections, DECISIONS D-094 to D-097, BUILD_AND_TEST_LOG "Session 19",
 ASSET_PIPELINE "Session 19". Specs (not committed): build/re/sb_inventory.md, spec_sb_flow.md, spec_sb_enemies.md,
@@ -270,16 +287,15 @@ D-072, BUILD_AND_TEST_LOG "Session 15". Spec: build/re/fe/spec_gallery.md (not c
   Aqua Tunnel: session 12.)
 
 ## Latest verified
-- host-test (session 19, final code, all 23 levels rebuilt): gameplay, front end, Carol, Milla, Aqua, levels, saves,
-  rm_gimmicks_b, rm_claw, rm_mantalith, gallery, achievements, fn_enemies, fn_gimmicks_a, fn_gimmicks_b, fn_bosses,
-  fn_panther, fn_assist, fn_flow, dv3_bamboo, sb_flow, sb_enemies, sb_gimmicks, sb_bosses: all 0 failures. Trace comparers
-  unchanged (cmp_all 76/76 strict 11311/11377, cmp_carol 43/53, cmp_milla 37/43, cmp_at 21/35).
-- emulator (Flycast, session 19): SB1 hub / deck fire / Kujacker, SB2-SB4 openings (hover platforms), every SB boss;
-  perf / VRAM / sound RAM per BUILD_AND_TEST_LOG "Session 19"; FN1 perf unchanged. **Nothing measured on real hardware.**
+- host-test (session 20, final code): the 24 session-19 suites plus transitions and rm_visuals, all 0 failures. Trace
+  comparers unchanged (cmp_all 76/76 strict 11311/11377, cmp_carol 43/53, cmp_milla 37/43, cmp_at 21/35).
+- emulator (Flycast, session 20): FN6 -> SB1 -> DV1 -> RM1 with Milla and Lilac, player drawn throughout; SB1 sail in
+  front of the airships; Kujacker glow; SB3 bases pass. SB1 Carol Kujacker perf identical to c5fbcc4 (VRAM free 515 KB both).
+  Audio not checked in the emulator (host-verified). **Nothing measured on real hardware.**
 
 ## Next actions
-1. Real hardware: SB1 (Carol: 515 KB VRAM free), the Kujacker's lightning (up to ~130 spokes), FN3 / FN5 Carol.
-2. Play each SB act through per character (skipped in session 19) and the TODO "Sky Battalion" INFERRED items.
+1. Real hardware: the FN -> SB transition, SB1 (Carol: 515 KB VRAM free), the Kujacker's lightning, FN3 / FN5 Carol.
+2. Play each SB act through per character and the TODO "Sky Battalion" INFERRED items (Kujacker S==4 red glow).
 3. Decide on the RM3 / FN5 solid Quick Backdrops (TODO).
 4. Next stage: Jade Creek (json 40-44, stage index 5) via ASSET_PIPELINE "Adding a level".
 

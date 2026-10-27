@@ -73,6 +73,8 @@
 - [ ] Gimmick guesses: hover-platform flame follow, cannon bullet removal, lightning cooldown, fan debris, chain-wall mask
       span, crusher limits / trigger, moving-block trigger, SB3 back eyes fading; Magnetizer stays dormant (RE: never in view)
 - [ ] Hardware: SB1 with Carol has the least VRAM of any level (515 KB free after load; a carried shield takes 256 KB more)
+- [x] Session 20 fixes: Kujacker feather glow / boss music, FN -> SB invisible player, ship exits (beaten cannon bases),
+      ship draw order (json layer 1 behind layer 2)
 - [ ] Decision pending: RM3 dirt filler (x 976-7488, y 800-1568) and FN5 (x 11904-15200, y 240-512) are solid now (original's
       obstacle flag)
 
@@ -115,3 +117,15 @@
 ## Platform
 - [ ] Real-hardware test (CD-R / ODE)
 - [ ] Remove the FP_PROFILE overlay from release builds
+
+## Session 20 (bug-fix addendum)
+- [x] FN6 Milla: Serpentine / the panther gone after the flash (8749 every frame), closing camera on the floor (8764)
+- [x] FN -> SB: the player was not drawn after FN6 in every later level (fn_assist state reset per level)
+- [x] SB Kujacker: feather glow (cyan / yellow / flash), boss music kept through the night fade
+- [x] SB2-SB4 exits: a beaten cannon base flies off (no invisible wall); SB draw order (airships behind Zao's sail)
+- [x] RM: hang sensors invisible (red boxes); RM2 start plate pressed (axle tunnel softlock); hand-car bumper front / rear
+- [ ] Flycast / hardware: FN -> SB1 -> other levels for each character on a disc (see BUILD_AND_TEST_LOG "Session 20")
+- [ ] 9145 (the Kujacker's fourth head hit, dir 4: red INFERRED) not traced; FN1-FN3 json-1 objects (firework launchers,
+      strobe lights) still drawn with the play-layer objects (not reported; same layer rule as D-100 if they are visible)
+- [ ] The user's "RM1" switch room was identified as the port's rm2 basement (axle tunnel, plates); if another switch was
+      meant, it is still open

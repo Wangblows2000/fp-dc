@@ -506,3 +506,16 @@ Labels: original-trace (RV), RE, host-test, emulator (Flycast, emulated time). *
 
   Visual: hub, deck-fire warning and ball, mist translucency, hover platforms (idle ride), every SB boss.
 - **DC build:** 0 warnings. **Emulator only; nothing measured on real hardware.**
+
+## Session 20 (2026-10-27): bug-fix addendum
+- **Focused tests per fix:** test_transitions (new; 9 failures on c5fbcc4, 0 now), test_fn_assist s20 (camera / cast),
+  test_sb_bosses (boss music kept, tail_glow_directions), test_sb_gimmicks s20 (cannon wall, SB2-SB4 x 3 characters),
+  test_sb_flow (night / layer order), test_rm_visuals (new: hang sensors hidden, RM2 axle 90/180/270/0, start plate),
+  test_rm_gimmicks_b handcar bounce/reverse. Each new check fails on the old code.
+- **Full regression:** 26 suites 0 failures; comparers unchanged (cmp_all 76/76 strict 11311/11377, cmp_carol 43/53,
+  cmp_milla 37/43, cmp_at 21/35). Renders byte-identical to c5fbcc4 in DV1, DV3, AT1, AT3, RM1, RM3, RM5, FN1, FN3,
+  FN5, FN6, SB2, SB3, SB4 (SB1 differs by the intended layer order and glow).
+- **Flycast (DEMO discs):** Milla and Lilac FN6 -> SB1 -> DV1 -> RM1, pvis 1 in every level after FN6; SB3 Lilac passes the
+  bases; 602 vblanks / 600 frames in steady windows. SB1 Carol Kujacker, new vs c5fbcc4: VRAM free 515 / 515 KB, update
+  2.0-3.9 ms / 2.0-3.8 ms, draw 12.8-14.7 ms both, slow-frame counts identical. Audio not checked in the emulator.
+- **DC build:** 0 warnings. **Emulator only; nothing measured on real hardware.**
