@@ -52,6 +52,7 @@ static struct {
 
 int sb_flow_act(void) { return SB.act; }
 float sb_flow_hud_dy(void) { return -(float)SB.hud; }
+void  sb_flow_hud_shift(int d) { SB.hud += d; if (SB.hud < 0) SB.hud = 0; if (SB.hud > 80) SB.hud = 80; }   /* loop_gui_shiftup / down_14: 1 px a call, 0-80 */
 int sb_flow_night(void) { return SB.kuj ? 2 : SB.night ? 1 : 0; }
 int sb_flow_intro(void) { return !SB.intro ? 0 : SB.zA == 2 ? 2 : 1; }
 int sb_flow_pad_down(int i) { return i >= 0 && i < SB.npad && (SB.padfl[i] & 4); }
@@ -144,7 +145,7 @@ static void hub(player_t *p) {
         music_fade(240, 0);
         G.timer_stop = G.frame + 1;
     }
-    if (SB.darkA == 1) { SB.darkB -= 0.5; SB.hud = SB.hud + 1 > 40 ? 40 : SB.hud + 1; }   /* 9006: B - 0.5, alpha (128 - B) 2, HUD up */
+    if (SB.darkA == 1) { SB.darkB -= 0.5; sb_flow_hud_shift(1); }   /* 9006: B - 0.5, alpha (128 - B) 2, HUD up (to 80) */
     if (SB.darkA == 1 && SB.darkB <= 64) SB.darkA = 2;                                    /* 9007 */
     if (SB.darkA == 2 && !SB.kuj) SB.darkC++;                                              /* 9008 (CAM.H to -50: not ported) */
     if (SB.darkA == 2 && SB.darkC == 50 && !SB.kuj) { SB.kuj = 1; G.timer_stop = 0; SBLOG("kujacker"); }   /* 9009: group 0x22840 (boss module), timer on */

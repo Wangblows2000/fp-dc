@@ -34,6 +34,7 @@ static struct {
     int on, night, once272, ended, fx_n, warn, slow0, placed;
     double B, C, D, E, F, G, H, I, J, K, L, M, N, O, Q, R, S, T; int fl;
     double pC, pD;                            /* pilot C / D (the end) */
+    double pA, pB; int vox;                   /* pilot A (HUD return, 9010), B (dialogue clock, 9011); voices played (bits) */
     double tA;                                /* tornado A (the push) */
     int hit;                                  /* head flag 0x80: this hit is counted */
     double hx[NHIST], hy[NHIST], hd[NHIST];   /* BossTailTracker trail of the dash (age 0 = newest) */
@@ -400,11 +401,29 @@ static void ending(player_t *p) {                                              /
     }
     if (K.pC == 154) K.pD += 1;                                                 /* (RV k_end: D 0 on the frame C turns 154, 3701) */
     if (K.pC == 152 && ++K.pD > 100) { K.pC = 153; K.pD = 0; }                  /* 9160 / 9161 */
-    if (K.pC == 153 && ++K.pD >= 64) { K.pC = 154; K.pD = 0; }                  /* 9162 / 9163 */
+    if (K.pC == 153 && ++K.pD >= 64) { K.pC = 154; K.pD = 0; voice_play("da_04_04"); }   /* 9162 / 9163 (da_04_04, channel 24) */
     if (K.pC == 154) {
         if (K.pD > 120) K.H -= 0.5;                                             /* 9164: it flies off */
         if (b && b->y < 400 && !K.ended) { K.ended = 1; K.on = 0; results_begin_boss(G.frame); }   /* 9165 / 9166 */
     }
+}
+
+/* 9010-9022: the HUD comes back and Prince Dail's dialogue runs on the pilot's clock B (+1 a frame to 700 from the fight's
+ * start); the character's reply by MV.A (0 Lilac, 2 / 3 Carol, 4 Milla); da_04_03 once after the third head hit (base
+ * I 0, S 3, H > 3). All on channel 24 (voice_play: the stage voices of levels.c VOX_SB1). RV k_def / k_end (Lilac):
+ * da_04_01 +200, lilac_never +380, da_04_02 +500 frames after 9009. */
+static void dialogue(void) {
+    if (sb_flow_hud_dy() < 0 && K.pA < 60) { sb_flow_hud_shift(-2); K.pA += 1; }          /* 9010: loop_gui_shiftdown_14 x2 */
+    if (K.pB < 700) K.pB += 1;                                                            /* 9011 */
+    int lil = G.character == CHR_LILAC, car = chr_is_carol(G.character), mil = chr_is_milla(G.character);
+    #define VOX1(bit, cond, name) if ((cond) && !(K.vox & (bit))) { K.vox |= (bit); voice_play(name); }
+    VOX1(1, K.pB >= 200, "da_04_01");                                                     /* 9012 */
+    VOX1(2, K.pB >= 380 && lil, "lilac_never");                                           /* 9014 */
+    VOX1(4, K.pB >= 380 && car, "carol_fatchance");                                       /* 9015 */
+    VOX1(8, K.pB >= 380 && mil, "milla_icantiwont");                                      /* 9016 */
+    VOX1(16, (K.pB >= 500 && !mil) || (K.pB >= 550 && mil), "da_04_02");                 /* 9018 / 9019 */
+    VOX1(32, K.I == 0 && K.S == 3 && K.H > 3, "da_04_03");                                /* 9022 */
+    #undef VOX1
 }
 
 void sbk_frame(player_t *p) {
@@ -416,6 +435,7 @@ void sbk_frame(player_t *p) {
         K.on = 1; K.H = 8; sbb_fight_start(); show_all(1);
     }
     if (!K.on) { fx_frame(p); return; }
+    dialogue();
     int frozen = K.pC > 0 && K.pC < 60 && (G.frame - K.slow0) % 6 != 0;
     if (!frozen) {
         if (K.H > 0) K.H -= 0.1;                                                /* 9027 / 9028 (P 0; every mode, one after the other: */

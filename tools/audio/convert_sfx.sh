@@ -18,7 +18,8 @@ echo "name,source,duration_s,bytes" > "$OUT/sfx_manifest.csv"
 # (62, 260, 262) or anything outside the FN groups
 TRIM=" 70 75 99 127 241 288 134 137 143 163 164 165 166 167 168 169 171 187 188 191 192 193 194 195 196 197 198 199 200 208 212 216 217 218 219 223 224 225 226 227 228 229 230 231 243 249 254 256 257 258 259 261 317 371 428 430 436 103 156 237 255 264 263 265 266 267 268 269 270 271 272 273 274 438 446 71 155 445 "
 conv() {  # src dst
-  local AF=""; case "$TRIM" in *" $(basename "$2" .wav | sed 's/^s//') "*) AF="-af areverse,silenceremove=start_periods=1:start_threshold=-48dB,areverse";; esac
+  local AF=""; [ -n "$TRIM_ALL" ] && AF="-af areverse,silenceremove=start_periods=1:start_threshold=-48dB,areverse"
+  case "$TRIM" in *" $(basename "$2" .wav | sed 's/^s//') "*) AF="-af areverse,silenceremove=start_periods=1:start_threshold=-48dB,areverse";; esac
   ffmpeg -v error -y -i "$1" $AF -ac 1 -ar $RATE -sample_fmt s16 "$TMP/x.wav"
   "$HERE/wav2adpcm" -t "$TMP/x.wav" "$2" > /dev/null
   echo "$(basename "$2" .wav),$(basename "$1"),$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$1"),$(stat -c %s "$2")" >> "$OUT/sfx_manifest.csv"
@@ -45,5 +46,11 @@ R0=$RATE; RATE=11025; conv "$VOX/eng/group/teamlilac_madeit.ogg" "$OUT/teamlilac
 # above): SB1 267-274 (events 9044-9099, Kujacker group), SB2 103 156 237 263 (flamethrower) 264 446, SB3 265, SB4 255 266 438; half rate, trimmed;
 # SB2 Spade (sb_spade.c: card throw 71, card burst 445, explosion 155)
 for i in 103 156 237 255 263 264 265 266 267 268 269 270 271 272 273 274 438 446 71 155 445; do R0=$RATE; RATE=11025; conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; RATE=$R0; done
+# Sky Battalion boss voices (session 21, level_def_t.vox: loaded with the stage group, character lines only for that
+# character): Kujacker 9012-9022 / 9163 (da_04_01-04, carol_fatchance, milla_icantiwont; lilac_never is converted above),
+# Spade 9625-9628 (spade_comeon / goodenough / comeon2). Real files from the user's PC install; half rate, tails trimmed.
+R0=$RATE; RATE=11025; TRIM_ALL=1
+for v in da/da_04_01 da/da_04_02 da/da_04_03 da/da_04_04 ca/carol_fatchance mi/milla_icantiwont sp/spade_comeon sp/spade_goodenough sp/spade_comeon2 li/lilac_never li/lilac_hitmeifyoucan; do conv "$VOX/eng/$v.ogg" "$OUT/$(basename $v).wav"; done
+RATE=$R0; TRIM_ALL=
 rm -rf "$TMP"
 awk -F, 'NR>1{s+=$4} END {printf "%d sounds, %.1f KB\n", NR-1, s/1024}' "$OUT/sfx_manifest.csv"

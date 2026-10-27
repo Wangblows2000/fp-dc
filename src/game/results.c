@@ -126,6 +126,9 @@ int results_update(player_t *p) {
         R.total = (G.file_slot >= 0 && G.file_slot < SAVE_FILES && !G.time_attack) ? save_file_crystals(&SV.file[G.file_slot]) : 0;   /* TotalCrystals = the file's total (y4) */
         if (level_cur()->res_voice) voice_play_once(level_cur()->res_voice);   /* FN6 8545 (MV.A != 1: everyone in the port), channel 27 */
     }
+    if (level_cur()->res_skin_voice && R.t == 76)                             /* 6589-6592 (RV k_end: lilac_howitsdone 75 frames after m_clear; */
+        voice_play_once(G.character == CHR_LILAC ? "lilac_howitsdone" : chr_is_carol(G.character) ? "carol_feelmypower" :   /* the same */
+                        chr_is_milla(G.character) ? "milla_yay" : "");                                                  /* frame for Carol / Milla INFERRED) */
     if (R.signB >= 180 && !R.ac1) { R.ac1 = 1; R.ac1_t = 0; }                 /* 4565 */
     if (R.ac1) {
         R.ac1_t++;

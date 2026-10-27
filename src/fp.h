@@ -927,6 +927,10 @@ typedef struct {
     const fnenemy_t *fne;                            /* Fortune Night enemies' per-act rules (fn_enemy.c); NULL: defaults */
     const fnboss_t *fnb;                             /* Fortune Night bosses' per-act rules (fn_boss.c); NULL: FN1 / FN2 */
     /* session 19 (Sky Battalion, spec_sb_flow) */
+    /* session 21 */
+    const char *const *vox; int nvox;                /* stage voices loaded with the stage sound group (voice_play); a name starting
+                                                        lilac_ / carol_ / milla_ loads only for that character */
+    int res_skin_voice;                              /* the results' character voice (6589-6592: Lilac howitsdone, Carol feelmypower, Milla yay) */
     int clear_free;                                  /* the act-end fade leaves the player alone (no 3311 walk, control kept): SB1's launch pads (8874-8878) */
 } level_def_t;
 const char *level_music_slot(int slot);              /* the current act's music for a play_music(slot) of its scripts (NULL: none) */
@@ -958,6 +962,8 @@ void   fn_flow_spawn(void), fn_flow_frame(player_t *p);
 void   sb_flow_spawn(void), sb_flow_frame(player_t *p), sb_flow_draw(int pass), sb_flow_ship_done(int flag);
 int    sb_flow_act(void), sb_flow_night(void), sb_flow_intro(void), sb_flow_pad_down(int i);
 float  sb_flow_hud_dy(void);
+void   sb_flow_hud_shift(int d);
+float  hud_offset(void);                              /* the HUD's vertical offset this frame (game.c) */                      /* loop_gui_shiftup (+) / shiftdown (-) _14: 1 px a call, kept in 0..80 */
 /* src/game/fn_boss.c (Fortune Night bosses, spec_fn_bosses A-E): spawn, the test_collisions handlers (before combat), the per-object
  * dispatch (1: handled; every rule runs in fn_boss_frame after the gimmicks), draw (1: drawn / skipped), scripted pad (CTRL.M) */
 void   fn_boss_spawn(void), fn_boss_pre(player_t *p), fn_boss_frame(player_t *p);
