@@ -725,7 +725,8 @@ static const objdef_t DEFS[] = {
     /* ---- JC_FLOW (jc_flow.c) */
     /* ---- JC_ENEMIES (jc_enemy.c) */
     /* ---- JC_GIM (jc_gim.c) */
-    /* ---- JC_BOSS (jc_boss*.c) */
+    /* ---- JC_BOSS (jc_boss.c) */
+    /* ---- JC_BOSS5 (jc_boss5.c) */
     /* ==== end Jade Creek */
 };
 static objdef_t BY_TYPE[MAX_OT];
