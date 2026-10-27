@@ -116,6 +116,7 @@ void fn_panther_spawn(void) {
     static int reg;
     if (!reg) { reg = 1; snap_register(&FP, sizeof FP); }
     memset(&FP, 0, sizeof FP);
+    fn_assist_reset();                                                           /* level-scoped: the closing cast must not hide the player elsewhere */
     if (!objects_have(OT_FNP_HEAD)) return;
     for (int k = 0; k < S_N; k++) SA[k] = ens_anim(SN[k]);
     obj_t *ribs[16], *tails[16]; int nr = 0, nt = 0;

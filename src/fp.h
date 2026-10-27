@@ -941,7 +941,9 @@ typedef struct { const obj_t *hit; int fight, mode2, laser_on; double cannon_d, 
 void   fn_assist_spawn(void), fn_assist_frame(player_t *p, const fn_assist_ctx_t *c), fn_assist_plane_mode(player_t *p), fn_assist_end(void);
 void   fn_assist_draw(int pass);
 int    fn_assist_cpu_finish(const obj_t *hit), fn_assist_last_hit(void);   /* achievement 21 (RE 8790 / 8792) */
-int    fn_assist_closing(int D), fn_assist_cast_on(void);   /* the closing scene's cast (8764-8785): the head's D; the player hidden */
+int    fn_assist_closing(int D), fn_assist_cast_on(void);
+void   fn_assist_reset(void);
+int    game_player_visible(void);                     /* game.c: the player sprite is drawn this frame */                         /* every level load (fn_panther_spawn): the assist / cast state is level-scoped */   /* the closing scene's cast (8764-8785): the head's D; the player hidden */
 /* src/game/fn_flow.c (Fortune Night stage script, stage index 3, spec_fn_flow) */
 void   fn_flow_spawn(void), fn_flow_frame(player_t *p);
 /* src/game/sb_flow.c (Sky Battalion stage script, stage index 4, spec_sb_flow). Hooks for the boss / gimmick modules:

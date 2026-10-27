@@ -55,10 +55,16 @@ static void setan(obj_t *o, int k) { int a = SA[k]; if (o && a >= 0 && (o->an.b 
 static void own_set(animator_t *an, int k) { int a = SA[k]; if (a >= 0 && (an->b != &G.ens || an->anim != a)) { int acc = an->acc; anim_set(an, &G.ens, a); an->acc = acc; } }
 
 /* ===================================================================================================== spawn */
-void fn_assist_spawn(void) {
+/* every level load (fn_panther_spawn, before its FN5 / FN6 test): AS outlives the level otherwise. Session 20: the FN6 closing
+ * scene leaves cast_on = 1 (MV.M 50: the player not drawn), so the player vanished in SB1 and in every later level until FN6 was
+ * replayed or the console restarted (game_draw tests fn_assist_cast_on() in every level). */
+void fn_assist_reset(void) {
     static int reg;
     if (!reg) { reg = 1; snap_register(&AS, sizeof AS); }
     memset(&AS, 0, sizeof AS);
+}
+void fn_assist_spawn(void) {
+    fn_assist_reset();
     for (int k = 0; k < S_N; k++) SA[k] = ens_anim(SN[k]);
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i];
