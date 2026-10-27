@@ -968,6 +968,9 @@ static void pause_draw(void) {
     }
 }
 
+/* the player sprite is drawn this frame (session 20: one predicate for game_draw and the host transition test) */
+int game_player_visible(void) { return !fn_assist_cast_on() && !sb_boss_player_hidden(); }
+
 void game_draw(void) {
     if (G.mode == MODE_FRONTEND) { fe_draw(); return; }
     if (G.in_select) { sel_draw(); return; }
@@ -979,7 +982,7 @@ void game_draw(void) {
     draw_pieces(2, 2);
     objects_draw(1);
     water_draw_front();
-    if (!fn_assist_cast_on() && !sb_boss_player_hidden()) player_draw(&G.p);   /* FN6 closing scene: MV.M 50, the cast stands in (fn_assist.c) */
+    if (game_player_visible()) player_draw(&G.p);   /* FN6 closing scene: MV.M 50, the cast stands in (fn_assist.c) */
     shields_draw(&G.p);
     fn_gimb_draw_front();                         /* FN: restroom doors / pole-pod shells over the player */
     spiral_front_draw();
