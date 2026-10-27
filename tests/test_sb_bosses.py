@@ -109,6 +109,9 @@ for ch, cn in CHARS:
     st = first(k, lambda r: r.get('I') is not None)
     check('sb1_%s_start' % cn, st is not None and abs(st - (237 + O)) <= 1 and music(ev, 'bgm/m_boss3')[:1] and abs(music(ev, 'bgm/m_boss3')[0] - (237 + O)) <= 1,
           str((st, music(ev, 'bgm/m_boss3'))))
+    mb = music(ev, 'bgm/m_boss3')[:1]                                # session 20: the night's fade-out must not stop the boss track
+    stops = [f for f, l in ev if l.startswith('music stop') and mb and mb[0] <= f < 3100 + O]
+    check('sb1_%s_boss_music_kept' % cn, mb and not stops, str((mb, stops[:3])))
     check('sb1_%s_head_hits' % cn, sids(ev, 47) == [f + O for f in (300, 1000, 1700, 2400, 3100)], str(sids(ev, 47)))
     check('sb1_%s_dash_passes' % cn, near(sids(ev, 268), [f + O for f in (377, 627, 1067, 1317, 1761, 2011, 2457, 2707)]) and
           near(sids(ev, 269), [f + O for f in (502, 752, 1192, 1442, 1886, 2136, 2582, 2832)]), str((sids(ev, 268), sids(ev, 269))))
