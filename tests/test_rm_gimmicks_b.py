@@ -58,6 +58,12 @@ check('rm3_handcar_tilts_on_slopes', bool(cart) and max(abs(o['a2']) for o in ca
 _, obs, _, _ = run('rm3', 4, '60 TP 950 1630\n' + INV + '100 900 R\n', 900, '%d:-1' % TSWITCH)
 ts = obs_of(obs, TSWITCH)
 check('rm3_cart_plate_turns_track_switches', ts and max(o['a0'] for o in ts) > 5, 'max rail angle %s' % (max(o['a0'] for o in ts) if ts else None))
+# session 20 (user report: stuck at the first wall plate): the bumper acts at the front only while B > 0 and at the rear only while
+# B < 0 (RE 6142-6149). Old code: pinned at x ~5570 with left held. Now the cart bounces off the wall and reverses away.
+_, obs, _, _ = run('rm3', 4, '60 TP 950 1630\n' + INV + '100 900 R\n900 1400 L\n', 1400, '%d:984' % CART)
+cx = {o['f']: o['x'] for o in obs_of(obs, CART)}
+check('rm3_handcar_bounces_and_reverses_at_wall_plate', cx and max(cx.values()) < 5620 and cx.get(1399, cx[max(cx)]) < 4500,
+      'max x %.0f, x at the end %.0f' % (max(cx.values()), cx[max(cx)]))
 # jumping off (6136) leaves M90
 rows, _, _, _ = run('rm3', 4, '60 TP 950 1630\n' + INV + '100 200 R\n200 202 J\n', 260)
 check('rm3_jump_off_handcar', any(r['mm'] == 90 for r in rows[150:199]) and all(r['mm'] != 90 for r in rows[205:]) and min(r['vy'] for r in rows[200:215]) < -3,

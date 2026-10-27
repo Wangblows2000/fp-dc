@@ -29,6 +29,8 @@ static struct {
     int cart_ch, elev_ch, gate_ch;         /* looping samples (channels) */
     int chair;                             /* the chair M39 walks to */
     int plate_snd[8];                      /* click latches per plate (6151 / 6152 / 4506 / 5678 once per press) */
+    float bump[2][2];                      /* the bumper's two places this frame: front (6142) and rear (6146) (session 20) */
+    int bump_n;
     uint32_t held0;                        /* last frame's buttons (CTRL.H edge) */
 } S;
 
@@ -359,7 +361,10 @@ static void plates(player_t *p) {
         int k = o->par < 5 ? o->par : 0;
         if (!PLATE[k].perm) { o->hidden = 0; o->fl &= ~1; }                    /* shown, flag 0 off every frame */
         int push = !dead(p) && (M == 11 || M == 47 || ((PLATE[k].cyc || (k == 0 && level_cur()->wplate_cyclone)) && M == 26)) && sens_hit(PLATE[k].sens, o, 0);
-        int cart = PLATE[k].cart && f3 && obj_obj_hit(f3, o);
+        int cart = 0;                                                          /* 6145 / 6149: the bumper at the front, then at the rear */
+        if (PLATE[k].cart && f3) for (int b = 0; b < S.bump_n && !cart; b++) {
+            float sx = f3->x, sy = f3->y; f3->x = S.bump[b][0]; f3->y = S.bump[b][1]; cart = obj_obj_hit(f3, o); f3->x = sx; f3->y = sy;
+        }
         if (push || cart) { o->hidden = 1; o->fl |= 1; }
         int on = (o->fl & 1) != 0, j = (int)(o - G.o) & 7;
         if (on && !S.plate_snd[j]) snd_play_orig(49, 220, 128);               /* click once per press */
@@ -408,19 +413,28 @@ static void cart_frame(player_t *p) {
         int vol = (int)(fmin(100 * fabs(*B), 100) * 255 / 100), fr = (int)(22050 + 5000 * fabs(*B));
         if (S.cart_ch < 0) S.cart_ch = snd_loop_orig(260, vol, fr); else snd_loop_update(S.cart_ch, vol, fr);
     } else if (S.cart_ch >= 0) { snd_loop_stop(S.cart_ch); S.cart_ch = -1; }
-    if (f3) {                                                                  /* 6142 / 6146: the front bumper */
-        double x, y; cart_point(c, 45, 4, &x, &y); f3->x = (float)floor(x); f3->y = (float)floor(y);
-        if (px_span_solid(&G.lvl, (int)f3->x - 4, (int)f3->x + 3, (int)f3->y) || px_span_solid(&G.lvl, (int)f3->x - 4, (int)f3->x + 3, (int)f3->y - 3) ||
-            px_span_solid(&G.lvl, (int)f3->x - 4, (int)f3->x + 3, (int)f3->y + 3)) { *B *= -0.5; shake(2); }   /* 6143 / 6147: bounces off walls */
-    }
-    for (int i = 0; i < G.nobjs; i++) {                                        /* 6144 / 6148, 6156-6158: floor spikes */
-        obj_t *s = &G.o[i];
-        if (!s->alive || s->type != OT_SPIKES || !s->an.b || fabsf(s->x - c->x) > 96 || fabsf(s->y - c->y) > 64) continue;
-        double b = *B;
-        if (f3 && obj_obj_hit(f3, s) && fabs(b) <= 3 && b != 0) *B *= -0.5;     /* slow carts bounce off spikes */
-        else if (fabs(b) > 3 && obj_obj_hit(c, s)) {                           /* a fast cart smashes them */
-            obj_t sv = *s; s->alive = 0; snd_play_orig(13, 220, 128); shake(2); spike_bits(&sv, b, -2);
+    /* 6142-6149: the bumper (CartProbe 3) is placed at the front (+45, 4) and then at the rear (-45, 4) of the cart every frame.
+     * At the front it acts only while the cart moves forward (B > 0), at the rear only backwards (B < 0): a wall bounces it back
+     * (B * -0.5), a slow cart (|B| <= 3) bounces off floor spikes, a fast one smashes them; wall plates are pressed at either place.
+     * Session 20: the port had only the front check and no direction test, so B flipped sign every frame while the bumper touched
+     * a wall (e.g. the first wall plate's wall): the cart was pinned there and could not be reversed. */
+    S.bump_n = 0;
+    for (int side = 0; side < 2 && f3; side++) {
+        double dir = side ? -1 : 1, x, y; cart_point(c, 45 * dir, 4, &x, &y); f3->x = (float)floor(x); f3->y = (float)floor(y);
+        S.bump[S.bump_n][0] = f3->x; S.bump[S.bump_n][1] = f3->y; S.bump_n++;
+        if (*B * dir > 0 && (px_span_solid(&G.lvl, (int)f3->x - 4, (int)f3->x + 3, (int)f3->y) || px_span_solid(&G.lvl, (int)f3->x - 4, (int)f3->x + 3, (int)f3->y - 3) ||
+            px_span_solid(&G.lvl, (int)f3->x - 4, (int)f3->x + 3, (int)f3->y + 3))) { *B *= -0.5; shake(2); }   /* 6143 / 6147 */
+        for (int i = 0; i < G.nobjs; i++) {                                    /* 6144 / 6148: floor spikes */
+            obj_t *sp = &G.o[i];
+            if (!sp->alive || sp->type != OT_SPIKES || !sp->an.b || fabsf(sp->x - c->x) > 96 || fabsf(sp->y - c->y) > 64) continue;
+            if (*B * dir > 0 && fabs(*B) <= 3 && obj_obj_hit(f3, sp)) *B *= -0.5;   /* slow carts bounce off spikes */
         }
+    }
+    for (int i = 0; i < G.nobjs; i++) {                                        /* 6156-6158: a fast cart smashes the spikes it runs into */
+        obj_t *sp = &G.o[i];
+        if (!sp->alive || sp->type != OT_SPIKES || !sp->an.b || fabsf(sp->x - c->x) > 96 || fabsf(sp->y - c->y) > 64) continue;
+        double b = *B;
+        if (fabs(b) > 3 && obj_obj_hit(c, sp)) { obj_t sv = *sp; sp->alive = 0; snd_play_orig(13, 220, 128); shake(2); spike_bits(&sv, b, -2); }
     }
     if (w0 && w1) {                                                            /* 6161 / 6162: wheels at action x -+ 28 cos A, settled */
         double ax, ay; act_pt(c, &ax, &ay);
