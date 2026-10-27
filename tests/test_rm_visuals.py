@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Host test (session 20): Relic Maze grabbable gimmicks show no red boxes.
+"""Host test (session 20): Relic Maze grabbable gimmicks show no red boxes; the RM2 axle tunnel stays enterable.
 
 The hang sensors (GimmickHangingMovingSensor / Sensor2 / IdleSwitch / IdleMover: OT 260 / 262 / 263 / 265) are collision
 boxes whose image is a solid red editor rectangle; every constructor calls set_visible(0) (RE create_gimmickhanging*). The
@@ -37,5 +37,21 @@ out = run('rm2', '3 SETV others E 99999\n3 TP 1993 880\n', 60, '')
 hang = [l for l in out.splitlines() if l.startswith('f ') and ' st ' in l]
 st = [int(l.split()[l.split().index('st') + 1]) for l in hang]
 check('rm2_handle_still_grabbed', st and st[-1] == 11, str(sorted(set(st))))   # 11 = ST_HANG
+# session 20: RM2 basement axle tunnel (entered from the left at angle 0). RE 6032 / RV rm_s20/ax_a: plate (328,2674) starts
+# pressed; the port's plate reset undid it, so walking over that plate on the way in turned the axle (A 90) and closed the left
+# entrance. Radio plates (5895 / 5897): every press of another plate turns it a quarter, so the opening can always be brought
+# back to the left.
+AX = '%d:-1' % 275   # OT_AXLE
+def axle_a(script, frames, at):
+    out = run('rm2', script, frames, AX)
+    a = {}
+    for l in out.splitlines():
+        t = l.split()
+        if t[:1] == ['ob']: a[int(t[1])] = float(t[t.index('a0') + 1])
+    return [a.get(f) for f in at]
+r = axle_a('3 SETV others E 99999\n3 TP 340 2660\n', 120, [110])
+check('rm2_start_plate_already_down_tunnel_stays_open', r == [0.0], str(r))
+r = axle_a('3 SETV others E 99999\n3 TP 624 2535\n60 TP 340 2660\n120 TP 290 2915\n180 TP 340 2660\n', 240, [50, 110, 170, 230])
+check('rm2_axle_radio_plates_bring_the_opening_back', r == [90.0, 180.0, 270.0, 0.0], str(r))
 print('%d failure(s)' % fails)
 sys.exit(1 if fails else 0)
