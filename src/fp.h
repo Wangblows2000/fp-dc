@@ -969,6 +969,8 @@ float  hud_offset(void);                              /* the HUD's vertical offs
  * dispatch (1: handled; every rule runs in fn_boss_frame after the gimmicks), draw (1: drawn / skipped), scripted pad (CTRL.M) */
 void   fn_boss_spawn(void), fn_boss_pre(player_t *p), fn_boss_frame(player_t *p);
 int    fn_boss_obj(obj_t *o, player_t *p), fn_boss_q20(int type), fn_boss_draw_obj(const obj_t *o, int pass), fn_boss_input(uint32_t *held);
+int    fn_boss_serp_falling(float *y), fn_boss_serp_jc5(void);   /* JC5's Serpentine 2 (the FN3 fight, hitbox 2552): jc_boss5.c starts the gunship */
+void   fn_boss_serp_remove(void);
 /* src/game/sb_boss*.c (Sky Battalion bosses, spec_sb_bosses): spawn, the test_collisions handlers (before combat), the per-object
  * dispatch (1: handled), the encounters' event blocks (after the gimmicks), Q20, draw (1: drawn / skipped), scripted pad, the
  * player hidden in the plane (MV.M 43), ML.Y (MasterLevel Y = 1 while a boss fight runs: the stage music's switch), the plane's

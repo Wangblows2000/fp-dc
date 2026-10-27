@@ -862,7 +862,41 @@ JC_FRAMES = {40, 41, 42, 43, 44}
 
 # ---- JC_BOSS (jc_boss.c, 1430-1479)
 
-# ---- JC_BOSS5 (jc_boss5.c, 1480-1535)
+# ---- JC_BOSS5 (jc_boss5.c, 1480-1535): Jade Creek act 5's finale (build/re/spec_jc_boss5.md). Types mirror src/game/jc.h
+# (OT_J5_*); they are placed only in json 44. Serpentine 2 is FN3's fight (fn_boss.c types 820-825) with its own hitbox handle
+# 2552 (sub id 1 = the JC5 variant: A 180, D 6, no UFO, the fall into the gunship); the Brevon mech FIGHT parts (weak spot,
+# turret, charge, laser, warnings; group 0x22af4) are Torque-only (loop_cutscene_start_43: g1 == 5) and not mapped.
+JCB5_FRAMES = {44}
+JCB5_TYPES_ID = {('bossgunship', 2559): 1480, ('bossgunshipbladeleft', 2557): 1481, ('bossgunshipbladeright', 2558): 1482,
+    ('bossgunshipcannonleft', 2566): 1483, ('bossgunshipcannonright', 2567): 1484, ('bossgunshiphitbox', 2577): 1485,
+    ('bossgunshiplight', 2562): 1486, ('bossgunshiplightleft', 2563): 1487, ('bossgunshiplightright', 2564): 1488,
+    ('bossgunshipmissilerackleft', 2555): 1489, ('bossgunshipmissilerackright', 2556): 1490, ('bossgunshippilot', 2565): 1491,
+    ('bossgunshipplatform', 2553): 1492, ('bossgunshiptrooper', 2554): 1493, ('bossgunshipturbineleft', 2560): 1494,
+    ('bossgunshipturbineright', 2561): 1495, ('enemyelite', 2529): 1498, ('enemyelitemask', 2528): 1499}
+ENGINE_TYPES_ID.update(JCB5_TYPES_ID)
+FNBOSS_FRAMES.add(44)                                         # Serpentine 2 (fn_boss.c): its classes are mapped in jc5 too
+ENGINE_TYPES_ID[('bossserphitbox', 2552)] = 822
+FNBOSS_SUB['bossserphitbox_2552'] = 1
+ENS_FRAMES['npcserpentine_945'] = ENS_FRAMES['npcserpentine_945'] | {44}
+_G5 = ('bossgunship',)
+JCB5_ENS = [(c, a, d, nm, None, _G5) for c, a, d, nm in (
+    ('bossgunship_2559', 0, '0', 'j5g_ship'), ('bossgunshipbladeleft_2557', 0, '0', 'j5g_bladel'), ('bossgunshipbladeright_2558', 0, '0', 'j5g_blader'),
+    ('bossgunshipcannonleft_2566', 0, '0', 'j5g_canl'), ('bossgunshipcannonleft_2566', 7, '0', 'j5g_canl7'),
+    ('bossgunshipcannonright_2567', 0, '0', 'j5g_canr'), ('bossgunshipcannonright_2567', 7, '0', 'j5g_canr7'),
+    ('bossgunshiphitbox_2577', 0, '0', 'j5g_hit'), ('bossgunshiphitbox_2577', 0, '8', 'j5g_hit8'),
+    ('bossgunshiplight_2562', 0, '0', 'j5g_light'), ('bossgunshiplightleft_2563', 0, '0', 'j5g_ll'), ('bossgunshiplightleft_2563', 0, '1', 'j5g_ll1'),
+    ('bossgunshiplightright_2564', 0, '0', 'j5g_lr'), ('bossgunshiplightright_2564', 0, '1', 'j5g_lr1'),
+    ('bossgunshipmissilerackleft_2555', 0, '0', 'j5g_rackl'), ('bossgunshipmissilerackright_2556', 0, '0', 'j5g_rackr'),
+    ('bossgunshippilot_2565', 0, '0', 'j5g_pilot'), ('bossgunshippilot_2565', 5, '0', 'j5g_pilot5'), ('bossgunshipplatform_2553', 0, '0', 'j5g_plat'),
+    ('bossgunshiptrooper_2554', 0, '0', 'j5g_trp'), ('bossgunshiptrooper_2554', 0, '16', 'j5g_trp_l'),
+    ('bossgunshipturbineleft_2560', 0, '0', 'j5g_turbl'), ('bossgunshipturbineleft_2560', 0, '8', 'j5g_turbl8'), ('bossgunshipturbineright_2561', 0, '0', 'j5g_turbr'),
+    ('bossgunshipflare_2568', 0, '0', 'j5g_flare'), ('bossgunshipflare_2568', 10, '0', 'j5g_flare10'),
+    ('bossgunshipflare_2568', 11, '0', 'j5g_flare11'), ('bossgunshipflare_2568', 11, '16', 'j5g_flare11_l'))]
+ENS += JCB5_ENS
+for _e in JCB5_ENS: ENS_FRAMES[_e[0]] = ENS_FRAMES.get(_e[0], set()) | JCB5_FRAMES
+JCB5_ENS_WITH = {'bossgunshipflare_2568': _G5, 'bossmissile_1867': _G5, 'effectsexplosion06_435': _G5, 'effectsexplosion01_367': _G5,
+                 'effectsdebris_427': _G5}
+for _k, _v in JCB5_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # JC_BOSS5
 
 # ==== end Jade Creek
 SHL_CLASSES = {'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
