@@ -73,7 +73,8 @@ for ch, cn in CHARS:
     g = d.get('sbg', {})
     check('sb4_%s_start' % cn, music(ev, 'bgm/m_midboss')[:1] == [60] and near(sids(ev, 266)[:4], [70, 92, 114, 136]), str(sids(ev, 266)[:4]))
     check('sb4_%s_hits' % cn, sids(ev, 47) == [700, 1000, 1300, 1600], str(sids(ev, 47)))
-    check('sb4_%s_slams' % cn, near(sids(ev, 13), [522, 1127, 1742]), str(sids(ev, 13)))
+    slams = [f for f in sids(ev, 13) if f >= 500]   # (13 at 442 is a bomb breaking a floor piece near the arena, 9355, since c5fbcc4's crusher rhythm)
+    check('sb4_%s_slams' % cn, near(slams, [522, 1127, 1742]), str(sids(ev, 13)))
     check('sb4_%s_arena_end' % cn, near(sids(ev, 40), [2051]) and near(sbf(ev, 'ship done 40'), [2051]), str((sids(ev, 40), sbf(ev, 'ship done'))))
 
 # ---- SB2: Carol / Milla fight the chopper (9553: MV.A != 0), Lilac fights Spade (9598). RV c_kill (A 0 at 900): explosions

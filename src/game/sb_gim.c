@@ -452,7 +452,7 @@ void sb_gim_spawn(void) {
         int t = o->type - RT0, n = 0, a = 0;
         for (int j = 0; j < G.lvl.nobj; j++) if (G.lvl.objs[j].type == o->type) { if (n++ == seen[t]) { a = G.lvl.objs[j].anim; break; } }
         seen[t]++;
-        o->par = a & 0xff; o->layer = (a >> 8) & 0xff;
+        o->par = a & 0xff; o->layer = (a & 0x8000) ? -1 : (a >> 8) & 0x7f;   /* -1: json layer 1 of a mapped frame (objects_draw_back, session 20) */
         o->an.b = NULL; o->fl = 0; o->st = 0; o->tm = 0; o->c = 0; o->dir = 0; o->ang = 0; memset(o->av, 0, sizeof o->av);
         o->hidden = (objdef(o->type)->flags & OD_HIDDEN) != 0;
         if (o->x < 0 || o->y < 0 || o->x >= G.lvl.w || o->y >= G.lvl.h) { o->alive = 0; continue; }   /* off-map templates */

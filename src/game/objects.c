@@ -859,10 +859,11 @@ void objects_draw(int pass) {
     for (int i = 0; i < G.nobjs; i++) {
         const obj_t *o = &G.o[i];
         if (!o->alive || !o->an.b || o->type == OT_HANG || o->type == OT_LADDERTOP || o->type == OT_BRIDGE) continue;   /* sensors / LadderTop are invisible */
-        if ((pass == 0 && o->layer > 1) || (pass == 1 && o->layer != 2) || (pass == 2 && o->layer < 3)) continue;
+        if ((pass == -1 && o->layer >= 0) || (pass == 0 && (o->layer > 1 || o->layer < 0)) || (pass == 1 && o->layer != 2) || (pass == 2 && o->layer < 3)) continue;
         if (o->type >= OT_FNBOSS_FIRST && o->type <= OT_FNBOSS_LAST && fn_boss_draw_obj(o, pass)) continue;   /* FN bosses: UFO rig order, scaled beam / glow (fn_boss.c) */
         if (o->type >= OT_SBB_FIRST && o->type <= OT_SBB_LAST && sb_boss_draw_obj(o, pass)) continue;   /* SB bosses: rig order, scaled parts (sb_boss.c) */
         float sx = floorf(o->x - G.camx), sy = floorf(o->y - G.camy);
+        if (pass == -1) { sx = floorf(o->x - (float)trunc(0.800000011920929 * G.camx)); sy = floorf(o->y - (float)trunc(0.800000011920929 * G.camy)); }   /* json layer 1 (SB2-SB4: 0.8) */
         { const frame_t *cf = anim_frame(&o->an); float m = 96; if (cf->w > m) m = cf->w; if (cf->h > m) m = cf->h; if (cf->w + cf->h > m && o->ang != 0) m = cf->w + cf->h;
           if (sx < -m || sx > SCREEN_W + m || sy < -m || sy > SCREEN_H + m) continue; }
         if (o->type == OT_SHIELD || o->type == OT_GEYSER || o->type == OT_SPIRAL_MASK || o->type == OT_BALLTUNNEL || o->type == OT_WR_WEAK || o->type == OT_FLOATPLAT || o->type == OT_TD_PUSH || o->type == OT_TD_PUSH2 || o->type == OT_SPIRAL_FRONT) continue;   /* invisible (the spiral front: spiral_front_draw) */
@@ -885,6 +886,7 @@ void objects_draw(int pass) {
         r_set_scale(1.f); r_set_additive(0);
         if (inv) r_set_invert(0);
     }
+    if (pass < 0) return;                            /* the back pass: game_draw calls sb_flow_draw(-1) itself */
     if (pass == 1) combat_draw_shields(1);           /* visible slash shields, behind Lilac */
     fn_gima_draw(pass);                              /* Fortune Night: additive / scaled / depth-sorted gimmick parts (fn_gima.c) */
     fn_panther_draw(pass);                           /* FN6: panther flash copies, wheel, laser, glow, speed back (fn_panther.c) */

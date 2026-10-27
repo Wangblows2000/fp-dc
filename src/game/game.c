@@ -787,6 +787,7 @@ void game_update(const input_t *in) {
 
 static void draw_parallax(void) { par_draw(G.frame); }
 
+static int pieces_s08 = -1;   /* -1 every piece; 0 / 1: only the pieces without / with the 0.8 scroll (pad bit 1) */
 static void draw_pieces(int lmin, int lmax) {
     const level_t *l = &G.lvl;
 #ifdef FP_HOST_ENV
@@ -799,6 +800,7 @@ static void draw_pieces(int lmin, int lmax) {
     for (int i = 0; i < l->npieces; i++) {
         const piece_t *p = &l->pieces[i];
         if (p->layer < lmin || p->layer > lmax || (p->pad & 1)) continue;   /* bit0: invisible (blend alpha 0) */
+        if (pieces_s08 >= 0 && ((p->pad & 2) != 0) != pieces_s08) continue;
 #ifdef FP_HOST_ENV
         { static const char *hp; static int init; if (!init) { init = 1; hp = getenv("FP_HIDE_PIECE"); }
           if (hp) { char k[16]; snprintf(k, sizeof k, ",%d,", i); if (strstr(hp, k)) continue; } }
@@ -982,7 +984,14 @@ void game_draw(void) {
     if (G.in_select) { sel_draw(); return; }
     r_begin();
     draw_parallax();
-    draw_pieces(0, 1);
+    /* Session 20: layer 1 of a mapped frame (json layer 1, scrolling at 0.8 in SB2-SB4 / AT / FN, 0.25 in SB1) is behind json layer 2,
+     * which shares the port's piece layer 1. Its objects (SB1's enemy airships, SB2-SB4's opening planks, fan blades and back eyes)
+     * were drawn after every layer-1 piece, so SB1's airships covered the red sail of Zao's ship (ship19, json layer 2). Now: layer 0,
+     * the 0.8 pieces, the layer-1 objects, then the other layer-1 pieces (the order inside a layer is unchanged). */
+    draw_pieces(0, 0);
+    pieces_s08 = 1; draw_pieces(1, 1);
+    objects_draw(-1); sb_flow_draw(-1);
+    pieces_s08 = 0; draw_pieces(1, 1); pieces_s08 = -1;
     objects_draw(0);
     fn_gimb_draw_back();                          /* FN: carousel rings, A5 disco light (back of the play layer) */
     draw_pieces(2, 2);
