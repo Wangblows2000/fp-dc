@@ -256,12 +256,12 @@ static const objdef_t DEFS[] = {
     { OT_FBALL,         0,                                     NULL         }, /* - */
     { OT_EMBER,         0,                                     NULL         }, /* - */
     { OT_HBAR,          0,                                     "hbar"       }, /* gimmickhangingmovingbar */
-    { OT_HSENS,         OD_BOXCOL|OD_HANG,                     "hsens"      }, /* gimmickhangingmovingsensor */
+    { OT_HSENS,         OD_BOXCOL|OD_HANG|OD_HIDDEN,          "hsens"      }, /* gimmickhangingmovingsensor (ctor set_visible 0: the red editor box, session 20) */
     { OT_HBAR2,         0,                                     "hbar2"      }, /* gimmickhangingmovingbar2 */
-    { OT_HSENS2,        OD_BOXCOL|OD_HANG,                     "hsens2"     }, /* gimmickhangingmovingsensor2 */
-    { OT_HISWITCH,      OD_BOXCOL|OD_HANG,                     "hiswitch"   }, /* gimmickhangingidleswitch */
+    { OT_HSENS2,        OD_BOXCOL|OD_HANG|OD_HIDDEN,          "hsens2"     }, /* gimmickhangingmovingsensor2 */
+    { OT_HISWITCH,      OD_BOXCOL|OD_HANG|OD_HIDDEN,          "hiswitch"   }, /* gimmickhangingidleswitch */
     { OT_HSWITCHV,      0,                                     "hswitch"    }, /* gimmickhangingswitch */
-    { OT_HIMOVER,       OD_BOXCOL|OD_HANG,                     "himover"    }, /* gimmickhangingidlemover */
+    { OT_HIMOVER,       OD_BOXCOL|OD_HANG|OD_HIDDEN,          "himover"    }, /* gimmickhangingidlemover */
     { OT_HMOVERV,       0,                                     "hmover"     }, /* gimmickhangingmover */
     { OT_MFLOOR1,       OD_SOLID|OD_BOXCOL,                    "mfloor1"    }, /* gimmickmovingfloor1 */
     { OT_MFLOOR2,       OD_SOLID|OD_BOXCOL,                    "mfloor2"    }, /* gimmickmovingfloor2 */
