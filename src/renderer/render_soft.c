@@ -137,7 +137,10 @@ void r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float 
     const uint16_t *pal = pals[texs[t->id].grp & 3];
     int tw = texs[t->id].w;
     float a = angle * 0.017453293f, c = cosf(a), s = sinf(a);
-    int r = (int)((uw * rxscale > vh ? uw * rxscale : vh) * 1.5f) + 1;
+    /* the scan radius: the farthest image corner from the hotspot (session 20: a hotspot outside the image, e.g. the Kujacker
+     * feather's eye overlay 31x48 pivoting at y 123, was cut to a sliver by the old "1.5 x image size" bound) */
+    float ex = (hx > uw - hx ? hx : uw - hx) * (rxscale > 1.f ? rxscale : 1.f) * rscale, ey = (hy > vh - hy ? hy : vh - hy) * rscale;
+    int r = (int)sqrtf(ex * ex + ey * ey) + 2;
     int y0 = (int)py - r < 0 ? 0 : (int)py - r, y1 = (int)py + r >= SCREEN_H ? SCREEN_H - 1 : (int)py + r;
     int x0 = (int)px - r < 0 ? 0 : (int)px - r, x1 = (int)px + r >= SCREEN_W ? SCREEN_W - 1 : (int)px + r;
     for (int sy = y0; sy <= y1; sy++) {

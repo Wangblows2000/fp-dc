@@ -239,7 +239,8 @@ void r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float 
         return;
     }
     if (flip) hx = uw - 1 - hx;                    /* the mirrored image's hotspot (texture u reversed below) */
-    float r = (uw * rxscale > vh ? uw * rxscale : vh) * 1.5f;
+    float ex = (hx > uw - hx ? hx : uw - hx) * (rxscale > 1.f ? rxscale : 1.f) * rscale, ey = (hy > vh - hy ? hy : vh - hy) * rscale;
+    float r = fsqrt(ex * ex + ey * ey) + 2;          /* cull by the farthest corner from the hotspot (session 20: hotspots outside the image) */
     if (px + r < 0 || py + r < 0 || px - r >= SCREEN_W || py - r >= SCREEN_H) return;
     if (cur_hdr != t->id) { pvr_prim(HDR(t->id), sizeof(pvr_poly_hdr_t)); cur_hdr = t->id; }
     float iw = 1.0f / texs[t->id].w, ih = 1.0f / texs[t->id].h;

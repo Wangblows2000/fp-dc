@@ -725,6 +725,7 @@ SBBOSS_TYPES_ID = {('playerassist', 2205): 1150, ('playerassistcopilot', 2220): 
 SBBOSS_SUB = {}
 _SA, _AS, _GR, _CH, _SP = ('bosssatellite',), ('playerassist',), ('bossgrappler',), ('bosschopper',), ('bossspade',)
 _KJ = ('bosskujackerbase',)
+TOP_ROWS = {'sbk_tail_d1': 48, 'sbk_tail_d2': 48, 'sbk_tail_d3': 48, 'sbk_tail_d31': 48}   # eye overlays (sb_kujacker.c, session 20)
 SBBOSS_ENS = [(c, a, d, nm, None, w) for c, a, d, nm, w in (
     ('bosssatellite_2286', 0, '0', 'sbs_sat', _SA), ('bosssatellite_2286', 7, '0', 'sbs_sat7', _SA), ('bosssatellite_2286', 8, '0', 'sbs_sat8', _SA),
     ('bosssatellite_2286', 10, '0', 'sbs_sat10', _SA), ('bosssatellitearm_2287', 0, '0', 'sbs_arm', _SA), ('bosssatellitearm_2287', 7, '0', 'sbs_arm7', _SA),
@@ -1504,6 +1505,18 @@ def write_bank2(src, bank, out, report):
         crop_ids = {i for a in bank['anims'] if whole or a['name'].startswith(('gan_', 'explosion')) for i in a['frames']}
         # the parked bike (ObjectBike_459) collides with its whole image box (initialize_active(1)): keep it (RV b_remount)
         crop_ids -= {i for a in bank['anims'] if a['name'].startswith('pbike') for i in a['frames']}
+    # session 20: overlay-only animations keep the top rows of their images (the Kujacker feather's eye: the shaft is the dark
+    # base feather's, drawn under it), so the glow directions cost a few KB instead of a second-atlas doubling
+    for a in bank['anims']:
+        rows = TOP_ROWS.get(a['name'])
+        if not rows: continue
+        others = {i for b in bank['anims'] if b['name'] not in TOP_ROWS for i in b['frames']}
+        for i in a['frames']:
+            if i in others or i not in imgs: continue
+            im, hx, hy = imgs[i]; im = im.copy(); px = im.load()
+            for y in range(rows, im.height):
+                for x in range(im.width): px[x, y] = (0, 0, 0, 0)
+            imgs[i] = (im, hx, hy)
     crop_off = {}
     for i in crop_ids:
         im, hx, hy = imgs[i]; bb = im.getbbox()
