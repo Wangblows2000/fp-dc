@@ -15,7 +15,7 @@ def run(level, char, frames, script, env=None):
         f.write(script); name = f.name
     e = dict(os.environ); [e.pop(k, None) for k in ('FP_LEVEL', 'FP_CHAR', 'FP_TA', 'FP_FILE', 'FP_FILE_NEW', 'FP_SAVE', 'FP_TRACK', 'FP_SB_ASSIST_I')]
     e.update({'FP_LEVEL': level, 'FP_CHAR': str(char), 'FP_TRACE_SND': '1', 'FP_TRACE_SID': '1',
-              'FP_DBG_SBS': '1', 'FP_DBG_SBG': '1', 'FP_DBG_SBC': '1', 'FP_DBG_SBP': '1', 'FP_DBG_SBK': '1'}); e.update(env or {})
+              'FP_DBG_SBS': '1', 'FP_DBG_SBG': '1', 'FP_DBG_SBC': '1', 'FP_DBG_SBP': '1', 'FP_DBG_SBK': '1', 'FP_TRACE_HUD': '1'}); e.update(env or {})
     r = subprocess.run([BIN, DATA, str(frames), name], capture_output=True, text=True, env=e)
     os.unlink(name)
     rows, ev, dbg = [], [], {}
@@ -24,7 +24,7 @@ def run(level, char, frames, script, env=None):
         if not t: continue
         if t[0] == 'f':
             rows.append({t[i]: float(t[i + 1]) for i in range(0, len(t) - 1, 2)})
-        elif t[0] in ('sid', 'music', 'sbflow'):
+        elif t[0] in ('sid', 'music', 'sbflow', 'voice', 'hud'):
             ev.append((len(rows), line))                     # (the frame the event happened in)
         elif t[0] in DBG and len(t) > 2:
             dbg.setdefault(t[0], {})[int(t[1])] = {t[i]: t[i + 1] for i in range(2, len(t) - 1, 2)}
@@ -32,6 +32,8 @@ def run(level, char, frames, script, env=None):
 
 def sids(ev, *ids): return [f for f, l in ev if l.startswith('sid ') and int(l.split()[1]) in ids]
 def music(ev, name): return [f for f, l in ev if l.startswith('music ' + name)]
+def voices(ev): return [(f, l.split()[1]) for f, l in ev if l.startswith('voice ') and len(l.split()) > 1 and l.split()[1] != '(null)']
+def huds(ev): return [(f, float(l.split()[2])) for f, l in ev if l.startswith('hud ')]
 def sbf(ev, what): return [f for f, l in ev if l.startswith('sbflow ' + what)]
 def near(a, b, tol=1): return len(a) == len(b) and all(abs(x - y) <= tol for x, y in zip(a, b))
 def first(d, cond): return next((f for f in sorted(d) if cond(d[f])), None)
@@ -41,7 +43,7 @@ def check(name, cond, info=''):
     global fails
     print(('PASS ' if cond else 'FAIL ') + name + ('  [' + info + ']' if info else ''))
     fails += 0 if cond else 1
-CHARS = ((0, 'lilac'), (1, 'carol'), (2, 'milla'))
+CHARS = ((0, 'lilac'), (2, 'carol'), (4, 'milla'))   # FP_CHAR values (session 21: was 0 / 1 / 2, so 'milla' ran Carol)
 INV = ''.join('%d SETV others E 99999\n' % f for f in (3, 500, 1000, 1500, 2000, 2500, 3000, 3500))
 
 # ---- SB3: the satellite (everyone). RV s_kill (TP 11900 1000 at 60, A 0 at 400): the lock and sound 7 at 60, the beam first
@@ -105,7 +107,7 @@ kk = '2 FLAGS 112\n' + INV + '5 TP 1300 1150\n' + ''.join('%d TP 1300 1150\n' % 
      ''.join('%d BOSSHP 0\n' % (f - 55) for f in (300, 1000, 1700, 2400, 3100))
 O = -55
 for ch, cn in CHARS:
-    rows, ev, d = run('sb1', ch, 3900, kk)
+    rows, ev, d = run('sb1', ch, 3975, kk)
     k = d.get('sbk', {})
     st = first(k, lambda r: r.get('I') is not None)
     check('sb1_%s_start' % cn, st is not None and abs(st - (237 + O)) <= 1 and music(ev, 'bgm/m_boss3')[:1] and abs(music(ev, 'bgm/m_boss3')[0] - (237 + O)) <= 1,
@@ -125,6 +127,19 @@ for ch, cn in CHARS:
     r152 = first(k, lambda r: r.get('pC') == '152')
     check('sb1_%s_end_reset' % cn, r152 is not None and abs(r152 - (3554 + O)) <= 1 and k[r152]['E'] == '1556.0', str(r152))
     check('sb1_%s_results' % cn, music(ev, 'bgm/m_clear')[:1] and abs(music(ev, 'bgm/m_clear')[0] - (3885 + O)) <= 2, str(music(ev, 'bgm/m_clear')))
+    # session 21: Prince Dail's dialogue and the character's reply (RE 9011-9022 / 9163; RV k_end Lilac: da_04_01 435, lilac_never
+    # 615, da_04_02 735, da_04_03 2261, da_04_04 3700, lilac_howitsdone 3960), each once; the reply / da_04_02 by character
+    reply, d2 = {0: ('lilac_never', 735), 2: ('carol_fatchance', 735), 4: ('milla_icantiwont', 785)}[ch]
+    want = [(435, 'da_04_01'), (615, reply), (d2, 'da_04_02'), (2261, 'da_04_03'), (3700, 'da_04_04'),
+            (3960, {0: 'lilac_howitsdone', 2: 'carol_feelmypower', 4: 'milla_yay'}[ch])]
+    got = voices(ev)
+    check('sb1_%s_boss_voices' % cn, len(got) == len(want) and all(n == wn and abs(f - (wf + O)) <= 2 for (f, n), (wf, wn) in zip(got, want)),
+          str(got))
+    # session 21: the HUD rises with the night (9006, to 80) and comes back when the fight starts (9010: 2 px a frame); visible
+    # (offset 0) from then on until the results slide it up (4561)
+    h = dict(huds(ev)); fs = 237 + O
+    check('sb1_%s_hud_back_for_the_fight' % cn, min(h.get(f, 0) for f in range(fs - 60, fs)) <= -79 and
+          all(h.get(f, -1) == 0 for f in range(fs + 45, 3885 + O)), str([(f, h.get(f)) for f in (fs - 10, fs, fs + 20, fs + 40, fs + 45, 2000)]))
 
 # the dash hurts: without invulnerability the head's pass at the warned height costs 10 (9087) and knocks the player up (sound 23)
 rows, ev, d = run('sb1', 0, 520, '2 FLAGS 112\n5 TP 1300 1150\n105 TP 1300 1150\n205 TP 1300 1150\n245 BOSSHP 0\n')

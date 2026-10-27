@@ -232,10 +232,15 @@ static const level_def_t LEVELS[] = {
      * m_stage4, 6 m_menu2; sb2 4 m_midboss, 5 / 6 m_stage4, 7 m_trouble; sb3 / sb4 4 m_midboss, 5-7 m_stage4. Deaths
      * restart the act (1990, g4 kept). Checkpoints 9550 / 9551, 9876 / 9877, 10076 / 10077 (X < W - 100; SB4's second
      * needs MV.Y > 830). No 2860 in any SB frame: the right camera bound is the frame width. */
+    /* session 21: boss voices (RE 9012-9022 / 9163 Kujacker, 9625-9628 Spade; channel 24 / 27) */
+    #define VOX_SB1 (const char *const[]){ "da_04_01", "da_04_02", "da_04_03", "da_04_04", "lilac_never", "carol_fatchance", "milla_icantiwont" }
+    #define VOX_SB2 (const char *const[]){ "spade_comeon", "spade_goodenough", "spade_comeon2", "lilac_hitmeifyoucan" }
     { SB("sb1", 35, 1, "bgm/m_stage4.adp"), .mus4 = "bgm/m_boss3.adp", .mus6 = "bgm/m_menu2.adp", .mus7 = "bgm/m_stage4.adp", .start_card = 1,
-      .entries = EN_SB1, .nentries = N_(EN_SB1), .clear_free = 1, .res_wipe = 1 },
+      .entries = EN_SB1, .nentries = N_(EN_SB1), .clear_free = 1, .res_wipe = 1,
+      .vox = VOX_SB1, .nvox = 7, .res_skin_voice = 1 },
     { SB("sb2", 36, 2, "bgm/m_stage4.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage4.adp", .mus7 = "bgm/m_trouble.adp", .card_first = 41,
-      .cps = CP_SB2, .ncps = N_(CP_SB2), .exits = EX_SBSHIP, .nexits = N_(EX_SBSHIP), .entries = EN_SBSHIP, .nentries = N_(EN_SBSHIP), .walkin_free = 1, .pads = PADS_SB2, .npads = N_(PADS_SB2) },
+      .cps = CP_SB2, .ncps = N_(CP_SB2), .exits = EX_SBSHIP, .nexits = N_(EX_SBSHIP), .entries = EN_SBSHIP, .nentries = N_(EN_SBSHIP), .walkin_free = 1, .pads = PADS_SB2, .npads = N_(PADS_SB2),
+      .vox = VOX_SB2, .nvox = 4 },
     { SB("sb3", 37, 3, "bgm/m_stage4.adp"), SB_M34, .card_first = 44,
       .cps = CP_SB3, .ncps = N_(CP_SB3), .exits = EX_SBSHIP, .nexits = N_(EX_SBSHIP), .entries = EN_SBSHIP, .nentries = N_(EN_SBSHIP), .walkin_free = 1, .pads = PADS_SB3, .npads = N_(PADS_SB3) },
     { SB("sb4", 38, 4, "bgm/m_stage4.adp"), SB_M34, .card_first = 48,

@@ -135,6 +135,7 @@ static int chr_crcs(const char *dir, int who, uint32_t c[8]) {
 }
 
 static void snd_stage_load(const short *ids, int n);
+static void svox_load(const level_def_t *ld);
 /* every level lives in its own data dir (own palettes + Lilac bank; tools/build_level.sh) */
 int game_load_level(const char *dir) {
     uint32_t want_crc[8];
@@ -144,9 +145,11 @@ int game_load_level(const char *dir) {
     if (keep) level_free(); else game_unload_all();
     loading_begin(dir);                            /* silent loading screen (src/game/loading.c) */
     const level_def_t *ld = level_def(dir);
+    svox_load(NULL);                               /* free the previous stage's voices first (session 21) */
     if (!ld->nsfx) snd_stage_load(NULL, 0);        /* free another stage's set first (D-047) */
     snd_group_load(who);                           /* the character's own sounds (sound RAM holds one set) */
     snd_stage_load(ld->sfx, ld->nsfx);             /* the stage's own sounds (level data) */
+    svox_load(ld);                                 /* its voices (session 21) */
     snprintf(G.lvdir, sizeof G.lvdir, "%s", dir);
     int bad = 0;
     char nm[48];
@@ -308,6 +311,22 @@ static int voice_handle[NVOICES];
 /* voices heard once per stage (stage-clear lines, RM5 6589-6592): loaded on demand into two rotating slots instead of
  * staying resident with the character's set (sound RAM, D-047); the older slot is freed when a third one loads */
 static int vod_handle[2] = { -1, -1 }, vod_next;
+/* stage voices (session 21, level_def_t.vox): loaded with the stage group, freed at the next level load */
+#define NSVOX 8
+static char svox_name[NSVOX][24]; static int svox_handle[NSVOX] = { -1, -1, -1, -1, -1, -1, -1, -1 }, svox_n;
+static void svox_load(const level_def_t *ld) {
+    char nm[48];
+    for (int i = 0; i < svox_n; i++) if (svox_handle[i] >= 0) { snd_unload(svox_handle[i]); svox_handle[i] = -1; }
+    svox_n = 0;
+    for (int i = 0; ld && i < ld->nvox && svox_n < NSVOX; i++) {
+        const char *v = ld->vox[i];
+        if ((!strncmp(v, "lilac_", 6) && G.character != CHR_LILAC) || (!strncmp(v, "carol_", 6) && !chr_is_carol(G.character)) ||
+            (!strncmp(v, "milla_", 6) && !chr_is_milla(G.character))) continue;
+        snprintf(svox_name[svox_n], sizeof svox_name[0], "%s", v);
+        snprintf(nm, sizeof nm, "sfx/%s.wav", v); svox_handle[svox_n++] = snd_load(nm); loading_tick();
+    }
+    if (svox_n) plat_log("stage voices %d, sound RAM largest free block %d KB\n", svox_n, snd_mem_free_kb());
+}
 void voice_play_once(const char *name) {
     char nm[48];
 #ifdef FP_HOST_ENV
@@ -354,6 +373,8 @@ void voice_play(const char *name) {
 #endif
     for (int i = 0; i < NVOICES; i++)
         if (!strcmp(VOICES[i], name)) { if (voice_handle[i] >= 0) snd_play(voice_handle[i], 255, 128); return; }
+    for (int i = 0; i < svox_n; i++)
+        if (!strcmp(svox_name[i], name)) { if (svox_handle[i] >= 0) snd_play(svox_handle[i], 255, 128); return; }
 }
 
 int game_init(void) {
@@ -890,16 +911,21 @@ static void hud_number(int v, int digits, float x, float y) {
     for (int i = digits - 1; i >= 0; i--) { hud_img(5, v % 10, x + i * 10, y, -1); v /= 10; }
 }
 
+/* the HUD's vertical offset (session 21: a function so host tests can read it without drawing) */
+float hud_offset(void) {
+    /* HUD drops in from the top when the card slides out (RV capture); offset applied to all items */
+    float dy = G.card_t >= CARD_DONE ? 0.f : G.card_t < CARD_OUT0 ? -40.f : -40.f + 40.f * (G.card_t - CARD_OUT0) / (CARD_DONE - CARD_OUT0);
+    dy += results_hud_dy();                                        /* RE 4561: slides up 80 px during the results */
+    dy += rm_claw_hud_dy();                                        /* RM3 6206 / 6258 (src/game/rm_claw.c) */
+    dy += fn_flow_hud_dy();                                        /* FN3 7712 (src/game/fn_flow.c) */
+    dy += fn_panther_hud_dy();                                     /* FN6 8764 (src/game/fn_panther.c) */
+    dy += sb_flow_hud_dy();                                        /* SB 9006 / 9010 / 9460 / 9874 (src/game/sb_flow.c) */
+    return dy;
+}
 static float hud_dy;
 void hud_draw(void) {
     const player_t *p = &G.p;
-    /* HUD drops in from the top when the card slides out (RV capture); offset applied to all items */
-    hud_dy = G.card_t >= CARD_DONE ? 0.f : G.card_t < CARD_OUT0 ? -40.f : -40.f + 40.f * (G.card_t - CARD_OUT0) / (CARD_DONE - CARD_OUT0);
-    hud_dy += results_hud_dy();                                    /* RE 4561: slides up 80 px during the results */
-    hud_dy += rm_claw_hud_dy();                                    /* RM3 6206 / 6258 (src/game/rm_claw.c) */
-    hud_dy += fn_flow_hud_dy();                                    /* FN3 7712 (src/game/fn_flow.c) */
-    hud_dy += fn_panther_hud_dy();                                 /* FN6 8764 (src/game/fn_panther.c) */
-    hud_dy += sb_flow_hud_dy();                                    /* SB 9006 / 9460 (src/game/sb_flow.c) */
+    hud_dy = hud_offset();
     if (G.card_t < CARD_OUT0) return;
     /* energy meter: fill = guienergy alt A / 100 as x scale (RV en_xs); shine loop while full (RV en_img) */
     int full = p->energy >= PHYS_ENERGY_MAX;

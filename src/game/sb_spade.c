@@ -194,7 +194,11 @@ void sbp_frame(player_t *p) {
     if (S.F == 0) {
         if (PX + 100 < S.A) S.I = -1;                                           /* 9622 / 9623 (BossSpade Q, the dialogue: always 0) */
         if (S.A < PX - 100) S.I = 1;
-        if (pdead && fabs(S.A - PX) <= 99) { S.I = 0; S.N += 1; }              /* 9624: taunts the beaten player (voices 9625-9628 not ported) */
+        if (pdead && fabs(S.A - PX) <= 99) { S.I = 0; S.N += 1;                 /* 9624: taunts the beaten player */
+            if (S.N == 30) voice_play(pdead ? "spade_goodenough" : "spade_comeon");   /* 9625 / 9626 (channel 27) */
+            if (S.N == 90) voice_play("lilac_hitmeifyoucan");                   /* 9627 */
+            if (S.N == 400) voice_play("spade_comeon2");                        /* 9628 */
+        }
         if (S.N == 400) S.N = -300;                                             /* 9628 */
         float cl = sbb_marker(OT_CAMLIM_L, 1);
         if (S.N != 0 && cl + 200 < PX) { S.N = 0; S.D = 0; S.J = 0; S.F = 3; S.L = 0; S.H = 1; S.C = 5; S.K += 1; }   /* 9629 */
