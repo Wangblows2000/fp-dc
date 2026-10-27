@@ -726,7 +726,29 @@ static const objdef_t DEFS[] = {
     /* ---- JC_ENEMIES (jc_enemy.c) */
     /* ---- JC_GIM (jc_gim.c) */
     /* ---- JC_BOSS (jc_boss.c) */
-    /* ---- JC_BOSS5 (jc_boss5.c) */
+    /* ---- JC_BOSS5 (jc_boss5.c; numbers = src/game/jc.h OT_J5_*; sprites set by jc_boss5_spawn; OD_HIDDEN: the constructor's set_visible(0), RE create_*) */
+    { 1480,               0,                                   NULL         }, /* J5_GUN: bossgunship_2559 */
+    { 1481,               0,                                   NULL         }, /* J5_GUN_BLADEL: bossgunshipbladeleft_2557 */
+    { 1482,               0,                                   NULL         }, /* J5_GUN_BLADER: bossgunshipbladeright_2558 */
+    { 1483,               OD_HIDDEN,                           NULL         }, /* J5_GUN_CANL: bossgunshipcannonleft_2566 */
+    { 1484,               OD_HIDDEN,                           NULL         }, /* J5_GUN_CANR: bossgunshipcannonright_2567 */
+    { 1485,               0,                                   NULL         }, /* J5_GUN_HIT: bossgunshiphitbox_2577 (Q20) */
+    { 1486,               0,                                   NULL         }, /* J5_GUN_LIGHT: bossgunshiplight_2562 */
+    { 1487,               0,                                   NULL         }, /* J5_GUN_LIGHTL: bossgunshiplightleft_2563 */
+    { 1488,               0,                                   NULL         }, /* J5_GUN_LIGHTR: bossgunshiplightright_2564 */
+    { 1489,               0,                                   NULL         }, /* J5_GUN_RACKL: bossgunshipmissilerackleft_2555 */
+    { 1490,               0,                                   NULL         }, /* J5_GUN_RACKR: bossgunshipmissilerackright_2556 */
+    { 1491,               0,                                   NULL         }, /* J5_GUN_PILOT: bossgunshippilot_2565 */
+    { 1492,               0,                                   NULL         }, /* J5_GUN_PLAT: bossgunshipplatform_2553 */
+    { 1493,               OD_HIDDEN,                           NULL         }, /* J5_GUN_TROOPER: bossgunshiptrooper_2554 */
+    { 1494,               0,                                   NULL         }, /* J5_GUN_TURBL: bossgunshipturbineleft_2560 */
+    { 1495,               0,                                   NULL         }, /* J5_GUN_TURBR: bossgunshipturbineright_2561 */
+    { 1496,               0,                                   NULL         }, /* J5_GUN_FLARE: - (BossGunshipFlare_2568) */
+    { 1497,               0,                                   NULL         }, /* J5_GUN_MISSILE: - (BossMissile_1867, the racks') */
+    { 1498,               0,                                   NULL         }, /* J5_ELITE: enemyelite_2529 (the placed one is a template: destroyed, 11651) */
+    { 1499,               OD_HIDDEN,                           NULL         }, /* J5_ELITEMASK: enemyelitemask_2528 (Q20) */
+    { 1500,               0,                                   NULL         }, /* J5_WARN2: - (EffectWarning2_1895) */
+    { 1501,               0,                                   NULL         }, /* J5_ELITELASER: - (EnemyTrooperLaser) */
     /* ==== end Jade Creek */
 };
 static objdef_t BY_TYPE[MAX_OT];
