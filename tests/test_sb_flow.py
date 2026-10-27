@@ -108,14 +108,14 @@ rows, ev, out = run('2 FLAGS 48\n5 TP 1300 1180\n', 60, {'FP_LEVEL': 'sb1'})
 check('sb1_no_night_before_three_ships', not sbf(ev, 'night'))
 
 # ---- results in SB1 (the boss module calls results_begin_boss at the Kujacker's end; host: RESBOSS): m_clear, the stage-4
-# results, the wipe (sound 56) and frame 8 -> the front end (Jade Creek, frame 39, is not ported)
+# results, the wipe (sound 56) and frame 8 -> Jade Creek 1 (I = 4 -> frame 39, session 21; tests/test_jc_flow.py)
 with tempfile.TemporaryDirectory() as d:
     rows, ev, out = run('60 RESBOSS\n' + ''.join('%d TP 1300 1180\n' % f for f in range(10, 1000, 30)), 900,
                         {'FP_LEVEL': 'sb1', 'FP_SAVE': os.path.join(d, 's.bin')})
 lines = out.splitlines()
 check('sb1_results_clear', any(l.startswith('music bgm/m_clear.adp') for l in lines) and any(l.startswith('ach results stage 4') for l in lines))
 st = [l for l in loads(ev) if l not in ('frontend', 'gal')]
-check('sb1_wipe_to_front_end', 'sid 56' in lines and rows[-1]['mode'] == 0 and st[-1:] == ['sb1'], str(st))
+check('sb1_wipe_to_jc1', 'sid 56' in lines and st[-2:] == ['sb1', 'jc1'] and rows[-1]['mode'] == 1 and rows[-1]['g4'] == 1, str(st))
 
 # ---- the Classic route: FN6's results -> frame 8 -> SB1 (MenuSequence.I = 3 -> frame 35), fresh with the card (g4 1)
 with tempfile.TemporaryDirectory() as d:

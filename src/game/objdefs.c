@@ -11,6 +11,7 @@
  * Adding an existing object to a new level needs no change here: placing the class is enough (RE_NOTES "Reusable
  * objects"). A newly ported class gets a row here, an ENGINE_TYPES entry and its behaviour code. */
 #include "../fp.h"
+#include "jc.h"                                 /* Jade Creek types (session 21) */
 
 static const objdef_t DEFS[] = {
     { OT_START,         0,                                     NULL         }, /* playerstartingpoint */
@@ -723,6 +724,9 @@ static const objdef_t DEFS[] = {
     { OT_SB_DOOR,       OD_SOLID,                              NULL         }, /* switchdoor_2102 (q7; rises with its pad, sb_gim.c) */
     /* ==== Jade Creek (session 21): one block per module */
     /* ---- JC_FLOW (jc_flow.c) */
+    { OT_JCF_LOOP0,     OD_SOLID|OD_LAYER0,                    NULL         }, /* jcloop3 / 4_2463 / 2464 (q7 q10) */
+    { OT_JCF_LOOP1,     OD_SOLID|OD_LAYER1,                    NULL         }, /* jcloop2_2462 (q7 q11) */
+    { OT_JCF_LOOPX,     OD_SOLID,                              NULL         }, /* jcloop1_2461 (q7; flag 0 by jc_flow.c) */
     /* ---- JC_ENEMIES (jc_enemy.c) */
     /* ---- JC_GIM (jc_gim.c) */
     /* ---- JC_BOSS (jc_boss.c) */

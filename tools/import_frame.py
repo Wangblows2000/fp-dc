@@ -854,7 +854,16 @@ for _k, _v in SBG_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   #
 # ==== Jade Creek (session 21; json 40-44 = jc1-jc5; types 1280-1535, one block per module; each block updates
 # ENGINE_TYPES / ENGINE_TYPES_ID / ENS / ENS_FRAMES / ENS_WITH itself, like the SB blocks above)
 JC_FRAMES = {40, 41, 42, 43, 44}
-# ---- JC_FLOW (jc_flow.c, 1280-1309)
+JC_SUB = {}   # class_handle -> member index of a JC family type (lvobj anim bits 0-7; bits 8-14 = the instance layer, see write_lv2)
+# ---- JC_FLOW (jc_flow.c, 1280-1309): the creek's loop pieces (RE on_frame_41 / 42_init qualifier tables: JCLoop1_2461 Q7 only
+# (its flag 0 is driven by the frame's own events, jc_flow.c), JCLoop2_2462 Q7 Q11 (solid on layer 1), JCLoop3 / 4_2463 / 2464
+# Q7 Q10 (solid on layer 0); visible Actives with pixel masks, constructors initialize_active(false))
+JCF_TYPES_ID = {('jcloop3', 2463): 1280, ('jcloop4', 2464): 1280, ('jcloop2', 2462): 1281, ('jcloop1', 2461): 1282}
+JC_SUB.update({'jcloop4_2464': 1})
+JCF_ENS = [('jcloop3_2463', 0, '0', 'jcl_0_0'), ('jcloop4_2464', 0, '0', 'jcl_0_1'), ('jcloop2_2462', 0, '0', 'jcl_1_0'), ('jcloop1_2461', 0, '0', 'jcl_x')]
+ENGINE_TYPES_ID.update(JCF_TYPES_ID); ENS += JCF_ENS   # JC_FLOW
+# water (MasterLevel A = 1: JC1 10378 ML.B 1200, JC2 10566 / JC3 10822 / JC4 10863 ML.B 1600; JC5: the act-5 start events)
+WATER_FRAMES = WATER_FRAMES + (40, 41, 42, 43, 44)
 
 # ---- JC_ENEMIES (jc_enemy.c, 1310-1369)
 
@@ -988,6 +997,21 @@ PAR_WORLD = {2243}
 # flag 1 = ARGB4444 texture (FPTX fmt 4) drawn through the translucent list, flag 2 = stored at half resolution, drawn x2
 # (soft mist; a quarter of the VRAM: about 200 KB instead of 800 KB). Image id -> flags (session 19)
 PAR_ALPHA = {8426: 3, 8421: 3, 8425: 3}
+# ---- JC_FLOW parallax (session 21, build/re/spec_jc_flow.md 5): SystemBox pieces (RE create_levelparallaxpiece*_2336 / 19 / 2337 /
+# 2338 / 2374 / 2524: image, box w x h); D / E the same in every act (RE on_frame_40_start inline, 10379 JC2 / JC3, 10864 JC4,
+# 11644 JC5); JC4 alone drifts: G = (1 - D) * -4 (10864, qualifier 0 = every piece); layer 1 scrolls 0.8 in JC1-JC3 / JC5 and 1.0
+# in JC4 (RE Layer::init of on_frame_40..44_init). LevelParalaxWaterSurface_14 (10368-10373) is the moonlit strip between piece5's
+# bottom and the water line, piece6 follows it (par water mode 2, parallax.c)
+PAR_IMG.update({'levelparallaxpiece0_2336': 16078, 'levelparallaxpiece1_19': 16065, 'levelparallaxpiece2_2337': 16066,
+                'levelparallaxpiece5_2338': 16046, 'levelparallaxpiece6_2374': 71, 'levelparallaxpiece7_2524': 16067})
+PAR_BOXW.update({'levelparallaxpiece1_19': 320, 'levelparallaxpiece6_2374': 640})
+PAR_BOXH.update({'levelparallaxpiece5_2338': 270})
+PAR_DEG.update({2336: (1.0, .94, 0), 19: (.90, .90, 0), 2337: (.95, .95, 0), 2338: (.85, .85, 0), 2374: (1.0, 0, 0), 2524: (.80, .85, 0)})
+PAR_DEG_FRAME.update({(43, h): (d, e, (1 - d) * -4) for h, (d, e, g) in PAR_DEG.items() if h in (2336, 19, 2337, 2338, 2374, 2524)})
+SCROLL08.update({40: 1, 41: 1, 42: 1, 44: 1})
+JC_WATER = {40: 1200, 41: 1600, 42: 1600, 43: 1600, 44: 1600}   # ML.B (10378 / 10566 / 10822 / 10863 / 11643)
+JC_SURF_FRAMES = [7795, 7802, 7803, 7804, 7796, 7797, 7798]      # LevelParalaxWaterSurface_14 anim 0 (both directions use the same images);
+                                                                 # its 8th frame (7799) is shown as the 7th: one 512 x 512 4 bpp atlas (VRAM)
 
 def write_tex4444(img, path):
     """FPTX fmt 4: ARGB4444, linear (16 levels of alpha; the PVR's translucent list blends it)"""
@@ -1024,6 +1048,7 @@ def export_parallax(fr, src, name, out, an=None):
     for o in fr['objects']:
         key = '%s_%d' % (o['cls'], o['id'])
         if o['cls'] == 'levelparalaxwatersurface' and o['x'] is not None: water = 2700
+        if o['cls'] == 'levelparalaxwatersurface' and fr['frame'] in JC_WATER: water = JC_WATER[fr['frame']]   # mode 2 (Jade Creek)
         if key not in PAR_IMG or o['y'] is None: continue
         img = PAR_IMG[key]
         if img not in imgidx:
@@ -1078,12 +1103,20 @@ def export_parallax(fr, src, name, out, an=None):
         images.append((comp.width, comp.height, chunks, 0))
         pieces.append((len(images) - 1, 0., 0., 0., parent, x0, y0, 1024, stars[0]['id']))   # y0 = the parent's handle, (bw, bh) = offset
     ver = 2 if any(im[3] for im in images) else 1   # version 1: + the piece's handle; 2 (only with ARGB4444 / half-size images): + image flags
-    d = bytearray(b'FPPX' + struct.pack('<4H', len(images), len(pieces), 1 if water else 0, ver))
+    wmode = 2 if water and fr['frame'] in JC_WATER else 1 if water else 0
+    d = bytearray(b'FPPX' + struct.pack('<4H', len(images), len(pieces), wmode, ver))
     for w, h, chunks, iflags in images:
         d += struct.pack('<4H', w, h, len(chunks), iflags) if ver >= 2 else struct.pack('<3H', w, h, len(chunks))
         for c in chunks: d += struct.pack('<4H', *c)
     for (ii, D, E, G, y0, bw, bh, fl, hd) in pieces: d += struct.pack('<H3fi4H', ii, D, E, G, y0, bw, bh, fl, hd)
-    if water:
+    if wmode == 2:   # Jade Creek (10368-10373): the surface frames stacked in one atlas; line, frames, frame w / h, the horizon piece
+        ims = [load_img(src, i)[0] for i in JC_SURF_FRAMES]   # (its handle, box height) and the follower piece (handle)
+        fw, fh = ims[0].width, ims[0].height
+        atl = Image.new('RGBA', (fw, fh * len(ims)))
+        for k, im in enumerate(ims): atl.paste(im, (0, k * fh))
+        write_tex(atl, os.path.join(out, '%s_pw0.tex' % name))
+        d += struct.pack('<i6H', water, len(ims), fw, fh, 2338, 270, 2374)
+    elif water:
         for img in (987, 1078):
             im, hx, hy = load_img(src, img)
             tn = '%s_pw%d' % (name, img == 1078)
@@ -1114,8 +1147,9 @@ def main():
     # has one more background layer: the player and the collision backdrops are on layer 3 (RE: FrameObject::
     # overlaps_background tests the object's own layer only), layer 2 holds objects behind the play layer and layer 4
     # is in front. Such frames are mapped 2 -> 1, 3 -> 2, 4 -> 3; pieces keep the original layer order (stable sort below).
+    # (session 21: JC1's start point sits at x -27, just left of the frame: the player enters at X = -11, RE 2956)
     main = next((o['layer'] for o in fr['objects'] if o['cls'] == 'playerstartingpoint' and o['layer'] is not None
-                 and o['x'] is not None and 0 <= o['x'] < W and 0 <= o['y'] < H), 2)
+                 and o['x'] is not None and -64 <= o['x'] < W and 0 <= o['y'] < H), 2)
     LMAP = {2: 1, 3: 2, 4: 3} if main == 3 else {}
     for o in fr['objects']:
         o['layer0'] = o['layer'] or 0
@@ -1667,6 +1701,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         if 680 <= o['type'] < 800: a = FNB_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # FN_GIMB (fn_gimb.c): member index | instance layer << 8
         if 800 <= o['type'] < 860: a = FNBOSS_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # FN_BOSS (fn_boss.c): sub id | instance layer << 8
         if 1150 <= o['type'] < 1280: a = SBBOSS_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # SB_BOSS (sb_boss.c): sub id | instance layer << 8
+        if 1280 <= o['type'] < 1536: a = JC_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # Jade Creek (jc_*.c): member index | instance layer << 8 | 0x8000 json layer 1 of a mapped frame
         if 1100 <= o['type'] < 1150: a = SBG_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # SB_GIM (sb_gim.c): member index | instance layer << 8 | 0x8000: json layer 1 of a mapped frame (session 20: behind the json-2 pieces, scrolls with layer 1)
         d += struct.pack('<2H2i', o['type'], a, o['x'], o['y'])
     for t in table: d += t
