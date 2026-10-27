@@ -204,9 +204,13 @@ static void draw_scaled_layer(const obj_t *o, double k) {
     frame_draw(o->an.b, anim_frame(&o->an), sx, sy, o->flip, 0xffffffff);
 }
 void sb_flow_draw(int pass) {
-    if (!SB.act || pass != 0) return;
-    for (int k = 0; k < SB.nair; k++) if (G.o[SB.air[k]].alive) draw_scaled_layer(&G.o[SB.air[k]], 0.25);
-    for (int k = 0; k < SB.nbg; k++) { const obj_t *o = &G.o[SB.bg[k]]; if (o->alive && !o->hidden) draw_scaled_layer(o, 0.8); }
+    if (!SB.act) return;
+    if (pass == -1) {                                /* json layer 1, behind the json-2 pieces (game_draw, session 20) */
+        for (int k = 0; k < SB.nair; k++) if (G.o[SB.air[k]].alive) draw_scaled_layer(&G.o[SB.air[k]], 0.25);
+        for (int k = 0; k < SB.nbg; k++) { const obj_t *o = &G.o[SB.bg[k]]; if (o->alive && !o->hidden) draw_scaled_layer(o, 0.8); }
+        return;
+    }
+    if (pass != 0) return;
     if (SB.night) {
         int a = (int)((128 - SB.darkB) * 2); if (a > 255) a = 255; if (a < 0) a = 0;
         if (a) r_rect(0, 0, SCREEN_W, SCREEN_H, ((uint32_t)a << 24) | 0x080000);
