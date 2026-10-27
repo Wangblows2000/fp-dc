@@ -755,7 +755,7 @@ void   chase_spawn(void), chase_update(player_t *p), chase_chunk_update(obj_t *d
 int    chase_running(void);
 int    boss_progress(void), serp_progress(void), serp4_input(uint32_t *held), serp4_flash(void);
 void   serp_draw_hud(void);
-int    par_load(const char *dir), par_count(void);
+int    par_load(const char *dir), par_count(void), par_water_band(double *anchor, double *C);   /* JC water surface (host tests) */
 void   par_free(void), par_update(void), par_draw(int gframe);
 int    boss_invert_base(void), boss_hidden(const obj_t *o), boss_flash(const obj_t *o);
 int    obj_near_view(const obj_t *o, int n);
@@ -827,7 +827,7 @@ void   rock_at_new(float x, float y), rock_at_break(obj_t *r), rocks_at_frame(pl
 typedef struct { short x, y, A; float B; short D, E, blk; } padcfg_t;   /* Carol's jump pad at (x, y): index A, angle B, chain end D, lit E, block pad */
 typedef struct { short x0, x1, y0, y1; } zone_t;
 enum { DIG_NONE, DIG_KEYSTONE_MON, DIG_CRYSTALS, DIG_PETAL, DIG_WOOD_MON, DIG_EARTH_MON, DIG_OPEN_HOLE };   /* dig spot rewards (spec_milla_moves 6) */                        /* a box in original MV coordinates (x0..x1, y0..y1 inclusive) */
-typedef struct { short x0, x1, g4, x, y, ymin; signed char nosnap; } cpzone_t;   /* checkpoint: x0 < X < x1 (and MV.Y > ymin when set) and g4 below -> g4 / g5 / g6 = g4, x, y (nosnap: no restart snapshot, RM2 5924) */
+typedef struct { short x0, x1, g4, x, y, ymin; signed char nosnap; } cpzone_t;   /* checkpoint: x0 < X < x1 (and MV.Y > ymin when ymin > 0, MV.Y < -ymin when ymin < 0) and g4 below -> g4 / g5 / g6 = g4, x, y (nosnap: no restart snapshot, RM2 5924) */
 /* act exits (spec_rm_flow 6.2): edge 1 = right (X > W + x, B > 0), -1 = left (X < x, B < 0); ymin < MV.Y < ymax unless both 0;
  * the first match wins; during the fade a grounded player gets B = fade_b (0: the DV / AT rule B = max(B, 2), 3311) */
 typedef struct { signed char edge, fade_b; short x, ymin, ymax; const char *to; } exit_t;
@@ -978,7 +978,7 @@ int    fn_boss_obj(obj_t *o, player_t *p), fn_boss_q20(int type), fn_boss_draw_o
  * Each module keeps its own enum in src/game/jc.h; hooks below are called from game.c / objects.c / combat.c like SB's. */
 enum { OT_JCF_FIRST = 1280, OT_JCF_LAST = 1309, OT_JCE_FIRST = 1310, OT_JCE_LAST = 1369, OT_JCG_FIRST = 1370, OT_JCG_LAST = 1429,
        OT_JCB_FIRST = 1430, OT_JCB_LAST = 1535 };
-void   jc_flow_spawn(void), jc_flow_frame(player_t *p), jc_flow_draw(int pass);
+void   jc_flow_spawn(void), jc_flow_frame(player_t *p), jc_flow_draw(int pass), jc_flow_card(player_t *p, int left);   /* card: frames left */
 int    jc_flow_obj(obj_t *o, player_t *p), jc_flow_act(void);
 float  jc_flow_hud_dy(void);
 void   jc_enemy_spawn(void), jc_enemy_pre(player_t *p), jc_enemy_draw(int pass);
