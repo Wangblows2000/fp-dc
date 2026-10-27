@@ -86,12 +86,18 @@ static void tex_drop(tex_t *t) { if (t->w > 0) r_tex_free(t); memset(t, 0, sizeo
  * volume for the next track. music_fade(0, ..) cancels a running fade. */
 extern int fe_music_volume;
 static int mfade_t, mfade_n, mfade_in;
+/* A fade belongs to the track that was playing when it began (Chowdren fadeout_music fades that channel's track; a later
+ * play_music starts the new one at full volume). Session 20: SB1's night fades m_stage4 over 240 frames and the Kujacker
+ * starts m_boss3 at 178 (RV k_def: m_boss3 plays on); the fade's end then stopped the boss track, which had also started at
+ * the faded volume. A track started during a fade now cancels it. */
+static int mfade_serial;
 void music_fade(int frames, int fade_in) {
     if (frames <= 0) { if (mfade_t) music_volume(fe_music_volume); mfade_t = 0; return; }
-    mfade_n = mfade_t = frames; mfade_in = fade_in; music_volume(fade_in ? 0 : fe_music_volume);
+    mfade_n = mfade_t = frames; mfade_in = fade_in; mfade_serial = music_serial(); music_volume(fade_in ? 0 : fe_music_volume);
 }
 static void music_fade_tick(void) {
     if (!mfade_t) return;
+    if (music_serial() != mfade_serial) { mfade_t = 0; music_volume(fe_music_volume); return; }   /* another track started */
     mfade_t--;
     music_volume(fe_music_volume * (mfade_in ? mfade_n - mfade_t : mfade_t) / mfade_n);
     if (!mfade_t && !mfade_in) { music_stop(); music_volume(fe_music_volume); }

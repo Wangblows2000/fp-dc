@@ -61,6 +61,7 @@ int    music_active(void);                        /* 1 while a track is playing 
 void   music_update(void);
 void   music_stop(void);
 void   music_volume(int pct);
+int    music_serial(void);                            /* tracks started so far (a new track ends the previous track's fade) */
 void   music_pause(void);                          /* pause the stream in place (pause menu) */
 void   music_resume(void);
 void   snd_stop_all(void);
