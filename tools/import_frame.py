@@ -860,7 +860,9 @@ JC_FRAMES = {40, 41, 42, 43, 44}
 
 # ---- JC_GIM (jc_gim.c, 1370-1429)
 
-# ---- JC_BOSS (jc_boss*.c, 1430-1535)
+# ---- JC_BOSS (jc_boss.c, 1430-1479)
+
+# ---- JC_BOSS5 (jc_boss5.c, 1480-1535)
 
 # ==== end Jade Creek
 SHL_CLASSES = {'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
