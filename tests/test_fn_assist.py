@@ -178,5 +178,36 @@ for ch in ('0', '2', '4'):
     res = first(fp, lambda r: r['res'] == 1)
     check('ch%s_results_after_defeat_883' % ch, res and d7 and abs(res['f'] - d7['f'] - 883) <= 20, str(res and d7 and res['f'] - d7['f']))
 
+# ---------------------------------------------------------------- session 20: after the flash (user report: Milla, Serpentine and the camera)
+# RV build/orig_traces/fn6_s20: m_kill (Milla, defeat in mode 1): CAM.B 186.6 (Milla on the plane's platform) -> 191 at MV.M 50 (8764:
+# MV.Y = 260), the head at x -2; m2_kill (Lilac, defeat during the wheel stance, mode 2): 8749 keeps the front cannon's D at -2 every
+# frame, so K stays put, then 8759 takes it to 0 (head x -29): the panther and its rider leave the view for good.
+def run_post(ch):
+    script = INV + ''.join('%d BOSSHP 0\n' % (300 + k * 70) for k in range(30))
+    with tempfile.NamedTemporaryFile('w', suffix='.txt', delete=False) as f:
+        f.write(script); name = f.name
+    e = dict(os.environ); [e.pop(k, None) for k in ('FP_LEVEL', 'FP_CHAR', 'FP_TA', 'FP_FILE', 'FP_FILE_NEW', 'FP_SAVE', 'FP_TRACK')]
+    e.update({'FP_DBG_FP': '1', 'FP_LEVEL': 'fn6', 'FP_CHAR': ch, 'FP_TRACK': '861:-1,865:-1'})
+    r = subprocess.run([BIN, DATA, '2050', name], capture_output=True, text=True, env=e)
+    os.unlink(name)
+    cam, obj, hdc, m2 = {}, {}, {}, {}
+    for line in r.stdout.splitlines():
+        t = line.split()
+        if not t: continue
+        if t[0] == 'f' and len(t) > 2 and t[1].isdigit():
+            d = {t[i]: t[i + 1] for i in range(2, len(t) - 1, 2)}; cam[int(t[1])] = (float(d['cx']), float(d['cy']))
+        elif t[0] == 'ob': obj[(int(t[1]), int(t[2]))] = float(t[5])
+        elif t[0] == 'fp': d = {t[i]: t[i + 1] for i in range(2, len(t) - 1, 2)}; hdc[int(t[1])] = int(float(d['hdC'])); m2[int(t[1])] = int(d['m2'])
+    return cam, obj, hdc, m2
+
+for ch in ('0', '2', '4'):
+    cam, obj, hdc, m2 = run_post(ch)
+    scene = [f for f in sorted(hdc) if hdc[f] == 2 and f in cam]
+    check('ch%s_s20_closing_camera_on_the_floor' % ch, scene and all(cam[f][1] == 71 for f in scene[30:]),
+          str(sorted(set(cam[f][1] for f in scene[30:]))))
+    off = [f for f in scene if obj.get((f, 861), 1e9) > cam[f][0] - 60 or obj.get((f, 865), 1e9) > cam[f][0] - 60]
+    check('ch%s_s20_panther_and_rider_gone_after_flash' % ch, scene and not off,
+          'kill in mode 2: %d, visible frames %d (first %s)' % (max(m2.values()), len(off), off[:1]))
+
 print('%d failure(s)' % fails)
 sys.exit(1 if fails else 0)

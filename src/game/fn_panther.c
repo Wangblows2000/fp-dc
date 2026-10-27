@@ -634,10 +634,12 @@ static void runtime_pass(player_t *p) {
 static void post_boss(player_t *p) {
     obj_t *hd = FP.p[P_HEAD];
     FP.post_t++;
-    if (FP.post_t == 1) {                                                        /* 8749 / 8750 */
-        setan(FP.p[P_RIDER], S_RIDER1); FC('D') = -2; FC('E') = 0; FF('A') = 0;
-        if (BC('D') >= 0 && BC('D') < 2) { BC('D') = 2; BC('E') = 99; }
-    }
+    /* 8749 runs on EVERY frame of the post-boss group (RE: no once condition). Session 20: the port did it once, so after a kill
+     * during the wheel stance (mode 2, 0x227bf stays on) 8622 (I >= 90, D < 0) set the front cannon's D to 0 and 8620 / 8621 pulled
+     * K back to the player: the burning panther and Serpentine in its cockpit came back into view after the flash. RV fn6_s20/m2_kill
+     * (defeat at 1251 in mode 2): D stays -2, K holds 388 until 8759 takes it to 0 (head x -29). */
+    setan(FP.p[P_RIDER], S_RIDER1); FC('D') = -2; FC('E') = 0; FF('A') = 0;    /* 8749 */
+    if (BC('D') >= 0 && BC('D') < 2) { BC('D') = 2; BC('E') = 99; }            /* 8750 (every frame too) */
     if (HD('A') == 1 && G.frame == FP.post_t + 0) { }
     if (HD('C') == 0) {
         if (HD('A') < 60 && FP.post_t % 6 == 0) {                                /* 8751 / 8752 (RV: A + 1 every 6 frames below 60) */
