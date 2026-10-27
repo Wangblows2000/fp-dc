@@ -202,6 +202,7 @@ static int mus_paused;           /* pause menu: stream stopped in place, not pol
 static uint8_t mus_buf[MUS_CHUNK * 2 + 8] __attribute__((aligned(32)));
 static int mus_pos, mus_loop_len;   /* bytes read since the loop start; loop length (file length & ~31) */
 static int mus_once;                 /* gallery music cards of type 1 (session 15): no loop, silence after the end */
+static int mus_serial;               /* music_serial(): tracks started (session 20: a fade-out belongs to the track it began on) */
 static volatile int mus_ended;       /* a once track delivered its last byte (music_active() = 0) */
 
 static void *mus_cb(snd_stream_hnd_t hnd, int smp_req, int *smp_recv) {
@@ -269,7 +270,7 @@ int music_play(const char *name) {
     if (adpcm) snd_stream_start_adpcm(mus, 32000, 1);
     else snd_stream_start(mus, 22050, 1);
     snd_stream_volume(mus, mus_vol);   /* after the start: snd_stream_start_type sets chan->vol = 255 */
-    snprintf(mus_name, sizeof mus_name, "%s", name);
+    snprintf(mus_name, sizeof mus_name, "%s", name); mus_serial++;
     mutex_unlock(&mus_lock);
     if (!mus_thd) { mus_thread_run = 1; mus_thd = thd_create(0, mus_thread, NULL); }
     return 0;
@@ -284,6 +285,7 @@ int music_play_once(const char *name) {
     mutex_unlock(&mus_lock);
     return r;
 }
+int music_serial(void) { return mus_serial; }
 int music_active(void) { return mus != SND_STREAM_INVALID && !mus_ended && !mus_paused; }
 
 void music_volume(int pct) {
