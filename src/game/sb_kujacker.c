@@ -16,11 +16,11 @@
 
 enum { K_BASE, K_BASE7, K_HEAD, K_HEAD_L, K_HEAD7, K_HEAD7_L, K_HEAD8, K_HEAD11, K_NECK, K_W1, K_W2, K_LEG1, K_LEG1_7, K_LEG1_7L,
        K_LEG2, K_LEG2_7, K_LEG2_7L, K_TAIL, K_TAIL10, K_TT, K_PILOT, K_PILOT7, K_PILOT7L, K_TORNADO, K_BOLT, K_LIGHT2, K_LIGHT2V,
-       K_BEAM, K_GUST, K_GUST2,  K_WARN, K_N };
+       K_BEAM, K_GUST, K_GUST2,  K_WARN, K_TAIL_D1, K_TAIL_D2, K_TAIL_D3, K_TAIL_D31, K_N };
 static const char *const KN[K_N] = { "sbk_base", "sbk_base7", "sbk_head", "sbk_head_l", "sbk_head7", "sbk_head7_l", "sbk_head8", "sbk_head11",
     "sbk_neck", "sbk_w1", "sbk_w2", "sbk_leg1", "sbk_leg1_7", "sbk_leg1_7l", "sbk_leg2", "sbk_leg2_7", "sbk_leg2_7l", "sbk_tail", "sbk_tail10",
     "sbk_tt", "sbk_pilot", "sbk_pilot7", "sbk_pilot7_l", "sbk_tornado", "sbk_bolt", "sbk_light2", "sbk_light2v", "sbk_beam", "sbk_gust",
-    "sbk_gust2",  "sbk_warn" };
+    "sbk_gust2",  "sbk_warn", "sbk_tail_d1", "sbk_tail_d2", "sbk_tail_d3", "sbk_tail_d31" };
 static short KA[K_N];
 static void ka(obj_t *o, int k) { if (o && KA[k] >= 0 && (o->an.b != &G.ens || o->an.anim != KA[k])) anim_set(&o->an, &G.ens, KA[k]); }
 
@@ -39,12 +39,14 @@ static struct {
     double hx[NHIST], hy[NHIST], hd[NHIST];   /* BossTailTracker trail of the dash (age 0 = newest) */
     int ring_t;                               /* frames of the current lightning-ring burst */
     short fx[NFX];                            /* runtime objects (bolts, rings, gusts, dust, warnings) */
+    signed char td[16];                       /* each TailTarget's direction, copied to its feather by 9141 (session 20, RV k_dir) */
 } K;
 
 static obj_t *base(void) { return sbb_get(OT_SB_KJ_BASE, 0); }
 static obj_t *head(void) { return sbb_get(OT_SB_KJ_HEAD, 0); }
 static obj_t *tornado(void) { return sbb_get(OT_SB_TORNADO, 0); }
 static int npart(int t) { return sbb_count(t); }
+static void tdir(int from, int to) { for (int k = 0; k < 16; k++) if (from < 0 || K.td[k] == from) K.td[k] = (signed char)to; }   /* set_direction on the targets (from -1: all) */
 
 void sbk_spawn(void) {
     static int reg; if (!reg) { reg = 1; snap_register(&K, sizeof K); }
@@ -52,7 +54,8 @@ void sbk_spawn(void) {
     obj_t *b = base();
     if (!b) return;
     for (int k = 0; k < K_N; k++) KA[k] = (short)ens_anim(KN[k]);
-    K.C = 60; K.J = 5; K.L = 4; K.K = -1; K.E = b->x; K.F = b->y; K.warn = -1; K.placed = 1;   /* RV k_def f0: C 60, J 5, L 4, K -1 */
+    K.C = 60; K.J = 5; K.L = 4; K.K = -1; K.E = b->x; K.F = b->y; K.warn = -1; K.placed = 1;
+    memset(K.td, 1, sizeof K.td);                                               /* RV k_dir: every target in direction 1 from the start (9091) */   /* RV k_def f0: C 60, J 5, L 4, K -1 */
     static const int TY[] = { OT_SB_KJ_BASE, OT_SB_KJ_HEAD, OT_SB_KJ_HEAD2, OT_SB_KJ_LEG1, OT_SB_KJ_LEG2, OT_SB_KJ_PILOT, OT_SB_KJ_TAIL,
                               OT_SB_KJ_TARGET, OT_SB_KJ_WING1, OT_SB_KJ_WING2, OT_SB_KJ_CHARGE };
     for (unsigned j = 0; j < sizeof TY / sizeof TY[0]; j++)
@@ -212,7 +215,11 @@ static void poses(void) {
     ka(sbb_get(OT_SB_KJ_LEG1, 0), dash ? (r ? K_LEG1_7 : K_LEG1_7L) : K_LEG1);
     ka(sbb_get(OT_SB_KJ_LEG2, 0), dash ? (r ? K_LEG2_7 : K_LEG2_7L) : K_LEG2);
     ka(sbb_get(OT_SB_KJ_PILOT, 0), dash ? (r ? K_PILOT7 : K_PILOT7L) : K_PILOT);
-    for (int k = 0; k < npart(OT_SB_KJ_TAIL); k++) ka(sbb_get(OT_SB_KJ_TAIL, k), K_TAIL);
+    for (int k = 0; k < npart(OT_SB_KJ_TAIL); k++) {                           /* 9141: a feather takes its target's direction (anim 0 dir 1: the cyan
+                                                                                 * pulse, 2: the yellow glow, 3: red, 31: a flash then dark, 0: dark) */
+        int d = k < 16 ? K.td[k] : 1;
+        ka(sbb_get(OT_SB_KJ_TAIL, k), d == 1 ? K_TAIL_D1 : d == 2 ? K_TAIL_D2 : d >= 3 && d <= 4 ? K_TAIL_D3 : d == 31 ? K_TAIL_D31 : K_TAIL);
+    }
     for (int k = 0; k < npart(OT_SB_KJ_HEAD2); k++) ka(sbb_get(OT_SB_KJ_HEAD2, k), K_NECK);
     for (int k = 0; k < npart(OT_SB_KJ_WING1); k++) ka(sbb_get(OT_SB_KJ_WING1, k), K_W1);
     for (int k = 0; k < npart(OT_SB_KJ_WING2); k++) ka(sbb_get(OT_SB_KJ_WING2, k), K_W2);
@@ -274,7 +281,7 @@ static void attacks(player_t *p) {
             K.fl |= F4; snd_play_orig(270, 220, 128); if (G.cam.Z < 20) G.cam.Z = 20;
         }
         if ((K.fl & F4) && K.B > 180 && K.B < 300 && b && (G.frame & 1)) ring(b, 1);   /* 9067 / 9069: the strikes (every other frame: INFERRED cap) */
-        if (K.B >= 0 && K.B < 20) { K.I = 0; K.fl &= ~F4; K.B = 200; if (h) h->fl &= ~SB_ARM; }   /* 9074 */
+        if (K.B >= 0 && K.B < 20) { tdir(2, 1); K.I = 0; K.fl &= ~F4; K.B = 200; if (h) h->fl &= ~SB_ARM; }   /* 9074 */
     }
     /* Q 2: the bolt (9076-9080) */
     if (K.Q == 2) { if (K.G < 0) { K.G = fmin(K.G + 0.2, 0); K.O = 0; } else if (K.G > 0) { K.G = fmax(K.G - 0.2, 0); K.O = 0; } }
@@ -311,6 +318,7 @@ static void attacks(player_t *p) {
             K.fl &= ~F10; K.M = 0; K.D = 0; K.K = -K.K; K.N += 1; K.L = (fmod(K.N, 2) * 2 - 1) * K.L;
         }
         if (K.N > 3) {                                                          /* 9091 / 9092: back over the ship */
+            tdir(-1, 1);                                                        /* 9091: every target direction 1 (RV k_dir 876 / 1782 / 2693) */
             for (int k = 0; k < npart(OT_SB_KJ_TARGET); k++) { obj_t *o = sbb_get(OT_SB_KJ_TARGET, k); if (o) { o->fl &= ~SB_DEF; o->A = 3; } }
             K.E = sbb_px(p); K.G = 0; K.H = 10; K.I = 0; K.F = (tornado() ? tornado()->y : 1208) - 500;   /* (RV k_def 877: F 708) */
             K.N = 0; K.J = 5; K.hit = 0;
@@ -353,10 +361,12 @@ static void attacks(player_t *p) {
         }
     }
 }
+static void head_hit(void);
 static void head_hit(void) {                                                   /* 9147: a hit on the head: the dash; 9149 the fifth */
     obj_t *h = head();
     if (!h || !(h->fl & SB_DEF) || K.hit) return;
     K.hit = 1; K.Q = 3; K.I = 0; K.C = 60; K.J = 5; K.M = 0; K.S += 1;
+    tdir(-1, 31);                                                               /* 9147: the feathers flash and go dark (RV k_dir 300 / 1200 / 2100) */
     snd_play_orig(47, 220, 128);
     if (K.S >= 5) {                                                             /* 9149: the end */
         music_stop(); K.Q = 0; K.O = 0; K.I = 0; K.M = -9999; K.pC = 1; K.slow0 = G.frame;
@@ -422,6 +432,7 @@ void sbk_frame(player_t *p) {
     for (int k = 0; k < npart(OT_SB_KJ_TARGET); k++) {                         /* 9142 / 9143: a target shows while hit, bursts when beaten */
         obj_t *o = sbb_get(OT_SB_KJ_TARGET, k); if (!o) continue;
         if ((o->fl & SB_DEF) && !o->hidden && o->av[2] == 0) { o->av[2] = 1; obj_effect(o->x, o->y, "sbk_exp2"); }
+        if ((o->fl & SB_DEF) && k < 16 && K.td[k] != 0 && K.td[k] != 31) K.td[k] = 0;   /* 9143: a beaten target (and its feather) goes dark */
         if (!(o->fl & SB_DEF)) o->av[2] = 0;
         o->hidden = !(o->c > 1 && !(o->fl & SB_DEF));
         if (K.I == 4 || K.pC > 0) o->fl |= SB_ARM; else o->fl &= ~SB_ARM;      /* 9086 / 9057: flag 5 */
@@ -431,13 +442,16 @@ void sbk_frame(player_t *p) {
         for (int k = 0; k < npart(OT_SB_KJ_TARGET) && !guard; k++) { obj_t *o = sbb_get(OT_SB_KJ_TARGET, k); if (o && !(o->fl & SB_DEF)) guard = 1; }
         if (h && guard && !(h->fl & SB_DEF)) h->c = 5;
     }
+    if (K.I == 1) tdir(1, 2);                                                   /* 9060: the lightning charge, direction 1 -> 2 (RV k_dir 1820: yellow) */
+    if (K.S == 4) tdir(1, 4);                                                   /* 9145: after the fourth head hit, direction 1 -> 4 (no images: the
+                                                                                 * nearest, 3 = red, INFERRED; not traced) */
     if (K.pC <= 0) head_hit();
     ending(p);
     fx_frame(p);
     b->av[0] = K.I; b->av[1] = K.Q; b->av[2] = K.S; b->av[3] = K.pC; b->av[4] = K.E; b->av[5] = K.F; b->av[6] = K.M; b->av[7] = K.on;
 #ifdef FP_HOST_ENV
-    if (getenv("FP_DBG_SBK")) printf("sbk %d I %.0f Q %.0f R %.0f S %.0f M %.0f B %.0f D %.0f E %.1f F %.1f G %.2f H %.2f N %.0f K %.0f pC %.0f T %.0f fx %d\n",
-        G.frame, K.I, K.Q, K.R, K.S, K.M, K.B, K.D, K.E, K.F, K.G, K.H, K.N, K.K, K.pC, K.T, K.fx_n);
+    if (getenv("FP_DBG_SBK")) printf("sbk %d I %.0f Q %.0f R %.0f S %.0f M %.0f B %.0f D %.0f E %.1f F %.1f G %.2f H %.2f N %.0f K %.0f pC %.0f T %.0f fx %d td %d\n",
+        G.frame, K.I, K.Q, K.R, K.S, K.M, K.B, K.D, K.E, K.F, K.G, K.H, K.N, K.K, K.pC, K.T, K.fx_n, K.td[0]);
 #endif
 }
 int sbk_draw(const obj_t *o, int pass) {

@@ -112,6 +112,9 @@ for ch, cn in CHARS:
     mb = music(ev, 'bgm/m_boss3')[:1]                                # session 20: the night's fade-out must not stop the boss track
     stops = [f for f, l in ev if l.startswith('music stop') and mb and mb[0] <= f < 3100 + O]
     check('sb1_%s_boss_music_kept' % cn, mb and not stops, str((mb, stops[:3])))
+    tds = [(f, int(k[f]['td'])) for f in sorted(k) if 'td' in k[f]]   # session 20: the feathers' glow (RV sb_s20/k_dir: TailTarget set_direction)
+    seq = [d for i, (f, d) in enumerate(tds) if i == 0 or d != tds[i - 1][1]]
+    check('sb1_%s_tail_glow_directions' % cn, seq[:6] == [1, 31, 1, 31, 1, 2] and tds[0][1] == 1, str(seq[:10]))
     check('sb1_%s_head_hits' % cn, sids(ev, 47) == [f + O for f in (300, 1000, 1700, 2400, 3100)], str(sids(ev, 47)))
     check('sb1_%s_dash_passes' % cn, near(sids(ev, 268), [f + O for f in (377, 627, 1067, 1317, 1761, 2011, 2457, 2707)]) and
           near(sids(ev, 269), [f + O for f in (502, 752, 1192, 1442, 1886, 2136, 2582, 2832)]), str((sids(ev, 268), sids(ev, 269))))
