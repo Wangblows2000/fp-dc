@@ -201,8 +201,14 @@ static void cannons(void) {
     EACH(OT_SB_CANBASE, b) {                         /* the base: Q20 (combat.c), A = 15 */
         if (!DEFEATED(b)) continue;
         double *D = &b->av[3], *E = &b->av[4];
-        if (*D == 0) { set_s(b, "sbc_bdead"); *D = 1; S.kills++; }                              /* 9319: anim 8, PlayerAssist.I + 1 */
+        if (*D == 0) { set_s(b, "sbc_bdead"); *D = 1; S.kills++; b->kx = 5; }                  /* 9319: anim 8, PlayerAssist.I + 1, X = 5 */
         else if (*D < 30) { *D += 1; if (G.frame % 4 == 0) obj_effect(b->x - 40 + R(81), b->y - 40 + R(81), "explosion01"); }   /* 9320 */
+        if (*D < 31) {                               /* 2765 (session 20): the beaten base flies off like any Q20 enemy until 9322 hides it.
+                                                      * RV sb_s20/exit_b: x + 5 a frame, Y + 0.25, angle + 10, 13032,720 -> 13172,811 at D 31, then
+                                                      * it stays. Kept in place, the port's invisible solid base walled the ship's exit to the plane. */
+            b->x = (float)(int)(b->x + b->kx); b->y = (float)(int)(b->y + b->ky);
+            b->ky = fmin(b->ky + 0.25, 15.0); b->ang += (float)fmax(8.0, 2.0 * b->kx);
+        }
         else if (*D == 30) {                                                                    /* 9322 */
             snd_play_orig(38, 220, 128); b->hidden = 1; *D += 1; obj_effect(b->x, b->y, "explosion01");
             obj_t *b2 = pair(OT_SB_CANBASE2, b, -8, 0, 24); if (b2) b2->hidden = 1;            /* INFERRED: the back plate goes with it */
