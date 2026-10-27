@@ -44,11 +44,6 @@ static int sensor_on_mask(const obj_t *o, int s) {         /* rule 1: the image 
 void switches_spawn(void) {
     memset(&SW, 0, sizeof SW); SW.gate_closed = 1;
     static int reg; if (!reg) { reg = 1; snap_register(&SW, sizeof SW); }
-    if (level_cur()->plate_rule == 2) {                                                             /* 6031 / 6032: plate A = 0 (the newest) starts pressed */
-        obj_t *last = NULL;
-        for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == OT_PPLATE && G.o[i].x >= 0 && G.o[i].y < G.lvl.h) last = &G.o[i];
-        if (last) { last->hidden = 1; last->fl |= 1; }
-    }
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i];
         if (!o->alive) continue;
@@ -59,6 +54,13 @@ void switches_spawn(void) {
         case OT_SDOOR:  ens_set(o, "sdoor"); o->c = 0; o->layer = 2; o->fl = 0; break;   /* B = layer + 1 */
         case OT_SDOOR2: ens_set(o, "sdoor2"); o->c = 0; o->layer = 2; o->fl = 0; break;
         }
+    }
+    /* 6031 / 6032: plate A = 0 (the newest) starts pressed. Session 20: this ran before the reset above, which cleared it, so no
+     * plate started down (RV build/orig_traces/rm_s20/ax_a: (328,2674) starts pressed, flags 0x1084). */
+    if (level_cur()->plate_rule == 2) {
+        obj_t *last = NULL;
+        for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == OT_PPLATE && G.o[i].x >= 0 && G.o[i].y < G.lvl.h) last = &G.o[i];
+        if (last) { last->hidden = 1; last->fl |= 1; }
     }
 }
 
