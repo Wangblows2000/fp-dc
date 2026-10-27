@@ -47,9 +47,9 @@ static int ens_of(const obj_t *o, const char *base) {
     int a = ens_anim(nm);
     return a >= 0 ? a : ens_anim(base);
 }
-static void set_a(obj_t *o, const char *base) {                                 /* force_animation (kept when unchanged) */
+static void set_a(obj_t *o, const char *base) {                                 /* force_animation: frame 0, the speed counter kept (RE_NOTES) */
     int a = ens_of(o, base);
-    if (a >= 0 && (o->an.b != &G.ens || o->an.anim != a)) anim_set(&o->an, &G.ens, a);
+    if (a >= 0 && (o->an.b != &G.ens || o->an.anim != a)) { int acc = o->an.b ? o->an.acc : 0; anim_set(&o->an, &G.ens, a); o->an.acc = acc; }
 }
 static void restart_a(obj_t *o, const char *base) { int a = ens_of(o, base); if (a >= 0) { anim_set(&o->an, &G.ens, a); anim_restart(&o->an); } }
 static int a_is(const obj_t *o, const char *base) { return o->an.b == &G.ens && o->an.anim == ens_of(o, base); }
@@ -164,7 +164,10 @@ int jc_enemy_q20(int t) {                                                       
 /* ================================================================ EnemyMeteorRoller_2416 (10230-10248, 10254, col_3_39)
  * A HP 5, G 1 (roll sign; ctor), created invisible. av: [0] D state (0 new, 1 waiting 200 px up-left, 2 falling, 3 landed,
  * 4 rolling, 6 defeated), [1] E / [2] F landing point (the placement), [3] G roll sign, [4] H fall speed, [5] I blast pieces. */
-static void meteor_spawn(obj_t *o) { o->A = 5; o->av[3] = 1; o->hidden = 1; o->dir = 0; set_a(o, "jem_roll"); }
+static void meteor_spawn(obj_t *o) {                                             /* ctor + 10230 (run at once: the far ones sleep in the port) */
+    o->A = 5; o->av[3] = 1; o->hidden = 1; o->dir = 0; set_a(o, "jem_roll");
+    o->av[0] = 1; o->av[1] = floorf(o->x); o->av[2] = floorf(o->y); o->x -= 200; o->y -= 200; o->fl |= 0x40 | F_NOFLY;
+}
 static void meteor_trigger(const player_t *p) {                                  /* 10231: one random waiting meteor per frame */
     obj_t *o, *c[LMAX]; int n = 0;
     EACH(OT_JC_METEOR, o)
@@ -314,9 +317,9 @@ static void buoy_frame(obj_t *o, player_t *p) {
     if (DEFEATED(o) && *E != 4) *E = 4;                                            /* 10307 */
     if (*E == 4) { face(o, o->kx >= 0 ? 16 : 0); set_a(o, "jeb_dead"); wreck_crash(o, 29, 1); }   /* 10308-10310 */
 }
-static void bjet_frame(obj_t *o, player_t *p) {                                   /* 10312-10318: 60 frames, 10 damage (not the water shield) */
+static void bjet_frame(obj_t *o, player_t *p) {                                   /* 10312-10318: 10 damage (not the water shield) */
     o->av[0] += 1;
-    if (o->av[0] > 60) { o->alive = 0; return; }
+    if (o->av[0] > 70) { o->alive = 0; return; }                                   /* RV buoy: 71 frames (RE 10313 A > 60: A's count start not read) */
     if (csens_hit(p, o) && r_hurt(p, 10, 4)) shake(2);
     if (in_view(o, 40)) { obj_t *b; EACH(OT_JC_BUOY, b) if (DEFEATED(b) && obj_obj_hit(o, b)) { o->alive = 0; return; } }   /* foreach_buoy_39 / 10162 */
 }
@@ -420,8 +423,8 @@ static void torp_frame(obj_t *o, player_t *p) {                                 
  * A HP 5. av: [0] D bob phase, [1] E base y, [2] G shots made. 15 BadnikGolemShots ring it (G 360 - 24 k): x = X + (60 + 30 sin D)
  * sin G, y = E + 14, G += 3, scale 0.8 + 0.2 cos G, behind it while 90 < G < 270. Shot: R-hurt 5 (not the water shield), pops on
  * Milla's cube (col_4_40) and the water shield (col_25_40, sound 101). The orbiter faces the player (32 directions). */
-static void orbiter_spawn(obj_t *o) {
-    o->A = 5; o->av[1] = floorf(o->y); o->hidden = 1; set_a(o, "jeo_body");      /* 10568; drawn with its ring by jc_enemy_draw */
+static void orbiter_spawn(obj_t *o) { o->A = 5; o->av[1] = floorf(o->y); o->hidden = 1; set_a(o, "jeo_body"); }   /* 10568; drawn with its ring by jc_enemy_draw */
+static void orbiter_ring(obj_t *o) {
     for (int k = 0; k < 15; k++) {                                                /* 10569 loop_bbls_40 / 10396 */
         obj_t *s = spawn(OT_JC_OSHOT, "jeo_shot", o->x, o->y, 0);
         if (!s) break;
@@ -440,7 +443,7 @@ static void orbiter_frame(obj_t *o, player_t *p) {
 static void oshot_frame(obj_t *s, player_t *p) {
     obj_t *o = partner(s);
     if (!o || DEFEATED(o)) s->fl |= FL_POP;                                        /* J = the orbiter's flag 6 */
-    else if (in_view(s, 100)) {                                                    /* 10472 foreach_bbl_40 */
+    else {                                                                         /* 10472 foreach_bbl_40 (RV: every ring turns) */
         s->x = (float)(int)((60 + 30 * c_sin(o->av[0])) * c_sin(s->av[0]) + floorf(o->x));
         s->y = (float)(int)(14 + o->av[1]);
         s->av[0] = fmod(s->av[0] + 3, 360);
@@ -469,14 +472,11 @@ static void launcher_frame(obj_t *o, player_t *p) {
     double *A = &o->av[0], *B = &o->av[1];
     *A += 1;                                                                       /* 10807 */
     if (*A == 60) o->fl |= 1;                                                      /* 10808 */
-    if (*A == 90 && in_view(o, 120)) {                                             /* 10809 */
-        obj_t *b = obj_alloc();
-        if (b) {
-            memset(b, 0, sizeof *b);
-            b->type = OT_TD_BOMB; b->alive = 1; b->layer = 2; b->x = o->x; b->y = o->y; b->fy = b->y; b->vy = -10; b->par = -1;
-            int a = ens_anim("td_bomb"); if (a >= 0) anim_set(&b->an, &G.ens, a);
-        }
-        obj_effect(o->x, o->y, "explosion"); snd_play_orig(63, 220, 128);         /* (the Media::play sample: 63, INFERRED from 10819 / 10825) */
+    if (*A == 90 && in_view(o, 120)) {                                             /* 10809: A += 1 too (RV launcher: a 179-frame cycle when firing) */
+        *A += 1;
+        obj_t *b = spawn(OT_JC_TBOMB, "td_bomb", o->x, o->y, 0);
+        if (b) { b->fy = b->y; b->vy = -10; }
+        obj_effect(o->x, o->y, "explosion"); snd_play_orig(99, 220, 128);         /* RV launcher: sound 99 (the Media::play sample) */
     }
     if (*A == 120) o->fl &= ~1;                                                    /* 10810 */
     if (*A > 150) *A -= 180;                                                       /* 10811 */
@@ -650,9 +650,19 @@ static void glow_frame(obj_t *g) {                                              
     if (g->av[0] >= 25) g->alive = 0;
 }
 
+static void tbomb_frame(obj_t *o) {                                               /* 10814-10817 (the DV bomb's fall: +0.3, max 12) */
+    o->y = (float)(int)o->fy; o->fy += o->vy; o->vy = fminf(o->vy + 0.3f, 12.f);
+    o->ang = o->vy > -2 ? (float)fmax(o->vy - 5, 0) : 0;                          /* 10816: angle B - 5 once falling */
+    if (o->vy > 0 && obj_overlaps_bg(o)) {                                         /* RV launcher: bursts ~63 frames later with sound 38 */
+        obj_t *b = obj_alloc();
+        if (b) { memset(b, 0, sizeof *b); b->type = OT_BLAST; b->alive = 1; b->layer = 2; b->x = o->x - 12; b->y = o->y; b->par = -1; int a = ens_anim("blast"); if (a >= 0) anim_set(&b->an, &G.ens, a); }
+        snd_play_orig(38, 220, 128); shake(3); o->alive = 0;
+    }
+}
+
 /* ================================================================ runtime effects */
 static void mexpl_frame(obj_t *o) {                                               /* 10247: explosion06 X += A, Y += B; force_speed 50 */
-    o->x += o->vx; o->y += o->vy;
+    o->x = (float)(int)(floorf(o->x) + o->vx); o->y = (float)(int)(floorf(o->y) + o->vy);   /* set_x(int(X + A)) (RV meteor: +4 px a frame at 45 deg) */
     anim_tick(&o->an, 30);                                                         /* (+ the row's 20 in update_objects = 50) */
     if (o->an.done) o->alive = 0;
 }
@@ -684,11 +694,14 @@ void jc_enemy_spawn(void) {
         case OT_JC_SHARK: shark_spawn(o); break;
         case OT_JC_ORBITER: orbiter_spawn(o); break;
         case OT_JC_LAUNCHER: set_a(o, "jet_hatch"); o->an.frame = 0; break;
-        case OT_JC_ELITEMASK: elite_spawn(o); break;
-        case OT_JC_ELITE: set_a(o, "jee_idle"); o->layer = 2; break;
+        case OT_JC_ELITEMASK: case OT_JC_ELITE:                                    /* RV elite (JC5): no instance exists at the act start */
+            if (level_cur()->stage == 5) { o->alive = 0; break; }                  /* (not created at start; nothing in JC5 creates one) */
+            if (o->type == OT_JC_ELITEMASK) elite_spawn(o); else { set_a(o, "jee_idle"); o->layer = 2; }
+            break;
         default: o->alive = 0; break;
         }
     }
+    { obj_t *o; EACH(OT_JC_ORBITER, o) orbiter_ring(o); }                          /* (after the placed objects: the loop above drops runtime types) */
     pair_nearest(OT_JC_ELITE, OT_JC_ELITEMASK); { obj_t *m, *e; EACH(OT_JC_ELITEMASK, m) EACH(OT_JC_ELITE, e) if (e->par == (int)(m - G.o)) m->par = (int)(e - G.o); }
     pair_nearest(OT_JC_MFLAME, OT_JC_METEOR); pair_nearest(OT_JC_PHAT, OT_JC_PLANT); pair_nearest(OT_JC_PSTALK, OT_JC_PLANT);
     if (jc_flow_act() != 3) jc_enemy_hover_start();                                /* JC4 10850: the launchers run from the start */
@@ -749,6 +762,7 @@ int jc_enemy_obj(obj_t *o, player_t *p) {
     case OT_JC_ELITEMASK: elite_frame(o, p); return 1;
     case OT_JC_LASER: laser_frame(o, p); return 1;
     case OT_JC_GLOW: glow_frame(o); return 1;
+    case OT_JC_TBOMB: tbomb_frame(o); return 1;
     case OT_JC_WARN: return 1;
     default: return 1;
     }

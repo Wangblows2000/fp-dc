@@ -747,6 +747,7 @@ static const objdef_t DEFS[] = {
     { OT_JC_WARN,       0,                                     NULL         }, /* effectwarning_1528 (runtime) */
     { OT_JC_LASER,      0,                                     NULL         }, /* enemytrooperlaser_2530 (runtime) */
     { OT_JC_GLOW,       0,                                     NULL         }, /* enemyelitechargeglow_2527 (runtime) */
+    { OT_JC_TBOMB,      0,                                     NULL         }, /* minibosstreddbomb_1060 from a launcher (runtime) */
     /* ---- JC_GIM (jc_gim.c) */
     /* ---- JC_BOSS (jc_boss.c) */
     /* ---- JC_BOSS5 (jc_boss5.c) */
