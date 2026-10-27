@@ -134,5 +134,16 @@ check('swing2_mirror', len(p1) == 2 and abs((p1[0][2] - 11496.5) + (p1[1][2] - 1
 rows, ev, out = run('5 TP 5110 560\n6 200 R\n', 60, {'FP_LEVEL': 'sb4'})
 check('chainwall_crush_kills', any(r['st'] == 6 for r in rows[20:60]) and min(r['y'] for r in rows[5:60]) > 300, 'min y %.0f' % min(r['y'] for r in rows[5:60]))
 
+# ---- session 20: the ship exits (user report: invisible walls behind the cannons). RV sb_s20/exit_a / exit_b (SB3): the intact cannon
+# stops the player at X 12983; beaten, the bases fly off (x + 5, Y + 0.25 to D 31) and the deck leads past them to the plane.
+for lv, x, y, bx in (('sb2', 11300, 1000, 11568), ('sb3', 12760, 880, 13032), ('sb4', 13790, 880, 14064)):
+    for ch in ('0', '2', '4'):
+        rows, ev, out = run('3 SETV others E 99999\n3 TP %d %d\n150 400 R\n' % (x, y), 300, {'FP_LEVEL': lv, 'FP_CHAR': ch})
+        xs = [r['x'] for r in rows[150:]]
+        check('s20_%s_ch%s_intact_cannon_blocks' % (lv, ch), xs and max(xs) < bx, str(max(xs) if xs else None))
+        rows, ev, out = run('3 SETV others E 99999\n3 TP %d %d\n10 BOSSHP 0\n150 600 R\n' % (x, y), 520, {'FP_LEVEL': lv, 'FP_CHAR': ch})
+        back = next((i for i, r in enumerate(rows) if i > 150 and r['act'] == 1), None)
+        check('s20_%s_ch%s_exit_past_beaten_cannons_to_sb1' % (lv, ch), back is not None and max(r['x'] for r in rows[150:back]) > bx + 150,
+              str((back, max(r['x'] for r in rows[150:back or len(rows)]))))
 print('%d failures' % fails)
 sys.exit(1 if fails else 0)
