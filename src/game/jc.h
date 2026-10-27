@@ -30,7 +30,8 @@ enum {
     OT_JC_OSHOT = 1345,    /* runtime: BadnikGolemShot_1260 orbiting a Bubbl Orbiter */
     OT_JC_WARN = 1346,     /* runtime: EffectWarning_1528 at a meteor's landing point */
     OT_JC_LASER = 1347,    /* runtime: EnemyTrooperLaser_2530 (the Elite's shots) */
-    OT_JC_GLOW = 1348      /* runtime: EnemyEliteChargeGlow_2527 */
+    OT_JC_GLOW = 1348,     /* runtime: EnemyEliteChargeGlow_2527 */
+    OT_JC_TBOMB = 1349     /* runtime: MinibossTreddBomb_1060 fired by a torpedo launcher (its blast: the DV OT_BLAST) */
 };
 void jc_enemy_hover_start(void);   /* JC3: group 0x22a5d on (10769 after Neera / 10798): the torpedo launchers' phases start */
 
