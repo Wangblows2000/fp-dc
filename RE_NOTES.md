@@ -1214,3 +1214,38 @@ cup / cup2 (SB3 block, spin cup and tunnel), tun3, pad (Carol's SB2 pads), swing
   route search at x 5113). Fixed in sb_gim.c (not RV).
 - Not verified: the ball / blast offset reason (12 px), the shots' y active range, Carol / Milla through the cup, the hub fire
   with ML 0x10 set (RE only), SB3's tunnel 3 entry.
+
+## Session 20: bug-fix addendum (FN6 Milla, Kujacker, FN -> SB rendering, SB exits / draw order, RM red boxes / axle / hand-car)
+Original traces recorded this session (not committed): build/orig_traces/fn6_s20 (m_kill: Milla, kill in mode 1; m2_kill:
+Lilac, kill during the wheel stance), sb_s20 (k_dir: the Kujacker with TRACE_FANIM on the tail targets; exit_a / exit_b: SB3
+ship end, cannons intact / beaten), rm_s20 (ax_a / ax_b: RM2 basement plates and axle).
+- **FN6 closing cast (RE 8764):** loop_stop_player_14 and MV.Y = 260 when the cast takes over. The hidden player is put at the
+  floor, so the camera (which still follows it) frames the cast. RV m_kill: Milla stands on the plane's platform at Y ~186
+  (8762 destroys the plane and its helpers, not PlanePlatform 0x10cb0), CAM.B 186.6 -> 191 at MV.M 50.
+- **FN6 8749 runs every frame of the post-boss group** (no once condition): front cannon D -2 / E 0, the rider's pose, ff A 0
+  (8750 likewise every frame). With D held at -2, 8620 / 8621 (mode 2: D > -2) never move K and 8622 (I >= 90, D < 0) resets
+  D to 0 only until 8749 runs again in the same frame. RV m2_kill (defeat at 1251 in mode 2): D -2, K holds 388, then 8759
+  takes it to 0 (head x -29). A kill in mode 2 is possible in the original (8567 enters mode 2 at hF 3-6, hits still count).
+- **fn_assist state is level-scoped:** the port cleared it only in FN6's spawn; cast_on (MV.M 50) then hid the player in every
+  later level (the user's FN -> SB vanishing sprite). Not a VRAM / texture problem.
+- **Kujacker tail glow (RE 9141 + RV k_dir):** each feather takes its TailTarget's direction every frame. Tail anim 0: dir 1
+  the cyan pulse (11832 x3, 11821, 11833 x3, 11821, speed 25), dir 2 the yellow glow (11834 / 11822), dir 3 red, dir 31 a flash
+  then dark (11831 / 11820, once). Target direction changes (set_direction on 0x11238 = TailTarget_2120): 9091 -> 1 (start and
+  each fly-back; RV -1 / 876 / 1782 / 2693), 9147 -> 31 (head hit; RV 300 / 1200 / 2100), 9060 1 -> 2 (lightning charge, I 1;
+  RV 1820), 9073 2 -> 1 (I 2, 0 <= B < 20; RV 2050), 9143 beaten target (flag 0x40, not 0 / 31) -> 0, 9145 S 4: 1 -> 4 (no
+  image: nearest 3 = red, INFERRED, not traced).
+- **Music fades belong to their track:** Chowdren's fadeout_music fades the channel's current track; the night's 4 s fade-out
+  of m_stage4 did not touch m_boss3 started 178 frames later (RV k_def: m_boss3 at 237 plays on).
+- **Beaten cannon base flies off (RV exit_b):** 9319 sets X = 5 and the shared Q20 fly-away (2765: x + X, Y + 0.25, angle
+  + 2X) moves it until 9322 hides it at D 30 (13032,720 -> 13172,811); it then stays, out of the deck's path. The ctor sets
+  no flag 16 (flags 0x1405). Intact, the cannon stops the player at X 12983 (RV exit_a), as in the port.
+- **Layer order in mapped frames:** json layer 1 objects (SB1 enemy airships at 0.25, SB2-SB4 opening planks, fan blades and
+  back eyes at 0.8) are behind json layer 2 (RE: layer order; RV orig sb_sb1fresh_3: the airships stay behind Zao's sail).
+- **Hang sensors are invisible (RE):** create_gimmickhangingmovingsensor_* / sensor2 / idleswitch / idlemover / idlesensor /
+  longsensor2 all call set_visible(0); their image is a red editor box.
+- **RM2 start plate (RE 6031 / 6032, RV ax_a):** (328,2674) starts pressed (flags 0x1084, the others 0x1085). The axle tunnel
+  is entered from the left at angle 0; each press of a different plate turns it a quarter (90 in 18 frames), so the opening
+  can always be brought back (RV ax_b / host).
+- **Hand-car bumper (RE 6142-6149):** CartProbe 3 placed at (+45, 4) then (-45, 4) from the cart's action point every frame;
+  6143 / 6147 bounce (B * -0.5) only when overlapping a backdrop and moving that way (B > 0 at the front, B < 0 at the rear);
+  6144 / 6148 slow-cart spike bounce in (0, 3] / [-3, 0); 6145 / 6149 the bumper on a wall plate presses it.

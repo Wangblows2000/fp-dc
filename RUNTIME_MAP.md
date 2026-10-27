@@ -665,3 +665,28 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
   2319-2321's images), 'sbshot' / 'sbc_ball' / explosion06 exported with the SB1 airships.
 - **Rebuild:** sb1-sb4 (json 36-39). Flycast to look at: SB1 deck fire (warnings, the ball, the blast near the player, the
   ship shots over the airships), SB3 DNA warnings at the edges, SB2 / SB4 doors, SB3 cup -> tunnel ride, SB4 swings' images.
+
+## Session 20: bug-fix addendum (port: fn_assist.c, fn_panther.c, game.c, objects.c, plat_*.c, sb_kujacker.c, sb_gim.c, sb_flow.c, objdefs.c, switches.c, relic_gimb.c, tools/import_frame.py)
+- **fn_assist.c:** fn_assist_reset() (called by fn_panther_spawn on every level load, before its FN5 / FN6 test);
+  fn_assist_closing() puts the hidden player at Y 260 + ORIG_REF_DY, stopped (8764).
+- **fn_panther.c post_boss():** 8749 / 8750 every frame of the post-boss group.
+- **game.c:** game_player_visible() (game_draw and FP_TRACE_PDRAW); music_fade() remembers music_serial() and a new track
+  cancels the fade (music_serial() in plat_dc.c / plat_host.c); game_draw order: pieces layer 0, layer-1 pieces with the 0.8
+  scroll (pad bit 1), objects_draw(-1) + sb_flow_draw(-1) (json layer 1), the other layer-1 pieces, objects_draw(0) ...
+- **objects.c:** pass -1 = objects with layer -1 (json layer 1 of a mapped frame), drawn at 0.8; pass 0 skips them.
+- **sb_gim.c:** lvobj anim 0x8000 -> layer -1; cannons(): a beaten base flies off (kx 5, ky + 0.25, angle) until D 31.
+- **sb_flow.c:** sb_flow_draw(-1) draws the airships / planks; pass 0 keeps the night sky.
+- **sb_kujacker.c:** K.td[16] (target directions), tdir(); poses() picks sbk_tail / _d1 / _d2 / _d3 / _d31 per feather;
+  FP_DBG_SBK prints td.
+- **objdefs.c:** OT_HSENS / OT_HSENS2 / OT_HISWITCH / OT_HIMOVER get OD_HIDDEN.
+- **switches.c:** the rule-2 start press runs after the plate reset.
+- **relic_gimb.c:** cart_frame() bumper loop (front / rear, by direction), S.bump[2] for plates().
+- **Importer:** sbk_tail_d1 / d2 / d3 / d31 rows; write_lv2(..., mapped) sets 0x8000 on SB_GIM objects of json layer 1.
+- **Host:** FP_TRACE_PDRAW (pdraw f visible lv mode); BOSSHP also sets sb_gim_q20 types.
+- **Tests:** tests/test_transitions.py (new), tests/test_rm_visuals.py (new); s20 checks in test_fn_assist, test_sb_bosses
+  (boss music kept, tail glow), test_sb_gimmicks (ship exits), test_rm_gimmicks_b (cart reversal), test_sb_flow (night music).
+
+- Session 20 addendum: the Kujacker tail glow is an overlay animator per feather (`K.tov[16]`, ticked with anim_tick(-1))
+  drawn with frame_draw_rot at the tail angle; its images are the original glow frames with rows >= 48 blanked by the
+  importer (TOP_ROWS) so they crop to the eye. r_sprite_rot (soft) and the PVR cull radius use the farthest image corner
+  from the hotspot, so sprites whose hotspot lies outside the image rotate correctly.

@@ -277,3 +277,16 @@ tools/audio/convert_gallery.sh extracted/linux/audio "$G/Data/voices" /home/clau
 - Stage select / TA strips: `python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui tasel 6 -x '^bg(1[0-9]|[6-9])layer'`.
 - Sounds: convert_sfx.sh SB lines (103 156 237 255 263-274 438 446 71 155 445, half rate, trimmed); per-act groups
   SFX_SB1..4 (81-154 KB).
+
+## Session 20
+- **Rebuild sb1-sb4** (`for l in "36 sb1" "37 sb2" "38 sb3" "39 sb4"; do set -- $l; tools/build_level.sh $1 $2 converted2; done`):
+  new ENS rows sbk_tail_d1 / d2 / d3 / d31 (BossKujackerTail_2115 anim 0 directions 1 / 2 / 3 / 31) and the 0x8000 json-layer-1
+  mark on SB_GIM objects (write_lv2's `mapped`). Other levels are unchanged by this session's importer edits.
+- **Environment rebuild (fresh VM, measured this session):** stage `game\` from the PC (Assets.dat, bin64, Data/BGM, font, the
+  voices the converters use: `eng/li/lilac_*`, `ca/carol_feelmypower`, `ca/carol_awesome`, `mi/milla_{yay,superdog,whimper,shiny}`,
+  `group/teamlilac_madeit`, `se/serp_*` (5), `da/da_04_0{1,2}`, `sx/sx_{intrusion,still,08b02}`); the Linux install's voices are
+  genuine (no PLACEHOLDER lines from convert_gallery.sh). /home/claude/fprun fills the other 1317 voices with 1 s of silence.
+  Linux assets: `python3 third_party/fp-assets/fp-assets.py -x -f /home/claude/fprun/Assets.dat -m tools/fmt_linux_9d00124a.json
+  extracted/linux` (9 s). Frames: `tools/re/dump_frames.py`, `dump_anims.py`, `dump_backdrops.py` (needs `pip install
+  pyelftools`) into build/frames (identical to the user's uploaded copy). Gallery strings: decompile the five List*
+  constructors first (`tools/re/decomp.sh 'ListSongFilenames_285::ListSongFilenames_285(int, int)' ...`).
