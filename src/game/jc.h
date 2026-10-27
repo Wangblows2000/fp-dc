@@ -5,6 +5,13 @@
 #include "../fp.h"
 
 /* ---- jc_flow.c (types 1280-1309) */
+enum { OT_JCF_LOOP0 = 1280 /* JCLoop3 / 4_2463 / 2464 (Q7 Q10: solid on layer 0; sub 0 / 1) */,
+       OT_JCF_LOOP1 = 1281 /* JCLoop2_2462 (Q7 Q11: solid on layer 1) */,
+       OT_JCF_LOOPX = 1282 /* JCLoop1_2461 (Q7 only: flag 0 by the frame's own events 10462 / 10644-10646) */ };
+/* the act-3 boss is beaten (10772 / 10773, called by the boss module once the subtanker reaches E 8, F > 30): checkpoint g4 10
+ * at (9128, 1550) with the restart snapshot, music slot 5 (m_stage5b, loop_next_act_41), camera released, the Sign moved to
+ * x 0 (normal bounds C = 0, E = width + 50 until the act restarts) */
+void jc_flow_act3_cleared(void);
 
 /* ---- jc_enemy.c (types 1310-1369) */
 

@@ -28,6 +28,10 @@ static struct { int w, h, n, fl; pchunk_t ch[PMAXCH]; } IMG[PMAXIMG];   /* fl (f
 static ppiece_t PC[PMAXPIECE];
 static int nimg, npc, has_water, water_y;
 static tex_t WT[2];
+/* Jade Creek water surface (has_water 2; RE 10368-10373, session 21): LevelParalaxWaterSurface_14 fills the band between the
+ * horizon piece's box bottom (piece5_2338, box 270 high) and the water line ML.B; the follower piece (piece6_2374, the water
+ * body) is moved to the strip each frame (10369 / 10370). Frames stacked in one atlas (WT[0]). */
+static struct { int nfr, fw, fh, hz, hzh, fol; double anchor; int valid; } JW;
 
 static uint16_t rd16(const uint8_t *p) { return (uint16_t)(p[0] | (p[1] << 8)); }
 static int32_t rd32(const uint8_t *p) { return (int32_t)(p[0] | (p[1] << 8) | (p[2] << 16) | ((uint32_t)p[3] << 24)); }
@@ -69,7 +73,12 @@ int par_load(const char *dir) {
         if (PC[i].img >= nimg) goto bad;
         npc = i + 1;
     }
-    if (has_water && off + 4 <= sz) {
+    if (has_water == 2 && off + 16 <= sz) {
+        water_y = rd32(d + off); JW.nfr = rd16(d + off + 4); JW.fw = rd16(d + off + 6); JW.fh = rd16(d + off + 8);
+        JW.hz = rd16(d + off + 10); JW.hzh = rd16(d + off + 12); JW.fol = rd16(d + off + 14); JW.valid = 0;
+        char nm[64]; snprintf(nm, sizeof nm, "%s/%s_pv0", dir, dir);   /* 4 bpp (build_level.sh --pal4=1:_pv) */
+        if (JW.nfr < 1 || tex_load_file(&WT[0], nm) < 0) has_water = 0;
+    } else if (has_water == 1 && off + 4 <= sz) {
         water_y = rd32(d + off);
         for (int k = 0; k < 2; k++) { char nm[64]; snprintf(nm, sizeof nm, "%s/%s_pw%d", dir, dir, k); if (tex_load_file(&WT[k], nm) < 0) has_water = 0; }
     } else has_water = 0;
@@ -114,10 +123,34 @@ void par_destroy(int handle) { for (int i = 0; i < npc; i++) if (PC[i].handle ==
 int par_hidden(int handle) { for (int i = 0; i < npc; i++) if (PC[i].handle == handle) return (PC[i].flags & 512) != 0; return 0; }
 
 static void draw_pieces_pass(int gframe, int front);
+/* 10368: C = (horizon box bottom - ML.B) / 70.0001 (world y). C < 0: the strip hangs above its anchor, scale |C| up to 1, the anchor
+ * (10373: C <= -1) ML.B + (C + 1) 70, alpha 255 (10369); C >= 0: below ML.B at half scale, alpha 128 (10370). The follower piece
+ * sits at the anchor (10369; 10370's vtable+0x20 read as the surface y, INFERRED) */
+static double jw_C;
+static void jw_update(int vt) {
+    JW.valid = 0;
+    if (has_water != 2) return;
+    for (int i = 0; i < npc; i++) if (PC[i].handle == JW.hz && !(PC[i].flags & 128)) {
+        double top = trunc(PC[i].E * vt + PC[i].y0);
+        jw_C = (top + JW.hzh - water_y) / 70.0001;
+        JW.anchor = jw_C < -1 ? water_y + (jw_C + 1) * 70 : water_y;
+        JW.valid = 1;
+    }
+}
+int par_water_band(double *anchor, double *C) { jw_update((int)G.camy); if (!JW.valid) return 0; *anchor = JW.anchor; *C = jw_C; return 1; }   /* host tests */
+static void jw_draw(int gframe, int vt) {
+    if (!JW.valid) return;
+    double sc = jw_C < 0 ? fmin(-jw_C, 1.0) : jw_C * 0.5;
+    int h = (int)(JW.fh * sc), y = (int)JW.anchor - vt;
+    if (h <= 0) return;
+    int k = (gframe / 4) % 8; if (k >= JW.nfr) k = JW.nfr - 1;       /* anim speed 25: a frame every 4 (RV jc3_start ws_afr; the 8th shown as the 7th, VRAM) */
+    r_sprite(&WT[0], 0, k * JW.fh, JW.fw, JW.fh, 0, (float)(jw_C < 0 ? y - h : y), (float)JW.fw, (float)h, 0, jw_C < 0 ? 0xffffffff : 0x80ffffff);
+}
 void par_draw(int gframe) { draw_pieces_pass(gframe, 0); }
 void par_draw_front(void) { draw_pieces_pass(G.frame, 1); }   /* flag-256 pieces (frame layer 3, in front of the player) */
 static void draw_pieces_pass(int gframe, int front) {
     int vl = (int)G.camx, vt = (int)G.camy;
+    if (!front) jw_update(vt);
     for (int i = 0; i < npc; i++) {
         const ppiece_t *p = &PC[i];
         if (((p->flags & 256) != 0) != front || (p->flags & 512)) continue;
@@ -139,6 +172,7 @@ static void draw_pieces_pass(int gframe, int front) {
         double bvt = vt;
         if (p->flags & 2048) bvt = vt + 20.0 * sin(gframe * 0.017453292519943295) - 20.0;   /* SB 9198 (g3 = 180: sin 0 exactly, the same value) */
         if (p->flags & 4) { static const int off[4] = { -360, 0, -360, -720 }; C += off[(gframe / 8) % 4]; }   /* 5094 */
+        if (JW.valid && p->handle == JW.fol) { C = JW.anchor; bvt = 0; }   /* JC 10369 / 10370: the water body follows the strip */
         int sx = (int)fmod(trunc(p->D * vl + p->F - vl), (double)A);
         int sy = (int)trunc(p->E * bvt + C) - vt;
         int boxw = A * ((427 / A) + 2), y1 = sy + p->bh;
@@ -154,6 +188,7 @@ static void draw_pieces_pass(int gframe, int front) {
                     draw_image(p->img, tx, ty, sy, y1);
     }
     if (front) return;
+    if (has_water == 2) { jw_draw(gframe, vt); return; }
     if (has_water) {                                      /* 5103-5105 */
         double C = (water_y - (vt + 120)) / 220.0;
         double sc = fmin(fabs(C), 2.0);

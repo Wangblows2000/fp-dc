@@ -179,9 +179,20 @@ static const short SFX_SB3[] = { 62, 99, 54, 127, 237, 264, 265, 371, 165, 166, 
 static const short SFX_SB4[] = { 62, 99, 54, 127, 237, 264, 75, 77, 163, 171, 255, 266, 438, 172, 173, 278, 308, 316, 312 };
 #define SB(d, f, n, mus) .dir = d, .frame = f, .stage = 4, .act = n, .nacts = 4, .music = mus, .checkpoints = 1, .sfx = SFX_SB##n, .nsfx = N_(SFX_SB##n)
 #define SB_M34 .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage4.adp", .mus7 = "bgm/m_stage4.adp"
-/* Jade Creek (session 21, stage index 5; provisional rows: the flow agent sets music, cards, routes, entries from RE) */
-static const short SFX_JC[] = { 62, 99 };
-#define JC(d, f, n, mus) .dir = d, .frame = f, .stage = 5, .act = n, .nacts = 5, .music = mus, .checkpoints = 1, .sfx = SFX_JC, .nsfx = N_(SFX_JC)
+/* Jade Creek (session 21, stage index 5; spec_jc_flow, jc_flow.c): checkpoints JC2 10483 (7050 < X < 7250, MV.Y < 820), JC3 10655
+ * (5300 < X < 5700, MV.Y > 800), JC4 10848 (4100 < X < 4400), JC5 11192 (9800 < X < 9999; its group 0x22af7 is the act-5 module's,
+ * INFERRED on); JC1 has none (RE: no g4 writer in handle_frame_40). JC3's g4 10 comes from its boss (jc_flow_act3_cleared). */
+static const cpzone_t CP_JC2[] = { { 7050, 7250, 2, 7080, 790, -820, 0 } };   /* ymin -820: MV.Y < 820 */
+static const cpzone_t CP_JC3[] = { { 5300, 5700, 2, 5555, 1530, 800, 0 } };
+static const cpzone_t CP_JC4[] = { { 4100, 4400, 2, 4184, 1640, 0, 0 } };
+static const cpzone_t CP_JC5[] = { { 9800, 9999, 2, 9826, 780, 0, 0 } };
+/* the stage's own sounds per act (11025 Hz): 62 jump pads (JC2-JC4), 99 explosions; the enemy / gimmick / boss modules add theirs */
+static const short SFX_JC1[] = { 62, 99 };
+static const short SFX_JC2[] = { 62, 99 };
+static const short SFX_JC3[] = { 62, 99 };
+static const short SFX_JC4[] = { 62, 99 };
+static const short SFX_JC5[] = { 62, 99 };
+#define JC(d, f, n, mus) .dir = d, .frame = f, .stage = 5, .act = n, .nacts = 5, .music = mus, .checkpoints = 1, .sfx = SFX_JC##n, .nsfx = N_(SFX_JC##n)
 #define RM(d, f, n, mus) .dir = d, .frame = f, .stage = 2, .act = n, .nacts = 5, .music = mus, .checkpoints = 1, .sfx = SFX_RM, .nsfx = N_(SFX_RM)
 static const level_def_t LEVELS[] = {
     /* Dragon Valley: frame index 20-23 (RE loop_play_music_N_20..23), water DV2 / DV3 (5109 / 5314), DV4 results at the
@@ -248,8 +259,23 @@ static const level_def_t LEVELS[] = {
       .cps = CP_SB3, .ncps = N_(CP_SB3), .exits = EX_SBSHIP, .nexits = N_(EX_SBSHIP), .entries = EN_SBSHIP, .nentries = N_(EN_SBSHIP), .walkin_free = 1, .pads = PADS_SB3, .npads = N_(PADS_SB3) },
     { SB("sb4", 38, 4, "bgm/m_stage4.adp"), SB_M34, .card_first = 48,
       .cps = CP_SB4, .ncps = N_(CP_SB4), .exits = EX_SBSHIP, .nexits = N_(EX_SBSHIP), .entries = EN_SBSHIP, .nentries = N_(EN_SBSHIP), .walkin_free = 1, .pads = PADS_SB4, .npads = N_(PADS_SB4) },
-    { JC("jc1", 39, 1, "bgm/m_stage5.adp") }, { JC("jc2", 40, 2, "bgm/m_stage5.adp") }, { JC("jc3", 41, 3, "bgm/m_stage5.adp") },
-    { JC("jc4", 42, 4, "bgm/m_stage5.adp") }, { JC("jc5", 43, 5, "bgm/m_stage5.adp") },
+    /* Jade Creek: frame index 39-43 (session 21, spec_jc_flow; jc_flow.c). Music tables (RE loop wrappers): slot 4 m_midboss
+     * (loop_play_music_4_13) in JC1-JC4, JC5 m_boss (10871; 10872 m_boss6 only for g1 = 5); slot 5 m_stage5 (JC1 / JC2, JC3
+     * before its boss: 10581 g4 < 10), m_stage5b (JC3 g4 >= 10: 10582 / loop_next_act_41; JC4 10580; JC5 loop_play_music_5_42);
+     * slots 6 / 7 m_stage5. Water ML.B 1200 / 1600 (10378 / 10566 / 10822 / 10863 / 11643). Cards (ObjectCodec A newest first):
+     * 51 (JC1 x3), 54 (JC2 x3), 57 (JC3), 58 (JC4 x3); JC5 has none. JC1 starts with the card (4307); the others walk in
+     * (4490 / 4526 / 10482). JC1-JC4 end at the right edge (4135); camera E = Sign x + 213 (4241 / 4242: Signs 13480, 14784,
+     * 9624, 10240), JC3 after its boss C = Sign x - 213, E = W + 50. JC5: the boss's results and the wipe (8547-8549). */
+    { JC("jc1", 39, 1, "bgm/m_stage5.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage5.adp", .mus7 = "bgm/m_stage5.adp",
+      .card_first = 51, .start_card = 1, .water = 1200, .cam_right = 13480 + 213 },
+    { JC("jc2", 40, 2, "bgm/m_stage5.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage5.adp", .mus7 = "bgm/m_stage5.adp",
+      .card_first = 54, .water = 1600, .cps = CP_JC2, .ncps = N_(CP_JC2), .cam_right = 14784 + 213 },
+    { JC("jc3", 41, 3, "bgm/m_stage5.adp"), .music_cp = "bgm/m_stage5b.adp", .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage5.adp", .mus7 = "bgm/m_stage5.adp",
+      .card_first = 57, .water = 1600, .cps = CP_JC3, .ncps = N_(CP_JC3), .cam_right = 9624 + 213, .cam_cp10_left = 9624 - 213, .cam_cp10_pad = 50 },
+    { JC("jc4", 42, 4, "bgm/m_stage5b.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage5.adp", .mus7 = "bgm/m_stage5.adp",
+      .card_first = 58, .water = 1600, .cps = CP_JC4, .ncps = N_(CP_JC4), .cam_right = 10240 + 213 },
+    { JC("jc5", 43, 5, "bgm/m_stage5b.adp"), .mus4 = "bgm/m_boss.adp", .mus6 = "bgm/m_stage5.adp", .mus7 = "bgm/m_stage5.adp",
+      .water = 1600, .cps = CP_JC5, .ncps = N_(CP_JC5), .res_wipe = 1 },
 };
 static const level_def_t DEFAULT = { .dir = "", .frame = -1, .stage = -1, .act = 1, .nacts = 1, .music = "bgm/m_stage1.adp" };
 
@@ -352,9 +378,10 @@ const entry_t *level_entry(const char *from) {
 }
 /* Classic route after a stage (RE frame 8, spec_records_saves 1 / spec_rm_flow 1.1 / spec_fn_flow 1.1 / spec_sb_flow 1): Aqua Tunnel
  * (s 0) and Dragon Valley (s 1) -> Relic Maze (s 2) -> Fortune Night (s 3, MenuSequence.I = 2 -> frame 29 for every character)
- * -> Sky Battalion (s 4, I = 3 -> frame 35 = sb1 for every character); after Sky Battalion frame 8 goes to Jade Creek (I = 4
- * -> frame 39), not ported (NULL: back to the front end) */
-const char *level_route_next(int stage) { return stage == 0 || stage == 1 ? level_first_of_stage(2) : stage == 2 ? level_first_of_stage(3) : stage == 3 ? level_first_of_stage(4) : NULL; }
+ * -> Sky Battalion (s 4, I = 3 -> frame 35 = sb1 for every character) -> Jade Creek (s 5, I = 4 -> frame 39 = jc1 for every
+ * character, RE handle_frame_9 inline); after Jade Creek I = 5 -> frame 44 (Thermal Base, g1 = 0) / 56 (g1 != 0), not ported
+ * (NULL: back to the front end) */
+const char *level_route_next(int stage) { return stage == 0 || stage == 1 ? level_first_of_stage(2) : stage >= 2 && stage <= 4 ? level_first_of_stage(stage + 1) : NULL; }
 /* RM5 labyrinth warps (spec_rm_flow 2.5): the player is in a warp zone moving its way */
 const warp_t *level_warp_check(const player_t *p) {
     const level_def_t *L = level_cur();
@@ -401,7 +428,7 @@ void level_flow_frame(const player_t *p) {
     double X = p->x;
     for (int k = 0; k < L->ncps; k++) {
         const cpzone_t *c = &L->cps[k];
-        if (!(X > c->x0 && X < c->x1 && G.at_g4 < c->g4) || (c->ymin && !(p->y - ORIG_REF_DY > c->ymin))) continue;
+        if (!(X > c->x0 && X < c->x1 && G.at_g4 < c->g4) || (c->ymin > 0 && !(p->y - ORIG_REF_DY > c->ymin)) || (c->ymin < 0 && !(p->y - ORIG_REF_DY < -c->ymin))) continue;
         if (c->nosnap) { G.at_g4 = c->g4; G.at_g5 = c->x; G.at_g6 = c->y; } else checkpoint(c->g4, c->x, c->y);
         if (L->music_cp && c->g4 >= 10) music_play(L->music_cp);                 /* loop_next_act_17 / _26: play_music(5) */
     }
