@@ -850,6 +850,19 @@ SBG_ENS_WITH = {'gimmickcannonbullet_2098': ('gimmickcannon',), 'gimmickfandebri
 ENGINE_TYPES_ID.update(SBG_TYPES_ID); ENS += SBG_ENS   # SB_GIM
 SBG_ENS_WITH['gimmickcannonbullet_2098'] = SBG_ENS_WITH['gimmickcannonbullet_2098'] + ('levelairship1',)   # SB1's falling balls (session 19b)
 for _k, _v in SBG_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # SB_GIM
+
+# ==== Jade Creek (session 21; json 40-44 = jc1-jc5; types 1280-1535, one block per module; each block updates
+# ENGINE_TYPES / ENGINE_TYPES_ID / ENS / ENS_FRAMES / ENS_WITH itself, like the SB blocks above)
+JC_FRAMES = {40, 41, 42, 43, 44}
+# ---- JC_FLOW (jc_flow.c, 1280-1309)
+
+# ---- JC_ENEMIES (jc_enemy.c, 1310-1369)
+
+# ---- JC_GIM (jc_gim.c, 1370-1429)
+
+# ---- JC_BOSS (jc_boss*.c, 1430-1535)
+
+# ==== end Jade Creek
 SHL_CLASSES = {'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 ENS_ONLY_WITH = {'guiweaponslot_426', 'effectswatersplash_379', 'bubblepatch_804', 'mediumbubble_805', 'generalwaterhorizon_377', 'bubblenumbers_405', 'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 # classes whose untrimmed image box matters (spring top edges RV, box-collision platforms/logs, invisible

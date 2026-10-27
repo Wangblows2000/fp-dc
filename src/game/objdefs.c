@@ -721,6 +721,12 @@ static const objdef_t DEFS[] = {
     { OT_SB_PBLOCK4,    OD_SOLID|OD_BOXCOL|OD_NOEDGE,          NULL         }, /* pushableblock4_2259 (q7 q9 q14) */
     { OT_SB_BTUNNEL,    OD_SOLID|OD_HIDDEN,                    NULL         }, /* levelballtunnel2 / 3 (q7 q27, invisible: the roll tube mask) */
     { OT_SB_DOOR,       OD_SOLID,                              NULL         }, /* switchdoor_2102 (q7; rises with its pad, sb_gim.c) */
+    /* ==== Jade Creek (session 21): one block per module */
+    /* ---- JC_FLOW (jc_flow.c) */
+    /* ---- JC_ENEMIES (jc_enemy.c) */
+    /* ---- JC_GIM (jc_gim.c) */
+    /* ---- JC_BOSS (jc_boss*.c) */
+    /* ==== end Jade Creek */
 };
 static objdef_t BY_TYPE[MAX_OT];
 static int built;
