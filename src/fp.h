@@ -211,7 +211,8 @@ enum { COL_NONE, COL_SOLID, COL_PLATFORM, COL_LADDER };
 typedef struct { int32_t x, y; uint16_t u, v, w, h; uint8_t atlas, layer, col, pad; uint16_t tw, th; } piece_t;   /* tw > 0: tiled (session 19): the tile u, v, tw x th repeats over w x h */
 typedef struct { uint16_t type, anim; int32_t x, y; } lvobj_t;
 
-#define MAX_OT 1280                /* engine types are < MAX_OT (object-presence bits, registry, groups); 1024-1279: Sky Battalion (session 19) */
+#define MAX_OT 1536                /* engine types are < MAX_OT (object-presence bits, registry, groups); 1024-1279: Sky Battalion (session 19);
+                                      1280-1535: Jade Creek (session 21) */
 /* engine object types (tools/import_frame.py ENGINE_TYPES) */
 enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_MON_INVINC = 4, OT_MON_RINGS = 18, OT_MON_1UP = 19, OT_PETAL = 6, OT_SPIKES = 7,
        OT_SPRING = 8, OT_SIGN = 9, OT_TURRETUS = 10, OT_ROCK = 11, OT_MONITOR = 12,
@@ -972,6 +973,21 @@ int    fn_boss_obj(obj_t *o, player_t *p), fn_boss_q20(int type), fn_boss_draw_o
  * dispatch (1: handled), the encounters' event blocks (after the gimmicks), Q20, draw (1: drawn / skipped), scripted pad, the
  * player hidden in the plane (MV.M 43), ML.Y (MasterLevel Y = 1 while a boss fight runs: the stage music's switch), the plane's
  * counter (PlayerAssist I += 1 per destroyed GimmickCannonBase, 9319: the gimmick module calls it) */
+/* ---- Jade Creek (session 21; stage index 5, json 40-44 = jc1-jc5, set_frame 39-43). Type ranges per module:
+ *   1280-1309 jc_flow.c (stage script, water, loops, cards), 1310-1369 jc_enemy.c, 1370-1429 jc_gim.c, 1430-1535 jc_boss*.c.
+ * Each module keeps its own enum in src/game/jc.h; hooks below are called from game.c / objects.c / combat.c like SB's. */
+enum { OT_JCF_FIRST = 1280, OT_JCF_LAST = 1309, OT_JCE_FIRST = 1310, OT_JCE_LAST = 1369, OT_JCG_FIRST = 1370, OT_JCG_LAST = 1429,
+       OT_JCB_FIRST = 1430, OT_JCB_LAST = 1535 };
+void   jc_flow_spawn(void), jc_flow_frame(player_t *p), jc_flow_draw(int pass);
+int    jc_flow_obj(obj_t *o, player_t *p), jc_flow_act(void);
+float  jc_flow_hud_dy(void);
+void   jc_enemy_spawn(void), jc_enemy_pre(player_t *p), jc_enemy_draw(int pass);
+int    jc_enemy_obj(obj_t *o, player_t *p), jc_enemy_q20(int type);
+void   jc_gim_spawn(void), jc_gim_pre(player_t *p), jc_gim_frame(player_t *p), jc_gim_draw(int pass);
+int    jc_gim_obj(obj_t *o, player_t *p), jc_gim_q20(int type);
+void   jc_boss_spawn(void), jc_boss_pre(player_t *p), jc_boss_frame(player_t *p);
+int    jc_boss_obj(obj_t *o, player_t *p), jc_boss_q20(int type), jc_boss_draw_obj(const obj_t *o, int pass), jc_boss_input(uint32_t *held);
+int    jc_boss_player_hidden(void);
 void   sb_boss_spawn(void), sb_boss_pre(player_t *p), sb_boss_frame(player_t *p), sb_boss_cannon_down(void);
 int    sb_boss_obj(obj_t *o, player_t *p), sb_boss_q20(int type), sb_boss_draw_obj(const obj_t *o, int pass), sb_boss_input(uint32_t *held);
 int    sb_boss_player_hidden(void), sb_boss_ml_y(void);

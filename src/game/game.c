@@ -47,6 +47,7 @@ static void level_start(void) {
     objects_spawn();
     fn_flow_spawn();                                                /* Fortune Night stage script (src/game/fn_flow.c; stage index 3 only) */
     sb_flow_spawn();                                                /* Sky Battalion stage script (src/game/sb_flow.c; stage index 4 only) */
+    jc_flow_spawn();                                                /* Jade Creek stage script (src/game/jc_flow.c; stage index 5 only) */
     results_reset();
     G.exit_walk = 0; G.timer_stop = 0;
     G.clear_t = 0; G.act_in = 0; G.act_fade = 0; G.frame = 0; G.card_t = 0; G.paused = 0;
@@ -199,6 +200,7 @@ static const sel_entry_t SEL[] = {
     {"RELIC MAZE", 1, 24, "rm1"}, {"RELIC MAZE", 2, 25, "rm2"}, {"RELIC MAZE", 3, 26, "rm3"}, {"RELIC MAZE", 4, 27, "rm4"}, {"RELIC MAZE", 5, 28, "rm5"},
     {"FORTUNE NIGHT", 1, 29, "fn1"}, {"FORTUNE NIGHT", 2, 30, "fn2"}, {"FORTUNE NIGHT", 3, 31, "fn3"}, {"FORTUNE NIGHT", 4, 32, "fn4"}, {"FORTUNE NIGHT", 5, 33, "fn5"}, {"FORTUNE NIGHT", 6, 34, "fn6"},
     {"SKY BATTALION", 1, 35, "sb1"}, {"SKY BATTALION", 2, 36, "sb2"}, {"SKY BATTALION", 3, 37, "sb3"}, {"SKY BATTALION", 4, 38, "sb4"},
+    {"JADE CREEK", 1, 39, "jc1"}, {"JADE CREEK", 2, 40, "jc2"}, {"JADE CREEK", 3, 41, "jc3"}, {"JADE CREEK", 4, 42, "jc4"}, {"JADE CREEK", 5, 43, "jc5"},
     {"JADE CREEK", 1, 39, "jc1"}, {"JADE CREEK", 2, 40, "jc2"}, {"JADE CREEK", 3, 41, "jc3"}, {"JADE CREEK", 4, 42, "jc4"}, {"JADE CREEK", 5, 43, "jc5"},
     {"THERMAL BASE", 1, 44, "tb1"}, {"THERMAL BASE", 2, 45, "tb2"}, {"THERMAL BASE", 3, 46, "tb3"}, {"THERMAL BASE", 4, 47, "tb4"}, {"THERMAL BASE", 5, 48, "tb5"}, {"THERMAL BASE", 6, 49, "tb6"},
     {"PANGU LAGOON", 1, 50, "pl1"}, {"PANGU LAGOON", 2, 51, "pl2"}, {"PANGU LAGOON", 3, 52, "pl3"}, {"PANGU LAGOON", 4, 53, "pl4"}, {"PANGU LAGOON", 5, 54, "pl5"}, {"PANGU LAGOON", 6, 55, "pl6"},
@@ -722,7 +724,7 @@ void game_update(const input_t *in) {
     G.frame++;
     input_t none = {0}, rin = results_input(in), sin_ = {0};
     const input_t *pin = ((G.clear_t && !level_cur()->clear_free) || G.act_in || G.input_lock) ? &none : results_on() ? &rin : in;   /* act end / walk-in / results: no control (RE); SB1's launch fade keeps it */
-    { static uint32_t sprev; uint32_t h = pin->held; if (serp4_input(&h) || rm_claw_input(&h) || fn_boss_input(&h) || sb_boss_input(&h) || fn_panther_input(&h)) { sin_.held = h; sin_.pressed = h & ~sprev; sprev = h; pin = &sin_; } else sprev = 0; }   /* DV4 boss exit (5547 lock, 5573-5577) */
+    { static uint32_t sprev; uint32_t h = pin->held; if (serp4_input(&h) || rm_claw_input(&h) || fn_boss_input(&h) || sb_boss_input(&h) || jc_boss_input(&h) || fn_panther_input(&h)) { sin_.held = h; sin_.pressed = h & ~sprev; sprev = h; pin = &sin_; } else sprev = 0; }   /* DV4 boss exit (5547 lock, 5573-5577) */
     PROF(PS_PAR, par_update());                   /* RE 3541: parallax drift */
     aqua_set_input(pin);                          /* AT swings read CTRL.K (4357) */
     PROF(PS_PLAT, objects_platforms(&G.p));       /* RE: platform/bridge events run before Lilac's movement */
@@ -756,6 +758,9 @@ void game_update(const input_t *in) {
     rm_claw_frame(&G.p);                          /* RM3 Claw sequence events 6196-6350 (src/game/rm_claw.c) */
     fn_flow_frame(&G.p);                          /* Fortune Night stage script (src/game/fn_flow.c) */
     sb_flow_frame(&G.p);                          /* Sky Battalion stage script (src/game/sb_flow.c) */
+    jc_gim_frame(&G.p);                           /* Jade Creek gimmicks / bosses / stage script (src/game/jc_*.c) */
+    jc_boss_frame(&G.p);
+    jc_flow_frame(&G.p);
     fn_panther_frame(&G.p);                       /* FN5 chase / FN6 Panther (src/game/fn_panther.c) */
     if (G.p.state == 6 /* ST_DEAD */ && G.p.dead_t > 120) {     /* death: the act restarts with one life less (RE 1972 / loop_death_13) */
         int lives = G.p.lives - 1, crystals = G.act_crystals, frame = G.frame, ks = G.act_keystones, sc = G.act_stage_crystals;
@@ -920,6 +925,7 @@ float hud_offset(void) {
     dy += fn_flow_hud_dy();                                        /* FN3 7712 (src/game/fn_flow.c) */
     dy += fn_panther_hud_dy();                                     /* FN6 8764 (src/game/fn_panther.c) */
     dy += sb_flow_hud_dy();                                        /* SB 9006 / 9010 / 9460 / 9874 (src/game/sb_flow.c) */
+    dy += jc_flow_hud_dy();                                        /* Jade Creek (src/game/jc_flow.c) */
     return dy;
 }
 static float hud_dy;
@@ -1003,7 +1009,7 @@ static void pause_draw(void) {
 }
 
 /* the player sprite is drawn this frame (session 20: one predicate for game_draw and the host transition test) */
-int game_player_visible(void) { return !fn_assist_cast_on() && !sb_boss_player_hidden(); }
+int game_player_visible(void) { return !fn_assist_cast_on() && !sb_boss_player_hidden() && !jc_boss_player_hidden(); }
 
 void game_draw(void) {
     if (G.mode == MODE_FRONTEND) { fe_draw(); return; }

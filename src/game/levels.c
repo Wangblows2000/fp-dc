@@ -179,6 +179,9 @@ static const short SFX_SB3[] = { 62, 99, 54, 127, 237, 264, 265, 371, 165, 166, 
 static const short SFX_SB4[] = { 62, 99, 54, 127, 237, 264, 75, 77, 163, 171, 255, 266, 438, 172, 173, 278, 308, 316, 312 };
 #define SB(d, f, n, mus) .dir = d, .frame = f, .stage = 4, .act = n, .nacts = 4, .music = mus, .checkpoints = 1, .sfx = SFX_SB##n, .nsfx = N_(SFX_SB##n)
 #define SB_M34 .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage4.adp", .mus7 = "bgm/m_stage4.adp"
+/* Jade Creek (session 21, stage index 5; provisional rows: the flow agent sets music, cards, routes, entries from RE) */
+static const short SFX_JC[] = { 62, 99 };
+#define JC(d, f, n, mus) .dir = d, .frame = f, .stage = 5, .act = n, .nacts = 5, .music = mus, .checkpoints = 1, .sfx = SFX_JC, .nsfx = N_(SFX_JC)
 #define RM(d, f, n, mus) .dir = d, .frame = f, .stage = 2, .act = n, .nacts = 5, .music = mus, .checkpoints = 1, .sfx = SFX_RM, .nsfx = N_(SFX_RM)
 static const level_def_t LEVELS[] = {
     /* Dragon Valley: frame index 20-23 (RE loop_play_music_N_20..23), water DV2 / DV3 (5109 / 5314), DV4 results at the
@@ -245,6 +248,8 @@ static const level_def_t LEVELS[] = {
       .cps = CP_SB3, .ncps = N_(CP_SB3), .exits = EX_SBSHIP, .nexits = N_(EX_SBSHIP), .entries = EN_SBSHIP, .nentries = N_(EN_SBSHIP), .walkin_free = 1, .pads = PADS_SB3, .npads = N_(PADS_SB3) },
     { SB("sb4", 38, 4, "bgm/m_stage4.adp"), SB_M34, .card_first = 48,
       .cps = CP_SB4, .ncps = N_(CP_SB4), .exits = EX_SBSHIP, .nexits = N_(EX_SBSHIP), .entries = EN_SBSHIP, .nentries = N_(EN_SBSHIP), .walkin_free = 1, .pads = PADS_SB4, .npads = N_(PADS_SB4) },
+    { JC("jc1", 39, 1, "bgm/m_stage5.adp") }, { JC("jc2", 40, 2, "bgm/m_stage5.adp") }, { JC("jc3", 41, 3, "bgm/m_stage5.adp") },
+    { JC("jc4", 42, 4, "bgm/m_stage5.adp") }, { JC("jc5", 43, 5, "bgm/m_stage5.adp") },
 };
 static const level_def_t DEFAULT = { .dir = "", .frame = -1, .stage = -1, .act = 1, .nacts = 1, .music = "bgm/m_stage1.adp" };
 
