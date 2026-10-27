@@ -411,6 +411,11 @@ int fn_assist_closing(int D) {
     if (!AS.cast_on) {                                                           /* 8764: monitors gone; 8765-8768: the skins created */
         AS.cast_on = 1;
         for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == OT_MON_RINGS) G.o[i].alive = 0;
+        /* 8764 (RE): loop_stop_player_14, MV.Y = 260. The hidden player is put down at the floor's height, so the camera, which
+         * still follows it, frames the cast. Lilac / Carol already stand at Y 266; Milla stood on the plane's platform (Y ~186),
+         * which 8762 leaves where it was, and the port's camera stayed up there (RV session 20 fn6_s20/m_kill: CAM.B 186.6 ->
+         * 191 at MV.M 50, the same framing as Lilac's t2). */
+        { player_t *p = &G.p; p->y = 260 + ORIG_REF_DY; p->vx = p->vy = p->gsp = 0; p->ground = 0; }
         for (int i = 0; i < 4; i++) { AS.cast[i].y = 266; AS.cast[i].k = -1; AS.cast[i].an.b = NULL; }
         AS.cast[CL].x = 345; AS.cast[CC].x = 530; AS.cast[CM].x = AS.cast[CT].x = 120;
         cast_set(CL, C_L41S, -1); cast_set(CC, C_C41S, -1); cast_set(CM, C_M40, 0); cast_set(CT, C_T40, 0);
