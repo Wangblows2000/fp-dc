@@ -349,7 +349,7 @@ static void crushers(player_t *p) {
         double *A = &o->av[0], *B = &o->av[1], *C = &o->av[2];
         int on = !dead(p) && p->ground && sens_hit(SENS_BOTTOMBIG, o);
         if (*C == 0) { o->y -= 2; if (on) { p->y -= 2; player_sync_sensors(p); } if (o->y <= *A - 128) *C = 1; }   /* 10010 / 10011 (top: INFERRED) */
-        else if (*C == 1) { if (fabs(PX(p) - o->x) < 48 && PY(p) > o->y) { *C = 2; o->fl |= F1; } }   /* 10013 (trigger box INFERRED) */
+        else if (*C == 1) { if (G.frame % (7 * FPS) == 0) { *C = 2; o->fl |= F1; } }   /* user request (session 19c): falls on a 7-second rhythm instead of the original's player trigger (10013) */
         else if (*C == 2) {                                                         /* 10014 / 10017 */
             *B += 0.25; o->y += (float)*B;
             if (o->y >= *A) { o->y = (float)*A; shake(4); *C += 1; snd_play_orig(75, 220, 128); *B = 0; }
