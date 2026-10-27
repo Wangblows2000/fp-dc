@@ -40,6 +40,7 @@ static struct {
     int ring_t;                               /* frames of the current lightning-ring burst */
     short fx[NFX];                            /* runtime objects (bolts, rings, gusts, dust, warnings) */
     signed char td[16];                       /* each TailTarget's direction, copied to its feather by 9141 (session 20, RV k_dir) */
+    animator_t tov[16];                       /* the feather's eye in that direction: an overlay (top 48 rows) on the dark base feather */
 } K;
 
 static obj_t *base(void) { return sbb_get(OT_SB_KJ_BASE, 0); }
@@ -217,8 +218,11 @@ static void poses(void) {
     ka(sbb_get(OT_SB_KJ_PILOT, 0), dash ? (r ? K_PILOT7 : K_PILOT7L) : K_PILOT);
     for (int k = 0; k < npart(OT_SB_KJ_TAIL); k++) {                           /* 9141: a feather takes its target's direction (anim 0 dir 1: the cyan
                                                                                  * pulse, 2: the yellow glow, 3: red, 31: a flash then dark, 0: dark) */
-        int d = k < 16 ? K.td[k] : 1;
-        ka(sbb_get(OT_SB_KJ_TAIL, k), d == 1 ? K_TAIL_D1 : d == 2 ? K_TAIL_D2 : d >= 3 && d <= 4 ? K_TAIL_D3 : d == 31 ? K_TAIL_D31 : K_TAIL);
+        ka(sbb_get(OT_SB_KJ_TAIL, k), K_TAIL);
+        if (k >= 16) continue;
+        int d = K.td[k], a = d == 1 ? K_TAIL_D1 : d == 2 ? K_TAIL_D2 : d >= 3 && d <= 4 ? K_TAIL_D3 : d == 31 ? K_TAIL_D31 : -1;
+        if (a < 0 || KA[a] < 0) K.tov[k].b = NULL;
+        else if (K.tov[k].b != &G.ens || K.tov[k].anim != KA[a]) anim_set(&K.tov[k], &G.ens, KA[a]);
     }
     for (int k = 0; k < npart(OT_SB_KJ_HEAD2); k++) ka(sbb_get(OT_SB_KJ_HEAD2, k), K_NECK);
     for (int k = 0; k < npart(OT_SB_KJ_WING1); k++) ka(sbb_get(OT_SB_KJ_WING1, k), K_W1);
@@ -428,6 +432,7 @@ void sbk_frame(player_t *p) {
             K.hx[0] = K.E; K.hy[0] = K.F; K.hd[0] = K.D;
         } else for (int k = 0; k < NHIST; k++) { K.hx[k] = K.E; K.hy[k] = K.F; K.hd[k] = K.D; }
         place_parts(); poses();
+        for (int k = 0; k < 16; k++) if (K.tov[k].b) anim_tick(&K.tov[k], -1);   /* the eye overlays' own animations (anim 0 speeds) */
     }
     for (int k = 0; k < npart(OT_SB_KJ_TARGET); k++) {                         /* 9142 / 9143: a target shows while hit, bursts when beaten */
         obj_t *o = sbb_get(OT_SB_KJ_TARGET, k); if (!o) continue;
@@ -458,7 +463,12 @@ int sbk_draw(const obj_t *o, int pass) {
     (void)pass;
     if ((o->type >= OT_SB_KJ_BASE && o->type <= OT_SB_KJ_GUST2) || o->type == OT_SB_WARNING) {
         if (o->type == OT_SB_TORNADO || o->type == OT_SB_KJ_TRACKER || o->type == OT_SB_KJ_CHARGE) return 1;
-        sbb_draw(o, 0xffffffff); return 1;
+        sbb_draw(o, 0xffffffff);
+        if (o->type == OT_SB_KJ_TAIL && o->alive && !o->hidden) {               /* the eye's glow over the dark feather (9141: the target's direction) */
+            for (int k = 0; k < 16 && k < npart(OT_SB_KJ_TAIL); k++) if (sbb_get(OT_SB_KJ_TAIL, k) == o && K.tov[k].b)
+                frame_draw_rot(K.tov[k].b, anim_frame(&K.tov[k]), floorf(o->x - G.camx), floorf(o->y - G.camy), o->ang, o->flip, 0xffffffff);
+        }
+        return 1;
     }
     return 0;
 }
