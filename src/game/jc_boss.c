@@ -15,6 +15,8 @@
  *    (10772 / 10773 -> jc_flow_act3_cleared), she leaves on the Hovercop (0x22a5c 10785-10788), then the subtanker scene
  *    (0x22a5d 10799-10805: the moving json layers 4 / 5 that carry the player to the act's end; see sub_frame).
  *  - JC4: nothing (RE: no boss event in handle_frame_43; its CameraTriggerBoss is an off-map template).
+ *  - JC5 (session 22): Neera's ice ambush at the act start (group 0x22afe, 11043-11072 in handle_frame_44; RV
+ *    build/orig_traces/jc_boss5 amb_l / amb_c / amb_m + vis): the same rig, Neera, her ice block and the hook, see ambush_frame.
  * Performance (SH4): per-type instance lists built once at spawn, the runtime objects (glows, crystals, missiles, spikes, meteors,
  * rings, shields, bubbles) in one index list; a level without these types returns at the first test. */
 #include "jc.h"
@@ -101,7 +103,7 @@ static int p326_rect(const player_t *p, float x0, float y0, float x1, float y1) 
 static void ice_hurt(player_t *p, int dmg);
 
 /* ======================================================================== state */
-enum { M_NONE, M_FLYBY, M_CHASE2, M_CHASE3 };
+enum { M_NONE, M_FLYBY, M_CHASE2, M_CHASE3, M_AMBUSH };
 static struct {
     int mode;                                        /* act behaviour from the placed objects (RE: the act's own event blocks) */
     int g_flyby, g_flyby_once, g_snd;                /* 0x229d8, 0x22a00 (10347 once), 0x229f5 (10353 sound once) */
@@ -333,7 +335,7 @@ static void ice_frame(player_t *p) {
             else if (o->av[1] < 0) { o->av[1] = fmax(o->av[1] - 0.1, -8); set_a(o, S_MIS_L); }                      /* 10544 */
             /* 10545 / 10546 (10793 / 10794): released, passing the player's x: it bursts (flag 6, hidden): a spike, a white burst,
              * CAM.Z >= 5, sounds 77 and 98 */
-            if ((o->fl & FL1) && !(o->fl & FL6) && ((o->av[1] > 0 && X < o->x) || (o->av[1] <= 0 && o->x < X))) {
+            if (H.mode != M_AMBUSH && (o->fl & FL1) && !(o->fl & FL6) && ((o->av[1] > 0 && X < o->x) || (o->av[1] <= 0 && o->x < X))) {   /* (JC5: 11060 instead) */
                 o->fl |= FL6; o->hidden = 1;
                 spawn(OT_JCB_STICKY, S_STICKY, o->x, o->y, o->layer);
                 obj_effect(o->x, o->y, "wburst");
@@ -346,7 +348,7 @@ static void ice_frame(player_t *p) {
                 for (int s = -1; s <= 1; s += 2) {
                     double a = o->av[2] + 90 * s;
                     obj_t *sp = spawn(OT_JCB_STICKY, S_STICKY, (float)(int)(dcos(a) * 40 + (int)o->x), (float)(int)(dsin(a) * 40 + (int)o->y), o->layer);
-                    if (sp) { sp->ang = (float)(cross_rand(61) - 30); sp->fl |= FL2; }
+                    if (sp) { sp->ang = (float)(cross_rand(61) - 30); sp->fl |= FL2; }   /* flag 2: 10549's white burst */
                 }
                 o->av[2] += 20;
                 if (o->av[2] >= 180) { o->alive = 0; break; }
@@ -382,7 +384,10 @@ static void ice_frame(player_t *p) {
             }
             break; }
         case OT_JCB_STICKY:
-            if (!(o->fl & FL2)) { o->fl |= FL2; obj_effect(o->x, o->y, "wburst"); }                                  /* 10549 */
+            /* 10549: a spike with flag 2 (only the burst ring's, 10547 / 10548 set it) gets a white burst, flag 2 cleared; the others
+             * none (10545 / 10546 / 11060 make their own burst, 10555 / 10556 / 10591 none). RE (session 22; RV vis f346: a white puff on
+             * every ring spike) */
+            if (o->fl & FL2) { o->fl &= ~FL2; obj_effect(o->x, o->y, "wburst"); }
             o->av[1] = o->av[0] <= 100 ? o->av[0] * 0.01 : 1;                                                         /* 10558: y scale */
             o->av[0] += 10;
             if (o->av[0] > 400) o->alive = 0;                                                                          /* 10559 */
@@ -681,6 +686,129 @@ static void neera_restart(void) {
     for (int k = 0; k < L[OT_JCB_ICEBAR - OT_JCB_HC].n; k++) { obj_t *b = get(OT_JCB_ICEBAR, k); if (b) b->alive = 0; }
 }
 
+/* ======================================================================== JC5: Neera's ice ambush (group 0x22afe, 11043-11072)
+ * RE handle_frame_44_events (order 11043, then 11044-11072 while 0x22afe; the shared ice 10540-10544, 10547-10551, 10558-10560,
+ * 11418 (= 10561) and 10562 later in the frame: ice_frame), RV build/orig_traces/jc_boss5 amb_l / amb_c / amb_m (holding right
+ * from the act start; Lilac / Carol identical, Milla 3 frames earlier) and vis (screenshots f300-f352).
+ * The cutscene (RV amb_l): the player passes X 1295 (Neera.x - 200, f289): an ice missile leaves the Hovercop (parked above the
+ * view at 1896, 1560) flying left 8 px a frame, sound 297; Neera drops from (1495, 1395) at 12 px a frame, splashes through the
+ * surface (sound 14) and lands at y 1695 (sound 33), then raises her spear (anim 12). The missile passes her x (f341): it bursts
+ * (sounds 77 + 98, a ring of ice spikes over 9 frames, CAM.Z 5) and the spikes freeze Neera: she is replaced by the ice block
+ * (PlayerIceDeath anim 7) that floats up to the surface 1 px a frame. The Hovercop turns left (3 px a frame); at barrier.x + 120
+ * (f422) it waits 31 frames, then the gate opens (f451: the railings become two crystals each, sound 40, barriers and railings
+ * gone) and the Hovercop flies off left (E - 0.1 a frame to -12) towing the block on its hook. The player is not frozen: holding
+ * right she pushes the barrier (x 1519) and the spikes hurt her (11418: 20 damage, f358). The camera is not locked (RV CAM.C / E
+ * normal), so nothing is released. 11043: g4 >= 2 (a checkpoint restart) destroys the whole set, railings and barriers included
+ * (no crystals): the way is open. No Classic / Adventure or character test in these events (RE). */
+static struct { short rail[8], bar[8]; int nrail, nbar, killed, fl1, done; } AM;
+static int box_hit(const obj_t *a, const obj_t *b) {       /* frame boxes (Chowdren's box overlap; the spikes' y scale ignored, INFERRED) */
+    if (!a || !b || !a->an.b || !b->an.b) return 0;
+    const frame_t *fa = anim_frame(&a->an), *fb = anim_frame(&b->an);
+    int ax = (int)floorf(a->x) - (a->flip ? fa->w - fa->hx : fa->hx), ay = (int)floorf(a->y) - fa->hy;
+    int bx = (int)floorf(b->x) - (b->flip ? fb->w - fb->hx : fb->hx), by = (int)floorf(b->y) - fb->hy;
+    return ax < bx + fb->w && bx < ax + fa->w && ay < by + fb->h && by < ay + fa->h;
+}
+static void amb_kill(void) {                                 /* 11043: g4 >= 2: every list of the set destroyed, once */
+    static const int T[] = { OT_JCB_HC, OT_JCB_TB1, OT_JCB_TB2, OT_JCB_PROP1, OT_JCB_PROP2, OT_JCB_SIR1, OT_JCB_SIR2, OT_JCB_SIR3,
+                             OT_JCB_SIR4, OT_JCB_HOOK, OT_JCB_HOOK2, OT_JCB_LIGHT, OT_JCB_ICED, OT_JCB_NEERA, OT_JCB_NHIT, OT_JCB_ICEPIECE };
+    for (unsigned k = 0; k < sizeof T / sizeof T[0]; k++) for (int j = 0; j < L[T[k] - OT_JCB_HC].n; j++) { obj_t *o = get(T[k], j); if (o) o->alive = 0; }
+    FOR_R(m, OT_JCB_MISSILE) m->alive = 0;
+    FOR_R(sp, OT_JCB_STICKY) sp->alive = 0;
+    for (int k = 0; k < AM.nrail; k++) { obj_t *o = slot(AM.rail[k]); if (o && o->type == OT_WR_RAIL) o->alive = 0; }
+    for (int k = 0; k < AM.nbar; k++) { obj_t *o = slot(AM.bar[k]); if (o && o->type == OT_WR_BARRIER) o->alive = 0; }
+    H.gone = 1; AM.killed = 1; AM.done = 1;
+#ifdef FP_HOST_ENV
+    if (getenv("FP_DBG_JCB")) printf("jcbamb %d kill g4 %d\n", G.frame, G.at_g4);
+#endif
+}
+static void amb_open(void) {                                 /* 11069: crystals at each railing (+12, +36, move_back), sound 40, all gone */
+    int ca = bank_anim(&G.objs, "objectcrystal_3");
+    for (int k = 0; k < AM.nrail; k++) {
+        obj_t *r = slot(AM.rail[k]);
+        if (!r || r->type != OT_WR_RAIL) continue;
+        for (int j = 0; j < 2; j++) {
+            obj_t *c = obj_alloc(); if (!c) break; memset(c, 0, sizeof *c);
+            c->type = OT_CRYSTAL; c->alive = 1; c->hp = 1; c->layer = r->layer; c->x = c->ox = r->x; c->y = c->oy = r->y + (j ? 36 : 12);
+            if (ca >= 0) anim_set(&c->an, &G.objs, ca);
+        }
+    }
+    snd_play_orig(40, 220, 128);
+    for (int k = 0; k < AM.nrail; k++) { obj_t *o = slot(AM.rail[k]); if (o && o->type == OT_WR_RAIL) o->alive = 0; }
+    for (int k = 0; k < AM.nbar; k++) { obj_t *o = slot(AM.bar[k]); if (o && o->type == OT_WR_BARRIER) o->alive = 0; }
+    AM.done = 1;
+#ifdef FP_HOST_ENV
+    if (getenv("FP_DBG_JCB")) printf("jcbamb %d open\n", G.frame);
+#endif
+}
+static void ambush_frame(player_t *p) {
+    if (AM.killed) return;
+    if (G.at_g4 >= 2) { amb_kill(); return; }                                                                   /* 11043 */
+    obj_t *hc = H.gone ? NULL : one(OT_JCB_HC), *n = one(OT_JCB_NEERA), *h = one(OT_JCB_NHIT), *iced = one(OT_JCB_ICED), *hook = one(OT_JCB_HOOK);
+    obj_t *bar0 = AM.nbar ? slot(AM.bar[0]) : NULL;
+    if (hc) {                                                                                                   /* 11044-11053: the rig */
+        hc->y = (float)(int)(5 * dsin(H.C) + H.B);
+        H.C = fmod(H.C + 2, 360.);
+        hc->x = (float)(int)H.A;
+        H.A += H.E;
+        rig_frame(0);
+    }
+    if (!n) { if (!AM.done) amb_open(); return; }                                                              /* (no Neera: open, INFERRED) */
+    n->x = (float)(int)N.G; n->y = (float)(int)N.H;                                                             /* 11054 */
+    N.G += N.I; N.H = fmin(N.H + N.J, N.K);
+    if (h) { h->x = n->x; h->y = n->y; }
+    if (N.E == -1 && p->x > (int)n->x - 200) {                                                                  /* 11055: MV.X > Neera.x - 200 */
+        N.E = 0;
+        /* a BossIceMissile at the Hovercop's action point + (0, 143), flag 1 (released), C -12, A = x (RV f289: (1904, 1672) =
+         * the Hovercop + (8, 108)), sound 297 */
+        float ax = 0, ay = 0;
+        if (hc && !act_point(hc, &ax, &ay)) { ax = hc->x + 8; ay = hc->y - 35; }
+        if (!hc) { ax = n->x + 409; ay = N.K - 23 - 143; }                                                         /* (no rig: INFERRED) */
+        obj_t *m = spawn(OT_JCB_MISSILE, S_MIS_L, ax, ay + 143, hc ? hc->layer : n->layer);
+        if (m) { m->fl |= FL1; m->av[1] = -12; m->av[0] = m->x; }
+        snd_play_orig(297, 220, 128);
+    }
+    if (N.E == 0) {                                                                                             /* 11056: J 12, anim 7 (frame 9: the last), front */
+        N.J = 12; n->hidden = 0;   /* (her constructor hides her; RV vis f325 shows her: the instance is visible, INFERRED from RV) */
+        if (N.anim != 7) { n_anim(n, 7); if (n->an.b) { int c = n->an.b->anims[n->an.anim].count; n->an.frame = c > 0 ? c - 1 : 0; } }
+    }
+    if (N.E == 0 && !AM.fl1 && N.H >= mlb()) {                                                                  /* 11057: through the surface */
+        AM.fl1 = 1; snd_play_orig(14, 220, 128);
+        obj_effect(n->x, (float)mlb(), "splash");                                                                  /* EffectsWaterSplash_379 at ML.C */
+    }
+    if (N.E == 0 && N.H >= N.K) { N.E = 1; N.J = 0; n_anim(n, 10); snd_play_orig(33, 220, 128); }              /* 11058: lands */
+    FOR_R(m, OT_JCB_MISSILE) {                                                                                  /* 11060: past her: it bursts */
+        if (!(m->fl & FL1) || (m->fl & FL6) || m->av[1] >= 0 || (int)m->x >= (int)n->x) continue;
+        m->fl |= FL6; m->hidden = 1;
+        spawn(OT_JCB_STICKY, S_STICKY, m->x, m->y, m->layer);
+        obj_effect(m->x, m->y, "wburst");
+        if (G.cam.Z < 5) G.cam.Z = 5;
+        snd_play_orig(77, 220, 128); snd_play_orig(98, 220, 128);
+    }
+    if (N.E == 1) N.F += 1;                                                                                     /* 11061 */
+    if (N.E == 1 && N.F > 15) n_anim(n, 12);                                                                    /* 11062 */
+    if (N.E == 1) {                                                                                             /* 11063: a spike on her: frozen */
+        int hit = 0;
+        FOR_R(sp, OT_JCB_STICKY) if (!hit && box_hit(n, sp)) hit = 1;
+        if (hit) {
+            N.E = 2; n->hidden = 1;
+            if (iced) { set_a(iced, S_ICED7); iced->hidden = 0; iced->x = n->x; iced->y = n->y; iced->layer = n->layer; }
+        }
+    }
+    if (iced && !iced->hidden && iced->y > mlb()) iced->y = (float)fmax(mlb(), (int)iced->y - 1);              /* 11064: ML.C (RV: 1600) */
+    if (N.E == 2) { H.D = -1; H.A -= 3; }                                                                       /* 11066 */
+    if (N.E == 2 && (!hc || !bar0 || H.A <= (int)bar0->x + 120)) { N.F = 0; N.E = 3; }                        /* 11067 */
+    if (N.E == 3) N.F += 1;                                                                                     /* 11068 (the Hovercop's anim 7: not exported) */
+    if (N.E == 3 && N.F > 30) { amb_open(); N.E += 1; }                                                         /* 11069 */
+    if (N.E == 4) H.E = fmax(H.E - 0.1, -12);                                                                   /* 11070 */
+    if (N.E == 4 && hc && iced && hook && hc->x < iced->x) {                                                    /* 11071: the hook takes the block */
+        hook->y = iced->y; hook->x = fminf(iced->x, hc->x + 200); hook->hidden = 0; hook->layer = iced->layer;
+    }
+    if (N.E == 4 && hc && iced && hc->x < iced->x - 200) iced->x = hc->x + 200;                                /* 11072: towed */
+    if (N.E == 4 && hc && hc->x < G.camx - 1200) {                                                              /* (gone for good: INFERRED cleanup) */
+        rig_destroy(); if (iced) iced->alive = 0; if (hook) hook->alive = 0;
+    }
+}
+
 /* ======================================================================== hooks */
 /* ======================================================================== JC3: the subtanker scene (0x22a5d, 10799-10805; RV a3_kill /
  * a3_sub). Json layers 4 / 5 (port 3 / 5: the jcsub* / jcsubtanker* pieces, 21 torpedo launchers) move by (B, A + 40 sin g3) with
@@ -745,16 +873,17 @@ static void sub_frame(player_t *p) {
 }
 int jc_boss_player_front(void) { return on && H.g_post && SUB.d && G.p.x > SUB_X; }
 
-static void snap_once(void) { static int reg; if (!reg) { reg = 1; snap_register(&H, sizeof H); snap_register(&N, sizeof N); snap_register(&R, sizeof R); snap_register(&nR, sizeof nR); } }
+static void snap_once(void) { static int reg; if (!reg) { reg = 1; snap_register(&H, sizeof H); snap_register(&N, sizeof N); snap_register(&R, sizeof R); snap_register(&nR, sizeof nR); snap_register(&AM, sizeof AM); } }
 void jc_boss_spawn(void) {
     jc_boss5_spawn();
     if (SUB.d && strcmp(SUB.dir, G.lvdir)) { free(SUB.d); SUB.d = NULL; }   /* another level: the moving layer's file goes */
     snap_once();
-    memset(&H, 0, sizeof H); memset(&N, 0, sizeof N); memset(L, 0, sizeof L); nR = 0;
+    memset(&H, 0, sizeof H); memset(&N, 0, sizeof N); memset(L, 0, sizeof L); memset(&AM, 0, sizeof AM); nR = 0;
     marks[0] = marks[1] = marks[2] = marks[3] = -1; ntrig = 0; on = 0;
     for (int j = 0; j < G.lvl.nobj && !on; j++) if (G.lvl.objs[j].type >= OT_JCB_HC && G.lvl.objs[j].type <= OT_JCB_ICEPIECE) on = 1;   /* (JC1's Hovercop waits above the map: y < 0) */
     if (!on) return;
     for (int k = 0; k < S_N; k++) SA[k] = (short)ens_anim(SN[k]);
+    if (SA[S_HC] < 0) SA[S_HC] = (short)ens_anim("jcb5_hc");   /* JC5: the Hovercop's first image only (its anim 0 runs at speed 0) */
     /* lvobj anim: instance layer << 8 (tools/import_frame.py JC_BOSS); the k-th object of a type is its k-th placement */
     static uint16_t AN[NT][LMAX]; int na[NT] = { 0 }, seen[NT] = { 0 };
     for (int j = 0; j < G.lvl.nobj; j++) { int t = G.lvl.objs[j].type - OT_JCB_HC; if (t >= 0 && t < NT && na[t] < LMAX) AN[t][na[t]++] = G.lvl.objs[j].anim; }
@@ -764,6 +893,8 @@ void jc_boss_spawn(void) {
         int t = o->type;
         if (t == OT_CAMTRIGGER && ntrig < 4) trig[ntrig++] = (short)i;
         if (t >= OT_CAMLIM_L && t <= OT_CAMLIM_B && marks[t - OT_CAMLIM_L] < 0) marks[t - OT_CAMLIM_L] = (short)i;
+        if (t == OT_WR_RAIL && AM.nrail < 8) AM.rail[AM.nrail++] = (short)i;     /* JC5 ambush: MinibossRailing_953 (11069 / 11043) */
+        if (t == OT_WR_BARRIER && AM.nbar < 8) AM.bar[AM.nbar++] = (short)i;     /* MinibossBarrier_969 */
         if (t < OT_JCB_HC || t > OT_JCB_ICEPIECE) continue;
         int ti = t - OT_JCB_HC, an = seen[ti] < na[ti] ? AN[ti][seen[ti]] : (2 << 8); seen[ti]++;
         if (L[ti].n < LMAX) L[ti].i[L[ti].n++] = (short)i;
@@ -787,14 +918,23 @@ void jc_boss_spawn(void) {
         }
     }
     obj_t *hc = one(OT_JCB_HC), *n = one(OT_JCB_NEERA);
-    if (n) H.mode = M_CHASE3; else if (hc && hc->layer == 0) H.mode = M_FLYBY; else if (hc) H.mode = M_CHASE2;
+    const level_def_t *ld = level_cur();
+    if (n && ld && ld->stage == 5 && ld->act == 5) H.mode = M_AMBUSH;               /* JC5: the ice ambush (0x22afe) */
+    else if (n) H.mode = M_CHASE3; else if (hc && hc->layer == 0) H.mode = M_FLYBY; else if (hc) H.mode = M_CHASE2;
     H.D = 1; H.H = 4; H.J = -56;                     /* BossHovercop ctor (RE) */
     if (hc) {
         if (H.mode == M_FLYBY) { hc->scale = 0.5f; for (int t = OT_JCB_TB1; t <= OT_JCB_SIR4; t++) { obj_t *o = one(t); if (o) o->scale = 0.5f; } }   /* 10349 */
-        else if (H.mode == M_CHASE2) { H.A = hc->x; H.B = hc->y; }
+        else if (H.mode == M_CHASE2 || H.mode == M_AMBUSH) { H.A = hc->x; H.B = hc->y; }
         else { H.A = hc->x; H.L = hc->y; H.B = -200; hc->y = -200; }   /* JC3: parked above the view until 10666 (RV a3_run f0) */
     }
-    if (n) {
+    if (n && H.mode == M_AMBUSH) {
+        /* JC5's instance (RV amb_l f0: D -1, E -1, G 1495, H 1395, K 1695 = the placed (1495, 1695), H 300 above: INFERRED from RV),
+         * direction 17; hidden until she drops (11056); her hitbox is inert here (no hit group in frame 44: RE) */
+        N.D = -1; N.E = -1; N.G = (int)n->x; N.K = (int)n->y; N.H = N.K - 300; N.dir = 17; N.anim = -1;
+        n->x = (float)N.G; n->y = (float)N.H; n->hidden = 1;
+        obj_t *hk = one(OT_JCB_HOOK); if (hk) set_a(hk, S_HOOK_L);   /* (RV: direction 16, the Hovercop facing left) */
+        if (G.at_g4 >= 2) amb_kill();                                /* 11043: a checkpoint restart: the way is open */
+    } else if (n) {
         N.D = 1; N.K = 1543; N.dir = 1; N.anim = -1; n_anim(n, 0);   /* instance alterables (RV a3_run f0: D 1, K 1543) */
         H.g_ride = 1;                                                /* 0x22a5e on at the start */
     }
@@ -837,6 +977,7 @@ void jc_boss_frame(player_t *p) {
         ice_frame(p);
         sub_frame(p);
     }
+    if (H.mode == M_AMBUSH) { ambush_frame(p); ice_frame(p); }   /* 11043-11072, then the shared ice (RE frame order) */
 #ifdef FP_HOST_ENV
     if (getenv("FP_DBG_JCB")) {
         const obj_t *hc = one(OT_JCB_HC), *n = one(OT_JCB_NEERA), *h = one(OT_JCB_NHIT);
@@ -854,7 +995,7 @@ int jc_boss_obj(obj_t *o, player_t *p) {
     (void)p;
     return 1;                                        /* every 1430-1479 object runs in jc_boss_frame */
 }
-int jc_boss_q20(int type) { return type == OT_JCB_NHIT || jc_boss5_q20(type); }   /* BossNeeraHitbox_2482 (RE qualifier 20) */
+int jc_boss_q20(int type) { return (type == OT_JCB_NHIT && H.mode != M_AMBUSH) || jc_boss5_q20(type); }   /* (JC5: no hit rules, inert) */   /* BossNeeraHitbox_2482 (RE qualifier 20) */
 static void draw_one(const obj_t *o) {
     if (!o || !o->alive || !o->an.b || o->hidden) return;
     float sx = floorf(o->x - G.camx), sy = floorf(o->y - G.camy);
@@ -906,7 +1047,8 @@ int jc_boss_draw_obj(const obj_t *o, int pass) {
         return 1; }
     case OT_JCB_NSHIELD: return 1;                  /* drawn with Neera */
     case OT_JCB_MISSILE: if (!(o->fl & FL1)) return 1; draw_one(o); return 1;
-    case OT_JCB_NHIT: case OT_JCB_ICEPIECE: case OT_JCB_HOOK: case OT_JCB_ICED: return 1;
+    case OT_JCB_HOOK: case OT_JCB_ICED: if (H.mode == M_AMBUSH) draw_one(o); return 1;   /* JC5: the ice block and its hook (11063 / 11071) */
+    case OT_JCB_NHIT: case OT_JCB_ICEPIECE: return 1;
     default: draw_one(o); return 1;
     }
 }

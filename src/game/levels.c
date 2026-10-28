@@ -195,7 +195,8 @@ static const short SFX_JC1[] = { SFX_JC_ACTS, 276 };                            
 static const short SFX_JC2[] = { SFX_JC_ACTS, 277, 165, 166, 195, 77 };                          /* + the Hovercop chase */
 static const short SFX_JC3[] = { SFX_JC_ACTS, 277, 165, 166, 195, 77, 296, 297, 298, 299, 315, 31, 33 };   /* + Neera (31 / 33: Lilac's / Carol's own, kept) */
 static const short SFX_JC4[] = { SFX_JC_ACTS };
-static const short SFX_JC5[] = { 62, 99, 61, 67, 70, 126, 134, 165, 166, 191, 192, 193, 194, 195, 196, 233, 292, 427 };   /* (no frogs, streams or collapsing platforms in JC5: 314 208 426 left out, Milla sound RAM) */
+static const short SFX_JC5[] = { 62, 99, 61, 67, 70, 126, 134, 165, 166, 191, 192, 193, 194, 195, 196, 233, 292, 427,   /* (no frogs, streams or collapsing platforms in JC5: 314 208 426 left out, Milla sound RAM) */
+                                 297, 77, 33, 60 };   /* session 22: Neera's ice ambush (jc_boss.c: 297 missile, 77 burst, 33 landing, Milla's), the BuoyBuoys past its gate (60; RV amb_l f558): ~183 KB */
 /* Trap Hideout (session 21b, stage index 8; Carol / Milla only; spec_th_flow, th_flow.c). Checkpoints (RE): TH1 13501 (g4 < 2, MV.Y > 2208,
  * X < 2000 -> (2, 180, 2288); RV th1_bottom_carol), TH2 13690 + its inline copy in handle_frame_58 (7280 < X < 7480 -> (2, 7380, 570)),
  * TH3 13878 (5446 < X < 5646 -> (6, 5546, 1520)) and 13879 (11460 < X < 11560, MV.Y < 400 -> (7, 11500, 160)); TH3's g4 5 comes from
