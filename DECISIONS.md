@@ -447,3 +447,7 @@ through `objects_award_life` (also the 1-up monitor and the FN 1-ups): lives + 1
 jingle restarted once per award frame. Death / RESTART restore the act-start counter and keep earned lives (RE, as the
 original); Continue now sets the act-start lives / counter from the file. `FP_CRYSTAL_HUD_UP=1` (fp.h) would show the
 crystals collected toward the next life instead of the countdown (display only).
+
+## D-112 (session 23): Pangu Lagoon types and the Lilac-only rule
+MAX_OT grows to 2304 (types 2048-2303 for PL). The Lilac-only restriction uses the original's own data (the TA slot table and
+g1 = 0 at act start, `level_def_t.lilac_only`) instead of a separate check in the stage code.

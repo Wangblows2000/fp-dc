@@ -1321,3 +1321,10 @@ fn4_fall_l, fn4_bar_l, fn4_barmargin_l, fn1_clothes_l; scripts *.txt next to the
   MasterLevel +0xe8 and lives in +0xe0; RESTART (1276) sets the counter from +0xe8 and lives = +0xe0 - 1. Death (1986):
   set_lives(lives - 1), so lives earned in the act are kept; the port restores the act-start counter after a death as after
   RESTART (INFERRED for the death path).
+
+## Session 23: Pangu Lagoon
+Full facts in build/re/spec_pl_*.md (RE / RV / INFERRED). Stage index 7, json 51-56 (handle_frame_51..56). Classic: I 6 (TB)
+-> 50 for g1 = 0; every PL act start writes g1 = 0 (12844); TA slot 7 is PL for Lilac only (623-625). No water events. Exits:
+PL1/PL2/PL4/PL5 right edge; PL3 and PL6 the stone doors (13009 / 13330: between StoneDoor1 / 2, door >= 60 % open, grounded),
+PL6 -> the Holo-Dragon arena (6080, 24), boss start 13336, win = 86 of 93 hit spots then Eye2 (HP 20), results 421 frames into
+state 7. Super boost (time gates, SKIN flag 8): 2009 / 2012 / 1637 / 1639 / 1677; the boost-dash bonus 2758 needs it.

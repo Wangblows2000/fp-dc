@@ -566,3 +566,10 @@ Labels: original-trace (RV), RE, host-test, emulator (Flycast, emulated time). *
 - Full regression (build/regress.sh): 46 suites 0 failures; every level rebuilds byte-identical to the regenerated converted2;
   renders identical to the session-start build except FN4 Lilac (4 of 12 frames: the zip-line grip now uses its whole box, RV
   fn4_barmargin_l); comparers unchanged (76/76, 43/53, 37/43, 21/35).
+
+## Session 23 (2026-10-28): Pangu Lagoon
+- Suites: test_pl_flow (89), test_pl_enemies (33), test_pl_gimmicks (43), test_pl_bosses: 0 failures; full regression 50 suites
+  0 failures; rebuild-compare (now incl. TB / PL) identical after syncing tb2 (3 unused rows dropped); renders unchanged except
+  FN4 Lilac (session 22); comparers unchanged.
+- Flycast (build/fpdc_pldemo.cdi): VRAM free pl1 2823, pl2 2815, pl3 2823, pl4 3133, pl5 3133, pl6 3170 KB; sound RAM >= 294 KB;
+  update pl1 5.4, pl2 5.4-6.4, pl3 2.8-3.5, pl4 8.8, pl5 9.0-11.5, pl6 3.6 ms. **Emulator only.**
