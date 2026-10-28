@@ -588,7 +588,8 @@ typedef struct {
     double av[8];                /* class alterables (boss scripts) */
 } __attribute__((aligned(32))) obj_t;
 
-#define MAX_OBJS 1024              /* Fortune Night 4 places 748 objects (371 crystals) */
+#define MAX_OBJS 1536              /* Fortune Night 4 places 748 objects (371 crystals); TH3 places ~880 and its arena
+                                      spawns 99 ninjas with their drops (session 21b: 1024 -> 1536, +~100 KB main RAM) */
 
 typedef struct {
     level_t lvl;
