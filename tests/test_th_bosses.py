@@ -117,6 +117,11 @@ for ch, cn in ((2, 'carol'), (4, 'milla')):
     late = [r for r in rows if r['f'] >= 1450]
     off = [int(r['f']) for r in late if not (0 <= r['y'] - r['cy'] <= 240)]
     check('th3_camera_follows_after_basher_%s' % cn, late and not off and max(r['y'] for r in late) > 800, 'off-screen frames %s' % off[:5])
+    # the arena's way in: from the log tower down the red slope (the user's screenshots; before the fix the view stayed at y 112)
+    rows, ev, d, _ = run('th3', ch, 1800, INV + BASH + '999 BOSSHPT 1686 0\n1300 TP 600 900\n1320 TP 11480 400\n1400 1800 R\n')
+    late = [r for r in rows if r['f'] >= 1450]
+    off = [int(r['f']) for r in late if not (0 <= r['y'] - r['cy'] <= 240)]
+    check('th3_camera_follows_down_arena_slope_%s' % cn, late and not off and max(r['x'] for r in late) > 12000, 'off-screen frames %s' % off[:5])
 ARENA = '5 THBASH\n59 TP 11700 690\n'
 rows, ev, d, loads = run('th3', 2, 1900, INV + ARENA + '1098 BOSSHPT 1222 0\n', {'FP_THA_A3': '499'})
 a, sp = d.get('tha', {}), d.get('sbp', {})
