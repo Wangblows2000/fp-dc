@@ -992,8 +992,10 @@ void player_update(player_t *p, const input_t *in) {
     if (p->state == ST_HANG) {
         /* RE 4062/4065 hold the position; RV: B is 0 from the next frame, G keeps gaining gravity (unused) */
         p->x = p->hang_x; p->y = p->hang_y + 32 + ORIG_REF_DY; p->vx = 0; if (p->vy > PHYS_MAXFALL) p->vy = PHYS_MAXFALL; p->vy += PHYS_GRAV;
-        if (in->pressed & BTN_JUMP) { p->state = ST_NORMAL; p->vx = 0; p->vy = -4.5; p->jumping = 0; p->m1 = 1; p->cY = 3; }   /* RV a1_jelly_charge: G -4.5, M1, no jump sound */
-        else if (in->pressed & BTN_DOWN) { p->state = ST_NORMAL; p->vy = 0; p->y += 1; }                                                     /* INFERRED */
+        /* RE 4041 / 4042 (session 22): Jump lets go; with Down held it drops instead (M 40, G 0). Down alone does nothing
+         * (RV hang_fix/tb2_rel_l: D held 3 frames on a TB2 rail, still M 41; the port used to drop on Down) */
+        if ((in->pressed & BTN_JUMP) && !(in->held & BTN_DOWN)) { p->state = ST_NORMAL; p->vx = 0; p->vy = -4.5; p->jumping = 0; p->m1 = 1; p->cY = 3; }   /* 4041; RV a1_jelly_charge: G -4.5, M1, no jump sound */
+        else if (in->pressed & BTN_JUMP) { p->state = ST_NORMAL; p->vx = 0; p->vy = 0; p->jumping = 0; p->m1 = 0; p->springing = 1; p->cY = 40; }   /* 4042: M 40, G 0 */
         if (is_milla()) { if (p->state == ST_HANG && p->cY != 42) p->cY = 41; milla_anim(p); return; }   /* RE 2461: OTHERS.Y 41 -> Milla skin anim 15 (the hang), with her tail; 42: the shimmy (2462) */
         set_anim(p, p->cY == 42 ? A_HANGMOVE : A_HANG); anim_tick(&p->an, -1); if (hair.b) anim_tick(&hair, -1);
         return;
