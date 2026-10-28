@@ -151,5 +151,13 @@ check('crank_carry', sum(r['gnd'] for r in rows[40:200]) > 150 and max(r['x'] fo
 rows, ev, obs = run('5 TP 3440 1880\n', 60, {'FP_LEVEL': 'tb1', 'FP_CHAR': '0', 'FP_TRACK': '1894:3448'})
 check('metaldoor_opens', at(obs, 50, 1894) and all(o['a0'] == 10 for o in at(obs, 50, 1894)) and sids(ev, 279))
 
+# ---- TB5 water lever 1 (mask 3297,2800): hang on it, the water line (ML.B 2920) runs + 1 a frame toward 3240 (level_water_set)
+for ch, nm in CHARS:
+    e = dict(os.environ); e.update({'FP_LEVEL': 'tb5', 'FP_CHAR': str(ch), 'FP_DBG_TBG': '1'})
+    with tempfile.NamedTemporaryFile('w', suffix='.txt', delete=False) as f: f.write('5 TP 3297 2830\n20 30 J\n'); name = f.name
+    out = subprocess.run([BIN, DATA, '250', name], capture_output=True, text=True, env=e, timeout=600).stdout; os.unlink(name)
+    w = [int(l.split()[5]) for l in out.splitlines() if l.startswith('tbg ')]
+    check('water_lever_%s' % nm, w and w[0] == 2920 and w[-1] > 3050 and all(b - a in (0, 1) for a, b in zip(w, w[1:])), 'B %s .. %s' % (w[:1], w[-1:]))
+
 print('%d failures' % fails)
 sys.exit(1 if fails else 0)
