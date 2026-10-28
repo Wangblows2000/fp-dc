@@ -1505,7 +1505,19 @@ for _e in TBB_ENS: ROW_FRAMES[_e[3]] = TB_FRAMES   # TB_BOSS rows only in Therma
 # ==== end Thermal Base
 
 # ==== Pangu Lagoon (session 23; json 51-56 = pl1-pl6; types 2048-2303, one block per module like Thermal Base)
-# ---- PL_FLOW (pl_flow.c, 2048-2079)
+# ---- PL_FLOW (pl_flow.c, 2048-2079; build/re/spec_pl_flow.md)
+# The loop pieces of PL1-PL3 (RE 12747-12750 = the shared 3031 / 3032 on Q10 / Q11 by MV.P, + group 0x21a3a): PLLayer01_2975 /
+# PLLayer02_2976 are solid on loop layer 0, PLLayer11_2973 / PLLayer12_2974 on layer 1 (visible Actives, pixel masks; ctors
+# initialize_active, no set_visible(0)). One type per class (the registry's spawn sprite is per type): OD_SOLID | OD_LAYER0 / 1,
+# gimmicks.c layers_refresh / layers_update drive them like every loop set. The rows come with on-map placements only.
+# PLWiiUSign_2995 (PL1) is shown only when the global W = 1 (12845 / PL1 start inline; RV gv32 = 0 in every Linux trace): not exported.
+PLF_TYPES_ID = {('pllayer01', 2975): 2048, ('pllayer02', 2976): 2049, ('pllayer11', 2973): 2050, ('pllayer12', 2974): 2051}
+PLF_ENS = [('pllayer01_2975', 0, '0', 'pll01'), ('pllayer02_2976', 0, '0', 'pll02'), ('pllayer11_2973', 0, '0', 'pll11'),
+           ('pllayer12_2974', 0, '0', 'pll12')]
+ENGINE_TYPES_ID.update(PLF_TYPES_ID); ENS += PLF_ENS   # PL_FLOW
+for _e in PLF_ENS: ROW_FRAMES[_e[3]] = PL_FRAMES       # PL_FLOW rows only in Pangu Lagoon
+# no water: every act's start writes ML.A 1, ML.Y 0, ML.B 2000 but handle_frame_51..56 hold none of the water events 4150-4170 (RE,
+# as Trap Hideout): not in WATER_FRAMES
 
 # ---- PL_ENEMIES (pl_enemy.c, 2080-2143)
 
@@ -1699,6 +1711,22 @@ PAR_BOXH.update({'levelparallaxpiece7_2725': 640, 'levelparallaxpiece1_2783': 12
                  'levelparallaxpiece2_2885': 1280})
 PAR_DEG.update({2589: (.99, .94, 0), 2590: (.98, .93, 0), 2591: (.95, .91, 0), 2592: (.84, .8, 0), 2593: (.5, .6, 0), 2725: (.5, .6, 0),
                 2783: (.7, .7, -4), 2784: (.7, .7, 0), 2855: (.7, .7, 0), 2885: (.7, .7, 0), 2851: (.5, .5, 0), 2875: (.5, .5, 0)})
+# ---- PL_FLOW parallax / layers (pl_flow.c, session 23; spec_pl_flow 5)
+# Layer::init (RE disassembly of on_frame_51..56_init): layer 1 scrolls 0.8 in every act (layer 6 0, the rest 1).
+# Pieces (RE create_levelparallaxpiece*_2909-3070: SystemBox image, box w x h; the image tiles in the box; 894 / 895 are DV's
+# handles with PL1's own D / E / G). D / E / G (RE: PL1 / PL2 start inline, PL3 12960, PL4 start inline, PL5 13104, PL6 start
+# inline): piece0 .94 .92, piece1 .93 .92, piece2 .91 .92, piece3 .9 .92 G -.1, piece4 .92 .88 G -.3 (PL1), piece5 .88 .92,
+# piece6 .85 .92 (PL1-PL3); PL4 / PL5 piece0_3024 .8 1, piece1_3034 .7 .8, piece2_3040 .6 .6, piece3_3041 .4 .4; PL6 piece0_3070 .8 1
+SCROLL08.update({51: 1, 52: 1, 53: 1, 54: 1, 55: 1, 56: 1})
+PAR_IMG.update({'levelparallaxpiece0_2909': 462, 'levelparallaxpiece1_2910': 279, 'levelparallaxpiece2_2911': 13596,
+                'levelparallaxpiece5_2912': 5686, 'levelparallaxpiece6_2913': 13597, 'levelparallaxpiece0_3024': 12873,
+                'levelparallaxpiece1_3034': 5503, 'levelparallaxpiece2_3040': 8541, 'levelparallaxpiece3_3041': 12772,
+                'levelparallaxpiece0_3070': 12924})
+PAR_BOXH.update({'levelparallaxpiece1_3034': 640, 'levelparallaxpiece0_3070': 320})
+PAR_DEG.update({2909: (.94, .92, 0), 2910: (.93, .92, 0), 2911: (.91, .92, 0), 2912: (.88, .92, 0), 2913: (.85, .92, 0),
+                3024: (.8, 1, 0), 3034: (.7, .8, 0), 3040: (.6, .6, 0), 3041: (.4, .4, 0), 3070: (.8, 1, 0)})
+PAR_DEG_FRAME.update({(f, 894): (.9, .92, -.1) for f in (51, 52, 53)})
+PAR_DEG_FRAME.update({(51, 895): (.92, .88, -.3)})
 JC_WATER = {40: 1200, 41: 1600, 42: 1600, 43: 1600, 44: 1600}   # ML.B (10378 / 10566 / 10822 / 10863 / 11643)
 JC_SURF_FRAMES = [7795, 7802, 7803, 7804, 7796, 7797, 7798]      # LevelParalaxWaterSurface_14 anim 0 (both directions use the same images);
                                                                  # its 8th frame (7799) is shown as the 7th: one 512 x 512 4 bpp atlas (VRAM)

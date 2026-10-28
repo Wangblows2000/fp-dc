@@ -961,6 +961,8 @@ typedef struct {
     const camshaft_t *cam_shaft;                     /* a camera bound rule driven by the player's depth (TH1 13498-13500) */
     /* session 21c (Thermal Base, spec_tb_flow) */
     int music_off;                                   /* the act starts silent (TB6 12735: Media::stop_channel(31)); its scripts play the slots */
+    /* session 23 (Pangu Lagoon, spec_pl_flow) */
+    int lilac_only;                                  /* every act start writes g1 = 0 (PL 12844 / PL1's start inline): the act is played as Lilac */
 } level_def_t;
 int  level_water(void);                              /* the act's water line ML.B now (level data .water, moved by level_water_set; 0 = dry) */
 void level_water_set(int b);                         /* a script moves ML.B (TB5's water levers 12491-12501) */
@@ -1080,6 +1082,7 @@ int    par_hidden(int handle);
 void   par_set_hook(int handle, void (*fn)(void));   /* a stage script's layer-0 objects drawn just before that piece (parallax.c) */
 const level_def_t *level_def(const char *dir), *level_cur(void);
 const char *level_first_of_stage(int stage), *level_next(const char *dir), *level_route_start(int character), *level_route_next(int stage);
+int   act_fade_step(int a);                    /* the act-end fade's alpha step (RE 2905 / 3310; game.c): 255 = the fade is complete */
 const exit_t *level_exit_check(const player_t *p);
 const entry_t *level_entry(const char *from);
 const warp_t *level_warp_check(const player_t *p);

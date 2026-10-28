@@ -987,6 +987,10 @@ static const objdef_t DEFS[] = {
     /* ==== end Thermal Base */
     /* ==== Pangu Lagoon (session 23): one block per module */
     /* ---- PL_FLOW (pl_flow.c) */
+    { OT_PLF_LOOP01,    OD_SOLID|OD_LAYER0,                    "pll01"      }, /* pllayer01_2975 (Q10: solid on loop layer 0; pixel mask) */
+    { OT_PLF_LOOP02,    OD_SOLID|OD_LAYER0,                    "pll02"      }, /* pllayer02_2976 (Q10) */
+    { OT_PLF_LOOP11,    OD_SOLID|OD_LAYER1,                    "pll11"      }, /* pllayer11_2973 (Q11: solid on loop layer 1) */
+    { OT_PLF_LOOP12,    OD_SOLID|OD_LAYER1,                    "pll12"      }, /* pllayer12_2974 (Q11) */
     /* ---- PL_ENEMIES (pl_enemy.c) */
     /* ---- PL_GIM (pl_gim.c) */
     /* ---- PL_BOSS (pl_boss.c) */
