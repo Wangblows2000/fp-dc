@@ -1,8 +1,8 @@
 /* Thermal Base gimmicks (session 21c): types 1888-1967 (tb.h OT_TBG_*). Spec: build/re/spec_tb_gimmicks.md.
  * Labels: RE (decompiled events / constructors of frames 44-49 = handle_frame_45..50), RV (original traces
  * build/orig_traces/tb_gim), INFERRED (marked).
- * Families (event numbers in the spec): lifts (11709-11719, 11881, 11919-11929, 12525-12532), key cards + terminals +
- * locked doors (11802-11814, foreach_door_44, 11893; TB4 12448-12459), metal doors + wall lights (11826-11838), fire platforms
+ * Families (event numbers in the spec): key cards + terminals +
+ * locked doors (11802-11814, foreach_door_44, 11893; TB4 12448-12459), metal doors (11826-11838), fire platforms
  * + flames (11720-11728, 11930-11938), scrolling platforms + masks + flames + push (11729-11752, 11890), pistons (11940 /
  * 11941 / 12068), spin platforms (11940), air vents (no event), lava pits / falls / warnings / magma (11943-11956,
  * foreach_lvf_45, 12249-12279), explosive blocks + switch buttons + destroyer (11957-11965, foreach_ec_45), floor traps
@@ -12,7 +12,7 @@
  * Reused systems: objects.c path-platform registry (objects_plat_path: fire / piston / spin / scrolling platforms), the q7 /
  * q8 / q10 / q11 / q23 collision groups (objdefs.c flags), the wall-plate press rule (switches_wall_push), obj_hang_try (water
  * level masks), player_burn (the fire hurt shared with sb_gim.c), obj_explode.
- * Passes: tb_gim_pre (before the movement: the lifts' Y = J, the crank tops), tb_gim_obj (per object: hang handles; the
+ * (LevelLift* / TBWallLightAnim are tb_flow.c's.) Passes: tb_gim_pre (before the movement: the crank tops), tb_gim_obj (per object: hang handles; the
  * families run in tb_gim_frame), tb_gim_frame (after the player block, in event order), tb_gim_draw (pass 0-2: the x-scaled
  * spin arms; pass 3: the key card HUD).
  * Object fields: par = family member (importer TBG_SUB), layer = instance layer; av[] = class alterables named per family. */
@@ -25,7 +25,7 @@
 #endif
 
 #define RAD 57.29577951308232
-#define RT0 OT_TBG_LIFT
+#define RT0 OT_TBG_FIRST_
 #define NRT (OT_TBG_END - RT0 + 1)
 #define LMAX 64
 static short LST[NRT][LMAX]; static int NLS[NRT];
@@ -36,9 +36,8 @@ static short LST[NRT][LMAX]; static int NLS[NRT];
 #define F3 0x4000                                  /* flag 3 */
 #define F6 0x8000                                  /* flag 6 */
 static struct {
-    int on, keys, presses, start_ride, pist_gnd;
+    int on, keys, presses, pist_gnd, lever_t;
     int conv_push;                                 /* this frame's conveyor push (tests) */
-    int elev, elev_trig;                           /* TB5 elevator: C (0 waiting, 1 rising, 2 up), the CameraTriggerBoss slot */
     int lever_on[2];                               /* the water levers pulled (12489 / 12497) */
 } S;
 
@@ -46,7 +45,6 @@ static double PX(const player_t *p) { return floor(p->x); }
 static double PY(const player_t *p) { return floor(p->y - ORIG_REF_DY); }
 static double MY(const player_t *p) { return p->y - ORIG_REF_DY; }
 static double c_sin(double deg) { return deg == 180. ? 0. : fd_sin(deg / RAD); }                  /* Chowdren sin: 0 at exactly 180 */
-static double c_cos(double deg) { return (deg == 90. || deg == 270.) ? 0. : fd_cos(deg / RAD); }   /* cos: 0 at exactly 90 / 270 */
 static int dead(const player_t *p) { return p->state == ST_DEAD || p->hp <= 0; }
 static int R(int n) { return cross_rand(n); }
 static void set_s(obj_t *o, const char *nm) { int a = ens_anim(nm); if (a >= 0 && (o->an.b != &G.ens || o->an.anim != a)) anim_set(&o->an, &G.ens, a); }
@@ -94,70 +92,6 @@ static obj_t *nth(int T, int n) { obj_t *o; int i = 0; EACH(T, o) if (i++ == n) 
 int tb_gim_keycards(void) { return S.keys; }
 int tb_gim_button_presses(void) { return S.presses; }
 
-/* ================================================================ 1. lifts (RE 11709-11719, 11881; RV lift1 / lift2)
- * LevelLift_2649 (96 x 96 box, q7 q13; J its target y: Y = floor(J) in the platform block), LiftTop / LiftBottom (invisible
- * 64 x 16 boxes). av[0] J, av[1] Q (0 at the bottom, 1 rising, 2 at the top, 3 sinking), av[2] R (arrival countdown).
- * Start (on_frame_*_start): a lift on a LiftTop has Q 2. 11709: flag 1 off. 11710: grounded, S_BB on it, PLAYER above it
- * within 31 px and Q even: flag 1. 11711: R > 0, Q even: R - 1. 11712: flag 2, not 1 / 3, R <= 0, Q even: flag 2 off.
- * 11713: flag 1, not 2 / 6, Q even: flag 6, Q + 1. 11714 / 11717: Q 1: J - 8, Q 3: J + 8. 11715 / 11718: S_BB on it, grounded:
- * MV.Y -/+ 8 (and the sensors re-placed). 11716 / 11719: arrival on its top / bottom (J past it): J = its y, Q 2 / 0, sound 49,
- * CAM.Z + 3, flag 2, R 3. 11881 (TB1): the intro card done, no checkpoint, PLAYER in a lift: Q 1, flag 3 (the start ride).
- * Flag 6 is never cleared: each lift travels once (RV lift2: back on it at the bottom, it stays). */
-static obj_t *lift_end(const obj_t *l, int bottom) {   /* the LiftTop / LiftBottom of its shaft (the 64-px box under the 96-px cabin) */
-    obj_t *e;
-    EACH(OT_TBG_LIFTEND, e) if (e->par == bottom && fabsf(e->x + 32 - l->x) < 48) return e;
-    return NULL;
-}
-/* TB5's elevator (RE 12524-12532): three lifts without LiftTop / Bottom under the act's CameraTriggerBoss. 12524: MV.X past the
- * trigger's x + 96, its C 0: C 1 (CAM.M 1: the camera script, bosses). 12525: C 1: every lift J - 3; 12529 / 12530: the player
- * on it rises with it (MV.Y - 3); 12532: a lift up at the trigger's y: y = that, C 2, CAM.Z + 3, sound 51 (CAM.M 2, the music
- * lock and the elites riding along belong to the encounter: tb_boss.c). av[1] = -1 marks these lifts. */
-static void elevator(player_t *p) {
-    obj_t *o;
-    if (S.elev_trig < 0 || S.elev_trig >= G.nobjs || !G.o[S.elev_trig].alive) return;
-    const obj_t *t = &G.o[S.elev_trig];
-    if (S.elev == 0 && !dead(p) && PX(p) > t->x + 96) S.elev = 1;                                  /* 12524 */
-    if (S.elev != 1) return;
-    int carried = 0;
-    EACH(OT_TBG_LIFT, o) if (o->av[1] < 0) {
-        o->av[0] -= 3;                                                                            /* 12525 */
-        if (!carried && !dead(p) && sens_hit(SENS_BOTTOMBIG, o)) { p->y -= 3; player_sync_sensors(p); carried = 1; }   /* 12529 / 12530 */
-        if (o->av[0] <= t->y) { o->av[0] = t->y; S.elev = 2; }                                    /* 12532 */
-    }
-    if (S.elev == 2) { G.cam.Z += 3; snd(51); }
-}
-int tb_gim_elevator(void) { return S.elev; }
-static void lifts_pre(void) {
-    obj_t *o;
-    EACH(OT_TBG_LIFT, o) o->y = (float)floor(o->av[0]);                          /* 3289: Y = floor(N), N = J (G 0) */
-}
-static int on_lift(const player_t *p, const obj_t *o) { return p->ground && sens_hit(SENS_BOTTOMBIG, o); }
-static void lifts(player_t *p) {
-    obj_t *o;
-    EACH(OT_TBG_LIFT, o) o->fl &= ~F1;                                            /* 11709 */
-    if (!S.start_ride && !dead(p)) {                                              /* 11881: once, at the act start */
-        S.start_ride = 1;
-        EACH(OT_TBG_LIFT, o) if (o->av[1] >= 0 && (disc_hit(p, o) || on_lift(p, o))) { o->av[1] = 1; o->fl |= F3; }
-    }
-    if (S.elev_trig >= 0) elevator(p);
-    EACH(OT_TBG_LIFT, o) {
-        if (o->av[1] < 0) continue;                                                              /* TB5's elevator */
-        int q = (int)o->av[1];
-        if (!dead(p) && on_lift(p, o) && PY(p) < o->y && fabs(PX(p) - o->x) <= 31 && q % 2 == 0) o->fl |= F1;   /* 11710 */
-        if (o->av[2] > 0 && q % 2 == 0) o->av[2] -= 1;                                                       /* 11711 */
-        if ((o->fl & F2) && !(o->fl & (F1 | F3)) && o->av[2] <= 0 && q % 2 == 0) o->fl &= ~F2;              /* 11712 */
-        if ((o->fl & F1) && !(o->fl & (F2 | F6)) && q % 2 == 0) { o->fl |= F6; o->av[1] = q + 1; }           /* 11713 */
-        q = (int)o->av[1];
-        if (q == 1) { o->av[0] -= 8; if (!dead(p) && on_lift(p, o)) { p->y -= 8; player_sync_sensors(p); } }   /* 11714 / 11715 */
-        if (q == 3) { o->av[0] += 8; if (!dead(p) && on_lift(p, o)) { p->y += 8; player_sync_sensors(p); } }   /* 11717 / 11718 */
-        obj_t *e = q == 1 ? lift_end(o, 0) : q == 3 ? lift_end(o, 1) : NULL;
-        if (e && ((q == 1 && o->av[0] <= e->y) || (q == 3 && o->av[0] >= e->y))) {                          /* 11716 / 11719 */
-            o->av[0] = e->y; o->av[1] = q == 1 ? 2 : 0;
-            snd(49); G.cam.Z += 3; o->fl |= F2; o->av[2] = 3;
-        }
-    }
-}
-
 /* ================================================================ 2. key cards, terminals, locked doors (RE 11802-11814,
  * foreach_door_44, 11893; RV: sounds 37 / 285 / 286 / 279)
  * ObjectKeyCard: av[0] A (0 waiting, 3 flying to the HUD icon), av[1] / av[2] I / J (speed). 11802: a waiting card within 19 px (x) of PLAYER,
@@ -170,8 +104,20 @@ static void lifts(player_t *p) {
  * terminal's B takes its A. 11811: seal A > 0: hidden (an effect). 11812: barrier A > 1: flag 0 (not solid). 11813 / 11814:
  * back / front A > 1: the opening animation (speed 25). The k-th terminal opens the k-th barrier / back / front / seal of
  * the act (all classes are placed in the same order: tb_inventory). */
+/* TB3 (RE 12118-12120): a card with A -1 (a dropped card: tb_gim_key_drop) on screen (40) falls, B + 0.4 a frame, y + B; on the
+ * background: A 0 and it is lifted out of it (the original's set_y loop). */
+static int key_on_bg(const obj_t *o) { return px_solid(&G.lvl, (int)o->x + 12, (int)o->y + 23) || px_solid(&G.lvl, (int)o->x + 4, (int)o->y + 23) || px_solid(&G.lvl, (int)o->x + 20, (int)o->y + 23); }
+obj_t *tb_gim_key_drop(float x, float y) {
+    obj_t *k = spawn(OT_TBG_KEY, "tbg_key", x, y, 2);
+    if (k) { k->av[0] = -1; S.on = 1; }
+    return k;
+}
 static void keycards(player_t *p) {
     obj_t *o;
+    EACH(OT_TBG_KEY, o) if (o->av[0] == -1 && in_view(o, 40)) {
+        o->av[1] += 0.4; o->y += (float)o->av[1];                                                 /* 12118 */
+        if (key_on_bg(o)) { o->av[0] = 0; o->av[1] = 0; for (int k = 0; k < 64 && key_on_bg(o); k++) o->y -= 1; }   /* 12119 / 12120 */
+    }
     EACH(OT_TBG_KEY, o) {
         if (o->av[0] == 0) {
             if (dead(p) || (o->fl & 1) || fabs(o->x - PX(p)) > 19 || o->y < PY(p) - 47 || o->y > PY(p) + 19) continue;   /* 11802: card x within 19 of PLAYER x, y in [Y - 47, Y + 19] */
@@ -211,14 +157,13 @@ static void doors(player_t *p) {
     EACH(OT_TBG_BARRIER, d) if (d->av[0] > 1) d->fl |= 1;                       /* 11812: flag 0 (out of the solid group) */
 }
 
-/* ================================================================ 3. metal doors, wall lights (RE 11826-11838)
+/* ================================================================ 3. metal doors (RE 11826-11838)
  * MetalDoorBack / Front: frame = A (0..10, 0.5 a frame): A + 0.5 (max 10) while the PLAYER is within 59 px (x) of it and
  * on screen (80), else A - 0.5 (min 0); sound 279 when it starts opening, 280 when it starts closing. Scenery (no q7).
- * TBWallLightAnim: frame (g3 / 4) mod 12 (11826). */
+ * (TBWallLightAnim, 11826, is tb_flow.c's.) */
 static void scenery(player_t *p) {
     obj_t *o;
-    int fr = (G.frame >> 2) % 12;
-    EACH(OT_TBG_WLIGHT, o) if (o->an.b) { o->an.frame = fr; }
+    int fr;
     EACH(OT_TBG_MDOOR, o) {
         int nearp = !dead(p) && in_view(o, 80) && fabs(PX(p) - o->x) <= 59 && fabs(PY(p) - o->y) <= 59;   /* 11828 / 11829 */
         double A = o->av[0];
@@ -248,7 +193,7 @@ static void fireplats(player_t *p) {
     }
     EACH(OT_TBG_FFLAME, f) {
         o = NULL;
-        if (f->tm >= 0 && f->tm < G.nobjs && G.o[f->tm].alive && G.o[f->tm].type == OT_TBG_FPLAT) o = &G.o[f->tm];
+        if (f->tm >= 0 && f->tm < G.nobjs && G.o[f->tm].alive && (G.o[f->tm].type == OT_TBG_FPLAT || G.o[f->tm].type == OT_TBG_FPLAT80)) o = &G.o[f->tm];
         if (!o) { f->hidden = 1; continue; }
         double A = o->vx; if (A < 0) A += 360;
         int down = A < 180, shortf = (A > 160 && A < 190) || A > 340 || A <= 10;
@@ -301,7 +246,7 @@ static void scrollers(player_t *p) {
 /* ================================================================ 6. pistons and spin platforms (RE 11940 / 11941 / 12068; ctors:
  * piston F 6 G 64, spin B -1 C 160 D 1 F -1 G 160; RV init2)
  * Both are invisible q8 q9 q13 path platforms (objects.c): piston N = J + 64 cos E (E + 6; the start E 180 / 0 alternate by
- * selection index, RV), spin M = I + 160 sin A, N = J + 160 cos E (A, E - 1; four per hub, the start A = E = 270 - 90 k, RV).
+ * selection index, RV), spin M = I + 160 sin A, N = J + 160 cos E (A, E - 1; four per hub, the start A = E = 150 - 90 k, RV).
  * Masks are drawn at their platform (11940 / 12068); the spin supports at (x, y + 16), angle A + 90, x scale 0.25 C (11940).
  * 11941: CTRL.K 1 (jump pressed), MV.M 1, S_BB on a piston: G += min(0, -0.01 |F| G sin(E + 45)) (the piston's push). */
 static void pistons(player_t *p) {
@@ -326,17 +271,13 @@ static void pistons(player_t *p) {
  * HazardLavaPit: frame (g3 / 15) mod 4 (11943); no other event in TB2 / TB3 (no qualifier, RE): the lava under the walkways
  * is scenery (RV lava3: the floor under it holds the player). MagmaFlow: its own looping animation, no event (scenery).
  * Lava falls (g3 mod 240 = c): warnings frame 0 while c < 100 (11944), sound 302 on screen (100) for c in 101..149 (11945),
- * animated (g3 / 3) mod 4 for c > 100 (11946); at c 150 every lava fall starts (flag 0, D 0; 11947), falls D + 10 a frame
- * (11948) as a column under its start (foreach_lvf_45 stops it at the floor), sound 35 every 10 frames on screen (11950),
- * CAM.Z + 1 (max 3) (11951). A falling column touching PLAYER: R-hurt 3 (B + 3), OTHERS.R 30 (11953 burn), not with the
- * fire shield; then E 5 (11954-11955 hold the knock-back). HazardLavaFall3 (TB3's cascade) is its own looping animation
- * (12256-12279 belong to the TB3 finale: bosses). INFERRED: the column's length (the floor under its start, background only). */
-static int lava_floor(obj_t *o) {                       /* the background under the fall's start (cached in av[4]) */
-    if (o->av[4] > 0) return (int)o->av[4];
-    int x = (int)o->x, y = (int)o->y + 8;
-    while (y < G.lvl.h && !px_solid(&G.lvl, x, y)) y += 4;
-    o->av[4] = y; return y;
-}
+ * animated (g3 / 3) mod 4 for c > 100 (11946); at c 150 every lava fall starts (flag 0, D 0; 11947) and slides D + 10 a frame
+ * (11948); sound 35 every 10 frames on screen (11950), CAM.Z + 1 (max 3) (11951). A falling segment touching PLAYER: R-hurt 3
+ * (B + 3), OTHERS.R 30 (11953 burn), not with the fire shield (player_burn); E 5 holds the knock-back (11954 / 11955).
+ * The falls are placed four per spot (64 x 128 images): the k-th of a spot is drawn 128 k lower, so a column 512 px long slides
+ * down (RV lava2: Carol on TB2's walkway at 4900, 3314 is hit 22 frames after c 150 by the column poured at 4896, 2624).
+ * INFERRED: foreach_lvf_45's stop (D past the instance's A) is taken as D 512 (the column has passed), then it hides.
+ * HazardLavaFall3 (TB3's cascade) is its own looping animation (12256-12279 belong to the TB3 finale: bosses). */
 static void lava(player_t *p) {
     obj_t *o;
     int c = G.frame % 240, fr = (G.frame / 15) % 4;
@@ -347,20 +288,17 @@ static void lava(player_t *p) {
         else { set_s(o, "tbg_lwarn1"); if (o->an.b) o->an.frame = (G.frame / 3) % 4; }   /* 11946 */
         if (c > 100 && c < 150 && !warn_snd && in_view(o, 100) && (c - 101) % 16 == 0) { snd(302); warn_snd = 1; }   /* 11945 */
     }
-    int any_snd = 0;
+    int any_snd = 0, hurt = 0;
     EACH(OT_TBG_LFALL, o) {
         if (o->par == 1) continue;                                                                /* LavaFall3: animated scenery */
         if (c == 150) { o->fl |= 1; o->av[3] = 0; }                                              /* 11947 */
-        if (o->fl & 1) {
-            o->av[3] += 10;                                                                       /* 11948: D + 10 */
-            int top = (int)o->oy, len = (int)o->av[3], bot = lava_floor(o);
-            if (top + len >= bot) { len = bot - top; if (o->av[3] > (bot - top) + 128) o->fl &= ~1; }   /* INFERRED: the column ends at the floor, then it is spent */
-            o->y = (float)(top + len - 128); if (o->y < top) o->y = (float)top;
-            o->hidden = 0;
-            if (!any_snd && G.frame % 10 == 0 && in_view(o, 100)) { snd(35); any_snd = 1; }       /* 11950 */
-            if (in_view(o, 100)) { if (G.cam.Z + 1 <= 3) G.cam.Z += 1; }                          /* 11951 */
-            if (!dead(p) && p->shield != 2 && fabs(PX(p) - o->x) < 32 + 8 && PY(p) + 14 > top && PY(p) - 14 < top + len) player_burn(p, 3);   /* 11953 */
-        } else { o->hidden = 1; o->y = o->oy; }
+        if (!(o->fl & 1)) { o->hidden = 1; o->y = o->oy; continue; }
+        o->av[3] += 10;                                                                           /* 11948: D + 10 */
+        if (o->av[3] > 512) { o->fl &= ~1; o->hidden = 1; o->y = o->oy; continue; }               /* INFERRED end */
+        o->y = (float)(o->oy + 128 * o->av[5] + o->av[3]); o->hidden = 0;
+        if (!any_snd && G.frame % 10 == 0 && in_view(o, 100)) { snd(35); any_snd = 1; }           /* 11950 */
+        if (in_view(o, 100) && G.cam.Z + 1 <= 3) G.cam.Z += 1;                                    /* 11951 */
+        if (!hurt && !dead(p) && fabs(PX(p) - o->x) < 32 + 7 && PY(p) + 14 > o->y && PY(p) - 14 < o->y + 128) hurt = player_burn(p, 3);   /* 11953 */
     }
 }
 
@@ -416,7 +354,7 @@ static void floortraps(player_t *p) {
         o->av[0] += 1;                                                                            /* 12071 */
         if (o->av[0] > 35) {                                                                      /* 12072 */
             obj_explode(o->x + 32, o->y);
-            if (!dead(p) && fabs(PX(p) - (o->x + 32)) < 48 && fabs(PY(p) + 14 - o->y) < 40 && !player_invincible(p)) player_contact(p, 4);
+            if (!dead(p) && fabs(PX(p) - (o->x + 32)) < 48 && fabs(PY(p) + 14 - o->y) < 40 && !player_invincible(p)) player_contact(p, 20);   /* 4 half-petals (5 each) */
             o->alive = 0;
         }
     }
@@ -436,20 +374,94 @@ static void conveyors(player_t *p) {
     EACH(OT_TBG_CONV, o) if (sens_hit(SENS_BOTTOMBIG, o)) { int A = o->par < 3 ? 2 : -2; p->x += A; S.conv_push = A; player_sync_sensors(p); break; }
 }
 
-/* ================================================================ 11. crank platforms (RE 12383-12387)
- * The crank turns with g3: angle = (2 g3) mod 360; the arms and mids follow the base (12384); each top platform's M / N is the
- * crank pin (INFERRED geometry: the base's action end, radius 64), K / L the last ones (12383), O / P the steps (12385).
- * 12386 / 12387: G >= 0, S_BB on a top: MV.X + O, MV.Y + P, sensors re-placed, L 1. */
+/* ================================================================ 11. crank platforms (RE 12383-12387; RV crank4)
+ * The crank turns with g3 (12384: angle (2 g3) mod 360, the bases / arms / mids follow through their rotated action points; the
+ * tops ride the arms' ends). The linkage is reproduced from RV crank4 (the whole 180-frame cycle, g3 1789-1969): per phase
+ * k = g3 mod 180, CRANK_TAB[k] = top1 / top2 offsets from their placement, arm1 / arm2 offsets from their base, and the
+ * angles (alterable A) of base1 / base2 / arm1 / arm2 and the mids' length A (x scale 0.1 A). The port's g3 is its stage frame
+ * (INFERRED phase origin, as TH). 12383 / 12385: K, L = M, N; O / P = the steps. 12386 / 12387: G >= 0, S_BB on a top: MV.X + O,
+ * MV.Y + P, the sensors re-placed, L 1 (the tops are q8 q9, not q13: their own carry). */
+static const short CRANK_TAB[180][14] = {
+  {-152,10,155,-39,3,-128,91,-90,88,45,225,-2,96,236}, {-155,10,155,-42,0,-128,91,-90,90,45,225,0,99,237}, {-158,10,155,-45,-3,-128,91,-90,92,45,225,2,101,238},
+  {-162,10,154,-49,-7,-128,90,-90,93,45,225,3,105,239}, {-165,11,153,-52,-10,-127,90,-90,95,45,225,5,108,239}, {-169,10,153,-57,-14,-127,90,-91,96,45,225,6,112,241},
+  {-172,11,152,-59,-16,-126,90,-91,98,46,224,8,114,241}, {-176,10,151,-64,-20,-126,89,-92,99,46,224,9,118,242}, {-180,9,150,-68,-23,-126,88,-93,101,46,224,11,122,243},
+  {-184,10,149,-72,-27,-125,88,-93,102,47,223,12,126,244}, {-188,10,147,-76,-30,-124,87,-94,104,47,223,14,130,245}, {-192,10,146,-79,-33,-124,86,-94,105,48,222,15,134,245},
+  {-196,9,144,-83,-36,-123,85,-95,107,48,222,17,138,246}, {-201,10,141,-88,-40,-121,84,-96,108,49,221,18,142,246}, {-203,10,139,-92,-42,-120,83,-98,110,50,220,20,144,247},
+  {-207,9,138,-95,-45,-120,82,-98,111,50,220,21,148,247}, {-212,9,136,-99,-48,-119,81,-99,112,51,219,22,153,248}, {-216,9,132,-104,-51,-117,79,-101,114,52,218,24,157,248},
+  {-219,9,130,-106,-53,-116,78,-101,115,53,217,25,160,248}, {-223,8,127,-111,-56,-115,76,-103,116,54,216,26,164,249}, {-226,8,123,-115,-58,-113,74,-105,118,55,215,28,167,248},
+  {-230,8,120,-118,-61,-112,72,-105,119,56,214,29,171,248}, {-233,7,117,-122,-63,-111,70,-107,120,57,213,30,174,248}, {-238,5,114,-127,-66,-110,68,-109,121,58,212,31,179,250},
+  {-241,6,111,-128,-67,-108,67,-109,122,59,211,32,182,248}, {-245,5,107,-133,-70,-106,65,-111,123,60,210,33,186,249}, {-248,4,103,-136,-72,-105,62,-112,124,61,209,34,189,248},
+  {-250,2,100,-139,-73,-104,60,-114,125,62,208,35,192,249}, {-254,1,96,-141,-75,-103,57,-114,126,64,206,36,196,248}, {-257,-1,92,-145,-77,-102,54,-116,127,65,205,37,199,248},
+  {-259,-2,88,-147,-78,-101,51,-117,128,66,204,38,201,247}, {-263,-4,85,-150,-80,-100,49,-118,129,68,202,39,206,248}, {-265,-5,80,-152,-81,-98,46,-119,130,69,201,40,208,246},
+  {-266,-7,76,-155,-82,-97,43,-121,130,70,200,40,209,247}, {-268,-9,73,-156,-83,-97,40,-121,131,72,198,41,212,246}, {-271,-12,70,-159,-84,-96,38,-123,132,73,197,42,216,247},
+  {-274,-14,65,-161,-86,-95,34,-123,132,75,195,42,219,246}, {-274,-16,61,-162,-86,-94,31,-124,133,76,194,43,220,244}, {-276,-18,56,-164,-87,-93,27,-125,133,78,192,43,222,244},
+  {-277,-22,53,-165,-87,-93,24,-126,134,79,191,44,224,243}, {-278,-24,49,-166,-88,-92,21,-126,134,81,189,44,226,242}, {-279,-28,45,-168,-89,-92,17,-127,134,82,188,44,228,242},
+  {-280,-29,41,-168,-89,-91,14,-127,135,84,186,45,229,240}, {-281,-33,37,-170,-90,-91,10,-128,135,85,185,45,232,240}, {-282,-36,34,-169,-90,-91,7,-127,135,87,183,45,234,238},
+  {-282,-40,30,-170,-90,-91,3,-128,135,88,182,45,235,237}, {-282,-43,27,-170,-90,-91,0,-128,135,90,180,45,236,236}, {-282,-46,24,-170,-90,-91,-3,-128,135,92,178,45,237,235},
+  {-281,-50,20,-170,-90,-91,-7,-128,135,93,177,45,238,234}, {-282,-53,17,-169,-90,-91,-10,-127,135,95,175,45,240,232}, {-280,-57,13,-168,-89,-91,-14,-127,135,96,174,45,240,229},
+  {-280,-61,12,-167,-89,-92,-16,-126,134,98,172,44,242,228}, {-278,-65,8,-166,-88,-92,-20,-126,134,99,171,44,242,226}, {-277,-69,6,-165,-87,-93,-23,-126,134,101,169,44,243,224},
+  {-276,-72,2,-164,-87,-93,-27,-125,133,102,168,43,244,222}, {-274,-77,0,-162,-86,-94,-30,-124,133,104,166,43,244,220}, {-273,-81,-2,-162,-86,-95,-33,-124,132,105,165,42,246,219},
+  {-271,-86,-4,-159,-84,-96,-36,-123,132,107,163,42,247,216}, {-268,-89,-7,-156,-83,-97,-40,-121,131,108,162,41,246,212}, {-267,-92,-9,-154,-82,-97,-42,-120,130,110,160,40,247,209},
+  {-264,-96,-11,-153,-81,-98,-45,-120,130,111,159,40,246,208}, {-262,-101,-12,-151,-80,-100,-48,-119,129,112,158,39,248,206}, {-259,-104,-14,-147,-78,-101,-51,-117,128,114,156,38,247,201},
+  {-257,-108,-15,-145,-77,-102,-53,-116,127,115,155,37,248,199}, {-253,-112,-17,-142,-75,-103,-56,-115,126,116,154,36,248,196}, {-251,-116,-18,-138,-73,-104,-58,-113,125,118,152,35,249,192},
+  {-248,-119,-20,-136,-72,-105,-61,-112,124,119,151,34,248,189}, {-245,-123,-21,-133,-70,-106,-63,-111,123,120,150,33,249,186}, {-240,-127,-22,-129,-67,-108,-66,-110,122,121,149,32,248,182},
+  {-239,-130,-21,-126,-66,-110,-67,-108,121,122,148,31,250,179}, {-234,-133,-23,-121,-63,-111,-70,-106,120,123,147,30,248,174}, {-230,-136,-24,-118,-61,-112,-72,-105,119,124,146,29,248,171},
+  {-227,-139,-24,-114,-58,-113,-73,-104,118,125,145,28,248,167}, {-223,-143,-24,-111,-56,-115,-75,-103,116,126,144,26,249,164}, {-218,-146,-25,-107,-53,-116,-77,-102,115,127,143,25,248,160},
+  {-216,-148,-25,-104,-51,-117,-78,-101,114,128,142,24,248,157}, {-211,-152,-25,-100,-48,-119,-80,-100,112,129,141,22,248,153}, {-207,-154,-25,-95,-45,-120,-81,-98,111,130,140,21,247,148},
+  {-204,-155,-26,-91,-42,-120,-82,-97,110,130,140,20,247,144}, {-200,-157,-26,-89,-40,-121,-83,-97,108,131,139,18,246,142}, {-195,-160,-25,-84,-36,-123,-84,-96,107,132,138,17,246,138},
+  {-191,-162,-26,-80,-33,-124,-86,-95,105,132,138,15,245,134}, {-188,-163,-26,-76,-30,-124,-86,-94,104,133,137,14,245,130}, {-184,-165,-26,-72,-27,-125,-87,-93,102,133,137,12,244,126},
+  {-180,-166,-25,-68,-23,-126,-87,-93,101,134,136,11,243,122}, {-176,-167,-26,-64,-20,-126,-88,-92,99,134,136,9,242,118}, {-171,-168,-27,-60,-16,-126,-89,-92,98,134,136,8,241,114},
+  {-169,-169,-26,-57,-14,-127,-89,-91,96,135,135,6,241,112}, {-164,-169,-27,-53,-10,-127,-90,-91,95,135,135,5,239,108}, {-161,-170,-26,-50,-7,-128,-90,-91,93,135,135,3,239,105},
+  {-157,-171,-26,-46,-3,-128,-90,-91,92,135,135,2,238,101}, {-154,-171,-26,-43,0,-128,-90,-91,90,135,135,0,237,99}, {-151,-171,-26,-40,3,-128,-90,-91,88,135,135,-2,236,96},
+  {-147,-169,-27,-36,7,-127,-90,-91,87,135,135,-3,232,92}, {-144,-170,-26,-33,10,-128,-90,-91,85,135,135,-5,232,89}, {-141,-169,-26,-29,14,-127,-89,-91,84,135,135,-6,230,86},
+  {-138,-169,-26,-27,17,-127,-89,-92,82,134,136,-8,229,84}, {-135,-167,-26,-23,21,-126,-88,-92,81,134,136,-9,226,81}, {-133,-166,-25,-21,24,-126,-87,-93,79,134,136,-11,225,79},
+  {-130,-165,-26,-18,27,-125,-87,-93,78,133,137,-12,223,76}, {-127,-163,-26,-15,31,-124,-86,-94,76,133,137,-14,220,74}, {-124,-161,-27,-13,34,-123,-86,-95,75,132,138,-15,217,71},
+  {-121,-160,-25,-10,38,-123,-84,-96,73,132,138,-17,216,70}, {-120,-157,-26,-9,40,-121,-83,-97,72,131,139,-18,213,69}, {-119,-156,-25,-6,43,-121,-82,-97,70,130,140,-20,211,67},
+  {-116,-153,-26,-4,46,-119,-81,-98,69,130,140,-21,208,64}, {-114,-151,-26,-3,49,-118,-80,-100,68,129,141,-22,205,64}, {-114,-148,-25,-2,51,-117,-78,-101,66,128,142,-24,202,63},
+  {-111,-146,-25,0,54,-116,-77,-102,65,127,143,-25,200,62}, {-110,-142,-25,2,57,-114,-75,-103,64,126,144,-26,195,60}, {-109,-140,-23,4,60,-114,-73,-104,62,125,145,-28,193,60},
+  {-107,-136,-24,5,62,-112,-72,-105,61,124,146,-29,189,59}, {-106,-133,-23,7,65,-111,-70,-106,60,123,147,-30,186,58}, {-106,-129,-22,7,67,-109,-67,-108,59,122,148,-31,182,59},
+  {-105,-128,-21,6,68,-109,-66,-110,58,121,149,-32,181,60}, {-105,-124,-20,7,70,-107,-63,-111,57,120,150,-33,177,60}, {-104,-119,-20,8,72,-105,-61,-112,56,119,151,-34,172,59},
+  {-104,-117,-17,9,74,-105,-58,-113,55,118,152,-35,170,61}, {-102,-112,-17,9,76,-103,-56,-115,54,116,154,-36,164,61}, {-102,-107,-16,10,78,-101,-53,-116,53,115,155,-37,160,61},
+  {-102,-104,-14,10,79,-101,-51,-117,52,114,156,-38,157,63}, {-101,-100,-13,10,81,-99,-48,-119,51,112,158,-39,153,64}, {-101,-96,-11,10,82,-98,-45,-120,50,111,159,-40,149,65},
+  {-102,-93,-8,11,83,-98,-42,-120,50,110,160,-40,146,67}, {-101,-88,-8,11,84,-96,-40,-121,49,108,162,-41,141,67}, {-102,-85,-5,10,85,-95,-36,-123,48,107,163,-42,138,70},
+  {-101,-80,-3,10,86,-94,-33,-124,48,105,165,-42,133,72}, {-101,-77,0,11,87,-94,-30,-124,47,104,166,-43,130,74}, {-101,-72,2,11,88,-93,-27,-125,47,102,168,-43,126,76},
+  {-102,-69,6,10,88,-93,-23,-126,46,101,169,-44,123,80}, {-101,-65,8,11,89,-92,-20,-126,46,99,171,-44,119,81}, {-101,-60,11,12,90,-91,-16,-126,46,98,172,-44,114,83},
+  {-101,-57,13,11,90,-91,-14,-127,45,96,174,-45,111,85}, {-102,-52,16,11,90,-90,-10,-127,45,95,175,-45,107,88}, {-101,-49,19,10,90,-90,-7,-128,45,93,177,-45,104,91},
+  {-101,-45,23,11,91,-90,-3,-128,45,92,178,-45,100,95}, {-101,-42,26,11,91,-90,0,-128,45,90,180,-45,97,97}, {-101,-39,29,11,91,-90,3,-128,45,88,182,-45,95,100},
+  {-102,-35,33,11,90,-90,7,-127,45,87,183,-45,91,104}, {-101,-32,36,10,90,-90,10,-128,45,85,185,-45,88,107}, {-101,-29,41,11,90,-91,14,-127,45,84,186,-45,85,111},
+  {-100,-27,44,11,90,-91,17,-127,46,82,188,-44,83,114}, {-101,-24,49,11,89,-92,21,-126,46,81,189,-44,81,119}, {-102,-22,53,10,88,-93,24,-126,46,79,191,-44,80,123},
+  {-101,-18,56,11,88,-93,27,-125,47,78,192,-43,76,126}, {-101,-16,61,11,87,-94,31,-124,47,76,194,-43,74,130}, {-102,-13,64,11,86,-94,34,-123,48,75,195,-42,72,133},
+  {-102,-11,69,10,85,-95,38,-123,48,73,197,-42,70,138}, {-101,-8,72,11,84,-96,40,-121,49,72,198,-41,67,141}, {-101,-8,77,10,83,-98,43,-121,50,70,200,-40,67,146},
+  {-102,-5,80,11,82,-98,46,-119,50,69,201,-40,65,149}, {-102,-3,84,11,81,-99,49,-118,51,68,202,-39,64,153}, {-102,-2,88,10,79,-101,51,-117,52,66,204,-38,63,157},
+  {-102,0,91,10,78,-101,54,-116,53,65,205,-37,61,160}, {-103,1,96,10,76,-103,57,-114,54,64,206,-36,61,164}, {-103,1,101,8,74,-105,60,-114,55,62,208,-35,61,170},
+  {-104,4,103,8,72,-105,62,-112,56,61,209,-34,59,172}, {-105,4,108,7,70,-107,65,-111,57,60,210,-33,60,177}, {-106,5,112,7,68,-109,67,-109,58,59,211,-32,60,181},
+  {-105,6,113,6,67,-109,68,-109,59,58,212,-31,59,182}, {-105,7,117,6,65,-111,70,-107,60,57,213,-30,58,186}, {-107,8,120,5,62,-112,72,-105,61,56,214,-29,59,189},
+  {-108,7,124,3,60,-114,74,-105,62,55,215,-28,60,193}, {-110,9,126,2,57,-114,76,-103,64,54,216,-26,60,195}, {-112,9,130,1,54,-116,78,-101,65,53,217,-25,62,200},
+  {-114,9,132,-2,51,-117,79,-101,66,52,218,-24,63,202}, {-115,10,135,-2,49,-118,81,-99,68,51,219,-22,64,205}, {-116,10,137,-4,46,-119,82,-98,69,50,220,-21,64,208},
+  {-118,9,140,-7,43,-121,83,-98,70,50,220,-20,67,211}, {-121,10,141,-8,40,-121,84,-96,72,49,221,-18,69,213}, {-122,9,144,-9,38,-123,85,-95,73,48,222,-17,70,216},
+  {-125,11,145,-12,34,-123,86,-94,75,48,222,-15,71,217}, {-127,10,147,-15,31,-124,87,-94,76,47,223,-14,74,220}, {-130,10,149,-18,27,-125,88,-93,78,47,223,-12,76,223},
+  {-133,9,150,-21,24,-126,88,-93,79,46,224,-11,79,225}, {-135,10,151,-23,21,-126,89,-92,81,46,224,-9,81,226}, {-139,10,153,-26,17,-127,90,-91,82,46,224,-8,84,229},
+  {-141,10,153,-29,14,-127,90,-91,84,45,225,-6,86,230}, {-145,10,154,-32,10,-128,90,-90,85,45,225,-5,89,232}, {-148,11,153,-35,7,-127,90,-90,87,45,225,-3,92,232},
+};
+
 static void cranks_pre(player_t *p) {
-    obj_t *o;
-    double a = fmod(2.0 * G.frame, 360.);
+    obj_t *o, *b;
+    const short *t = CRANK_TAB[G.frame % 180];
     EACH(OT_TBG_CTOP, o) {
-        double M = o->ox + 64 * c_cos(a + (o->par ? 180 : 0)), Nn = o->oy + 64 * c_sin(a + (o->par ? 180 : 0)) * 0.5;
-        o->av[2] = floor(M) - floor(o->x); o->av[3] = floor(Nn) - floor(o->y);
-        o->x = (float)floor(M); o->y = (float)floor(Nn);
+        int k = o->par & 1;
+        float nx = o->ox + t[2 * k], ny = o->oy + t[2 * k + 1];
+        o->av[2] = nx - o->x; o->av[3] = ny - o->y; o->x = nx; o->y = ny;
+    }
+    EACH(OT_TBG_CPART, o) {
+        int g = o->par & 1, kind = o->par >> 1;                     /* 0 mid, 1 base, 2 arm */
+        b = o->tm >= 0 ? &G.o[o->tm] : o;
+        if (kind == 1) { o->ang = t[8 + g]; continue; }
+        if (kind == 2) { o->x = b->ox + t[4 + 2 * g]; o->y = b->oy + t[5 + 2 * g]; o->ang = t[10 + g]; continue; }
+        o->x = b->ox; o->y = b->oy; o->av[0] = t[12 + g];           /* mid: from the base pivot toward the arm, x scale 0.1 A */
+        o->ang = (float)(atan2(-(double)t[5 + 2 * g], (double)t[4 + 2 * g]) * RAD); o->hidden = 1;
     }
     if (dead(p) || p->vy < 0) return;
-    EACH(OT_TBG_CTOP, o) if (mv_sensor_obj(p->x, MY(p) + 1, p->N, SENSOR_BOTTOMBIG, OT_TBG_CTOP) == (int)(o - G.o)) {
+    EACH(OT_TBG_CTOP, o) if (mv_sensor_obj(p->x, MY(p) + 1, p->N, SENSOR_BOTTOMBIG, OT_TBG_CTOP) == (int)(o - G.o)) {   /* 12386 / 12387 */
         p->x += o->av[2]; p->y += o->av[3];
         if (!p->ground) { p->gsp = p->vx; p->ground = 1; }
         p->vy = 0; player_sync_sensors(p); break;
@@ -482,8 +494,9 @@ static void pressers(player_t *p) {
  * 12511-12519) — scenery plus the TB5 water levers.
  * TubeBubbleSpawner: every 8th frame a TubeBubble at x - 40 + R(81), rising 3 + R(50) / 10 a frame for up to 192 px (12391-12393).
  * Water levers: hanging on a GimmickWaterLevelMask (q23) pulls it 8 px a frame down to 8 under its start, MV.Y + 2 (12487); at
- * the bottom the lever is pulled (frame 1, sound 110) and MasterLevel B runs + 1 a frame to 3240 (lever 1, 12491 / 12492) or
- * - 1 to 2920 (lever 2, 12499 / 12500) with CAM.Z 2; released, the mask climbs back (12486). */
+ * the bottom the lever is pulled (frame 1) and MasterLevel B runs + 1 a frame to 3240 (lever 1, 12491 / 12492) or - 1 to
+ * 2920 (lever 2, 12499 / 12500) with CAM.Z 2 and sound 110 every 0.24 s (level_water_set, levels.c); released, the mask climbs
+ * back (12486). */
 static void bubbles(void) {
     obj_t *o;
     EACH(OT_TBG_TBUBSP, o) {
@@ -501,14 +514,16 @@ static void levers(player_t *p) {
         if (held && m->y < m->oy + 8) { m->y += 8; if (m->y > m->oy + 8) m->y = m->oy + 8; p->y += 2; }   /* 12487 */
         else if (!held && m->y > m->oy) m->y -= 1;                                                       /* 12486 */
         if (held && m->y >= m->oy + 8 && !S.lever_on[k]) {
-            S.lever_on[k] = 1; snd(110);
+            S.lever_on[k] = 1;
         }
     }
     EACH(OT_TBG_LEVER, l) if (l->an.b) l->an.frame = S.lever_on[l->par & 1] ? 1 : 0;
-    if (!water_on()) return;
-    double B = water_line_get();
-    if (S.lever_on[0] && B < 3240) { water_line_set(B + 1); shake(2); }                           /* 12492 */
-    else if (S.lever_on[1] && !S.lever_on[0] && B > 2920) { water_line_set(B - 1); shake(2); }    /* 12500 */
+    int b = level_water();                                                                       /* ML.B (levels.c; 0 = dry) */
+    if (!b) return;
+    int mv = 0;
+    if (S.lever_on[0] && b < 3240) { level_water_set(b + 1); mv = 1; }                          /* 12491 / 12492 */
+    else if (S.lever_on[1] && !S.lever_on[0] && b > 2920) { level_water_set(b - 1); mv = 1; }    /* 12499 / 12500 */
+    if (mv) { shake(2); if (S.lever_t++ % 14 == 0) snd(110); }                                  /* CAM.Z >= 2; sound 110 every 0.24 s */
 }
 
 /* ================================================================ passes */
@@ -540,13 +555,6 @@ void tb_gim_spawn(void) {
     }
     if (!S.on) return;
     obj_t *o, *q;
-    EACH(OT_TBG_LIFT, o) { set_s(o, "tbg_lift"); o->av[0] = o->y; }
-    EACH(OT_TBG_LIFT, o) { obj_t *e = lift_end(o, 0); if (e && fabsf(e->y - o->y) < 16) o->av[1] = 2; }   /* start events: on its top: Q 2 */
-    S.elev_trig = -1;
-    EACH(OT_TBG_LIFT, o) if (!lift_end(o, 0) && !lift_end(o, 1)) {                                /* no shaft ends: TB5's elevator */
-        o->av[1] = -1;
-        for (int i = 0; i < G.nobjs && S.elev_trig < 0; i++) if (G.o[i].alive && G.o[i].type == OT_CAMTRIGGER && G.o[i].x >= 0 && G.o[i].y >= 0 && G.o[i].y < o->y) S.elev_trig = i;
-    }
     EACH(OT_TBG_KEY, o) set_s(o, "tbg_key");
     { static const int DT[4] = { OT_TBG_TERM, OT_TBG_LDOOR, OT_TBG_BARRIER, 0 };   /* 11893: B = the selection index per class */
       for (int k = 0; DT[k]; k++) { int idx[3] = { 0, 0, 0 }; EACH(DT[k], o) { int m = DT[k] == OT_TBG_LDOOR ? (o->par > 2 ? 0 : o->par) : 0; o->av[1] = idx[m]++; } } }
@@ -554,12 +562,13 @@ void tb_gim_spawn(void) {
     EACH(OT_TBG_LDOOR, o) { static const char *const DN[3] = { "tbg_ldback", "tbg_ldfront", "tbg_seal" }; set_s(o, DN[o->par > 2 ? 0 : o->par]); }
     EACH(OT_TBG_BARRIER, o) set_s(o, "tbg_barrier");
     EACH(OT_TBG_MDOOR, o) set_s(o, o->par ? "tbg_mdfront" : "tbg_mdback");
-    EACH(OT_TBG_WLIGHT, o) set_s(o, "tbg_wlight");
     EACH(OT_TBG_WTLIGHT, o) set_s(o, "tbg_wtlight");
     EACH(OT_TBG_BGTURB, o) set_s(o, "tbg_bgturb");
-    /* fire platforms: TB2 start (on_frame_46_start): E = 189 (index mod 2); TB1 (RV fire1: the six alternate 71 / 242) INFERRED 0 / 171 */
-    { int k = 0; EACH(OT_TBG_FPLAT, o) { set_s(o, "tbg_fplat"); o->vx = (float)((k % 2) * 189); o->ky = o->ox; k++; } }
-    { int k = 0; EACH(OT_TBG_FPLAT80, o) { set_s(o, "tbg_fplat"); o->vx = (float)((k % 2) * 171); o->ky = o->ox; k++; } }
+    /* fire platforms: the start phase. RE on_frame_46_start: E = 189 (selection index mod 2); RV init2 (TB2, trace frame 1 = port
+     * frame 1 for the pistons / spins) E 244 at frame 1: E0 240 (+ 189 for odd indexes, INFERRED); RV fire1 (TB1 frame 0): 71 / 242
+     * alternate: E0 69 / 240 (INFERRED: one frame before trace frame 0) */
+    { int k = 0; EACH(OT_TBG_FPLAT, o) { set_s(o, "tbg_fplat"); o->vx = (float)fmod(240 + (k % 2) * 189, 360.); o->ky = o->ox; k++; } }
+    { int k = 0; EACH(OT_TBG_FPLAT80, o) { set_s(o, "tbg_fplat"); o->vx = (float)(k % 2 ? 240 : 69); o->ky = o->ox; k++; } }
     EACH(OT_TBG_FFLAME, o) {                                                                     /* each flame on its nearest platform */
         float best = 1e9f; int bi = -1;
         for (int T = OT_TBG_FPLAT; T <= OT_TBG_FPLAT80; T += OT_TBG_FPLAT80 - OT_TBG_FPLAT)
@@ -579,11 +588,11 @@ void tb_gim_spawn(void) {
     { int k = 0; EACH(OT_TBG_PISTON, o) { set_s(o, "tbg_piston"); o->vx = (float)(k % 2 ? 0 : 180); o->ky = o->ox; k++; } }   /* RV init2: E 192 / 12 at its frame 1 */
     EACH(OT_TBG_PMASK, o) { set_s(o, "tbg_pmask"); float best = 1e9f;
         EACH(OT_TBG_PISTON, q) { float d = fabsf(q->x - o->x) + fabsf(q->y - o->y); if (d < best) { best = d; o->tm = (int)(q - G.o); } } }
-    {   /* spin: the four of a hub (same placement) A = E = 270 - 90 k (RV init2) */
+    {   /* spin: the four of a hub (same placement) A = E = 150 - 90 k (RV init2: 148 / 58 / -32 / 238 or -122 at frame 1) */
         EACH(OT_TBG_SPIN, o) {
             set_s(o, "tbg_spin"); int k = 0;
             EACH(OT_TBG_SPIN, q) { if (q == o) break; if (q->ox == o->ox && q->oy == o->oy) k++; }
-            o->kx = 270 - 90 * k; o->vx = (float)o->kx; o->ky = o->ox + 160 * c_sin(o->kx);
+            o->kx = 150 - 90 * k; o->vx = (float)o->kx; o->ky = o->ox + 160 * c_sin(o->kx);
         }
         int si = 0;
         EACH(OT_TBG_SPINMASK, o) { set_s(o, "tbg_spinmask"); obj_t *s = nth(OT_TBG_SPIN, si++); o->tm = s ? (int)(s - G.o) : -1; }
@@ -592,7 +601,11 @@ void tb_gim_spawn(void) {
     }
     EACH(OT_TBG_VENT, o) set_s(o, "tbg_vent");
     EACH(OT_TBG_LAVA, o) set_s(o, "tbg_lava");
-    EACH(OT_TBG_LFALL, o) { set_s(o, o->par ? "tbg_lfall3" : "tbg_lfall"); if (!o->par) o->hidden = 1; }
+    EACH(OT_TBG_LFALL, o) {                                                                      /* av[5]: the segment index of its spot */
+        set_s(o, o->par ? "tbg_lfall3" : "tbg_lfall"); if (!o->par) o->hidden = 1;
+        int k = 0; EACH(OT_TBG_LFALL, q) { if (q == o) break; if (q->ox == o->ox && q->oy == o->oy && q->par == o->par) k++; }
+        o->av[5] = k;
+    }
     EACH(OT_TBG_LWARN, o) set_s(o, "tbg_lwarn0");
     EACH(OT_TBG_MAGMA, o) set_s(o, "tbg_magma");
     EACH(OT_TBG_XBLOCK, o) set_s(o, "tbg_xblock");
@@ -605,7 +618,11 @@ void tb_gim_spawn(void) {
     EACH(OT_TBG_LOOP1, o) { static const char *const L1[3] = { "tbl_1_0", "tbl_1_1", "tbl_1_2" }; set_s(o, L1[o->par % 3]); }
     EACH(OT_TBG_LOOP1B, o) set_s(o, "tbl_1b_0");
     EACH(OT_TBG_CTOP, o) set_s(o, "tbg_ctop");
-    EACH(OT_TBG_CPART, o) set_s(o, o->par < 2 ? "tbg_cmid" : "tbg_cbase");
+    EACH(OT_TBG_CPART, o) {                                                                      /* par: mid1 / mid2, base1 / base2, arm1 / arm2 */
+        set_s(o, o->par < 2 ? "tbg_cmid" : "tbg_cbase");
+        float best = 1e9f; o->tm = -1;
+        EACH(OT_TBG_CPART, q) if ((q->par >> 1) == 1 && (q->par & 1) == (o->par & 1)) { float d = fabsf(q->x - o->x) + fabsf(q->y - o->y); if (d < best) { best = d; o->tm = (int)(q - G.o); } }
+    }
     EACH(OT_TBG_PRESS, o) { set_s(o, o->par ? "tbg_press" : "tbg_ptube"); o->av[0] = o->y; o->av[1] = 180; }
     EACH(OT_TBG_PHIT, o) { set_s(o, "tbg_phit"); float best = 1e9f;
         EACH(OT_TBG_PRESS, q) if (q->par == 1) { float d = fabsf(q->x - o->x) + fabsf(q->y - o->y); if (d < best) { best = d; o->tm = (int)(q - G.o); } } }
@@ -614,15 +631,14 @@ void tb_gim_spawn(void) {
     EACH(OT_TBG_WMASK, o) set_s(o, "tbg_wmask");
     EACH(OT_TBG_BWAVE, o) set_s(o, o->par ? "tbg_bwave1" : "tbg_bwave0");
 #ifdef FP_HOST_ENV
-    if (getenv("FP_DBG_TBG")) fprintf(stderr, "tbg: lifts %d keys %d terms %d doors %d barriers %d fplat %d/%d splat %d piston %d spin %d xblock %d conv %d\n",
-        N(OT_TBG_LIFT), N(OT_TBG_KEY), N(OT_TBG_TERM), N(OT_TBG_LDOOR), N(OT_TBG_BARRIER), N(OT_TBG_FPLAT), N(OT_TBG_FPLAT80), N(OT_TBG_SPLAT),
+    if (getenv("FP_DBG_TBG")) fprintf(stderr, "tbg: keys %d terms %d doors %d barriers %d fplat %d/%d splat %d piston %d spin %d xblock %d conv %d\n",
+        N(OT_TBG_KEY), N(OT_TBG_TERM), N(OT_TBG_LDOOR), N(OT_TBG_BARRIER), N(OT_TBG_FPLAT), N(OT_TBG_FPLAT80), N(OT_TBG_SPLAT),
         N(OT_TBG_PISTON), N(OT_TBG_SPIN), N(OT_TBG_XBLOCK), N(OT_TBG_CONV));
 #endif
 }
 
 void tb_gim_pre(player_t *p) {
     if (!S.on) return;
-    if (N(OT_TBG_LIFT)) lifts_pre();
     if (N(OT_TBG_CTOP)) cranks_pre(p);
 }
 int tb_gim_obj(obj_t *o, player_t *p) {
@@ -633,7 +649,6 @@ int tb_gim_obj(obj_t *o, player_t *p) {
 }
 void tb_gim_frame(player_t *p) {
     if (!S.on) return;
-    if (N(OT_TBG_LIFT)) lifts(p);
     if (N(OT_TBG_FPLAT) || N(OT_TBG_FPLAT80)) fireplats(p);
     if (N(OT_TBG_SPLAT)) scrollers(p);
     if (N(OT_TBG_PISTON) || N(OT_TBG_SPIN)) pistons(p);
@@ -658,6 +673,15 @@ void tb_gim_draw(int pass) {
             float sx = floorf(o->x - G.camx), sy = floorf(o->y - G.camy);
             if (sx < -200 || sx > SCREEN_W + 200 || sy < -200 || sy > SCREEN_H + 200) continue;
             r_set_xscale(0.25f * 160); frame_draw_rot(o->an.b, anim_frame(&o->an), sx, sy, o->ang, 0, 0xffffffff); r_set_xscale(1.f);
+        }
+    }
+    if (pass == 1) {                                                                             /* crank mids: x scale 0.1 A (12384) */
+        obj_t *o;
+        EACH(OT_TBG_CPART, o) {
+            if ((o->par >> 1) != 0 || !o->an.b) continue;
+            float sx = floorf(o->x - G.camx), sy = floorf(o->y - G.camy);
+            if (sx < -300 || sx > SCREEN_W + 300 || sy < -300 || sy > SCREEN_H + 300) continue;
+            r_set_xscale((float)o->av[0] * 0.1f); frame_draw_rot(o->an.b, anim_frame(&o->an), sx, sy, o->ang, 0, 0xffffffff); r_set_xscale(1.f);
         }
     }
     if (pass == 3 && S.keys > 0) {                                                               /* 11805 / 11806: the key card HUD */

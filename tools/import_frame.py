@@ -1244,10 +1244,9 @@ WATER_FRAMES = WATER_FRAMES + (48, 49)
 
 # ---- TB_GIM (tb_gim.c, 1888-1967; build/re/spec_tb_gimmicks.md). Families share a type; TBG_SUB gives the member index (lvobj
 # anim bits 0-7, the instance layer in bits 8-14, as TH_GIM). Types mirror src/game/tb.h OT_TBG_*.
-TBG_TYPES_ID = {('levellift', 2649): 1888, ('levellifttop', 2650): 1889, ('levelliftbottom', 2651): 1889,
-    ('objectkeycard', 2685): 1890, ('lockeddoorterminal', 2689): 1891, ('lockeddoorback', 2658): 1892, ('lockeddoorfront', 2659): 1892,
+TBG_TYPES_ID = {('objectkeycard', 2685): 1890, ('lockeddoorterminal', 2689): 1891, ('lockeddoorback', 2658): 1892, ('lockeddoorfront', 2659): 1892,
     ('lockeddoorseal', 2660): 1892, ('lockeddoorbarrier', 2688): 1893, ('metaldoorback', 2641): 1894, ('metaldoorfront', 2643): 1894,
-    ('tbwalllightanim', 2644): 1895, ('levelfireplatform1', 2708): 1896, ('levelfireplatform1', 2665): 1934,
+    ('levelfireplatform1', 2708): 1896, ('levelfireplatform1', 2665): 1934,
     ('levelfireplatformflame1', 2666): 1897, ('levelfireplatformflame2', 2667): 1897,
     ('levelscrollingplatform1', 2677): 1898, ('levelscrollingplatform2', 2678): 1898, ('levelscrollingplatformmask1', 2680): 1899,
     ('levelscrollingplatformmask2', 2681): 1899, ('levelscrollingplatformflame1', 2668): 1900, ('levelscrollingplatformflame2', 2679): 1900,
@@ -1270,7 +1269,7 @@ TBG_TYPES_ID = {('levellift', 2649): 1888, ('levellifttop', 2650): 1889, ('level
     ('tbwaterlight', 2866): 1930, ('gimmickwaterlever1', 2871): 1931, ('gimmickwaterlever2', 2877): 1931,
     ('gimmickwaterlevelmask1', 2872): 1932, ('gimmickwaterlevelmask2', 2878): 1932,
     ('gimmickbubblewavespawner', 2833): 1933, ('gimmickbubblewavespawner2', 2834): 1933}
-TBG_SUB = {'levelliftbottom_2651': 1, 'lockeddoorfront_2659': 1, 'lockeddoorseal_2660': 2, 'metaldoorfront_2643': 1,
+TBG_SUB = {'lockeddoorfront_2659': 1, 'lockeddoorseal_2660': 2, 'metaldoorfront_2643': 1,
     'levelfireplatformflame2_2667': 1, 'levelscrollingplatform2_2678': 1, 'levelscrollingplatformmask2_2681': 1,
     'levelscrollingplatformflame2_2679': 1, 'levelscrollingplatformend_2686': 1, 'hazardlavafall3_2777': 1, 'switchbuttonright_2705': 1,
     'gimmickconveyorbeltright2_2836': 1, 'gimmickconveyorbeltright3_2837': 2, 'gimmickconveyorbeltleft_2844': 3,
@@ -1281,11 +1280,11 @@ TBG_SUB = {'levelliftbottom_2651': 1, 'lockeddoorfront_2659': 1, 'lockeddoorseal
     'gimmickcrankplatformbase2_2806': 3, 'gimmickcrankplatformarm1_2808': 4, 'gimmickcrankplatformarm2_2807': 5,
     'gimmckgiantpresser_2857': 1, 'gimmickwaterlever2_2877': 1, 'gimmickwaterlevelmask2_2878': 1, 'gimmickbubblewavespawner2_2834': 1}
 TBG_ENS = [(c, a, d, nm) for c, a, d, nm in (
-    ('levellift_2649', 0, '0', 'tbg_lift'), ('objectkeycard_2685', 0, '0', 'tbg_key'),
+    ('objectkeycard_2685', 0, '0', 'tbg_key'),
     ('lockeddoorterminal_2689', 0, '0', 'tbg_term'), ('lockeddoorterminal_2689', 7, '0', 'tbg_term7'),
     ('lockeddoorback_2658', 0, '0', 'tbg_ldback'), ('lockeddoorfront_2659', 0, '0', 'tbg_ldfront'), ('lockeddoorseal_2660', 0, '0', 'tbg_seal'),
     ('lockeddoorbarrier_2688', 0, '0', 'tbg_barrier'), ('metaldoorback_2641', 0, '0', 'tbg_mdback'), ('metaldoorfront_2643', 0, '0', 'tbg_mdfront'),
-    ('tbwalllightanim_2644', 0, '0', 'tbg_wlight'), ('levelfireplatform1_2708', 0, '0', 'tbg_fplat'),
+    ('levelfireplatform1_2708', 0, '0', 'tbg_fplat'),
     ('levelfireplatformflame1_2666', 0, '0', 'tbg_ff0'), ('levelfireplatformflame1_2666', 0, '1', 'tbg_ff1'),
     ('levelfireplatformflame1_2666', 0, '16', 'tbg_ff16'), ('levelfireplatformflame1_2666', 0, '17', 'tbg_ff17'),
     ('levelscrollingplatform1_2677', 0, '0', 'tbg_splat0'), ('levelscrollingplatform2_2678', 0, '0', 'tbg_splat1'),
