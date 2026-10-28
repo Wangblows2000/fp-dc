@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Host tests for the Thermal Base gimmicks (session 21c; src/game/tb_gim.c, build/re/spec_tb_gimmicks.md): the importer's TB_GIM
 rows; key cards, terminals and locked doors (TB1 gate, all three characters; sounds 37 / 285 / 286 / 279); switch buttons and
-explosive blocks (TB2 wall, all three characters); fire platforms (TB1 G 80 cycle, RV fire1; TB2 phase, RV init2; carry; the
+explosive blocks (TB2 wall, TB4's left switch wall vs RV btn4l, all three characters; Carol's cling switches); fire platforms (TB1 G 80 cycle, RV fire1; TB2 phase, RV init2; carry; the
 flames' burn); pistons and spin platforms (RV init2 positions); scrolling platforms (carry, the cycle, sound 283); conveyors;
 floor traps (RV ftrap4: 36 frames, 4 half-petals); lava falls (240-frame cycle, burn); crank platforms (RV crank4 linkage, carry);
 metal doors; the TB5 water levers (level_water_set).
@@ -94,6 +94,30 @@ for ch, nm in CHARS:
     check('blocks_destroyed_%s' % nm, not gone and [o for o in obs if o['f'] == 30], '%d left at 150' % len(gone))
 rows, ev, obs = run('5 TP 2450 2470\n', 120, {'FP_LEVEL': 'tb2', 'FP_CHAR': '0', 'FP_TRACK': '1913:2248'})
 check('blocks_stay_without_press', [o for o in obs if o['f'] == 110] and not sids(ev, 38))
+# TB4's left switch (2528,1416) sits a row below its 3 x 2 wall (2304-2496, rows 1256 / 1320): RE 11958's three destroyers
+# (the switch, + 64 / - 64, + 128 / - 128), 2 px a frame through the wall, each hit resetting every touching destroyer's B (RV btn4l:
+# the press at 90, the six blocks lit at + 7 / 13 / 37 / 39 / 69 / 71, column by column, gone 30 frames later)
+RV_LIT = [7, 13, 37, 39, 69, 71]
+for ch, nm in CHARS:
+    rows, ev, obs = run('3 SETV others E 99999\n60 TP 2570 1420\n80 180 L\n', 300, {'FP_LEVEL': 'tb4', 'FP_CHAR': str(ch), 'FP_TRACK': '1913:-1'})
+    s49 = sids(ev, 49)
+    lit = {}
+    for o in obs:
+        if o['type'] == 1913 and o['fl'] & 0x1000 and (o['x'], o['y']) not in lit: lit[(o['x'], o['y'])] = o['f']
+    wall = [(x, y) for x in (2304, 2368, 2432) for y in (1256, 1320)]
+    left = [(o['x'], o['y']) for o in at(obs, 299, 1913) if (o['x'], o['y']) in wall]
+    d = sorted(f - s49[0] for k, f in lit.items() if k in wall) if s49 else []
+    check('tb4_switch_wall_%s' % nm, s49 and not left and len(d) == 6 and all(abs(a - b) <= 1 for a, b in zip(d, RV_LIT)),
+          'press %s lit %s (RV %s) left %s' % (s49[:1], d, RV_LIT, left))
+    xs = [r['x'] for r in run('3 SETV others E 99999\n60 TP 2570 1420\n80 180 L\n200 TP 2450 1370\n220 330 L\n', 330, {'FP_LEVEL': 'tb4', 'FP_CHAR': str(ch)})[0]]
+    check('tb4_switch_wall_passable_%s' % nm, xs and xs[-1] < 2290, 'x %.0f' % (xs[-1] if xs else -1))
+# the mid-air switches (TB3 6912,2848 / 7056,2976, TB4 7096,544) are pressed by Carol's wall cling (M 47): each blows the rows of
+# its three destroyers (TB3's right switch the upper three of the five, TB4's the whole column)
+for lv, bx, by, keys, want in (('tb4', 7084, 540, 'R', [(7144, 384), (7144, 448), (7144, 512)]),
+                               ('tb3', 6900, 2844, 'R', [(6960, 2688), (6960, 2752), (6960, 2816)])):
+    rows, ev, obs = run('3 SETV others E 99999\n10 TP %d %d\n10 120 %s\n' % (bx, by, keys), 200, {'FP_LEVEL': lv, 'FP_CHAR': '2', 'FP_TRACK': '1913:-1'})
+    left = [(o['x'], o['y']) for o in at(obs, 199, 1913) if (o['x'], o['y']) in want]
+    check('%s_cling_switch_carol' % lv, sids(ev, 49) and not left, 'press %s left %s' % (sids(ev, 49)[:1], left))
 
 # ---- fire platforms
 rows, ev, obs = run('', 200, {'FP_LEVEL': 'tb1', 'FP_CHAR': '0', 'FP_TRACK': '1934:3008,1897:2956'})

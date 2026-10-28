@@ -169,13 +169,52 @@ for ch, nm in CHARS:
     res = first(x, lambda r: r['res'] == '1')
     check('tb6 %s: the results ~481 frames after the end (RV 2381)' % nm, res is not None and s309 and 470 <= res - s309[0] <= 490, '%s' % res)
     check('tb6 %s: the HUD slid up 40 px' % nm, x and num(x[max(x)], 'hud') == 40)
-# a real hit: the player on the platform under the hitbox (N 1 near 790), attacking
+# a real hit: the player on the ledge beside the head (N 1 near 790), attacking, NOT invulnerable: RE 12636 hurts only as the dive's
+# ball (N 5), so standing in / next to the head's 40 x 64 box is safe and every attack lands (RV tb_bosses_hit/x3_l: Lilac in the box
+# at 1415,1314 over the hitbox at 1415,1382 for 66 frames, R 0; her hair whips take A 50 -> 26)
 for ch, nm in CHARS:
     atk = 'B' if ch == 4 else 'X'
-    rows, ev, d = run('tb6', ch, 900, '3 SETV others E 99999\n60 400 R\n790 TP 1430 1380\n' + ''.join('%d %d %s\n' % (f, f + 9, atk) for f in (791, 806, 821, 836)))
+    rows, ev, d = run('tb6', ch, 900, '3 SETV others E 99999\n60 400 R\n700 SETV others E 0\n790 TP 1430 1380\n' + ''.join('%d %d %s\n' % (f, f + 9, atk) for f in (791, 806, 821, 836)))
     x = d.get('tbx', {})
     a0, a1 = num(x.get(785, {}), 'hA', -1), min((num(r, 'hA', 99) for f, r in x.items() if 790 <= f <= 899), default=-1)
     check('tb6 %s: a real attack hurts the hitbox (A 50 -> lower)' % nm, a0 == 50 and 0 < a1 < 50, '%s %s' % (a0, a1))
+    hurt = [i for i, r in enumerate(rows) if 790 <= i < 900 and r.get('st') == 5]
+    check('tb6 %s: the head does not hurt or launch the player outside the dive (RE 12636 N == 5; RV x3_l)' % nm, not hurt, str(hurt[:3]))
+# the dive (N 5, third round): O holds at each leg (RE 12614-12634); RV x2_l: O 81 / 100 / 101 / 102 at + 80 / 99 / 167 / 208 after
+# O 1; then the ball drops back into the lava and the rig swims again (N 0). Its contact hurts (15) and pushes the player away.
+X4 = '3 SETV others E 99999\n60 400 R\n698 BOSSHPT 1993 0\n1298 BOSSHPT 1993 0\n' + INV
+rows, ev, d = run('tb6', 0, 2400, X4)
+x = d.get('tbx', {})
+o1 = first(x, lambda r: r['N'] == '5')
+legs = {o: first(x, lambda r, o=o: r['N'] == '5' and int(num(r, 'O')) == o) for o in (81, 100, 101, 102, 103, 104, 105, 106)}
+back = next((f for f in sorted(x) if legs[106] is not None and f > legs[106] and x[f]['N'] == '0'), None)
+rel = [legs[o] - o1 if o1 is not None and legs[o] is not None else None for o in (81, 100, 101, 102)]
+check('tb6 lilac: the dive legs hold O (RV x2_l + 80 / 99 / 167 / 208)', None not in rel and all(abs(a - b) <= 3 for a, b in zip(rel, (80, 99, 167, 208))), str(rel))
+check('tb6 lilac: the ball goes round the arena and back into the lava, the fight goes on (N 0)',
+      None not in legs.values() and back is not None and o1 is not None and back - o1 < 700, '%s %s' % (sorted(legs.items()), back))
+b0 = legs[103]
+if b0 is not None and b0 + 9 in x:   # (the run is deterministic: the ball is where the first run had it; a TP at f lands after frame f - 2)
+    rows, ev, d = run('tb6', 0, b0 + 40, X4 + '%d SETV others E 0\n%d TP %.0f %.0f\n' % (b0 + 5, b0 + 10, num(x[b0 + 9], "bx"), num(x[b0 + 9], "by") - 10))
+    hp = [r.get('hp', 0) for r in rows]
+    check('tb6 lilac: the dive ball hurts on contact (15 = 3 half-petals) and pushes away',
+          len(hp) > b0 + 30 and hp[b0 + 8] - hp[-1] == 3 and any(r.get('st') == 5 for r in rows[b0 + 10:]),
+          '%s -> %s' % (hp[b0 + 8] if len(hp) > b0 + 8 else '-', hp[-1] if hp else '-'))
+# full fights with real attacks only (no BOSSHP): the player is put next to the head every 16 frames (TPO, not while the rig is
+# under the lava or rolled up) and attacks; petals refilled, no invulnerability. Three stuns (47), the end (309), the results; the
+# player is not thrown around (few hurts: the blobs, spheres and hot floor still hurt)
+def fight(ch, atk, n=5300):
+    s = '3 SETV others E 99999\n60 400 R\n650 SETV others E 0\n'
+    for f in range(660, n, 16): s += '%d TPO 1990 -36 -44 1800\n%d %d %s\n' % (f, f + 1, f + 6, atk)
+    for f in range(700, n, 100): s += '%d HP 14\n' % f
+    return run('tb6', ch, n, s)
+for ch, nm in CHARS:
+    rows, ev, d = fight(ch, 'B' if ch == 4 else 'RX')
+    x = d.get('tbx', {})
+    s47, s309 = sids(ev, 47), sids(ev, 309)
+    res = first(x, lambda r: r['res'] == '1')
+    hurts = sum(1 for i in range(1, len(rows)) if rows[i].get('st') == 5 and rows[i - 1].get('st') != 5)
+    check('tb6 %s: beaten with real attacks: three stuns, the end, the results' % nm, len(s47) == 3 and len(s309) == 1 and res is not None, '%s %s %s' % (s47, s309, res))
+    check('tb6 %s: not thrown around (hurts < 15 in the whole fight)' % nm, hurts < 15, str(hurts))
 
 # ======================================================================== TB3: the Syntax Spider and the lava chase (spec Part C)
 # RV p5_l (Lilac on the left ledge, HP refilled): the trigger at 60 (284), the walker's steps K 1-16 (a cycle of 1654 frames), the
