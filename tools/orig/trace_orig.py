@@ -336,7 +336,13 @@ class Tracer(gdb.Breakpoint):
                                 if not ob: continue
                                 x_, y_ = struct.unpack('<ii', rq(ob + 8, 8))
                                 fl_ = struct.unpack('<I', rq(struct.unpack('<Q', rq(ob + 0x20, 8))[0] + 0x120, 4))[0]
-                                self.xlf.write('%d %s%d.%d %d %d fl %x obj %x\n' % (self.f, nm_, bi_, i_, x_, y_, fl_, ob))
+                                ext_ = ''
+                                if os.environ.get('XLIST_ALT'):   # XLIST_ALT=n: + direction (+0x54) and alterables A.. (n of them; 1 = A-E)
+                                    al_ = struct.unpack('<Q', rq(ob + 0x20, 8))[0]
+                                    na_ = max(5, min(26, int(os.environ['XLIST_ALT'])))
+                                    ext_ = ' dir %d alt %s' % (struct.unpack('<i', rq(ob + 0x54, 4))[0],
+                                                               ' '.join('%g' % v_ for v_ in struct.unpack('<%dd' % na_, rq(al_ + 0x50, 8 * na_))))
+                                self.xlf.write('%d %s%d.%d %d %d fl %x obj %x%s\n' % (self.f, nm_, bi_, i_, x_, y_, fl_, ob, ext_))
                                 if not hasattr(self, 'xlobj'): self.xlobj = {}
                                 self.xlobj['%s%d.%d' % (nm_, bi_, i_)] = ob
                     self.xlf.flush()

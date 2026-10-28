@@ -273,12 +273,15 @@ static void slides(player_t *p) {
  * platform: av[0] A pieces made; piece: av[0] A y, av[1] B fall speed, av[2] C delay. Stood on (L = 1, S_BB on it): flag 6,
  * 8 pieces at once (frame k, C = 6 (k + 1)), sound 426, the platform goes (10458 at A >= 8). A piece waits C frames, then
  * falls (B + 0.3 to 15) and stops being solid (flag 0); it goes once 290 px below the view top. */
+/* members: 0 / 1 LevelJCCollapsingPlatform 2456 / 2475 (+ Piece_2457), 2 Trap Hideout's LevelTHCollapsingPlatform_3186 (+ Piece_3187:
+ * the same events 13598-13602 / loop_collapse_57, RE session 21b); the sprite rows per member (importer JCG_SUB, TH_GIM rows) */
+static const char *const COLL_ROW[3] = { "jcg_coll0", "jcg_coll1", "thg_coll" }, *const COLL_PIECE[3] = { "jcg_cpiece", "jcg_cpiece", "thg_cpiece" };
 static void collapses(player_t *p) {
     obj_t *o;
     if (p->ground && !dead(p)) EACH(OT_JCG_COLL, o) if (sens_hit(SENS_BOTTOMBIG, o)) {   /* 10457 */
         o->fl |= F6;
         for (int n = 0; n < 8; n++) {
-            obj_t *c = spawn(OT_JCG_CPIECE, "jcg_cpiece", o->x, o->y, o->layer);
+            obj_t *c = spawn(OT_JCG_CPIECE, COLL_PIECE[o->par >= 0 && o->par <= 2 ? o->par : 0], o->x, o->y, o->layer);
             if (!c) break;
             c->an.frame = (int)o->av[0]; c->an.acc = 0;
             o->av[0] += 1;
@@ -507,7 +510,7 @@ void jc_gim_spawn(void) {
     EACH(OT_JCG_SLIDE, o) { set_s(o, "jcg_slide"); o->av[6] = o->x; o->av[7] = o->y; }
     EACH(OT_JCG_SLIDEM, o) set_s(o, "jcg_slidem");
     EACH(OT_JCG_SLIDEL, o) set_s(o, "jcg_slidel");
-    EACH(OT_JCG_COLL, o) set_s(o, o->par ? "jcg_coll1" : "jcg_coll0");
+    EACH(OT_JCG_COLL, o) set_s(o, COLL_ROW[o->par >= 0 && o->par <= 2 ? o->par : 0]);
     EACH(OT_JCG_SEEDSP, o) set_s(o, "jcg_seedsp");
     EACH(OT_JCG_BUBSP, o) { set_s(o, "jcg_bubsp"); o->av[0] = -1; }
     EACH(OT_JCG_SLIP, o) set_s(o, "jcg_slip");
