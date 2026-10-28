@@ -78,6 +78,50 @@ static inline void ek_face(obj_t *o, int dir) {                    /* set_direct
     animator_t k = o->an;
     o->an.anim = a; o->an.frame = k.frame < G.ens.anims[a].count ? k.frame : G.ens.anims[a].count - 1;
 }
+/* rows of any direction d (session 21c, TB): '<base>' (0), '<base>_l' (16), '<base>_<d>'; a missing row is the row of the mirror
+ * direction (16 - d) & 31 drawn flipped (importer _tbe_mirror_rows), else the nearer of 0 / 16. *flip = 1 when drawn mirrored. */
+static inline void ek_dname(char *nm, size_t n, const char *base, int d) {
+    d &= 31;
+    if (d == 0) snprintf(nm, n, "%s", base); else if (d == 16) snprintf(nm, n, "%s_l", base); else snprintf(nm, n, "%s_%d", base, d);
+}
+static inline int ek_row_d(const char *base, int d, int *flip) {
+    char nm[24]; int a;
+    *flip = 0; ek_dname(nm, sizeof nm, base, d); if ((a = ens_anim(nm)) >= 0) return a;
+    *flip = 1; ek_dname(nm, sizeof nm, base, (16 - d) & 31); if ((a = ens_anim(nm)) >= 0) return a;
+    d &= 31; int side = (d > 8 && d < 24) ? 16 : 0;
+    *flip = 0; ek_dname(nm, sizeof nm, base, side); if ((a = ens_anim(nm)) >= 0) return a;
+    *flip = 1; ek_dname(nm, sizeof nm, base, 16 - side); return ens_anim(nm);
+}
+static inline int ek_same_family(int a, const char *base) {   /* row a is '<base>' or '<base>_<suffix>' */
+    if (a < 0 || a >= G.ens.nanims) return 0;
+    const char *n = G.ens.anims[a].name; size_t k = strlen(base);
+    return !strncmp(n, base, k) && (n[k] == 0 || n[k] == '_');
+}
+/* force_animation(base) in the object's direction: a new animation starts at frame 0 (speed counter kept, ek_held_acc); a
+ * direction change within the same animation keeps the frame (set_direction) */
+static inline void ek_set_ad(obj_t *o, const char *base) {
+    int fl, a = ek_row_d(base, o->dir, &fl);
+    if (a < 0) return;
+    o->flip = fl ? 2 : 0;
+    if (o->an.b == &G.ens && o->an.anim == a) return;
+    if (o->an.b == &G.ens && ek_same_family(o->an.anim, base)) {
+        animator_t k = o->an; o->an.anim = a; o->an.frame = k.frame < G.ens.anims[a].count ? k.frame : G.ens.anims[a].count - 1;
+        return;
+    }
+    int acc = ek_held_acc(&o->an); anim_set(&o->an, &G.ens, a); o->an.acc = acc;
+}
+static inline void ek_face_d(obj_t *o, int d) {                   /* set_direction for ek_set_ad rows (frame and counter kept) */
+    d &= 31;
+    if ((o->dir & 31) == d) return;
+    o->dir = d;
+    if (o->an.b != &G.ens) return;
+    char stem[24]; snprintf(stem, sizeof stem, "%s", G.ens.anims[o->an.anim].name);
+    char *u = strrchr(stem, '_');
+    if (u && u != stem && strchr(stem, '_') != u && (!strcmp(u + 1, "l") || (u[1] && strspn(u + 1, "0123456789") == strlen(u + 1)))) *u = 0;
+    ek_set_ad(o, stem);
+}
+static inline void ek_restart_ad(obj_t *o, const char *base) { int fl, a = ek_row_d(base, o->dir, &fl); if (a >= 0) { o->flip = fl ? 2 : 0; anim_set(&o->an, &G.ens, a); anim_restart(&o->an); } }
+static inline int ek_ad_is(const obj_t *o, const char *base) { return o->an.b == &G.ens && ek_same_family(o->an.anim, base); }
 static inline void ek_force_frame(obj_t *o, int f) {               /* Active::force_frame (held: no advance, INFERRED as SB's) */
     if (!o->an.b) return;
     int n = o->an.b->anims[o->an.anim].count;
