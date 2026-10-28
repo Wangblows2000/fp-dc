@@ -84,6 +84,7 @@ static const struct { int stage, card_base, cards_ach, time_ach; uint32_t limit_
     { 3, 31, 26, 46, 480000 },   /* Fortune Night (FN6 8789: cards 31-40 -> 26; 8788 / inline: 46 with ML.Z <= 480000 ms) */
     { 4, 41, 27, 47, 420000 },   /* Sky Battalion (SB1 9179: cards 41-50 -> 27; 9177: 47 with ML.Z <= 420000 ms; session 21) */
     { 5, 51, 28, 48, 480000 },   /* Jade Creek (JC5 11624: cards 51-60 -> 28; 11623: 48 with ML.Z <= 480000 ms; session 21) */
+    { 6, 61, 29, 49, 540000 },   /* Thermal Base (TB6 12717: cards 61-70 -> records x2 y29; handle_frame_50 inline: 49 with ML.Z <= 540000 ms, session 21c) */
     { 8, 71, 30, 50, 360000 },   /* Trap Hideout (TH3 14067: cards 71-80 -> records x2 y30; 14066: 50 with ML.Z <= 360000 ms) */
 };
 static void ach_results(void) {
