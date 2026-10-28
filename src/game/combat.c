@@ -377,7 +377,8 @@ void combat_frame(player_t *p) {
             if ((o->type == OT_GANSEKI || o->type == OT_TURRETUS) && o->y > G.camy + 290) { o->alive = 0; continue; }   /* 4389 / 4777 */
             int lands = o->type == OT_GANSEKI || o->type == OT_TURRETUS || o->type == OT_DRAGONFLY || o->type == OT_FLOUNDER ||
                         o->type == OT_CACTEON || o->type == OT_SPOREPOD || o->type == OT_FIREFLY || o->type == OT_SLIME ||
-                        o->type == OT_IRIS || o->type == OT_SLUG || o->type == OT_HOPPER || o->type == OT_FSPITTER || o->type == OT_SENTINEL;   /* RM 5785 / 5765 (sound 50); the others keystone */   /* classes with a landing event (AT 4113 / 4129) */
+                        o->type == OT_IRIS || o->type == OT_SLUG || o->type == OT_HOPPER || o->type == OT_FSPITTER || o->type == OT_SENTINEL ||
+                        (objdef(o->type)->flags & OD_LANDS);   /* data-driven (objdefs.c): the TH pup / puppet / orbiter (13616 / 13627 / 13645) */   /* RM 5785 / 5765 (sound 50); the others keystone */   /* classes with a landing event (AT 4113 / 4129) */
             if (lands && o->ky > 0 && (obj_overlaps_bg(o) || solid_obj_overlap(o))) corpse_land(o);                        /* 4390 / 4776 / 4807 */
         }
     }

@@ -1041,7 +1041,7 @@ void objects_sense_snapshot(int on);
 int  objects_alive_type(int type);    /* objects.c: superset test, any slot of this type alive (pass gates) */   /* objects.c: packed sensor prefilter for the player phase (game.c) */
 void game_save_stage_end(uint32_t time_ms);
 /* object registry (src/game/objdefs.c): properties of each engine type shared by every level */
-enum { OD_SOLID = 1, OD_OBSTACLE = 2, OD_NOEDGE = 4, OD_BOXCOL = 8, OD_HANG = 16, OD_LAYER0 = 32, OD_LAYER1 = 64, OD_HIDDEN = 128 };   /* OD_HIDDEN: the constructor calls set_visible(0) (RE create_*), a collision-only or event-shown object */   /* OD_HANG: a hang handle (Q23); OD_LAYER0 / 1: loop-layer pieces solid while MV.P = 0 / 1 */
+enum { OD_SOLID = 1, OD_OBSTACLE = 2, OD_NOEDGE = 4, OD_BOXCOL = 8, OD_HANG = 16, OD_LAYER0 = 32, OD_LAYER1 = 64, OD_HIDDEN = 128, OD_LANDS = 256 };   /* OD_LANDS: a defeated Q20 enemy explodes where its fly-away meets the background / a Q7 object (the Ganseki landing, combat.c corpse_land: sound 50; TH 13616 / 13627 / 13645) */   /* OD_HIDDEN: the constructor calls set_visible(0) (RE create_*), a collision-only or event-shown object */   /* OD_HANG: a hang handle (Q23); OD_LAYER0 / 1: loop-layer pieces solid while MV.P = 0 / 1 */
 typedef struct { uint16_t type, flags; const char *ens; } objdef_t;
 const objdef_t *objdef(int type);
 void level_flow_spawn(void), level_flow_frame(const player_t *p), level_camera_bounds(void), level_release_camera(int keep_trigger);
