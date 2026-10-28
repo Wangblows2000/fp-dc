@@ -702,3 +702,17 @@ void tb_gim_draw(int pass) {
     }
 }
 int tb_gim_q20(int type) { (void)type; return 0; }
+
+/* ---- for tb_boss_pusher.c (TB_BOSS block; RE 12007): the wall pusher's barrier, not the player, presses TB2's switch. A button
+ * overlapping the barrier (its 16 x 48 marker box: no image) is pressed (hidden, counted; the boss plays sound 49), and the boss
+ * places three ObjectExplosiveBlockDestroyers at the switch, - 64 / - 64 and - 128 / - 128 (ctor C 1: they run right, 11959). */
+int tb_gim_button_at(const obj_t *q) {
+    obj_t *b; float x0 = floorf(q->x), y0 = floorf(q->y), x1 = x0 + 16, y1 = y0 + 48;
+    if (q->an.b) img_box(q, &x0, &y0, &x1, &y1);
+    EACH(OT_TBG_BUTTON, b) {
+        float c0, d0, c1, d1; img_box(b, &c0, &d0, &c1, &d1);
+        if (!b->hidden && x0 < c1 && c0 < x1 && y0 < d1 && d0 < y1) { b->hidden = 1; S.presses++; return 1; }
+    }
+    return 0;
+}
+void tb_gim_blast(float x, float y) { obj_t *d = spawn(OT_TBG_DESTROYER, "tbg_destroyer", x, y, 3); if (d) { d->av[2] = 1; d->hidden = 1; S.on = 1; } }   /* ctor C 1: x + 12 a frame */

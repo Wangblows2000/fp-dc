@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/* the gimmick module's switch / explosive blocks (tb_gim.c, weak: absent until it ports them). tb_gim_button_at(o): a
+/* the gimmick module's switch / explosive blocks (tb_gim.c: its TB_BOSS hooks; weak). tb_gim_button_at(o): a
  * SwitchButtonRight_2705 overlapping o is pressed (12007: hidden, flag 1) -> 1. tb_gim_blast(x, y): an
  * ObjectExplosiveBlockDestroyer_2744 at (x, y) (12007 makes three: the switch, -64 / -64 and -128 / -128). */
 extern int  tb_gim_button_at(const obj_t *o) __attribute__((weak));
@@ -111,7 +111,7 @@ void tbw_frame(player_t *p) {
         if (W.D > 0) W.D -= 0.5;                                                /* 12006 */
         if (bar_on(on_switch)) {                                                /* 12007 */
             snd_play_orig(49, 220, 128);
-            float sx = W.bar0 + 72, sy = r ? r->y - 31 : 0;                     /* (the blasts are the gimmick module's: at the switch and up-left) */
+            float sx = W.bar0 + 72 + 8, sy = r ? r->y - 31 + 16 : 0;                    /* (the blasts are the gimmick module's: at the switch and up-left) */
             if (tb_gim_blast) { tb_gim_blast(sx, sy); tb_gim_blast(sx - 64, sy - 64); tb_gim_blast(sx - 128, sy - 128); }
             W.C += 1;
         }
@@ -137,8 +137,8 @@ void tbw_frame(player_t *p) {
 #ifdef FP_HOST_ENV
     if (getenv("FP_DBG_TBW")) {
         const obj_t *b = NULL; for (int k = 0; k < nwall && !b; k++) { const obj_t *o = tbb_slot(wall[k]); if (o && o->type == OT_WR_BARRIER) b = o; }
-        printf("tbw %d px %.0f py %.0f C %d B %.0f tx %.0f fl1 %d D %.1f bx %.0f rx %.0f rc %d boom %d\n", G.frame, PX, PY, W.C, W.B, t ? t->x : -1, W.fl1, W.D,
-            b ? b->x : -1, r ? r->x : -1, r ? r->c : -1, W.boomed);
+        printf("tbw %d px %.0f py %.0f C %d B %.0f tx %.0f fl1 %d D %.1f bx %.0f rx %.0f rc %d boom %d presses %d\n", G.frame, PX, PY, W.C, W.B, t ? t->x : -1, W.fl1, W.D,
+            b ? b->x : -1, r ? r->x : -1, r ? r->c : -1, W.boomed, tb_gim_button_presses());
     }
 #endif
 }
