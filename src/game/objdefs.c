@@ -835,6 +835,13 @@ static const objdef_t DEFS[] = {
     { OT_THB_WINGL,     0,                                     NULL         }, /* bosslaseririswingleft_3138 */
     { OT_THB_WINGR,     0,                                     NULL         }, /* bosslaseririswingright_3139 */
     { OT_THB_LASER,     0,                                     NULL         }, /* hazardscanlaserboss_3142 */
+    { OT_THB_CB_BASE,   0,                                     NULL         }, /* bosscrystalbasherbase_3199 */
+    { OT_THB_CB_FACE,   OD_HIDDEN,                             NULL         }, /* bosscrystalbasherface_3198 (Q20, A 120; shown by 13916) */
+    { OT_THB_CB_HEAD,   0,                                     NULL         }, /* bosscrystalbasherhead_3197 */
+    { OT_THB_CB_SEG,    0,                                     NULL         }, /* bosscrystalbashersegment_3194 */
+    { OT_THB_CB_SPIKE,  0,                                     NULL         }, /* bosscrystalspike_3195 */
+    { OT_THB_CB_SPIKE2, 0,                                     NULL         }, /* bosscrystalspike2_3196 */
+    { OT_THB_DOOR,      OD_SOLID,                              NULL         }, /* bossdoor_3200 (the player stands on it: RV c1_c) */
     /* ==== end Trap Hideout */
 };
 static objdef_t BY_TYPE[MAX_OT];

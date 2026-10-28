@@ -1122,18 +1122,26 @@ for _nm in JCE_MIRRORED: ROW_FRAMES[_nm] = set()
 # ---- TH_BOSS (th_boss.c, 1680-1791): Trap Hideout bosses (build/re/spec_th_bosses.md). Types mirror src/game/th.h (OT_THB_*); the
 # lvobj anim field carries the instance layer << 8 (th_boss.c spawn). Rows: the Laser Iris rig (TH1), the scan laser boss.
 THB_TYPES_ID = {('bosslaseriris', 3141): 1680, ('bosslaseririscannon', 3140): 1681, ('bosslaseririswingleft', 3138): 1682,
-                ('bosslaseririswingright', 3139): 1683, ('hazardscanlaserboss', 3142): 1684}
+                ('bosslaseririswingright', 3139): 1683, ('hazardscanlaserboss', 3142): 1684,
+                ('bosscrystalbasherbase', 3199): 1685, ('bosscrystalbasherface', 3198): 1686, ('bosscrystalbasherhead', 3197): 1687,
+                ('bosscrystalbashersegment', 3194): 1688, ('bosscrystalspike', 3195): 1689, ('bosscrystalspike2', 3196): 1690,
+                ('bossdoor', 3200): 1691}
 ENGINE_TYPES_ID.update(THB_TYPES_ID)
 THB_SUB = {}   # class -> sub id (low byte of the lvobj anim field)
 _IR = ('bosslaseriris',)
+_CB = ('bosscrystalbasherbase',)
 THB_ENS = [(c, a, d, nm, None, w) for c, a, d, nm, w in (
     ('bosslaseriris_3141', 0, '0', 'thb_iris', _IR), ('bosslaseriris_3141', 0, '8', 'thb_iris8', _IR),
     ('bosslaseriris_3141', 0, '16', 'thb_iris16', _IR), ('bosslaseriris_3141', 0, '24', 'thb_iris24', _IR),
     ('bosslaseririscannon_3140', 0, '0', 'thb_can', _IR), ('bosslaseririscannon_3140', 0, '16', 'thb_can16', _IR),
     ('bosslaseririswingleft_3138', 0, '0', 'thb_wl', _IR), ('bosslaseririswingleft_3138', 0, '16', 'thb_wl16', _IR),
     ('bosslaseririswingright_3139', 0, '0', 'thb_wr', _IR), ('bosslaseririswingright_3139', 0, '16', 'thb_wr16', _IR),
-    ('hazardscanlaserboss_3142', 0, '0', 'thb_las', ('hazardscanlaserboss',)), ('hazardscanlaserboss_3142', 0, '1', 'thb_las1', ('hazardscanlaserboss',)))]
-THB_ENS_WITH = {'effectsexplosion06_435': _IR, 'effectshade_436': _IR, 'effectsdust_437': ('hazardscanlaserboss',)}
+    ('hazardscanlaserboss_3142', 0, '0', 'thb_las', ('hazardscanlaserboss',)), ('hazardscanlaserboss_3142', 0, '1', 'thb_las1', ('hazardscanlaserboss',)),
+    ('bossdoor_3200', 0, '0', 'thb_door', ('bossdoor',)), ('bosscrystalbasherbase_3199', 0, '0', 'thc_base', _CB),
+    ('bosscrystalbasherhead_3197', 0, '0', 'thc_head', _CB), ('bosscrystalbashersegment_3194', 0, '0', 'thc_seg', _CB),
+    ('bosscrystalspike_3195', 0, '0', 'thc_spike', _CB), ('bosscrystalspike2_3196', 0, '0', 'thc_spike2', _CB),
+    ('bosscrystalbasherface_3198', 0, '0', 'thc_face', _CB))]
+THB_ENS_WITH = {'effectsexplosion06_435': _IR + _CB, 'effectshade_436': _IR, 'effectsdust_437': ('hazardscanlaserboss',)}
 ENS += THB_ENS   # TH_BOSS
 for _k, _v in THB_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # TH_BOSS
 for _e in THB_ENS: ROW_FRAMES[_e[3]] = TH_FRAMES   # TH_BOSS rows only in Trap Hideout
