@@ -1063,7 +1063,12 @@ static const objdef_t DEFS[] = {
     /* ==== end Pangu Lagoon */
     /* ==== Battle Glacier (session 24): one block per module */
     /* ---- BG_FLOW (bg_flow.c) */
-    /* ---- BG_ENEMIES (bg_enemy.c) */
+    /* ---- BG_ENEMIES (bg_enemy.c, spec_bg_enemies; sprites set by bg_enemy_spawn; RE on_frame_62..64_init q20: the drill) */
+    { OT_BGE_DRILL,     OD_HIDDEN,                             NULL         }, /* enemydrillsat_3291 (q20; ctor invisible) */
+    { OT_BGE_SPAWNER,   OD_HIDDEN,                             NULL         }, /* enemyelitespawner_3361 (ctor invisible) */
+    { OT_BGE_WAVE,      0,                                     NULL         }, /* - (runtime: enemyelitespawnerwave_3363) */
+    { OT_BGE_GHOST,     OD_HIDDEN,                             NULL         }, /* - (runtime: effectsspadeimage_456 dir 12, bg_enemy_draw) */
+    { OT_BGE_DEB,       0,                                     NULL         }, /* - (runtime: effectsdebris_427 anim 5) */
     /* ---- BG_GIM (bg_gim.c) */
     /* ---- BG_BOSS (bg_boss.c) */
     /* ==== end Battle Glacier */

@@ -1645,7 +1645,32 @@ POSE_DIRS[56] = {**POSE_DIRS.get(56, {}), 41: ('24',)}
 # ==== Battle Glacier (session 24; json 60-65 = bg1-bg6; types 2304-2559)
 # ---- BG_FLOW (bg_flow.c, 2304-2335)
 
-# ---- BG_ENEMIES (bg_enemy.c, 2336-2399)
+# ---- BG_ENEMIES (bg_enemy.c, 2336-2399; build/re/spec_bg_enemies.md). New classes: EnemyDrillSat_3291 (bg3-bg5, Q20) and the
+# reusable EnemyEliteSpawner_3361 (bg5; FD maps its spawners to the same type) + the runtime EliteSpawnerWave_3363, the spawner's
+# afterimage (EffectsSpadeImage_456 direction 12 = the pod's image) and the drill's dirt (EffectsDebris_427 anim 5).
+# Reused (no BG copy): Thermal Base's saucers / saucer limiters / lava squids (tb_enemy.c, RE: BG1-BG5 call 12400-12424 and
+# BG3 / BG5 11969-11991, the TB events), Jade Creek's Elite (jc_enemy.c: BG4 / BG5 call the JC5 Elite events 10949-11038; 14397
+# / 14655 = 11029 with the act's Q20 lists): BG frames take the enemies module's Elite types 1326 / 1327 (jee_* rows), not the
+# JC5 gunship module's 1498 / 1499.
+BG_E_FRAMES = {60, 61, 62, 63, 64, 65}
+BGE_TYPES_ID = {('enemydrillsat', 3291): 2336, ('enemyelitespawner', 3361): 2337}
+BGE_ENS = [('enemydrillsat_3291', 0, '0', 'bgd_idle'), ('enemydrillsat_3291', 7, '0', 'bgd_fly'), ('enemydrillsat_3291', 11, '0', 'bgd_rise'),
+    ('effectsdebris_427', 5, '0', 'bgd_deb', None, ('enemydrillsat',)),
+    ('enemyelitespawner_3361', 0, '0', 'bgs_pod'), ('enemyelitespawner_3361', 8, '0', 'bgs_open'),
+    ('enemyelitespawnerwave_3363', 0, '0', 'bgs_wave', None, ('enemyelitespawner',))]
+BGE_ENS_WITH = {'effectsdust_437': ('enemydrillsat',), 'effectsdebris_427': ('enemydrillsat',), 'enemyelitespawnerwave_3363': ('enemyelitespawner',),
+    # the Elite and its runtime parts come with a spawner too (14661 creates the mask and the sprite)
+    'enemyelite_2529': ('enemyelitespawner',), 'enemyelitemask_2528': ('enemyelitespawner',),
+    'enemyelitechargeglow_2527': ('enemyelite', 'enemyelitespawner'), 'enemytrooperlaser_2530': ('enemyelite', 'enemyelitespawner')}
+ENGINE_TYPES_ID.update(BGE_TYPES_ID); ENS += BGE_ENS   # BG_ENEMIES
+for _k, _v in BGE_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # BG_ENEMIES
+for _e in BGE_ENS: ROW_FRAMES[_e[3]] = BG_E_FRAMES
+for _e in JCE_ENS:                                   # the JC Elite rows (jee_*) in Battle Glacier (exact-mirror left rows stay out)
+    if _e[3].startswith('jee_') and _e[3] not in JCE_MIRRORED: ROW_FRAMES[_e[3]] = ROW_FRAMES.get(_e[3], set()) | BG_E_FRAMES
+for _e in TBE_ENS:                                   # TB saucer / saucer debris / lava squid rows in Battle Glacier
+    if _e[3].startswith(('tba_', 'tbq_')) and _e[3] not in TBE_MIRRORED: ROW_FRAMES[_e[3]] = ROW_FRAMES.get(_e[3], set()) | BG_E_FRAMES
+FRAME_TYPE_REMAP = globals().get('FRAME_TYPE_REMAP', {})   # (json frame, type) -> type, applied after the type lookup
+for _n in BG_E_FRAMES: FRAME_TYPE_REMAP.update({(_n, 1498): 1326, (_n, 1499): 1327})   # BG Elites: jc_enemy.c's types
 
 # ---- BG_GIM (bg_gim.c, 2400-2479)
 
@@ -2052,6 +2077,7 @@ def main():
     objs = [o for o in objs if not (1150 <= o['type'] < 1280 and n not in SBBOSS_FRAMES and not (n in THB_SPADE_FRAMES and 1220 <= o['type'] <= 1222))]   # SB_BOSS: its classes only in SB1-SB4 (TH_BOSS: Spade in TH3)
     for o in objs:                                   # JC_BOSS: the shared Hovercop / Neera classes are jc_boss.c's types in JC1-JC4
         if n in JCB_REMAP_FRAMES and o['cls'] in JCB_CLS: o['type'] = JCB_CLS[o['cls']]
+    for o in objs: o['type'] = FRAME_TYPE_REMAP.get((n, o['type']), o['type'])   # per-frame type remaps (BG_ENEMIES: the BG Elites)
     objs = [o for o in objs if not (1430 <= o['type'] < 1480 and n not in JCB_REMAP_FRAMES)]   # JC_BOSS: its types only in JC1-JC5 (JC5: the ice ambush)
     for o in objs:                                   # SB_ENEMIES (session 19b): SB1 / SB3's placed EffectWarning_1528 (SB4's: the boss's 1188)
         if o['cls'] == 'effectwarning_1528' and n in SBE_WARN_FRAMES: o['type'] = 1039
