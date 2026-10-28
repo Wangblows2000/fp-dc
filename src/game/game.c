@@ -835,6 +835,7 @@ static void draw_pieces(int lmin, int lmax) {
           if (hp) { char k[16]; snprintf(k, sizeof k, ",%d,", i); if (strstr(hp, k)) continue; } }
 #endif
         int sx = p->x - cx, sy = p->y - cy;
+        if (p->layer < 8) { sx += l->lay_dx[p->layer]; sy += l->lay_dy[p->layer]; }   /* moving layers (level_t.lay_dx: 0 but JC3's subtanker) */
         if (p->pad & 2) { sx = p->x - (int)trunc(0.800000011920929 * cx); sy = p->y - (int)trunc(0.800000011920929 * cy); }   /* AT layer 1 scrolls at 0.8 */
         if (sx >= SCREEN_W || sy >= SCREEN_H || sx + p->w <= 0 || sy + p->h <= 0) continue;
         if (p->tw) {                                  /* tiled piece (Quick Backdrop): only the visible tiles, the last row / column cut */
@@ -1032,12 +1033,15 @@ void game_draw(void) {
     draw_pieces(2, 2);
     objects_draw(1);
     water_draw_front();
-    if (game_player_visible()) player_draw(&G.p);   /* FN6 closing scene: MV.M 50, the cast stands in (fn_assist.c) */
-    shields_draw(&G.p);
+    int pfront = jc_boss_player_front();          /* JC3: the player on the subtanker's layer, in front of its pieces (jc_boss.c) */
+    if (!pfront && game_player_visible()) player_draw(&G.p);   /* FN6 closing scene: MV.M 50, the cast stands in (fn_assist.c) */
+    if (!pfront) shields_draw(&G.p);
     fn_gimb_draw_front();                         /* FN: restroom doors / pole-pod shells over the player */
     spiral_front_draw();
     water_draw_tint();
     draw_pieces(3, 3);
+    if (pfront && game_player_visible()) player_draw(&G.p);
+    if (pfront) shields_draw(&G.p);
     par_draw_front();                             /* layer-3 parallax pieces (RM3 piece5, the caravan chase) */
     objects_draw(2);
     draw_pieces(4, 7);

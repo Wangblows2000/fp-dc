@@ -12,7 +12,8 @@
  *    cycles (O > 2, flag 6). JC3: Neera rides it (0x22a5e) and it parks at A 8084 (RV).
  *  - JC3: Neera (NPCNeera_2483 + BossNeeraHitbox_2482, Q20, A 120, D 3): trigger 10589 (Player on a CameraTriggerBoss), the ice rain
  *    intro (0x22a59), the fight (0x22a5b 10725-10773 + the hit rules 0x22a5a 10774-10784, ice rings 10789-10792), the end
- *    (10772 / 10773 -> jc_flow_act3_cleared), she leaves on the Hovercop (0x22a5c 10785-10788).
+ *    (10772 / 10773 -> jc_flow_act3_cleared), she leaves on the Hovercop (0x22a5c 10785-10788), then the subtanker scene
+ *    (0x22a5d 10799-10805: the moving json layers 4 / 5 that carry the player to the act's end; see sub_frame).
  *  - JC4: nothing (RE: no boss event in handle_frame_43; its CameraTriggerBoss is an off-map template).
  * Performance (SH4): per-type instance lists built once at spawn, the runtime objects (glows, crystals, missiles, spikes, meteors,
  * rings, shields, bubbles) in one index list; a level without these types returns at the first test. */
@@ -113,6 +114,7 @@ static struct {
     int mly;                                         /* MasterLevel Y (10589 sets 1, 10773 clears) */
     int ended, cleared;                              /* the fight is over (10773); jc_flow_act3_cleared called */
     int front;                                       /* 10785: the rig moved in front (draw order) */
+    double sA, sB; int sdx, sdy;                     /* the subtanker scene: LevelParalaxWaterSurface A (0 to -600), B (0 to 600); the layer offset */
 } H;
 /* NPCNeera_2483 alterables (RV a3_run: D 1, K 1543) and flags 2 (ring thrown), 3 (shielded), 4 (ice rain next), 5 (shield done) */
 static struct { double D, E, F, G, H, I, J, K, L, M, N; int fl, anim, dir, inv, born_shield; } N;
@@ -576,7 +578,7 @@ static void neera_fight(player_t *p) {
             N.dir = (int)(ang / 11.25);
             snd_play_orig(33, 220, 128);
             music_fade(90, 0);                                                                                        /* fadeout_music 1500 ms */
-            H.g_post = 1;                                                                                             /* 0x22a5d: the subtanker scene (not ported) */
+            H.g_post = 1; jc_enemy_hover_start();                                                                     /* 0x22a5d: the subtanker scene */
             snd_play_orig(299, 220, 128);
         }
     }
@@ -675,14 +677,78 @@ static void shields_frame(void) {                    /* the shield's own cycle: 
 /* 10798: g4 >= 10 (a restart after the fight): the leave and the subtanker scene on, the barriers gone (once) */
 static void neera_restart(void) {
     if (H.mode != M_CHASE3 || H.g_restart || G.at_g4 < 10) return;
-    H.g_restart = 1; H.g_leave = 1; H.g_post = 1; H.ended = 1; H.g_ride = 0;
+    H.g_restart = 1; H.g_leave = 1; H.g_post = 1; H.ended = 1; H.g_ride = 0; jc_enemy_hover_start();
     for (int k = 0; k < L[OT_JCB_ICEBAR - OT_JCB_HC].n; k++) { obj_t *b = get(OT_JCB_ICEBAR, k); if (b) b->alive = 0; }
 }
 
 /* ======================================================================== hooks */
+/* ======================================================================== JC3: the subtanker scene (0x22a5d, 10799-10805; RV a3_kill /
+ * a3_sub). Json layers 4 / 5 (port 3 / 5: the jcsub* / jcsubtanker* pieces, 21 torpedo launchers) move by (B, A + 40 sin g3) with
+ * A -2 a frame to -600 and B +1 to 600 from the defeat frame (RV a3_sub: A -2 B 1 at E 8's first frame, B 600 at +600); their
+ * objects move with them (RV: the launchers' layer x / y stay constant). The player is on layer 4 at MV.X > 10580 (10804 / 10805,
+ * MV.X: the global x; RV a3_kill f1371: Player x 10248 = MV.X 10584 - B 336, y - (A + bob)) and then tests that layer's backdrops
+ * only (level_t.mv: <lvdir>_mvl.bin, tools/import_frame.py write_mvl); 10801: grounded there with B < 600, MV.X + 1 (RV a3_sub
+ * f1408-1633: MV.X + 1 a frame standing); 10803: on layer 3, CAM.C = the boss's left limit. The sine uses the port's frame counter
+ * for g3 (the bob's phase, INFERRED). */
+#define SUB_X 10580
+static struct { uint8_t *d; char dir[8]; int nobj; short obj[48]; } SUB;
+static void sub_load(void) {
+    if (SUB.d && strcmp(SUB.dir, G.lvdir)) { free(SUB.d); SUB.d = NULL; }
+    if (!SUB.d) {
+        char fn[40]; size_t sz;
+        snprintf(fn, sizeof fn, "%s/%s_mvl.bin", G.lvdir, G.lvdir);
+        SUB.d = plat_load_file(fn, &sz);
+        if (SUB.d && (sz < 16 || memcmp(SUB.d, "MVL1", 4))) { free(SUB.d); SUB.d = NULL; }
+        if (!SUB.d) return;
+        snprintf(SUB.dir, sizeof SUB.dir, "%s", G.lvdir);
+    }
+    const uint8_t *d = SUB.d;
+    int pl = d[4], nobj = d[6] | d[7] << 8, tw = d[8] | d[9] << 8, th = d[10] | d[11] << 8, nu = d[12] | d[13] << 8, tx0 = d[14] | d[15] << 8;
+    size_t off = 16;
+    SUB.nobj = 0;
+    for (int k = 0; k < nobj; k++, off += 10) {                /* the layer's objects as placed: u16 type, s32 x, y */
+        int t = d[off] | d[off + 1] << 8;
+        int32_t x = (int32_t)(d[off + 2] | d[off + 3] << 8 | d[off + 4] << 16 | (uint32_t)d[off + 5] << 24);
+        int32_t y = (int32_t)(d[off + 6] | d[off + 7] << 8 | d[off + 8] << 16 | (uint32_t)d[off + 9] << 24);
+        for (int i = 0; i < G.nobjs && SUB.nobj < 48; i++) {
+            const obj_t *o = &G.o[i];
+            if (o->alive && o->type == t && (t < OT_JCB_HC || t > OT_JCB_END) && (int)o->ox == x && (int)o->oy == y) {   /* (the rig places itself) */
+                int dup = 0; for (int j = 0; j < SUB.nobj; j++) dup |= SUB.obj[j] == i;
+                if (!dup) { SUB.obj[SUB.nobj++] = (short)i; break; }
+            }
+        }
+    }
+    off = (off + 3) & ~(size_t)3;                                  /* (padded: the malloc'd file is aligned) */
+    G.lvl.mv.tiles = (const uint16_t *)(d + off); off += (size_t)nu * 32;
+    G.lvl.mv.smap = d + off; off += (size_t)tw * th;
+    G.lvl.mv.pmap = d + off;
+    G.lvl.mv.tw = tw; G.lvl.mv.th = th; G.lvl.mv.tx0 = tx0; G.lvl.mv.nuniq = nu; G.lvl.mv.x0 = SUB_X + 1; G.lvl.mv.on = 0;
+    (void)pl;
+#ifdef FP_HOST_ENV
+    if (getenv("FP_DBG_JCB")) { printf("jcbsub %d of %d objects:", SUB.nobj, nobj); for (int k = 0; k < SUB.nobj; k++) printf(" %d", G.o[SUB.obj[k]].type); printf("\n"); }
+#endif
+}
+static void sub_frame(player_t *p) {
+    if (!H.g_post || !SUB.d) return;
+    if (H.sA > -600) H.sA -= 2;                                                                      /* 10799 */
+    if (H.sB < 600) H.sB += 1;                                                                       /* 10800 */
+    int on4 = p->x > SUB_X;                                                                          /* 10804 / 10805 */
+    if (on4 && p->ground && H.sB < 600 && p->state != ST_DEAD) p->x += 1;                           /* 10801 */
+    int g = G.frame % 360;
+    int dx = (int)H.sB, dy = (int)((g != 180 ? dsin(g) * 40 : 0) + H.sA);                           /* 10802 */
+    int ddx = dx - H.sdx, ddy = dy - H.sdy;
+    for (int k = 0; k < SUB.nobj; k++) { obj_t *o = slot(SUB.obj[k]); if (o) { o->x += ddx; o->y += ddy; } }
+    H.sdx = dx; H.sdy = dy;
+    G.lvl.lay_dx[3] = G.lvl.lay_dx[5] = (int16_t)dx; G.lvl.lay_dy[3] = G.lvl.lay_dy[5] = (int16_t)dy;
+    G.lvl.mv.on = 1; G.lvl.mv.dx = dx; G.lvl.mv.dy = dy;
+    if (!on4) { float l = marker(OT_CAMLIM_L, 1); if (l > -1e8f) G.cam_nC = l; }                    /* 10803 */
+}
+int jc_boss_player_front(void) { return on && H.g_post && SUB.d && G.p.x > SUB_X; }
+
 static void snap_once(void) { static int reg; if (!reg) { reg = 1; snap_register(&H, sizeof H); snap_register(&N, sizeof N); snap_register(&R, sizeof R); snap_register(&nR, sizeof nR); } }
 void jc_boss_spawn(void) {
     jc_boss5_spawn();
+    if (SUB.d && strcmp(SUB.dir, G.lvdir)) { free(SUB.d); SUB.d = NULL; }   /* another level: the moving layer's file goes */
     snap_once();
     memset(&H, 0, sizeof H); memset(&N, 0, sizeof N); memset(L, 0, sizeof L); nR = 0;
     marks[0] = marks[1] = marks[2] = marks[3] = -1; ntrig = 0; on = 0;
@@ -732,6 +798,7 @@ void jc_boss_spawn(void) {
         N.D = 1; N.K = 1543; N.dir = 1; N.anim = -1; n_anim(n, 0);   /* instance alterables (RV a3_run f0: D 1, K 1543) */
         H.g_ride = 1;                                                /* 0x22a5e on at the start */
     }
+    if (H.mode == M_CHASE3) sub_load();
     neera_restart();
 }
 void jc_boss_pre(player_t *p) {
@@ -768,15 +835,16 @@ void jc_boss_frame(player_t *p) {
         rings_frame(p);
         shields_frame();
         ice_frame(p);
+        sub_frame(p);
     }
 #ifdef FP_HOST_ENV
     if (getenv("FP_DBG_JCB")) {
         const obj_t *hc = one(OT_JCB_HC), *n = one(OT_JCB_NEERA), *h = one(OT_JCB_NHIT);
         int nr = 0, ns = 0, nc = 0, nm = 0; FOR_R(r, OT_JCB_RING) nr++; FOR_R(s, OT_JCB_NSHIELD) ns++; FOR_R(c, OT_JCB_CRYSTAL) nc++; FOR_R(m, OT_JCB_METEOR) nm++;
-        printf("jcb %d px %.0f py %.0f hcx %.0f hcy %.0f A %.2f E %.2f H %.0f I %.0f J %.0f O %.0f D %.0f ch %d nE %.0f nF %.0f nx %.0f ny %.0f na %d nd %d hid %d nG %.2f nH %.2f nI %.2f nJ %.2f nL %.0f nM %.0f nfl %x hA %.1f hC %d hD %.0f hfl %x ml %d ride %d intro %d fight %d leave %d rings %d sh %d cr %d met %d g4 %d gone %d\n",
+        printf("jcb %d px %.0f py %.0f hcx %.0f hcy %.0f A %.2f E %.2f H %.0f I %.0f J %.0f O %.0f D %.0f ch %d nE %.0f nF %.0f nx %.0f ny %.0f na %d nd %d hid %d nG %.2f nH %.2f nI %.2f nJ %.2f nL %.0f nM %.0f nfl %x hA %.1f hC %d hD %.0f hfl %x ml %d ride %d intro %d fight %d leave %d rings %d sh %d cr %d met %d g4 %d gone %d post %d sA %.0f sB %.0f sdy %d cU %d cnC %.0f cnE %.0f camx %.0f cA %.0f m2 %d M3 %d cine %d\n",
             G.frame, PX(p), PY(p), hc ? hc->x : -1, hc ? hc->y : -1, H.A, H.E, H.H, H.I, H.J, H.O, H.D, H.g_chase,
             N.E, N.F, n ? n->x : -1, n ? n->y : -1, N.anim, N.dir, n ? n->hidden : -1, N.G, N.H, N.I, N.J, N.L, N.M, N.fl,
-            h ? h->A : -1, h ? h->c : -1, h ? h->av[0] : -1, h ? h->fl : 0, H.mly, H.g_ride, H.g_intro, H.g_fight, H.g_leave, nr, ns, nc, nm, G.at_g4, H.gone);
+            h ? h->A : -1, h ? h->c : -1, h ? h->av[0] : -1, h ? h->fl : 0, H.mly, H.g_ride, H.g_intro, H.g_fight, H.g_leave, nr, ns, nc, nm, G.at_g4, H.gone, H.g_post, H.sA, H.sB, H.sdy, G.cam.U, G.cam_nC, G.cam_nE, G.camx, G.cam.A, G.cam_m2, G.cam.M3, G.cam.cine);
         FOR_R(r, OT_JCB_RING) printf("jcbring %d %d %.0f %.0f %.0f\n", G.frame, (int)(r - G.o), r->x, r->y, r->av[0]);
     }
 #endif
