@@ -277,35 +277,37 @@ void tbx_frame(player_t *p) {
         }
         /* ---- N 5: the dive: a ball bouncing along the arena's walls (12614-12634) */
         else if (X.N == 5) {
-            X.O += 1; X.M = 0;
+            X.M = 0;
+            if (X.O < 100) X.O += 1;                                            /* 12614: O counts to 100 and holds there */
             if (X.O == 1) { parts_hidden(1); tbb_set_a(body, TS_SX_BODY8); if (h) tbb_set_a(h, TS_SX_HIT8); }   /* 12635 */
-            /* RV x2_l 1639-1900: 80 frames under the lava, a leap (S -12), then along the walls: each leg accelerates 0.3 a frame to 12
-             * and stops at an edge with sound 51 (the floor = the bottom marker - 133, the sides / top 96 px inside the markers: RV 1826 /
-             * 1016); O holds on each leg (12620-12633) */
-            double fl = Bm - 133, lw = L + 96, rw = Rm - 96, tw = T + 96;
-            if (X.O > 80 && X.O < 100) { X.S = -12; X.B += X.S; }               /* 12617 / 12618 */
-            if (X.O >= 100 && (tbb_g3() % 5) == 0) snd_play_orig(264, 220, 128);   /* RV: the ball's sound every 5 frames from O 100 */
-            int leg = (int)X.O - 100;
-            if (leg >= 0 && leg <= 6) {
-                X.O -= 1;
-                int next = 0;
-                switch (leg) {
-                case 0: X.S = fmin(X.S + 0.3, 12); X.B += X.S; if (X.S > 0 && X.B >= fl) { X.B = fl; X.S = 0; next = 1; } break;
-                case 1: X.U = fmax(X.U - 0.3, -12); X.A += X.U; if (X.A <= lw) { X.A = lw; X.U = 0; next = 1; } break;
-                case 2: X.S = fmax(X.S - 0.3, -12); X.B += X.S; if (X.B <= tw) { X.B = tw; X.S = 0; next = 1; } break;
-                case 3: X.U = fmin(X.U + 0.3, 12); X.A += X.U; if (X.A >= rw) { X.A = rw; X.U = 0; next = 1; } break;
-                case 4: X.S = fmin(X.S + 0.3, 12); X.B += X.S; if (X.B >= fl) { X.B = fl; X.S = 0; next = 1; } break;
-                case 5: X.U = fmax(X.U - 0.3, -12); X.A += X.U; if (X.A <= (L + Rm) / 2) { X.A = (L + Rm) / 2; X.U = 0; X.S = -15; X.O += 1; } break;
-                case 6: X.S = fmin(X.S + 0.3, 15); X.B += X.S;
-                    if (X.S > 0 && X.B >= Bm + 150) {                           /* 12634: back to the rig, under the lava */
-                        parts_hidden(0); tbb_set_a(body, TS_SX_BODY); if (h) tbb_set_a(h, TS_SX_HIT);
-                        X.N = 0; X.O = -1;
-                    }
-                    break;
-                }
-                if (next) { snd_play_orig(51, 220, 128); X.O += 1; }
-                X.O += 1;
+            /* RV x2_l 1639-1900: 80 frames under the lava, the leap, then along the walls; each leg accelerates 0.3 a frame to 12 and
+             * stops at an edge with sound 51 (the floor = the lava pit row - 112, the sides / top 96 px inside the markers: RV 1826 /
+             * 1016). O is the leg: 100 the leap, 101 left, 102 up, 103 right, 104 down, 105 left again, 106 a leap back into the lava
+             * (12620-12634; each leg's stop event moves O on, so the next leg starts in the same frame). (The port used to add 1 to O
+             * every frame here, so the legs ran one frame each and the ball stopped at 1826 for good: a softlock unless the player
+             * beat the ball.) */
+            double fl = lava_y - 112, lw = L + 96, rw = Rm - 96, tw = T + 96;
+            if (X.O > 80 && X.O < 101) {                                        /* 12617 / 12618: S -12 while under the lava row */
+                if (X.B > lava_y) X.S = -12;
+                X.B += X.S; X.S = fmin(X.S + 0.3, 15);
             }
+            if (X.O >= 100 && (tbb_g3() % 5) == 0) snd_play_orig(264, 220, 128);   /* RV: the ball's sound every 5 frames from O 100 */
+            int stop = 0;
+            if (X.O == 100 && X.S > 0 && X.B >= fl) { X.B = fl; X.S = 0; stop = 1; }                       /* 12620 */
+            if (!stop && X.O == 101) { X.A += X.U; X.U = fmax(X.U - 0.3, -12); if (X.A <= lw) { X.A = lw; X.U = 0; stop = 1; } }   /* 12622 / 12623 */
+            if (!stop && X.O == 102) { X.B += X.S; X.S = fmax(X.S - 0.3, -12); if (X.B <= tw) { X.B = tw; X.S = 0; stop = 1; } }   /* 12624 / 12625 */
+            if (!stop && X.O == 103) { X.A += X.U; X.U = fmin(X.U + 0.3, 12); if (X.A >= rw) { X.A = rw; X.U = 0; stop = 1; } }    /* 12626 / 12627 */
+            if (!stop && X.O == 104) { X.B += X.S; X.S = fmin(X.S + 0.3, 12); if (X.B >= fl) { X.B = fl; X.S = 0; stop = 1; } }    /* 12628 / 12629 */
+            if (!stop && X.O == 105) { X.A += X.U; X.U = fmax(X.U - 0.3, -12);                                                     /* 12630 / 12631: back to the left wall */
+                if (X.A <= lw) { X.A = lw; X.U = 0; X.S = -15; X.O = 106; camera_shake(6); } }
+            else if (!stop && X.O == 106) {                                     /* 12632-12634: a leap drifting right 3 px a frame, into the lava */
+                X.B += X.S; X.S = fmin(X.S + 0.3, 15); X.A += 3;
+                if (X.S > 0 && X.B >= lava_y + 200) {                           /* 12634: back to the rig, under the lava */
+                    parts_hidden(0); tbb_set_a(body, TS_SX_BODY); if (h) tbb_set_a(h, TS_SX_HIT);
+                    X.N = 0; X.O = 0;
+                }
+            }
+            if (stop) { snd_play_orig(51, 220, 128); camera_shake(6); X.O += 1; }
         }
         { float by0 = body ? body->y : 0;
           rig_place();

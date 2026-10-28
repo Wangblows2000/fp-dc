@@ -173,14 +173,19 @@ void plat_quit(void) { printf("quit @%d\n", cur_frame); exit(0); }
 /* debug-route commands shared with tools/orig/trace_orig.py: "<f> TP x y" (original units: Y is the
  * reference point 14 px above the feet), "<f> EN v" energy, "<f> HP v" petals (half-petals);
  * host only: "<f> HURT dx" a hit from x+dx, ignored while invulnerable (like an enemy contact); "<f> PB x y" moves the
- * first pushable block to original coordinates */
+ * first pushable block to original coordinates; "<f> TPO type dx dy [ymax]" puts the player at the first live object of a type + (dx, dy)
+ * (original units; a moving boss's real-attack tests; not while the object is below ymax) */
 typedef struct { int f; char k; float a, b; } dbg_t;
-static dbg_t dbg[256]; static int ndbg;
+static struct { int f; float t, dx, dy, ymax; } tpo[512]; static int ntpo;   /* TPO lines */
+static dbg_t dbg[1024]; static int ndbg;
 static struct { int f; char dir[8]; } loads[8]; static int nload;
 static void apply_loads(int f) {   /* "<f> LOAD <dir>": a fresh stage start (card included) of another level, as the menus would */
     for (int i = 0; i < nload; i++) if (loads[i].f == f && game_load_level(loads[i].dir) == 0) G.mode = MODE_PLAY;
 }
 static void apply_dbg(int f, int tp) {
+    for (int i = 0; !tp && i < ntpo; i++) if (tpo[i].f == f)              /* TPO type dx dy [ymax]: next to the first live object of a type */
+        for (int k = 0; k < G.nobjs; k++) { const obj_t *o = &G.o[k]; player_t *p = &G.p;
+            if (o->alive && o->type == (int)tpo[i].t) { if (tpo[i].ymax == 0 || o->y <= tpo[i].ymax) { p->x = o->x + tpo[i].dx; p->y = o->y + tpo[i].dy + ORIG_REF_DY; p->vx = p->vy = p->gsp = 0; } break; } }
     for (int i = 0; i < ndbg; i++) {
         if ((dbg[i].k == 'T') != tp) continue;
         if (dbg[i].f != f) continue;
@@ -239,23 +244,24 @@ int main(int argc, char **argv) {
         while (fgets(line, sizeof line, f) && nscript < 8192) {
             if (line[0] == '#') continue;
             float fx, fy; int ff, nn = 0;
-            if (sscanf(line, "%d TP %f %f", &ff, &fx, &fy) == 3 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'T', fx, fy }; continue; }
-            if (sscanf(line, "%d EN %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'E', fx, 0 }; continue; }
-            if (sscanf(line, "%d HURT %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'D', fx, 0 }; continue; }
-            if (sscanf(line, "%d HP %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'H', fx, 0 }; continue; }
-            if (sscanf(line, "%d DIGZONE %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'Z', fx, 0 }; continue; }
-            if (sscanf(line, "%d SETV others E %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'I', fx, 0 }; continue; }   /* tracer command: invulnerability timer */
-            if (sscanf(line, "%d BOSSHP %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'B', fx, 0 }; continue; }
-            if (sscanf(line, "%d BOSSHPT %f %f", &ff, &fx, &fy) == 3 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'b', fx, fy }; continue; }   /* A of one object type */
-            if (sscanf(line, "%d KILLT %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'K', fx, 0 }; continue; }   /* host test: remove every object of a type */
-            if (sscanf(line, "%d FLAGS %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'F', fx, 0 }; continue; }   /* host test: G.stage_flags */   /* host test: AT boss HP */
-            if (sscanf(line, "%d MON %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'M', fx, 0 }; continue; }
-            if (sscanf(line, "%d RESBOSS%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'S', 0, 0 }; continue; }   /* results_begin_boss now */
-            if (sscanf(line, "%d JCACT3%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'J', 0, 0 }; continue; }   /* jc_flow_act3_cleared now */
-            if (sscanf(line, "%d THBASH%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'C', 0, 0 }; continue; }   /* th_flow_basher_cleared now */
+            if (sscanf(line, "%d TP %f %f", &ff, &fx, &fy) == 3 && ndbg < 1024) { dbg[ndbg++] = (dbg_t){ ff, 'T', fx, fy }; continue; }
+            { float fz, fw = 0; if (sscanf(line, "%d TPO %f %f %f %f", &ff, &fx, &fy, &fz, &fw) >= 4 && ntpo < 512) { tpo[ntpo].f = ff; tpo[ntpo].t = fx; tpo[ntpo].dx = fy; tpo[ntpo].dy = fz; tpo[ntpo].ymax = fw; ntpo++; continue; } }   /* host test: TP next to an object */
+            if (sscanf(line, "%d EN %f", &ff, &fx) == 2 && ndbg < 1024) { dbg[ndbg++] = (dbg_t){ ff, 'E', fx, 0 }; continue; }
+            if (sscanf(line, "%d HURT %f", &ff, &fx) == 2 && ndbg < 1024) { dbg[ndbg++] = (dbg_t){ ff, 'D', fx, 0 }; continue; }
+            if (sscanf(line, "%d HP %f", &ff, &fx) == 2 && ndbg < 1024) { dbg[ndbg++] = (dbg_t){ ff, 'H', fx, 0 }; continue; }
+            if (sscanf(line, "%d DIGZONE %f", &ff, &fx) == 2 && ndbg < 1024) { dbg[ndbg++] = (dbg_t){ ff, 'Z', fx, 0 }; continue; }
+            if (sscanf(line, "%d SETV others E %f", &ff, &fx) == 2 && ndbg < 1024) { dbg[ndbg++] = (dbg_t){ ff, 'I', fx, 0 }; continue; }   /* tracer command: invulnerability timer */
+            if (sscanf(line, "%d BOSSHP %f", &ff, &fx) == 2 && ndbg < 1024) { dbg[ndbg++] = (dbg_t){ ff, 'B', fx, 0 }; continue; }
+            if (sscanf(line, "%d BOSSHPT %f %f", &ff, &fx, &fy) == 3 && ndbg < 1024) { dbg[ndbg++] = (dbg_t){ ff, 'b', fx, fy }; continue; }   /* A of one object type */
+            if (sscanf(line, "%d KILLT %f", &ff, &fx) == 2 && ndbg < 1024) { dbg[ndbg++] = (dbg_t){ ff, 'K', fx, 0 }; continue; }   /* host test: remove every object of a type */
+            if (sscanf(line, "%d FLAGS %f", &ff, &fx) == 2 && ndbg < 1024) { dbg[ndbg++] = (dbg_t){ ff, 'F', fx, 0 }; continue; }   /* host test: G.stage_flags */   /* host test: AT boss HP */
+            if (sscanf(line, "%d MON %f", &ff, &fx) == 2 && ndbg < 1024) { dbg[ndbg++] = (dbg_t){ ff, 'M', fx, 0 }; continue; }
+            if (sscanf(line, "%d RESBOSS%n", &ff, &nn) == 1 && nn > 0 && ndbg < 1024) { dbg[ndbg++] = (dbg_t){ ff, 'S', 0, 0 }; continue; }   /* results_begin_boss now */
+            if (sscanf(line, "%d JCACT3%n", &ff, &nn) == 1 && nn > 0 && ndbg < 1024) { dbg[ndbg++] = (dbg_t){ ff, 'J', 0, 0 }; continue; }   /* jc_flow_act3_cleared now */
+            if (sscanf(line, "%d THBASH%n", &ff, &nn) == 1 && nn > 0 && ndbg < 1024) { dbg[ndbg++] = (dbg_t){ ff, 'C', 0, 0 }; continue; }   /* th_flow_basher_cleared now */
             { char lv[8]; if (sscanf(line, "%d LOAD %7s", &ff, lv) == 2 && nload < 8) { loads[nload].f = ff; snprintf(loads[nload].dir, sizeof loads[nload].dir, "%s", lv); nload++; continue; } }   /* load a level (host tests: load order) */
-            if (sscanf(line, "%d PB3 %f %f", &ff, &fx, &fy) == 3 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'Q', fx, fy }; continue; }   /* RM3 PushableBlock3 to (x, y) */
-            if (sscanf(line, "%d PB %f %f", &ff, &fx, &fy) == 3 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'P', fx, fy }; continue; }   /* first pushable block to original (x, y) */
+            if (sscanf(line, "%d PB3 %f %f", &ff, &fx, &fy) == 3 && ndbg < 1024) { dbg[ndbg++] = (dbg_t){ ff, 'Q', fx, fy }; continue; }   /* RM3 PushableBlock3 to (x, y) */
+            if (sscanf(line, "%d PB %f %f", &ff, &fx, &fy) == 3 && ndbg < 1024) { dbg[ndbg++] = (dbg_t){ ff, 'P', fx, fy }; continue; }   /* first pushable block to original (x, y) */
             if (sscanf(line, "%d %d %31s", &script[nscript].a, &script[nscript].b, btn) == 3)
                 script[nscript++].m = parse_btn(btn);
         }
