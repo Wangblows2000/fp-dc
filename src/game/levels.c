@@ -213,6 +213,14 @@ static const short SFX_TH1[] = { 62, 99, 314, 336, 169 };   /* + the Laser Iris 
 static const short SFX_TH2[] = { 62, 99, 314, 151, 167, 371, 426, 264, 278 };
 static const short SFX_TH3[] = { 62, 99, 314, 151, 167, 371, 426, 264, 278, 71, 232, 240, 335, 219,
                                   132, 74, 363, 61, 155, 156, 103, 446, 445 };   /* + the Crystal Basher, the arena, Spade */
+/* Thermal Base (session 21c, stage index 6; provisional rows: the flow agent sets music, cards, routes) */
+static const short SFX_TB1[] = { 62, 99 };
+static const short SFX_TB2[] = { 62, 99 };
+static const short SFX_TB3[] = { 62, 99 };
+static const short SFX_TB4[] = { 62, 99 };
+static const short SFX_TB5[] = { 62, 99 };
+static const short SFX_TB6[] = { 62, 99 };
+#define TB(d, f, n, mus) .dir = d, .frame = f, .stage = 6, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_TB##n, .nsfx = N_(SFX_TB##n)
 #define TH(d, f, n, mus) .dir = d, .frame = f, .stage = 8, .act = n, .nacts = 3, .music = mus, .checkpoints = 1, .sfx = SFX_TH##n, .nsfx = N_(SFX_TH##n)
 #define JC(d, f, n, mus) .dir = d, .frame = f, .stage = 5, .act = n, .nacts = 5, .music = mus, .checkpoints = 1, .sfx = SFX_JC##n, .nsfx = N_(SFX_JC##n)
 #define RM(d, f, n, mus) .dir = d, .frame = f, .stage = 2, .act = n, .nacts = 5, .music = mus, .checkpoints = 1, .sfx = SFX_RM, .nsfx = N_(SFX_RM)
@@ -314,6 +322,8 @@ static const level_def_t LEVELS[] = {
       .card_first = 72, .cps = CP_TH2, .ncps = N_(CP_TH2) },
     { TH("th3", 58, 3, "bgm/m_stage7.adp"), .mus4 = "bgm/m_midboss.adp", .mus4b = "bgm/m_boss2.adp", .mus4b_g4 = 5, .mus6 = "bgm/m_stage7.adp",
       .mus7 = "bgm/m_stage7.adp", .card_first = 76, .cps = CP_TH3, .ncps = N_(CP_TH3), .res_wipe = 1 , .max_objs = 1536 },
+    { TB("tb1", 44, 1, "bgm/m_stage6.adp") }, { TB("tb2", 45, 2, "bgm/m_stage6.adp") }, { TB("tb3", 46, 3, "bgm/m_stage6.adp") },
+    { TB("tb4", 47, 4, "bgm/m_stage6.adp") }, { TB("tb5", 48, 5, "bgm/m_stage6.adp") }, { TB("tb6", 49, 6, "bgm/m_stage6.adp") },
 };
 static const level_def_t DEFAULT = { .dir = "", .frame = -1, .stage = -1, .act = 1, .nacts = 1, .music = "bgm/m_stage1.adp" };
 

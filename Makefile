@@ -16,6 +16,7 @@ OBJS += src/game/sb_flow.o   # Sky Battalion stage flow (session 19)
 OBJS += src/game/fn_enemy.o   # Fortune Night enemies
 OBJS += src/game/sb_enemy.o   # Sky Battalion enemies
 OBJS += src/game/sb_gim.o     # Sky Battalion gimmicks
+OBJS += src/game/tb_flow.o src/game/tb_enemy.o src/game/tb_gim.o src/game/tb_boss.o   # Thermal Base (session 21c)
 OBJS += src/game/th_flow.o src/game/th_enemy.o src/game/th_gim.o src/game/th_boss.o   # Trap Hideout (session 21b)
 OBJS += src/game/th_boss_iris.o src/game/th_boss_basher.o src/game/th_boss_arena.o   # Trap Hideout bosses (th_boss.h encounters)
 OBJS += src/game/jc_flow.o src/game/jc_enemy.o src/game/jc_gim.o src/game/jc_boss.o src/game/jc_boss5.o   # Jade Creek (session 21)
