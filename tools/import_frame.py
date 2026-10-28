@@ -1250,6 +1250,8 @@ WATER_FRAMES = WATER_FRAMES + (48, 49)
 TBB_TYPES_ID = {('bossroboshrimp', 2673): 1968, ('bossroboshrimpsegment', 2672): 1969, ('bossroboshrimptail', 2675): 1970,
                 ('bossroboshrimplightning', 2674): 1971, ('bossroboshrimpblocker', 2691): 1972,
                 ('minibosstrapdoor', 2747): 1973, ('enemywallpusher', 2748): 1974,
+                ('bossrobosquid', 2765): 1975, ('bossrobosquidglass', 2764): 1976, ('bossrobosquidjet', 2766): 1977,
+                ('bossrobosquidleftarm', 2762): 1978, ('bossrobosquidrightarm', 2763): 1979,
                 ('bosssyntaxsquidback', 2887): 1990, ('bosssyntaxsquidshoulderright', 2888): 1990, ('bosssyntaxsquidshoulderleft', 2889): 1990,
                 ('bosssyntaxsquidhead', 2890): 1990, ('bosssyntaxsquidbody', 2893): 1990, ('bosssyntaxsquidclawright', 2894): 1990,
                 ('bosssyntaxsquidclawleft', 2895): 1990, ('bosssyntaxsquidarmleft', 2891): 1991, ('bosssyntaxsquidarmright', 2892): 1992,
@@ -1264,6 +1266,7 @@ TBB_SUB = {'bosssyntaxsquidback_2887': 0, 'bosssyntaxsquidshoulderright_2888': 1
 _SX = ('bosswaypoint',)   # (the rig's instances lie below the frame: tied to the on-map waypoints)
 _SH = ('bossroboshrimp',)
 _WP = ('enemywallpusher',)
+_SQ = ('bossrobosquid',)
 TBB_ENS = [(c, a, d, nm, None, w) for c, a, d, nm, w in (
     ('bossroboshrimp_2673', 0, '0', 'tbs_head', _SH), ('bossroboshrimp_2673', 8, '0', 'tbs_head8', _SH),
     ('bossroboshrimpsegment_2672', 0, '0', 'tbs_seg', _SH), ('bossroboshrimpsegment_2672', 8, '0', 'tbs_seg8', _SH),
@@ -1272,6 +1275,11 @@ TBB_ENS = [(c, a, d, nm, None, w) for c, a, d, nm, w in (
     ('bossroboshrimplightning_2674', 0, '1', 'tbs_lt1', _SH),
     ('minibosstrapdoor_2747', 0, '0', 'tbw_trap', ('minibosstrapdoor',)), ('enemywallpusher_2748', 0, '0', 'tbw_wp', _WP),
     ('enemywallpusher_2748', 0, '16', 'tbw_wp16', _WP),
+    ('bossrobosquid_2765', 0, '0', 'tbq_squid', _SQ), ('bossrobosquid_2765', 8, '0', 'tbq_squid8', _SQ),
+    ('bossrobosquid_2765', 10, '0', 'tbq_squid10', _SQ), ('bossrobosquid_2765', 11, '0', 'tbq_squid11', _SQ),
+    ('bossrobosquidglass_2764', 0, '0', 'tbq_glass', _SQ), ('bossrobosquidglass_2764', 0, '1', 'tbq_glass1', _SQ),
+    ('bossrobosquidjet_2766', 0, '0', 'tbq_jet', _SQ), ('bossrobosquidjet_2766', 7, '0', 'tbq_jet7', _SQ),
+    ('bossrobosquidleftarm_2762', 0, '0', 'tbq_arm', _SQ), ('enemyhomingbullet_2648', 0, '0', 'tbq_hb', _SQ),
     ('bosssyntaxsquidback_2887', 0, '0', 'tbx_back', _SX), ('bosssyntaxsquidshoulderright_2888', 0, '0', 'tbx_shr', _SX),
     ('bosssyntaxsquidshoulderright_2888', 7, '0', 'tbx_shr7', _SX), ('bosssyntaxsquidshoulderleft_2889', 0, '0', 'tbx_shl', _SX),
     ('bosssyntaxsquidshoulderleft_2889', 7, '0', 'tbx_shl7', _SX), ('bosssyntaxsquidhead_2890', 0, '0', 'tbx_head', _SX),
@@ -1283,7 +1291,7 @@ TBB_ENS = [(c, a, d, nm, None, w) for c, a, d, nm, w in (
     ('bossspikesphere2_2898', 0, '0', 'tbx_sph2', _SX), ('bosslavasplashleft1_2899', 0, '0', 'tbx_spl1', _SX),
     ('bosslavasplashleft2_2903', 0, '0', 'tbx_spl2', _SX), ('bosslavasplashmain_2900', 4, '0', 'tbx_splash', _SX),
     ('bosstbplatform_2886', 0, '0', 'tbx_plat', ('bosstbplatform', 'bosstbplatform2')))]
-TBB_ENS_WITH = {'effectsexplosion06_435': _SH + _WP, 'effectshade_436': _SH, 'effectsdebris_427': _SH + _WP,
+TBB_ENS_WITH = {'effectsexplosion06_435': _SH + _WP + _SQ, 'enemyhomingbullet_2648': _SQ, 'effectsexplosion02_368': _SQ, 'effectshade_436': _SH, 'effectsdebris_427': _SH + _WP + _SQ,
     'bossroboshrimpsegment_2672': _SH, 'bossroboshrimptail_2675': _SH, 'bossroboshrimplightning_2674': _SH,   # (off-map templates)
     'effectswhiteburst_31': _SX, 'bosslavalaser_2896': _SX, 'bosslavasplashmain_2900': _SX, 'bosstbplatform_2886': ('bosstbplatform2',),
     **{c: _SX for c in ('bosssyntaxsquidback_2887', 'bosssyntaxsquidshoulderright_2888', 'bosssyntaxsquidshoulderleft_2889', 'bosssyntaxsquidhead_2890',

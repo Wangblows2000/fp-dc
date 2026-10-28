@@ -3,6 +3,9 @@
  * their events: Lilac, Carol and Milla fight the same bosses):
  *  - TB1 (json 45): the RoboShrimp in the shaft before the act's end (tb_boss_shrimp.c, 11844-11879).
  *  - TB2 (json 46): the wall pusher room (tb_boss_pusher.c, 11996-12011 + the handler's inline trapdoor rules).
+ *  - TB3 (json 47): the RoboSquid in the flooded loop room (tb_boss_squid.c, 12095-12128).
+ *  - TB5 (json 49): the end elevator (tb_boss_lift.c, 12524-12532).
+ *  - TB6 (json 50): the Syntax squid arena (tb_boss_syntax.c, 12565-12726).
  * Order in the frame (RE): the boss events run after the gimmicks (tb_boss_frame from game.c after tb_gim_frame). Nothing tests a
  * level name: every rule hangs on the placed types. Performance (SH4): instance lists are built once at spawn; a level without
  * these types returns at the first test. */
@@ -14,7 +17,8 @@ static const char *const SN[TS_N] = { "tbs_head", "tbs_head8", "tbs_seg", "tbs_s
     "tbw_trap", "tbw_wp", "tbw_wp16",
     "explosion06", "shade_at",
     "tbx_back", "tbx_shr", "tbx_shr7", "tbx_shl", "tbx_shl7", "tbx_head", "tbx_body", "tbx_body8", "tbx_clawr", "tbx_clawl",
-    "tbx_arml", "tbx_armr", "tbx_hit", "tbx_hit8", "tbx_laser", "tbx_sph", "tbx_sph2", "tbx_spl1", "tbx_spl2", "tbx_plat" };
+    "tbx_arml", "tbx_armr", "tbx_hit", "tbx_hit8", "tbx_laser", "tbx_sph", "tbx_sph2", "tbx_spl1", "tbx_spl2", "tbx_plat",
+    "tbq_squid", "tbq_squid8", "tbq_squid10", "tbq_squid11", "tbq_glass", "tbq_glass1", "tbq_jet", "tbq_jet7", "tbq_arm", "tbq_hb" };
 short tbb_sa[TS_N];
 tbb_list_t tbb_l[TBB_NT];
 static int on;                                       /* the level places any of these types */
@@ -103,7 +107,7 @@ void tb_boss_spawn(void) {
         memset(o->av, 0, sizeof o->av); o->hidden = (objdef(t)->flags & OD_HIDDEN) != 0; o->an.b = NULL;
         tbb_list_t *l = &tbb_l[ti]; if (l->n < TBB_LMAX) l->i[l->n++] = (short)i;
     }
-    tbs_spawn(); tbw_spawn(); tbx_spawn();
+    tbs_spawn(); tbw_spawn(); tbq_spawn(); tbx_spawn();
 }
 void tb_boss_pre(player_t *p) { (void)p; if (!on) return; r_compact(); }
 void tb_boss_frame(player_t *p) {
@@ -112,13 +116,14 @@ void tb_boss_frame(player_t *p) {
     for (int k = 0; k < nR; k++) { obj_t *o = &G.o[R[k]]; if (o->alive && o->type == OT_TBB_FX && (!o->an.b || o->an.done)) o->alive = 0; }   /* a one-shot effect */
     tbs_frame(p);
     tbw_frame(p);
+    tbq_frame(p);
     tbx_frame(p);
 }
 int  tb_boss_obj(obj_t *o, player_t *p) { (void)o; (void)p; return 1; }        /* every rule runs in tb_boss_frame */
-int  tb_boss_q20(int type) { return type == OT_TBB_SHRIMP || type == OT_TBB_SH_SEG || type == OT_TBB_PUSHER || type == OT_TBB_SX_HIT; }   /* RE qualifier 20 */
+int  tb_boss_q20(int type) { return type == OT_TBB_SHRIMP || type == OT_TBB_SH_SEG || type == OT_TBB_PUSHER || type == OT_TBB_SQUID || type == OT_TBB_SX_HIT; }   /* RE qualifier 20 */
 int  tb_boss_draw_obj(const obj_t *o, int pass) {
     if (!on) return 1;
-    if (tbs_draw(o, pass) || tbw_draw(o, pass) || tbx_draw(o, pass)) return 1;
+    if (tbs_draw(o, pass) || tbw_draw(o, pass) || tbq_draw(o, pass) || tbx_draw(o, pass)) return 1;
     if (o->hidden) return 1;
     sbb_draw(o, 0xffffffff);
     return 1;
