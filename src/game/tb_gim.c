@@ -366,13 +366,16 @@ static void xblocks(void) {
     }
 }
 
-/* another module's object setting off the explosive blocks it touches (Battle Glacier 14306: a drill sat; RE: flag 0 set, hidden,
- * explosion01 at the block's centre; the caller makes the shake and the sound). The chain reaction (11964 / 11965) runs above.
- * Returns the blocks set off. */
-int tb_gim_xblock_ignite(const obj_t *by) {
+/* another module's object setting off the explosive blocks its box [x0, x1) x [y0, y1) touches (Battle Glacier 14306: a drill sat;
+ * RE: flag 0 set, hidden, explosion01 at the block's centre; the caller makes the shake and the sound). The block's own explosion
+ * (11964 / 11965) runs above. Returns the blocks set off. */
+int tb_gim_xblock_ignite(float x0, float y0, float x1, float y1) {
     obj_t *o; int n = 0;
     if (!S.on) return 0;
-    EACH(OT_TBG_XBLOCK, o) if (!(o->fl & F1) && box_ov(by, o)) { o->fl |= F1; o->hidden = 1; obj_effect(o->x + 32, o->y + 32, "explosion01"); n++; }
+    EACH(OT_TBG_XBLOCK, o) {
+        float c0, d0, c1, d1; img_box(o, &c0, &d0, &c1, &d1);
+        if (!(o->fl & F1) && x0 < c1 && c0 < x1 && y0 < d1 && d0 < y1) { o->fl |= F1; o->hidden = 1; obj_effect(o->x + 32, o->y + 32, "explosion01"); n++; }
+    }
     return n;
 }
 
