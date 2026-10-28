@@ -66,6 +66,7 @@ static void act_pt(const obj_t *o, double *x, double *y) {
     *x = floorf(o->x) + dx * c_cos(a) + dy * c_sin(a); *y = floorf(o->y) - dx * c_sin(a) + dy * c_cos(a);
 }
 static void img_box(const obj_t *o, float *x0, float *y0, float *x1, float *y1) {
+    if (obj_hang_box(o, x0, y0, x1, y1)) return;      /* clotheslines / long sensors: the RE whole image box (the sprite is cropped) */
     if (!o->an.b) { *x0 = o->x; *y0 = o->y; *x1 = o->x + 1; *y1 = o->y + 1; return; }
     const frame_t *f = anim_frame(&o->an);
     *x0 = floorf(o->x) - f->hx; *y0 = floorf(o->y) - f->hy; *x1 = *x0 + f->w; *y1 = *y0 + f->h;
@@ -74,6 +75,8 @@ static int box_ov(float a0, float b0, float a1, float b1, float c0, float d0, fl
 /* a placed player sensor overlapping the object (box objects unrotated: image rect, others: the (rotated) mask) */
 static int sens_hit(int s, const obj_t *o) {
     int ox, oy, h; const signed char *a, *b;
+    float hx0, hy0, hx1, hy1;
+    if (o->alive && o->ang == 0 && obj_hang_box(o, &hx0, &hy0, &hx1, &hy1)) return sens_rows_box(s, hx0, hy0, hx1, hy1);   /* clotheslines / ends */
     if (!o->alive || !o->an.b || !mv_sensor_rows(s, &ox, &oy, &a, &b, &h)) return 0;
     if ((objdef(o->type)->flags & OD_BOXCOL) && o->ang == 0) {
         float bx, by, bx1, by1; img_box(o, &bx, &by, &bx1, &by1);

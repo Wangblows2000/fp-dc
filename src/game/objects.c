@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include "../fp.h"
 #include "th.h"                                   /* OT_THB_CROWD (the TH3 crowd's speed, th_boss_arena.c) */
+#include "tb.h"                                   /* OT_TBG_WMASK (obj_hang_box) */
 /* the image box of a flipped frame: x - (w - hx); a left row drawn as the mirror of the right one (flip 2: jc_enemy.c / enemy_kit.h
  * mirror rows) has the original's left hotspot w - 1 - hx, so its box is 1 px further right (as objects_draw adds) */
 #define FLIP_HX(o, f) ((o)->flip ? (f)->w - (f)->hx - ((o)->flip == 2) : (f)->hx)
@@ -662,14 +663,48 @@ int obj_overlaps_bg(const obj_t *o) {
         }
     return 0;
 }
+/* Collision boxes of the invisible box-collision hang targets (session 22, hang fix). Chowdren's box collision
+ * (initialize_active(1)) is the WHOLE image rectangle around the hotspot, transparent rows included (RE: image sizes /
+ * hotspots img_<id>_meta.txt; RV build/orig_traces/hang_fix/tb2_fall_l: the TB2 rope grab fires at Y 2944.75, i.e. the
+ * TopBig rows 2926-2936 meet the rope box at its top row y + 0). The importer crops the _ens sprites to their opaque pixels
+ * (rope 72x11 -> 72x6 at +5, the Q23 handles 50x15 -> 42x10 at +5), which shrank every grab window, and Thermal Base has no
+ * rope sprite at all (FN_GIMB rows are FN4 / FN5 only), so the TB rails had no collision. These boxes do not depend on the
+ * sprite. Not listed (unchanged): GimmickHangingIdleSensor_674 (OT_HANG, its own 50x15 box below) and the Relic Maze / TH
+ * moving handles (their image box, matched in session 14). */
+static const struct { short type, w, h, hx, hy; } HBOX[] = {
+    { OT_FN_ROPE,      72, 11, 64,  0 },   /* GimmickClothesline_1987, img 6376 (FN4 / FN5 ropes, TB2-TB5 rails; events 8128-8133) */
+    { OT_FN_CLOTHES,   72, 11, 64,  0 },   /* GimmickClothesline2_1702, img 6376 (FN1 / FN2; 7205-7210) */
+    { OT_FN_CLSTOP,    16, 24,  0,  0 },   /* GimmickHangingLongSensor2_1703, img 6337 (the rope ends of both) */
+    { OT_FN_TSENS,     50, 15, 25,  5 },   /* GimmickHangingMovingSensor_1950, img 847 (the trolley grip, Q23) */
+    { OT_FN_IBALLOON,  50, 11, 25,  0 },   /* GimmickHangingIdleBalloon_1992, img 1171 (Q23) */
+    { OT_SB_BARMASK,   50, 11, 25, -4 },   /* GimmickSBBarMask_2313, img 5889 (Q23) */
+    { OT_TBG_WMASK,    50, 15, 25,  0 },   /* GimmickWaterLevelMask1 / 2 (2872 / 2878), img 553 (Q23) */
+};
+int obj_hang_box(const obj_t *o, float *x0, float *y0, float *x1, float *y1) {
+    for (unsigned k = 0; k < sizeof HBOX / sizeof HBOX[0]; k++)
+        if (HBOX[k].type == o->type) {
+            *x0 = floorf(o->x) - HBOX[k].hx; *y0 = floorf(o->y) - HBOX[k].hy; *x1 = *x0 + HBOX[k].w; *y1 = *y0 + HBOX[k].h;
+            return 1;
+        }
+    return 0;
+}
+/* a placed player sensor (row spans) overlapping a box */
+int sens_rows_box(int s, float x0, float y0, float x1, float y1) {
+    int ox, oy, h; const signed char *a, *b;
+    if (!mv_sensor_rows(s, &ox, &oy, &a, &b, &h)) return 0;
+    if (oy >= y1 || oy + h <= y0) return 0;
+    for (int j = 0; j < h; j++) { int y = oy + j; if (b[j] < a[j] || y < y0 || y >= y1) continue; if (ox + b[j] >= x0 && ox + a[j] < x1) return 1; }
+    return 0;
+}
+
 /* a hang handle (OD_HANG: GimmickHangingIdleSensor_674, the RM moving sensors, switch and mover handles). The idle
- * sensor is 50x15, hotspot (25, 0); the others use their image box. Lilac's PlayerSensorTopBig_332 is 11x11 centred at
- * (floor X, floor Yref - 13) (RV), tested after this frame's move (RE event 4065) */
+ * sensor is 50x15, hotspot (25, 0); the others use their image box (obj_hang_box when known). Lilac's
+ * PlayerSensorTopBig_332 is 11x11 centred at (floor X, floor Yref - 13) (RV), tested after this frame's move (RE event 4065) */
 void obj_hang_try(obj_t *o, player_t *p) {
     double ry = p->y - ORIG_REF_DY;
     double tx = floor(p->x), ty = floor(ry) - 13;
     float x0 = o->x - 25, y0 = o->y, x1 = o->x + 25, y1 = o->y + 15;
-    if (o->type != OT_HANG && o->an.b) { const frame_t *f = anim_frame(&o->an); x0 = floorf(o->x) - f->hx; y0 = floorf(o->y) - f->hy; x1 = x0 + f->w; y1 = y0 + f->h; }
+    if (o->type != OT_HANG && !obj_hang_box(o, &x0, &y0, &x1, &y1) && o->an.b) { const frame_t *f = anim_frame(&o->an); x0 = floorf(o->x) - f->hx; y0 = floorf(o->y) - f->hy; x1 = x0 + f->w; y1 = y0 + f->h; }
     if (player_can_hang(p) && overlap(tx - 5, ty - 5, tx + 6, ty + 6, x0, y0, x1, y1)) {
         player_hang(p, o->x, o->type == OT_HANG ? o->y : o->y - 4);       /* 4062: moving handles hold Y = handle y + 28 */
         p->hang_obj = (int)(o - G.o); p->hang_px = o->x; p->hang_py = o->y;

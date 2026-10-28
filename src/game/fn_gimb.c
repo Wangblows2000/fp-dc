@@ -70,6 +70,8 @@ static void act_pt(const obj_t *o, double *x, double *y) {
  * (check_overlap) */
 static int sens_hit(int s, const obj_t *o) {
     int ox, oy, h; const signed char *a, *b;
+    float x0, y0, x1, y1;
+    if (o->alive && o->ang == 0 && obj_hang_box(o, &x0, &y0, &x1, &y1)) return sens_rows_box(s, x0, y0, x1, y1);   /* ropes / ends: RE whole image box, no sprite needed (TB) */
     if (!o->alive || !o->an.b || !mv_sensor_rows(s, &ox, &oy, &a, &b, &h)) return 0;
     if ((objdef(o->type)->flags & OD_BOXCOL) && o->ang == 0) {
         const frame_t *f = anim_frame(&o->an);
@@ -249,9 +251,9 @@ void fn_gimb_pre(player_t *p) {
 
 /* ================================================================ 4. clotheslines (8128-8133) */
 static int rope_end(int s) { obj_t *e; EACH(OT_FN_ROPEEND, e) if (sens_hit(s, e)) return 1; return 0; }
-static int under_rope(const player_t *p) {           /* SKIN overlaps a rope piece */
-    obj_t *o; int X = (int)PX(p);
-    EACH(OT_FN_ROPE, o) if (fabsf(o->y - (float)p->hang_y) < 2 && obj_rect_hit(o, X - 8, (int)o->y - 2, X + 8, (int)o->y + 12)) return 1;
+static int under_rope(const player_t *p) {           /* SKIN overlaps a rope piece (INFERRED: hands within the piece's box) */
+    obj_t *o; int X = (int)PX(p); float x0, y0, x1, y1;
+    EACH(OT_FN_ROPE, o) if (fabsf(o->y - (float)p->hang_y) < 2 && obj_hang_box(o, &x0, &y0, &x1, &y1) && X + 8 > x0 && X - 8 < x1) return 1;
     return 0;
 }
 static void ropes(player_t *p) {
@@ -269,6 +271,8 @@ static void ropes(player_t *p) {
     if (S.rope && p->state == ST_HANG && p->vy >= 0 && under_rope(p)) {            /* 8130 / 8131: shimmy 3 px a frame, stopped by the end sensors */
         if ((p->held & BTN_RIGHT) && !rope_end(SENS_RIGHTBIG)) S.ropeB = 3;
         else if ((p->held & BTN_LEFT) && !rope_end(SENS_LEFTBIG)) S.ropeB = -3;
+        p->cY = S.ropeB != 0 ? 42 : 41;                                              /* 8129-8131: OTHERS.Y 42 hand over hand, 41 still / at an end (RV tb2_fall_l) */
+        if (S.ropeB != 0) p->face = S.ropeB > 0 ? 1 : -1;
     }
 }
 
