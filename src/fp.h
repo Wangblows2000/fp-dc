@@ -838,7 +838,7 @@ void   rock_at_new(float x, float y), rock_at_break(obj_t *r), rocks_at_frame(pl
 typedef struct { short x, y, A; float B; short D, E, blk; } padcfg_t;   /* Carol's jump pad at (x, y): index A, angle B, chain end D, lit E, block pad */
 typedef struct { short x0, x1, y0, y1; } zone_t;
 enum { DIG_NONE, DIG_KEYSTONE_MON, DIG_CRYSTALS, DIG_PETAL, DIG_WOOD_MON, DIG_EARTH_MON, DIG_OPEN_HOLE };   /* dig spot rewards (spec_milla_moves 6) */                        /* a box in original MV coordinates (x0..x1, y0..y1 inclusive) */
-typedef struct { short x0, x1, g4, x, y, ymin; signed char nosnap; } cpzone_t;   /* checkpoint: x0 < X < x1 (and MV.Y > ymin when ymin > 0, MV.Y < -ymin when ymin < 0) and g4 below -> g4 / g5 / g6 = g4, x, y (nosnap: no restart snapshot, RM2 5924) */
+typedef struct { short x0, x1, g4, x, y, ymin; signed char nosnap; } cpzone_t;   /* nosnap bit 2 (session 21c): fires while g4 <= g4 (TB5's last: g4 < 5 -> 4) */   /* checkpoint: x0 < X < x1 (and MV.Y > ymin when ymin > 0, MV.Y < -ymin when ymin < 0) and g4 below -> g4 / g5 / g6 = g4, x, y (nosnap: no restart snapshot, RM2 5924) */
 /* act exits (spec_rm_flow 6.2): edge 1 = right (X > W + x, B > 0), -1 = left (X < x, B < 0); ymin < MV.Y < ymax unless both 0;
  * the first match wins; during the fade a grounded player gets B = fade_b (0: the DV / AT rule B = max(B, 2), 3311) */
 typedef struct { signed char edge, fade_b; short x, ymin, ymax; const char *to; } exit_t;
@@ -952,7 +952,11 @@ typedef struct {
     const char *mus4b; int mus4b_g4;                 /* play_music(4) once g4 >= mus4b_g4 (TH3 loop_wrapper_play_music_4_58: 13701 m_midboss while
                                                         g4 < 5, 13702 m_boss2 from g4 5 on) */
     const camshaft_t *cam_shaft;                     /* a camera bound rule driven by the player's depth (TH1 13498-13500) */
+    /* session 21c (Thermal Base, spec_tb_flow) */
+    int music_off;                                   /* the act starts silent (TB6 12735: Media::stop_channel(31)); its scripts play the slots */
 } level_def_t;
+int  level_water(void);                              /* the act's water line ML.B now (level data .water, moved by level_water_set; 0 = dry) */
+void level_water_set(int b);                         /* a script moves ML.B (TB5's water levers 12491-12501) */
 const char *level_music_slot(int slot);              /* the current act's music for a play_music(slot) of its scripts (NULL: none) */
 void level_lock_markers(void);                       /* CAM.M = 1: the boss bounds of the CameraLimitBoss markers (as placed / moved) */
 int  game_timer(void);                               /* the stage timer in frames (stopped while G.timer_stop) */
@@ -1033,7 +1037,7 @@ float  th_boss_hud_dy(void);
  *   1792-1823 tb_flow.c, 1824-1887 tb_enemy.c, 1888-1967 tb_gim.c, 1968-2047 tb_boss.c; module enums in src/game/tb.h. */
 enum { OT_TBF_FIRST = 1792, OT_TBF_LAST = 1823, OT_TBE_FIRST = 1824, OT_TBE_LAST = 1887, OT_TBG_FIRST = 1888, OT_TBG_LAST = 1967,
        OT_TBB_FIRST = 1968, OT_TBB_LAST = 2047 };
-void   tb_flow_spawn(void), tb_flow_frame(player_t *p), tb_flow_draw(int pass);
+void   tb_flow_spawn(void), tb_flow_frame(player_t *p), tb_flow_draw(int pass), tb_flow_card(player_t *p);   /* card: the act-start card branch (TB1's lift ride) */
 int    tb_flow_obj(obj_t *o, player_t *p), tb_flow_act(void);
 float  tb_flow_hud_dy(void);
 void   tb_enemy_spawn(void), tb_enemy_pre(player_t *p), tb_enemy_draw(int pass);
