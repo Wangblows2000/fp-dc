@@ -106,13 +106,7 @@ static inline int ek_mask_sensor(obj_t *m, const char *base, int d) {
     animator_t keep = m->an; int a = ens_anim(nm), hit = 0;
     if (a < 0) return 0;
     anim_set(&m->an, &G.ens, a);
-    hit = obj_overlaps_bg(m);
-    for (int i = 0; i < G.nobjs && !hit; i++) {
-        const obj_t *s = &G.o[i];
-        if (!s->alive || s == m || !s->an.b || fabsf(s->x - m->x) > 160 || fabsf(s->y - m->y) > 160) continue;
-        if (obj_in_group(s->type, OBJGRP_SOLID) && !(s->fl & 1) && obj_obj_hit(m, s)) hit = 1;
-        else if (d == 1 && obj_in_group(s->type, OBJGRP_OBSTACLE) && !(s->fl & 1) && floorf(m->y) <= floorf(s->y) && obj_obj_hit(m, s)) hit = 1;
-    }
+    hit = obj_overlaps_bg(m) || objects_mask_hit_groups(m, d == 1);   /* (group candidate lists, not a scan of every object) */
     m->an = keep;
     return hit;
 }

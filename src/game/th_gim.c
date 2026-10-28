@@ -112,13 +112,6 @@ static void beam_pt(const obj_t *o, double d, int k, int *x, int *y) {
     *x = (int)floor(o->x + (d + 0.5) * c + (k + 0.5) * s);
     *y = (int)floor(o->y - (d + 0.5) * s + (k + 0.5) * c);
 }
-static int sec_bg(const obj_t *o, int d, int h) {             /* any solid background pixel in the cross-section at d */
-    int xa, ya, xb, yb; beam_pt(o, d, -h, &xa, &ya); beam_pt(o, d, h, &xb, &yb);
-    if (ya == yb) return px_span_solid(&G.lvl, xa < xb ? xa : xb, xa < xb ? xb : xa, ya);   /* vertical beam: one row */
-    if (xa == xb) { for (int y = ya < yb ? ya : yb; y <= (ya < yb ? yb : ya); y++) if (px_solid(&G.lvl, xa, y)) return 1; return 0; }
-    for (int k = -h; k <= h; k++) { int x, y; beam_pt(o, d, k, &x, &y); if (px_solid(&G.lvl, x, y)) return 1; }
-    return 0;
-}
 /* Q7 (always-solid objects) across distances [d0, d1): the footprint as sensor rows (<= 24 px wide chunks) */
 static int sec_q7(const obj_t *o, int d0, int d1, int h) {
     static signed char X0[64], X1[64];
@@ -142,6 +135,13 @@ static int sec_q7(const obj_t *o, int d0, int d1, int h) {
     return objects_sensor_hit(OBJGRP_SOLID, minx, miny, X0, X1, H);
 }
 static int beam_block_q7(const obj_t *o, int lim, int h) {    /* first blocked distance (Q7), BEAM_MAXD if none below lim */
+    {   int xa, ya, xb, yb, xc, yc, xd, yd;                                   /* the beam's box: no Q7 object near it -> none (exact) */
+        beam_pt(o, 0, -h, &xa, &ya); beam_pt(o, 0, h, &xb, &yb); beam_pt(o, lim, -h, &xc, &yc); beam_pt(o, lim, h, &xd, &yd);
+        int x0 = xa, x1 = xa, y0 = ya, y1 = ya;
+        int X[3] = { xb, xc, xd }, Y[3] = { yb, yc, yd };
+        for (int k = 0; k < 3; k++) { if (X[k] < x0) x0 = X[k]; if (X[k] > x1) x1 = X[k]; if (Y[k] < y0) y0 = Y[k]; if (Y[k] > y1) y1 = Y[k]; }
+        if (!objects_group_box_any(OBJGRP_SOLID, x0 - 2, y0 - 2, x1 + 2, y1 + 2)) return BEAM_MAXD;
+    }
     for (int d = 0; d < lim; d += 16) {
         int e = d + 16 < lim ? d + 16 : lim;
         if (!sec_q7(o, d, e, h)) continue;
@@ -189,6 +189,36 @@ static int beam_bg_rot(const obj_t *o, int lim, int h) {
 }
 /* 13484 / loop_l_56: 16 passes of 13458 (background) / 13459 (Q7) / 13460 (Milla's cube: flag 1) / 13461 x 2 (flag 1 and the
  * cube) A - 1 each, then A + 1 when nothing overlaps. Overlap of [0, A) with a blocker first met at distance D <=> D < A. */
+/* an axis-aligned beam against the background: the first d in [0, lim) whose cross-section has a solid pixel (same result as
+ * sec_bg per d; session 21b cost fix: a horizontal beam scans its rows in 16 px spans instead of a column of px_solid per d) */
+static int beam_bg_axis(const obj_t *o, int lim, int h) {
+    int xa, ya, xb, yb; beam_pt(o, 0, -h, &xa, &ya); beam_pt(o, 0, h, &xb, &yb);
+    if (ya == yb) {                                                                        /* vertical beam: a row span per d */
+        int xl = xa < xb ? xa : xb, xr = xa < xb ? xb : xa, ya1, xq; beam_pt(o, 1, -h, &xq, &ya1);
+        int ystep = ya1 > ya ? 1 : -1;
+        const level_t *L = &G.lvl;
+        for (int d = 0; d < lim; d++) {
+            int y = ya + ystep * d;
+            if (!L->mv.on && y >= 0 && y < L->h && xl >= 0 && xr < L->w) {               /* a tile row with no solid tile under the span: skip it */
+                const uint16_t *row = L->smap + (y >> 4) * L->tw; int any = 0;
+                for (int tx = xl >> 4; tx <= xr >> 4; tx++) if (row[tx]) { any = 1; break; }
+                if (!any) { int yn = ystep > 0 ? ((y >> 4) << 4) + 15 : (y >> 4) << 4; d += (yn - y) * ystep; continue; }
+            }
+            if (px_span_solid(L, xl, xr, y)) return d;
+        }
+        return BEAM_MAXD;
+    }
+    int x0, y0, x1, y1; beam_pt(o, 0, 0, &x0, &y0); beam_pt(o, 1, 0, &x1, &y1);
+    int step = x1 > x0 ? 1 : -1, best = BEAM_MAXD;
+    for (int y = ya < yb ? ya : yb; y <= (ya < yb ? yb : ya); y++)
+        for (int d = 0; d < lim && d < best; d += 16) {
+            int e = d + 16 < lim ? d + 16 : lim, xs = x0 + step * d, xe = x0 + step * (e - 1);
+            if (!px_span_solid(&G.lvl, xs < xe ? xs : xe, xs < xe ? xe : xs, y)) continue;
+            for (int k = d; k < e && k < best; k++) if (px_solid(&G.lvl, x0 + step * k, y)) { best = k; break; }
+            break;
+        }
+    return best;
+}
 static void beam_length(obj_t *o) {
     int h = beam_half(o), A = (int)o->av[0], lim = (A > 0 ? A : 0) + 17;
     double key = ((double)(int)o->x * 65536.0 + (int)o->y) * 8.0 + h + o->ang * 1e12;   /* background distance cache: same origin, angle, width */
@@ -197,7 +227,7 @@ static void beam_length(obj_t *o) {
     else {
         Dbg = BEAM_MAXD;
         if (o->ang != 0 && o->ang != 90 && o->ang != 180 && o->ang != 270) Dbg = beam_bg_rot(o, lim, h);
-        else for (int d = 0; d < lim; d++) if (sec_bg(o, d, h)) { Dbg = d; break; }
+        else Dbg = beam_bg_axis(o, lim, h);
         o->av[5] = Dbg; o->av[6] = lim; o->av[7] = key;
     }
     int nearb = near_ext(o, 600);                                                       /* objects / the cube only near the view (cost; INFERRED) */
@@ -320,7 +350,8 @@ static void lasers(player_t *p) {
         else b->dir = (ph < 91 || ph > 269) ? 0 : 1;                              /* 13479-13481 */
         beam_anim(b);
     }
-    EACH(OT_THG_BEAM, b) beam_length(b);                                          /* 13484 (positions / angles of the last frame) */
+    EACH(OT_THG_BEAM, b) if (near_ext(b, 700) || b->av[7] == 0 || ((int)b->ang % 90) == 0) beam_length(b);   /* (axis beams: cheap, cached) */                   /* 13484 (positions / angles of the last frame); far beams keep their
+                                                                                    length until they come near (Dreamcast cost: 33 ms a frame in TH1, INFERRED harmless) */
     int k[5] = { 0 };
     EACH(OT_THG_BEAM, b) {                                                        /* 13485 */
         if (b->par < 0 || b->par > 4) continue;

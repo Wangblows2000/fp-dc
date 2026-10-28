@@ -619,9 +619,11 @@ int obj_overlaps_bg(const obj_t *o) {
     const frame_t *f = anim_frame(&o->an);
     int bx = (int)floorf(o->x) - FLIP_HX(o, f), by = (int)floorf(o->y) - f->hy;
     if (o->ang == 0) {
-        for (int y = 0; y < f->h; y++)
+        for (int y = 0; y < f->h; y++) {
+            if (!px_span_solid(&G.lvl, bx, bx + f->w - 1, by + y)) continue;   /* (session 21b: exact row reject, a cost fix for TH1's laser heads) */
             for (int x = 0; x < f->w; x++)
                 if (frame_mask_px(o->an.b, f, o->flip ? f->w - 1 - x : x, y) && px_solid(&G.lvl, bx + x, by + y)) return 1;
+        }
         return 0;
     }
     /* rotated image (angle CCW around the hotspot): each opaque pixel's centre, rotated */
@@ -1095,6 +1097,48 @@ static int sensor_hit_any(int grp, int type, int ox, int oy, const signed char *
         }
     }
     return -1;
+}
+/* any object of the group whose box (frame box, no mask) touches [x0, x1) x [y0, y1): a cheap pre-check before mask queries
+ * (session 21b: TH1's scan lasers ask Q7 along every beam) */
+/* does m overlap (mask) a SOLID-group object, or, with obstacle_top, an OBSTACLE-group object not above it (floor(m.y) <= floor(s.y))?
+ * Objects with flag 1 are ignored, only those within 160 px. The group candidate lists instead of a scan of every object
+ * (session 21b: Trap Hideout's bike-ninja masks ask it 10 times a frame each; enemy_kit.h ek_mask_sensor) */
+int objects_mask_hit_groups(const obj_t *m, int obstacle_top) {
+    static short nearl[2][MAX_OBJS]; static int nnear[2], near_frame = -1; static unsigned near_gen;
+    cand_refresh();
+    float cx = G.camx + SCREEN_W / 2, cy = G.camy + SCREEN_H / 2;
+    if (near_frame != (int)G.frame || near_gen != obj_gen) {        /* this frame's group members within 1400 px of the view centre */
+        near_frame = (int)G.frame; near_gen = obj_gen;
+        for (int pass = 0; pass < 2; pass++) {
+            int g = pass ? OBJGRP_OBSTACLE : OBJGRP_SOLID; nnear[pass] = 0;
+            for (int k = 0; k < ncand[g]; k++) { const obj_t *s = &G.o[cand[g][k]]; if (fabsf(s->x - cx) < 1400 && fabsf(s->y - cy) < 1400) nearl[pass][nnear[pass]++] = cand[g][k]; }
+        }
+    }
+    int far = fabsf(m->x - cx) > 1200 || fabsf(m->y - cy) > 1200;     /* (an object far from the view: the full lists) */
+    for (int pass = 0; pass < (obstacle_top ? 2 : 1); pass++) {
+        int g = pass ? OBJGRP_OBSTACLE : OBJGRP_SOLID;
+        int n = far ? ncand[g] : nnear[pass];
+        for (int k = 0; k < n; k++) {
+            const obj_t *s = &G.o[far ? cand[g][k] : nearl[pass][k]];
+            if (!s->alive || s == m || !s->an.b || fabsf(s->x - m->x) > 160 || fabsf(s->y - m->y) > 160 || (s->fl & 1)) continue;
+            if (pass && floorf(m->y) > floorf(s->y)) continue;
+            if (obj_obj_hit(m, s)) return 1;
+        }
+    }
+    return 0;
+}
+int objects_group_box_any(int grp, int x0, int y0, int x1, int y1) {
+    cand_refresh();
+    if (grp < 0 || grp >= NGRP) return 1;
+    for (int k = 0; k < ncand[grp]; k++) {
+        const obj_t *o = &G.o[cand[grp][k]];
+        if (!o->alive || !o->an.b) continue;
+        const frame_t *f = anim_frame(&o->an);
+        int m = f->w + f->h + abs(f->hx) + abs(f->hy);                         /* (safe for rotation and hotspots outside the image) */
+        if (o->x + m < x0 || o->x - m > x1 || o->y + m < y0 || o->y - m > y1) continue;
+        return 1;
+    }
+    return 0;
 }
 int objects_sensor_hit(int grp, int ox, int oy, const signed char *x0, const signed char *x1, int h) {
     return sensor_hit_any(grp, -1, ox, oy, x0, x1, h) >= 0;

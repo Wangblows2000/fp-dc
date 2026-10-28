@@ -250,6 +250,8 @@ static void bmask_frame(obj_t *m, player_t *p) {
     double *D = &m->av[0], *E = &m->av[1], *F = &m->av[2], *Gy = &m->av[3], *H = &m->av[4], *I = &m->av[5], *J = &m->av[6], *K = &m->av[7];
     const double U = -4;
     if (m->fl & FLGONE) { m->alive = 0; if (b) b->alive = 0; return; }           /* 13788 / 13789 */
+    if (*D != -2 && !in_view(m, 900)) return;                                      /* (Dreamcast cost: a bike ninja far from the view waits
+                                                                                      where it is; INFERRED harmless: they act near the view) */
     double X = floorf(m->x), px = ek_px(p);
     if (*D == -2) { *H = 0; *I = 15; }                                             /* 13746: dropped in (TH3 arena): straight down */
     if (*D == -2 && (m->fl & FL4)) {                                               /* 13747: landed: riding, a white burst, sound 61 */

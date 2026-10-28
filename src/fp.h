@@ -480,6 +480,7 @@ void mv_allsensors(mv_t *m);
 
 int  mv_sensor_left_big(void), mv_sensor_right_big(void), mv_sensor_top_big(void);
 /* objects of a collision group overlapping a sensor mask (row spans x0[j]..x1[j] at (ox, oy + j)) */
+int  objects_group_box_any(int grp, int x0, int y0, int x1, int y1);   /* a group object near the box (cheap pre-check) */
 int  objects_sensor_hit(int grp, int ox, int oy, const signed char *x0, const signed char *x1, int h);
 int  objects_sensor_hit_type(int type, int ox, int oy, const signed char *x0, const signed char *x1, int h);  /* index of the first hit object, -1 */
 int  level_test_ladder(int x, int y);
@@ -746,6 +747,7 @@ void   obj_launch_crystal(float x, float y, int dir);
 void   keystone_spawn(float x, float y, double B, double I);
 void   keystone_update(obj_t *k, player_t *p);
 int    obj_overlaps_bg(const obj_t *o);
+int  objects_mask_hit_groups(const obj_t *m, int obstacle_top);   /* m on a SOLID (or OBSTACLE, not above) group object */
 int    obj_in_group(int type, int grp);
 void   obj_spawn_pellet(float x, float y, int dir);
 void   bosses_spawn(void), bosses_update(player_t *p), bosses_draw(void);
