@@ -47,7 +47,7 @@ INV = ''.join('%d SETV others E 99999\n' % f for f in range(3, 6000, 300))
 def fight(ch, end_attacks, extra=''):
     """TP into the arena, walk to the trigger, the Serpentine's hitbox (822) at 1 from 280; Lilac / Carol: jump attacks while
     walking left / right; Milla: the Phantom Cube (attack held 65 frames) thrown left / right"""
-    L = ['60 TP 13300 560', '70 140 R', '280 BOSSHPT 822 1']
+    L = ['60 TP 13300 560', '70 %d R' % (137 if ch == 4 else 140), '280 BOSSHPT 822 1']   # (Milla: her cube throws need her 3 px further left since JC5's start stands on the subtanker)
     if ch == 4:
         for k, f in enumerate(range(300, end_attacks, 130)): L += ['%d %d %s' % (f, f + 20, 'LR'[k & 1]), '%d %d X' % (f + 25, f + 90), '%d %d X' % (f + 95, f + 97)]
     else:

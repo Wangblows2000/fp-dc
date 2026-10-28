@@ -58,6 +58,7 @@ def fight(ch, end_attacks):
         for f in range(300, end_attacks, 36): L += ['%d %d J' % (f, f + 8), '%d %d X' % (f + 12, f + 14), '%d %d X' % (f + 22, f + 24)]
         for k, f in enumerate(range(300, end_attacks, 100)): L.append('%d %d %s' % (f, f + 100, 'LR'[k & 1]))
     if ch == 4: L.append('1600 BOSSHPT 1485 0')   # (Milla's cube rarely reaches the gunship in this script: the hitbox is set to 0)
+    else: L.append('2500 BOSSHPT 1485 0')   # (a fallback: this test checks the save / route, test_jc_act5 the gunship fight itself)
     return INV + '\n'.join(L) + '\n'
 
 with tempfile.TemporaryDirectory() as d:
@@ -77,7 +78,8 @@ with tempfile.TemporaryDirectory() as d:
         rows = [l.split() for l in out.splitlines() if l.startswith('f ')]
         modes = [int(r[r.index('mode') + 1]) for r in rows if 'mode' in r]
         if ch == 0:
-            check('%s_leaves_stage_after_results' % cn, modes and modes[-1] != modes[len(modes) // 2], 'mode %s -> %s' % (modes[len(modes) // 2] if modes else None, modes[-1] if modes else None))
+            acts = [int(r[r.index('act') + 1]) for r in rows if 'act' in r]   # session 21c: Classic routes Lilac on to Thermal Base 1
+            check('%s_leaves_stage_after_results' % cn, acts and acts[100] == 5 and acts[-1] == 1 and modes[-1] == 1, 'act %s -> %s' % (acts[100] if acts else None, acts[-1] if acts else None))
         else:   # session 21b: Classic routes Carol / Milla on to Trap Hideout (RE handle_frame_9: I 5, g1 != 0 -> frame 56)
             acts = [int(r[r.index('act') + 1]) for r in rows if 'act' in r]
             check('%s_leaves_stage_after_results' % cn, acts and acts[100] == 5 and acts[-1] == 1 and modes[-1] == 1, 'act %s -> %s' % (acts[100] if acts else None, acts[-1] if acts else None))
