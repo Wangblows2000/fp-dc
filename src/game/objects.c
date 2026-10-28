@@ -40,7 +40,17 @@ static obj_t *alloc_obj(void) {
 obj_t *obj_alloc(void) { return alloc_obj(); }
 
 static int A_LOG = -1;
-static int plat_type(int t) { return t == OT_PLAT_VALLEY || t == OT_PLAT_MOVE2 || t == OT_PLAT_MOVE3 || t == OT_GEYSER; }
+/* path platforms of other stages that share the rule (3270-3307 / 4061 / 4737 / 4738) with their own constructor F (step) and G
+ * (amplitude), registered by their module's spawn (Trap Hideout's LevelHideoutPlatform1, th_gim.c) */
+static struct { int type; float F, G; } plat_x[8]; static int nplat_x;
+void objects_plat_type(int type, float F, float Gm) {
+    int k = 0;
+    while (k < nplat_x && plat_x[k].type != type) k++;
+    if (k == nplat_x) { if (nplat_x >= 8) return; nplat_x++; }
+    plat_x[k].type = type; plat_x[k].F = F; plat_x[k].G = Gm;
+}
+static int plat_x_of(int t) { for (int k = 0; k < nplat_x; k++) if (plat_x[k].type == t) return k; return -1; }
+static int plat_type(int t) { return t == OT_PLAT_VALLEY || t == OT_PLAT_MOVE2 || t == OT_PLAT_MOVE3 || t == OT_GEYSER || (nplat_x && plat_x_of(t) >= 0); }
 void objects_spawn(void) {
     A_EXPLODE = bank_anim(&G.objs, "explosion");
     { static const char *tn[6] = { "turr_idle", "turr_idle_l", "turr_shoot", "turr_shoot_l", "turr_off", "turr_off_l" };
@@ -145,8 +155,10 @@ void objects_spawn(void) {
 static double p_sin(double n) { return n == 180. ? 0. : fd_sin(n / 57.29577951308232); }
 static void plat_params(int t, double *F, double *Gm) {
     if (t == OT_GEYSER) { *F = 2; *Gm = 240; }                    /* RE create_levelgeyserplate_994: F = 2, G = 240, H = 1 */
-    else if (t == OT_PLAT_MOVE2) { *F = 2; *Gm = 120; } else if (t == OT_PLAT_MOVE3) { *F = 1; *Gm = 100; } else { *F = 1; *Gm = 10; }
+    else if (t == OT_PLAT_MOVE2) { *F = 2; *Gm = 120; } else if (t == OT_PLAT_MOVE3) { *F = 1; *Gm = 100; }
+    else { int k = plat_x_of(t); if (k >= 0) { *F = plat_x[k].F; *Gm = plat_x[k].G; } else { *F = 1; *Gm = 10; } }
 }
+static int plat_x_present(void) { for (int k = 0; k < nplat_x; k++) if (objects_have(plat_x[k].type)) return 1; return 0; }
 static int box_hits_disc27(float bx, float by, float bw, float bh, int px, int py) {   /* Player_326: 27-px disc at (int X, int Y) */
     float cx = fmaxf(bx, fminf((float)px, bx + bw - 1)), cy = fmaxf(by, fminf((float)py, by + bh - 1));
     float dx = cx - px, dy = cy - py;
@@ -177,7 +189,7 @@ void objects_platforms(player_t *p) {
     jc_gim_pre(p);                                /* Jade Creek platforms before the movement (jc_gim.c) */
     th_gim_pre(p);                                /* Trap Hideout platforms / traps before the movement (th_gim.c) */
     relic_gima_pre(p);                            /* Relic Maze acts 1-2: rolling platform, hanging switch / mover, moving handles */
-    if (!objects_have(OT_PLAT_VALLEY) && !objects_have(OT_PLAT_MOVE2) && !objects_have(OT_PLAT_MOVE3) && !objects_have(OT_GEYSER) && !objects_have(OT_BRIDGE)) return;
+    if (!objects_have(OT_PLAT_VALLEY) && !objects_have(OT_PLAT_MOVE2) && !objects_have(OT_PLAT_MOVE3) && !objects_have(OT_GEYSER) && !objects_have(OT_BRIDGE) && !plat_x_present()) return;
     double MY = p->y - ORIG_REF_DY;
     int PX = (int)p->x, PY = (int)MY;
     for (int i = 0; i < G.nobjs; i++) {
@@ -197,7 +209,9 @@ void objects_platforms(player_t *p) {
     }
     /* 4061: carry / snap onto a moving platform (G >= 0, BottomBig 1 px lower, flag 6 of last frame off) */
     if (p->vy >= 0 || p->ground) {
-        for (int t = OT_PLAT_VALLEY; t <= OT_PLAT_MOVE3; t++) {
+        for (int ti = OT_PLAT_VALLEY; ti <= OT_PLAT_MOVE3 + nplat_x; ti++) {
+            int t = ti <= OT_PLAT_MOVE3 ? ti : plat_x[ti - OT_PLAT_MOVE3 - 1].type;
+            if (ti > OT_PLAT_MOVE3 && !objects_have(t)) continue;
             int k = mv_sensor_obj(p->x, MY + 1, p->N, SENSOR_BOTTOMBIG, t);
             if (k < 0 || (G.o[k].fl & 0x40)) continue;
             p->y += G.o[k].dir; MY = p->y - ORIG_REF_DY;
@@ -352,14 +366,20 @@ void obj_spawn_pellet(float x, float y, int dir) {
 
 /* PinballMovement::update (RE; floor split of the position reproduces the logged path exactly):
  * vy += gravity/10; speed = |v| (<= 100); position += v/10 with the fraction carried */
-static void pellet_move(obj_t *o) {
-    o->vy += PELLET_GRAV / 10.f;
+/* shared by every PinballMovement object (pellets; Trap Hideout's barrel debris, th_gim.c): vx / vy in tenths of a px a frame */
+void obj_pinball_start(obj_t *o, int dir, float speed) {
+    float a = (float)(dir & 31) * 11.25f * 3.14159265f / 180.f;      /* PinballMovement::set_direction */
+    o->vx = speed * (float)fd_cos(a); o->vy = -speed * (float)fd_sin(a); o->fx = o->fy = 0;
+}
+void obj_pinball_step(obj_t *o, float grav) {
+    o->vy += grav / 10.f;
     float sp = sqrtf(o->vx * o->vx + o->vy * o->vy);
     if (sp > 100.f) { o->vx *= 100.f / sp; o->vy *= 100.f / sp; }
     float dx = o->vx / 10.f + o->fx, dy = o->vy / 10.f + o->fy;
     float ix = floorf(dx), iy = floorf(dy);
     o->fx = dx - ix; o->fy = dy - iy; o->x += ix; o->y += iy;
 }
+static void pellet_move(obj_t *o) { obj_pinball_step(o, PELLET_GRAV); }
 
 /* RE (events 2632-2670): MonitorCrystals spawns 7 crystals (loop_spawn_crystals, event 1323),
  * MonitorRings spawns petals (loop_spawn_rings, 6 per loop), Monitor1up an extra life, MonitorInvincibility
