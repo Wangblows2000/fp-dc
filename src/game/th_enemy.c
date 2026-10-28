@@ -58,7 +58,11 @@ int th_enemy_totem_zap(const obj_t *beam) {                                     
     obj_t *t; int n = 0;
     if (!S.on || !beam || !beam->an.b) return 0;
     EACH(OT_TH_TOTEM, t)
-        if (!DEFEATED(t) && t->A > 0 && in_view(t, 80) && fabsf(t->x - beam->x) < 400 && fabsf(t->y - beam->y) < 400 && obj_obj_hit(t, beam)) { totem_kill(t); n++; }
+        if (!DEFEATED(t) && t->A > 0 && in_view(t, 80) && fabsf(t->x - beam->x) < 800 && fabsf(t->y - beam->y) < 800 && t->an.b) {
+            const frame_t *f = anim_frame(&t->an);                                  /* check_overlap(totems, the lasers' qualifier) */
+            int x0 = (int)floorf(t->x) - (t->flip ? f->w - f->hx - (t->flip == 2) : f->hx), y0 = (int)floorf(t->y) - f->hy;
+            if (th_gim_beam_rect(beam, x0, y0, x0 + f->w - 1, y0 + f->h - 1)) { totem_kill(t); n++; }
+        }
     return n;
 }
 
@@ -210,6 +214,7 @@ static void phand_frame(obj_t *h, player_t *p) {
     if (A >= 2 && A <= 3) {
         if (ek_csens_hit(p, h) && ek_r_hurt(p, 20, 0)) ek_add_mvB(p, 8 * h->av[2]);   /* 13676 */
         obj_t *t; EACH(OT_TH_TOTEM, t) if (!DEFEATED(t) && fabsf(t->x - h->x) < 96 && fabsf(t->y - h->y) < 96 && obj_obj_hit(h, t)) totem_kill(t);   /* 13689 */
+        th_gim_barrels_hit_by(h);                                                  /* 13688 (th_gim.c) */
     }
 }
 static void pshield_frame(obj_t *s) {
