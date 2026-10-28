@@ -456,7 +456,11 @@ static void doors(player_t *p) {
     if (d1->fl & F1) { *A = fmax(*A - *B, 0); *B += 0.0005; }                /* 12990 */
     else { *A = fmin(*A + *B, 1); *B += 0.0005; }                            /* 12991 */
     if (!(d1->fl & F2) && (((d1->fl & F1) && *A <= 0) || (!(d1->fl & F1) && *A >= 1))) { snd(132); d1->fl |= F2; }   /* 12992 / 12993 */
-    if (d2) pl_flow_door_report(d1->x, d2->x, (float)*A);                     /* 13009 / 13330 run in pl_flow.c (the walk, the fade, the exit) */
+    int rep = d2 != NULL;
+#ifdef FP_HOST_ENV
+    if (getenv("FP_DBG_PLDOOR")) rep = 0;                                      /* host tests: pl_flow.c's stand-in report replaces this one */
+#endif
+    if (rep) pl_flow_door_report(d1->x, d2->x, (float)*A);                     /* 13009 / 13330 run in pl_flow.c (the walk, the fade, the exit) */
     int busy = pl_flow_door_busy();
     if (busy && !S.door_c) { d1->fl &= ~(F1 | F2); *B = 0; }                   /* the scene starts: the door closes behind her (13009 / 13330) */
     if (busy && !S.door_enter && fabs(PX(p) - (d1->x + 48)) < 1) {          /* 13002: there; doors 1 / 3 / 4 drawn in front of her */
