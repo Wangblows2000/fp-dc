@@ -235,14 +235,29 @@ static const short SFX_TB3[] = { 62, 99, 49, 35, 37, 38, 52, 55, 59, 71, 73, 134
 static const short SFX_TB4[] = { 62, 99, 49, 37, 38, 59, 173, 264, 279, 280, 285, 286, 437 };
 static const short SFX_TB5[] = { 62, 99, 49, 33, 35, 37, 51, 59, 73, 110, 264, 279, 280, 282, 285, 286, 302, 321, 437 };
 static const short SFX_TB6[] = { 62, 99, 92, 251, 252, 264, 279, 280, 304, 305, 309 };
-/* Pangu Lagoon (session 23, stage index 7, Lilac only; provisional rows: the flow agent sets music, cards, routes) */
-static const short SFX_PL1[] = { 62, 99 };
-static const short SFX_PL2[] = { 62, 99 };
-static const short SFX_PL3[] = { 62, 99 };
-static const short SFX_PL4[] = { 62, 99 };
-static const short SFX_PL5[] = { 62, 99 };
-static const short SFX_PL6[] = { 62, 99 };
-#define PL(d, f, n, mus) .dir = d, .frame = f, .stage = 7, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_PL##n, .nsfx = N_(SFX_PL##n)
+/* Pangu Lagoon (session 23, stage index 7, Lilac only; spec_pl_flow, pl_flow.c). Checkpoints (RE, g4 / g5 / g6 + loop_cp_16): PL1
+ * inline handle_frame_51 (g4 < 2, 9200 < X < 9400 -> (2, 9264, 474)), PL2 inline handle_frame_52 (g4 < 2, 6936 < X < 7136, MV.Y < 444 ->
+ * (2, 6936, 414)), PL3 none, PL4 inline handle_frame_54 (g4 < 2, 3322 < X < 3500, MV.Y > 1000 -> (2, 3322, 1410); g4 < 3, 6767 < X <
+ * 6900 -> (2, 6767, 1100): the binary writes 2, so it re-arms while g4 < 3: nosnap bit 2), PL5 inline handle_frame_55 (g4 < 2, 5750 <
+ * X < 6000 -> (2, 5864, 1588); g4 < 3, 7900 < X < 8000, MV.Y < 600 -> (3, 7980, 370)), PL6 13327 (g4 < 2, 2834 < X < 3000 -> (2, 2834,
+ * 1550)); PL6's g4 3 (4480, 208) comes with the stone door into the arena (13236, pl_flow.c); 13328 (4000 < X < 300) never fires */
+static const cpzone_t CP_PL1[] = { { 9200, 9400, 2, 9264, 474, 0, 0 } };
+static const cpzone_t CP_PL2[] = { { 6936, 7136, 2, 6936, 414, -444, 0 } };   /* ymin -444: MV.Y < 444 */
+static const cpzone_t CP_PL4[] = { { 3322, 3500, 2, 3322, 1410, 1000, 0 }, { 6767, 6900, 2, 6767, 1100, 0, 2 } };
+static const cpzone_t CP_PL5[] = { { 5750, 6000, 2, 5864, 1588, 0, 0 }, { 7900, 8000, 3, 7980, 370, -600, 0 } };   /* ymin -600: MV.Y < 600 */
+static const cpzone_t CP_PL6[] = { { 2834, 3000, 2, 2834, 1550, 0, 0 } };
+/* PL3's stone-door room (13007 / 13008, RE): CAM.M 1 to the CameraLimitBoss markers once Player_326 is right of the left marker
+ * (4976) and above the bottom one (279); CAM.M 2 once X <= left + 39 (pl_flow.c adds 13007's fadeout_music(6000)) */
+static const camzone_t CAM_PL3 = { 0, 4976, -32768, 279, 4976, 8, 6247, 279, 4976 + 40, 32767 };
+/* the stage's own sounds per act (11025 Hz): the flow events play none of their own (13228's 56 is the shared wipe); 99 explosions;
+ * the enemy / gimmick / boss modules add theirs */
+static const short SFX_PL1[] = { 99 };
+static const short SFX_PL2[] = { 99 };
+static const short SFX_PL3[] = { 99 };
+static const short SFX_PL4[] = { 99 };
+static const short SFX_PL5[] = { 99 };
+static const short SFX_PL6[] = { 99 };
+#define PL(d, f, n, mus) .dir = d, .frame = f, .stage = 7, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_PL##n, .nsfx = N_(SFX_PL##n), .lilac_only = 1
 #define TB(d, f, n, mus) .dir = d, .frame = f, .stage = 6, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_TB##n, .nsfx = N_(SFX_TB##n)
 #define TH(d, f, n, mus) .dir = d, .frame = f, .stage = 8, .act = n, .nacts = 3, .music = mus, .checkpoints = 1, .sfx = SFX_TH##n, .nsfx = N_(SFX_TH##n)
 #define JC(d, f, n, mus) .dir = d, .frame = f, .stage = 5, .act = n, .nacts = 5, .music = mus, .checkpoints = 1, .sfx = SFX_JC##n, .nsfx = N_(SFX_JC##n)
@@ -365,8 +380,27 @@ static const level_def_t LEVELS[] = {
       .card_first = 67, .water = 2920, .cps = CP_TB5, .ncps = N_(CP_TB5) },
     { TB("tb6", 49, 6, "bgm/m_stage6b.adp"), .mus4 = "bgm/m_boss2.adp", .mus6 = "bgm/m_stage6b.adp", .mus7 = "bgm/m_stage6b.adp",
       .music_off = 1, .res_wipe = 1, .vox = (const char *const[]){ "sx_still" }, .nvox = 1 },
-    { PL("pl1", 50, 1, "bgm/m_stage8.adp") }, { PL("pl2", 51, 2, "bgm/m_stage8.adp") }, { PL("pl3", 52, 3, "bgm/m_stage8.adp") },
-    { PL("pl4", 53, 4, "bgm/m_stage8.adp") }, { PL("pl5", 54, 5, "bgm/m_stage8.adp") }, { PL("pl6", 55, 6, "bgm/m_stage8.adp") },
+    /* Pangu Lagoon: frame index 50-55 (session 23, spec_pl_flow; pl_flow.c). Lilac only: Classic routes Thermal Base's end (I 6) to
+     * frame 50 for g1 = 0 (handle_frame_9 inline) and every act's start writes g1 = 0 (12844; PL1's start inline): .lilac_only. Music
+     * (RE loop wrappers 4-7 of frames 50-55): slots 5-7 m_stage8 in PL1-PL3 (PL3's through 12965 while the music group 0x228ed is on),
+     * m_stage8b in PL4-PL6; slot 4 m_midboss (loop_play_music_4_13 / 4_36) in PL1-PL5, m_boss4 in PL6 (loop_play_music_4_55). Cards
+     * (ObjectCodec A newest first, RE start counters): 81 (PL1), 83 (PL2), 86 (PL3: the template only), 86 (PL4), 88 (PL5) = cards
+     * 81-90; ML.Q 32-37. ML.A 1 / ML.B 2000 in every act but no water events (4150-4170): dry. PL1 starts with the card (4307; card
+     * frames 6 / 8: "STAGE 7" / "PANGU LAGOON", 12854 / 12962); PL2-PL6 walk in (4489 / 6051 / 4526). PL1 / PL2 / PL4 / PL5 end at
+     * the right edge (4135 -> 3578); PL3 through its stone door (13009, 12997-13006: next frame, g4 -1; pl_flow.c); PL6 by the
+     * Holo-Dragon's results (4560 / 5394) and the wipe (13226 / 13228-13230: frame 8). Signs at the frames' right edges: no cam_right */
+    { PL("pl1", 50, 1, "bgm/m_stage8.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage8.adp", .mus7 = "bgm/m_stage8.adp",
+      .card_first = 81, .start_card = 1, .cps = CP_PL1, .ncps = N_(CP_PL1) },
+    { PL("pl2", 51, 2, "bgm/m_stage8.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage8.adp", .mus7 = "bgm/m_stage8.adp",
+      .card_first = 83, .cps = CP_PL2, .ncps = N_(CP_PL2) },
+    { PL("pl3", 52, 3, "bgm/m_stage8.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage8.adp", .mus7 = "bgm/m_stage8.adp",
+      .card_first = 86, .boss_cam = &CAM_PL3 },
+    { PL("pl4", 53, 4, "bgm/m_stage8b.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage8b.adp", .mus7 = "bgm/m_stage8b.adp",
+      .card_first = 86, .cps = CP_PL4, .ncps = N_(CP_PL4) },
+    { PL("pl5", 54, 5, "bgm/m_stage8b.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage8b.adp", .mus7 = "bgm/m_stage8b.adp",
+      .card_first = 88, .cps = CP_PL5, .ncps = N_(CP_PL5) },
+    { PL("pl6", 55, 6, "bgm/m_stage8b.adp"), .mus4 = "bgm/m_boss4.adp", .mus6 = "bgm/m_stage8b.adp", .mus7 = "bgm/m_stage8b.adp",
+      .cps = CP_PL6, .ncps = N_(CP_PL6), .res_wipe = 1 },
 };
 static const level_def_t DEFAULT = { .dir = "", .frame = -1, .stage = -1, .act = 1, .nacts = 1, .music = "bgm/m_stage1.adp" };
 
@@ -476,7 +510,8 @@ const entry_t *level_entry(const char *from) {
  * MenuSequence.I = the finished stage s -> the next frame, by g1 (0 Lilac / != 0 Carol, bike-Carol, Milla): I 0 / 1 -> 24 (RM),
  * 2 -> 29 (FN), 3 -> 35 (SB), 4 -> 39 (JC), 5 -> 44 (Thermal Base, g1 = 0) / 56 (Trap Hideout, g1 != 0), 6 -> 50 (Pangu Lagoon,
  * g1 = 0) / 84 (before Battle Glacier), 7 -> 84 (g1 = 0) / 56 (g1 != 0), 8 -> 84 (g1 = 0) / 44 (g1 != 0). As stage indices (-1:
- * frame 84, Battle Glacier's lead-in). A stage the port lacks gives NULL: back to the front end (TB / PL / BG not ported). */
+ * frame 84, Battle Glacier's lead-in). A stage the port lacks gives NULL: back to the front end (frame 84 / Battle Glacier not ported:
+ * TB6 -> PL1 for Lilac, PL6 -> the front end). */
 static const signed char ROUTE[9][2] = { { 2, 2 }, { 2, 2 }, { 3, 3 }, { 4, 4 }, { 5, 5 }, { 6, 8 }, { 7, -1 }, { -1, 8 }, { -1, 6 } };
 const char *level_route_next(int stage) {
     if (stage < 0 || stage >= (int)(sizeof ROUTE / sizeof ROUTE[0])) return NULL;

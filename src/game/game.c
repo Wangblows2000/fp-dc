@@ -143,6 +143,7 @@ static void svox_load(const level_def_t *ld);
 /* every level lives in its own data dir (own palettes + Lilac bank; tools/build_level.sh) */
 int game_load_level(const char *dir) {
     uint32_t want_crc[8];
+    if (level_def(dir)->lilac_only && G.character != CHR_LILAC) G.character = CHR_LILAC;   /* PL 12844: g1 = 0 at every act start (Lilac's banks load) */
     int who = chr_is_carol(G.character) ? 1 : chr_is_milla(G.character) ? 2 : 0;
     lp_begin(dir);
     int keep = chr_resident && chr_resident_who == who && chr_crcs(dir, who, want_crc) == 0 && !memcmp(want_crc, chr_crc, sizeof chr_crc);
@@ -808,10 +809,7 @@ void game_update(const input_t *in) {
     music_fade_tick();
     if (G.clear_t && level_cur()->exit_max_y && G.p.y - ORIG_REF_DY >= level_cur()->exit_max_y) { }   /* AT3 4523 / inline: the fade pauses below y 380 */
     else if (G.clear_t) {                              /* RE 3310 / 3578: fade +4 per frame; at 255 next frame */
-        int a = G.clear_t == 1 ? 0 : G.clear_t;     /* fade object created with alpha 0 */
-        if (a != 255 && a < 128) a = 2 * (a >> 1) + 2;                       /* RE 2905: +2 while < 128 */
-        if (a != 255) a = 2 * (a >> 1) + 4 > 255 ? 255 : 2 * (a >> 1) + 4;  /* RE 3310: +4 */
-        G.clear_t = a ? a : 1;
+        G.clear_t = act_fade_step(G.clear_t);
         if (G.clear_t == 255) { if (G.warp) { level_warp_do(&G.p, (const warp_t *)G.warp); G.warp = NULL; } else next_act(); return; }   /* RM5 room warp: same act */
     }
     /* RE (events 4135 / 5045): the act ends when Lilac passes X > frame width - 50 moving right; DV4 runs the
@@ -826,6 +824,14 @@ void game_update(const input_t *in) {
       }
       const warp_t *w = (!G.clear_t && !G.act_in) ? level_warp_check(&G.p) : NULL;
       if (w) { G.clear_t = 1; G.warp = w; G.exit_b = w->dir < 0 ? -2 : 2; G.input_lock = 1; } }   /* RM5 6731 / 6733: fade, B toward the exit, no control */   /* level data exits (RM1 5813 / 5814, RM2 5916, RM3 6193) */
+}
+
+/* the act-end fade's next alpha (G.clear_t: 1 = just created with alpha 0); a stage script that ends its own fade differently reads it */
+int act_fade_step(int a) {
+    if (a == 1) a = 0;                                                    /* fade object created with alpha 0 */
+    if (a != 255 && a < 128) a = 2 * (a >> 1) + 2;                       /* RE 2905: +2 while < 128 */
+    if (a != 255) a = 2 * (a >> 1) + 4 > 255 ? 255 : 2 * (a >> 1) + 4;  /* RE 3310: +4 */
+    return a ? a : 1;
 }
 
 static void draw_parallax(void) { par_draw(G.frame); }
