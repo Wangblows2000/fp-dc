@@ -131,7 +131,9 @@ static int bot(uint32_t *held) {
     if (!tg) { obj_t *b = bgb_get(OT_BGB_SPARKY, 0); if (b && !(b->fl & BGB_DEF) && !b->hidden && bg_boss_sparky_state() >= 0 && bg_boss_sparky_state() < 6) tg = b; }
     if (!tg) { ph = 0; return 0; }
     const player_t *p = &G.p;
-    double dx = tg->x - p->x, dy = tg->y - sbb_py(p);
+    double tx = tg->x, ty = tg->y;                                             /* the target image's centre */
+    if (tg->an.b) { const frame_t *f = anim_frame(&tg->an); tx = floorf(tg->x) - (tg->flip ? f->w - 1 - f->hx : f->hx) + f->w / 2; ty = floorf(tg->y) - f->hy + f->h / 2; }
+    double dx = tx - p->x, dy = ty - sbb_py(p);
     uint32_t b = 0;
     int milla = bgb_milla(), carol = G.character == CHR_CAROL;
     t++;
