@@ -106,8 +106,8 @@ void tbs_frame(player_t *p) {
     /* 11869: a segment down: its broken frame, sound 45 (the shared 23 is stopped: INFERRED kept), explosion02 */
     for (int k = 0; k < tbb_count(OT_TBB_SH_SEG); k++) {
         obj_t *s = seg(k);
-        if (!s || !(s->fl & TBB_DEF) || (s->st & 2)) continue;
-        s->st |= 2; tbb_set_a(s, TS_SH_SEG8); snd_play_orig(45, 220, 128); obj_effect(s->x, s->y, "explosion02");
+        if (!s || !(s->fl & TBB_DEF) || s->av[7]) continue;
+        s->av[7] = 1; tbb_set_a(s, TS_SH_SEG8); snd_play_orig(45, 220, 128); obj_effect(s->x, s->y, "explosion02");
     }
     if (h && !S.def && h->c <= 0 && h->an.b) h->an.frame = (tbb_g3() / 15) % 2;   /* 11870: the head blinks once it can be hit */
     if (h && (h->fl & TBB_DEF) && !S.def) {                                    /* 11871: the head down */

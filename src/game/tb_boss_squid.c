@@ -29,7 +29,7 @@ extern obj_t *tb_gim_key_drop(float x, float y) __attribute__((weak));        /*
 #define NARM 7
 #define NBUL 16
 static struct {
-    int on, act, O, R, T, U, N, fl8, jet_vis, gone;
+    int on, act, O, R, T, U, N, fl8, jet_vis, gone, p18f;
     double D, F, Q, J, K, L, P, home, jA, jB, jang;
     short arm[2][NARM]; double ax[2][NARM], ay[2][NARM]; char afl[2][NARM], afree[2];
     short bul[NBUL];
@@ -160,9 +160,9 @@ void tbq_frame(player_t *p) {
     if (def && S.O == 2) {                                                      /* 12126-12128 */
         tbb_set_a(s, TS_SQ8);
         if (S.P < 18 && g3 % 7 == 0) {
-            obj_effect(s->x - 30 + cross_rand(61), s->y - 40 + cross_rand(81), "explosion06"); tbb_explode_snd(); S.P += 1;
+            obj_effect(s->x - 30 + cross_rand(61), s->y - 40 + cross_rand(81), "explosion06"); tbb_explode_snd(); S.P += 1; if (S.P >= 18) S.p18f = g3;
         }
-        if (S.P >= 18 && !S.R) {
+        if (S.P >= 18 && !S.R && g3 % 7 == 0 && g3 != S.p18f) {   /* (RV q3: 38 one 7-frame step after the 18th) */
             S.R = 1; S.gone = 1; s->hidden = 1; snd_play_orig(38, 220, 128); obj_effect(s->x, s->y, "explosion");
         }
     }
