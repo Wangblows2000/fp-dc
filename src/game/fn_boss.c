@@ -775,7 +775,8 @@ static void serp_jc5_fall(player_t *p, obj_t *s, obj_t *arm) {
         if (arm) arm->hidden = 1;
     } else {
         s->x = (float)(int)(s->x + S.C); s->y = (float)(int)(s->y + S.D); S.D += 0.25;   /* 11281 */
-        music_fade(30, 0);                                                       /* 11281: channel 31 volume -3 a frame (INFERRED: a 33-frame fade) */
+        /* 11281 also lowers channel 31 by 3 a frame: the results music's channel (1136), idle here; m_boss plays on (RV: no new
+         * music when the gunship starts) */
         if (S.D > 0) { s->layer = 1; if (arm) arm->layer = 1; }                  /* 11282: layer 2 (the port's 1: behind the play layer) */
     }
     if (arm) arm->hidden = 1;

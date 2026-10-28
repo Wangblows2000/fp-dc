@@ -608,6 +608,7 @@ typedef struct {
     int debug_select, in_select, sel, sel_top, sel_msg_t;
     int mode, card_t, pause_sel, time_attack, res_t, res_time;
     int pause_a, pause_wipe_f, frame_draw_t; float pause_wipe_x;   /* pause menu (GUIPause.A, wipe) */
+    int slowmo, slowmo_t;           /* GUIPause.B: the game runs one frame in B (slow motion; JC5 11352 / 11359) */
     int act_lives, act_crystals, act_keystones, act_stage_crystals;  /* RE 4311/4312: lives / crystals at act start (restart restores them) */
     int stage_crystals, keystones;  /* MasterLevel J (crystals this stage, results Bonus1) / O (keystones, Bonus2) */
     int stage_deaths;               /* SaveData x3 y3: deaths this stage (RE 1966 / 1985), saved with the stage block */

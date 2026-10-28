@@ -10,9 +10,11 @@
  *   - his defeat: petals, he is knocked off the cliff (0x22af5, fn_boss.c) and comes back in the GUNSHIP (0x22b05, this file);
  *   - the gunship's defeat: the partner finisher, explosions in slow motion, the white flash, the three heroes and the results
  *     (0x221a1 -> Classic 10941 -> the next stage; Adventure 10942 / 10943 opens a dialog instead).
- * This file: the gunship rig and attacks (11284-11343), its projectiles (11396-11417), the Elite troopers (10954-11041), the end
- * (11350-11372). Order in the frame (RE): Elites (10954-11041) before the bosses, then the fall check (11283), the gunship block,
- * its projectiles. Performance (SH4): per-type instance lists built once at spawn; a level without these types returns at once. */
+ * This file: the gunship rig and attacks (11284-11343), its projectiles (11396-11417), the Elite troopers (10954-11041), Milla's
+ * box delivery (11344 / 11345), the end (11346-11372: finisher hit, slow motion, crash, flash, the three heroes, the results), the
+ * act's lightning (11618-11622). Order in the frame (RE): Elites (10954-11041) before the bosses, then the fall check (11283), the
+ * gunship block, its projectiles. Performance (SH4): per-type instance lists built once at spawn; runtime objects (flares,
+ * missiles, Elites, lasers) live in a small slot table; a level without these types returns at once. */
 #include "jc.h"
 #include <math.h>
 #include <stdio.h>
@@ -31,10 +33,12 @@ static double PY(const player_t *p) { return floor(p->y - ORIG_REF_DY); }
 /* ---- sprites (tools/import_frame.py JC_BOSS5 rows), looked up once per level */
 enum { GS_SHIP, GS_BLADEL, GS_BLADER, GS_CANL, GS_CANL7, GS_CANR, GS_CANR7, GS_HIT, GS_HIT8, GS_LIGHT, GS_LL, GS_LL1, GS_LR, GS_LR1,
        GS_RACKL, GS_RACKR, GS_PILOT, GS_PILOT5, GS_PLAT, GS_TRP, GS_TRP_L, GS_TURBL, GS_TURBL8, GS_TURBR,
-       GS_FLARE, GS_FLARE10, GS_FLARE11, GS_FLARE11L, GS_MIS, GS_MISL, GS_WARN2, GS_N };
+       GS_FLARE, GS_FLARE10, GS_FLARE11, GS_FLARE11L, GS_MIS, GS_MISL, GS_WARN2,
+       GE_WALK, GE_JUMP, GE_HURT, GE_CHARGE, GE_FIRE, GE_GLOW, GE_LASER, GS_BOLT, GS_BOLTL, GH_LILAC, GH_CAROL, GH_MILLA, GS_N };
 static const char *const SN[GS_N] = { "j5g_ship", "j5g_bladel", "j5g_blader", "j5g_canl", "j5g_canl7", "j5g_canr", "j5g_canr7", "j5g_hit", "j5g_hit8",
     "j5g_light", "j5g_ll", "j5g_ll1", "j5g_lr", "j5g_lr1", "j5g_rackl", "j5g_rackr", "j5g_pilot", "j5g_pilot5", "j5g_plat", "j5g_trp", "j5g_trp_l",
-    "j5g_turbl", "j5g_turbl8", "j5g_turbr", "j5g_flare", "j5g_flare10", "j5g_flare11", "j5g_flare11_l", "fb_mis", "fb_mis_l", "fb_warn2" };
+    "j5g_turbl", "j5g_turbl8", "j5g_turbr", "j5g_flare", "j5g_flare10", "j5g_flare11", "j5g_flare11_l", "fb_mis", "fb_mis_l", "fb_warn2",
+    "j5e_walk", "j5e_jump", "j5e_hurt", "j5e_charge", "j5e_fire", "j5e_glow", "j5e_laser", "j5_bolt", "j5_bolt_l", "fc_l37l", "fc_c37l", "fc_m37" };
 static short SA[GS_N];
 static void set_a(obj_t *o, int k) { if (o && k >= 0 && SA[k] >= 0 && (o->an.b != &G.ens || o->an.anim != SA[k])) anim_set(&o->an, &G.ens, SA[k]); }
 static void restart_a(obj_t *o, int k) { if (o && k >= 0 && SA[k] >= 0) { anim_set(&o->an, &G.ens, SA[k]); anim_restart(&o->an); } }
@@ -51,13 +55,24 @@ static short mark_b = -1;                            /* CameraLimitBossBottom */
 static obj_t *slot(int i) { return i >= 0 && i < G.nobjs && G.o[i].alive ? &G.o[i] : NULL; }
 static obj_t *get(int type, int k) { const list_t *l = &L[type - OT_JCB5_FIRST]; return k >= 0 && k < l->n ? slot(l->i[k]) : NULL; }
 static int count(int type) { return L[type - OT_JCB5_FIRST].n; }
+/* runtime objects of this module (flares, missiles, Elites and their masks, lasers, glows, the bolt, the heroes): their slots,
+ * so the per-frame rules walk this short table instead of every object */
+#define RTMAX 48
+static short RT[RTMAX]; static int nrt;
 static obj_t *spawn(int type, int sk, float x, float y, int layer) {
+    if (nrt >= RTMAX) return NULL;
     obj_t *o = obj_alloc();
     if (!o) return NULL;
     memset(o, 0, sizeof *o);
     o->type = type; o->alive = 1; o->hp = 1; o->x = o->ox = x; o->y = o->oy = y; o->layer = layer; o->born = G.frame;
     set_a(o, sk);
+    RT[nrt++] = (short)(o - G.o);
     return o;
+}
+static void rt_compact(void) {                                                   /* drop the dead (and reused) slots */
+    int k = 0;
+    for (int i = 0; i < nrt; i++) { const obj_t *o = slot(RT[i]); if (o && o->type >= OT_JCB5_FIRST && o->type <= OT_J5_LAST) RT[k++] = RT[i]; }
+    nrt = k;
 }
 static int dead(const player_t *p) { return p->state == ST_DEAD || p->hp <= 0; }
 static int vulnerable(const player_t *p) { return !dead(p) && !p->hurt_pending && !player_invincible(p); }   /* MV.R 0, OTHERS.E <= 0 */
@@ -91,6 +106,9 @@ static struct {
     double platA, platB, platC, platD;                        /* platform: A cable, B lowering, C clock, D Elites dropped */
     double hitE, hitD, hitF;                                  /* hitbox: E debris burst, D damage stage, F the end clock */
     int once34;                                               /* 0x22b34 */
+    double crashV;                                            /* L 9 after the slow motion: the fall speed (RV l_kill2 3427-3570) */
+    int closing, heroes, fade, boxT;                          /* 11368 (0x22b35), 11369 (0x22b44), the white card's opacity, delivery clock */
+    double skyC; int boltT;                                   /* LevelDarkSky C (11618-11620), the bolt's frames left */
 } GN;
 static obj_t *gun(void) { return get(OT_J5_GUN, 0); }
 static obj_t *ghit(void) { return get(OT_J5_GUN_HIT, 0); }
@@ -189,7 +207,10 @@ static void gunship_frame(player_t *p) {
         if (GN.K <= 0 && GN.J > 0) GN.J = fmax(GN.J - 0.2, 0);
         if (GN.Lst == 0 && !def) { GN.O = fmod(GN.O + 1, 4); GN.M = 0; GN.N = 0; GN.Lst = 1 + GN.O; }   /* 11299 */
         if (GN.Lst == 4 && GN.E > GN.P - 360) { GN.E -= 2; GN.M = 0; }           /* 11300 */
-        if (GN.Lst != 4 && GN.E < GN.P - 260) { GN.E += 2; GN.M = 0; }           /* 11301 */
+        if (GN.Lst != 4 && GN.Lst != 9 && GN.E < GN.P - 260) { GN.E += 2; GN.M = 0; }   /* 11301 */
+    }
+    if (GN.Lst == 9 && GN.hitF >= 1060 && GN.hitF < 1200 && GN.E < GN.P + 713) {   /* L 9 after the slow motion: it falls (RV l_kill2: */
+        GN.crashV += 0.1; GN.E = fmin(GN.E + GN.crashV, GN.P + 713);           /* +0.1 a frame, 468 -> 1441 in 143 frames) */
     }
     GN.M += 1;                                                                   /* (the state clock) */
     /* L 1: the turbines charge (lights by D / 10) and drop a flare at D > 40, recoil F -/+ 6, sound 67; twice, then rest */
@@ -245,11 +266,12 @@ static void gunship_frame(player_t *p) {
         force_frame(h, 1); h->av[7] = 1;                                         /* 11335 (shader 0x20: additive) */
         if (h->c > 0 && !def) force_frame(h, 0);                                 /* 11336 */
         if (h->c == 0 && GN.hitD < 2) { force_frame(h, (int)(3 - GN.hitD)); h->hidden = 0; }   /* 11337 */
-        if (!def && h->A < GN.hitD * 100) { GN.hitE = 5; GN.hitD -= 1; snd_play_orig(134, 220, 128); }   /* 11338 */
+        if (!def && h->A > 0 && h->A < GN.hitD * 100) { GN.hitE = 5; GN.hitD -= 1; snd_play_orig(134, 220, 128); }   /* 11338 (the
+                                                                                    * killing hit: the defeat flag comes with it in the original, RV D -1 after) */
         if (GN.hitE > 0) { obj_effect((float)(h->x + 6 * GN.hitE - 15), h->y, "debris"); GN.hitE -= 1; }   /* 11339 (debris: INFERRED look) */
-        if (G.character != CHR_LILAC && h->A <= 220) h->A = 220;                 /* 11340 */
-        if (G.character == CHR_MILLA && h->A <= 50) { h->A = 50; GN.hitD = 0; }  /* 11341 */
-        if (def && !GN.once34) { GN.once34 = 1; GN.hitE = 5; GN.hitD -= 1; snd_play_orig(134, 220, 128); }   /* 11342 */
+        if (G.character != CHR_LILAC && h->A >= 220) h->A = 220;                 /* 11340: a cap for Carol / Milla (RV c_gun 1624: 300 -> 220) */
+        if (G.character == CHR_MILLA && h->A >= 50) { h->A = 50; GN.hitD = 0; }  /* 11341: Milla's gunship has 50 (D 0: the last stage) */
+        if (def && !GN.once34) { GN.once34 = 1; GN.hitE = 5; GN.hitD -= 1; snd_play_orig(134, 220, 128); snd_play_orig(38, 220, 128); }   /* 11342 (RV 2996: 38, 23, 134) */
         if (def) { set_a(h, GS_HIT8); h->hidden = 0; GN.hitF += 1; }            /* 11343 */
     }
 }
@@ -257,22 +279,100 @@ static void gunship_frame(player_t *p) {
 /* ======================================================================== the Elite troopers (10954-11041; spec E)
  * The mask (EnemyEliteMask_2528, Q20, A 20) is the body: it falls, walks toward the player and is what gets hit; the Elite
  * sprite (EnemyElite_2529) is drawn at it. INFERRED where the spec says so. */
+/* mask alterables here: av[0] H x speed, av[1] I y speed, av[2] N direction, av[3] D state (0 ground, -1 air, -2 knocked,
+ * 2 attack), av[4] T attack clock, av[5] Q aggro, av[6] K attack timer, av[7] R patrol clock; par = the Elite sprite's slot */
+enum { E_H, E_I, E_N, E_D, E_T, E_Q, E_K, E_R };
 static void elite_drop(obj_t *t) {
     t->hidden = 1; t->av[3] = 1;
-    obj_t *m = spawn(OT_J5_ELITEMASK, -1, t->x, t->y, 2), *e = spawn(OT_J5_ELITE, -1, t->x, t->y, 2);
-    if (m) { m->A = 20; m->hidden = 1; m->fl |= F_NOFLY; m->av[3] = -1; m->av[4] = -5; m->av[6] = 1; }   /* D -1, I -5 (the hop), Q 1 */
-    (void)e;
+    obj_t *e = spawn(OT_J5_ELITE, GE_JUMP, t->x, t->y, 2), *m = e ? spawn(OT_J5_ELITEMASK, GE_WALK, t->x, t->y, 2) : NULL;
+    if (m) {                                                                     /* the mask: A 20 (ctor), hidden, flag 16; D -1, I -5 (the hop) */
+        m->A = 20; m->hidden = 1; m->fl |= F_NOFLY; m->av[E_D] = -1; m->av[E_I] = -5; m->av[E_N] = t->av[0] < 0 ? -1 : 1;
+        m->par = (int)(e - G.o);
+    } else if (e) e->alive = 0;
     obj_effect(t->x, t->y, "wburst");
     GN.platD += 1;
     snd_play_orig(233, 220, 128);
 }
+static void elite_kill(obj_t *m, obj_t *e) {                                     /* 11029: sound 29, explosion and debris at Y - 20 */
+    snd_play_orig(29, 220, 128);
+    obj_effect(m->x, m->y - 20, "explosion01");
+    for (int k = 0; k < 3; k++) obj_effect(m->x - 12 + 12 * k, m->y - 20, "debris");
+    m->alive = 0; if (e) e->alive = 0;
+}
+/* the Elite's rules (INFERRED where the spec says so; the RE skeleton: 10958-10962 the aggro check every 20 frames within 200 px,
+ * 10974-10979 the walk (H +- 0.4 up to 2, 5 when aggressive), 10968-10971 the attack clock T (cooldown -70), 10990-10993 charge
+ * then fire after 25, 11003 / 11005 the fall and the landing, 11006 the knock-back, 11029 the end) */
+static int moved_hits_bg(obj_t *o, float dx, float dy) { o->x += dx; o->y += dy; int h = obj_overlaps_bg(o); o->x -= dx; o->y -= dy; return h; }
+static void elite_frame(obj_t *m, player_t *p) {
+    obj_t *e = slot(m->par);
+    if (!e || e->type != OT_J5_ELITE) e = NULL;
+    if (m->fl & F_DEF) { elite_kill(m, e); return; }
+    double *a = m->av;
+    if (m->c > 0 && a[E_D] != -2) {                                              /* 11006: hit: knocked back, up 3 */
+        a[E_D] = -2; a[E_I] = -3; a[E_H] = m->x > PX(p) ? 3 : -3; a[E_K] = 0;
+    }
+    if (a[E_D] < 0) {                                                            /* in the air (-1) or knocked (-2): I + 0.5 (11003) */
+        a[E_I] = fmin(a[E_I] + 0.5, 10);
+        if (moved_hits_bg(m, (float)a[E_H], 0)) a[E_H] = 0;
+        m->x += (float)a[E_H];
+        if (a[E_I] > 0 && moved_hits_bg(m, 0, (float)a[E_I])) {                 /* 11005: landed: on the floor, D 0 */
+            for (int k = 0; k < 16 && !moved_hits_bg(m, 0, 1); k++) m->y += 1;
+            a[E_I] = 0; a[E_D] = 0; a[E_H] = 0;
+        } else m->y += (float)a[E_I];
+    } else {
+        if (!moved_hits_bg(m, 0, 2)) { a[E_D] = -1; a[E_I] = 0; }             /* off a ledge */
+        if ((G.frame % 20) == 0) {                                               /* 10958-10962 */
+            a[E_Q] = fabs(PX(p) - m->x) <= 200;
+            if (a[E_Q]) a[E_N] = PX(p) < m->x ? -1 : 1;
+        }
+        if (a[E_D] == 0) {
+            double mx = a[E_Q] ? 5 : 2;                                          /* 10974-10979 */
+            a[E_H] = a[E_N] > 0 ? fmin(a[E_H] + 0.4, mx) : fmax(a[E_H] - 0.4, -mx);
+            if (moved_hits_bg(m, (float)a[E_H], 0)) { a[E_H] = 0; a[E_N] = -a[E_N]; }   /* a wall: turn */
+            m->x += (float)a[E_H];
+            if (!a[E_Q] && ++a[E_R] > 120) { a[E_R] = 0; a[E_N] = -a[E_N]; }     /* 10963-10967: the patrol turns (INFERRED period) */
+            if (a[E_Q]) a[E_T] += 1;                                             /* 10968 */
+            if (a[E_T] > 60 && a[E_Q]) { a[E_D] = 2; a[E_K] = 0; a[E_H] = 0; a[E_N] = PX(p) < m->x ? -1 : 1; }   /* 10969 / 10981 */
+        } else if (a[E_D] == 2) {                                                /* 10990-10993: charge 25 frames, the glow, fire */
+            a[E_K] += 1;
+            float gx = m->x + (a[E_N] < 0 ? -24.f : 24.f), gy = m->y - 44;
+            if (a[E_K] == 2) { obj_t *g = spawn(OT_J5_GLOW, GE_GLOW, gx, gy, 2); if (g) g->av[0] = 0; }   /* 10992 */
+            if (a[E_K] == 26) {                                                  /* 11034 / 11035: the laser, aimed at the player */
+                obj_t *l = spawn(OT_J5_ELITELASER, GE_LASER, gx, gy, 2);
+                if (l) {
+                    double dx = PX(p) - gx, dy = PY(p) - 20 - gy, d = sqrt(dx * dx + dy * dy); if (d < 1) d = 1;
+                    l->vx = (float)(8 * dx / d); l->vy = (float)(8 * dy / d); l->ang = (float)(atan2(-dy, dx) * RADC);
+                }
+            }
+            if (a[E_K] > 50) { a[E_D] = 0; a[E_T] = -70; }                       /* 10983 / 10969: back, the cooldown */
+        }
+    }
+    if (a[E_D] != -2 && csens_hit(p, m)) hurt_g(p, 5);                           /* contact (INFERRED damage) */
+    if (e) {                                                                     /* 11027: the sprite at the mask; 10986-10997 its animation */
+        e->x = m->x; e->y = m->y; e->flip = a[E_N] < 0;
+        int k = a[E_D] == -2 ? GE_HURT : a[E_D] == -1 ? GE_JUMP : a[E_D] == 2 ? (a[E_K] <= 25 ? GE_CHARGE : GE_FIRE) : GE_WALK;
+        if (k == GE_FIRE && !a_is(e, GE_FIRE)) restart_a(e, GE_FIRE); else set_a(e, k);   /* (objects.c ticks it) */
+    }
+}
 
 /* ======================================================================== projectiles (0x22b01: 11396-11417) */
 static void projectiles(player_t *p) {
-    if (!GN.proj) return;
-    for (int i = 0; i < G.nobjs; i++) {
-        obj_t *o = &G.o[i];
-        if (!o->alive || o->born == G.frame) continue;
+    for (int i = 0; i < nrt; i++) {
+        obj_t *o = slot(RT[i]);
+        if (!o || o->born == G.frame) continue;
+        if (o->type == OT_J5_ELITEMASK) { if (!GN.closing) elite_frame(o, p); continue; }
+        if (o->type == OT_J5_GLOW) {                                             /* 11032 / 11033: shrinks 0.04 a frame, gone after 25 */
+            o->av[0] += 1; o->scale = (float)fmax(0.1, 1 - 0.04 * o->av[0]);
+            if (o->av[0] > 25) o->alive = 0;
+            continue;
+        }
+        if (o->type == OT_J5_ELITELASER) {                                       /* 11035-11039 */
+            o->x += o->vx; o->y += o->vy; o->av[4] += 1;
+            if ((o->av[4] > 3 && obj_overlaps_bg(o)) || o->av[4] > 120) { obj_effect(o->x, o->y, "wburst"); o->alive = 0; continue; }
+            if (csens_hit(p, o) && vulnerable(p)) { hurt_g(p, 5); obj_effect(o->x, o->y, "wburst"); o->alive = 0; }
+            continue;
+        }
+        if (!GN.proj) continue;
         if (o->type == OT_J5_GUN_FLARE) {
             double *A = &o->av[0], *B = &o->av[1];
             if (*A == 0) { o->y += 12; *B += 1; if (obj_overlaps_bg(o)) { set_a(o, GS_FLARE10); *A = 1; } }   /* 11404 / 11405: falls, burns on the ground */
@@ -306,28 +406,92 @@ static void projectiles(player_t *p) {
 }
 
 /* ======================================================================== the end (11343-11372): the hitbox F clock */
+static void boom(void) {                                                         /* 11358 / 11360: an explosion on the hull, 98 / 99 / 311 */
+    static const int SX[3] = { 98, 99, 311 };
+    obj_t *g = gun();
+    if (g) obj_effect((float)(g->x - 120 + cross_rand(240)), (float)(g->y - 60 + cross_rand(120)), "explosion06");
+    snd_play_orig(SX[cross_rand(3)], 220, 128);
+}
+static obj_t *hero(int k, float x) { obj_t *o = spawn(OT_J5_HERO, k, x, 610, 2); if (o) force_frame(o, 0); return o; }
 static void ending(player_t *p) {
     obj_t *h = ghit();
     if (!h || !(h->fl & F_DEF) || GN.results) return;
     double F = GN.hitF;
-    if (F == 50) { GN.hitF = 1000; GN.slow0 = G.frame; music_stop(); }          /* 11346-11352 (the partner's finisher: INFERRED skipped to its hit) */
-    if (GN.hitF >= 1000 && GN.hitF < 1060 && (G.frame - GN.slow0) % 6 == 0) {   /* 11358-11360 (slow motion: GUIPause B 6, RV l_kill2 3095-3455) */
-        static const int SX[3] = { 98, 99, 311 };
-        obj_t *pi = get(OT_J5_GUN_PILOT, 0);
-        if (pi) obj_effect((float)(pi->x - 60 + cross_rand(120)), (float)(pi->y - 40 + cross_rand(80)), "explosion06");
-        snd_play_orig(SX[cross_rand(3)], 220, 128);
+    /* 11346-11352: the partner's finisher flies at the pilot; when it reaches him (RV l_kill2: F 70, frame 3066) the pilot is
+     * hit (animation 5), the gunship goes to L 9, the music stops, GUIPause B = 6 (slow motion) and F jumps to 1000. The finisher
+     * itself (PlayerAssistFinisher, 600-800 K pixels per partner) is not drawn: VRAM (INFERRED timing for Carol / Milla) */
+    if (F == 49) snd_play_orig(126, 220, 128);                                 /* RV l_kill2 3045: the finisher's call */
+    if (F == 70) {
+        set_a(get(OT_J5_GUN_PILOT, 0), GS_PILOT5);
+        GN.Lst = 9; GN.K = 0; GN.hitF = 1000; G.slowmo = 6; G.slowmo_t = 0;
+        music_stop();
     }
-    if (GN.hitF == 1200) { snd_play_orig(76, 220, 128); if (G.cam.Z < 10) G.cam.Z = 10; }   /* 11365: the flash */
-    if (GN.hitF >= 1380 && !GN.results) { GN.results = 1; results_begin_boss(game_timer()); }   /* 11372: the sign -> results */
-    (void)p;
+    if (GN.hitF >= 1000 && GN.hitF < 1060) boom();                              /* 11358: every (slowed) frame, RV every 6 */
+    if (GN.hitF == 1060) G.slowmo = 0;                                           /* 11359: GUIPause B 0 */
+    if (GN.hitF > 1060 && GN.hitF < 1200 && (int)GN.hitF % 5 == 0) boom();      /* 11360: RV 3503-3563 every 5 frames */
+    if (GN.hitF == 1200) {                                                       /* 11365: sound 76, shake 10, the white card (opacity 255) */
+        snd_play_orig(76, 220, 128); if (G.cam.Z < 10) G.cam.Z = 10;
+        GN.fade = 255;
+    }
+    if (GN.hitF > 1300 && GN.fade > 0) GN.fade = GN.fade - 4 < 0 ? 0 : GN.fade - 4;   /* 11366: fades out (RV l_kill2 3600: still white) */
+    if (GN.hitF >= 1219 && !GN.closing) {                                        /* 11368: the player stops and is hidden (its skins */
+        GN.closing = 1; GN.proj = 0;                                              /* destroyed), the HUD slides up, the Elites go */
+        p->x = 13300; p->vx = p->vy = 0; p->gsp = 0;                              /* (RV: the view centred on the heroes) */
+        for (int i = 0; i < nrt; i++) { obj_t *o = slot(RT[i]); if (o && (o->type == OT_J5_ELITE || o->type == OT_J5_ELITEMASK || o->type == OT_J5_ELITELASER || o->type == OT_J5_GLOW || o->type == OT_J5_GUN_FLARE || o->type == OT_J5_GUN_MISSILE)) o->alive = 0; }
+    }
+    if (GN.hitF >= 1220 && !GN.heroes) {                                         /* 11369: Lilac 13340, Milla 13290, Carol 13240 at y 610 */
+        GN.heroes = 1;
+        hero(GH_LILAC, 13340); hero(GH_MILLA, 13290); hero(GH_CAROL, 13240);
+    }
+    /* 11372 (F 1380): the heroes' animation 37 is forced again; they play it from their creation here (under the white card, INFERRED) */
+    if (GN.hitF >= 1382 && !GN.results) { GN.results = 1; results_begin_boss(game_timer()); }   /* RV l_kill2 3748: 0x2219e (the results) */
+}
+
+/* 11344 / 11345: Milla brings a life-petal box (MonitorRings_357 thrown from the left edge) when four Elites have dropped or the
+ * gunship is low, not for Milla herself. Milla (PlayerAssistMilla, about 700 K pixels) is not drawn: VRAM; the box flies in from
+ * the view's left edge (RE x: view left - 40; y: Milla's y - 100). The re-delivery period is INFERRED (one box at a time). */
+static obj_t *box;
+static void milla_box(const player_t *p) {
+    obj_t *h = ghit();
+    if (G.character == CHR_MILLA || !h || (h->fl & F_DEF) || GN.closing) return;
+    if (box && (!box->alive || box->type != OT_MON_RINGS)) box = NULL;
+    if (GN.boxT > 0) GN.boxT--;
+    if (box || GN.boxT > 0 || !(GN.platD >= 4 || h->A <= 100)) return;
+    int a = bank_anim(&G.objs, "monitorrings_35");
+    obj_t *mo = a >= 0 ? obj_alloc() : NULL;
+    if (!mo) return;
+    memset(mo, 0, sizeof *mo); mo->type = OT_MON_RINGS; mo->alive = 1; mo->hp = 1; mo->layer = 2; mo->born = G.frame;
+    mo->x = mo->ox = G.camx - 40; mo->y = mo->oy = (float)(PY(p) - 100);
+    anim_set(&mo->an, &G.objs, a);
+    mo->av[0] = 2; mo->av[2] = 5; mo->av[3] = -6;                               /* A 2: thrown (monitors.c; INFERRED velocity) */
+    box = mo; GN.boxT = 600;
+}
+
+/* 11618-11622: the storm. LevelDarkSky C counts up while the rain is on (> 40 drops: INFERRED always, the rain is not ported);
+ * at C 10 the bolt shows (sound 292) at a random x in the view and up to 100 px above it, facing 0 / 16 at random; at C > 14 it
+ * hides and C restarts at -100 - rand(300). (LevelDarkSky's own flash is a 10 x 10 image at world (0, 0): never seen.) */
+static obj_t *bolt, *fadeo;
+static void storm(void) {
+    if (!bolt || !bolt->alive || bolt->type != OT_J5_BOLT) return;
+    GN.skyC += 1;
+    if (GN.skyC == 10) {
+        GN.skyC = 11;
+        snd_play_orig(292, 220, 128);
+        bolt->y = G.camy - cross_rand(100);
+        bolt->x = G.camx + 50 + cross_rand(SCREEN_W - 100);
+        set_a(bolt, cross_rand(2) ? GS_BOLTL : GS_BOLT); force_frame(bolt, 0);
+        bolt->hidden = 0;
+    }
+    if (GN.skyC > 14) { GN.skyC = -100 - cross_rand(300); bolt->hidden = 1; }
 }
 
 /* ======================================================================== spawn / dispatch */
-static void snap_once(void) { static int reg; if (!reg) { reg = 1; snap_register(&GN, sizeof GN); } }
+static void snap_once(void) { static int reg; if (!reg) { reg = 1; snap_register(&GN, sizeof GN); snap_register(RT, sizeof RT); snap_register(&nrt, sizeof nrt);
+                                                  snap_register(&bolt, sizeof bolt); snap_register(&box, sizeof box); snap_register(&fadeo, sizeof fadeo); } }
 void jc_boss5_spawn(void) {
     snap_once();
     memset(L, 0, sizeof L); memset(&GN, 0, sizeof GN); mark_b = -1;
-    on = 0;
+    on = 0; nrt = 0; bolt = box = fadeo = NULL; G.slowmo = 0;
     for (int t = OT_JCB5_FIRST; t <= OT_J5_LAST && !on; t++) if (objects_have(t)) on = 1;
     if (!on) return;
     for (int k = 0; k < GS_N; k++) SA[k] = (short)ens_anim(SN[k]);
@@ -371,29 +535,36 @@ void jc_boss5_spawn(void) {
         o->av[0] = o->x - g->x; o->av[1] = o->y - g->y; o->av[2] = k;
     }
     for (int k = 0; k < count(OT_J5_GUN_TROOPER); k++) { obj_t *o = get(OT_J5_GUN_TROOPER, k); if (o) o->av[0] = k * 40 - 20; }   /* 11651: A = 40 k - 20 */
+    bolt = spawn(OT_J5_BOLT, GS_BOLT, 0, 0, 0);                                  /* LevelLightningBolt (json layer 1): hidden (ctor) */
+    if (bolt) bolt->hidden = 1;
+    GN.skyC = -98;                                                               /* LevelDarkSky C (ctor 0) counts once the rain has > 40 drops:
+                                                                                    * the rain is not ported, its fill time is (RV: the first bolt at 108 in every trace) */
 }
 void jc_boss5_pre(player_t *p) { (void)p; }
 void jc_boss5_frame(player_t *p) {
 #ifdef FP_HOST_ENV
-    if (getenv("FP_DBG_J5") && G.frame % 30 == 0) {
-        obj_t *g = gun(), *h = ghit();
-        const obj_t *sp = NULL, *sh = NULL;
-        for (int i = 0; i < G.nobjs; i++) { if (G.o[i].alive && G.o[i].type == OT_FN_SERP) sp = &G.o[i]; if (G.o[i].alive && G.o[i].type == OT_FN_SERP_HIT) sh = &G.o[i]; }
-        printf("j5 %d on %d serp %d (%.0f,%.0f h%d st%.0f B%.0f) shA %.1f c%d fl%x px %.0f gun %d (%.0f,%.0f) L %.0f M %.0f N %.0f E %.0f J %.2f F %.2f hitA %.0f D %.0f F %.0f\n",
-               G.frame, on, fn_boss_serp_jc5(), sp ? sp->x : 0, sp ? sp->y : 0, sp ? sp->hidden : -1, sp ? sp->av[0] : -1, sp ? sp->av[1] : -1, sh ? sh->A : -1, sh ? sh->c : -1, sh ? sh->fl : 0,
-               p->x, GN.on, g ? g->x : 0, g ? g->y : 0, GN.Lst, GN.M, GN.N, GN.E, GN.J, GN.F, h ? h->A : -1, GN.hitD, GN.hitF);
+    if (getenv("FP_DBG_J5")) {                                                   /* host tests (tests/test_jc_act5.py): one line a gameplay frame */
+        const obj_t *h = ghit(); int ne = 0, nb = 0;
+        for (int i = 0; i < nrt; i++) { const obj_t *o = slot(RT[i]); if (o && o->type == OT_J5_ELITEMASK) ne++; }
+        for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == OT_MON_RINGS && &G.o[i] == box) nb = 1;
+        printf("j5 s %d L %.0f E %.0f D %.0f F %.0f A %.0f hd %.0f sm %d pd %.0f cl %d fd %d res %d el %d box %d px %.0f\n", fn_boss_serp_jc5(), GN.Lst, GN.E, GN.D,
+               GN.hitF, h ? h->A : -1, GN.hitD, G.slowmo, GN.platD, GN.closing, GN.fade, GN.results, ne, nb, p->x);
     }
 #endif
     if (!on) return;
     float y;
     if (!GN.on && fn_boss_serp_falling(&y) && y > GN.P + 800) gunship_start(p);   /* 11283 (gunship y = E: still the placed one) */
-    if (GN.on) { gunship_frame(p); projectiles(p); ending(p); }
+    storm();                                                                     /* 11618-11622 */
+    if (GN.on) { gunship_frame(p); projectiles(p); milla_box(p); ending(p); }
+    if (GN.fade > 0 && !fadeo) fadeo = spawn(OT_J5_FADE, -1, 0, 0, 7);
+    if (fadeo && GN.fade <= 0) { fadeo->alive = 0; fadeo = NULL; }
+    if (G.frame % 64 == 0) rt_compact();
 }
 int  jc_boss5_obj(obj_t *o, player_t *p) { (void)o; (void)p; return 1; }        /* every rule runs in jc_boss5_frame */
 int  jc_boss5_q20(int t) { return t == OT_J5_GUN_HIT || t == OT_J5_ELITEMASK; }
-int  jc_boss5_input(uint32_t *held) { (void)held; return 0; }
-int  jc_boss5_player_hidden(void) { return 0; }
-float jc_boss5_hud_dy(void) { return 0.f; }
+int  jc_boss5_input(uint32_t *held) { if (!on || !GN.closing) return 0; *held = 0; return 1; }   /* 11368: CTRL.M 1 (no control) */
+int  jc_boss5_player_hidden(void) { return on && GN.closing; }                 /* 11368: the player's skins destroyed */
+float jc_boss5_hud_dy(void) { return on && GN.closing ? -80.f : 0.f; }          /* 11368: loop_gui_shiftup_14 (80 px at once, as FN6 8764) */
 int  jc_boss5_state(void) { return !on ? 0 : GN.results ? 4 : (ghit() && (ghit()->fl & F_DEF)) ? 3 : GN.on ? 2 : 1; }
 
 /* ---- drawing: the rig in its RE order (11286 / 11287 move_back / move_front): platform, troopers, racks, turbines with their
@@ -415,6 +586,11 @@ int jc_boss5_draw_obj(const obj_t *o, int pass) {
     if (o->type != OT_J5_GUN) {
         if (o->type >= OT_J5_GUN_BLADEL && o->type <= OT_J5_GUN_TURBR) return 1;  /* drawn with the hull */
         if (o->type == OT_J5_ELITEMASK) return 1;
+        if (o->type == OT_J5_FADE) {                                             /* 11365 / 11366: LevelCardFade (direction 8: white) */
+            if (GN.fade > 0) r_rect(0, 0, SCREEN_W, SCREEN_H, ((uint32_t)GN.fade << 24) | 0xf8fcf8);
+            return 1;
+        }
+        if (o->type == OT_J5_GLOW) { r_set_additive(1); draw1(o, 0xffffffff); r_set_additive(0); return 1; }   /* shader (INFERRED add) */
         draw1(o, 0xffffffff);
         return 1;
     }
