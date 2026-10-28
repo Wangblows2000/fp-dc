@@ -29,7 +29,7 @@ static struct { int f; float x, y; } demo_tp[16]; static int ndemo_tp;   /* veri
 static struct { int f, v; } demo_fl[8]; static int ndemo_fl;            /* verification: "<f> FLAGS v" (G.stage_flags, as the host tests) */
 /* verification (session 20, as the host scripts): "<f> SETV others E v" (invulnerability), "<f> BOSSHP v" (boss / Q20 HP),
  * "<f> LOAD dir" (start another level, as the menus would) */
-static struct { int f; char k; float v; char dir[8]; } demo_cmd[48]; static int ndemo_cmd;
+static struct { int f; char k; float v; char dir[8]; } demo_cmd[96]; static int ndemo_cmd;   /* (session 21c: 96, the TB verification script) */
 const char *plat_start_level(void) { return demo_level[0] ? demo_level : NULL; }
 static void demo_load(void) {
     size_t sz; char *t = plat_read_raw("demo.txt", &sz);
@@ -42,10 +42,10 @@ static void demo_load(void) {
         { int tf; float tx, ty; if (sscanf(line, "%d TP %f %f", &tf, &tx, &ty) == 3 && ndemo_tp < 16) { demo_tp[ndemo_tp].f = tf; demo_tp[ndemo_tp].x = tx; demo_tp[ndemo_tp].y = ty; ndemo_tp++; continue; } }
         { int tf, tv; if (sscanf(line, "%d FLAGS %d", &tf, &tv) == 2 && ndemo_fl < 8) { demo_fl[ndemo_fl].f = tf; demo_fl[ndemo_fl].v = tv; ndemo_fl++; continue; } }
         { int tf; float tv; char d[8];
-          if (ndemo_cmd < 48 && sscanf(line, "%d SETV others E %f", &tf, &tv) == 2) { demo_cmd[ndemo_cmd].f = tf; demo_cmd[ndemo_cmd].k = 'I'; demo_cmd[ndemo_cmd].v = tv; ndemo_cmd++; continue; }
-          if (ndemo_cmd < 48 && sscanf(line, "%d BOSSHP %f", &tf, &tv) == 2) { demo_cmd[ndemo_cmd].f = tf; demo_cmd[ndemo_cmd].k = 'B'; demo_cmd[ndemo_cmd].v = tv; ndemo_cmd++; continue; }
-          if (ndemo_cmd < 48 && sscanf(line, "%d CHARSET %f", &tf, &tv) == 2) { demo_cmd[ndemo_cmd].f = tf; demo_cmd[ndemo_cmd].k = 'C'; demo_cmd[ndemo_cmd].v = tv; ndemo_cmd++; continue; }   /* (session 21) the character of the next LOAD */
-          if (ndemo_cmd < 48 && sscanf(line, "%d LOAD %7s", &tf, d) == 2) { demo_cmd[ndemo_cmd].f = tf; demo_cmd[ndemo_cmd].k = 'L'; memcpy(demo_cmd[ndemo_cmd].dir, d, 8); ndemo_cmd++; continue; } }
+          if (ndemo_cmd < 96 && sscanf(line, "%d SETV others E %f", &tf, &tv) == 2) { demo_cmd[ndemo_cmd].f = tf; demo_cmd[ndemo_cmd].k = 'I'; demo_cmd[ndemo_cmd].v = tv; ndemo_cmd++; continue; }
+          if (ndemo_cmd < 96 && sscanf(line, "%d BOSSHP %f", &tf, &tv) == 2) { demo_cmd[ndemo_cmd].f = tf; demo_cmd[ndemo_cmd].k = 'B'; demo_cmd[ndemo_cmd].v = tv; ndemo_cmd++; continue; }
+          if (ndemo_cmd < 96 && sscanf(line, "%d CHARSET %f", &tf, &tv) == 2) { demo_cmd[ndemo_cmd].f = tf; demo_cmd[ndemo_cmd].k = 'C'; demo_cmd[ndemo_cmd].v = tv; ndemo_cmd++; continue; }   /* (session 21) the character of the next LOAD */
+          if (ndemo_cmd < 96 && sscanf(line, "%d LOAD %7s", &tf, d) == 2) { demo_cmd[ndemo_cmd].f = tf; demo_cmd[ndemo_cmd].k = 'L'; memcpy(demo_cmd[ndemo_cmd].dir, d, 8); ndemo_cmd++; continue; } }
         if (!strncmp(line, "LETTERBOX ", 10)) { demo_letterbox = line[10] - '0'; continue; }   /* verification: presentation mode */
         if (!strncmp(line, "CHAR ", 5)) { demo_char = line[5] - '0'; continue; }
         if (!strncmp(line, "LEVEL ", 6)) { size_t L = strlen(line + 6); if (L > 0 && L < sizeof demo_level) memcpy(demo_level, line + 6, L + 1); continue; }
