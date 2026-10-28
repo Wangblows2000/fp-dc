@@ -1605,7 +1605,38 @@ for _k, _v in PLG_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   #
 for _n, _dirs in ((52, ('6',)), (53, ('6', '24')), (54, ('6',)), (55, ('6',)), (56, ('24',))):
     POSE_DIRS[_n] = {**POSE_DIRS.get(_n, {}), 40: tuple(sorted(set(POSE_DIRS.get(_n, {}).get(40, ())) | set(_dirs)))}
 
-# ---- PL_BOSS (pl_boss.c, 2224-2303)
+# ---- PL_BOSS (pl_boss.c, 2224-2303; build/re/spec_pl_bosses.md): the Holo-Dragon of PL6. Types mirror src/game/pl.h (OT_PLB_*).
+# The placed rig (json 56: neck controller, head parts, 93 body scales + their hit spots) keeps its json order (the draw order); the
+# off-map templates (claws, eye2, laser, NPC Pangu + arms) are created by pl_boss.c (the importer drops instances outside the frame).
+# Rows: direction 0 only (every direction-1 image of these classes is the pixel mirror of direction 0: drawn flipped, checked
+# image by image) and EffectWarning_1528 (the laser's edge warning). The fight's effects (explosion02, whiteburst) are the objects
+# bank's shared 'explosion02' / 'wburst' rows.
+PLB_TYPES_ID = {('bossholodragonneck', 3086): 2224, ('bossholodragonbreath', 3078): 2225, ('bossholodragontoptooth', 3080): 2226,
+                ('bossholodragonbottomtooth', 3081): 2227, ('bossholodragonscale', 3082): 2228, ('bossholodragonscale2', 3083): 2229,
+                ('bossholodragonscale3', 3084): 2230, ('bossholodragonscale4', 3085): 2231, ('bossholodragonear', 3087): 2232,
+                ('bossholodragoneye', 3088): 2233, ('bossholodragonpupil', 3089): 2234, ('bossholodragonbrow', 3090): 2235,
+                ('bossholodragonhitspot1', 3094): 2236, ('bossholodragonhitspot2', 3095): 2237, ('bossholodragonhitspot3', 3096): 2238}
+ENGINE_TYPES_ID.update(PLB_TYPES_ID)
+_HD = ('bossholodragonneck',)
+PLB_ENS = [(c, a, d, nm, None, _HD) for c, a, d, nm in (
+    ('bossholodragonbreath_3078', 0, '0', 'plb_breath'), ('bossholodragontoptooth_3080', 0, '0', 'plb_ttooth'),
+    ('bossholodragonbottomtooth_3081', 0, '0', 'plb_btooth'), ('bossholodragonscale_3082', 0, '0', 'plb_hscale'),
+    ('bossholodragonscale2_3083', 0, '0', 'plb_s2'), ('bossholodragonscale3_3084', 0, '0', 'plb_s3'),
+    ('bossholodragonscale4_3085', 0, '0', 'plb_s4'), ('bossholodragonear_3087', 0, '0', 'plb_ear'),
+    ('bossholodragoneye_3088', 0, '0', 'plb_eye'), ('bossholodragonpupil_3089', 0, '0', 'plb_pupil'),
+    ('bossholodragonbrow_3090', 0, '0', 'plb_brow'), ('bossholodragonhitspot1_3094', 0, '0', 'plb_hit1'),
+    ('bossholodragonhitspot2_3095', 0, '0', 'plb_hit2'), ('bossholodragonhitspot3_3096', 0, '0', 'plb_hit3'),
+    ('bossholodragonclaw_3093', 0, '0', 'plb_claw'), ('bossholodragoneye2_3097', 0, '0', 'plb_eye2'),
+    ('bossholodragonlaser_3079', 0, '0', 'plb_laser'), ('bossholodragonflame_3092', 0, '0', 'plb_flame'),
+    ('npcpangu_3098', 0, '0', 'plb_pangu'), ('npcpanguleftarm_3101', 0, '0', 'plb_larm'), ('npcpangurightarm_3102', 0, '0', 'plb_rarm'),
+    ('effectwarning_1528', 0, '0', 'plb_warn'))]
+ENS += PLB_ENS   # PL_BOSS
+PLB_ENS_WITH = {c: _HD for c in ('bossholodragonflame_3092', 'bossholodragonclaw_3093', 'bossholodragoneye2_3097',
+                                 'bossholodragonlaser_3079', 'npcpangu_3098', 'npcpanguleftarm_3101', 'npcpangurightarm_3102')}
+for _k, _v in PLB_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # PL_BOSS (the off-map templates and runtime effects)
+for _e in PLB_ENS: ROW_FRAMES[_e[3]] = {56}   # PL_BOSS rows only in PL6
+# 13347: Lilac's skin animation 41 direction 24 during the dragon's entrance (player_pose)
+POSE_DIRS[56] = {**POSE_DIRS.get(56, {}), 41: ('24',)}
 
 # ==== end Pangu Lagoon
 SHL_CLASSES = {'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
