@@ -871,6 +871,9 @@ static const objdef_t DEFS[] = {
     { OT_THB_CB_SPIKE,  0,                                     NULL         }, /* bosscrystalspike_3195 */
     { OT_THB_CB_SPIKE2, 0,                                     NULL         }, /* bosscrystalspike2_3196 */
     { OT_THB_DOOR,      OD_SOLID,                              NULL         }, /* bossdoor_3200 (the player stands on it: RV c1_c) */
+    { OT_THB_CROWD,     0,                                     NULL         }, /* thcrowd_3213 (scenery; speed 8 + R(30): 14047) */
+    { OT_THB_GOAL,      OD_HIDDEN,                             NULL         }, /* guigoalmessage_3217 (GUI: th_boss_arena.c) */
+    { OT_THB_ENLEFT,    OD_HIDDEN,                             NULL         }, /* guienemiesleft_3218 (GUI counter: th_boss_arena.c) */
     /* ==== end Trap Hideout */
 };
 static objdef_t BY_TYPE[MAX_OT];

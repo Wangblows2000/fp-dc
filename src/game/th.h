@@ -34,6 +34,10 @@ enum {
  * 2764 defeats it). RV th_enemies/th1_totem (XLIST q:): that qualifier = the scan lasers (HazardScanLaserSweep x5, ...Right,
  * ...Left, ...Down x8, ...Up x8, ...Boss). The gimmick / boss module calls this with each beam object; returns the count. */
 int th_enemy_totem_zap(const obj_t *beam);
+/* TH3 arena (th_boss_arena.c, 14054): a bike ninja dropped in at (x, y) (warning + mask D -2 + bike; F the mask's float x, E its
+ * side); the dropped masks still up */
+obj_t *th_enemy_bike_drop(float x, float y, double F, double E);
+int    th_enemy_bikes_alive(void);
 
 /* ---- th_gim.c (types 1620-1679; build/re/spec_th_gimmicks.md). Families share a type: par = member (importer THG_SUB).
  * LevelTHCollapsingPlatform (+ Piece) is Jade Creek's collapsing platform (jc_gim.c OT_JCG_COLL member 2, importer JCG_SUB). */

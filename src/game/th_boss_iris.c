@@ -125,9 +125,9 @@ void thi_frame(player_t *p) {
 #ifdef FP_HOST_ENV
     if (getenv("FP_DBG_THI")) {
         const obj_t *ir = iris(), *lz = thb_get(OT_THB_LASER, 0);
-        printf("thi %d px %.0f py %.0f x %.0f y %.0f A %.0f D %.3f E %.0f F %.0f G %.0f H %.0f I %.0f J %.0f M %.1f O %.0f Q %.0f lA %.0f lx %.0f ly %.0f la %.3f ld %d fight %d rail %.0f\n",
+        printf("thi %d px %.0f py %.0f x %.0f y %.0f A %.0f D %.3f E %.0f F %.0f G %.0f H %.0f I %.0f J %.0f M %.1f O %.0f Q %.0f lA %.0f lx %.0f ly %.0f la %.3f ld %d fight %d rail %.0f ra %d\n",
             G.frame, PX, sbb_py(p), ir ? ir->x : -1, ir ? ir->y : -1, ir ? ir->A : -1, I.D, I.E, I.F, I.G, I.H, I.I, I.J, I.M, I.O, I.Q,
-            lz ? lz->av[0] : -1, lz ? lz->x : -1, lz ? lz->y : -1, lz ? lz->ang : -1, lz ? lz->dir : -1, I.fight, I.railA);
+            lz ? lz->av[0] : -1, lz ? lz->x : -1, lz ? lz->y : -1, lz ? lz->ang : -1, lz ? lz->dir : -1, I.fight, I.railA, thb_rails_alive());
     }
 #endif
 }

@@ -43,4 +43,7 @@ float  thb_marker(int t, int x);                                                
 /* ---- encounters (each returns at once when its classes are not placed) */
 void thi_spawn(void), thi_frame(player_t *p); int thi_draw(const obj_t *o, int pass);   /* TH1 Laser Iris (th_boss_iris.c) */
 void thc_spawn(void), thc_frame(player_t *p); int thc_draw(const obj_t *o, int pass);   /* TH3 Crystal Basher (th_boss_basher.c) */
+void tha_spawn(void), tha_frame(player_t *p); int tha_draw(const obj_t *o, int pass);   /* TH3 arena (th_boss_arena.c) */
+float tha_hud_dy(void);
+int  tha_state(void), tha_left(void);                                           /* the goal's A (-1: no arena), the enemies left */
 #endif

@@ -61,5 +61,7 @@ void sbk_spawn(void), sbk_pre(player_t *p), sbk_frame(player_t *p); int sbk_draw
 void sbc_spawn(void), sbc_pre(player_t *p), sbc_frame(player_t *p); int sbc_draw(const obj_t *o, int pass);   /* SB2 chopper */
 void sbc_pose_parts(int right);                                                 /* the chopper parts' directions (Spade's carrier) */
 void sbp_spawn(void), sbp_pre(player_t *p), sbp_frame(player_t *p); int sbp_draw(const obj_t *o, int pass);   /* SB2 Spade */
+void sbp_drop_start(void);                                                      /* TH3: the arena hands over (Spade drops in) */
+int  sbp_state(void);                                                           /* the mask's F (-2: not started) */
 void sbg_spawn(void), sbg_pre(player_t *p), sbg_frame(player_t *p); int sbg_draw(const obj_t *o, int pass);   /* SB4 grappler */
 #endif

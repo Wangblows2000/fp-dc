@@ -1193,13 +1193,16 @@ ENGINE_TYPES_ID.update(THG_TYPES_ID); ENS += THG_ENS   # TH_GIM
 for _k, _v in THG_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # TH_GIM
 
 # ---- TH_BOSS (th_boss.c, 1680-1791): Trap Hideout bosses (build/re/spec_th_bosses.md). Types mirror src/game/th.h (OT_THB_*); the
-# lvobj anim field carries the instance layer << 8 (th_boss.c spawn). Rows: the Laser Iris rig (TH1), the scan laser boss.
+# lvobj anim field carries the instance layer << 8 | 0x8000 json layer 1 (th_boss.c spawn). Rows: the Laser Iris rig (TH1), the scan
+# laser boss, the Crystal Basher (TH3), the TH3 arena (crowd, goal message; the counter draws the HUD digits; the bike ninja's
+# drop-in anim 10), and Spade's TH3 anims 7 / 10 / 38 (sb_spade.c drop-in variant: BossSpade* keep their SB_BOSS types in TH3).
 THB_TYPES_ID = {('bosslaseriris', 3141): 1680, ('bosslaseririscannon', 3140): 1681, ('bosslaseririswingleft', 3138): 1682,
                 ('bosslaseririswingright', 3139): 1683, ('hazardscanlaserboss', 3142): 1684,
                 ('bosscrystalbasherbase', 3199): 1685, ('bosscrystalbasherface', 3198): 1686, ('bosscrystalbasherhead', 3197): 1687,
                 ('bosscrystalbashersegment', 3194): 1688, ('bosscrystalspike', 3195): 1689, ('bosscrystalspike2', 3196): 1690,
-                ('bossdoor', 3200): 1691}
+                ('bossdoor', 3200): 1691, ('thcrowd', 3213): 1692, ('guigoalmessage', 3217): 1694, ('guienemiesleft', 3218): 1695}
 ENGINE_TYPES_ID.update(THB_TYPES_ID)
+THB_SPADE_FRAMES = {59}   # TH3 places BossSpadeMask / BossSpade / BossSpadeHitbox (SB_BOSS types 1220-1222, sb_spade.c)
 THB_SUB = {}   # class -> sub id (low byte of the lvobj anim field)
 _IR = ('bosslaseriris',)
 _CB = ('bosscrystalbasherbase',)
@@ -1213,7 +1216,10 @@ THB_ENS = [(c, a, d, nm, None, w) for c, a, d, nm, w in (
     ('bossdoor_3200', 0, '0', 'thb_door', ('bossdoor',)), ('bosscrystalbasherbase_3199', 0, '0', 'thc_base', _CB),
     ('bosscrystalbasherhead_3197', 0, '0', 'thc_head', _CB), ('bosscrystalbashersegment_3194', 0, '0', 'thc_seg', _CB),
     ('bosscrystalspike_3195', 0, '0', 'thc_spike', _CB), ('bosscrystalspike2_3196', 0, '0', 'thc_spike2', _CB),
-    ('bosscrystalbasherface_3198', 0, '0', 'thc_face', _CB))]
+    ('bosscrystalbasherface_3198', 0, '0', 'thc_face', _CB),
+    ('thcrowd_3213', 0, '0', 'thb_crowd', ('thcrowd',)), ('guigoalmessage_3217', 0, '0', 'thb_goal', ('guigoalmessage',)),
+    ('enemybikeninja_3203', 10, '0', 'thb_drop', ('guienemiesleft',)), ('enemybikeninja_3203', 10, '16', 'thb_drop_l', ('guienemiesleft',)))] + \
+    [('bossspade_2247', a, d, 'sbp_%d' % a + ('' if d == '0' else '_l'), None, ('bossspade',)) for a in (7, 10, 38) for d in ('0', '16')]
 THB_ENS_WITH = {'effectsexplosion06_435': _IR + _CB, 'effectshade_436': _IR, 'effectsdust_437': ('hazardscanlaserboss',)}
 ENS += THB_ENS   # TH_BOSS
 for _k, _v in THB_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # TH_BOSS
@@ -1550,7 +1556,7 @@ def main():
         if o['type'] == 803 and n == 38: o['type'] = 1164
         if o['type'] == 478 and n == 39: o['type'] = 1188   # SB4's EffectWarning_1528: the spire's drop marker (10123 / col_30_38)
     objs = [o for o in objs if not (800 <= o['type'] < 860 and n not in FNBOSS_FRAMES)]   # FN_BOSS: its classes only in FN1-FN3 / FN5
-    objs = [o for o in objs if not (1150 <= o['type'] < 1280 and n not in SBBOSS_FRAMES)]   # SB_BOSS: its classes only in SB1-SB4
+    objs = [o for o in objs if not (1150 <= o['type'] < 1280 and n not in SBBOSS_FRAMES and not (n in THB_SPADE_FRAMES and 1220 <= o['type'] <= 1222))]   # SB_BOSS: its classes only in SB1-SB4 (TH_BOSS: Spade in TH3)
     for o in objs:                                   # JC_BOSS: the shared Hovercop / Neera classes are jc_boss.c's types in JC1-JC4
         if n in JCB_FRAMES and o['cls'] in JCB_CLS: o['type'] = JCB_CLS[o['cls']]
     objs = [o for o in objs if not (1430 <= o['type'] < 1480 and n not in JCB_FRAMES)]   # JC_BOSS: its types only in JC1-JC4
@@ -2102,7 +2108,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         if 1370 <= o['type'] < 1430: a = (JCG_LEAF_TILT.get((o['x'], o['y']), 0) // 30 if o['type'] == 1371 else JCG_SUB.get(o['cls'], 0)) | (o['layer'] << 8)   # JC_GIM (jc_gim.c): member index (leaf backs: tilt / 30) | instance layer << 8
         if 1536 <= o['type'] < 1560: a = (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # TH_FLOW (th_flow.c): instance layer << 8 | 0x8000 json layer 1
         if 1100 <= o['type'] < 1150: a = SBG_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # SB_GIM (sb_gim.c): member index | instance layer << 8 | 0x8000: json layer 1 of a mapped frame (session 20: behind the json-2 pieces, scrolls with layer 1)
-        if 1680 <= o['type'] < 1720: a = THB_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # TH_BOSS (th_boss.c): sub id | instance layer << 8
+        if 1680 <= o['type'] < 1720: a = THB_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # TH_BOSS (th_boss.c): sub id | instance layer << 8 | 0x8000 json layer 1
         d += struct.pack('<2H2i', o['type'], a, o['x'], o['y'])
     for t in table: d += t
     d += struct.pack('<%dH' % len(smap), *smap)

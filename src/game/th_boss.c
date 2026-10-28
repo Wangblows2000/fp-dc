@@ -108,11 +108,11 @@ void th_boss_spawn(void) {
         if (t >= OT_CAMLIM_L && t <= OT_CAMLIM_B && marks[t - OT_CAMLIM_L] < 0) marks[t - OT_CAMLIM_L] = (short)i;
         if (t < OT_THB_FIRST || t > OT_THB_PLACED_LAST) continue;
         int ti = t - OT_THB_FIRST, an = seen[ti] < na[ti] ? AN[ti][seen[ti]] : (3 << 8); seen[ti]++;
-        o->layer = (an >> 8) & 0xff; o->st = o->tm = o->c = o->fl = o->dir = 0; o->ang = 0; o->scale = 0; o->bd = 0;
+        o->layer = (an & 0x8000) ? -1 : (an >> 8) & 0x7f; o->st = o->tm = o->c = o->fl = o->dir = 0; o->ang = 0; o->scale = 0; o->bd = 0;
         memset(o->av, 0, sizeof o->av); o->hidden = (objdef(t)->flags & OD_HIDDEN) != 0; o->an.b = NULL;
         thb_list_t *l = &thb_l[ti]; if (l->n < THB_LMAX) l->i[l->n++] = (short)i;
     }
-    thi_spawn(); thc_spawn();
+    thi_spawn(); thc_spawn(); tha_spawn();
 }
 void th_boss_pre(player_t *p) { (void)p; if (!on) return; r_compact(); }
 void th_boss_frame(player_t *p) {
@@ -120,16 +120,18 @@ void th_boss_frame(player_t *p) {
     for (int k = 0; k < nR; k++) { obj_t *o = &G.o[R[k]]; if (o->alive && o->type == OT_THB_DUST && (!o->an.b || o->an.done)) o->alive = 0; }   /* a puff plays once */
     thi_frame(p);
     thc_frame(p);
+    tha_frame(p);
 }
 int  th_boss_obj(obj_t *o, player_t *p) { (void)o; (void)p; return 1; }        /* every rule runs in th_boss_frame */
 int  th_boss_q20(int type) { return type == OT_THB_IRIS || type == OT_THB_CB_FACE; }   /* RE qualifier 20 (RV XLIST q20: i2_m the iris, c1_c the face) */
 int  th_boss_draw_obj(const obj_t *o, int pass) {
     if (!on) return 1;
-    if (thi_draw(o, pass) || thc_draw(o, pass)) return 1;
+    if (o->type == OT_THB_CROWD) return 0;                                      /* the generic sprite (json layer 1: the 0.8 pass) */
+    if (thi_draw(o, pass) || thc_draw(o, pass) || tha_draw(o, pass)) return 1;
     if (o->hidden) return 1;
     sbb_draw(o, 0xffffffff);
     return 1;
 }
 int   th_boss_input(uint32_t *held) { (void)held; return 0; }
 int   th_boss_player_hidden(void) { return 0; }
-float th_boss_hud_dy(void) { return 0.f; }
+float th_boss_hud_dy(void) { return on ? tha_hud_dy() : 0.f; }   /* TH3 14060-14062: the HUD slides up for Spade */
