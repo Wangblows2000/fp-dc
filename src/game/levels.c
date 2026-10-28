@@ -191,9 +191,9 @@ static const cpzone_t CP_JC5[] = { { 9800, 9999, 2, 9826, 780, 0, 0 } };
  * reports): enemies 60 99 101 192 233 275 314 (314 is Lilac's own: kept for her, loaded for Carol / Milla), gimmicks 208 426
  * 72 69, act 5 (jc_boss5.c + the FN Serpentine variant) 61 67 70 126 134 165 166 191 192 193 194 195 196 233 292 427 */
 #define SFX_JC_ACTS 62, 99, 60, 101, 192, 233, 275, 314, 208, 426, 72, 69
-static const short SFX_JC1[] = { SFX_JC_ACTS };
-static const short SFX_JC2[] = { SFX_JC_ACTS };
-static const short SFX_JC3[] = { SFX_JC_ACTS };
+static const short SFX_JC1[] = { SFX_JC_ACTS, 276 };                                            /* + the Hovercop fly-by (jc_boss.c) */
+static const short SFX_JC2[] = { SFX_JC_ACTS, 277, 165, 166, 195, 77 };                          /* + the Hovercop chase */
+static const short SFX_JC3[] = { SFX_JC_ACTS, 277, 165, 166, 195, 77, 296, 297, 298, 299, 315, 31, 33 };   /* + Neera (31 / 33: Lilac's / Carol's own, kept) */
 static const short SFX_JC4[] = { SFX_JC_ACTS };
 static const short SFX_JC5[] = { 62, 99, 61, 67, 70, 126, 134, 165, 166, 191, 192, 193, 194, 195, 196, 233, 292, 427, 314, 208, 426 };
 #define JC(d, f, n, mus) .dir = d, .frame = f, .stage = 5, .act = n, .nacts = 5, .music = mus, .checkpoints = 1, .sfx = SFX_JC##n, .nsfx = N_(SFX_JC##n)

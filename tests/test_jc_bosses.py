@@ -9,7 +9,7 @@ usage: test_jc_bosses.py [data_dir]   (default: cv)"""
 import subprocess, sys, os, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 BIN = os.path.join(HERE, '..', 'host', 'fpdc_host')
-DATA = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, '..', 'cv')
+DATA = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, '..', 'converted2')
 
 def run(level, char, frames, script, env=None):
     with tempfile.NamedTemporaryFile('w', suffix='.txt', delete=False) as f:
