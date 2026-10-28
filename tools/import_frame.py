@@ -1525,15 +1525,13 @@ PLE_ENS = [(c, a, d, nm + ('' if d == '0' else '_l')) for c, a, nm in (
     ('enemystingernest_2937', 0, '0', 'pln_nest'), ('enemystingernest_2937', 8, '0', 'pln_dead'),
     ('enemysunflora_2940', 0, '0', 'plf_turn'), ('enemysleepgas_2941', 0, '0', 'plz_gas'), ('effectsconfetti_2943', 0, '0', 'plf_conf'),
     ('enemyterreon_3006', 0, '0', 'plt_body'), ('enemyterreon_3006', 5, '0', 'plt_blink'), ('enemyterreon_3006', 8, '0', 'plt_dead'),
-    ('enemyterreonleftleg_3004', 0, '16', 'plt_ll'), ('enemyterreonleftleg_3004', 8, '0', 'plt_ll8'),
-    ('enemyterreonrightleg_3005', 0, '16', 'plt_rl'), ('enemyterreonrightleg_3005', 8, '0', 'plt_rl8'),
-    ('enemyterreonleftshoulder_3002', 0, '0', 'plt_ls'), ('enemyterreonleftshoulder_3002', 8, '0', 'plt_ls8'),
-    ('enemyterreonrightshoulder_3003', 0, '0', 'plt_rs'), ('enemyterreonrightshoulder_3003', 8, '0', 'plt_rs8'),
-    ('enemyterreondebris_3007', 0, '0', 'plt_deb'), ('effectterreonwarning_3008', 0, '0', 'plt_warn'),
+    ('enemyterreonleftleg_3004', 0, '16', 'plt_ll'), ('enemyterreonrightleg_3005', 0, '16', 'plt_rl'),   # (anim 8's pale frames: drawn additive,
+    ('enemyterreonleftshoulder_3002', 0, '0', 'plt_ls'), ('enemyterreonrightshoulder_3003', 0, '0', 'plt_rs'),   # the debris with these rows: VRAM)
+    ('effectterreonwarning_3008', 0, '0', 'plt_warn'),
     ('enemywallstinger_3056', 0, '0', 'plw_fly'), ('enemywallstingerspawn_3057', 0, '0', 'plw_spawn')]
 _PLE_ALL = ('enemystinger', 'enemystingernest', 'enemysunflora', 'enemyterreon', 'enemyobelisk', 'enemywallstinger')
 PLE_ENS_WITH = {'enemystinger_2933': ('enemystingernest', 'enemywallstinger'), 'enemysleepgas_2941': ('enemysunflora',),
-    'effectsconfetti_2943': ('enemysunflora',), 'enemyterreondebris_3007': ('enemyterreon',), 'enemyobelisklaser_3048': ('enemyobelisk',),
+    'effectsconfetti_2943': ('enemysunflora',), 'enemyobelisklaser_3048': ('enemyobelisk',),
     'enemywallstingerspawn_3057': ('enemywallstinger',), 'hazardshockwave_1576': ('enemyterreon',),
     'objectkeystone_429': ('enemystingernest', 'enemyterreon', 'enemyobelisk'), 'effectsdebris_427': ('enemystingernest',),
     'effectsexplosion06_435': ('enemystingernest', 'enemyterreon', 'enemyobelisk')}
@@ -2381,19 +2379,28 @@ def write_bank2(src, bank, out, report):
             while v < n: v *= 2
             return v
         P = p2(ph(pos)); cur = size * P
+        pks = pk if bank['name'][:2] == 'pl' else pack   # Pangu Lagoon (session 23): the skyline packer for the half-height split too (a
+                                                          # 1024 x 1024 _ens became 1024 x 512 + a small second page); other stages unchanged
         if P >= 256:
             order = [i for i, _ in sorted(((i, imgs[i][0]) for i in ids), key=lambda kv: (-kv[1].height, kv[0]))]
             lo, hi = 0, len(order)                 # the shelf packer places in this order: the fitting prefix is monotone
             while lo < hi:
                 m = (lo + hi + 1) // 2
-                if pack([(i, imgs[i][0]) for i in order[:m]], size, P // 2): lo = m
+                if pks([(i, imgs[i][0]) for i in order[:m]], size, P // 2): lo = m
                 else: hi = m - 1
             take, rest = order[:lo], order[lo:]
+            if bank['name'][:2] == 'pl':                 # (PL: the greedy fill of the half page, the better of two orders, as the two-page split)
+                best_ = None
+                for ok_ in (lambda kv: (-kv[1].width * kv[1].height, kv[0]), lambda kv: (-kv[1].height, -kv[1].width, kv[0])):
+                    p_ = pack_skyline_fill([(i, imgs[i][0]) for i in ids], size, P // 2, ok_)
+                    a_ = sum(imgs[i][0].width * imgs[i][0].height for i in p_)
+                    if best_ is None or a_ > best_[0]: best_ = (a_, p_)
+                take = [i for i in ids if i in best_[1]]; rest = [i for i in ids if i not in best_[1]]
             if take and rest:
-                pos1 = pack([(i, imgs[i][0]) for i in take], size, P // 2)
+                pos1 = best_[1] if bank['name'][:2] == 'pl' else pks([(i, imgs[i][0]) for i in take], size, P // 2)
                 pos2, s2 = None, 64
                 while not pos2 and s2 <= 1024:
-                    pos2 = pack([(i, imgs[i][0]) for i in rest], s2, s2 // 2) or pack([(i, imgs[i][0]) for i in rest], s2)
+                    pos2 = pks([(i, imgs[i][0]) for i in rest], s2, s2 // 2) or pks([(i, imgs[i][0]) for i in rest], s2)
                     if not pos2: s2 *= 2
                 if pos2:
                     w2 = s2; h2 = p2(ph(pos2))

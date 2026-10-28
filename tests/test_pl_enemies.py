@@ -125,6 +125,11 @@ l51 = sid(s, 51)
 shocks = sorted(set(f for f, t, x, y, d in obs if t == 367))
 check('terreon_landing_two_shockwaves', l51 and len([1 for f, t, x, y, d in obs if t == 367 and f == l51[0]]) == 2, str(l51[:1]))
 check('terreon_legs_deflect_30', 30 in [i for f, i in s], '')
+life = {}
+for f, t, x, y, d in obs:
+    if t == 367: life.setdefault(d.get('a1'), []).append(f)
+ages = [float(d['a1']) for f, t, x, y, d in obs if t == 367]
+check('shockwave_gone_after_50', ages and max(ages) <= 51, str(max(ages) if ages else None))
 ter = [o for o in obs if o[1] == 2084]
 check('terreon_defeated_by_lilac', 38 in [i for f, i in s] and ter and ter[-1][0] < 790, 'last %s' % (ter[-1][0] if ter else None))
 
