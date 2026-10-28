@@ -2,7 +2,8 @@
  * RV build/orig_traces/jc_boss5). Labels: RE read from code, RV measured in the original, INFERRED reasoned.
  *
  * What Jade Creek's last act plays in the Classic route (Lilac, Carol, Milla; RE + RV l_tp / l_kill / l_kill2):
- *   - start: Neera's ice ambush (Hovercop + NPCNeera, group 0x22afe; the bosses module's types: not here, see the spec);
+ *   - start: Neera's ice ambush (Hovercop + NPCNeera, group 0x22afe, 11043-11072): jc_boss.c's M_AMBUSH (session 22; it opens the
+ *     barrier at x 1536);
  *   - x 5800: the Tredd miniboss (engine types 73-87);
  *   - x > Syntax - 1200: loop_cutscene_start_43 -> the Brevon mech flyby scene with Syntax and Torque (0x22aff; g1 == 5 =
  *     Torque would get the Brevon mech FIGHT 0x22af4 instead: not playable, not ported);
