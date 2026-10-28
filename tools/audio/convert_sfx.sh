@@ -56,5 +56,10 @@ RATE=$R0; TRIM_ALL=
 # 233 (enemies / act 5), 275 (BullFrag volley), 72 (bubble spring bounce), 292 (act-5 storm bolt), 427 (act 5), 276 (JC1 Hovercop
 # fly-by), 277 (Hovercop), 296-299 (Neera), 335 (Trap Hideout bike ninja skid), 336 (Laser Iris), 363 (TH3 crowd); half rate, trimmed
 R0=$RATE; RATE=11025; TRIM_ALL=1; for i in 233 275 72 292 427 276 277 296 297 298 299 335 336 363; do conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; done; RATE=$R0; TRIM_ALL=
+# Thermal Base (session 21c, SFX_TB1..6): 279 / 280 doors, 282-286 gimmicks (pillars, terminal, card), 302 lava fall, 321 presser, 437 / 52 /
+# 303-305 / 309 / 310 enemies and bosses, 92 the TB6 end; Syntax voice sx_still (TB6; the TB3 spider's sx_lost is only a silent stub in
+# the Linux data and not in the user's voice files, so it is not converted); half rate, trimmed
+R0=$RATE; RATE=11025; TRIM_ALL=1; for i in 52 92 279 280 282 283 284 285 286 302 303 304 305 309 310 321 437; do conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; done
+for v in sx/sx_still; do conv "$VOX/eng/$v.ogg" "$OUT/$(basename $v).wav"; done; RATE=$R0; TRIM_ALL=
 rm -rf "$TMP"
 awk -F, 'NR>1{s+=$4} END {printf "%d sounds, %.1f KB\n", NR-1, s/1024}' "$OUT/sfx_manifest.csv"

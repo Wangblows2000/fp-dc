@@ -81,7 +81,7 @@ for nm, ch in CHARS:
         r = rows[-1]
         check('%s_safe_start_%s' % (lv, nm), r['gnd'] == 1 and r['hp'] == 14 and r['st'] == 0 and abs(r['y'] - SAFE_Y[lv]) <= 0.5,
               'y %s gnd %s hp %s' % (r['y'], r['gnd'], r['hp']))
-rows, ev, out = run('5 TP 15950 1300\n6 400 R\n', 400, {'FP_LEVEL': 'tb5', 'FP_CHAR': '0'})   # TB5 -> TB6: the stage music stops at TB6's start
+rows, ev, out = run('3 SETV others E 99999\n5 TP 14950 2300\n40 120 R\n300 1200 R\n', 1000, {'FP_LEVEL': 'tb5', 'FP_CHAR': '0'})   # TB5 -> TB6 (the boss module's end elevator, then right): the stage music stops at TB6's start
 mi = [l for _, l in ev if l.startswith('music')]
 check('tb6_silent_start', 'tb6' in loads(ev) and mi[-1:] and mi[-1].startswith('music stop'), str(mi[-3:]))
 
@@ -118,8 +118,7 @@ check('tb1_lift_rides_once', len(tbf(ev, 'lift 0 go')) == 1, str([l for _, l in 
 rows, ev, out = run('', 3, {'FP_LEVEL': 'tb2', 'FP_CHAR': '0', 'FP_DBG_TBLIFT': '1'})
 check('tb2_lift_starts_bottom', [l.split()[5] for l in out.splitlines() if l.startswith('tblift 1 0 ')] == ['0'], '')
 rows, ev, out = run('5 TP 15136 2300\n', 120, {'FP_LEVEL': 'tb5', 'FP_CHAR': '2', 'FP_DBG_TBLIFT': '1'})
-ys = {l.split()[4] for l in out.splitlines() if l.startswith('tblift ')}
-check('tb5_lifts_still', ys == {'2344.0'} and not tbf(ev, 'lift'), str(ys))
+check('tb5_lifts_not_flow', not tbf(ev, 'lift'), '')   # TB5's markerless lifts are the boss module's end elevator (test_tb_bosses)
 
 # ---- checkpoints (RE: TB1 inline (2, 6932, 2026) / (3, 9914, 1374); TB2 inline (2, 2120, 2222) MV.Y < 2260 / (3, 6144, 3184) MV.Y > 2900;
 # TB3 12096 (2, 3333, 3440) MV.Y > 3200; TB4 inline (2, 2664, 2648) / (3, 2912, 2648) MV.Y > 2500; TB5 12539-12541 (2, 1855, 3096) MV.Y >
@@ -146,7 +145,8 @@ check('tb5_last_checkpoint_rearms_g4_4', rs and rs[0]['x'] == 14720 and rs[0]['y
 for lv, x, y, nx, act in (('tb1', 10460, 2150, 'tb2', 2), ('tb2', 7250, 1400, 'tb3', 3), ('tb3', 7900, 2000, 'tb4', 4),
                           ('tb4', 7900, 2000, 'tb5', 5), ('tb5', 15950, 1300, 'tb6', 6)):
     for nm, ch in CHARS:
-        rows, ev, out = run('5 TP %d %d\n6 400 R\n' % (x, y), 400, {'FP_LEVEL': lv, 'FP_CHAR': ch})
+        if lv == 'tb5': rows, ev, out = run('3 SETV others E 99999\n5 TP 14950 2300\n40 120 R\n300 1200 R\n', 1000, {'FP_LEVEL': lv, 'FP_CHAR': ch})   # the end elevator
+        else: rows, ev, out = run('5 TP %d %d\n6 400 R\n' % (x, y), 400, {'FP_LEVEL': lv, 'FP_CHAR': ch})
         go = [r for r in rows if r['act'] == act]
         check('%s_exit_to_%s_%s' % (lv, nx, nm), nx in loads(ev) and go and go[0]['g4'] == -1 and go[0]['x'] == -32,
               str(loads(ev)) + ' ' + str(go[:1] and (go[0]['x'], go[0]['y'], go[0]['g4'])))

@@ -228,12 +228,12 @@ static const cpzone_t CP_TB5[] = { { 1700, 2200, 2, 1855, 3096, 3260, 0 }, { 654
                                    { 10344, 10544, 4, 10400, 2712, 0, 0 }, { 14620, 14820, 4, 14720, 2328, 0, 2 } };
 /* the stage's own sounds per act (11025 Hz): 62 jump pads, 99 explosions; the flow plays 49 (the lifts' stop, 11716 / 11719: TB1-TB3);
  * the enemy / gimmick / boss modules add theirs */
-static const short SFX_TB1[] = { 62, 99, 49 };
-static const short SFX_TB2[] = { 62, 99, 49 };
-static const short SFX_TB3[] = { 62, 99, 49 };
-static const short SFX_TB4[] = { 62, 99 };
-static const short SFX_TB5[] = { 62, 99 };
-static const short SFX_TB6[] = { 62, 99 };
+static const short SFX_TB1[] = { 62, 99, 49, 37, 59, 172, 173, 264, 279, 280, 282, 283, 285, 286, 437 };
+static const short SFX_TB2[] = { 62, 99, 49, 35, 37, 38, 59, 73, 264, 279, 280, 282, 283, 285, 286, 302, 437 };
+static const short SFX_TB3[] = { 62, 99, 49, 35, 37, 38, 52, 55, 59, 71, 73, 134, 173, 264, 279, 280, 282, 284, 285, 286, 302, 303, 304, 305, 309, 310, 437 };
+static const short SFX_TB4[] = { 62, 99, 49, 37, 38, 59, 173, 264, 279, 280, 285, 286, 437 };
+static const short SFX_TB5[] = { 62, 99, 49, 33, 35, 37, 51, 59, 73, 110, 264, 279, 280, 282, 285, 286, 302, 321, 437 };
+static const short SFX_TB6[] = { 62, 99, 92, 251, 252, 264, 279, 280, 304, 305, 309 };
 #define TB(d, f, n, mus) .dir = d, .frame = f, .stage = 6, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_TB##n, .nsfx = N_(SFX_TB##n)
 #define TH(d, f, n, mus) .dir = d, .frame = f, .stage = 8, .act = n, .nacts = 3, .music = mus, .checkpoints = 1, .sfx = SFX_TH##n, .nsfx = N_(SFX_TH##n)
 #define JC(d, f, n, mus) .dir = d, .frame = f, .stage = 5, .act = n, .nacts = 5, .music = mus, .checkpoints = 1, .sfx = SFX_JC##n, .nsfx = N_(SFX_JC##n)
@@ -355,7 +355,7 @@ static const level_def_t LEVELS[] = {
     { TB("tb5", 48, 5, "bgm/m_stage6b.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage6b.adp", .mus7 = "bgm/m_stage6b.adp",
       .card_first = 67, .water = 2920, .cps = CP_TB5, .ncps = N_(CP_TB5) },
     { TB("tb6", 49, 6, "bgm/m_stage6b.adp"), .mus4 = "bgm/m_boss2.adp", .mus6 = "bgm/m_stage6b.adp", .mus7 = "bgm/m_stage6b.adp",
-      .music_off = 1, .res_wipe = 1 },
+      .music_off = 1, .res_wipe = 1, .vox = (const char *const[]){ "sx_still" }, .nvox = 1 },
 };
 static const level_def_t DEFAULT = { .dir = "", .frame = -1, .stage = -1, .act = 1, .nacts = 1, .music = "bgm/m_stage1.adp" };
 
