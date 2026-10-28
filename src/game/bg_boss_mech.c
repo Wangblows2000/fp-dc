@@ -424,6 +424,8 @@ static void dbg(const player_t *p) { (void)p; }
 #endif
 
 void bgm_frame(player_t *p) {
+    if (M.rig && G.at_g4 < OPEN_G4 && bgmech())                              /* 14418: CAM.H = min(0, 1912 - g17 / 2 - CAM.B) while the mech lives */
+        G.cam.H = fminf(0.f, 1912.f - 0.5f * SCREEN_H - G.cam.B);
     if (M.rig) { fight(p); hatches(); dbg(p); }
     else bg_setpiece(p);
     lasers(p);

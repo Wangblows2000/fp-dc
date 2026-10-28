@@ -129,6 +129,11 @@ static int bot(uint32_t *held) {
     obj_t *tg = bgm_bot_target();
     if (!tg) tg = bgd_bot_target();
     if (!tg) { obj_t *b = bgb_get(OT_BGB_SPARKY, 0); if (b && !(b->fl & BGB_DEF) && !b->hidden && bg_boss_sparky_state() >= 0 && bg_boss_sparky_state() < 6) tg = b; }
+    if (!tg) { obj_t *c = sbb_get(OT_SB_CH, 0); if (c && c->av[7] == 2 && !(c->fl & BGB_DEF) && !c->hidden) tg = c; }   /* BG2: the chopper (sb_chopper.c) */
+    if (!tg) for (int i = 0; i < G.nobjs && !tg; i++) {                      /* BG5: the Wretchnid's weak spot (bosses.c; host scan) */
+        obj_t *o = &G.o[i];
+        if (o->alive && o->type == OT_WR_WEAK && o->A > 0 && fabsf(o->x - G.p.x) < 400 && fabsf(o->y - G.p.y) < 300) tg = o;
+    }
     if (!tg) { ph = 0; return 0; }
     const player_t *p = &G.p;
     double tx = tg->x, ty = tg->y;                                             /* the target image's centre */
