@@ -720,7 +720,8 @@ enum { ST_NORMAL, ST_ATTACK, ST_CYCLONE, ST_CHARGE, ST_BOOST, ST_HURT, ST_DEAD,
        ST_CART,        /* M90: Milla pumping the RM3 hand-car (6131-6166, src/game/relic_gimb.c) */
        ST_SIT,         /* M39: sitting on an RM5 chair (6585, 3068-3072, src/game/relic_gimb.c) */
        ST_HPIPE,     /* M38: Fortune Night vertical half-pipe (7538-7542, group 1891; src/game/fn_gima.c) */
-       ST_DANCE };     /* M50: the FN5 disco dance (8306-8310, src/game/fn_gimb.c) */
+       ST_DANCE,       /* M50: the FN5 disco dance (8306-8310, src/game/fn_gimb.c) */
+       ST_RIDE };      /* M97 / M99: carried by a Jade Creek seed or bubble (src/game/jc_gim.c drives the player) */
 /* src/game/combat.c (build/re/spec_combat.md) */
 void combat_frame(player_t *p);
 void combat_draw_shields(int behind);
@@ -789,6 +790,7 @@ int    relic_gimb_is_gate_pillar(const obj_t *o);         /* RM5 Bone Golem gate
  * 8104-8113), the post pass (game.c after the Relic Maze gimmicks), the M39 restroom / M50 dance groups and two draw hooks */
 void   fn_gimb_spawn(void), fn_gimb_pre(player_t *p), fn_gimb_frame(player_t *p), fn_gimb_draw_back(void), fn_gimb_draw_front(void);
 int    fn_gimb_player(player_t *p, const input_t *in);   /* ST_SIT (restroom) / ST_DANCE: 1 = handled */
+void   player_ride_anim(player_t *p, const char *name, int speed);   /* player.c: a gimmick ride's pose by animation name (jc_gim.c) */
 void   player_pose(player_t *p, int idx, int dir, int speed);   /* player.c: every skin forced to animation index idx (Milla: direction dir) */
 /* src/game/rm_claw.c (RM3 Claw sequence, spec_rm_claw.md): hooks next to the relic_* ones */
 void   rm_claw_spawn(void), rm_claw_frame(player_t *p);
@@ -985,6 +987,7 @@ void   jc_enemy_spawn(void), jc_enemy_pre(player_t *p), jc_enemy_draw(int pass);
 int    jc_enemy_obj(obj_t *o, player_t *p), jc_enemy_q20(int type);
 void   jc_gim_spawn(void), jc_gim_pre(player_t *p), jc_gim_frame(player_t *p), jc_gim_draw(int pass);
 int    jc_gim_obj(obj_t *o, player_t *p), jc_gim_q20(int type);
+int    jc_gim_player(player_t *p, const input_t *in), jc_gim_ride_m(void);   /* ST_RIDE (player.c) */
 void   jc_boss_spawn(void), jc_boss_pre(player_t *p), jc_boss_frame(player_t *p);
 int    jc_boss_obj(obj_t *o, player_t *p), jc_boss_q20(int type), jc_boss_draw_obj(const obj_t *o, int pass), jc_boss_input(uint32_t *held);
 int    jc_boss_player_hidden(void);
