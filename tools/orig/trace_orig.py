@@ -38,6 +38,9 @@ for _kv in os.environ.get('XVT_EXTRA', '').split(','):
         XVT[_n] = int(_v, 0)
 # instances picked by x position instead of the last one found (probes of one specific enemy)
 XVT_PICK = {'turr': 1233}   # others = PlayerOthers_126 (invulnerability timer E, RE)
+# XVT_PICKX="name=x,name2=x2": pick the XVT_EXTRA instance nearest to that x (one specific enemy of a multi-instance class)
+for _kv in os.environ.get('XVT_PICKX', '').split(','):
+    if '=' in _kv: XVT_PICK[_kv.split('=')[0]] = int(_kv.split('=')[1])
 # HUD counters (Counter::set: value double @+0xa0, min int @+0xa8, max int @+0xac)
 CVT = {'c_petals': 0x20aa330, 'c_lives': 0x20bc670, 'c_crystals': 0x20aa290,
        'c_tm': 0x20bd890, 'c_ts': 0x20bd750, 'c_tms': 0x20bd610}
