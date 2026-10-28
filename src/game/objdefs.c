@@ -885,14 +885,11 @@ static const objdef_t DEFS[] = {
     /* ---- TB_ENEMIES (tb_enemy.c) */
     /* ---- TB_GIM (tb_gim.c; qualifiers RE on_frame_45..50_init: Q7 solid, Q8 obstacle, Q9 no-edge, Q10 / Q11 loop layers, Q23 hang;
      * box collision = constructor initialize_active(1)) */
-    { OT_TBG_LIFT,      OD_SOLID|OD_BOXCOL,                    NULL         }, /* levellift (q7 q13; tb_gim.c moves it) */
-    { OT_TBG_LIFTEND,   OD_HIDDEN,                             NULL         }, /* levellifttop / bottom (ctor invisible) */
     { OT_TBG_KEY,       0,                                     NULL         }, /* objectkeycard */
     { OT_TBG_TERM,      0,                                     NULL         }, /* lockeddoorterminal */
     { OT_TBG_LDOOR,     0,                                     NULL         }, /* lockeddoorback / front / seal */
     { OT_TBG_BARRIER,   OD_SOLID|OD_BOXCOL|OD_HIDDEN,          NULL         }, /* lockeddoorbarrier (q7; flag 0 once open: 11812) */
     { OT_TBG_MDOOR,     0,                                     NULL         }, /* metaldoorback / front (scenery) */
-    { OT_TBG_WLIGHT,    0,                                     NULL         }, /* tbwalllightanim */
     { OT_TBG_FPLAT,     OD_OBSTACLE|OD_NOEDGE|OD_BOXCOL,       NULL         }, /* levelfireplatform1 (q8 q9 q12 q13) */
     { OT_TBG_FPLAT80,   OD_OBSTACLE|OD_NOEDGE|OD_BOXCOL,       NULL         }, /* levelfireplatform1_2665 (TB1, G 80) */
     { OT_TBG_FFLAME,    0,                                     NULL         }, /* levelfireplatformflame1 / 2 */

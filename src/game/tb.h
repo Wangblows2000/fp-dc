@@ -15,10 +15,10 @@ int  tb_flow_lift_state(int k);     /* host tests / other modules: the k-th lift
 
 /* ---- tb_gim.c (types 1888-1967; build/re/spec_tb_gimmicks.md). Families share a type: par = member (importer TBG_SUB,
  * lvobj anim bits 0-7), layer = instance layer (bits 8-14). Placed classes 1888-1949, runtime objects 1950-1967. */
-enum { OT_TBG_LIFT = 1888 /* LevelLift_2649 (Q7 Q13) */, OT_TBG_LIFTEND = 1889 /* LevelLiftTop / Bottom (par 0 / 1, invisible) */,
+enum { OT_TBG_FIRST_ = 1888 /* (1888 / 1889 / 1895 unused: lifts and wall lights are tb_flow.c's) */,
        OT_TBG_KEY = 1890 /* ObjectKeyCard_2685 */, OT_TBG_TERM = 1891 /* LockedDoorTerminal_2689 */,
        OT_TBG_LDOOR = 1892 /* LockedDoorBack / Front / Seal (par 0 / 1 / 2) */, OT_TBG_BARRIER = 1893 /* LockedDoorBarrier_2688 (Q7, invisible) */,
-       OT_TBG_MDOOR = 1894 /* MetalDoorBack / Front (par 0 / 1): scenery that opens */, OT_TBG_WLIGHT = 1895 /* TBWallLightAnim_2644 */,
+       OT_TBG_MDOOR = 1894 /* MetalDoorBack / Front (par 0 / 1): scenery that opens */,
        OT_TBG_FPLAT = 1896 /* LevelFirePlatform1_2708 (Q8 Q9 Q12 Q13: objects.c path platform, G 160) */,
        OT_TBG_FFLAME = 1897 /* LevelFirePlatformFlame1 / 2 (par 0 / 1) */,
        OT_TBG_SPLAT = 1898 /* LevelScrollingPlatform1 / 2 (par 0 / 1; Q7 Q13, invisible) */, OT_TBG_SMASK = 1899 /* ...Mask1 / 2 (drawn) */,
@@ -44,8 +44,8 @@ enum { OT_TBG_LIFT = 1888 /* LevelLift_2649 (Q7 Q13) */, OT_TBG_LIFTEND = 1889 /
        OT_TBG_DESTROYER = 1951 /* runtime: ObjectExplosiveBlockDestroyer_2744 */,
        OT_TBG_FX = 1952 /* runtime: one-shot effects (explosions, sparkles) */,
        OT_TBG_END = 1952 };
+obj_t *tb_gim_key_drop(float x, float y);       /* a key card dropped at (x, y): it falls to the floor (TB3 12118-12120; for the bosses) */
 int  tb_gim_keycards(void);                     /* GUIKeyCards K: key cards held (HUD, tests) */
-int  tb_gim_elevator(void);                     /* TB5's elevator (12524-12532): 0 waiting, 1 rising, 2 up (the encounter: tb_boss.c) */
 int  tb_gim_button_presses(void);               /* switch buttons pressed so far this act (the bosses' trapdoor, tests) */
 
 /* ---- tb_boss.c (types 1968-2047) */
