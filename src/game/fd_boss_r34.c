@@ -9,4 +9,5 @@ int   fdb34_draw_obj(const obj_t *o, int pass) { (void)o; (void)pass; return 0; 
 int   fdb34_q20(int type) { (void)type; return 0; }
 int   fdb34_input(uint32_t *held) { (void)held; return 0; }
 int   fdb34_player_hidden(void) { return 0; }
+void  fdb34_draw(int pass) { (void)pass; }
 float fdb34_hud_dy(void) { return 0.f; }

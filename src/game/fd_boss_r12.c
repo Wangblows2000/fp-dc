@@ -9,4 +9,5 @@ int   fdb12_draw_obj(const obj_t *o, int pass) { (void)o; (void)pass; return 0; 
 int   fdb12_q20(int type) { (void)type; return 0; }
 int   fdb12_input(uint32_t *held) { (void)held; return 0; }
 int   fdb12_player_hidden(void) { return 0; }
+void  fdb12_draw(int pass) { (void)pass; }
 float fdb12_hud_dy(void) { return 0.f; }
