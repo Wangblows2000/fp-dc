@@ -5,6 +5,11 @@
 #include "../fp.h"
 
 /* ---- tb_flow.c (types 1792-1823) */
+enum { OT_TBF_LIFT = 1792,          /* LevelLift_2649: the elevator box (Q7 Q13; tb_flow.c lifts) */
+       OT_TBF_LIFTTOP = 1793,       /* LevelLiftTop_2650: the upper stop marker (invisible) */
+       OT_TBF_LIFTBOT = 1794,       /* LevelLiftBottom_2651: the lower stop marker (invisible) */
+       OT_TBF_WALLLIGHT = 1795 };   /* TBWallLightAnim_2644: wall light, frame (g3 / 4) mod 12 */
+int  tb_flow_lift_state(int k);     /* host tests / other modules: the k-th lift's Q (0 bottom, 1 rising, 2 top, 3 sinking), -1 none */
 
 /* ---- tb_enemy.c (types 1824-1887) */
 

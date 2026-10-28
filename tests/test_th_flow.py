@@ -149,8 +149,10 @@ for lv, want in (('th1', {(3458.0, 2093.0): 71}), ('th2', {(8514.0, 541.0): 72, 
     check('%s_card_ids' % lv, c == want, str(c))
 
 # ---- the Classic route (RE handle_frame_9 inline, Classic block): JC5's results (MenuSequence.I 5) -> frame 56 = TH1 for g1 != 0
-# (Carol, Milla), frame 44 = Thermal Base for Lilac (not ported: the front end)
-for nm, ch, want in (('carol', '2', 'th1'), ('milla', '4', 'th1'), ('lilac', '0', 'frontend')):
+# (Carol, Milla), frame 44 = Thermal Base for Lilac (session 21c: TB1 when the data dir holds Thermal Base, else the front end;
+# tests/test_tb_flow.py checks that route in full)
+TB_PORTED = os.path.isdir(os.path.join(DATA, 'tb1'))
+for nm, ch, want in (('carol', '2', 'th1'), ('milla', '4', 'th1'), ('lilac', '0', 'tb1' if TB_PORTED else 'frontend')):
     with tempfile.TemporaryDirectory() as d:
         # (session 21: the fast run earns JC's speedrunner achievement: its pop-up loads the front end, Jump closes it; then
         # Carol / Milla go on to TH1 and Lilac stays on the title menu: the Jump presses stop before they could start a game)
@@ -187,11 +189,11 @@ TA = '200 202 S\n360 361 D\n380 381 J\n470 471 R\n490 491 J\n630 631 D\n650 651 
 with tempfile.TemporaryDirectory() as d:
     rows, ev, out = run(CHEAT + TA, 1200, {'FP_SAVE': os.path.join(d, 's.bin')})
     check('ta_carol_th1_with_progress', 'th1' in loads(ev) and rows[-1]['mode'] == 1 and rows[-1]['act'] == 1 and rows[-1]['chr'] == 2, str(loads(ev)))
-# Lilac's list keeps Thermal Base (s 6) in that slot (RE 623): the same keys start nothing (Thermal Base is not ported), never TH1
+# Lilac's list keeps Thermal Base (s 6) in that slot (RE 623): the same keys start TB1 (session 21c; nothing without its data), never TH1
 TAL = TA.replace('470 471 R\n', '')
 with tempfile.TemporaryDirectory() as d:
     rows, ev, out = run(CHEAT + TAL, 1200, {'FP_SAVE': os.path.join(d, 's.bin')})
-    check('ta_lilac_no_th', 'th1' not in loads(ev) and loads(ev)[-1:] == ['tasel'] and rows[-1]['chr'] == 0, str(loads(ev)))
+    check('ta_lilac_no_th', 'th1' not in loads(ev) and loads(ev)[-1:] == (['tb1'] if TB_PORTED else ['tasel']) and rows[-1]['chr'] == 0, str(loads(ev)))
 
 # ---- scenery (th_flow.c): the backlights / flames take their rows and frames; TH3's spotlights stay off before the Crystal Basher
 _, ev, out = run('', 3, {'FP_LEVEL': 'th1', 'FP_CHAR': '2', 'FP_TRACK': '1536:-1'})
