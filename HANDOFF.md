@@ -128,6 +128,12 @@ spec_rm_golems, spec_rm_claw, spec_rm_mantalith, rm_inventory.
   Mantalith sounds 147 / 214 / 215 not ported; INFERRED items in RE_NOTES. An agent published a private working page
   (spec_rm_enemies) during research; it is still in the user's artifacts (delete only if the user asks).
 
+## Session 22 (2026-10-28): rails / ropes / zip-line grips
+- **TB rails (GimmickClothesline_1987, TB2-TB5) were never grabbable; FN ropes / clotheslines / trolley grips had shrunken boxes.**
+  Hang targets now use RE whole-image boxes (objects.c obj_hang_box) instead of the cropped (or, in TB, missing) sprite; release
+  per RE 4041 / 4042 (Jump lets go, Jump + Down drops, Down alone keeps the hang); rope shimmy pose OTHERS.Y 41 / 42. RE_NOTES
+  "Session 22", tests/test_hang_fix.py, traces build/orig_traces/hang_fix. No data rebuild.
+
 ## Session 21d (2026-10-28): user-reported fixes
 - **JC5 gate (Neera's ice ambush, RE 11043-11072, RV build/orig_traces/jc_boss5/amb_l/c/m):** ported in jc_boss.c (M_AMBUSH):
   missile from the Hovercop, Neera drops, the burst freezes her, the Hovercop turns, the railings turn to crystals (40) and the
