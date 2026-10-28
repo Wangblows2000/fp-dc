@@ -50,14 +50,17 @@ static int A_LOG = -1;
  * flags (3270-3272, 3303-3307, 4737 / 4738) apply only to q12 members (dip 1). Thermal Base: fire, piston, spin and scrolling
  * platforms (tb_gim.c). Fields of a registered object: ox / oy = I / J, vx = E, vy = S (dip), fx = N, dir = P, kx = A, ky = M,
  * fy = O; the owner may set E / A / I / J itself (phase at the start, scripted I / J). */
-static struct { int type; float F, G, B, C; signed char D, H, dip; } plat_x[12]; static int nplat_x;
+static struct { int type; float F, G, B, C; signed char D, H, dip, ow; } plat_x[12]; static int nplat_x;
 void objects_plat_path(int type, float B, float C, int D, float F, float Gm, int H, int dip) {
     int k = 0;
     while (k < nplat_x && plat_x[k].type != type) k++;
     if (k == nplat_x) { if (nplat_x >= 12) return; nplat_x++; }
     plat_x[k].type = type; plat_x[k].F = F; plat_x[k].G = Gm; plat_x[k].B = B; plat_x[k].C = C;
-    plat_x[k].D = (signed char)D; plat_x[k].H = (signed char)H; plat_x[k].dip = (signed char)dip;
+    plat_x[k].D = (signed char)D; plat_x[k].H = (signed char)H; plat_x[k].dip = (signed char)dip; plat_x[k].ow = (signed char)dip;
 }
+/* the one-way flags 4737 / 4738 (flag 0x41 while the platform is above the player) run only in the frames whose events include them;
+ * Trap Hideout's frames (handle_frame_57..59) do not (RE), so its tall pillars are solid on every side (session 21c user report) */
+void objects_plat_oneway(int type, int on) { for (int k = 0; k < nplat_x; k++) if (plat_x[k].type == type) plat_x[k].ow = (signed char)on; }
 void objects_plat_type(int type, float F, float Gm) { objects_plat_path(type, 0, 0, 1, F, Gm, 1, 1); }
 static int plat_x_of(int t) { for (int k = 0; k < nplat_x; k++) if (plat_x[k].type == t) return k; return -1; }
 static int plat_type(int t) { return t == OT_PLAT_VALLEY || t == OT_PLAT_MOVE2 || t == OT_PLAT_MOVE3 || t == OT_GEYSER || (nplat_x && plat_x_of(t) >= 0); }
@@ -171,6 +174,7 @@ static void plat_params(int t, double *F, double *Gm) {
 }
 static int plat_x_present(void) { for (int k = 0; k < nplat_x; k++) if (objects_have(plat_x[k].type)) return 1; return 0; }
 static int plat_dip(int t) { int k = plat_x_of(t); return k < 0 || plat_x[k].dip; }   /* q12 members (the dip and the one-way flags) */
+static int plat_ow(int t) { int k = plat_x_of(t); return k < 0 || plat_x[k].ow; }     /* q12 members whose frame runs 4737 / 4738 */
 static double p_cos(double n) { return (n == 90. || n == 270.) ? 0. : fd_cos(n / 57.29577951308232); }   /* Chowdren cos: 0 at exactly 90 / 270 */
 static int box_hits_disc27(float bx, float by, float bw, float bh, int px, int py) {   /* Player_326: 27-px disc at (int X, int Y) */
     float cx = fmaxf(bx, fminf((float)px, bx + bw - 1)), cy = fmaxf(by, fminf((float)py, by + bh - 1));
@@ -247,7 +251,7 @@ void objects_platforms(player_t *p) {
     }
     for (int i = 0; i < G.nobjs; i++) {                           /* 4737 / 4738 */
         obj_t *o = &G.o[i];
-        if (!o->alive || !plat_type(o->type) || !plat_dip(o->type)) continue;
+        if (!o->alive || !plat_type(o->type) || !plat_ow(o->type)) continue;
         o->fl &= ~0x41;
         if (o->y < PY) o->fl |= 0x41;
     }

@@ -526,6 +526,7 @@ void th_gim_spawn(void) {
     if (!reg) { reg = 1; snap_register(&S, sizeof S); snap_register(LST, sizeof LST); snap_register(NLS, sizeof NLS); }
     memset(&S, 0, sizeof S); memset(NLS, 0, sizeof NLS); S.ride_obj = -1; S.hurt0 = -1;
     objects_plat_type(OT_THG_PILLAR, 2, 64);                                      /* LevelHideoutPlatform1: F 2, G 64, H 1 (RE ctor) */
+    objects_plat_oneway(OT_THG_PILLAR, 0);                                        /* RE: frames 57-59 run 3270-3272 / 3303-3307 but not 4737 / 4738 */
     if (!objects_have_from(RT0)) return;
     int seen[NRT] = { 0 };
     for (int i = 0; i < G.nobjs; i++) {
