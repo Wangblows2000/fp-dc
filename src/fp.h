@@ -747,6 +747,8 @@ void   obj_drop_crystal(float x, float y, int S);
 void   obj_launch_crystal(float x, float y, int dir);
 void   keystone_spawn(float x, float y, double B, double I);
 void   keystone_update(obj_t *k, player_t *p);
+void   objects_award_life(player_t *p);                /* one extra life: lives + 1 and the 1-up jingle (objects.c) */
+int    objects_add_crystals(player_t *p, int n);       /* n crystals into the HUD counter; returns the lives awarded */
 int    obj_overlaps_bg(const obj_t *o);
 int  objects_mask_hit_groups(const obj_t *m, int obstacle_top);   /* m on a SOLID (or OBSTACLE, not above) group object */
 int    obj_in_group(int type, int grp);
@@ -1211,7 +1213,13 @@ void text_draw(float x, float y, const char *s, uint32_t argb, int scale);
 #define PHYS_ENERGY_DRAIN 3.0     /* RV: -3/frame during the boost (100 -> 0 over 33 f) */
 #define PHYS_ENERGY_REFILL 0.4    /* RV: +0.4/frame otherwise (250 f = 4.17 s from empty) */
 #define PHYS_ENERGY_CRYSTAL 5.0   /* RV: each crystal pickup adds 5 (petals add none) */
-#define CRYSTALS_PER_LIFE 200     /* RV: HUD crystal counter starts at 200 on a fresh file and counts down */
+#define CRYSTALS_PER_LIFE 200     /* RV: HUD crystal counter starts at 200 on a fresh file and counts down; RE 2580: at <= 0 it is set
+                                     back to MasterLevel's value (200) and an extra life is created: one life every 200 crystals
+                                     (user request session 22: 200, the original's value). objects_add_crystals() */
+#ifndef FP_CRYSTAL_HUD_UP
+#define FP_CRYSTAL_HUD_UP 0       /* 0: the HUD shows the original's countdown (crystals left to the next life, RV); 1: crystals
+                                     collected toward the next life (0..199). Display only: p->crystals and the save keep the countdown */
+#endif
 #define LIVES_START     5          /* RV: fresh file shows 05 */
 #define PHYS_INVULN_T    60      /* RE: PlayerOthers.E = 60 on a hit, -1/frame (event 2414 + countdown); RV f189..f249 */
 #define PHYS_HURT_VX    2.2       /* RV: knockback speed away from the hazard */

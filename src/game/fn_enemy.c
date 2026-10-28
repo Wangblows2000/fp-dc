@@ -576,7 +576,7 @@ static void balloon_frame(obj_t *o, player_t *p) {
             if (mo) { memset(mo, 0, sizeof *mo); mo->type = OT_MON_RINGS; mo->alive = 1; mo->hp = 1; mo->layer = 2; mo->x = mo->ox = o->x - 16; mo->y = mo->oy = o->y;
                       anim_set(&mo->an, &G.objs, a); mo->av[0] = 1; mo->av[1] = 0; }
         } else {                                                                /* 8349: ObjectExtraLife_433 at the player (its events not ported: the 1-up reward, INFERRED) */
-            p->lives++; music_play("bgm/m_1up.adp"); G.mus_resume_t = 240;
+            objects_award_life(p);                                              /* 2602 (objects.c) */
         }
     }
     if (DEFEATED(o)) set_a(o, "bl_pop");                                        /* never destroyed: drifts on, popped */
