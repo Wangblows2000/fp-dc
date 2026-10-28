@@ -41,6 +41,13 @@ static int sensor_on_mask(const obj_t *o, int s) {         /* rule 1: the image 
     return obj_rows_hit(o, ox, oy, a, b, h);
 }
 
+/* a wall plate / button pressed this frame (shared rule: AT SwitchWallPlate 4366, RM 5900 / 6142, TB SwitchButtonLeft / Right
+ * 11957 / 11958): the big side sensor facing it on its mask while pushing (M 11) or clinging (Carol, M 47) */
+int switches_wall_push(const player_t *p, const obj_t *o, int sens) {
+    int M = player_orig_m(p);
+    return p->state != ST_DEAD && p->hp > 0 && (M == 11 || M == 47) && sensor_on_mask(o, sens);
+}
+
 void switches_spawn(void) {
     memset(&SW, 0, sizeof SW); SW.gate_closed = 1;
     static int reg; if (!reg) { reg = 1; snap_register(&SW, sizeof SW); }

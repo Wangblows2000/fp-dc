@@ -1059,6 +1059,7 @@ void game_draw(void) {
     relic_gima_draw_overlay();                    /* RM2 basement darkness (5997, BasementLight on layer 5) */
     rm_mantalith_draw(0);                         /* RM5 end: light rays, hook line, ground cuts (rm_mantalith.c) */
     hud_draw();
+    tb_gim_draw(3);                               /* Thermal Base: the key card HUD (tb_gim.c, GUIKeyCardIcon / GUIKeyCards) */
     water_draw_hud();
     serp_draw_hud();
     aqua_boss_draw_hud();

@@ -1060,6 +1060,7 @@ const warp_t *level_warp_check(const player_t *p);
 void level_warp_do(player_t *p, const warp_t *w);
 int objects_have(int type), objects_have_from(int type);
 void objects_plat_type(int type, float F, float Gm);
+void objects_plat_path(int type, float B, float C, int D, float F, float Gm, int H, int dip);   /* the full q13 path rule (objects.c, session 21c) */
 void obj_pinball_start(obj_t *o, int dir, float speed), obj_pinball_step(obj_t *o, float grav);   /* objects.c: PinballMovement (pellets, debris) */   /* objects.c: a module's type that follows the shared path-platform rule (F step, G amplitude, H 1) */
 void objects_sense_snapshot(int on);
 int  objects_alive_type(int type);    /* objects.c: superset test, any slot of this type alive (pass gates) */   /* objects.c: packed sensor prefilter for the player phase (game.c) */
@@ -1100,6 +1101,7 @@ void   phys_set_water(int h);              /* 1543-1548: the constant tables at 
 void   water_reset(void), water_events(player_t *p), water_draw_tint(void), water_draw_front(void), water_draw_hud(void);
 int    water_on(void);
 double water_c(void);                      /* ML.C (visual surface) */
+double water_line_get(void); void water_line_set(double b);   /* ML.B now / moved by a frame's events (0: back to the level data; TB5 levers) */
 /* src/game/shields.c */
 void   shields_reset(void), shields_update(player_t *p), shields_draw(const player_t *p), shield_on_crystal(player_t *p);
 void   shields_bank_load(void);                    /* after level_start: the act's shield bank when a shield is carried in */
@@ -1116,6 +1118,8 @@ void   switches_spawn(void), switches_update(player_t *p, int late);   /* src/ga
 int  mv_sensor_rows(int s, int *ox, int *oy, const signed char **x0, const signed char **x1, int *h);
 enum { SENS_MAIN = 0, SENS_LEFTBIG = 2, SENS_RIGHTBIG = 4, SENS_TOPBIG = 6, SENS_BOTTOMBIG = 8 };
 void player_hitstop(player_t *p, int k);
+int  player_burn(player_t *p, int n);           /* the shared fire hurt (combat.c): R-hurt n + burn tint, not the fire shield */
+int  switches_wall_push(const player_t *p, const obj_t *o, int sens);   /* a wall plate / button pushed (M 11) or clung to (M 47) (switches.c) */
 void player_contact(player_t *p, int damage);  /* RE 2731: R = 1, damage queued for the next frame's 2414 */       /* RE PlayerOthers.K: Lilac frozen K - 1 frames (1654/1655) */
 int  cross_rand(int n);                        /* RE cross_seed LCG: ((seed >> 16) & 0x7fff) * n >> 15 */
 void objects_platforms(player_t *p);

@@ -879,7 +879,57 @@ static const objdef_t DEFS[] = {
     /* ==== Thermal Base (session 21c): one block per module */
     /* ---- TB_FLOW (tb_flow.c) */
     /* ---- TB_ENEMIES (tb_enemy.c) */
-    /* ---- TB_GIM (tb_gim.c) */
+    /* ---- TB_GIM (tb_gim.c; qualifiers RE on_frame_45..50_init: Q7 solid, Q8 obstacle, Q9 no-edge, Q10 / Q11 loop layers, Q23 hang;
+     * box collision = constructor initialize_active(1)) */
+    { OT_TBG_LIFT,      OD_SOLID|OD_BOXCOL,                    NULL         }, /* levellift (q7 q13; tb_gim.c moves it) */
+    { OT_TBG_LIFTEND,   OD_HIDDEN,                             NULL         }, /* levellifttop / bottom (ctor invisible) */
+    { OT_TBG_KEY,       0,                                     NULL         }, /* objectkeycard */
+    { OT_TBG_TERM,      0,                                     NULL         }, /* lockeddoorterminal */
+    { OT_TBG_LDOOR,     0,                                     NULL         }, /* lockeddoorback / front / seal */
+    { OT_TBG_BARRIER,   OD_SOLID|OD_BOXCOL|OD_HIDDEN,          NULL         }, /* lockeddoorbarrier (q7; flag 0 once open: 11812) */
+    { OT_TBG_MDOOR,     0,                                     NULL         }, /* metaldoorback / front (scenery) */
+    { OT_TBG_WLIGHT,    0,                                     NULL         }, /* tbwalllightanim */
+    { OT_TBG_FPLAT,     OD_OBSTACLE|OD_NOEDGE|OD_BOXCOL,       NULL         }, /* levelfireplatform1 (q8 q9 q12 q13) */
+    { OT_TBG_FPLAT80,   OD_OBSTACLE|OD_NOEDGE|OD_BOXCOL,       NULL         }, /* levelfireplatform1_2665 (TB1, G 80) */
+    { OT_TBG_FFLAME,    0,                                     NULL         }, /* levelfireplatformflame1 / 2 */
+    { OT_TBG_SPLAT,     OD_SOLID|OD_HIDDEN,                    NULL         }, /* levelscrollingplatform1 / 2 (q7 q13; ctor invisible) */
+    { OT_TBG_SMASK,     0,                                     NULL         }, /* levelscrollingplatformmask1 / 2 */
+    { OT_TBG_SFLAME,    0,                                     NULL         }, /* levelscrollingplatformflame1 / 2 */
+    { OT_TBG_SMARK,     OD_HIDDEN,                             NULL         }, /* levelscrollingplatformstart / end */
+    { OT_TBG_PUSH,      OD_HIDDEN,                             NULL         }, /* levelscrollingplatformplayerpush */
+    { OT_TBG_PISTON,    OD_OBSTACLE|OD_NOEDGE|OD_HIDDEN,       NULL         }, /* levelpistonplatform1 (q8 q9 q13; ctor invisible) */
+    { OT_TBG_PMASK,     0,                                     NULL         }, /* levelpistonplatformmask */
+    { OT_TBG_SPIN,      OD_OBSTACLE|OD_NOEDGE|OD_BOXCOL|OD_HIDDEN, NULL     }, /* levelspinplatform (q8 q9 q13; ctor invisible) */
+    { OT_TBG_SPINMASK,  0,                                     NULL         }, /* levelspinplatformmask */
+    { OT_TBG_SPINSUP,   0,                                     NULL         }, /* levelspinplaformsupport */
+    { OT_TBG_VENT,      OD_OBSTACLE|OD_NOEDGE|OD_BOXCOL,       NULL         }, /* airventplatform (q8 q9) */
+    { OT_TBG_LAVA,      0,                                     NULL         }, /* hazardlavapit (no event in tb2 / tb3: scenery) */
+    { OT_TBG_LFALL,     0,                                     NULL         }, /* hazardlavafall / hazardlavafall3 */
+    { OT_TBG_LWARN,     0,                                     NULL         }, /* hazardlavafallwarning */
+    { OT_TBG_MAGMA,     0,                                     NULL         }, /* magmaflow (no event: scenery) */
+    { OT_TBG_XBLOCK,    OD_SOLID|OD_BOXCOL,                    NULL         }, /* objectexplosiveblock (q7) */
+    { OT_TBG_BUTTON,    0,                                     NULL         }, /* switchbuttonleft / right */
+    { OT_TBG_FTRAP,     OD_SOLID|OD_BOXCOL,                    NULL         }, /* hazardfloortrap (q7) */
+    { OT_TBG_BLOCKER,   OD_SOLID|OD_BOXCOL|OD_HIDDEN,          NULL         }, /* playerblocker (q7; ctor invisible) */
+    { OT_TBG_CONV,      OD_SOLID|OD_BOXCOL,                    NULL         }, /* gimmickconveyorbelt* (q7 q31) */
+    { OT_TBG_LOOP0,     OD_SOLID|OD_LAYER0,                    NULL         }, /* tbpipeloop2 / 3 / 6 / 7 (q7 q10) */
+    { OT_TBG_LOOP0B,    OD_SOLID|OD_BOXCOL|OD_LAYER0,          NULL         }, /* tbpipeloop5 / 9 / 11 (q7 q10, box) */
+    { OT_TBG_LOOP1,     OD_SOLID|OD_LAYER1,                    NULL         }, /* tbpipeloop1 / 4 / 8 (q7 q11) */
+    { OT_TBG_LOOP1B,    OD_SOLID|OD_BOXCOL|OD_LAYER1,          NULL         }, /* tbpipeloop10 (q7 q11, box) */
+    { OT_TBG_CTOP,      OD_OBSTACLE|OD_NOEDGE|OD_BOXCOL,       NULL         }, /* gimmickcrankplatformtop1 / 2 (q8 q9) */
+    { OT_TBG_CPART,     0,                                     NULL         }, /* gimmickcrankplatform mid / base / arm */
+    { OT_TBG_PRESS,     0,                                     NULL         }, /* gimmickgiantpressertube / gimmckgiantpresser */
+    { OT_TBG_PHIT,      OD_HIDDEN,                             NULL         }, /* gimmckgiantpresserhitbox (ctor invisible) */
+    { OT_TBG_TURB,      OD_SOLID|OD_BOXCOL,                    NULL         }, /* gimmickwaterturbine (q7) */
+    { OT_TBG_TBUBSP,    OD_HIDDEN,                             NULL         }, /* tubebubblespawner (ctor invisible) */
+    { OT_TBG_BGTURB,    0,                                     NULL         }, /* underwaterbgturbine */
+    { OT_TBG_WTLIGHT,   0,                                     NULL         }, /* tbwaterlight */
+    { OT_TBG_LEVER,     0,                                     NULL         }, /* gimmickwaterlever1 / 2 */
+    { OT_TBG_WMASK,     OD_HANG|OD_HIDDEN|OD_BOXCOL,           NULL         }, /* gimmickwaterlevelmask1 / 2 (q23; ctor invisible) */
+    { OT_TBG_BWAVE,     0,                                     NULL         }, /* gimmickbubblewavespawner / 2 */
+    { OT_TBG_TBUB,      0,                                     NULL         }, /* - (TubeBubble_2849 / GimmickWaterTurbineBubble_2865) */
+    { OT_TBG_DESTROYER, OD_HIDDEN,                             NULL         }, /* - (ObjectExplosiveBlockDestroyer_2744, ctor invisible) */
+    { OT_TBG_FX,        0,                                     NULL         }, /* - (effects) */
     /* ---- TB_BOSS (tb_boss.c) */
     /* ==== end Thermal Base */
 };
