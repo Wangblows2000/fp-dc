@@ -329,8 +329,10 @@ static void terreon_frame(obj_t *o, player_t *p) {
         static const float DX[4] = { -40, -40, 40, 40 }, VX[4] = { -8, -5, 8, 5 }, VY[4] = { -6, 0, -6, 0 };
         int k = (int)*K;
         if (k < 4) {
-            obj_t *d = spawn(OT_PL_TDEBRIS, "plt_deb", floorf(o->x) + DX[k], floorf(o->y), 0, o->layer);
-            if (d) { ek_force_frame(d, k); d->av[0] = VX[k]; d->av[1] = VY[k]; }
+            static const char *const DR[4] = { "plt_ll", "plt_ls", "plt_rl", "plt_rs" };   /* (VRAM: the parts' own rows stand in for
+                                                                                  EnemyTerreonDebris_3007's frames 0-3, INFERRED look) */
+            obj_t *d = spawn(OT_PL_TDEBRIS, DR[k], floorf(o->x) + DX[k], floorf(o->y), 0, o->layer);
+            if (d) { d->av[0] = VX[k]; d->av[1] = VY[k]; }
             *K += 1;
         } else {
             o->alive = 0;
@@ -349,15 +351,16 @@ static void tpart_frame(obj_t *q) {                                            /
     if (q->type == OT_PL_TLEG || q->type == OT_PL_TRLEG) {
         int lft = q->type == OT_PL_TLEG;
         if (q->av[1] > 180 && q->av[1] < 240) q->bd = 10;                     /* 12929 / 12930: E = the terreon's J */
-        ek_set_a(q, q->av[2] == 6 ? (lft ? "plt_ll8" : "plt_rl8") : (lft ? "plt_ll" : "plt_rl"));
+        q->st = q->av[2] == 6;                                                 /* 12933-12936: anim 8 (pale / normal every 2 frames) */
+        ek_set_a(q, lft ? "plt_ll" : "plt_rl");
     } else {
         int lft = q->type == OT_PL_TLSH;
-        ek_set_a(q, q->av[0] == 6 ? (lft ? "plt_ls8" : "plt_rs8") : (lft ? "plt_ls" : "plt_rs"));
+        q->st = q->av[0] == 6;                                                 /* 12937-12940 */
+        ek_set_a(q, lft ? "plt_ls" : "plt_rs");
     }
 }
 static void tdebris_frame(obj_t *d) {                                          /* 12953 / 12954 */
     d->x = (float)(int)(floorf(d->x) + d->av[0]); d->y = (float)(int)(floorf(d->y) + d->av[1]); d->av[1] = fmin(d->av[1] + 0.3, 15);
-    if (d->an.b) d->an.acc = 0;
     if (!in_view(d, 100)) d->alive = 0;
 }
 
@@ -548,9 +551,13 @@ void pl_enemy_spawn(void) {
 static void draw_q(const obj_t *q) {
     if (!q || !q->an.b || !q->alive) return;
     float sx = floorf(q->x - G.camx) + (q->flip == 2 ? 1 : 0), sy = floorf(q->y - G.camy);
+    int pale = q->type != OT_PL_TERREON && q->type != OT_PL_WBACK && q->st == 1 && !((G.frame >> 1) & 1);
     if (q->inv) r_set_invert(1);
+    if (pale) r_set_additive(1);                                               /* (the parts' anim 8 pale frame: the normal image drawn
+                                                                                  additive, VRAM; INFERRED look) */
     if (q->ang != 0) frame_draw_rot(q->an.b, anim_frame(&q->an), sx, sy, q->ang, q->flip, 0xffffffff);
     else frame_draw(q->an.b, anim_frame(&q->an), sx, sy, q->flip, 0xffffffff);
+    if (pale) r_set_additive(0);
     if (q->inv) r_set_invert(0);
 }
 void pl_enemy_draw(int pass) {
