@@ -1941,8 +1941,10 @@ def main():
         im, hx, hy = bimgs[key]
         pieces.append({'img': ('bake', key), 'x': o['x'] - hx, 'y': o['y'] - hy, 'layer': o['layer'], 'col': 1, 'box': False, 'bake': True})
         imgs[('bake', key)] = (im, 0, 0)
+    def jc5_sub(p):   # JC5: the parked subtanker the act starts on (json layer 4, x < 1024: RV amb_l, Lilac walks on it at Y 1434 to X ~490;
+        return n == 44 and p.get('layer0') == 4 and p['x'] < 1024   # the port collides with json layer 3 only; INFERRED: its pieces join the map)
     for p in pieces:
-        if p['col'] not in (1, 2) or p['layer'] not in col_layers: continue
+        if p['col'] not in (1, 2) or (p['layer'] not in col_layers and not jc5_sub(p)): continue
         im, hx, hy = imgs[p['img']]; hx = hy = 0   # backdrops ignore the image hotspot (RE Backdrop::draw adds it, draw_image subtracts it)
         mk = (p['img'], p['box'])
         if mk not in masks:
