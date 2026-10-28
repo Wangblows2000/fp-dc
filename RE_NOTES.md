@@ -1274,3 +1274,12 @@ and the wipe. Key cards: the k-th terminal opens the k-th door (11893 selection 
 (RE); lava falls burn on a 240-frame cycle. TB5 water: levers move ML.B between 2920 and 3240 (12491-12501). None of the boss events
 test the character (RE): the same fights for all three. Syntax voices: sx_still (TB6, RV x1_l 413); sx_lost (TB3, 12172) is silent
 in the Linux data.
+
+## Session 21d: fixes
+- JC5 ambush (11043-11072): trigger MV.X > Neera.x - 200 (11055: BossIceMissile from the Hovercop's action point + (0, 143), -8 a
+  frame, sound 297); Neera drops 12 px a frame (splash 14, lands +25, sound 33; spear anim 12 after 15); 11060 the burst when the
+  missile passes her x (77 + 98, the spike ring); 11063 / 11064 she freezes (PlayerIceDeath anim 7, floats to 1600); 11066 / 11067
+  the Hovercop turns at barrier.x + 120; 11068 / 11069 the railings -> 2 crystals each, sound 40, barriers gone (~+162); 11070-
+  11072 the tow. No character / mode test; no camera lock; the player is hurt by the spikes, not frozen (RV amb_*).
+- TB1 (handle_frame_45 inline after 11848): CAM.U > 0 and MV.Y < top marker + 240 -> CAM.U 0, CAM.M 2.
+- One-way flags 4737 / 4738 run in frames 21-23, 36-38, 40-50, not in 24-26, 30 or 57-59 (Trap Hideout).

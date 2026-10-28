@@ -303,6 +303,10 @@ tools/audio/convert_gallery.sh extracted/linux/audio "$G/Data/voices" /home/clau
 - Check after an importer change: build/rebuild_cmp.sh (every earlier level byte-identical), build/rcmp.sh (renders vs a
   reference host binary).
 
+## Session 21d: fixes
+- JC5: JC_BOSS ambush rows in json 44 (+ `jcb5_hc`); jc5_ens's second atlas 1024 x 512 (+256 KB); the subtanker's json-layer-4
+  collision pieces at x < 1024 join the collision map (`jc5_sub` in tools/import_frame.py). SFX_JC5 + 297 77 33 60 (~182 KB).
+
 ## Session 21c: Thermal Base
 - Levels: `for i in 1 2 3 4 5 6; do tools/build_level.sh $((44+i)) tb$i converted2; done` (session-21 packers; TB enemies drop
   exact-mirror left rows in every direction; TB2 / TB4 _ens split over two 1024 atlases).

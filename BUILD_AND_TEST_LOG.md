@@ -551,3 +551,10 @@ Labels: original-trace (RV), RE, host-test, emulator (Flycast, emulated time). *
 - **Flycast** (build/fpdc_tbdemo.cdi, s21_tb_verify.txt, 18 loads): VRAM free TB1 2823-3351, TB2 2260-2788, TB3 2256-2784, TB4
   2483-3011, TB5 2227-2755, TB6 3209-3737 KB; sound RAM largest free block 231-359 KB; update TB1 5.1, TB2 4.5, TB3 2.8, TB4 5.0,
   TB5 9.1-9.5, TB6 2.6 ms; 11-14 slow frames per 600. Screenshots fine. **Emulator only.**
+
+## Session 21d (2026-10-28): user-reported fixes
+- New / updated: test_jc_ambush (21 checks), test_tb_bosses (+ shrimp-room exit x 3), test_th_gimmicks (+ pillar sides x 2, new
+  tower routes), test_jc_act5 / test_jc_progress retuned for the corrected JC5 start (Milla's walk-in 137; Lilac's route check
+  now JC5 -> TB1). Full regression: 42 suites 0 failures, rebuild / render identical, comparers unchanged.
+- Flycast (build/fpdc_fixdemo.cdi): JC5 VRAM free 653 / 1181 / 821 KB (Carol / Lilac / Milla), sound RAM >= 138 KB, update
+  2.3-3.4 ms; TH2 3214-3382 KB, update 8.1-8.6 ms; TB1 3351 KB. **Emulator only.**
