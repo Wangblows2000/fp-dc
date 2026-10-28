@@ -74,6 +74,7 @@ void fd_flow_card(player_t *p, int left) {
 
 void fd_flow_frame(player_t *p) {
     if (F.entry == 2 && !F.thrown) milla_drop(p);              /* (a start without the card: at once) */
+    if (F.entry == 1 && !F.thrown && p->x != HOLD_X) { F.thrown = 1; G.timer_stop = 0; G.input_lock = 0; }   /* moved away (a debug TP): no entry */
     if (F.entry == 1 && !F.thrown) {                            /* Lilac / Carol: Sign.D after the card */
         hold(p);
         F.D++;
