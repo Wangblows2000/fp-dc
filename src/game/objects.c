@@ -1066,7 +1066,7 @@ void objects_draw(int pass) {
     sb_gim_draw(pass);                               /* Sky Battalion gimmick parts drawn out of the object order (sb_gim.c) */
     jc_flow_draw(pass); jc_enemy_draw(pass); jc_gim_draw(pass);   /* Jade Creek (src/game/jc_*.c) */
     th_flow_draw(pass); th_enemy_draw(pass); th_gim_draw(pass);   /* Trap Hideout (src/game/th_*.c) */
-    fd_flow_draw(pass); fd_enemy_draw(pass); fd_gim_draw(pass);   /* Final Dreadnought */
+    fd_flow_draw(pass); fd_enemy_draw(pass); fd_gim_draw(pass); fd_boss_draw(pass);   /* Final Dreadnought */
     bg_flow_draw(pass); bg_enemy_draw(pass); bg_gim_draw(pass);   /* Battle Glacier */
     pl_flow_draw(pass); pl_enemy_draw(pass); pl_gim_draw(pass);   /* Pangu Lagoon (src/game/pl_*.c) */
     tb_flow_draw(pass); tb_enemy_draw(pass); tb_gim_draw(pass);   /* Thermal Base (src/game/tb_*.c) */

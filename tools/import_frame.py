@@ -1672,6 +1672,11 @@ for _e in BGF_ENS: ROW_FRAMES[_e[3]] = {63, 64}         # BG_FLOW rows only in B
 # ---- FD_GIM (fd_gim.c, 2752-2911)
 
 # ---- FD_BOSS (fd_boss.c, 2912-3071)
+# -- bosses A (fd_boss_r12.c, 2912-2991; build/re/spec_fd_bosses_a.md)
+# FD2a's RoboSquid is TB3's class (same handles 2762-2766, the same events 12097-12128 run in handle_frame_68: RE): TB_BOSS's
+# TBB_TYPES_ID already maps it to OT_TBB_SQUID..; tb_boss.c runs it in any level that places it. Its rows also in json 68.
+for _e in TBB_ENS:
+    if _e[3].startswith('tbq_'): ROW_FRAMES[_e[3]] = ROW_FRAMES[_e[3]] | {68}
 
 # ==== end Final Dreadnought
 SHL_CLASSES = {'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}

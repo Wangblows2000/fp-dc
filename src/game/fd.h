@@ -20,12 +20,14 @@ enum { OT_FDB_A_FIRST = 2912, OT_FDB_A_LAST = 2991, OT_FDB_B_FIRST = 2992, OT_FD
 void  fdb12_spawn(void), fdb12_pre(player_t *p), fdb12_frame(player_t *p);
 int   fdb12_obj(obj_t *o, player_t *p), fdb12_draw_obj(const obj_t *o, int pass), fdb12_q20(int type), fdb12_input(uint32_t *held);
 int   fdb12_player_hidden(void);
+void  fdb12_draw(int pass);
 float fdb12_hud_dy(void);
 
 /* ---- fd_boss_r34.c, bosses B (types 2992-3071): the same hooks, called by fd_boss.c */
 void  fdb34_spawn(void), fdb34_pre(player_t *p), fdb34_frame(player_t *p);
 int   fdb34_obj(obj_t *o, player_t *p), fdb34_draw_obj(const obj_t *o, int pass), fdb34_q20(int type), fdb34_input(uint32_t *held);
 int   fdb34_player_hidden(void);
+void  fdb34_draw(int pass);                                                     /* objects_draw passes 0-2 (fd_boss_draw) */
 float fdb34_hud_dy(void);
 
 #endif
