@@ -328,6 +328,7 @@ static void bjet_frame(obj_t *o, player_t *p) {                                 
  * A HP 40, D -1 (facing sign), S 20 (ctor). av: [0] E state (0 wait, 1 blowing, 4 defeated), [1] F timer / bubble count,
  * [2] D, [3] Q crash count. RE: F counts in view to 30, then 10 bubbles every 4th frame from frame 6 of anim 10 (C = (0.5 F + 3) D),
  * F = -70 (a 100-frame wait), anim 11; defeated: 10 explosions every 7 frames (sound 29), then keystone + debris + explode sound. */
+static void bubble_frame(obj_t *b, player_t *p);
 static void frog_spawn(obj_t *o) { o->A = 40; o->av[2] = -1; o->dir = 16; set_a(o, "jef_idle"); }
 static void frog_frame(obj_t *o, player_t *p) {
     double *E = &o->av[0], *F = &o->av[1], *D = &o->av[2], *Q = &o->av[3];
@@ -345,7 +346,7 @@ static void frog_frame(obj_t *o, player_t *p) {
         *F += 1;
         double ax, ay; relic_act_point(o, &ax, &ay);
         obj_t *b = spawn(OT_JC_BUBBLE, "jef_bubble", (float)ax, (float)ay, 0);
-        if (b) { b->layer = 3; b->av[2] = (0.5 * *F + 3) * *D; b->av[3] = 3; }
+        if (b) { b->layer = 3; b->av[2] = (0.5 * *F + 3) * *D; b->av[3] = 3; bubble_frame(b, p); }   /* RE: 10293-10298 follow, same frame */
     }
     if (*E == 1 && *F > 9) { *F = -70; *E = 0; restart_a(o, "jef_shut"); }        /* 10287 */
     if (*E == 0 && a_is(o, "jef_shut") && o->an.done) set_a(o, "jef_idle");        /* (anim 11 once: INFERRED back to anim 0) */
@@ -353,8 +354,8 @@ static void frog_frame(obj_t *o, player_t *p) {
 static void bubble_pop(obj_t *b) { obj_effect(b->x, b->y, "wburst"); shake(2); snd_play_orig(314, 220, 128); b->alive = 0; }
 static void bubble_frame(obj_t *b, player_t *p) {                                 /* 10293-10298 + col_6_39 / col_17_39 / col_19_39 */
     double *A = &b->av[0], *B = &b->av[1], *C = &b->av[2], *D = &b->av[3];
-    if (!(b->fl & 1)) { b->fl |= 1; *A = floorf(b->x); *B = floorf(b->y); }       /* 10293 */
-    else {
+    if (!(b->fl & 1)) { b->fl |= 1; *A = floorf(b->x); *B = floorf(b->y); }       /* 10293 (RE: 10294 runs in the same frame) */
+    {
         *A += *C; *B += *D; b->x = (float)(int)*A; b->y = (float)(int)*B;          /* 10294 */
         *D = fmax(*D - 0.12, -15);
         if (*C > 0) *C = fmax(*C - 0.1, 0); else if (*C < 0) *C = fmin(*C + 0.1, 0);   /* 10295 / 10296 */
