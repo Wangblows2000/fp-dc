@@ -1119,7 +1119,24 @@ for _nm in JCE_MIRRORED: ROW_FRAMES[_nm] = set()
 
 # ---- TH_GIM (th_gim.c, 1620-1679)
 
-# ---- TH_BOSS (th_boss.c, 1680-1791)
+# ---- TH_BOSS (th_boss.c, 1680-1791): Trap Hideout bosses (build/re/spec_th_bosses.md). Types mirror src/game/th.h (OT_THB_*); the
+# lvobj anim field carries the instance layer << 8 (th_boss.c spawn). Rows: the Laser Iris rig (TH1), the scan laser boss.
+THB_TYPES_ID = {('bosslaseriris', 3141): 1680, ('bosslaseririscannon', 3140): 1681, ('bosslaseririswingleft', 3138): 1682,
+                ('bosslaseririswingright', 3139): 1683, ('hazardscanlaserboss', 3142): 1684}
+ENGINE_TYPES_ID.update(THB_TYPES_ID)
+THB_SUB = {}   # class -> sub id (low byte of the lvobj anim field)
+_IR = ('bosslaseriris',)
+THB_ENS = [(c, a, d, nm, None, w) for c, a, d, nm, w in (
+    ('bosslaseriris_3141', 0, '0', 'thb_iris', _IR), ('bosslaseriris_3141', 0, '8', 'thb_iris8', _IR),
+    ('bosslaseriris_3141', 0, '16', 'thb_iris16', _IR), ('bosslaseriris_3141', 0, '24', 'thb_iris24', _IR),
+    ('bosslaseririscannon_3140', 0, '0', 'thb_can', _IR), ('bosslaseririscannon_3140', 0, '16', 'thb_can16', _IR),
+    ('bosslaseririswingleft_3138', 0, '0', 'thb_wl', _IR), ('bosslaseririswingleft_3138', 0, '16', 'thb_wl16', _IR),
+    ('bosslaseririswingright_3139', 0, '0', 'thb_wr', _IR), ('bosslaseririswingright_3139', 0, '16', 'thb_wr16', _IR),
+    ('hazardscanlaserboss_3142', 0, '0', 'thb_las', ('hazardscanlaserboss',)), ('hazardscanlaserboss_3142', 0, '1', 'thb_las1', ('hazardscanlaserboss',)))]
+THB_ENS_WITH = {'effectsexplosion06_435': _IR, 'effectshade_436': _IR, 'effectsdust_437': ('hazardscanlaserboss',)}
+ENS += THB_ENS   # TH_BOSS
+for _k, _v in THB_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # TH_BOSS
+for _e in THB_ENS: ROW_FRAMES[_e[3]] = TH_FRAMES   # TH_BOSS rows only in Trap Hideout
 
 # ==== end Trap Hideout
 SHL_CLASSES = {'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
@@ -1992,6 +2009,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         if 1280 <= o['type'] < 1536: a = JC_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # Jade Creek (jc_*.c): member index | instance layer << 8 | 0x8000 json layer 1 of a mapped frame
         if 1370 <= o['type'] < 1430: a = (JCG_LEAF_TILT.get((o['x'], o['y']), 0) // 30 if o['type'] == 1371 else JCG_SUB.get(o['cls'], 0)) | (o['layer'] << 8)   # JC_GIM (jc_gim.c): member index (leaf backs: tilt / 30) | instance layer << 8
         if 1100 <= o['type'] < 1150: a = SBG_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # SB_GIM (sb_gim.c): member index | instance layer << 8 | 0x8000: json layer 1 of a mapped frame (session 20: behind the json-2 pieces, scrolls with layer 1)
+        if 1680 <= o['type'] < 1720: a = THB_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # TH_BOSS (th_boss.c): sub id | instance layer << 8
         d += struct.pack('<2H2i', o['type'], a, o['x'], o['y'])
     for t in table: d += t
     d += struct.pack('<%dH' % len(smap), *smap)

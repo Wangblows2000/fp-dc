@@ -830,6 +830,11 @@ static const objdef_t DEFS[] = {
     /* ---- TH_ENEMIES (th_enemy.c) */
     /* ---- TH_GIM (th_gim.c) */
     /* ---- TH_BOSS (th_boss.c) */
+    { OT_THB_IRIS,      0,                                     NULL         }, /* bosslaseriris_3141 (Q20, A 60) */
+    { OT_THB_CANNON,    0,                                     NULL         }, /* bosslaseririscannon_3140 */
+    { OT_THB_WINGL,     0,                                     NULL         }, /* bosslaseririswingleft_3138 */
+    { OT_THB_WINGR,     0,                                     NULL         }, /* bosslaseririswingright_3139 */
+    { OT_THB_LASER,     0,                                     NULL         }, /* hazardscanlaserboss_3142 */
     /* ==== end Trap Hideout */
 };
 static objdef_t BY_TYPE[MAX_OT];
