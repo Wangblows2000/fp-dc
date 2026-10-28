@@ -1217,6 +1217,7 @@ void text_draw(float x, float y, const char *s, uint32_t argb, int scale);
 #define PHYS_HURT_VX    2.2       /* RV: knockback speed away from the hazard */
 #define PHYS_HURT_VY    4.2       /* RV: knockback rise */
 #define PHYS_HURT_GRAV  0.5       /* RV: gravity during hurt knockback */
+#define PHYS_HURT_MAX_T 180      /* session 21d (user request): the hurt state (M8) ends at 3 s at the latest; landing still ends it first (RE) */
 #define PHYS_SPRING     10.75     /* RV spring_yellow_up: vy -10.75 on contact, then normal gravity */
 #define PHYS_SPRING_DX  9.0       /* RV spring_yellow_upleft: (-9, -8.75) */
 #define PHYS_SPRING_DY  8.75
