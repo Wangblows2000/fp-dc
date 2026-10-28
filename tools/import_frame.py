@@ -1545,6 +1545,29 @@ def load_img(src, i):
     hx, hy = [v - 65536 if v > 32767 else v for v in m[:2]]
     return im, hx, hy
 
+# ---- Dreamcast button labels (D-110, session 22, user request). The original's buttons are A / B / C (jump / attack /
+# special, RV keys z / x / c); the port's pad maps them to A / B / X (src/platform/plat_dc.c), so the player-facing "C" is
+# shown as X. Milla's HUD panel (GUIScoreTimeRings_345 direction 4: 'hudm', RE 2197-2201 pick the frame) labels her cube
+# "B" (attack) and her shield "C" (special). Its C glyph (x 90-99, y 1-12 of every 116x18 frame: 1-px dark outline, top
+# rows 2-6 white, rows 7-11 in the frame's yellow / orange) is redrawn as an X with the same outline rule (8-neighbour) and
+# the frame's own colours, so no new colour enters the palette and the image box is unchanged.
+DC_X_GLYPH = ('XX....XX', 'XXX..XXX', 'XXXXXXXX', '.XXXXXX.', '..XXXX..', '..XXXX..', '.XXXXXX.', 'XXXXXXXX', 'XXX..XXX', 'XX....XX')
+def dc_hud_c_to_x(im):
+    im = im.copy(); px = im.load()
+    ol, top, bot = px[90, 4], px[92, 3], px[92, 9]
+    # the C this edit expects: outline left of the stem, the stem's two tones, the C's open right side (transparent)
+    if im.size != (116, 18) or ol[3] != 255 or top[3] != 255 or bot[3] != 255 or top == bot or px[95, 6][3] != 0 or px[99, 6] != ol:
+        raise SystemExit('dc_hud_c_to_x: not GUIScoreTimeRings direction 4 art')
+    for y in range(0, 14):
+        for x in range(90, 99): px[x, y] = (0, 0, 0, 0)          # x 99 is shared with the shield box's outline: kept
+    glyph = {(91 + gx, 2 + gy) for gy, row in enumerate(DC_X_GLYPH) for gx, c in enumerate(row) if c == 'X'}
+    for x, y in glyph:
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                if (x + dx, y + dy) not in glyph and 90 <= x + dx <= 99: px[x + dx, y + dy] = ol
+    for x, y in glyph: px[x, y] = top if y <= 6 else bot
+    return im
+
 PAR_IMG = {'levelparallaxpiece0_491': 16032, 'levelparallaxpiece1_891': 3030, 'levelparallaxpiece2_893': 3031,
            'levelparallaxpiece3_894': 937, 'levelparallaxpiece4_895': 326, 'levelparallaxpiece5_896': 3032,
            'levelparallaxpiece6_897': 3033, 'levelparallaxpiece2_892': 4216, 'levelparallaxpiece7_913': 3238,
@@ -2193,6 +2216,7 @@ def main():
             mb['anims'].append({'name': 'dig', 'frames': dd['frames'], 'speed': 0, 'loop': 1, 'back_to': 0})
             # her HUD panel (GUIScoreTimeRings_345 direction 4; 2197-2201 pick the frame), kept in her bank (loaded only for her)
             mb['anims'].append({'name': 'hudm', 'frames': an['guiscoretimerings_345']['anims'][0]['4']['frames'], 'speed': 0, 'loop': 1, 'back_to': 0})
+            mb['patch'] = {i: dc_hud_c_to_x for i in an['guiscoretimerings_345']['anims'][0]['4']['frames']}   # "C" -> "X" (D-110)
         write_bank2(src, mb, out, report)
     write_lv2(os.path.join(out, name + '.lv2'), W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, len(atlases), bank, bool(LMAP))
     report.append('objects exported: %d (types %s)' % (len(objs), sorted({o['type'] for o in objs})))
@@ -2208,6 +2232,8 @@ def write_bank2(src, bank, out, report):
         for i in a['frames']:
             if i not in ids: ids.append(i)
     imgs = {i: load_img(src, i) for i in ids}
+    for i, fn in bank.get('patch', {}).items():          # reproducible image edits (dc_hud_c_to_x), before any crop
+        im, hx, hy = imgs[i]; imgs[i] = (fn(im), hx, hy)
     # images of these animations are cropped to their opaque pixels (hotspot shifted to match): drawing
     # is unchanged, and nothing uses their untrimmed box (explosions: effects; Ganseki: hotspot rules +
     # pixel masks). Keeps the 1024x1024 object atlas within one PVR texture.
