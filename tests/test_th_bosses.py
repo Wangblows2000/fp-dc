@@ -110,6 +110,13 @@ for ch, cn in ((2, 'carol'), (4, 'milla')):
 # from 76 (D 99 -> 84, 15 up: the landings' sound 61 at 105 + 16 k), A 4 151 frames after A 3 (m_boss2: g4 5), Spade drops in
 # (F -1 -> 0 at 741, 2 at 771, 4 at 824, back to 0 at 841: jump sound 8 at 770 / 871 / 992, dash 155 at 895 / 909), beaten
 # (156 at 1100, F 6 at 1101, F 9 at 1104), the results (Sign.B 179 at about 1330) and the stage end (the wipe, sound 56)
+# the camera after the Crystal Basher: its door raised CAM.F (13886); g4 >= 5 and X < 11650 restore it (handle_frame_59 inline, RE).
+# Session 21d user report: the camera stayed at the basher room while Carol / Milla went down the slope after it.
+for ch, cn in ((2, 'carol'), (4, 'milla')):
+    rows, ev, d, _ = run('th3', ch, 1700, INV + BASH + '999 BOSSHPT 1686 0\n1300 TP 600 900\n1310 1700 R\n')
+    late = [r for r in rows if r['f'] >= 1450]
+    off = [int(r['f']) for r in late if not (0 <= r['y'] - r['cy'] <= 240)]
+    check('th3_camera_follows_after_basher_%s' % cn, late and not off and max(r['y'] for r in late) > 800, 'off-screen frames %s' % off[:5])
 ARENA = '5 THBASH\n59 TP 11700 690\n'
 rows, ev, d, loads = run('th3', 2, 1900, INV + ARENA + '1098 BOSSHPT 1222 0\n', {'FP_THA_A3': '499'})
 a, sp = d.get('tha', {}), d.get('sbp', {})
