@@ -879,6 +879,25 @@ static const objdef_t DEFS[] = {
     /* ==== Thermal Base (session 21c): one block per module */
     /* ---- TB_FLOW (tb_flow.c) */
     /* ---- TB_ENEMIES (tb_enemy.c) */
+    { OT_TBE_SEEKER,    OD_LANDS_KS,                           NULL         }, /* enemyseeker_2603 (q20; crash 11779: keystone, sound 29) */
+    { OT_TBE_PUSHUP,    0,                                     NULL         }, /* enemypushup_2669 */
+    { OT_TBE_PUHIT,     OD_HIDDEN | OD_LANDS,                  NULL         }, /* enemypushuphitbox_2663 (q20, ctor invisible; lands 11798: sound 50) */
+    { OT_TBE_SQUID,     0,                                     NULL         }, /* enemylavasquid_2740 (q20; beaten: 2 debris) */
+    { OT_TBE_TANK,      OD_LANDS_KS,                           NULL         }, /* enemytankbot_2838 (q20; crash 12443) */
+    { OT_TBE_SAUCER,    0,                                     NULL         }, /* enemysaucer_2828 (q20; beaten: debris) */
+    { OT_TBE_LEG1,      0,                                     NULL         }, /* enemysaucerleg1_2827 */
+    { OT_TBE_LEG1 + 1,  0,                                     NULL         }, /* enemysaucerleg2_2829 */
+    { OT_TBE_LEG1 + 2,  0,                                     NULL         }, /* enemysaucerleg3_2830 */
+    { OT_TBE_LEG4,      0,                                     NULL         }, /* enemysaucerleg4_2826 */
+    { OT_TBE_SLIM,      OD_HIDDEN,                             NULL         }, /* enemysaucerlimiter_2832 (ctor invisible) */
+    { OT_TBE_BULLET,    0,                                     NULL         }, /* enemyhomingbullet_2648 (runtime) */
+    { OT_TBE_PULAS,     0,                                     NULL         }, /* enemypushuplaser_2670 (runtime) */
+    { OT_TBE_PULAS2,    OD_HIDDEN,                             NULL         }, /* enemypushuplaser2_2695 (runtime, ctor invisible) */
+    { OT_TBE_PULAS3,    0,                                     NULL         }, /* enemypushuplaser3_2696 (runtime) */
+    { OT_TBE_PUDEB,     0,                                     NULL         }, /* enemypushupdebris_2664 (runtime) */
+    { OT_TBE_SQLAS,     0,                                     NULL         }, /* enemylavasquidlaser_2741 (runtime) */
+    { OT_TBE_DEBRIS,    OD_LANDS_KS,                           NULL         }, /* enemylavasquiddebris_2742 / enemysaucerdebris_2831 (runtime, q20; 11987 / 12537) */
+    { OT_TBE_TDEB,      0,                                     NULL         }, /* enemytankbotdebris_2839 (runtime) */
     /* ---- TB_GIM (tb_gim.c) */
     /* ---- TB_BOSS (tb_boss.c) */
     /* ==== end Thermal Base */

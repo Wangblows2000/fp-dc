@@ -761,6 +761,9 @@ int    act_of(const char *dir);
 void   serp_spawn(void), serp_update(player_t *p), serp4_update(player_t *p);
 int    serp_hidden(const obj_t *o), serp_active(void);
 void   serp_fireball_update(obj_t *f, player_t *p);
+obj_t *fireball_fly(obj_t *f);                                 /* GimmickFireball_1192 (relic_gima.c): move + ember; RM and TB saucers */
+int    fireball_rules(obj_t *f, player_t *p, int in_back);     /* its burst / player / cube rules; 0 = gone */
+#define FB_EXTERNAL 0x100                               /* a fireball another module runs (TB saucers): relic_gima.c's pass skips it */
 void   chase_spawn(void), chase_update(player_t *p), chase_chunk_update(obj_t *d), chase_end(void);
 int    chase_running(void);
 int    boss_progress(void), serp_progress(void), serp4_input(uint32_t *held), serp4_flash(void);
@@ -1065,7 +1068,7 @@ void objects_sense_snapshot(int on);
 int  objects_alive_type(int type);    /* objects.c: superset test, any slot of this type alive (pass gates) */   /* objects.c: packed sensor prefilter for the player phase (game.c) */
 void game_save_stage_end(uint32_t time_ms);
 /* object registry (src/game/objdefs.c): properties of each engine type shared by every level */
-enum { OD_SOLID = 1, OD_OBSTACLE = 2, OD_NOEDGE = 4, OD_BOXCOL = 8, OD_HANG = 16, OD_LAYER0 = 32, OD_LAYER1 = 64, OD_HIDDEN = 128, OD_LANDS = 256 };   /* OD_LANDS: a defeated Q20 enemy explodes where its fly-away meets the background / a Q7 object (the Ganseki landing, combat.c corpse_land: sound 50; TH 13616 / 13627 / 13645) */   /* OD_HIDDEN: the constructor calls set_visible(0) (RE create_*), a collision-only or event-shown object */   /* OD_HANG: a hang handle (Q23); OD_LAYER0 / 1: loop-layer pieces solid while MV.P = 0 / 1 */
+enum { OD_SOLID = 1, OD_OBSTACLE = 2, OD_NOEDGE = 4, OD_BOXCOL = 8, OD_HANG = 16, OD_LAYER0 = 32, OD_LAYER1 = 64, OD_HIDDEN = 128, OD_LANDS = 256, OD_LANDS_KS = 512 };   /* OD_LANDS_KS: lands like Turretus 4776 instead (keystone, explosion01, debris, sound 29: TB seeker / tank / squid debris, 11779 / 12443 / 11987) */   /* OD_LANDS: a defeated Q20 enemy explodes where its fly-away meets the background / a Q7 object (the Ganseki landing, combat.c corpse_land: sound 50; TH 13616 / 13627 / 13645) */   /* OD_HIDDEN: the constructor calls set_visible(0) (RE create_*), a collision-only or event-shown object */   /* OD_HANG: a hang handle (Q23); OD_LAYER0 / 1: loop-layer pieces solid while MV.P = 0 / 1 */
 typedef struct { uint16_t type, flags; const char *ens; } objdef_t;
 const objdef_t *objdef(int type);
 void level_flow_spawn(void), level_flow_frame(const player_t *p), level_camera_bounds(void), level_release_camera(int keep_trigger);

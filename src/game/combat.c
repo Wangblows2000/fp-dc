@@ -241,7 +241,8 @@ static int any_body_overlap(const player_t *p) {     /* 2761: any of the big dis
 
 /* landing explosion (Ganseki 4390, Dragonfly 4807; Turretus 4776 adds the keystone and debris, sound 29) */
 static void corpse_land(obj_t *o) {
-    if (o->type == OT_TURRETUS || o->type == OT_SPOREPOD || o->type == OT_HOPPER || o->type == OT_FSPITTER || o->type == OT_SENTINEL) {   /* 4776 / 4997 (RM 5732 / 6173, 6191 / 6465, 6460-6463): keystone + explosion + debris, sound 29 */
+    if (o->type == OT_TURRETUS || o->type == OT_SPOREPOD || o->type == OT_HOPPER || o->type == OT_FSPITTER || o->type == OT_SENTINEL ||
+        (objdef(o->type)->flags & OD_LANDS_KS)) {   /* data-driven (objdefs.c): TB seeker 11779, tank 12443, squid debris 11987 */   /* 4776 / 4997 (RM 5732 / 6173, 6191 / 6465, 6460-6463): keystone + explosion + debris, sound 29 */
         snd_play_orig(29, 220, 128); obj_effect(o->x, o->y, "explosion");
         keystone_spawn(o->x, o->y, 0, 0);                        /* ObjectKeystone_429 at the corpse (spec_keystones 2.1) */
         if (o->type != OT_TURRETUS) for (int k = 0; k < 4; k++) {
@@ -379,7 +380,7 @@ void combat_frame(player_t *p) {
             int lands = o->type == OT_GANSEKI || o->type == OT_TURRETUS || o->type == OT_DRAGONFLY || o->type == OT_FLOUNDER ||
                         o->type == OT_CACTEON || o->type == OT_SPOREPOD || o->type == OT_FIREFLY || o->type == OT_SLIME ||
                         o->type == OT_IRIS || o->type == OT_SLUG || o->type == OT_HOPPER || o->type == OT_FSPITTER || o->type == OT_SENTINEL ||
-                        (objdef(o->type)->flags & OD_LANDS);   /* data-driven (objdefs.c): the TH pup / puppet / orbiter (13616 / 13627 / 13645) */   /* RM 5785 / 5765 (sound 50); the others keystone */   /* classes with a landing event (AT 4113 / 4129) */
+                        (objdef(o->type)->flags & (OD_LANDS | OD_LANDS_KS));   /* data-driven (objdefs.c): the TH pup / puppet / orbiter (13616 / 13627 / 13645) */   /* RM 5785 / 5765 (sound 50); the others keystone */   /* classes with a landing event (AT 4113 / 4129) */
             if (lands && o->ky > 0 && (obj_overlaps_bg(o) || solid_obj_overlap(o))) corpse_land(o);                        /* 4390 / 4776 / 4807 */
         }
     }
