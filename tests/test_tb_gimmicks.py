@@ -133,7 +133,7 @@ check('floortrap_hurt_4', hurt and rows[hurt[0] - 1]['hp'] - rows[hurt[0] + 1]['
 rows, ev, obs = run('5 SETV others E 0\n', 260, {'FP_LEVEL': 'tb2', 'FP_CHAR': '0', 'FP_TRACK': '1910:-1'})
 on = sorted({o['f'] for o in obs if o['hd'] == 0 and o['type'] == 1910})
 check('lavafall_starts_150', on and on[0] in (149, 150, 151), str(on[:3]))
-rows, ev, obs = run('5 TP 4900 3300\n', 220, {'FP_LEVEL': 'tb2', 'FP_CHAR': '0'})
+rows, ev, obs = run('4 KILLT 1824\n5 TP 4900 3300\n', 220, {'FP_LEVEL': 'tb2', 'FP_CHAR': '0'})
 hurt = [int(r['f']) for r in rows if r['mm'] == 8]
 check('lavafall_burns', hurt and 160 <= hurt[0] < 180, 'M8 from %s (RV lava2: Carol 172)' % hurt[:1])
 
