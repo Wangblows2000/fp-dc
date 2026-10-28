@@ -256,7 +256,7 @@ static const short SFX_PL2[] = { 99, 10, 50, 323, 38, 311, 319, 320, 44, 147, 51
 static const short SFX_PL3[] = { 99, 10, 50, 323, 38, 311, 319, 320, 44, 33, 325, 326, 7, 174, 288, 62, 132, 13, 322, 324 };
 static const short SFX_PL4[] = { 99, 10, 50, 323, 38, 311, 319, 320, 147, 51, 327, 29, 328, 329, 33, 325, 326, 7, 174, 288, 322, 324 };
 static const short SFX_PL5[] = { 99, 10, 50, 323, 38, 311, 319, 320, 147, 51, 327, 29, 44, 328, 329, 150, 33, 325, 326, 322, 324 };
-static const short SFX_PL6[] = { 99, 147, 51, 38, 311, 319, 320, 150, 62, 132, 7, 174, 288, 322, 324 };
+static const short SFX_PL6[] = { 99, 147, 51, 38, 311, 319, 320, 150, 62, 132, 7, 174, 288, 322, 324, 333, 330, 331, 332, 200, 169, 45, 334, 76, 29, 23, 24, 25 };
 #define PL(d, f, n, mus) .dir = d, .frame = f, .stage = 7, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_PL##n, .nsfx = N_(SFX_PL##n), .lilac_only = 1
 #define TB(d, f, n, mus) .dir = d, .frame = f, .stage = 6, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_TB##n, .nsfx = N_(SFX_TB##n)
 #define TH(d, f, n, mus) .dir = d, .frame = f, .stage = 8, .act = n, .nacts = 3, .music = mus, .checkpoints = 1, .sfx = SFX_TH##n, .nsfx = N_(SFX_TH##n)
