@@ -5,7 +5,7 @@ Native Dreamcast (KallistiOS) port of Freedom Planet. A custom C engine plays da
 
 ## Environment (ephemeral cloud VM; rebuild if missing)
 - KOS git 5f834c1 at /opt/toolchains/dc/kos, toolchain /opt/toolchains/dc/sh-elf (GCC 15.2.0). **environ.sh patch**: `export KOS_LD_SCRIPT=-T$KOS_BASE/utils/ldscripts/shlelf.xc` before environ_base.sh.
-- mkdcdisc: third_party/mkdcdisc/builddir/mkdcdisc. Flycast: third_party/flycast/build/flycast, driven by `tools/flycast_run.sh` (x=A c=B s=X Return=Start, f/v = L/R; developer select = `key:f key:v` on the title).
+- mkdcdisc: third_party/mkdcdisc/builddir/mkdcdisc. Flycast: third_party/flycast/build/flycast, driven by `tools/flycast_run.sh` (x=A jump, c=B attack, s=X special (D-110), Return=Start, f/v = L/R; developer select = `key:f key:v` on the title).
 - Original game: writable copy /home/claude/fprun (never the user's folder). /home/claude/fprun_user = the same game
   with the user's PC saves (Carol unlocked); for traces and reference only, never shipped or read by the port.
   Carol traces: `CHAR=2` (on foot) / bike via the fuel can; scripts tests/orig_carol, CSVs build/orig_traces/carol.

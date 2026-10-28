@@ -24,8 +24,8 @@
 enum {
     BTN_LEFT = 1 << 0, BTN_RIGHT = 1 << 1, BTN_UP = 1 << 2, BTN_DOWN = 1 << 3,
     BTN_JUMP = 1 << 4,   /* DC A  = original "A" (jump)            */
-    BTN_ATTACK = 1 << 5, /* DC X  = original "B" (attack)          */
-    BTN_SPECIAL = 1 << 6,/* DC B  = original "C" (Dragon Boost)    */
+    BTN_ATTACK = 1 << 5, /* DC B  = original "B" (attack)          */
+    BTN_SPECIAL = 1 << 6,/* DC X  = original "C" (Dragon Boost); session 22: the player-facing "C" is shown as X (D-110) */
     BTN_START = 1 << 7,
     BTN_GUARD = 1 << 8,  /* DC Y  (reserved) */
     BTN_LT = 1 << 9, BTN_RT = 1 << 10   /* DC triggers (title-screen developer level select only) */

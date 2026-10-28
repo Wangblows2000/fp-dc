@@ -28,8 +28,9 @@ make test                                     # host build + gameplay regression
 ```
 
 ## Controls (Dreamcast pad)
-D-pad/stick move · **A** jump (press again in the air: Dragon Cyclone) · **X** attack ·
-hold/release **B** Dragon Boost (aim with the D-pad) · **Start** pause
+D-pad/stick move · **A** jump (press again in the air: Dragon Cyclone) · **B** attack ·
+hold/release **X** special / Dragon Boost (aim with the D-pad) · **Start** pause. The original's buttons A / B / C map to
+the pad's A / B / X, and the game shows the original's "C" as X (D-110). Menus: A confirms, B goes back.
 
 ## Layout
 `src/` engine (platform, renderer, resources, physics, characters, game) · `tools/` converters ·
