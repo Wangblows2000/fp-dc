@@ -1123,6 +1123,7 @@ void   bg_enemy_spawn(void), bg_enemy_pre(player_t *p), bg_enemy_draw(int pass);
 int    bg_enemy_obj(obj_t *o, player_t *p), bg_enemy_q20(int type);
 void   bg_gim_spawn(void), bg_gim_pre(player_t *p), bg_gim_frame(player_t *p), bg_gim_draw(int pass);
 int    bg_gim_obj(obj_t *o, player_t *p), bg_gim_q20(int type);
+int    bg_gim_player(player_t *p, const input_t *in), bg_gim_ride_m(void);   /* ST_RIDE: the magnet launcher M 95, the spiral slide M 96 (bg_gim.c) */
 void   bg_boss_spawn(void), bg_boss_pre(player_t *p), bg_boss_frame(player_t *p);
 int    bg_boss_obj(obj_t *o, player_t *p), bg_boss_q20(int type), bg_boss_draw_obj(const obj_t *o, int pass), bg_boss_input(uint32_t *held);
 int    bg_boss_player_hidden(void);
@@ -1161,6 +1162,7 @@ void level_warp_do(player_t *p, const warp_t *w);
 int objects_have(int type), objects_have_from(int type);
 void objects_plat_type(int type, float F, float Gm);
 void objects_plat_oneway(int type, int on);   /* 0: the type skips the one-way flags 4737 / 4738 (Trap Hideout's pillars) */
+void objects_plat_own_steps(int type);         /* the type's X / Y path steps are the object's av[6] / av[7] (BG crank ferris) */
 void objects_plat_path(int type, float B, float C, int D, float F, float Gm, int H, int dip);   /* the full q13 path rule (objects.c, session 21c) */
 void obj_pinball_start(obj_t *o, int dir, float speed), obj_pinball_step(obj_t *o, float grav);   /* objects.c: PinballMovement (pellets, debris) */   /* objects.c: a module's type that follows the shared path-platform rule (F step, G amplitude, H 1) */
 void objects_sense_snapshot(int on);
