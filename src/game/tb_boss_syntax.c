@@ -306,15 +306,19 @@ void tbx_frame(player_t *p) {
                 if (next) { snd_play_orig(51, 220, 128); X.O += 1; }
                 X.O += 1;
             }
-            if (body && sbb_csens_hit(p, body)) sbb_hurt(p, 15);                /* the ball (INFERRED: its own contact; 12636 skips N 5) */
         }
         { float by0 = body ? body->y : 0;
           rig_place();
           if (body && hd && (by0 > lava_y) != (body->y > lava_y)) {             /* 12671-12680: the rig through the lava: splash, Z 3 (RV x2_l 788 / 1134) */
               snd_play_orig(body->y < lava_y ? 252 : 251, 220, 128); obj_effect(body->x, lava_y, "tbx_splash"); camera_shake(3); } }
-        /* ---- the hitbox: contact (12636), the stun (12701-12703), the defeat (12704) */
+        /* ---- the hitbox: contact (12636), the stun (12701-12703), the defeat (12704)
+         * 12636 keeps only the bodies whose N IS 5 (its selection loop unlinks N != 5): the hitbox hurts (15, the push away from
+         * it) only as the dive's ball (direction 8: image 6006, ~124 px). The rest of the fight it is just the head's 40 x 64
+         * target box: RV build/orig_traces/tb_bosses_hit/x3_l (Lilac, no invulnerability, standing in the box at 1415,1314 over
+         * the hitbox at 1415,1382 in N 1 for 66 frames: R stays 0, her eight hair whips take A 50 -> 26). (The port used to
+         * hurt on N != 5 and give the ball an INFERRED body contact: the head launched every jump attack away.) */
         if (h) {
-            if (X.N != 5 && hd && !hd->hidden && sbb_csens_hit(p, h) && sbb_vulnerable(p)) {
+            if (X.N == 5 && sbb_csens_hit(p, h) && sbb_vulnerable(p)) {
                 if (sbb_hurt(p, 15)) {
                     double gy = fmax(-15, fmin(15, 0.5 * (PY - h->y))), gx = fmax(-15, fmin(15, 0.5 * (PX - h->x)));
                     p->vy += (float)gy; if (p->ground) p->gsp += (float)gx; else p->vx += (float)gx;
