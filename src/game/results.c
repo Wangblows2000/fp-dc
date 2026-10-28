@@ -27,7 +27,8 @@ static struct {
     int end_req; uint32_t s_held, s_prev;   /* path 3: stage end requested by the boss script; its scripted input */
 } R;
 
-void results_reset(void) { memset(&R, 0, sizeof R); snap_register(&R, sizeof R); }
+static int clear_ach_done;                         /* results_game_clear_ach: once per Final Dreadnought 4 act load */
+void results_reset(void) { memset(&R, 0, sizeof R); snap_register(&R, sizeof R); clear_ach_done = 0; }
 int results_on(void) { return R.on; }
 float results_hud_dy(void) { return -(float)R.hud; }
 
@@ -87,6 +88,10 @@ static const struct { int stage, card_base, cards_ach, time_ach; uint32_t limit_
     { 6, 61, 29, 49, 540000 },   /* Thermal Base (TB6 12717: cards 61-70 -> records x2 y29; handle_frame_50 inline: 49 with ML.Z <= 540000 ms, session 21c) */
     { 8, 71, 30, 50, 360000 },   /* Trap Hideout (TH3 14067: cards 71-80 -> records x2 y30; 14066: 50 with ML.Z <= 360000 ms) */
     { 7, 81, 31, 51, 480000 },   /* Pangu Lagoon (PL6 13437: cards 81-90 -> records x2 y31; 13436: 51 with ML.Z <= 480000 ms; session 23) */
+    /* session 24 (spec_achievements 2.2, RE): Battle Glacier 15127 cards 91-100 -> y32, 15126 52 <= 720000 ms; the Final
+     * Dreadnought rounds have no cards (card_base 0): 15547 53 <= 300000, 15967 54 <= 540000, 16638 55 <= 360000,
+     * 17438 56 <= 480000 (each round is its own stage index 10-13 with its own results, RE handle_frame_67/69/71/73) */
+    { 9, 91, 32, 52, 720000 }, { 10, 0, 0, 53, 300000 }, { 11, 0, 0, 54, 540000 }, { 12, 0, 0, 55, 360000 }, { 13, 0, 0, 56, 480000 },
 };
 static void ach_results(void) {
     cards_commit();                                    /* this run's cards count (the port commits them at D = 150, after 149) */
@@ -97,11 +102,37 @@ static void ach_results(void) {
 #endif
     for (unsigned i = 0; i < sizeof ACH_STAGE / sizeof ACH_STAGE[0]; i++) {
         if (ACH_STAGE[i].stage != s) continue;
-        int all = 1;
-        for (int c = 0; c < 10; c++) all &= save_card_has(ACH_STAGE[i].card_base + c);
+        int all = ACH_STAGE[i].card_base > 0;
+        for (int c = 0; all && c < 10; c++) all &= save_card_has(ACH_STAGE[i].card_base + c);
         if (all) ach_earn(ACH_STAGE[i].cards_ach);
         if (ms <= ACH_STAGE[i].limit_ms) ach_earn(ACH_STAGE[i].time_ach);
     }
+}
+
+/* the game-clear achievements (RE h73 = Final Dreadnought 4's results, 17449-17454, spec_achievements 2.2), once, at the
+ * results' Sign.B >= 150 point, story runs only (G0 1 / 2): 1 / 2 / 3 the character (G1 0, 2 or 3, 4), 4 no death in the file
+ * (SaveData y7 == 0: the earlier blocks' sum plus this stage's in-stage increments, RE 1966 / 1985 / 1276), 5 the file's total
+ * time y6 < 90 min (the earlier blocks: the Final Dreadnought 4 block is written later, RE 954), 6 the file's crystals y4 +
+ * ML.J >= 6000 (Classic counts too). 4-6 need a file (INFERRED: a developer-select run has none; the original always has
+ * one in story mode). y57 ("two characters", 17455) is never announced by the original: not kept. */
+void results_game_clear_ach(void) {
+    if (G.time_attack || level_cur()->stage != 13 || level_next(G.lvdir) || clear_ach_done) return;
+    clear_ach_done = 1;
+    if (G.character == CHR_LILAC) ach_earn(1);
+    if (chr_is_carol(G.character)) ach_earn(2);
+    if (chr_is_milla(G.character)) ach_earn(3);
+    if (G.file_slot < 0 || G.file_slot >= SAVE_FILES) return;
+    const save_file_t *f = &SV.file[G.file_slot];
+    int carried = !G.file_new;                         /* a new game's slot is replaced at its first stage end: its old blocks are not this run's */
+    int deaths = (carried ? save_file_deaths(f) : 0) + G.stage_deaths;       /* the file's blocks as stored (RE: y7 / y6 / y4 of */
+    uint32_t time = carried ? save_file_time(f) : 0;                        /* the last frame 8, so a replayed finished file still */
+    int crystals = (carried ? save_file_crystals(f) : 0) + G.stage_crystals; /* holds its older round-4 block) + this stage */
+#ifdef FP_HOST_ENV
+    printf("ach clear chr %d deaths %d time %u crystals %d\n", G.character, deaths, (unsigned)time, crystals);
+#endif
+    if (deaths == 0) ach_earn(4);
+    if (time < 5400000) ach_earn(5);
+    if (crystals >= 6000) ach_earn(6);
 }
 
 static int stage_end(void) {
@@ -110,7 +141,11 @@ static int stage_end(void) {
     music_stop();
     /* frame 8 -> 9 (RE + RV, spec_achievements 1): an earned, unannounced achievement shows the "Unlocked!" pop-up after the
      * results wipe, before the next stage / menu; the pop-up continues to the same place afterwards (frontend.c) */
-    if (ach_pending() && fe_enter_ach_popup(ta, !ta && level_route_next(level_cur()->stage) != NULL) == 0) return 1;
+    /* RE frame 8 (handle_frame_9): s 13 (Final Dreadnought 4) -> frame index 83, the ending, in Classic and Adventure (G0 1 / 2);
+     * Time Attack -> the stage select. The pop-up (frame 9) comes first, then frame 8 routes on (session 24) */
+    int ending = ending_arm() == 0;                                            /* validated (story, stage 13, last act) while the act is loaded */
+    if (ach_pending() && fe_enter_ach_popup(ta, ending ? 2 : !ta && level_route_next(level_cur()->stage) != NULL) == 0) return 1;
+    if (ending && game_ending_begin() == 0) return 1;
     if (!ta && game_next_stage()) return 1;                                    /* Classic: frame 8 routes to the next stage (DV / AT -> RM) */
     fe_enter_from_stage(ta);
     return 1;
@@ -130,6 +165,7 @@ int results_update(player_t *p) {
         R.bonus1 = G.stage_crystals;
         R.total = (G.file_slot >= 0 && G.file_slot < SAVE_FILES && !G.time_attack) ? save_file_crystals(&SV.file[G.file_slot]) : 0;   /* TotalCrystals = the file's total (y4) */
         if (level_cur()->res_voice) voice_play_once(level_cur()->res_voice);   /* FN6 8545 (MV.A != 1: everyone in the port), channel 27 */
+        results_game_clear_ach();                                              /* FD4 h73 17449-17454 at Sign.B >= 150 (stage 13 only) */
     }
     if (level_cur()->res_skin_voice && R.t == 76)                             /* 6589-6592 (RV k_end: lilac_howitsdone 75 frames after m_clear; */
         voice_play_once(G.character == CHR_LILAC ? "lilac_howitsdone" : chr_is_carol(G.character) ? "carol_feelmypower" :   /* the same */
@@ -236,4 +272,5 @@ void results_draw(void) {
         }
     }
 }
+int results_saved(void) { return R.saved; }                                   /* the D = 150 save ran (game_ending_begin) */
 int results_state(void) { return R.on ? 1 + R.svA + (R.wipe ? 10 : 0) : 0; }

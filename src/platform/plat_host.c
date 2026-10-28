@@ -207,6 +207,10 @@ static void apply_dbg(int f, int tp) {
         if (dbg[i].k == 'a') objects_add_crystals(p, (int)dbg[i].a);
         if (dbg[i].k == 'J') { void jc_flow_act3_cleared(void); jc_flow_act3_cleared(); }   /* test: JC3's boss beaten (10772 / 10773, jc_flow.c) */
         if (dbg[i].k == 'C') th_flow_basher_cleared();   /* test: TH3's Crystal Basher beaten (13931's flow part, th_flow.c) */
+        if (dbg[i].k == 'N') printf("ending force %d\n", ending_host_force());
+        if (dbg[i].k == 'n') printf("ending try %d\n", game_ending_begin());
+        if (dbg[i].k == 'y') ending_host_dump();
+        if (dbg[i].k == 'Y') printf("cutscene start %d\n", cutscene_host_example());
         if (dbg[i].k == 'S') results_begin_boss(G.frame);   /* test: a boss starts the results (path 3; FN6 8785 before the boss module) */
         if (dbg[i].k == 'F') G.stage_flags = (int)dbg[i].a;   /* test: ML stage flags (Relic Maze gates) */
         if (dbg[i].k == 'I') p->invuln = (int)dbg[i].a;      /* test: Milla inside a dig zone (MILLA.D, set by other stages' zone events) */
@@ -263,6 +267,10 @@ int main(int argc, char **argv) {
             if (sscanf(line, "%d RESBOSS%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'S', 0, 0 }; continue; }   /* results_begin_boss now */
             if (sscanf(line, "%d JCACT3%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'J', 0, 0 }; continue; }   /* jc_flow_act3_cleared now */
             if (sscanf(line, "%d THBASH%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'C', 0, 0 }; continue; }   /* th_flow_basher_cleared now */
+            if (sscanf(line, "%d ENDING%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'N', 0, 0 }; continue; }   /* session 24: the ending, as after FD4 */
+            if (sscanf(line, "%d ENDTRY%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'n', 0, 0 }; continue; }   /* game_ending_begin as a stage script would call it */
+            if (sscanf(line, "%d ENDSTATS%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'y', 0, 0 }; continue; }   /* print the credits' statistics */
+            if (sscanf(line, "%d CUTSCENE%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'Y', 0, 0 }; continue; }   /* the example cutscene template */
             { char lv[8]; if (sscanf(line, "%d LOAD %7s", &ff, lv) == 2 && nload < 8) { loads[nload].f = ff; snprintf(loads[nload].dir, sizeof loads[nload].dir, "%s", lv); nload++; continue; } }   /* load a level (host tests: load order) */
             if (sscanf(line, "%d PB3 %f %f", &ff, &fx, &fy) == 3 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'Q', fx, fy }; continue; }   /* RM3 PushableBlock3 to (x, y) */
             if (sscanf(line, "%d PB %f %f", &ff, &fx, &fy) == 3 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'P', fx, fy }; continue; }   /* first pushable block to original (x, y) */

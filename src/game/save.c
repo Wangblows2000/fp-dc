@@ -170,6 +170,24 @@ int save_file_deaths(const save_file_t *f) { int n = 0; for (int s = 0; s < SAVE
  *    the crystal count is the best ever, independently of the time;
  *  - story only (RE 954 / 955: Classic / Adventure with a file): the stage block, the last stage, the progress and the
  *    values carried into the next stage. Time Attack never touches a file. */
+/* session 24: the RAM-only file of a story run that has no slot (developer level select, host tests). Never saved. */
+static save_file_t run_file = { .last_stage = 0xff };
+void save_run_reset(void) { memset(&run_file, 0, sizeof run_file); run_file.last_stage = 0xff; }
+const save_file_t *save_run_file(int file_slot) { return file_slot >= 0 && file_slot < SAVE_FILES ? &SV.file[file_slot] : &run_file; }
+
+/* the final score (RE credits, frame index 85): event 22790 loads file<G10>.sav (the file the run just wrote at frame 8: the
+ * Final Dreadnought 4 block is in it, RE 954 runs before 83), 22723 lists stage i = 0..14 when its block time x3 y(5i+6) > 0
+ * (time, crystals x3 y(5i+7), deaths x3 y(5i+8)), 22794-22800 the totals y6 / y4 / y7 (sums of the blocks, RE 954). */
+void save_final_score(const save_file_t *f, final_score_t *out) {
+    memset(out, 0, sizeof *out);
+    if (!f) return;
+    out->time_ms = save_file_time(f); out->crystals = save_file_crystals(f); out->deaths = save_file_deaths(f);
+    for (int s = 0; s < SCORE_STAGES; s++) {
+        out->stage[s].time_ms = f->stage[s].time; out->stage[s].crystals = f->stage[s].crystals; out->stage[s].deaths = f->stage[s].deaths;
+        if (f->stage[s].time > 0) out->shown |= (uint16_t)(1u << s);
+    }
+}
+
 void save_stage_end(int s, int character, uint32_t time_ms, int crystals, int deaths, int story, int file_slot) {
     if (s < 0 || s >= SAVE_STAGES) return;
     int c = chr_slot(character);
@@ -178,8 +196,7 @@ void save_stage_end(int s, int character, uint32_t time_ms, int crystals, int de
     if (crystals > r->crystals) r->crystals = (uint16_t)(crystals > 65535 ? 65535 : crystals);
     if (!story) return;
     if (SV.progress[c] < s + 1) SV.progress[c] = (uint8_t)(s + 1);
-    if (file_slot < 0 || file_slot >= SAVE_FILES) return;
-    save_file_t *f = &SV.file[file_slot];
+    save_file_t *f = file_slot >= 0 && file_slot < SAVE_FILES ? &SV.file[file_slot] : &run_file;
     f->stage[s].time = time_ms; f->stage[s].crystals = (uint16_t)(crystals > 65535 ? 65535 : crystals); f->stage[s].deaths = (uint8_t)(deaths > 255 ? 255 : deaths);
     f->last_stage = (uint8_t)s; f->used = 1; f->character = (uint8_t)character;
 }

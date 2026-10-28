@@ -242,6 +242,9 @@ static void sel_update(const input_t *in) {
     if (in->pressed & BTN_SPECIAL) { G.in_select = 0; fe_enter(); return; }   /* B: back to the title */
     if (in->pressed & (BTN_JUMP | BTN_START)) {
         if (!sel_have[G.sel]) { G.sel_msg_t = 90; return; }
+        /* session 24: a developer-select run belongs to no file and starts clean (it wrote the stage block, deaths and the
+         * game-clear route of the last story file the front end had chosen) */
+        G.time_attack = 0; G.file_slot = -1; G.file_new = 0; game_run_reset();
         if (game_load_level(SEL[G.sel].dir) == 0) { G.in_select = 0; G.mode = MODE_PLAY; G.card_t = CARD_DONE; }
         else G.sel_msg_t = 90;
     }
@@ -449,10 +452,15 @@ void game_save_stage_end(uint32_t time_ms) {
 void game_start_adventure(const char *dir, int time_attack) {
     G.time_attack = time_attack; G.at_g4 = 1; G.at_dir[0] = 0; G.prev_dir[0] = 0; G.stage_flags = 0; G.exit_to = NULL; G.exit_b = 0;
     G.p.energy_init = 0;                       /* fresh run: lives/crystals reset by player_reset */
-    G.stage_crystals = 0; G.keystones = 0; G.stage_deaths = 0;
+    game_run_reset();
     G.mode = MODE_PLAY;
     if (game_load_level(dir) < 0) { fe_enter(); return; }
 }
+
+/* a new run (session 24): nothing of an earlier run carries over (the stage's crystals / keystones / deaths, and the RAM-only
+ * file of a story run without a slot, save.c save_run_file) */
+void game_run_reset(void) { G.stage_crystals = 0; G.keystones = 0; G.stage_deaths = 0; save_run_reset(); }
+void game_sfx_set(const short *ids, int n) { snd_stage_load(ids, n); }
 
 /* Classic: the next stage of the route after the results (RE frame 8 routing; lives, shield and the crystal counter carry,
  * spec_records_saves 3; the stage's crystals / deaths / keystones and the timer start again). 0: no next stage ported. */
@@ -664,13 +672,16 @@ static void pause_update(const input_t *in) {
             G.pause_wipe_f = 0; G.pause_a = 0; G.paused = 0;
             if (G.pause_sel == 3) {                /* RESTART: loop_restart_20 / event 1276 */
                 int lives = G.act_lives - 1 < 1 ? 1 : G.act_lives - 1;
-                int crystals = G.act_crystals, frame = G.frame;
+                int crystals = G.act_crystals, frame = G.frame, ks = G.act_keystones, sc = G.act_stage_crystals;
                 music_stop(); snd_stop_all();
                 G.pause_sel = 1;
                 { char d[8]; snprintf(d, sizeof d, "%s", level_cur()->death_to ? level_cur()->death_to : G.lvdir);   /* RM2: loop_restart_25 -> RM1 */
                   snprintf(G.prev_dir, sizeof G.prev_dir, "%s", G.lvdir); death_g4(); G.keep_g4 = 1; game_load_level(d); G.keep_g4 = 0; }
                 G.p.lives = lives; G.p.crystals = crystals; G.frame = frame;
                 G.act_lives = lives;
+                /* RE loop_restart_20 / 1276 (session 24): a restart is a death of the file (x1 y7 + 1, x3 y3 + 1) and the stage's
+                 * crystals / keystones go back to the act start (ML.J = G14, ML.O = G15), like a death (loop_death_13) */
+                G.stage_deaths++; G.keystones = ks; G.stage_crystals = sc;
             } else {                                /* QUIT: loop_return_0 -> frame 7 dispatcher; RV: Time Attack -> stage select */
                 G.pause_sel = 2;
                 music_stop();
@@ -703,6 +714,7 @@ void game_update(const input_t *in) {
     { int fc = G.mode == MODE_FRONTEND ? hub_vmu_file_char() : -1;
       if (G.mode == MODE_PLAY && !G.in_select) vmuscr_char(G.character); else if (fc >= 0) vmuscr_char(fc); else vmuscr_crystal(); }
     if (G.mode == MODE_FRONTEND) { fe_update(in); return; }
+    if (G.mode == MODE_ENDING) { ending_update(in); return; }   /* session 24: src/game/ending.c */
     if (G.in_select) { sel_update(in); return; }
     if (G.mode == MODE_RESULTS) {
         G.res_t++;
@@ -1051,6 +1063,7 @@ int game_player_visible(void) { return !fn_assist_cast_on() && !sb_boss_player_h
 
 void game_draw(void) {
     if (G.mode == MODE_FRONTEND) { fe_draw(); return; }
+    if (G.mode == MODE_ENDING) { ending_draw(); return; }
     if (G.in_select) { sel_draw(); return; }
     r_begin();
     draw_parallax();
