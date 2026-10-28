@@ -152,5 +152,36 @@ t0 = first(d, lambda r: r['ml'] == 1)
 hp = {int(r['f']): r['hp'] for r in rows}
 check('jc3_damage', t0 and hp.get(t0 + 400, 99) < hp.get(t0, 0), str((hp.get(t0), hp.get(t0 + 400))))
 
+# ---- JC3 after Neera: the subtanker scene (0x22a5d, 10799-10805; RV a3_kill / a3_sub). The defeat frame starts it: A -2 B 1 on
+# that frame, A -600 at +299, B 600 at +599 (RV a3_sub f1036 / f1335 / f1635); the json-4 layer moves by (B, A + 40 sin g3)
+rows0, ev0, d0 = run('jc3', 0, 800, JC3)
+t0 = first(d0, lambda r: r['ml'] == 1)
+k = t0 + 405
+rows, ev, d = run('jc3', 0, k + 700, JC3, {'FP_JCB_SET': setv((k, 'A:0'))})
+e8 = first(d, lambda r: r['nE'] == 8, k)
+check('jc3_sub_rise', e8 and d[e8]['post'] == 1 and d[e8]['sA'] == -2 and d[e8]['sB'] == 1 and d[e8 - 1]['post'] == 0 and
+      first(d, lambda r: r['sA'] == -600, e8) == e8 + 299 and first(d, lambda r: r['sB'] == 600, e8) == e8 + 599,
+      str((e8, first(d, lambda r: r['sA'] == -600, e8), first(d, lambda r: r['sB'] == 600, e8))))
+# 10801: standing on the deck (MV.X > 10580) while B < 600, MV.X + 1 a frame (RV a3_sub f1408-1633); the layer's own collision
+# carries her up and down with the bob (her y in the layer's coordinates stays put: RV a3_sub local y 2114 standing); the act-3
+# restart / hand-off (g4 10: 10798, JCACT3 = jc_flow_act3_cleared) starts the scene too
+rows, ev, d = run('jc3', 0, 700, '3 SETV others E 99999\n5 TP 9500 1450\n40 JCACT3\n300 TP 11000 1350\n')
+x = {int(r['f']): r['x'] for r in rows}
+st = [f for f in range(400, 630) if rows[f]['gnd'] == 1]
+loc = {round(rows[f]['y'] - 14 - d[f]['sdy']) for f in st}
+check('jc3_sub_carry', len(st) > 200 and all(abs(x[f + 1] - x[f] - 1) < 1e-6 for f in st if f + 1 in st) and
+      all(abs(x[f + 1] - x[f]) < 1e-6 for f in range(660, 690)) and len(loc) <= 2 and d[45]['post'] == 1,
+      str((len(st), sorted(loc), x[500], x[600], x[680])))
+# the route to the end (JC3's right edge: 4135 -> jc4), each character from the hand-off; the ladder at x 12716, the crates, the
+# drop into the spring passage under the walkway, under the tower, the hull to the edge (inputs per character: their speeds)
+ROUTES = {0: '41 710 R\n' + ''.join('%d %d J\n' % (f, f + 18) for f in range(60, 650, 45)) + '730 744 R\n780 800 J\n780 900 U\n910 1110 R\n1075 1093 J\n1120 1300 L\n1310 2100 R\n',
+          2: '41 620 R\n' + ''.join('%d %d J\n' % (f, f + 18) for f in range(60, 600, 45)) + '680 700 J\n683 820 U\n830 1030 R\n995 1013 J\n1040 1220 L\n1230 2100 R\n',
+          4: '41 644 R\n' + ''.join('%d %d J\n' % (f, f + 18) for f in range(60, 644, 45)) + '700 730 R\n800 820 J\n803 960 U\n970 1170 R\n1135 1153 J\n1180 1360 L\n1370 2100 R\n'}
+for ch, cn in CHARS:
+    rows, ev, d = run('jc3', ch, 2100, INV + '5 TP 9500 1450\n40 JCACT3\n' + ROUTES[ch])
+    a4 = next((r for r in rows if r['act'] == 4), None)
+    xs = max(r['x'] for r in rows if r['act'] == 3)
+    check('jc3_sub_route_%s' % cn, a4 is not None and xs > 14950 and max(r['x'] for r in rows if r['act'] == 3 and r['f'] < 900) > 12700, 'max x %.0f, jc4 at %s' % (xs, a4 and a4['f']))
+
 print('%d failures' % fails)
 sys.exit(1 if fails else 0)

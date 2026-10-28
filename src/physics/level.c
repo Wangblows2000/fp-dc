@@ -4,7 +4,17 @@
 #include <math.h>
 #include "../fp.h"
 
+/* a moving layer's own collision (level_t.mv: JC3's subtanker), x / y in its unmoved coordinates */
+static int mv_bit(const level_t *l, int plat, int x, int y) {
+    int tx = (x >> 4) - l->mv.tx0;
+    if (x < 0 || y < 0 || tx < 0 || tx >= l->mv.tw || (y >> 4) >= l->mv.th) return 0;
+    int t = (plat ? l->mv.pmap : l->mv.smap)[(y >> 4) * l->mv.tw + tx];
+    if (t == 0) return 0;
+    if (t == 1) return 1;
+    return (l->mv.tiles[t * 16 + (y & 15)] >> (x & 15)) & 1;
+}
 static inline int bit(const level_t *l, const uint16_t *map, int x, int y) {
+    if (l->mv.on && x >= l->mv.x0) return mv_bit(l, map == l->pmap, x - l->mv.dx, y - l->mv.dy);
     /* level sides: the edge column continues outwards (the original stands flat at X 0); horizontal
      * movement is limited to [16, w-16] by the player code instead (RV: gcyc_steer_back stops at X 16) */
     if (x < 0) x = 0;
@@ -21,6 +31,11 @@ int px_platform(const level_t *l, int x, int y) { return bit(l, l->pmap, x, y); 
 
 /* any solid pixel in row y between x0 and x1 (inclusive), with bit()'s edge-column rule */
 int px_span_solid(const level_t *l, int x0, int x1, int y) {
+    if (l->mv.on && x1 >= l->mv.x0) {                  /* the moving layer's part (level_t.mv) */
+        for (int x = x0 > l->mv.x0 ? x0 : l->mv.x0; x <= x1; x++) if (mv_bit(l, 0, x - l->mv.dx, y - l->mv.dy)) return 1;
+        if (x0 >= l->mv.x0) return 0;
+        x1 = l->mv.x0 - 1;
+    }
     if (y < 0 || y >= l->h) return 0;
     if (x0 < 0) x0 = 0;
     if (x1 < 0) x1 = 0;
@@ -78,7 +93,8 @@ int level_test_ladder(int x, int y) {
     if (x < 0 || y < 0 || x > l->w || y > l->h) return 0;
     for (int i = 0; i < l->npieces; i++) {
         const piece_t *p = &l->pieces[i];
-        if (p->col == COL_LADDER && x >= p->x && x < p->x + p->w && y >= p->y && y < p->y + p->h) return 1;
+        int px = p->x + (p->layer < 8 ? l->lay_dx[p->layer] : 0), py = p->y + (p->layer < 8 ? l->lay_dy[p->layer] : 0);   /* moving layers */
+        if (p->col == COL_LADDER && x >= px && x < px + p->w && y >= py && y < py + p->h) return 1;
     }
     return 0;
 }
