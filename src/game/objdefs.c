@@ -1066,7 +1066,12 @@ static const objdef_t DEFS[] = {
     { OT_BGF_LOOP1,     OD_SOLID|OD_LAYER1,                    "bgl1"       }, /* bgloop1_3340 (Q7 + Q11: solid on loop layer 1; visible Active) */
     { OT_BGF_LOOP2,     OD_SOLID|OD_LAYER0,                    "bgl2"       }, /* bgloop2_3343 (Q7 + Q10: solid on loop layer 0) */
     { OT_BGF_LOOP3,     OD_SOLID|OD_LAYER0,                    "bgl3"       }, /* bgloop3_3344 (Q7 + Q10) */
-    /* ---- BG_ENEMIES (bg_enemy.c) */
+    /* ---- BG_ENEMIES (bg_enemy.c, spec_bg_enemies; sprites set by bg_enemy_spawn; RE on_frame_62..64_init q20: the drill) */
+    { OT_BGE_DRILL,     OD_HIDDEN,                             NULL         }, /* enemydrillsat_3291 (q20; ctor invisible) */
+    { OT_BGE_SPAWNER,   OD_HIDDEN,                             NULL         }, /* enemyelitespawner_3361 (ctor invisible) */
+    { OT_BGE_WAVE,      0,                                     NULL         }, /* - (runtime: enemyelitespawnerwave_3363) */
+    { OT_BGE_GHOST,     OD_HIDDEN,                             NULL         }, /* - (runtime: effectsspadeimage_456 dir 12, bg_enemy_draw) */
+    { OT_BGE_DEB,       0,                                     NULL         }, /* - (runtime: effectsdebris_427 anim 5) */
     /* ---- BG_GIM (bg_gim.c) */
     /* ---- BG_BOSS (bg_boss.c) */
     /* ==== end Battle Glacier */
