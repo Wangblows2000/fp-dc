@@ -326,7 +326,8 @@ static void tops(player_t *p) {
  * RV bo4: C 5 .. 45 / -40); paddle and mask x = ball.x + C, paddle A = A (1 - |C|) only while |C| < 1 (13042); the player standing on
  * the paddle moves with A (13043). Bounces: the ball's lower probe (16 x 2 px under it) on the background or the paddle: B = -2 and the
  * paddle flashes (13050 / 13054); the upper probe on the background: B = 2 (13052); A >= 0 with a right wall's x - 15 <= x: A = -A,
- * EffectRebound, sound 327; A <= 0 with x <= left wall's x + 15: the same (13021-13023; RV bo4 f134 / f572). Damage 5: the mask (spiked
+ * EffectRebound (no sound: the RV bo4 327s are the obelisk laser's, 13076); A <= 0 with x <= left wall's x + 15: the same (13021-13023;
+ * RV bo4 flips near x 2030 / 2250). Damage 5: the mask (spiked
  * ends) unless the metal shield (13044), the ball unless the water shield (13045). Rebound effects: additive, alpha - 4 a frame (13053,
  * 13055 / 13056). */
 static void bwall_box(const obj_t *w, float *x0, float *y0, float *x1, float *y1) {
@@ -366,10 +367,10 @@ static void breakout(player_t *p) {
             if (b->y < y0 || b->y >= y1) continue;
             int wx = (int)w->x;
             if (w->par == 1 && b->av[0] >= 0 && x >= wx - 15 && x < wx) {
-                b->av[0] = -b->av[0]; r = spawn(OT_PLG_REBOUND, "plg_reb0", (float)(wx - 1), b->y, 3); if (r) r->hidden = 1; snd(327);
+                b->av[0] = -b->av[0]; r = spawn(OT_PLG_REBOUND, "plg_reb0", (float)(wx - 1), b->y, 3); if (r) r->hidden = 1;
             }
             else if (w->par == 0 && b->av[0] <= 0 && x <= wx + 15 && x > wx) {
-                b->av[0] = -b->av[0]; r = spawn(OT_PLG_REBOUND, "plg_reb1", (float)(wx + 1), b->y, 3); if (r) r->hidden = 1; snd(327);
+                b->av[0] = -b->av[0]; r = spawn(OT_PLG_REBOUND, "plg_reb1", (float)(wx + 1), b->y, 3); if (r) r->hidden = 1;
             }
         }
         if (pd && pd->an.b && pd->an.done) set_s(pd, "plg_bplat");
@@ -549,7 +550,7 @@ void pl_gim_frame(player_t *p) {
     if (N(OT_PLG_SDOOR)) doors(p);
 #ifdef FP_HOST_ENV
     { static int dbg = -1; if (dbg < 0) dbg = getenv("FP_DBG_PLG") != NULL;
-      if (dbg) printf("plg %d ride %d top %d sboost %d en %.2f\n", G.frame, S.ride, S.top_ride, p->sboost, p->energy); }
+      if (dbg) printf("plg %d ride %d top %d sboost %d en %.2f nobjs %d\n", G.frame, S.ride, S.top_ride, p->sboost, p->energy, G.nobjs); }
 #endif
 }
 int pl_gim_obj(obj_t *o, player_t *p) { (void)o; (void)p; return 1; }   /* (the families run in pl_gim_frame) */
