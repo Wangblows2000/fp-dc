@@ -27,7 +27,7 @@ Outputs:
 import json, os, struct, sys, hashlib
 from PIL import Image, ImageChops, ImageOps
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from convert import write_tex, pack, pack_skyline, argb1555
+from convert import write_tex, pack, pack_skyline, pack_skyline_fill, argb1555
 
 # active classes the runtime understands -> engine type id
 ENGINE_TYPES = {
@@ -1477,7 +1477,8 @@ def main():
         k = len(atlases)
         # the first atlas is up to 1024x1024; later ones at most 1024x512 (task 48: a 1024x1024 second atlas was
         # often only ~55-65 % used, wasting 384-512 KB of VRAM per level; the renderer takes up to MAX_ATLAS = 4)
-        cap = (lambda t: pack([(i, imgs[i][0]) for i in t], 1024)) if k == 0 else (lambda t: pack([(i, imgs[i][0]) for i in t], 1024, 512))
+        ppk = pack_skyline if n in JC_FRAMES else pack   # (session 21: Jade Creek's piece atlases with the skyline packer; other levels unchanged)
+        cap = (lambda t: ppk([(i, imgs[i][0]) for i in t], 1024)) if k == 0 else (lambda t: ppk([(i, imgs[i][0]) for i in t], 1024, 512))
         pos = cap(remaining); take = list(remaining)
         if not pos:                              # largest prefix that fits (binary search)
             lo, hi = 0, len(remaining)
@@ -1489,7 +1490,7 @@ def main():
         if not take: raise SystemExit('piece too large for the atlas')
         if len(take) == len(remaining) and not order:   # last atlas: the smallest power-of-two height that holds the rest
             for hh in (128, 256, 512):
-                p2 = pack([(i, imgs[i][0]) for i in take], 1024, hh)
+                p2 = ppk([(i, imgs[i][0]) for i in take], 1024, hh)
                 if p2: pos = p2; break
         atlas = Image.new('RGBA', (1024, 1024), (0, 0, 0, 0))
         for i in take:
@@ -1836,12 +1837,13 @@ def write_bank2(src, bank, out, report):
                 # second page holds small ones and crops to 1024 x 512 (JC2 / JC3 / JC5: -512 KB of VRAM each)
                 jcb = bank['name'][:2] == 'jc'
                 order = sorted(ids, key=lambda i: -imgs[i][0].width * imgs[i][0].height) if jcb else list(ids)
-                if jcb:
-                    while lo < hi:
-                        mid = (lo + hi + 1) // 2
-                        if pk([(i, imgs[i][0]) for i in order[:mid]], 1024): lo = mid
-                        else: hi = mid - 1
-                    take = list(order[:lo]); pos = pk([(i, imgs[i][0]) for i in take], 1024)
+                if jcb:                                # greedy fill of the first page, the better of two orders (largest area / tallest first)
+                    best_ = None
+                    for ok_ in (lambda kv: (-kv[1].width * kv[1].height, kv[0]), lambda kv: (-kv[1].height, -kv[1].width, kv[0])):
+                        p_ = pack_skyline_fill([(i, imgs[i][0]) for i in ids], 1024, 1024, ok_)
+                        a_ = sum(imgs[i][0].width * imgs[i][0].height for i in p_)
+                        if best_ is None or a_ > best_[0]: best_ = (a_, p_)
+                    pos = best_[1]; take = [i for i in ids if i in pos]
                 else:                                  # every other level: the original 7/8 steps (their data unchanged)
                     take = list(ids)
                     while take:
@@ -1853,9 +1855,16 @@ def write_bank2(src, bank, out, report):
                 pos2 = None; s2 = 64
                 while not pos2:
                     pos2 = pk([(i, imgs[i][0]) for i in second], s2, s2 // 2) or pk([(i, imgs[i][0]) for i in second], s2)
+                    if not pos2 and jcb:                 # (JC: the greedy fill with either order, all of them placed)
+                        for hh_ in (s2 // 2, s2):
+                            for ok_ in (lambda kv: (-kv[1].width * kv[1].height, kv[0]), lambda kv: (-kv[1].height, -kv[1].width, kv[0]), lambda kv: (-kv[1].width, -kv[1].height, kv[0])):
+                                p_ = pack_skyline_fill([(i, imgs[i][0]) for i in second], s2, hh_, ok_)
+                                if len(p_) == len(second): pos2 = p_; break
+                            if pos2: break
                     if not pos2:
                         s2 *= 2
                         if s2 > 1024: raise SystemExit('bank %s too large for two atlases' % bank['name'])
+                if os.environ.get('FP_ENS_AREAS'): print('second page', bank['name'], s2, len(second), max(imgs[i][0].width for i in second), sorted(imgs[i][0].size for i in second)[-5:])
                 at2 = Image.new('RGBA', (s2, s2), (0, 0, 0, 0))
                 for i in second: at2.paste(imgs[i][0], pos2[i])
                 bb2 = at2.getbbox() or (0, 0, 8, 8)
