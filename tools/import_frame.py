@@ -1727,7 +1727,7 @@ def write_bank2(src, bank, out, report):
         im, hx, hy = imgs[i]; bb = im.getbbox()
         if bb and (bb[2] - bb[0], bb[3] - bb[1]) != im.size:
             imgs[i] = (im.crop(bb), hx - bb[0], hy - bb[1]); crop_off[i] = (bb[0], bb[1])
-    if os.environ.get('FP_ENS_AREAS') and bank['name'].endswith('_ens'):   # diagnostics: the largest anims of an _ens bank
+    if os.environ.get('FP_ENS_AREAS') and bank['name'].endswith(('_ens', '_obj')):   # diagnostics: the largest anims of an _ens / _obj bank
         ar = {}
         for a_ in bank['anims']:
             ar[a_['name']] = sum(imgs[i][0].width * imgs[i][0].height for i in set(a_['frames']) if i in imgs)
