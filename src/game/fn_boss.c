@@ -612,6 +612,7 @@ enum { SS_NONE, SS_DASH, SS_SHOOT, SS_FLAME, SS_MISSILE, SS_SHIELD, SS_STAGGER }
 static struct {
     int serp, arm, hit, probe, shield, glow;
     int armed, fight, lock, music, st, fl7, dfl, esc, fl1, fl3, sh_phase, snd197, ctrl;
+    int jc5, fallB, gone; double R;                                         /* JC5's Serpentine 2 (hitbox 2552, sub id 1): jc_boss5.c; fall 11276-11282 */
     double B, C, D, E, F, G, H, I, J, L, armA, armB;
     double camA, camB;
 } S;
@@ -754,6 +755,42 @@ static void rapid_new(const obj_t *s) {                                         
     int e = (int)S.E % 2; r->av[2] = e + 2; r->av[3] = 2 * e - 1; S.E += 1;     /* C = E mod 2 + 2, D = 2 (E mod 2) - 1 */
     snd_play_orig(194, 220, 128);
 }
+/* JC5 (jc_boss5.c's act): 11277-11282 after the defeat (group 0x22af5). RE: petals while B = 0 (R < 3, direction 2R + 6, A 2; the
+ * three in one go is INFERRED), F toward the player (11278 / 11279), B 0 -> 1: anim 8, D -4, C -4F (knocked away), the arm hidden
+ * (11280); B > 0: x += C, y += D, D += 0.25, the music fades 3 % a frame (11281); falling (D > 0): layer 2, behind the cliff (11282).
+ * jc_boss5.c starts the gunship once he is 800 px below it (11283) and removes him (fn_boss_serp_remove). */
+static void serp_jc5_fall(player_t *p, obj_t *s, obj_t *arm) {
+    if (S.gone) return;
+    if (S.fallB == 0) {
+        for (; S.R < 3; S.R += 1) {                                              /* 11277 */
+            obj_t *e = obj_alloc(); int a = bank_anim(&G.objs, "objectpetal_355");
+            if (!e) break;
+            double r = (2 * S.R + 6) * 11.25 / RAD;
+            e->type = OT_ITEM_FLY; e->st = OT_PETAL; e->alive = 1; e->layer = 2; e->x = s->x; e->y = s->y;
+            e->vx = 4.f * (float)fd_cos(r); e->vy = -4.f * (float)fd_sin(r);    /* (speed as fn_gima.c's launch_item: INFERRED) */
+            if (a >= 0) anim_set(&e->an, &G.objs, a);
+        }
+        S.F = PX(p) <= s->x ? -1 : 1;                                            /* 11278 / 11279 */
+        serp_restart(s, S_FS8); S.D = -4; S.C = -4 * S.F; S.fallB = 1;           /* 11280 */
+        if (arm) arm->hidden = 1;
+    } else {
+        s->x = (float)(int)(s->x + S.C); s->y = (float)(int)(s->y + S.D); S.D += 0.25;   /* 11281 */
+        /* 11281 also lowers channel 31 by 3 a frame: the results music's channel (1136), idle here; m_boss plays on (RV: no new
+         * music when the gunship starts) */
+        if (S.D > 0) { s->layer = 1; if (arm) arm->layer = 1; }                  /* 11282: layer 2 (the port's 1: behind the play layer) */
+    }
+    if (arm) arm->hidden = 1;
+}
+int  fn_boss_serp_falling(float *y) { obj_t *s = serp(); if (!S.jc5 || !S.dfl || S.gone || !s) return 0; if (y) *y = s->y; return S.fallB && S.D > 0; }
+void fn_boss_serp_remove(void) {                                                 /* 11283: Serpentine, arm, floor check and hitbox destroyed */
+    obj_t *o;
+    if ((o = slot(S.serp))) o->alive = 0;
+    if ((o = slot(S.arm))) o->alive = 0;
+    if ((o = slot(S.probe))) o->alive = 0;
+    if ((o = slot(S.hit))) o->alive = 0;
+    S.gone = 1;
+}
+int  fn_boss_serp_jc5(void) { return S.jc5 ? (S.gone ? 3 : S.dfl ? 2 : S.fight ? 1 : 0) + 1 : 0; }   /* 0 none, 1 waiting, 2 fight, 3 falling, 4 gone */
 static void serp_frame(player_t *p) {
     obj_t *s = serp(), *hb = shit(), *arm = slot(S.arm), *pr = slot(S.probe), *sh = slot(S.shield), *u = ufo(), *b = beam();
     if (!s || !hb) return;                                                       /* Lilac only: the flow removes the hitbox set for the others (8083) */
@@ -762,11 +799,16 @@ static void serp_frame(player_t *p) {
     if (S.lock == 1 && S.fight < 2 && PX(p) < LL + 16 && MVB(p) < 0) setB(p, 0); /* 7813 */
     if (!S.fight) {                                                              /* 7812 (Classic: no dialog) */
         int hit = 0;
-        for (int k = 0; k < ntrig && !hit; k++) { obj_t *t = slot(trig[k]); if (t && fabsf(t->x - s->x) < 600) hit = csens_rect(p, t->x, t->y, t->x + 16, t->y + 288); }   /* 8082: y-scale 1.5 */
+        for (int k = 0; k < ntrig && !hit; k++) {
+            obj_t *t = slot(trig[k]); if (!t) continue;
+            if (S.jc5) hit = t->x < PX(p);                                       /* JC5 11195: the trigger is left of the player (x only) */
+            else if (fabsf(t->x - s->x) < 600) hit = csens_rect(p, t->x, t->y, t->x + 16, t->y + 288);   /* 8082: y-scale 1.5 */
+        }
         if (!hit) return;
         S.fight = 1;
+        if (S.jc5) voice_play("serp_gotyounow");                                 /* JC5 11197 (channel 24; RV l_kill 1223) */
     }
-    if (!S.music && u && U.G < 3) { S.music = 1; U.music4 = 1; const char *m = level_music_slot(4); if (m) music_play(m); }   /* 7726: m_midboss */
+    if (!S.music && (u ? U.G < 3 : S.jc5)) { S.music = 1; U.music4 = 1; const char *m = level_music_slot(4); if (m) music_play(m); }   /* 7726: m_midboss */
     if (!S.armed) {                                                              /* 7819 / 7820 (once) */
         S.armed = 1; S.armA = -90; S.J = s->y; s->hidden = 0;
         U.act = 0;                                                               /* group 0x225d4 off (the chase) */
@@ -776,7 +818,7 @@ static void serp_frame(player_t *p) {
         }
         if (b && u) { U.bvis = 1; U.bA = 12; b->layer = 1; b->x = u->x; b->y = u->y; }   /* the beam: a wall column under the UFO (y-scale INFERRED 12) */
         for (int k = 0; k < nbars; k++) { obj_t *br = slot(bars[k]); if (br && u) br->x = u->x; }   /* the arena's left wall */
-        hb->c = 0; hb->A = 135; hb->av[0] = 4; hb->fl |= F_NOFLY;
+        hb->c = 0; hb->A = S.jc5 ? 180 : 135; hb->av[0] = S.jc5 ? 6 : 4; hb->fl |= F_NOFLY;   /* ctor A / D (JC5 2552: 180 / 6, RE + RV) */
         S.B = 0; S.F = -1; boss_action_reset(); S.st = SS_DASH;                  /* 7820 */
     }
     if (u && U.G == 0) { u->fl |= F_ARM; u->c = 5; }                             /* 7367 (G stays 0 until the escape) */
@@ -815,9 +857,18 @@ static void serp_frame(player_t *p) {
     if (!def && S.st != SS_STAGGER) {
         if (player_orig_m(p) == 5 && hb->c > 0 && down && csens_hit(p, hb)) { hb->A -= 10; serp_stagger(); }   /* 7917: Lilac's Dragon Boost */
         else if (down && b && U.bvis && s->x <= beam_x() + 31) serp_stagger();   /* 7918: the beam wall */
+        else if (S.jc5 && down && hb->c > 0 && player_cube_beam() && player_cube_hits(hb)) { hb->A -= 15; serp_stagger(); }   /* JC5 11274: Milla's shield burst */
     }
     if (!def && hb->A < 30 * hb->av[0]) {                                        /* 7919 / 7920 */
         S.I += 1; serp_stagger(); hb->av[0] -= 1; shield_park();
+    }
+    if (S.jc5) {                                                                 /* JC5 11276-11282: defeated, he drops petals and falls off the cliff */
+        if (def && !S.dfl) {
+            S.dfl = 1; kill_projectiles(); S.st = SS_NONE; S.B = 0; S.fallB = 0; S.R = 0;   /* 11276: 0x2265d off, 0x22af5 on, B 0 */
+            obj_t *g = slot(S.glow); if (g) g->alive = 0;
+            if (sh) sh->alive = 0;
+        }
+        if (S.dfl) { serp_jc5_fall(p, s, arm); goto mirror; }
     }
     /* 7866: defeated */
     if (S.B == 0 && def && !S.dfl) {
@@ -865,7 +916,7 @@ static void serp_frame(player_t *p) {
             int ahead = obstacle((float)(s->x + 24 * S.F), (float)(s->y - 16));
             int ramp = 0; for (int i = 0; i < G.nobjs && !ramp; i++) { obj_t *r = &G.o[i]; if (r->alive && r->type == OT_FN_RAMP && pr && r->an.b && fabsf(r->x - pr->x) < 160 && obj_obj_hit(pr, r)) ramp = 1; }
             if (ahead || ramp) { serp_state(SS_FLAME); S.G = 2; break; }         /* 7825-7827 */
-            if (fe_difficulty == 0 && fabs(PX(p) - s->x) > 300) { serp_state(SS_MISSILE); break; }   /* 7828: Hard only */
+            if ((fe_difficulty == 0 || S.jc5) && fabs(PX(p) - s->x) > 300) { serp_state(SS_MISSILE); break; }   /* 7828: Hard only (JC5 11202: every difficulty) */
             glow_at(s, 1, 0); S.B = 1; S.G = 0; serp_anim(s, S_FS0); S.H = -1; snd_play_orig(191, 220, 128);   /* 7829 */
         } else if (S.B == 1) {
             S.G += 1; glow_at(s, fmax(1 - 0.04 * S.G, 0.1), (int)fmin(255, 10 * S.G));   /* 7830 */
@@ -1050,7 +1101,7 @@ void fn_boss_spawn(void) {
         case OT_FN_LIMITER: if (Z.nlim < 4) Z.lim[Z.nlim++] = i; set_a(o, S_LIM); break;
         case OT_FN_SERP: S.serp = i; set_a(o, S_FS0L); break;
         case OT_FN_SERP_ARM: S.arm = i; set_a(o, S_SARM1); break;
-        case OT_FN_SERP_HIT: S.hit = i; set_a(o, S_SHIT); o->A = 135; o->av[0] = 4; o->fl |= F_NOFLY; break;   /* ctor A 135, D 4 */
+        case OT_FN_SERP_HIT: S.hit = i; set_a(o, S_SHIT); S.jc5 = (o->par & 1) != 0; o->A = S.jc5 ? 180 : 135; o->av[0] = S.jc5 ? 6 : 4; o->fl |= F_NOFLY; break;   /* ctor A 135, D 4 (JC5's BossSerpHitbox_2552: A 180, D 6) */
         case OT_FN_SERP_FLOOR: S.probe = i; set_a(o, S_SPROBE); break;
         case OT_FN_SERP_SHIELD: S.shield = i; set_a(o, S_SSHIELD); break;
         case OT_FN_CHARGE_GLOW: S.glow = i; set_a(o, S_GLOW); break;
