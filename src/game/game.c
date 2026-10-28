@@ -189,7 +189,7 @@ int game_load_level(const char *dir) {
     loading_end();
     G.mus_resume_t = 0;
     music_fade(0, 0);                              /* a running fade ends with the level */
-    { uint64_t tm = plat_time_us(); if (level_def(dir)->music_off) music_stop(); else music_play(level_music(dir)); LP.music_us += plat_time_us() - tm; }   /* TB6 12735: silent start */
+    { uint64_t tm = plat_time_us(); if (level_def(dir)->music_off) music_stop(); else if (G.at_g4 < level_def(dir)->music_fade_g4) music_fade(120, 0); else music_play(level_music(dir)); LP.music_us += plat_time_us() - tm; }   /* TB6 12735: silent start; BG4 14607 / 14608 (g4 < 5: fadeout_music(2000)) */
     lp_end();
     return 0;
 }

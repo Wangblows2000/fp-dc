@@ -968,10 +968,14 @@ typedef struct {
     int music_off;                                   /* the act starts silent (TB6 12735: Media::stop_channel(31)); its scripts play the slots */
     /* session 23 (Pangu Lagoon, spec_pl_flow) */
     int lilac_only;                                  /* every act start writes g1 = 0 (PL 12844 / PL1's start inline): the act is played as Lilac */
+    /* session 24 (Battle Glacier, spec_bg_flow) */
+    int music_fade_g4;                               /* > 0: the act start fades the music out (fadeout_music(2000)) while g4 < this, plays slot 5
+                                                        from it on (BG4 14607 / 14608: silent until its opening Brevon mech is beaten, g4 5) */
 } level_def_t;
 int  level_water(void);                              /* the act's water line ML.B now (level data .water, moved by level_water_set; 0 = dry) */
 void level_water_set(int b);                         /* a script moves ML.B (TB5's water levers 12491-12501) */
 const char *level_music_slot(int slot);              /* the current act's music for a play_music(slot) of its scripts (NULL: none) */
+void level_checkpoint(int g4, float x, float y);    /* g4 / g5 / g6 + loop_cp_16: the restart point and the act-start snapshot (stage scripts) */
 void level_lock_markers(void);                       /* CAM.M = 1: the boss bounds of the CameraLimitBoss markers (as placed / moved) */
 int  game_timer(void);                               /* the stage timer in frames (stopped while G.timer_stop) */
 /* src/game/fn_panther.c (FN5 intro / chase, FN6 Panther fight, post-boss scene; spec_fn_bosses F / G) */
