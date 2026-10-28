@@ -1229,7 +1229,16 @@ for _e in THB_ENS: ROW_FRAMES[_e[3]] = TH_FRAMES   # TH_BOSS rows only in Trap H
 # ==== end Trap Hideout
 
 # ==== Thermal Base (session 21c; json 45-50 = tb1-tb6; types 1792-2047, one block per module like Trap Hideout)
-# ---- TB_FLOW (tb_flow.c, 1792-1823)
+# ---- TB_FLOW (tb_flow.c, 1792-1823; build/re/spec_tb_flow.md)
+# LevelLift_2649 (RE 11709-11719 / 11881 / 12030, RV tb1_start: a 96 x 96 box riding 8 px a frame between the LevelLiftTop_2650 /
+# LevelLiftBottom_2651 markers (64 x 16, invisible from the ctor); Q7 Q13), TBWallLightAnim_2644 (scenery: 11826 / 12091 force
+# frame (g3 / 4) mod 12 every frame). The rows come with on-map placements only (NEWPACK_FRAMES).
+TBF_TYPES_ID = {('levellift', 2649): 1792, ('levellifttop', 2650): 1793, ('levelliftbottom', 2651): 1794, ('tbwalllightanim', 2644): 1795}
+TBF_ENS = [('levellift_2649', 0, '0', 'tblift'), ('tbwalllightanim_2644', 0, '0', 'tbwl')]
+ENGINE_TYPES_ID.update(TBF_TYPES_ID); ENS += TBF_ENS   # TB_FLOW
+# water (MasterLevel A = 1: TB4 12461 ML.B 3400, TB5 12546 ML.B 2920; TB6 12733 writes A 1, B 2920 below its 2000-px frame: dry in
+# effect, left out like TH; TB1-TB3 A 0): air meter + water effects. RV tb4_start / tb5_start: ml_A 1, ml_B 3400 / 2920
+WATER_FRAMES = WATER_FRAMES + (48, 49)
 
 # ---- TB_ENEMIES (tb_enemy.c, 1824-1887)
 
@@ -1383,6 +1392,23 @@ PAR_IMG.update({'levelparallaxpiece0_3109': 10992, 'levelparallaxpiece0_3147': 1
                 'levelparallaxpiece1_3207': 5994, 'levelparallaxpiece2_3208': 2737})
 PAR_BOXH.update({'levelparallaxpiece0_3109': 863, 'levelparallaxpiece0_3147': 720, 'levelparallaxpiece0_3192': 1000})
 PAR_DEG.update({3109: (.6, .6, 0), 3147: (.6, .6, 0), 3192: (.6, .6, 0), 3207: (.95, .95, 0), 3208: (.8, .85, 0)})
+# ---- TB_FLOW parallax / layers (tb_flow.c, session 21c; spec_tb_flow 5)
+# Layer::init (RE on_frame_45..50_init): layer 1 scrolls 0.8 in TB1-TB3, TB5, TB6 and 1.0 in TB4 (layer 6 0, the rest 1).
+# Pieces (RE create_levelparallaxpiece*_25xx-28xx: SystemBox image, box w x h; the image tiles in the box). D / E / G: TB1 / TB2
+# start inline, TB3 12029 (piece0 .99 .94, piece1 .98 .93, piece2 .95 .91, piece5 .84 .8, piece6 / piece7 .5 .6); TB4 start inline,
+# TB5 12462, TB6 start inline (piece2 .7 .7, piece1 .7 .7 with the drift G -4, piece3 .5 .5). LevelHeatSky_2779 (TB3 / TB6 layer 5)
+# is an Active invisible from its ctor: not a parallax piece (not exported)
+SCROLL08.update({45: 1, 46: 1, 47: 1, 49: 1, 50: 1})
+PAR_IMG.update({'levelparallaxpiece0_2589': 6795, 'levelparallaxpiece1_2590': 4701, 'levelparallaxpiece2_2591': 6128,
+                'levelparallaxpiece5_2592': 6368, 'levelparallaxpiece6_2593': 9225, 'levelparallaxpiece7_2725': 1608,
+                'levelparallaxpiece1_2783': 6237, 'levelparallaxpiece2_2784': 6242, 'levelparallaxpiece3_2851': 2753,
+                'levelparallaxpiece2_2855': 3413, 'levelparallaxpiece3_2875': 5935, 'levelparallaxpiece2_2885': 2319})
+PAR_BOXW.update({'levelparallaxpiece0_2589': 320})
+PAR_BOXH.update({'levelparallaxpiece7_2725': 640, 'levelparallaxpiece1_2783': 1280, 'levelparallaxpiece2_2784': 1280,
+                 'levelparallaxpiece3_2851': 1920, 'levelparallaxpiece2_2855': 1280, 'levelparallaxpiece3_2875': 1920,
+                 'levelparallaxpiece2_2885': 1280})
+PAR_DEG.update({2589: (.99, .94, 0), 2590: (.98, .93, 0), 2591: (.95, .91, 0), 2592: (.84, .8, 0), 2593: (.5, .6, 0), 2725: (.5, .6, 0),
+                2783: (.7, .7, -4), 2784: (.7, .7, 0), 2855: (.7, .7, 0), 2885: (.7, .7, 0), 2851: (.5, .5, 0), 2875: (.5, .5, 0)})
 JC_WATER = {40: 1200, 41: 1600, 42: 1600, 43: 1600, 44: 1600}   # ML.B (10378 / 10566 / 10822 / 10863 / 11643)
 JC_SURF_FRAMES = [7795, 7802, 7803, 7804, 7796, 7797, 7798]      # LevelParalaxWaterSurface_14 anim 0 (both directions use the same images);
                                                                  # its 8th frame (7799) is shown as the 7th: one 512 x 512 4 bpp atlas (VRAM)

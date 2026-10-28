@@ -16,7 +16,7 @@ void phys_set_water(int h) {
 
 #define WB water_line()
 /* MasterLevel B per level: DV2 / DV3 2700 (5109 / 5314); Aqua Tunnel 1200 / 1200 / none / 1480 (4309 / 4478 / 4530 / 4685) */
-static double water_line(void) { return level_cur()->water ? level_cur()->water : 2700.0; }   /* level data (levels.c) */
+static double water_line(void) { int b = level_water(); return b ? b : 2700.0; }   /* level data (levels.c; TB5's levers move it: level_water_set) */
 #define NB 64
 typedef struct { int alive, frame; double a, b, d; } bubble_t;
 static struct { int icon_c, mus, mus_v, music_cut; int gx; bubble_t bub[NB]; int pa[4], pb[4]; } W;

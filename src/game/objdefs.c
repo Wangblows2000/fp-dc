@@ -878,6 +878,10 @@ static const objdef_t DEFS[] = {
     /* ==== end Trap Hideout */
     /* ==== Thermal Base (session 21c): one block per module */
     /* ---- TB_FLOW (tb_flow.c) */
+    { OT_TBF_LIFT,      OD_SOLID|OD_BOXCOL,                    NULL         }, /* levellift_2649 (Q7 Q13; box: INFERRED, the mask's top edge is the box's) */
+    { OT_TBF_LIFTTOP,   OD_HIDDEN,                             NULL         }, /* levellifttop_2650 (ctor set_visible(0)) */
+    { OT_TBF_LIFTBOT,   OD_HIDDEN,                             NULL         }, /* levelliftbottom_2651 (ctor set_visible(0)) */
+    { OT_TBF_WALLLIGHT, 0,                                     NULL         }, /* tbwalllightanim_2644 */
     /* ---- TB_ENEMIES (tb_enemy.c) */
     /* ---- TB_GIM (tb_gim.c) */
     /* ---- TB_BOSS (tb_boss.c) */
