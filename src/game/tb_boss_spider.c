@@ -442,7 +442,6 @@ static void chase(player_t *p) {
 
 void tbp_frame(player_t *p) {
     if (!S.on) return;
-    obj_t *m = mask();
     columns(p);
     pieces(p);
     if (S.ph <= PH_INTRO) intro(p);
@@ -452,6 +451,7 @@ void tbp_frame(player_t *p) {
     else if (S.ph == PH_CHASE) { flyoff(); chase(p); }
 #ifdef FP_HOST_ENV
     if (getenv("FP_DBG_TBP")) {
+        obj_t *m = mask();
         float wx = -1; for (int k = 0; k < S.nl3; k++) { obj_t *o = tbb_slot(S.l3[k]); if (o && o->x > wx) wx = o->x; }
         printf("tbp %d px %.0f py %.0f ph %d K %.0f O %.0f x %.0f y %.0f A %d H %.0f I %.0f F %.0f L %.0f bB %.1f bC %.0f bF %.1f cB %.0f cC %.0f cD %.0f lf %d def %d wall %.0f nl3 %d nlc %d\n",
             G.frame, sbb_px(p), sbb_py(p), S.ph, S.K, S.O, m ? m->x : -1, m ? m->y : -1, m ? (int)m->A : -1, S.H, S.I, S.F, S.L, S.bB, S.bC, S.bF, S.cB, S.cC, S.cD,
