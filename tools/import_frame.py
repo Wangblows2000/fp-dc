@@ -1165,8 +1165,8 @@ THG_TYPES_ID = {('hazardscanlasersweep', 3128): 1620, ('hazardscanlaserright', 3
     ('hazardscanlaserdown', 3131): 1620, ('hazardscanlaserup', 3132): 1620, ('hazardscanlaserhead', 3133): 1621,
     ('hazardscanlaserhead2', 3134): 1621, ('hazardscanlaserhead3', 3137): 1621, ('hazardscanlaserhead4', 3135): 1621,
     ('hazardscanlaserhead5', 3136): 1621, ('levelhideoutplatform1', 3172): 1622, ('levelhideoutplatformflame', 3173): 1623,
-    ('thflame', 3176): 1624, ('hazardshuriken', 3166): 1625, ('hazardshurikenbase', 3167): 1626, ('hazardshurikenturn', 3168): 1627,
-    ('gimmickbarrel', 3177): 1628, ('thbacklight1', 3113): 1630, ('levelthcollapsingplatform', 3186): 1378}
+    ('hazardshuriken', 3166): 1625, ('hazardshurikenbase', 3167): 1626, ('hazardshurikenturn', 3168): 1627,
+    ('gimmickbarrel', 3177): 1628, ('levelthcollapsingplatform', 3186): 1378}   # (THFlame / THBacklight1: th_flow.c types 1537 / 1536, merge)
 THG_SUB = {'hazardscanlasersweep_3128': 0, 'hazardscanlaserright_3129': 1, 'hazardscanlaserleft_3130': 2, 'hazardscanlaserdown_3131': 3,
     'hazardscanlaserup_3132': 4, 'hazardscanlaserhead_3133': 0, 'hazardscanlaserhead2_3134': 2, 'hazardscanlaserhead3_3137': 3,
     'hazardscanlaserhead4_3135': 4, 'hazardscanlaserhead5_3136': 5}
@@ -1175,9 +1175,9 @@ THG_ENS = [(c, 0, d, nm) for c, d, nm in (
     ('hazardscanlasersweep_3128', '0', 'thg_beam0'), ('hazardscanlasersweep_3128', '1', 'thg_beam1'),   # the five beam classes share these images
     ('hazardscanlaserhead_3133', '0', 'thg_head'), ('hazardscanlaserhead2_3134', '0', 'thg_head2'), ('hazardscanlaserhead3_3137', '0', 'thg_head3'),
     ('hazardscanlaserhead4_3135', '0', 'thg_head4'), ('hazardscanlaserhead5_3136', '0', 'thg_head5'),
-    ('levelhideoutplatform1_3172', '0', 'thg_pillar'), ('levelhideoutplatformflame_3173', '8', 'thg_pflame'), ('thflame_3176', '0', 'thg_flame'),
+    ('levelhideoutplatform1_3172', '0', 'thg_pillar'), ('levelhideoutplatformflame_3173', '8', 'thg_pflame'),
     ('hazardshuriken_3166', '0', 'thg_shur'), ('hazardshurikenbase_3167', '0', 'thg_shbase'), ('gimmickbarrel_3177', '0', 'thg_barrel'),
-    ('gimmickbarreldebris_3127', '0', 'thg_bdebris'), ('thbacklight1_3113', '0', 'thg_blight'),
+    ('gimmickbarreldebris_3127', '0', 'thg_bdebris'),
     ('levelthcollapsingplatform_3186', '0', 'thg_coll'), ('levelthcollapsingplatformpiece_3187', '0', 'thg_cpiece'))]
 _THG_BEAMS = ('hazardscanlasersweep', 'hazardscanlaserright', 'hazardscanlaserleft', 'hazardscanlaserdown', 'hazardscanlaserup')
 THG_ENS.append(('effectsspringbeam_540', 4, '0', 'thg_sbeam', None, ('gimmickbarrel',)))   # 13588: a barrel on a YellowSpringUp

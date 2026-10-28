@@ -58,9 +58,9 @@ def lvobjs(lv):
     return [struct.unpack_from('<2H2i', d, off + 12 * k) for k in range(nobj)]
 
 # ---- data: the importer's TH_GIM rows (types 1620-1630, member | layer << 8; LevelTHCollapsingPlatform -> 1378 member 2)
-want = {'th1': {1620: 23, 1621: 23, 1630: 7},
-        'th2': {1622: 29, 1623: 29, 1624: 58, 1625: 4, 1626: 4, 1627: 16, 1628: 3, 1630: 25, 1378: 6},
-        'th3': {1622: 4, 1623: 4, 1624: 62, 1625: 3, 1626: 3, 1628: 1, 1630: 19, 1378: 9}}
+want = {'th1': {1620: 23, 1621: 23, 1536: 7},
+        'th2': {1622: 29, 1623: 29, 1537: 58, 1625: 4, 1626: 4, 1627: 16, 1628: 3, 1536: 25, 1378: 6},
+        'th3': {1622: 4, 1623: 4, 1537: 62, 1625: 3, 1626: 3, 1628: 1, 1536: 19, 1378: 9}}
 for lv, w in want.items():
     objs = lvobjs(lv); cnt = {}
     for t, a, x, y in objs:
@@ -187,12 +187,12 @@ for ch, nm in CHARS:
     check('barrel_jump_RV_%s' % nm, j and abs(j['vy'] + 7) < 0.3 and 8 in sids(ev, 8) or (j and abs(j['vy'] + 7) < 0.3), 'vy %s' % (j['vy'] if j else None))
     check('barrel_roll_sound_264_%s' % nm, len(sids(ev, 264)) >= 3, str(sids(ev, 264)[:4]))
 
-# ---- backlights (13532: frame (g3 / 10) mod 6), flames (scenery: no damage)
-rows, ev, obs = run('5 SETV others E 99999\n', 90, dict(L2, FP_TRACK='1630:-1,1624:-1'))
-fr = {o['f']: o['fr'] for o in obs if o['type'] == 1630}
+# ---- backlights (13532: frame (g3 / 10) mod 6), flames (scenery: no damage): th_flow.c types 1536 / 1537 since the merge
+rows, ev, obs = run('5 SETV others E 99999\n', 90, dict(L2, FP_TRACK='1536:-1,1537:-1'))
+fr = {o['f']: o['fr'] for o in obs if o['type'] == 1536}
 check('backlight_frame_g3', all(fr[f] == ((f + 1) // 10) % 6 for f in range(20, 80)), str([fr[f] for f in range(20, 80, 10)]))
-fl = [o for o in obs if o['type'] == 1624 and o['f'] == 60]
-check('flame_animated_scenery', fl and len({o['fr'] for o in obs if o['type'] == 1624}) > 1)
+fl = [o for o in obs if o['type'] == 1537 and o['f'] == 60]
+check('flame_animated_scenery', fl and len({o['fr'] for o in obs if o['type'] == 1537}) > 1)
 
 # ---- critical path past the traps (host route-search inputs, replayed: tests/play/th1_<char>_gim.txt = the act start through the
 # shaft's first laser rooms (down beams, sweeps), th1_<char>_floor.txt = the floor corridor's up beams to the Laser Iris,
