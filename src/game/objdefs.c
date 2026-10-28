@@ -987,7 +987,26 @@ static const objdef_t DEFS[] = {
     /* ==== end Thermal Base */
     /* ==== Pangu Lagoon (session 23): one block per module */
     /* ---- PL_FLOW (pl_flow.c) */
-    /* ---- PL_ENEMIES (pl_enemy.c) */
+    /* ---- PL_ENEMIES (pl_enemy.c, spec_pl_enemies; sprites set by pl_enemy_spawn; RE on_frame_51..56_init q20) */
+    { OT_PL_STINGER,    OD_LANDS,                              NULL         }, /* enemystinger_2933 (q20; 12810: the Ganseki landing) */
+    { OT_PL_NEST,       0,                                     NULL         }, /* enemystingernest_2937 (q20; flag 16, burst death) */
+    { OT_PL_SUNFLORA,   0,                                     NULL         }, /* enemysunflora_2940 (q20; flag 16, regrows) */
+    { OT_PL_GAS,        OD_HIDDEN,                             NULL         }, /* enemysleepgas_2941 (drawn at its blend alpha by pl_enemy_draw) */
+    { OT_PL_TERREON,    OD_HIDDEN,                             NULL         }, /* enemyterreon_3006 (q20; drawn with its rig) */
+    { OT_PL_TLEG,       OD_HIDDEN,                             NULL         }, /* enemyterreonleftleg_3004 (q20, armoured) */
+    { OT_PL_TRLEG,      OD_HIDDEN,                             NULL         }, /* enemyterreonrightleg_3005 (q20, armoured) */
+    { OT_PL_TLSH,       OD_HIDDEN,                             NULL         }, /* enemyterreonleftshoulder_3002 */
+    { OT_PL_TRSH,       OD_HIDDEN,                             NULL         }, /* enemyterreonrightshoulder_3003 */
+    { OT_PL_TWARN,      OD_HIDDEN,                             NULL         }, /* effectterreonwarning_3008 (shown by 12912) */
+    { OT_PL_OBELISK,    0,                                     NULL         }, /* enemyobelisk_3047 (q20; flag 16, the wreck stays) */
+    { OT_PL_WSTINGER,   0,                                     NULL         }, /* enemywallstinger_3056 (q20) */
+    { OT_PL_WBACK,      0,                                     NULL         }, /* enemywallstingerback_3058 (json layer 1 scenery) */
+    { OT_PL_WLTOP,      OD_HIDDEN,                             NULL         }, /* wallstingerlimittop_3060 */
+    { OT_PL_WLBOT,      OD_HIDDEN,                             NULL         }, /* wallstingerlimitbottom_3061 */
+    { OT_PL_TDEBRIS,    0,                                     NULL         }, /* enemyterreondebris_3007 (runtime) */
+    { OT_PL_OLASER,     0,                                     NULL         }, /* enemyobelisklaser_3048 (runtime) */
+    { OT_PL_WSPAWN,     OD_HIDDEN,                             NULL         }, /* enemywallstingerspawn_3057 (runtime marker) */
+    { OT_PL_CONFETTI,   0,                                     NULL         }, /* effectsconfetti_2943 (runtime) */
     /* ---- PL_GIM (pl_gim.c) */
     /* ---- PL_BOSS (pl_boss.c) */
     /* ==== end Pangu Lagoon */
