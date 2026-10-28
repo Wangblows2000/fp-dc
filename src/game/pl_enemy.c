@@ -20,6 +20,7 @@
 #define FL2 0x2000                                   /* flag 2 */
 #define FL3 0x4000                                   /* flag 3 */
 #define FLLIM 0x8000                                 /* obelisk: its EnemyLimiter used (13067 destroys the limiter) */
+#define FLS10 0x80000                                /* back swarm: on json layer 1 scrolling at 1 (objects_draw(-1) would use 0.8: drawn by pl_enemy_draw(-1)) */
 #define RT0 OT_PLE_FIRST
 #define NRT (OT_PLE_LAST - OT_PLE_FIRST + 1)
 #define PL_LMAX 320                                  /* the stingers' list: nests (15 each) and wall stingers add them at run time */
@@ -99,11 +100,6 @@ static void stinger_frame(obj_t *o, player_t *p) {
         if (*D == 4 && *Gy >= floorf(o->y)) { o->y = (float)(int)*Gy; *D = 0; *H = 0; }   /* 12807 */
     }
     if (DEFEATED(o) || *D == 5) { *D = 5; ek_set_a(o, "pls_dead"); o->bd = 0; }   /* 12808 / 12809 */
-    if (S.swarm && !DEFEATED(o)) {                                             /* A4 / A5 13086 / 13087: the swarm wraps with the view */
-        double W = SCREEN_W;                                                   /* global value 16 (INFERRED: the view width, event 138) */
-        if (floorf(o->x) < G.camx - 80) o->x = (float)(int)(floorf(o->x) + W + 180);
-        else if (floorf(o->x) > G.camx + W + 80) o->x = (float)(int)(floorf(o->x) - W - 180);
-    }
 }
 /* 12790 / 12791: the dive trigger, one random stinger a frame for each side; 12798: the dive sound, one random stinger */
 static void stinger_group(player_t *p) {
@@ -119,6 +115,12 @@ static void stinger_group(player_t *p) {
             if (side == 0 ? (x > dy + X - 10 && x < dy + X + 10) : (x > X - dy - 10 && x < X - dy + 10)) c[n++] = o;
         }
         if ((o = pick(c, n))) { o->av[0] = 2; o->av[1] = side ? 4 : -4; o->av[4] = 0; ek_face(o, side ? 0 : 16); }
+    }
+    if (S.swarm) EACH(OT_PL_STINGER, o) if (!DEFEATED(o)) {                   /* A4 / A5 13086 / 13087: the swarm wraps with the view (every
+                                                                                  stinger, also the ones asleep far from it) */
+        double W = SCREEN_W;                                                   /* global value 16 (INFERRED: the view width, event 138) */
+        if (floorf(o->x) < G.camx - 80) o->x = (float)(int)(floorf(o->x) + W + 180);
+        else if (floorf(o->x) > G.camx + W + 80) o->x = (float)(int)(floorf(o->x) - W - 180);
     }
     n = 0;
     EACH(OT_PL_STINGER, o) if (o->av[0] == 3 && o->av[4] == 15) c[n++] = o;
@@ -429,30 +431,39 @@ static void wstinger_group(void) {                                             /
  * burrowing flight; above the top limit heading up (or below the bottom heading down) it skips the side flip (flag 3) and H - 1;
  * 50 px past a limit it is pushed back 2 px a frame; it wraps with the view (x < view - 50: F + 80 + W; x > view + 476: F - 80 - W). */
 static void wback_frame(obj_t *o, const obj_t *top, const obj_t *bot) {
-    double *D = &o->av[0], *E = &o->av[1], *F = &o->av[2], *Gy = &o->av[3], *H = &o->av[4];
+    double *D = &o->av[0], *E = &o->av[1], *F = &o->av[2], *Gy = &o->av[3], *H = &o->av[4], *LX = &o->av[5], *LY = &o->av[6];
     double tx = floorf(top->x), ty = floorf(top->y), by = bot ? floorf(bot->y) : ty + 281;
-    double vx = o->layer < 0 ? trunc(0.800000011920929 * G.camx) : G.camx;    /* (json layer 1 at 0.8 when the act scrolls it so: INFERRED) */
     o->fl &= ~FL3;                                                             /* 13088 */
     if (!(o->fl & FL1)) {                                                      /* 13095 */
-        o->fl |= FL1; *F = floorf(o->x) - tx; *Gy = floorf(o->y) - ty; *D = (R(32768) * 360) >> 15; *H = (R(32768) * 50) >> 15;
+        o->fl |= FL1; *F = *LX - tx; *Gy = *LY - ty; *D = (R(32768) * 360) >> 15; *H = (R(32768) * 50) >> 15;
     }
-    double y = floorf(o->y), x = floorf(o->x), d = ek_nrm(*D);
+    double y = *LY, x = *LX, d = ek_nrm(*D);
     if (y < ty && d < 180) { o->fl |= FL3; *H -= 1; }                          /* 13089 */
     if (y > by && d > 180) { o->fl |= FL3; *H -= 1; }                          /* 13090 */
     if (y < ty - 50) *Gy += 2;                                                 /* 13091 */
     if (y > by + 50) *Gy -= 2;                                                 /* 13092 */
-    if (x < vx - 50) *F += 80 + SCREEN_W;                                      /* 13093 (global 16 = the view width, INFERRED) */
-    if (x > vx + 476) *F -= 80 + SCREEN_W;                                     /* 13094 */
-    o->x = (float)(int)(tx + *F); o->y = (float)(int)(ty + *Gy);              /* 13096 */
+    if (x < G.camx - 50) *F += 80 + SCREEN_W;                                  /* 13093 (global 16 = the view width, INFERRED) */
+    if (x > G.camx + 476) *F -= 80 + SCREEN_W;                                 /* 13094 */
+    *LX = (int)(tx + *F); *LY = (int)(ty + *Gy);                               /* 13096 */
     *F += ek_cos(*D) * *E; *Gy -= ek_sin(*D) * *E; *H += 1; o->ang = (float)ek_nrm(*D);
     *D += (o->fl & FL2) ? -4 : 4;                                              /* 13097 / 13098 */
     if (*H > 50 && !(o->fl & FL3)) { o->fl ^= FL2; *H = (double)(int)-((R(32768) * 50) >> 15); }   /* 13099 */
+    o->x = (float)*LX; o->y = (float)*LY;
 }
 
 /* ================================================================ hurts (collision flags of test_collisions_50..55) */
 void pl_enemy_pre(player_t *p) {
     if (!S.on) return;
     obj_t *o, *t;
+    S.nstingers = list_alive(OT_PL_STINGER);                                   /* the group events (pick one of, the wrap) once a frame */
+    stinger_group(p);
+    if (LST[OT_PL_WSTINGER - RT0].n || LST[OT_PL_WSPAWN - RT0].n) wstinger_group();
+    if (LST[OT_PL_WBACK - RT0].n) {                                            /* the back swarm wraps with the view: run every instance */
+        obj_t *t = NULL, *b = NULL;
+        EACH(OT_PL_WLTOP, o) { t = o; break; }
+        EACH(OT_PL_WLBOT, o) { b = o; break; }
+        if (t) EACH(OT_PL_WBACK, o) wback_frame(o, t, b);
+    }
     EACH(OT_PL_GAS, o) {
         if (o->av[0] >= 65) continue;
         if (ek_csens_hit(p, o) && ek_r_hurt(p, 5, 1)) { p->tint = 90; p->tint_argb = 0xffff80ff; }   /* col_11_50 */
@@ -491,7 +502,8 @@ void pl_enemy_spawn(void) {
         if (!top && (o->x < 0 || o->y < 0 || o->x >= G.lvl.w || o->y >= G.lvl.h)) { o->alive = 0; continue; }   /* off-map templates */
         memset(o->av, 0, sizeof o->av); o->st = o->tm = 0; o->fl = 0; o->dir = 0; o->an.b = NULL; o->par = -1; o->hidden = 0;
         o->A = 0; o->c = 0; o->bd = 0; o->absorbed = 0; o->ang = 0; o->scale = 0;
-        o->layer = (a & 0x8000) ? -1 : (a >> 8) & 0x7f;
+        o->layer = (a & 0x8000) ? -1 : (a >> 8) & 0x3f;
+        if ((a & 0x8000) && !(a & 0x4000)) o->fl |= FLS10;                    /* json layer 1 scrolling at 1 (drawn by pl_enemy_draw(-1)) */
         list_add(o);
         switch (o->type) {
         case OT_PL_STINGER: stinger_init(o, kst++); S.nstingers++; break;
@@ -505,7 +517,7 @@ void pl_enemy_spawn(void) {
         case OT_PL_TWARN: o->hidden = 1; ek_set_a(o, "plt_warn"); break;
         case OT_PL_OBELISK: o->A = 20; o->av[2] = -1; o->fl |= F_NOFLY; o->dir = 16; ek_set_a(o, "plo_idle"); break;   /* ctor + 13107 */
         case OT_PL_WSTINGER: wstinger_init(o); break;
-        case OT_PL_WBACK: o->av[1] = 2; o->A = 4; ek_set_a(o, "plw_back"); break;  /* ctor A 4, E 2 */
+        case OT_PL_WBACK: o->av[1] = 2; o->A = 4; o->hidden = (o->fl & FLS10) ? 1 : 0; o->av[5] = floorf(o->x); o->av[6] = floorf(o->y); ek_set_a(o, "plw_back"); break;  /* ctor A 4, E 2 */
         case OT_PL_WLTOP: case OT_PL_WLBOT: o->hidden = 1; break;                /* invisible markers (no row) */
         default: o->alive = 0; break;                                            /* EnemySleepGas templates: the sunflora creates them */
         }
@@ -523,8 +535,16 @@ static void draw_q(const obj_t *q) {
     if (q->inv) r_set_invert(0);
 }
 void pl_enemy_draw(int pass) {
-    if (!S.on || pass != 1) return;
+    if (!S.on) return;
     obj_t *o;
+    if (pass == -1) {                                                          /* game.c, the back pass: json layer 1 behind the json-2 pieces */
+        EACH(OT_PL_WBACK, o) if (o->fl & FLS10) {                              /* (PL's layers all scroll at 1: RE Layer::init, on_frame_52..56_init) */
+            float sx = floorf(o->x - G.camx), sy = floorf(o->y - G.camy);
+            if (sx > -48 && sx < SCREEN_W + 48 && sy > -48 && sy < SCREEN_H + 48) draw_q(o);
+        }
+        return;
+    }
+    if (pass != 1) return;
     EACH(OT_PL_TERREON, o) {
         float ox = floorf(o->x - G.camx), oy = floorf(o->y - G.camy);
         if (ox < -160 || ox > SCREEN_W + 160 || oy < -160 || oy > SCREEN_H + 160 || o->hidden == 2) continue;
@@ -539,13 +559,6 @@ void pl_enemy_draw(int pass) {
 }
 int pl_enemy_obj(obj_t *o, player_t *p) {
     if (!S.on) return 0;
-    static int last = -1;
-    if (last != G.frame) {                                                     /* once a frame, before the per-object events */
-        last = G.frame;
-        S.nstingers = list_alive(OT_PL_STINGER);
-        stinger_group(p);
-        if (LST[OT_PL_WSTINGER - RT0].n || LST[OT_PL_WSPAWN - RT0].n) wstinger_group();
-    }
     switch (o->type) {
     case OT_PL_STINGER: stinger_frame(o, p); return 1;
     case OT_PL_NEST: nest_frame(o, p); return 1;
@@ -560,13 +573,7 @@ int pl_enemy_obj(obj_t *o, player_t *p) {
     case OT_PL_OLASER: olaser_frame(o); return 1;
     case OT_PL_WSTINGER: wstinger_frame(o); return 1;
     case OT_PL_WSPAWN: return 1;
-    case OT_PL_WBACK: {
-        obj_t *t = NULL, *b = NULL, *q;
-        EACH(OT_PL_WLTOP, q) { t = q; break; }
-        EACH(OT_PL_WLBOT, q) { b = q; break; }
-        if (t) wback_frame(o, t, b);
-        return 1;
-    }
+    case OT_PL_WBACK: return 1;                                            /* (pl_enemy_pre: every instance, asleep or not) */
     default: return 1;
     }
 }

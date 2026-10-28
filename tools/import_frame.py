@@ -2482,7 +2482,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         if 1100 <= o['type'] < 1150: a = SBG_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # SB_GIM (sb_gim.c): member index | instance layer << 8 | 0x8000: json layer 1 of a mapped frame (session 20: behind the json-2 pieces, scrolls with layer 1)
         if 1680 <= o['type'] < 1720: a = THB_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # TH_BOSS (th_boss.c): sub id | instance layer << 8 | 0x8000 json layer 1
         if 1968 <= o['type'] < 2016: a = TBB_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # TB_BOSS (tb_boss.c): member index | instance layer << 8
-        if 2080 <= o['type'] < 2144: a = (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 and o.get('s08') else 0)   # PL_ENEMIES (pl_enemy.c): instance layer << 8 | 0x8000 json layer 1 scrolled at 0.8
+        if 2080 <= o['type'] < 2144: a = (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0) | (0x4000 if o.get('s08') else 0)   # PL_ENEMIES (pl_enemy.c): instance layer << 8 | 0x8000 json layer 1 of a mapped frame | 0x4000 its layer scrolls at 0.8
         d += struct.pack('<2H2i', o['type'], a, o['x'], o['y'])
     for t in table: d += t
     d += struct.pack('<%dH' % len(smap), *smap)

@@ -1044,7 +1044,7 @@ void game_draw(void) {
      * the 0.8 pieces, the layer-1 objects, then the other layer-1 pieces (the order inside a layer is unchanged). */
     draw_pieces(0, 0);
     pieces_s08 = 1; draw_pieces(1, 1);
-    objects_draw(-1); sb_flow_draw(-1);
+    objects_draw(-1); sb_flow_draw(-1); pl_enemy_draw(-1);   /* PL: the json-1 swarm at scroll 1 (pl_enemy.c) */
     pieces_s08 = 0; draw_pieces(1, 1); pieces_s08 = -1;
     objects_draw(0);
     fn_gimb_draw_back();                          /* FN: carousel rings, A5 disco light (back of the play layer) */
