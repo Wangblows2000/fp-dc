@@ -180,7 +180,9 @@ void player_damage(player_t *p, int amount) {
     }
     if (p->hp <= 0) { p->state = ST_DEAD; p->dead_t = 0; p->vy = -5; p->vx = 0; p->ground = 0; return; }
     double b = p->ground ? p->gsp : p->vx, g = p->ground ? 0. : p->vy;   /* ground: B = ground speed, G = 0 */
-    p->state = ST_HURT; p->state_t = 0;
+    if (p->state != ST_HURT) p->state_t = 0;     /* session 21d: the hurt timer starts at the first hit of a hurt sequence (a hit while
+                                                  * already hurt keeps counting, so repeated hits cannot stretch it past PHYS_HURT_MAX_T) */
+    p->state = ST_HURT;
     p->vx = 0.75 * b - PHYS_HURT_VX * (float)p->face;
     p->vy = 0.75 * g - PHYS_HURT_VY;
     p->ground = 0; p->jumping = 0; p->hurt_land_t = 1000;
@@ -1163,6 +1165,9 @@ void player_update(player_t *p, const input_t *in) {
                        * landing M8 stays ~5 frames with ground friction */
         if (p->ground) { ground_move(p, in, 0, 1); if (p->state_t >= p->hurt_land_t + 5) p->state = ST_NORMAL; }
         else { air_move(p, in, 0, PHYS_HURT_GRAV); if (p->ground) p->hurt_land_t = p->state_t; }
+        /* session 21d (user request, INFERRED vs the original: there M8 ends only on landing): control returns at 3 s at the
+         * latest, airborne or not; the knockback velocity is kept (normal air physics from here) */
+        if (p->state == ST_HURT && p->state_t >= PHYS_HURT_MAX_T) p->state = ST_NORMAL;
         break;
     }
 
