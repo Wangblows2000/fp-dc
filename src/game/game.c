@@ -717,6 +717,7 @@ void game_update(const input_t *in) {
         objects_platforms(&G.p);
         player_update(&G.p, &none);
         jc_flow_card(&G.p, CARD_DONE - G.card_t);   /* JC1 10365-10367: held at x -40, thrown in at the card's end (jc_flow.c) */
+        th_flow_card(&G.p, CARD_DONE - G.card_t);   /* TH1 13533: held at the top of the shaft until the card fade's B reaches 96 (th_flow.c) */
         camera_update();
         return;
     }
