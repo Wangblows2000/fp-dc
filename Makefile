@@ -16,6 +16,7 @@ OBJS += src/game/sb_flow.o   # Sky Battalion stage flow (session 19)
 OBJS += src/game/fn_enemy.o   # Fortune Night enemies
 OBJS += src/game/sb_enemy.o   # Sky Battalion enemies
 OBJS += src/game/sb_gim.o     # Sky Battalion gimmicks
+OBJS += src/game/pl_flow.o src/game/pl_enemy.o src/game/pl_gim.o src/game/pl_boss.o   # Pangu Lagoon (session 23)
 OBJS += src/game/tb_flow.o src/game/tb_enemy.o src/game/tb_gim.o src/game/tb_boss.o   # Thermal Base (session 21c)
 OBJS += src/game/tb_boss_shrimp.o src/game/tb_boss_pusher.o src/game/tb_boss_syntax.o src/game/tb_boss_lift.o src/game/tb_boss_squid.o src/game/tb_boss_spider.o   # Thermal Base bosses (tb_boss.h encounters)
 OBJS += src/game/th_flow.o src/game/th_enemy.o src/game/th_gim.o src/game/th_boss.o   # Trap Hideout (session 21b)

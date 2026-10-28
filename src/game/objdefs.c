@@ -13,6 +13,7 @@
 #include "../fp.h"
 #include "jc.h"                                 /* Jade Creek types (session 21) */
 #include "th.h"                                 /* Trap Hideout types (session 21b) */
+#include "pl.h"                                 /* Pangu Lagoon types (session 23) */
 #include "tb.h"                                 /* Thermal Base types (session 21c) */
 
 static const objdef_t DEFS[] = {
@@ -984,6 +985,12 @@ static const objdef_t DEFS[] = {
     { OT_TBB_FX,        0,                                     NULL         }, /* - (runtime: a one-shot effect) */
     { OT_TBB_SHOT,      0,                                     NULL         }, /* - (runtime: a lava blob BossLavaLaser_2896) */
     /* ==== end Thermal Base */
+    /* ==== Pangu Lagoon (session 23): one block per module */
+    /* ---- PL_FLOW (pl_flow.c) */
+    /* ---- PL_ENEMIES (pl_enemy.c) */
+    /* ---- PL_GIM (pl_gim.c) */
+    /* ---- PL_BOSS (pl_boss.c) */
+    /* ==== end Pangu Lagoon */
 };
 static objdef_t BY_TYPE[MAX_OT];
 static int built;

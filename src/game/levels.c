@@ -235,6 +235,14 @@ static const short SFX_TB3[] = { 62, 99, 49, 35, 37, 38, 52, 55, 59, 71, 73, 134
 static const short SFX_TB4[] = { 62, 99, 49, 37, 38, 59, 173, 264, 279, 280, 285, 286, 437 };
 static const short SFX_TB5[] = { 62, 99, 49, 33, 35, 37, 51, 59, 73, 110, 264, 279, 280, 282, 285, 286, 302, 321, 437 };
 static const short SFX_TB6[] = { 62, 99, 92, 251, 252, 264, 279, 280, 304, 305, 309 };
+/* Pangu Lagoon (session 23, stage index 7, Lilac only; provisional rows: the flow agent sets music, cards, routes) */
+static const short SFX_PL1[] = { 62, 99 };
+static const short SFX_PL2[] = { 62, 99 };
+static const short SFX_PL3[] = { 62, 99 };
+static const short SFX_PL4[] = { 62, 99 };
+static const short SFX_PL5[] = { 62, 99 };
+static const short SFX_PL6[] = { 62, 99 };
+#define PL(d, f, n, mus) .dir = d, .frame = f, .stage = 7, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_PL##n, .nsfx = N_(SFX_PL##n)
 #define TB(d, f, n, mus) .dir = d, .frame = f, .stage = 6, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_TB##n, .nsfx = N_(SFX_TB##n)
 #define TH(d, f, n, mus) .dir = d, .frame = f, .stage = 8, .act = n, .nacts = 3, .music = mus, .checkpoints = 1, .sfx = SFX_TH##n, .nsfx = N_(SFX_TH##n)
 #define JC(d, f, n, mus) .dir = d, .frame = f, .stage = 5, .act = n, .nacts = 5, .music = mus, .checkpoints = 1, .sfx = SFX_JC##n, .nsfx = N_(SFX_JC##n)
@@ -357,6 +365,8 @@ static const level_def_t LEVELS[] = {
       .card_first = 67, .water = 2920, .cps = CP_TB5, .ncps = N_(CP_TB5) },
     { TB("tb6", 49, 6, "bgm/m_stage6b.adp"), .mus4 = "bgm/m_boss2.adp", .mus6 = "bgm/m_stage6b.adp", .mus7 = "bgm/m_stage6b.adp",
       .music_off = 1, .res_wipe = 1, .vox = (const char *const[]){ "sx_still" }, .nvox = 1 },
+    { PL("pl1", 50, 1, "bgm/m_stage8.adp") }, { PL("pl2", 51, 2, "bgm/m_stage8.adp") }, { PL("pl3", 52, 3, "bgm/m_stage8.adp") },
+    { PL("pl4", 53, 4, "bgm/m_stage8.adp") }, { PL("pl5", 54, 5, "bgm/m_stage8.adp") }, { PL("pl6", 55, 6, "bgm/m_stage8.adp") },
 };
 static const level_def_t DEFAULT = { .dir = "", .frame = -1, .stage = -1, .act = 1, .nacts = 1, .music = "bgm/m_stage1.adp" };
 

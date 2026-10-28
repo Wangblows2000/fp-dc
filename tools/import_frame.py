@@ -860,7 +860,8 @@ OBJ_BANK_SKIP = set()   # class_handle keys of _obj-type classes drawn from the 
 JC_FRAMES = {40, 41, 42, 43, 44}
 TH_FRAMES = {57, 58, 59}   # Trap Hideout (session 21b; th1-th3)
 TB_FRAMES = {45, 46, 47, 48, 49, 50}   # Thermal Base (session 21c; tb1-tb6)
-NEWPACK_FRAMES = JC_FRAMES | TH_FRAMES | TB_FRAMES   # stages built with the session-21 packers (D-105); earlier levels keep theirs
+PL_FRAMES = {51, 52, 53, 54, 55, 56}   # Pangu Lagoon (session 23; pl1-pl6)
+NEWPACK_FRAMES = JC_FRAMES | TH_FRAMES | TB_FRAMES | PL_FRAMES   # stages built with the session-21 packers (D-105); earlier levels keep theirs
 JC_SUB = {}   # class_handle -> member index of a JC family type (lvobj anim bits 0-7; bits 8-14 = the instance layer, see write_lv2)
 # ---- JC_FLOW (jc_flow.c, 1280-1309): the creek's loop pieces (RE on_frame_41 / 42_init qualifier tables: JCLoop1_2461 Q7 only
 # (its flag 0 is driven by the frame's own events, jc_flow.c), JCLoop2_2462 Q7 Q11 (solid on layer 1), JCLoop3 / 4_2463 / 2464
@@ -1502,6 +1503,17 @@ for _k, _v in TBB_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   #
 for _e in TBB_ENS: ROW_FRAMES[_e[3]] = TB_FRAMES   # TB_BOSS rows only in Thermal Base
 
 # ==== end Thermal Base
+
+# ==== Pangu Lagoon (session 23; json 51-56 = pl1-pl6; types 2048-2303, one block per module like Thermal Base)
+# ---- PL_FLOW (pl_flow.c, 2048-2079)
+
+# ---- PL_ENEMIES (pl_enemy.c, 2080-2143)
+
+# ---- PL_GIM (pl_gim.c, 2144-2223)
+
+# ---- PL_BOSS (pl_boss.c, 2224-2303)
+
+# ==== end Pangu Lagoon
 SHL_CLASSES = {'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 ENS_ONLY_WITH = {'guiweaponslot_426', 'effectswatersplash_379', 'bubblepatch_804', 'mediumbubble_805', 'generalwaterhorizon_377', 'bubblenumbers_405', 'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 # classes whose untrimmed image box matters (spring top edges RV, box-collision platforms/logs, invisible
@@ -2072,7 +2084,7 @@ def main():
     if n in NEWPACK_FRAMES:   # Jade Creek / Trap Hideout (session 21): an off-map template of a JC module's own class does not pull its rows in (jc5 holds
         # unused off-map BullFrag / water-stream / slab templates; their rows overflowed jc5_ens past two atlases). Runtime-created
         # children still come in through ENS_WITH from their on-map creators.
-        _jct = {c for (c, h), t in ENGINE_TYPES_ID.items() if 1280 <= t < 2048}
+        _jct = {c for (c, h), t in ENGINE_TYPES_ID.items() if 1280 <= t < 2304}
         placed = {o['cls'].rsplit('_', 1)[0] for o in fr['objects']
                   if o['cls'] not in _jct or (o['x'] is not None and 0 <= o['x'] < fr['width'] and 0 <= o['y'] < fr['height'])}
     if any(o['cls'].startswith('monitor') and o['cls'].endswith('shield') and o['x'] >= 0 for o in fr['objects']): placed.add('shieldmonitor_onmap')
@@ -2272,7 +2284,7 @@ def write_bank2(src, bank, out, report):
         for a_ in bank['anims']:
             ar[a_['name']] = sum(imgs[i][0].width * imgs[i][0].height for i in set(a_['frames']) if i in imgs)
         print('ens areas', bank['name'], sum(ar.values()), sorted(ar.items(), key=lambda t: -t[1])[:40])
-    pk = pack_skyline if bank['name'][:2] in ('jc', 'th', 'tb') and bank['name'].endswith('_ens') else pack   # (session 21: JC _ens only, others unchanged)
+    pk = pack_skyline if bank['name'][:2] in ('jc', 'th', 'tb', 'pl') and bank['name'].endswith('_ens') else pack   # (session 21: JC _ens only, others unchanged)
     size, pos, second = 64, None, []
     while not pos:          # smallest power-of-two atlas: square, then half height (PVR textures may be 2:1)
         pos = pk([(i, imgs[i][0]) for i in ids], size, size // 2) or pk([(i, imgs[i][0]) for i in ids], size)
@@ -2284,7 +2296,7 @@ def write_bank2(src, bank, out, report):
                 size = 1024; lo, hi = 0, len(ids)       # the longest prefix that fits the first atlas (binary search; session 21: the old
                 # 7/8 steps could leave a whole 1024 page for the rest, e.g. jc5). JC frames take the largest images first, so the
                 # second page holds small ones and crops to 1024 x 512 (JC2 / JC3 / JC5: -512 KB of VRAM each)
-                jcb = bank['name'][:2] in ('jc', 'th', 'tb')
+                jcb = bank['name'][:2] in ('jc', 'th', 'tb', 'pl')
                 order = sorted(ids, key=lambda i: -imgs[i][0].width * imgs[i][0].height) if jcb else list(ids)
                 if jcb:                                # greedy fill of the first page, the better of two orders (largest area / tallest first)
                     best_ = None
