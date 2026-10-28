@@ -727,7 +727,30 @@ static const objdef_t DEFS[] = {
     { OT_JCF_LOOP0,     OD_SOLID|OD_LAYER0,                    NULL         }, /* jcloop3 / 4_2463 / 2464 (q7 q10) */
     { OT_JCF_LOOP1,     OD_SOLID|OD_LAYER1,                    NULL         }, /* jcloop2_2462 (q7 q11) */
     { OT_JCF_LOOPX,     OD_SOLID,                              NULL         }, /* jcloop1_2461 (q7; flag 0 by jc_flow.c) */
-    /* ---- JC_ENEMIES (jc_enemy.c) */
+    /* ---- JC_ENEMIES (jc_enemy.c, spec_jc_enemies; sprites set by jc_enemy_spawn; RE on_frame_40..44_init q20) */
+    { OT_JC_METEOR,     OD_HIDDEN,                             NULL         }, /* enemymeteorroller_2416 (q20; ctor invisible) */
+    { OT_JC_MFLAME,     OD_HIDDEN,                             NULL         }, /* enemymeteorrollerflame_2417 (shown while its roller rolls) */
+    { OT_JC_BUOY,       0,                                     NULL         }, /* enemybuoybuoy_2407 (q20) */
+    { OT_JC_PLANT,      0,                                     NULL         }, /* enemyplantturretus_2393 (q20) */
+    { OT_JC_PHAT,       0,                                     NULL         }, /* enemyplantturretushat_2394 */
+    { OT_JC_PSTALK,     0,                                     NULL         }, /* enemyplantturretusstalk_2395 */
+    { OT_JC_FROG,       0,                                     NULL         }, /* enemybullfrag_2389 (q20) */
+    { OT_JC_FROGMASK,   OD_HIDDEN,                             NULL         }, /* enemybullfragmask_2410 (ctor invisible) */
+    { OT_JC_SHARK,      0,                                     NULL         }, /* enemysharktorpedo_2421 (q20) */
+    { OT_JC_ORBITER,    0,                                     NULL         }, /* enemybubblorbiter_2455 (q20) */
+    { OT_JC_LAUNCHER,   0,                                     NULL         }, /* hazardtorpedolauncher_2515 */
+    { OT_JC_ELITE,      0,                                     NULL         }, /* enemyelite_2529 */
+    { OT_JC_ELITEMASK,  OD_HIDDEN,                             NULL         }, /* enemyelitemask_2528 (q20; ctor invisible) */
+    { OT_JC_MEXPL,      0,                                     NULL         }, /* effectsexplosion06_435 thrown by a meteor (runtime) */
+    { OT_JC_BJET,       0,                                     NULL         }, /* enemybuoybullet_2409 / 2_2415 (runtime) */
+    { OT_JC_LEAF,       0,                                     NULL         }, /* effectfallingleaf_2396 (runtime) */
+    { OT_JC_BUBBLE,     0,                                     NULL         }, /* enemybullfragbubble_2408 (runtime) */
+    { OT_JC_TORP,       0,                                     NULL         }, /* enemysharktorpedo2_2422 (runtime) */
+    { OT_JC_OSHOT,      0,                                     NULL         }, /* badnikgolemshot_1260 (runtime) */
+    { OT_JC_WARN,       0,                                     NULL         }, /* effectwarning_1528 (runtime) */
+    { OT_JC_LASER,      0,                                     NULL         }, /* enemytrooperlaser_2530 (runtime) */
+    { OT_JC_GLOW,       0,                                     NULL         }, /* enemyelitechargeglow_2527 (runtime) */
+    { OT_JC_TBOMB,      0,                                     NULL         }, /* minibosstreddbomb_1060 from a launcher (runtime) */
     /* ---- JC_GIM (jc_gim.c) */
     /* ---- JC_BOSS (jc_boss.c) */
     /* ---- JC_BOSS5 (jc_boss5.c) */
