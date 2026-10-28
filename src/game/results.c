@@ -86,6 +86,7 @@ static const struct { int stage, card_base, cards_ach, time_ach; uint32_t limit_
     { 5, 51, 28, 48, 480000 },   /* Jade Creek (JC5 11624: cards 51-60 -> 28; 11623: 48 with ML.Z <= 480000 ms; session 21) */
     { 6, 61, 29, 49, 540000 },   /* Thermal Base (TB6 12717: cards 61-70 -> records x2 y29; handle_frame_50 inline: 49 with ML.Z <= 540000 ms, session 21c) */
     { 8, 71, 30, 50, 360000 },   /* Trap Hideout (TH3 14067: cards 71-80 -> records x2 y30; 14066: 50 with ML.Z <= 360000 ms) */
+    { 7, 81, 31, 51, 480000 },   /* Pangu Lagoon (PL6 13437: cards 81-90 -> records x2 y31; 13436: 51 with ML.Z <= 480000 ms; session 23) */
 };
 static void ach_results(void) {
     cards_commit();                                    /* this run's cards count (the port commits them at D = 150, after 149) */
