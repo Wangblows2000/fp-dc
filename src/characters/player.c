@@ -258,8 +258,15 @@ int player_orig_m(const player_t *p) {
     case ST_CART: return 90; case ST_SIT: return 39;   /* Relic Maze hand-car / chair (relic_gimb.c) */
     case ST_HPIPE: return 38;                           /* Fortune Night half-pipe (fn_gima.c) */
     case ST_DANCE: return 50;                          /* FN5 dance (fn_gimb.c) */
+    case ST_RIDE: return jc_gim_ride_m();              /* JC seed 97 / bubble 99 (jc_gim.c) */
     default: return -1;
     }
+}
+/* a gimmick ride's pose (jc_gim.c): the named animation (anim_names), speed as anim_tick's (-1: its own) */
+void player_ride_anim(player_t *p, const char *name, int speed) {
+    player_anims_init();
+    for (int a = 0; a < A_COUNT; a++) if (anim_names[a] && !strcmp(anim_names[a], name)) { set_anim(p, a); break; }
+    anim_tick(&p->an, speed); if (hair.b) anim_tick(&hair, speed);
 }
 int player_anim_is(const player_t *p, const char *name) {
     for (int a = 0; a < A_COUNT; a++) if (!strcmp(anim_names[a], name)) return cur_anim == a;
@@ -923,6 +930,7 @@ void player_update(player_t *p, const input_t *in) {
     }
     if ((p->state == ST_SIT || p->state == ST_DANCE) && fn_gimb_player(p, in)) return;   /* M39 restroom / M50 dance (fn_gimb.c) */
     if ((p->state == ST_CART || p->state == ST_SIT) && relic_gimb_player(p, in)) return;   /* M90 / M39: their own groups (relic_gimb.c) */
+    if (p->state == ST_RIDE && jc_gim_player(p, in)) return;                       /* M97 / M99: Jade Creek seed / bubble rides (jc_gim.c) */
     /* RV energy meter (GUIEnergy_127 alt A): -3/frame while boosting, -0.25/frame in the cyclone, else
      * +0.4/frame up to 100 (state at the start of the frame) */
     /* the stage-start delay counts frames from the start in every state (original boost_cycle trace: the

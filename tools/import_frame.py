@@ -851,6 +851,7 @@ ENGINE_TYPES_ID.update(SBG_TYPES_ID); ENS += SBG_ENS   # SB_GIM
 SBG_ENS_WITH['gimmickcannonbullet_2098'] = SBG_ENS_WITH['gimmickcannonbullet_2098'] + ('levelairship1',)   # SB1's falling balls (session 19b)
 for _k, _v in SBG_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # SB_GIM
 
+OBJ_BANK_SKIP = set()   # class_handle keys of _obj-type classes drawn from the _ens bank instead (session 21)
 # ==== Jade Creek (session 21; json 40-44 = jc1-jc5; types 1280-1535, one block per module; each block updates
 # ENGINE_TYPES / ENGINE_TYPES_ID / ENS / ENS_FRAMES / ENS_WITH itself, like the SB blocks above)
 JC_FRAMES = {40, 41, 42, 43, 44}
@@ -905,7 +906,44 @@ ENGINE_TYPES_ID.update(JCE_TYPES_ID); ENS += JCE_ENS   # JC_ENEMIES
 for _k, _v in JCE_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # JC_ENEMIES
 ROW_FRAMES.update(JCE_ROW_FRAMES)   # JC_ENEMIES
 
-# ---- JC_GIM (jc_gim.c, 1370-1429)
+# ---- JC_GIM (jc_gim.c, 1370-1429; build/re/spec_jc_gimmicks.md). Families share a type; JCG_SUB gives the member index
+# (lvobj anim bits 0-7, the instance layer in bits 8-14, the same encoding as SB_GIM). LevelCreekPlatform_2425 is DV's
+# LevelValleyPlatform1 (ctor F 1 G 10 H 1, Q8 Q9 Q12 Q13, the shared path events 3283-3289 / 4061 / 3303-3307: RE).
+JCG_TYPES_ID = {('jcwaterstream1', 2366): 1370, ('jcwaterstream2', 2367): 1370, ('jcwaterstream3', 2368): 1370,
+    ('jcwaterstream4', 2369): 1370, ('jcwaterstream5', 2371): 1370, ('jcwaterstream6', 2372): 1370, ('jcwaterstream7', 2370): 1370,
+    ('jcwaterstream8', 2373): 1370, ('gimmickleafplatformback', 2357): 1371, ('gimmickleafplatform1', 2355): 1372,
+    ('gimmickleafplatform2', 2356): 1372, ('gimmickflyingleafplatform', 2476): 1373, ('gimmickflyingleafplatformmask', 2477): 1374,
+    ('jcslidingplatform', 2377): 1375, ('jcslidingplatformmask', 2381): 1376, ('jcslidingplatformlandpoint', 2382): 1377,
+    ('leveljccollapsingplatform', 2456): 1378, ('leveljccollapsingplatform', 2475): 1378, ('gimmickseedspawner', 2418): 1380,
+    ('gimmickbubblespringspawner', 2449): 1382, ('levelslipperysurface', 2473): 1385, ('effectfallingleaf', 2396): 1386,
+    ('levelcreekplatform', 2425): 32}   # 32 = OT_PLAT_VALLEY
+JCG_SUB = {'jcwaterstream1_2366': 1, 'jcwaterstream2_2367': 2, 'jcwaterstream3_2368': 3, 'jcwaterstream4_2369': 4,
+    'jcwaterstream5_2371': 5, 'jcwaterstream6_2372': 6, 'jcwaterstream7_2370': 7, 'jcwaterstream8_2373': 8,
+    'gimmickleafplatform2_2356': 1, 'leveljccollapsingplatform_2475': 1}
+JCG_ENS = [('jcwaterstream%d_%d' % (k, h), 0, '0', 'jcg_st%d' % k) for k, h in ((1, 2366), (2, 2367), (3, 2368), (4, 2369),
+           (5, 2371), (6, 2372), (7, 2370), (8, 2373))] + [(c, 0, '0', nm) for c, nm in (
+    ('gimmickleafplatformback_2357', 'jcg_lback'), ('gimmickleafplatform1_2355', 'jcg_leaf1'), ('gimmickleafplatform2_2356', 'jcg_leaf2'),
+    ('gimmickflyingleafplatform_2476', 'jcg_fleaf'), ('gimmickflyingleafplatformmask_2477', 'jcg_fleafm'),
+    ('jcslidingplatform_2377', 'jcg_slide'), ('jcslidingplatformmask_2381', 'jcg_slidem'), ('jcslidingplatformlandpoint_2382', 'jcg_slidel'),
+    ('leveljccollapsingplatform_2456', 'jcg_coll0'), ('leveljccollapsingplatform_2475', 'jcg_coll1'),
+    ('leveljccollapsingplatformpiece_2457', 'jcg_cpiece'), ('gimmickseedspawner_2418', 'jcg_seedsp'), ('gimmickflyingseed_2419', 'jcg_seed'),
+    ('gimmickbubblespringspawner_2449', 'jcg_bubsp'), ('levelslipperysurface_2473', 'jcg_slip'), ('effectfallingleaf_2396', 'jcg_fallleaf'))] + \
+    [('gimmickbubblespringback2_2459', a, d, 'jcg_bub%s%s' % (a, d)) for a in (0, 7) for d in ('0', '1')] + \
+    [('gimmickbubblespringfront2_2460', 0, d, 'jcg_bubf%s' % d) for d in ('0', '1')]
+JCG_ENS_WITH = {'leveljccollapsingplatformpiece_2457': ('leveljccollapsingplatform',), 'gimmickflyingseed_2419': ('gimmickseedspawner',),
+    'gimmickbubblespringback2_2459': ('gimmickbubblespringspawner',), 'gimmickbubblespringfront2_2460': ('gimmickbubblespringspawner',),
+    'effectfallingleaf_2396': ('gimmickflyingleafplatform',),
+    'effectswaterhit_756': tuple('jcwaterstream%d' % k for k in range(1, 7)), 'effectsexplosion01_367': ('jcslidingplatform',),
+    'effectsdust_437': ('jcslidingplatform',), 'ringsparkle_142': ('gimmickbubblespringspawner',),
+    'effectswhiteburst_31': ('gimmickbubblespringspawner',)}
+# Leaf-back tilts A (the start events give A by selection index, newest first: JC1 10382-10385 I 0 / 3 -> 120, I 2 / 7 -> 60;
+# every other back 90; RE + RV init_f39 / leaf1): keyed by placement, encoded as the member index A / 30 (0 = 90)
+JCG_LEAF_TILT = {(4528, 895): 120, (4592, 895): 60, (4152, 1111): 120, (10128, 647): 60}
+# LevelCreekPlatform's sprite comes from the _ens bank (jc_gim_spawn: valley platforms without an _obj sprite take 'jcg_creek'),
+# which keeps JC5's _obj palette group within 255 colours
+OBJ_BANK_SKIP.add('levelcreekplatform_2425'); JCG_ENS.append(('levelcreekplatform_2425', 0, '0', 'jcg_creek'))
+ENGINE_TYPES_ID.update(JCG_TYPES_ID); ENS += JCG_ENS   # JC_GIM
+for _k, _v in JCG_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # JC_GIM
 
 # ---- JC_BOSS (jc_boss.c, 1430-1479)
 
@@ -1187,7 +1225,7 @@ def main():
     # is in front. Such frames are mapped 2 -> 1, 3 -> 2, 4 -> 3; pieces keep the original layer order (stable sort below).
     # (session 21: JC1's start point sits at x -27, just left of the frame: the player enters at X = -11, RE 2956)
     main = next((o['layer'] for o in fr['objects'] if o['cls'] == 'playerstartingpoint' and o['layer'] is not None
-                 and o['x'] is not None and -64 <= o['x'] < W and 0 <= o['y'] < H), 2)
+                 and o['x'] is not None and -64 <= o['x'] < W and 0 <= o['y'] < H), 2)   # -64: JC1's start point is at x -27 (walk-in)
     LMAP = {2: 1, 3: 2, 4: 3} if main == 3 else {}
     for o in fr['objects']:
         o['layer0'] = o['layer'] or 0
@@ -1360,7 +1398,7 @@ def main():
     report.append('collision: %dx%d tiles, %d unique 16x16 patterns (%d bytes), layers %s' % (TW, TH, len(table), len(table) * 32, sorted(col_layers)))
 
     # ---- active-object sprite bank (first anim, right-facing) for implemented classes
-    bank_classes = sorted({o['cls'] for o in objs if (o['type'] < 20 or 30 <= o['type'] < 37) and o['type'] not in (1, 31, 35)})   # >= 37: the _ens bank   # 20-27 parallax pieces; Ganseki uses its gan_* anims; the bridge box is invisible
+    bank_classes = sorted({o['cls'] for o in objs if (o['type'] < 20 or 30 <= o['type'] < 37) and o['type'] not in (1, 31, 35) and o['cls'] not in OBJ_BANK_SKIP})   # >= 37: the _ens bank   # 20-27 parallax pieces; Ganseki uses its gan_* anims; the bridge box is invisible; OBJ_BANK_SKIP: drawn from the _ens bank
     bank = {'name': name + '_obj', 'anims': []}
     for key in bank_classes:
         d = first_anim_frames(an.get(key, {}))
@@ -1740,6 +1778,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         if 800 <= o['type'] < 860: a = FNBOSS_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # FN_BOSS (fn_boss.c): sub id | instance layer << 8
         if 1150 <= o['type'] < 1280: a = SBBOSS_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # SB_BOSS (sb_boss.c): sub id | instance layer << 8
         if 1280 <= o['type'] < 1536: a = JC_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # Jade Creek (jc_*.c): member index | instance layer << 8 | 0x8000 json layer 1 of a mapped frame
+        if 1370 <= o['type'] < 1430: a = (JCG_LEAF_TILT.get((o['x'], o['y']), 0) // 30 if o['type'] == 1371 else JCG_SUB.get(o['cls'], 0)) | (o['layer'] << 8)   # JC_GIM (jc_gim.c): member index (leaf backs: tilt / 30) | instance layer << 8
         if 1100 <= o['type'] < 1150: a = SBG_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # SB_GIM (sb_gim.c): member index | instance layer << 8 | 0x8000: json layer 1 of a mapped frame (session 20: behind the json-2 pieces, scrolls with layer 1)
         d += struct.pack('<2H2i', o['type'], a, o['x'], o['y'])
     for t in table: d += t

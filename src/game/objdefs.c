@@ -751,7 +751,25 @@ static const objdef_t DEFS[] = {
     { OT_JC_LASER,      0,                                     NULL         }, /* enemytrooperlaser_2530 (runtime) */
     { OT_JC_GLOW,       0,                                     NULL         }, /* enemyelitechargeglow_2527 (runtime) */
     { OT_JC_TBOMB,      0,                                     NULL         }, /* minibosstreddbomb_1060 from a launcher (runtime) */
-    /* ---- JC_GIM (jc_gim.c) */
+    /* ---- JC_GIM (jc_gim.c; RE on_frame_40..44_init qualifiers, create_* initialize_active / set_visible). The sprites are set
+     * by jc_gim_spawn. LevelCreekPlatform_2425 is OT_PLAT_VALLEY (importer JCG_TYPES_ID). */
+    { OT_JCG_STREAM,    OD_BOXCOL,                             NULL         }, /* jcwaterstream1-8 (1-6 q26) */
+    { OT_JCG_LEAFBACK,  OD_BOXCOL,                             NULL         }, /* gimmickleafplatformback_2357 */
+    { OT_JCG_LEAF,      OD_OBSTACLE|OD_NOEDGE,                 NULL         }, /* gimmickleafplatform1 / 2 (q8 q9; ignored off the player's layer) */
+    { OT_JCG_FLEAF,     0,                                     NULL         }, /* gimmickflyingleafplatform_2476 */
+    { OT_JCG_FLEAFM,    OD_OBSTACLE|OD_NOEDGE|OD_HIDDEN,       NULL         }, /* gimmickflyingleafplatformmask_2477 (q8 q9 q13, invisible) */
+    { OT_JCG_SLIDE,     OD_SOLID|OD_HIDDEN,                    NULL         }, /* jcslidingplatform_2377 (q7 q13, invisible) */
+    { OT_JCG_SLIDEM,    OD_BOXCOL,                             NULL         }, /* jcslidingplatformmask_2381 (the drawn slab) */
+    { OT_JCG_SLIDEL,    OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* jcslidingplatformlandpoint_2382 (invisible) */
+    { OT_JCG_COLL,      OD_SOLID|OD_BOXCOL,                    NULL         }, /* leveljccollapsingplatform_2456 / 2475 (q7) */
+    { OT_JCG_CPIECE,    OD_SOLID|OD_BOXCOL,                    NULL         }, /* leveljccollapsingplatformpiece_2457 (q7; runtime) */
+    { OT_JCG_SEEDSP,    0,                                     NULL         }, /* gimmickseedspawner_2418 */
+    { OT_JCG_SEED,      0,                                     NULL         }, /* gimmickflyingseed_2419 (runtime) */
+    { OT_JCG_BUBSP,     OD_BOXCOL,                             NULL         }, /* gimmickbubblespringspawner_2449 */
+    { OT_JCG_BUBBACK,   0,                                     NULL         }, /* gimmickbubblespringback2_2459 (runtime) */
+    { OT_JCG_BUBFRONT,  0,                                     NULL         }, /* gimmickbubblespringfront2_2460 (runtime) */
+    { OT_JCG_SLIP,      OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* levelslipperysurface_2473 (invisible) */
+    { OT_JCG_FALLLEAF,  OD_BOXCOL,                             NULL         }, /* effectfallingleaf_2396 */
     /* ---- JC_BOSS (jc_boss.c) */
     /* ---- JC_BOSS5 (jc_boss5.c) */
     /* ==== end Jade Creek */
