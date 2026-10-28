@@ -13,6 +13,7 @@
 #include "../fp.h"
 #include "jc.h"                                 /* Jade Creek types (session 21) */
 #include "th.h"                                 /* Trap Hideout types (session 21b) */
+#include "tb.h"                                 /* Thermal Base types (session 21c) */
 
 static const objdef_t DEFS[] = {
     { OT_START,         0,                                     NULL         }, /* playerstartingpoint */
@@ -875,6 +876,12 @@ static const objdef_t DEFS[] = {
     { OT_THB_GOAL,      OD_HIDDEN,                             NULL         }, /* guigoalmessage_3217 (GUI: th_boss_arena.c) */
     { OT_THB_ENLEFT,    OD_HIDDEN,                             NULL         }, /* guienemiesleft_3218 (GUI counter: th_boss_arena.c) */
     /* ==== end Trap Hideout */
+    /* ==== Thermal Base (session 21c): one block per module */
+    /* ---- TB_FLOW (tb_flow.c) */
+    /* ---- TB_ENEMIES (tb_enemy.c) */
+    /* ---- TB_GIM (tb_gim.c) */
+    /* ---- TB_BOSS (tb_boss.c) */
+    /* ==== end Thermal Base */
 };
 static objdef_t BY_TYPE[MAX_OT];
 static int built;
