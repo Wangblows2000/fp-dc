@@ -1733,7 +1733,20 @@ for _k, _v in BGG_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   #
 # ==== end Battle Glacier
 
 # ==== Final Dreadnought (session 24; json 66-73 = fd1a..fd4b; types 2560-3071)
-# ---- FD_FLOW (fd_flow.c, 2560-2623)
+# ---- FD_FLOW (fd_flow.c, 2560-2623; build/re/spec_fd_flow.md)
+# The loop-layer pieces of FD3 (fd3a / fd3b, json 70 / 71; RE on_frame_70_init qualifier tables: Q10 (+0x21908, solid on loop layer 0)
+# = FDLoopLayer01 / 02 / 03 / 04 / 05, Q11 (+0x21920, layer 1) = FDLoopLayer11 / 12 / 13 / 14 / 15; the shared flag rule 3031 / 3032 by
+# MV.P). Visible Actives (ctors: no set_visible(0)), opaque 64 x 64 / 128 x 128 images (02 / 12: a 4-frame conveyor animation). Each
+# piece is placed on json layer 3 (the play layer) and most again on layer 4 (in front of the player): the lvobj anim holds the instance
+# layer << 8 (fd_flow_spawn sets obj.layer; the off-map templates are removed there). One type per class (the spawn sprite is per type).
+FDF_LOOPS = [('fdlooplayer01', 3643, 0), ('fdlooplayer02', 3644, 0), ('fdlooplayer03', 3646, 0), ('fdlooplayer04', 3663, 0), ('fdlooplayer05', 3664, 0),
+             ('fdlooplayer11', 3647, 1), ('fdlooplayer12', 3648, 1), ('fdlooplayer13', 3649, 1), ('fdlooplayer14', 3662, 1), ('fdlooplayer15', 3665, 1)]
+FDF_TYPES_ID = {(c, h): 2560 + k for k, (c, h, _) in enumerate(FDF_LOOPS)}
+FDF_ENS = [('%s_%d' % (c, h), 0, '0', 'fdl%s' % c[11:]) for c, h, _ in FDF_LOOPS]
+ENGINE_TYPES_ID.update(FDF_TYPES_ID); ENS += FDF_ENS   # FD_FLOW
+for _e in FDF_ENS: ROW_FRAMES[_e[3]] = {70, 71}         # FD_FLOW rows only in fd3a / fd3b (the only acts that place them)
+# no water: ML.A 1 / ML.B 2000 (4800 in fd2a / fd2b) are written by the start events, but only handle_frame_69 (fd2b) holds air events,
+# its own vacuum rule (15790-15796: the air counter rises while the siren alarm is on, not ML.B): not in WATER_FRAMES
 
 # ---- FD_ENEMIES (fd_enemy.c, 2624-2751)
 
@@ -1966,6 +1979,34 @@ PAR_FIXED = {(63, 3310)}                              # json frame, handle: draw
 PAR_FIXED_SKIP = {3353, 3364}                         # the close views: not exported (BG5: on screen only at view left > 5300 near the top,
                                                       # two 305 x 657 images ~400 KB of VRAM, INFERRED not worth it; BG6: its ending's)
 PAR_ALPHA.update({1614: 3})                           # piece1_3224: white mist, alpha 0..211 (ARGB4444 at half resolution, drawn x2)
+# ---- FD_FLOW parallax (session 24, build/re/spec_fd_flow.md 5): SystemBox pieces (RE create_levelparallaxpiece*_33xx-37xx /
+# create_levelparallaxtunnel1_3464 / 2_3463: image, box w x h; the image tiles in the box). D / E / G: fd1a 15309, fd1b its start inline (the
+# same values + the tunnel strips: tunnel2 D .5, tunnel1 D .25, E 0), fd2a / fd2b their start inline, fd3a / fd3b 16200, fd4a 16728 (piece0 D 1
+# E .98); fd4b's piece0 is moved by the final boss's phases (bosses module; its first write D 1 E .98 is exported). Not exported (INFERRED):
+# fd2b's piece5 / 7 / 9 (3589 / 3588 / 3591) and fd4a's piece1_3726 (no event writes their D / E: values unknown), fd4b's
+# ParallaxSpaceBack 1-3 (the final boss's backdrops), FDJumbotron (fd1a), FD3BackPillar / FlashbackBG (fd3a / fd3b scenery Actives).
+PAR_IMG.update({'levelparallaxpiece0_3390': 3752, 'levelparallaxpiece1_3395': 2959, 'levelparallaxpiece10_3393': 1397,
+                'levelparallaxpiece11_3394': 8566, 'levelparallaxpiece2_3413': 2960, 'levelparallaxpiece7_3391': 1628,
+                'levelparallaxtunnel1_3464': 15075, 'levelparallaxtunnel2_3463': 3827,
+                'levelparallaxpiece1_3497': 368, 'levelparallaxpiece10_3496': 1021, 'levelparallaxpiece2_3559': 1016,
+                'levelparallaxpiece3_3560': 1036, 'levelparallaxpiece8_3558': 994,
+                'levelparallaxpiece0_3590': 5872, 'levelparallaxpiece1_3566': 368, 'levelparallaxpiece10_3565': 1021,
+                'levelparallaxpiece2_3570': 1016, 'levelparallaxpiece3_3571': 1036, 'levelparallaxpiece8_3569': 994,
+                'levelparallaxpiece0_3608': 1281, 'levelparallaxpiece1_3609': 11371, 'levelparallaxpiece7_3611': 245,
+                'levelparallaxpiece8_3612': 206, 'levelparallaxpiece9_3613': 1215, 'levelparallaxpiece0_3725': 14804})
+PAR_BOXW.update({'levelparallaxpiece10_3393': 400, 'levelparallaxpiece11_3394': 400, 'levelparallaxpiece2_3413': 400,
+                 'levelparallaxpiece7_3391': 400, 'levelparallaxtunnel2_3463': 64})
+PAR_BOXH.update({'levelparallaxpiece1_3395': 238, 'levelparallaxpiece2_3413': 238, 'levelparallaxpiece1_3497': 1440,
+                 'levelparallaxpiece10_3496': 1920, 'levelparallaxpiece2_3559': 1440, 'levelparallaxpiece3_3560': 1440,
+                 'levelparallaxpiece8_3558': 1600, 'levelparallaxpiece1_3566': 3200, 'levelparallaxpiece10_3565': 4800,
+                 'levelparallaxpiece2_3570': 3200, 'levelparallaxpiece3_3571': 3200, 'levelparallaxpiece8_3569': 4000,
+                 'levelparallaxpiece0_3725': 380})
+PAR_DEG.update({3390: (.9, .9, 0), 3391: (.8, .88, 0), 3393: (.7, .9, 0), 3394: (.7, .86, 0), 3395: (.95, .95, 0), 3413: (1, 1, -.3),
+                3463: (.5, 0, 0), 3464: (.25, 0, 0),
+                3496: (.3, .3, 0), 3497: (.6, .6, 0), 3558: (.45, .45, 0), 3559: (.6, .6, 0), 3560: (.6, .6, 0),
+                3565: (.3, .3, 0), 3566: (.6, .6, 0), 3569: (.45, .45, 0), 3570: (.6, .6, 0), 3571: (.6, .6, 0), 3590: (1, 1, -1),
+                3608: (.99, .94, 0), 3609: (.8, .8, 0), 3611: (.8, .8, 0), 3612: (.7, .7, 0), 3613: (.6, .65, 0), 3725: (1, .98, 0)})
+PAR_DEG_FRAME.update({(69, 3224): (1, 1, 0)})          # fd2b's mist (BG's piece1_3224 with D 1 E 1, on_frame_69 start inline)
 JC_WATER = {40: 1200, 41: 1600, 42: 1600, 43: 1600, 44: 1600}   # ML.B (10378 / 10566 / 10822 / 10863 / 11643)
 JC_SURF_FRAMES = [7795, 7802, 7803, 7804, 7796, 7797, 7798]      # LevelParalaxWaterSurface_14 anim 0 (both directions use the same images);
                                                                  # its 8th frame (7799) is shown as the 7th: one 512 x 512 4 bpp atlas (VRAM)
@@ -2725,6 +2766,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         if 1888 <= o['type'] < 1968: a = TBG_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # TB_GIM (tb_gim.c): member index | instance layer << 8
         if 2144 <= o['type'] < 2224: a = PLG_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # PL_GIM (pl_gim.c): member index | instance layer << 8
         if 2400 <= o['type'] < 2480: a = BGG_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # BG_GIM (bg_gim.c): member index | instance layer << 8
+        if 2560 <= o['type'] < 2570: a = o['layer'] << 8   # FD_FLOW (fd_flow.c): the loop pieces' instance layer << 8
         if 1370 <= o['type'] < 1430: a = (JCG_LEAF_TILT.get((o['x'], o['y']), 0) // 30 if o['type'] == 1371 else JCG_SUB.get(o['cls'], 0)) | (o['layer'] << 8)   # JC_GIM (jc_gim.c): member index (leaf backs: tilt / 30) | instance layer << 8
         if 1536 <= o['type'] < 1560: a = (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # TH_FLOW (th_flow.c): instance layer << 8 | 0x8000 json layer 1
         if 1100 <= o['type'] < 1150: a = SBG_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # SB_GIM (sb_gim.c): member index | instance layer << 8 | 0x8000: json layer 1 of a mapped frame (session 20: behind the json-2 pieces, scrolls with layer 1)
