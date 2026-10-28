@@ -34,6 +34,10 @@ enum {
  * 2764 defeats it). RV th_enemies/th1_totem (XLIST q:): that qualifier = the scan lasers (HazardScanLaserSweep x5, ...Right,
  * ...Left, ...Down x8, ...Up x8, ...Boss). The gimmick / boss module calls this with each beam object; returns the count. */
 int th_enemy_totem_zap(const obj_t *beam);
+/* TH3 arena (th_boss_arena.c, 14054): a bike ninja dropped in at (x, y) (warning + mask D -2 + bike; F the mask's float x, E its
+ * side); the dropped masks still up */
+obj_t *th_enemy_bike_drop(float x, float y, double F, double E);
+int    th_enemy_bikes_alive(void);
 
 /* ---- th_gim.c (types 1620-1679; build/re/spec_th_gimmicks.md). Families share a type: par = member (importer THG_SUB).
  * LevelTHCollapsingPlatform (+ Piece) is Jade Creek's collapsing platform (jc_gim.c OT_JCG_COLL member 2, importer JCG_SUB). */
@@ -61,6 +65,26 @@ void th_gim_barrel_break(obj_t *b);
 void th_gim_barrels_hit_by(const obj_t *h);             /* 13688: breaks every barrel the object overlaps */
 int  th_gim_beam_rect(const obj_t *beam, int x0, int y0, int x1, int y1);   /* a scan laser's footprint touches the rectangle (inclusive) */                     /* 13688: a RocketPuncher's fist on a barrel (the enemies module calls it) */
 
-/* ---- th_boss.c (types 1680-1791) */
+/* ---- th_boss.c (types 1680-1791; build/re/spec_th_bosses.md): th_boss.c (spawn, lists, shared helpers, dispatch),
+ * th_boss_iris.c (TH1 Laser Iris), th_boss_basher.c (TH3 Crystal Basher), th_boss_arena.c (TH3 arena: crowd, spotlights, goal /
+ * enemies-left GUI, the waves, dialogue skip). Spade (TH3's end) runs in sb_spade.c (the SB2 classes, generalised).
+ * Placed classes 1680-1719 (tools/import_frame.py TH_BOSS), runtime objects 1720-1791. */
+enum {
+       OT_THB_IRIS = 1680 /* BossLaserIris_3141 (Q20, A 60) */, OT_THB_CANNON = 1681 /* BossLaserIrisCannon_3140 */,
+       OT_THB_WINGL = 1682 /* BossLaserIrisWingLeft_3138 */, OT_THB_WINGR = 1683 /* BossLaserIrisWingRight_3139 */,
+       OT_THB_LASER = 1684 /* HazardScanLaserBoss_3142 (laser qualifier 0x22d98, flag 2) */,
+       OT_THB_CB_BASE = 1685 /* BossCrystalBasherBase_3199 */, OT_THB_CB_FACE = 1686 /* BossCrystalBasherFace_3198 */,
+       OT_THB_CB_HEAD = 1687 /* BossCrystalBasherHead_3197 */, OT_THB_CB_SEG = 1688 /* BossCrystalBasherSegment_3194 */,
+       OT_THB_CB_SPIKE = 1689 /* BossCrystalSpike_3195 */, OT_THB_CB_SPIKE2 = 1690 /* BossCrystalSpike2_3196 */,
+       OT_THB_DOOR = 1691 /* BossDoor_3200 */, OT_THB_CROWD = 1692 /* THCrowd_3213 */, OT_THB_SPOT = 1693 /* THSpotlight_3209 */,
+       OT_THB_GOAL = 1694 /* GUIGoalMessage_3217 */, OT_THB_ENLEFT = 1695 /* GUIEnemiesLeft_3218 */,
+       OT_THB_PLACED_LAST = 1719,
+       OT_THB_RT = 1720 /* runtime objects from here */, OT_THB_DUST = 1720 /* EffectsDust_437 at a firing laser's tip (13486 / 13489) */,
+       OT_THB_END = 1791 };
+int   th_boss_iris_state(void);                       /* tests: BossLaserIris I (-1 none) */
+int   th_boss_basher_state(void);                     /* tests: BossCrystalBasherHead D (-1 none) */
+/* the boss laser runs the gimmicks module's scan-laser rule (th_gim_beam: 13484 / loop_l_56 / 13490-13493); the boss adds the
+ * dust at a burning tip (13486 / 13489, the rule's own dust is for the act's OT_THG_BEAM only) */
+void  thb_beam_dust(const obj_t *beam);
 
 #endif

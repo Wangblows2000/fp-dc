@@ -859,6 +859,21 @@ static const objdef_t DEFS[] = {
     { OT_THG_BDEBRIS,     0,                                   NULL         }, /* - (GimmickBarrelDebris_3127, runtime) */
     { OT_THG_BLIGHT,      0,                                   NULL         }, /* thbacklight1 */
     /* ---- TH_BOSS (th_boss.c) */
+    { OT_THB_IRIS,      0,                                     NULL         }, /* bosslaseriris_3141 (Q20, A 60) */
+    { OT_THB_CANNON,    0,                                     NULL         }, /* bosslaseririscannon_3140 */
+    { OT_THB_WINGL,     0,                                     NULL         }, /* bosslaseririswingleft_3138 */
+    { OT_THB_WINGR,     0,                                     NULL         }, /* bosslaseririswingright_3139 */
+    { OT_THB_LASER,     0,                                     NULL         }, /* hazardscanlaserboss_3142 */
+    { OT_THB_CB_BASE,   0,                                     NULL         }, /* bosscrystalbasherbase_3199 */
+    { OT_THB_CB_FACE,   OD_HIDDEN,                             NULL         }, /* bosscrystalbasherface_3198 (Q20, A 120; shown by 13916) */
+    { OT_THB_CB_HEAD,   0,                                     NULL         }, /* bosscrystalbasherhead_3197 */
+    { OT_THB_CB_SEG,    0,                                     NULL         }, /* bosscrystalbashersegment_3194 */
+    { OT_THB_CB_SPIKE,  0,                                     NULL         }, /* bosscrystalspike_3195 */
+    { OT_THB_CB_SPIKE2, 0,                                     NULL         }, /* bosscrystalspike2_3196 */
+    { OT_THB_DOOR,      OD_SOLID,                              NULL         }, /* bossdoor_3200 (the player stands on it: RV c1_c) */
+    { OT_THB_CROWD,     0,                                     NULL         }, /* thcrowd_3213 (scenery; speed 8 + R(30): 14047) */
+    { OT_THB_GOAL,      OD_HIDDEN,                             NULL         }, /* guigoalmessage_3217 (GUI: th_boss_arena.c) */
+    { OT_THB_ENLEFT,    OD_HIDDEN,                             NULL         }, /* guienemiesleft_3218 (GUI counter: th_boss_arena.c) */
     /* ==== end Trap Hideout */
 };
 static objdef_t BY_TYPE[MAX_OT];
