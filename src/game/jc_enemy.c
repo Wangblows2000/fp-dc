@@ -657,6 +657,16 @@ obj_t *jc_enemy_elite_create(float x, float y) {
     return m;
 }
 void jc_enemy_elite_view_alert(int on) { S.view_alert = on; }
+/* a runtime EnemyTrooperLaser_2530 (the Elite's shot: A px a frame along angle B degrees CCW, R-hurt 10, Milla's cube reflects it),
+ * drawn turned by its angle: Final Dreadnought's gatling guns fire it from their barrels (RE 16069 / 16071: A 12). The module starts
+ * if it was idle. */
+obj_t *jc_enemy_laser_create(float x, float y, double speed, double angle) {
+    obj_t *l = spawn(OT_JC_LASER, "jee_laser", x, y, 0);
+    if (!l) return NULL;
+    S.on = 1;
+    l->av[0] = speed; l->av[1] = nrm(angle); l->av[2] = floorf(x); l->av[3] = floorf(y); l->ang = (float)l->av[1]; l->layer = 3;
+    return l;
+}
 static void laser_frame(obj_t *l, player_t *p) {                                  /* 11034-11039 */
     double *A = &l->av[0], *B = &l->av[1], *C = &l->av[2], *D = &l->av[3], *E = &l->av[4];
     *C += c_cos(*B) * *A; *D += -c_sin(*B) * *A; *E += 1;
@@ -671,7 +681,7 @@ static void laser_frame(obj_t *l, player_t *p) {                                
         }
         return;
     }
-    if (player_cube_state() >= 4 && player_cube_hits(l)) { l->fl |= FL_REFL; *B = fmod(*B + 180, 360); l->flip = !l->flip; return; }   /* (Milla's cube reflects it: INFERRED handler) */
+    if (player_cube_state() >= 4 && player_cube_hits(l)) { l->fl |= FL_REFL; *B = fmod(*B + 180, 360); if (l->ang != 0) l->ang = (float)*B; else l->flip = !l->flip; return; }   /* (Milla's cube reflects it: INFERRED handler) */
     if (csens_hit(p, l) && player_orig_m(p) != 9 && r_hurt(p, 10, 2)) { obj_effect(l->x, l->y, "wburst"); l->alive = 0; }   /* 11039 */
 }
 static void glow_frame(obj_t *g) {                                                /* 11031-11033: A += 1, fades, removed at 25 */

@@ -1077,7 +1077,18 @@ static const objdef_t DEFS[] = {
     /* ==== end Battle Glacier */
     /* ==== Final Dreadnought (session 24): one block per module */
     /* ---- FD_FLOW (fd_flow.c) */
-    /* ---- FD_ENEMIES (fd_enemy.c) */
+    /* ---- FD_ENEMIES (fd_enemy.c, spec_fd_enemies; sprites set by fd_enemy_spawn; RE on_frame_66..73_init q20: pounder, gun, iris, spider) */
+    { OT_FDE_POUNDER,   0,                                     NULL         }, /* enemypounder_3423 (q20) */
+    { OT_FDE_GTABLE,    0,                                     NULL         }, /* enemygatlingguntable_3666 */
+    { OT_FDE_GRIGHT,    0,                                     NULL         }, /* enemygatlinggunright_3667 */
+    { OT_FDE_GLEFT,     0,                                     NULL         }, /* enemygatlinggunleft_3668 */
+    { OT_FDE_GUN,       0,                                     NULL         }, /* enemygatlinggun_3669 (q20) */
+    { OT_FDE_GBARREL,   0,                                     NULL         }, /* enemygatlinggunbarrel_3670 */
+    { OT_FDE_GUN2,      0,                                     NULL         }, /* enemygatlinggun2_3671 */
+    { OT_FDE_IRIS,      0,                                     NULL         }, /* enemybeastiris_3735 (q20) */
+    { OT_FDE_SPIDER,    OD_HIDDEN,                             NULL         }, /* enemyspiderbeamer_3755 (q20; ctor invisible) */
+    { OT_FDE_PODSPOT,   OD_HIDDEN,                             NULL         }, /* enemyelitespawnerspawner_3453 (ctor invisible) */
+    { OT_FDE_GDEB,      0,                                     NULL         }, /* - (runtime: enemygatlinggundebris_3673) */
     /* ---- FD_GIM (fd_gim.c) */
     /* ---- FD_BOSS (fd_boss.c) */
     /* ==== end Final Dreadnought */

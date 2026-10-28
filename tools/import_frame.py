@@ -1695,7 +1695,61 @@ for _n in BG_E_FRAMES: FRAME_TYPE_REMAP.update({(_n, 1498): 1326, (_n, 1499): 13
 # ==== Final Dreadnought (session 24; json 66-73 = fd1a..fd4b; types 2560-3071)
 # ---- FD_FLOW (fd_flow.c, 2560-2623)
 
-# ---- FD_ENEMIES (fd_enemy.c, 2624-2751)
+# ---- FD_ENEMIES (fd_enemy.c, 2624-2751; build/re/spec_fd_enemies.md). Reused classes (RE: the FD frames run the same events as
+# their home stages, build/re/fde/f66..f73_calls): the EliteSpawner pods (bg_enemy.c 2337, BG5's 14657-14662 everywhere; payload by
+# alterable C in FD1 15245-15249), the Elites (jc_enemy.c 1326 / 1327, the JC5 events 10949-11038; not the JC5 gunship module's
+# 1498 / 1499), Thermal Base's tank bots (12425-12444, FD1-FD3) and seekers (11761-11782, FD3), Jade Creek's bubble orbiters
+# (their GolemShot rows, FD3), Sky Battalion's DNA cannon warnings (9854-9858: EffectWarning_1528 = OT_SB_WARN in FD3 / FD4a).
+FDE_FRAMES = FD_FRAMES
+for _n in FDE_FRAMES: FRAME_TYPE_REMAP.update({(_n, 1498): 1326, (_n, 1499): 1327})   # FD Elites: jc_enemy.c's types
+for _e in JCE_ENS:                                   # the Elite rows (exact-mirror left rows stay out)
+    if _e[3].startswith('jee_') and _e[3] not in JCE_MIRRORED: ROW_FRAMES[_e[3]] = ROW_FRAMES.get(_e[3], set()) | FDE_FRAMES
+for _e in BGE_ENS:                                   # the pod rows
+    if _e[3].startswith('bgs_'): ROW_FRAMES[_e[3]] = ROW_FRAMES[_e[3]] | FDE_FRAMES
+for _e in TBE_ENS:                                   # tank bots (fd1a..fd3b), seekers + their homing bullets (fd3a / fd3b)
+    if _e[3].startswith(('tbt_', 'tbs_')) and _e[3] not in TBE_MIRRORED: ROW_FRAMES[_e[3]] = ROW_FRAMES.get(_e[3], set()) | {66, 67, 68, 69, 70, 71}
+for _nm in ('jeo_shot', 'jeo_pop'): ROW_FRAMES[_nm] = ROW_FRAMES[_nm] | {70, 71}   # the bubble orbiters' shots (fd3a / fd3b)
+ROW_FRAMES['sbwarn'] = ROW_FRAMES['sbwarn'] | {70, 71, 72}
+SBE_WARN_FRAMES |= {70, 71, 72}                      # EffectWarning_1528 -> OT_SB_WARN (the DNA cannons' off-view warnings)
+# New classes (src/game/fd.h OT_FDE_*): EnemyPounder_3423 (FD1 / FD3, Q20; its HazardShockwave_1576 is Relic Maze's 'shock' rows),
+# the gatling gun EnemyGatlingGun_3669 (Q20) + Table_3666 / Right_3667 / Left_3668 / Barrel_3670 / Gun2_3671 (+ the runtime
+# Debris_3673; its shots are the Elite's TrooperLaser_2530 'jee_laser'), EnemyBeastIris_3735 (FD4a, Q20), EnemySpiderBeamer_3755
+# (FD4a / FD4b, Q20; its shots are the seeker's EnemyHomingBullet_2648 'tbs_bul'), EnemyEliteSpawnerSpawner_3453 (FD1a's 24 hidden
+# drop points of the pod rain, 15287). Inert (no event references them, RE): EnemyCrane_3422, HazardBeamCannonHorizontal_3436,
+# FDLaserCannonLeftLight_3434 (off-map / unused templates): not exported. Right and left share the image ('fdg_arm').
+FDE_TYPES_ID = {('enemypounder', 3423): 2624, ('enemygatlingguntable', 3666): 2625, ('enemygatlinggunright', 3667): 2626,
+    ('enemygatlinggunleft', 3668): 2627, ('enemygatlinggun', 3669): 2628, ('enemygatlinggunbarrel', 3670): 2629,
+    ('enemygatlinggun2', 3671): 2630, ('enemybeastiris', 3735): 2631, ('enemyspiderbeamer', 3755): 2632,
+    ('enemyelitespawnerspawner', 3453): 2633}
+_FDE_SFX = {'0': '', '16': '_l'}
+_FDE_ROWS = [   # (class, anim, directions, row)
+    ('enemypounder_3423', 0, ('0', '16', '24'), 'fdp'), ('enemypounder_3423', 8, ('0', '16', '24'), 'fdp_dead'),
+    ('enemygatlinggun_3669', 0, ('0',), 'fdg_gun'), ('enemygatlinggun2_3671', 0, ('0',), 'fdg_gun2'),
+    ('enemygatlinggunbarrel_3670', 0, ('0',), 'fdg_bar'), ('enemygatlinggunleft_3668', 0, ('0',), 'fdg_arm'),
+    ('enemygatlingguntable_3666', 0, ('0',), 'fdg_table'), ('enemygatlinggundebris_3673', 0, ('0',), 'fdg_deb'),
+    ('enemybeastiris_3735', 0, ('0', '16'), 'fdi'), ('enemybeastiris_3735', 7, ('0', '16'), 'fdi_fall'),
+    ('enemybeastiris_3735', 8, ('0',), 'fdi_dead'), ('enemybeastiris_3735', 10, ('0', '16'), 'fdi_bite'),
+    ('enemyspiderbeamer_3755', 0, ('0', '8', '16', '24'), 'fds'), ('enemyspiderbeamer_3755', 10, ('0', '8', '16', '24'), 'fds_dead'),
+    ('enemyspiderbeamer_3755', 11, ('0', '8', '16', '24'), 'fds_open')]
+_FDE_WITH = {'enemygatlinggundebris_3673': ('enemygatlinggun',), 'enemygatlinggunleft_3668': ('enemygatlinggunleft', 'enemygatlinggunright')}
+FDE_ENS = [(c, a, d, nm + _FDE_SFX.get(d, '_' + d), None, _FDE_WITH.get(c, (c.rsplit('_', 1)[0],))) for c, a, ds, nm in _FDE_ROWS for d in ds]
+FDE_ENS += [('enemyhomingbullet_2648', 0, '0', 'tbs_bul', None, ('enemyspiderbeamer',))]   # the spider beamers' shots (16694)
+ROW_FRAMES['tbs_bul'] = ROW_FRAMES['tbs_bul'] | {72, 73}
+FDE_ENS_WITH = {'hazardshockwave_1576': ('enemypounder',), 'enemytrooperlaser_2530': ('enemygatlinggun',),
+    'enemyhomingbullet_2648': ('enemyspiderbeamer',), 'enemygatlinggundebris_3673': ('enemygatlinggun',),
+    'objectkeystone_429': ('enemypounder', 'enemygatlinggun'), 'effectsdebris_427': ('enemypounder', 'enemyspiderbeamer'),
+    'effectsexplosion06_435': ('enemypounder', 'enemygatlinggun')}
+ENGINE_TYPES_ID.update(FDE_TYPES_ID); ENS += FDE_ENS   # FD_ENEMIES
+for _k, _v in FDE_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # FD_ENEMIES
+for _e in FDE_ENS: ROW_FRAMES[_e[3]] = ROW_FRAMES.get(_e[3], set()) | FDE_FRAMES
+try:
+    FDE_MIRRORED = _tbe_mirror_rows(FDE_ENS)
+except FileNotFoundError:
+    FDE_MIRRORED = set()
+for _nm in FDE_MIRRORED: ROW_FRAMES[_nm] = set()   # FD_ENEMIES (exact-mirror left rows: drawn flipped)
+# the spider beamers' directions per act (VRAM): FD4a faces 0 / 16 (16698), FD4b 16 / 24 (16807); direction 8 is never used
+for _b in ('fds', 'fds_dead', 'fds_open'):
+    ROW_FRAMES[_b] = {72}; ROW_FRAMES[_b + '_24'] = {73}; ROW_FRAMES[_b + '_8'] = set()
 
 # ---- FD_GIM (fd_gim.c, 2752-2911)
 

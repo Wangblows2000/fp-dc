@@ -825,6 +825,7 @@ int    obj_hang_box(const obj_t *o, float *x0, float *y0, float *x1, float *y1);
 int    sens_rows_box(int s, float x0, float y0, float x1, float y1);               /* placed player sensor s overlaps the box */
 int    relic_obj_update(obj_t *o, player_t *p);   /* 1: a relic.c type (handled) */
 int    relic_keeps_state(int type);               /* its own events set D on defeat (2764 leaves st) */
+obj_t *relic_enemy_create(int type, float x, float y);   /* a runtime hopper / fire spitter / slug / iris (constructor values; FD pods) */
 obj_t *relic_flame_new(float x, float y, double C, double D);
 int    relic_boss_keeps(int type), relic_is_gate_pillar(const obj_t *o);
 void   rmboss_spawn(void), rmboss_frame(player_t *p);
@@ -859,6 +860,7 @@ int    rm_mantalith_obj(obj_t *o, player_t *p);
  * hazard collision handlers, before combat), per-object events, Q20 membership, the post pass (game.c) and their draw hook */
 void   sb_enemy_spawn(void), sb_enemy_pre(player_t *p), sb_enemy_draw(int pass);
 int    sb_enemy_obj(obj_t *o, player_t *p), sb_enemy_q20(int type);
+obj_t *sb_enemy_hopper_create(float x, float y);   /* a runtime HopperMkII_2189 (FD pods) */
 void   sb_gim_spawn(void), sb_gim_pre(player_t *p), sb_gim_frame(player_t *p), sb_gim_draw(int pass);
 int    sb_gim_obj(obj_t *o, player_t *p), sb_gim_q20(int type);
 int    sb_gim_cannon_kills(void);                 /* SB2-SB4 cannon bases destroyed (9319: PlayerAssist.I += 1 each) */
