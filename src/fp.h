@@ -1067,6 +1067,7 @@ const warp_t *level_warp_check(const player_t *p);
 void level_warp_do(player_t *p, const warp_t *w);
 int objects_have(int type), objects_have_from(int type);
 void objects_plat_type(int type, float F, float Gm);
+void objects_plat_oneway(int type, int on);   /* 0: the type skips the one-way flags 4737 / 4738 (Trap Hideout's pillars) */
 void objects_plat_path(int type, float B, float C, int D, float F, float Gm, int H, int dip);   /* the full q13 path rule (objects.c, session 21c) */
 void obj_pinball_start(obj_t *o, int dir, float speed), obj_pinball_step(obj_t *o, float grav);   /* objects.c: PinballMovement (pellets, debris) */   /* objects.c: a module's type that follows the shared path-platform rule (F step, G amplitude, H 1) */
 void objects_sense_snapshot(int on);
