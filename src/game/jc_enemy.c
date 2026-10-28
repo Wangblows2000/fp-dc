@@ -31,7 +31,7 @@
 #define LMAX 64
 static short LST[NRT][LMAX]; static int NLS[NRT];
 #define EACH(T, OB) for (int _k = 0; _k < NLS[(T) - RT0]; _k++) if (((OB) = &G.o[LST[(T) - RT0][_k]])->alive && (OB)->type == (T))
-static struct { int on, hover, hover_t; short lim_x[64], lim_y[64]; int nlim; } S;
+static struct { int on, hover, hover_t; short lim_x[64], lim_y[64]; int nlim; int view_alert, lim_done; } S;
 
 static int R(int n) { return cross_rand(n); }
 static double PX(const player_t *p) { return floor(p->x); }
@@ -513,18 +513,15 @@ static int elite_sensor(obj_t *m, int d) {                                      
     animator_t keep = m->an; int a = ens_anim(nm), hit = 0;
     if (a < 0) return 0;
     anim_set(&m->an, &G.ens, a);
-    hit = obj_overlaps_bg(m);
-    for (int i = 0; i < G.nobjs && !hit; i++) {
-        const obj_t *s = &G.o[i];
-        if (!s->alive || s == m || !s->an.b || fabsf(s->x - m->x) > 160 || fabsf(s->y - m->y) > 160) continue;
-        if (obj_in_group(s->type, OBJGRP_SOLID) && !(s->fl & 1) && obj_obj_hit(m, s)) hit = 1;
-        else if (d == 1 && obj_in_group(s->type, OBJGRP_OBSTACLE) && floorf(m->y) <= floorf(s->y) && obj_obj_hit(m, s)) hit = 1;
-    }
+    hit = obj_overlaps_bg(m) || objects_mask_hit_groups(m, d == 1);   /* (the group candidate lists, as enemy_kit.h ek_mask_sensor:
+                                                                         no scan of every object: BG5 / FD run up to ten Elites) */
     m->an = keep;
     return hit;
 }
 static void elite_spawn(obj_t *m) {
     m->A = 20; m->av[1] = 1; m->hidden = 1; m->fx = m->x; m->fy = m->y; set_a(m, "jee_m0");
+    m->fl |= F_NOFLY;          /* flag 16 (RV bg_enemies/elite4: placed masks carry 0x10000; the spawners set it, 14661): no shared
+                                  fly-away (combat.c 2765 turned the mask and its sensors while it lay knocked down) */
 }
 static void elite_laser(obj_t *e, int dir) {                                      /* 10949: TrooperLaser A 12, B (1 + B) 90 - 180 */
     double ax, ay; relic_act_point(e, &ax, &ay);
@@ -635,9 +632,31 @@ static void elite_frame(obj_t *m, player_t *p) {
     if (*D == 6) {                                                                 /* 11029 / 10870 */
         snd_play_orig(29, 220, 128); obj_effect(m->x, m->y - 20, "explosion"); debris(m, 4);
         if (chr_is_carol(G.character)) { obj_t *f = obj_alloc(); if (f) { memset(f, 0, sizeof *f); f->type = OT_FUEL; f->alive = 1; f->layer = 2; f->x = m->x; f->y = m->y - 20; int a = bank_anim(&G.objs, "objectfuel_533"); if (a >= 0) anim_set(&f->an, &G.objs, a); } }
-        m->alive = 0; e->alive = 0;
+        m->alive = 0; e->alive = 0; return;
     }
+    /* 14408 (BG4 / BG5 / FD1 / FD2 only, jc_enemy_elite_view_alert): an idle, calm Elite inside the view (+50) alerts while the
+     * player is not in MV.M 9 */
+    if (S.view_alert && *D == 0 && *Q == 0 && in_view(m, 50) && player_orig_m(p) != 9) *Q = 1;
 }
+/* a runtime Elite (mask + sprite) with its feet at (x, y): the mask's ctor values (A 20, E 1, J 1) and flag 16 (BG5 14661 / FD
+ * 15245: the spawners set F = x, G = y and flag 16 on the new mask). Usable from any stage: the module starts if it was idle. */
+static void lim_collect(void) {
+    if (S.lim_done) return;
+    S.lim_done = 1; S.nlim = 0;
+    for (int i = 0; i < G.nobjs && S.nlim < 64; i++) { const obj_t *o = &G.o[i]; if (o->alive && o->type == OT_LIMITER && o->x >= 0) { S.lim_x[S.nlim] = (short)o->x; S.lim_y[S.nlim++] = (short)o->y; } }
+}
+obj_t *jc_enemy_elite_create(float x, float y) {
+    obj_t *m = spawn(OT_JC_ELITEMASK, NULL, x, y, 0);
+    if (!m) return NULL;
+    obj_t *e = spawn(OT_JC_ELITE, NULL, x, y, 0);
+    if (!e) { m->alive = 0; return NULL; }
+    S.on = 1; lim_collect();
+    elite_spawn(m);
+    set_a(e, "jee_idle"); e->layer = 2;
+    e->par = (int)(m - G.o); m->par = (int)(e - G.o);
+    return m;
+}
+void jc_enemy_elite_view_alert(int on) { S.view_alert = on; }
 static void laser_frame(obj_t *l, player_t *p) {                                  /* 11034-11039 */
     double *A = &l->av[0], *B = &l->av[1], *C = &l->av[2], *D = &l->av[3], *E = &l->av[4];
     *C += c_cos(*B) * *A; *D += -c_sin(*B) * *A; *E += 1;
@@ -684,6 +703,7 @@ void jc_enemy_spawn(void) {
     memset(&S, 0, sizeof S); memset(NLS, 0, sizeof NLS);
     for (int t = OT_JCE_FIRST; t <= OT_JCE_LAST && !S.on; t++) S.on = objects_have(t);
     if (!S.on) return;
+    S.lim_done = 1;                                                                /* (the limiters are collected by this loop) */
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i];
         if (!o->alive) continue;
