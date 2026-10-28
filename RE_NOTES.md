@@ -1283,3 +1283,24 @@ in the Linux data.
   11072 the tow. No character / mode test; no camera lock; the player is hurt by the spikes, not frozen (RV amb_*).
 - TB1 (handle_frame_45 inline after 11848): CAM.U > 0 and MV.Y < top marker + 240 -> CAM.U 0, CAM.M 2.
 - One-way flags 4737 / 4738 run in frames 21-23, 36-38, 40-50, not in 24-26, 30 or 57-59 (Trap Hideout).
+
+## Session 22: rails, ropes and zip-line grips (hang targets)
+Traces (not committed): build/orig_traces/hang_fix/ (tb2_fall_l / _c / _m / _b, tb2_jump_l, tb2_rel_l, tb2_drop_l, fn4_jump_l,
+fn4_fall_l, fn4_bar_l, fn4_barmargin_l, fn1_clothes_l; scripts *.txt next to them). Host test: tests/test_hang_fix.py.
+- **TB rails = GimmickClothesline_1987 + GimmickHangingLongSensor2_1703** (TB2 11 / 8, TB3 4 / 2, TB4 8 / 6, TB5 4 / 2), the same
+  classes as the FN4 / FN5 ropes; the visible rail with its thin vertical posts is backdrop art. f46-f49 run the same rope events
+  8128-8133 as FN4 / FN5 (RE build/re/f46..f49_calls.txt). RV tb2_fall_*: Lilac, Carol, Milla and Carol on the bike (A 3) all hang
+  (M 41, Y = rope y + 32), shimmy 3 px a frame (OTHERS.Y 42) and stop at the end sensor (OTHERS.Y 41).
+- **Root cause (port):** box-collision hang targets used their sprite's box, but the importer crops _ens sprites to their opaque
+  pixels (rope img 6376 72x11 hs (64,0) -> 72x6 at +5; Q23 grips 50x15 -> 42x10) and Thermal Base has no rope sprite at all
+  (FN_GIMB rows are FN4 / FN5 only), so the TB rails had no collision and the FN boxes were shrunk. Chowdren's box collision is the
+  whole image rectangle: RV tb2_fall_l grabs at Y 2944.75 (TopBig rows 2926-2936 meet the rope's top row 2936; the cropped box
+  would give 2 frames later); RV fn4_barmargin_l grabs the FN4 trolley grip (1616, 753; img 847 50x15 hs (25,5)) falling at
+  X 1644 (TopBig 1639-1649 vs box 1591-1641; the cropped box ended at 1637 and the port fell through). Fix: objects.c
+  obj_hang_box (RE image sizes / hotspots: ropes, clotheslines, rope ends, FN trolley grip, FN idle balloon, SB4 bar mask, TB5
+  water-level masks), used by obj_hang_try and the fn_gima / fn_gimb rope tests. Unchanged: GimmickHangingIdleSensor_674 (own
+  50x15 box), the Relic Maze / TH moving handles.
+- **Release (RE 4041 / 4042, constants 0x20a7e68 = 1, 0x21b59b8 = -4.5, 0x20bf868 = 40):** M41 + jump pressed (CTRL +0xa0 = 1):
+  Down not held (CTRL.B = 0) -> M 1, G -4.5 (4041); Down held -> M 40, G 0 (4042, a drop); every Q23 handle Q = 0. Down alone
+  does nothing (RV tb2_rel_l; the port used to drop on Down, INFERRED). Under a rope a jump-off is caught again 31 frames later
+  (RV); after the 4042 drop the hang TopBig rows (Y - 18 .. Y - 8) are already below the rope, so there is no regrab (RV tb2_drop_l).
