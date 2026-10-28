@@ -62,6 +62,8 @@ check('p1_fight_start', near(tag(ev, 'fight')[0] if tag(ev, 'fight') else None, 
 check('p1_entrance_D', fv(d, 600, 'D') == 5154.0, str(fv(d, 600, 'D')))                    # RV p1: D = player X + 100 = 5154
 check('p1_fade_in', near(fv(d, 700, 'L'), 94, 3) and fv(d, 800, 'L') == 0, '%s %s' % (fv(d, 700, 'L'), fv(d, 800, 'L')))   # RV L 94 at 700
 check('p1_flight', near(fv(d, 1099, 'D'), 3406.5 + 15, 40) and fv(d, 1100, 'I') == -15.0, '%s %s' % (fv(d, 1099, 'D'), fv(d, 1100, 'I')))   # RV D 3406.5 at 1100
+pos = lambda f: tuple(fv(d, f, k) for k in ('h1x', 'h1y', 'bx', 'by'))
+check('p1_rig_positions', all(near(a, b, 3) for a, b in zip(pos(1099), (3525, 1706, 3206, 1740))), '%s (RV p1 f1100: hit spot 1 (3525, 1706), breath (3206, 1740))' % (pos(1099),))
 check('p1_turn_laser', near(fv(d, 1350, 'D'), 4734, 2) and fv(d, 1350, 'J') == 1.0, str(fv(d, 1350, 'D')))                  # RV D 4734 (X - 320 J)
 xs = [rows[i]['x'] for i in range(1380, 1450) if i < len(rows) and 'x' in rows[i]]
 check('p1_laser_push', len(xs) > 10 and xs[-1] - xs[0] > 400, '%s -> %s' % (xs[:1], xs[-1:]))                              # RV 5054 -> 5786 (10 a frame)

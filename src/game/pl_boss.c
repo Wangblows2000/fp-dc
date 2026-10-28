@@ -472,9 +472,10 @@ void pl_boss_frame(player_t *p) {
 #ifdef FP_HOST_ENV
     if (getenv("FP_DBG_PLB")) {
         obj_t *e2 = slot(H.eye2), *lz = laser();
-        printf("plb %d px %.0f py %.0f K %.0f M %.0f N %.0f O %.0f L %.0f D %.1f E %.0f F %.1f I %.2f J %.0f H %.0f nx %.0f ny %.0f e2A %.0f e2h %d lz %d lx %.0f hp %d st %d fl %.0f\n",
+        obj_t *h1 = get(OT_PLB_HIT1, 0), *br = get(OT_PLB_BREATH, 0);
+        printf("plb %d px %.0f py %.0f K %.0f M %.0f N %.0f O %.0f L %.0f D %.1f E %.0f F %.1f I %.2f J %.0f H %.0f nx %.0f ny %.0f e2A %.0f e2h %d lz %d lx %.0f hp %d st %d fl %.0f h1x %.0f h1y %.0f bx %.0f by %.0f\n",
                G.frame, X, PY(p), H.K, H.M, H.N, H.O, H.L, H.D, H.E, H.F, H.I, H.J, H.H, nk->x, nk->y, e2 ? e2->A : -1, e2 ? e2->hidden : -1,
-               lz ? !lz->hidden : -1, lz ? lz->x : -1, p->hp, p->state, H.flash);
+               lz ? !lz->hidden : -1, lz ? lz->x : -1, p->hp, p->state, H.flash, h1 ? h1->x : -1, h1 ? h1->y : -1, br ? br->x : -1, br ? br->y : -1);
     }
 #endif
 }
