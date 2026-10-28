@@ -500,7 +500,7 @@ static void runtime_objs(player_t *p) {
         force_frame(o, o->st);
         if (++o->tm < 32) o->y -= 1;
         if (o->tm >= 64) {
-            if (o->st == 8) { p->lives++; music_play("bgm/m_1up.adp"); G.mus_resume_t = 240; }   /* 1-up (as OT_MON_1UP) */
+            if (o->st == 8) objects_award_life(p);   /* 1-up (as OT_MON_1UP) */
             else { p->hp = 14; snd_play_orig(4, 220, 128); }                          /* petals refilled (INFERRED reading of the frame-1 reward) */
             o->alive = 0;
         }

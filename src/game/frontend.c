@@ -522,6 +522,7 @@ void fe_update(const input_t *in) {
                 if (sf->lives) G.p.lives = sf->lives;
                 if (sf->counter) G.p.crystals = sf->counter;
                 G.p.shield = sf->shield;
+                G.act_lives = G.p.lives; G.act_crystals = G.p.crystals;   /* session 22: the act-start values (death / RESTART) are the file's, not the fresh 5 / 200 */
             }
         }
         break;

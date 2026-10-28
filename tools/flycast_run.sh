@@ -1,7 +1,7 @@
 #!/bin/bash
 # Boot build/fpdc.cdi in Flycast headless and drive it with keys.
 # usage: flycast_run.sh "<step> <step> ..."  step = wait:S | key:NAME | shot:NAME
-# Flycast keyboard: x=A, c=B, s=X, Return=Start, arrows = d-pad. Shots go to build/fc/<name>.png
+# Flycast keyboard: x=A (jump), c=B (attack), s=X (special, D-110), Return=Start, arrows = d-pad. Shots go to build/fc/<name>.png
 DISP=:95; export DISPLAY=$DISP
 mkdir -p build/fc
 # fresh display every run: a reused Xvfb sometimes stops delivering xdotool keys to Flycast

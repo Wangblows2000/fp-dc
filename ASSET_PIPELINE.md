@@ -303,6 +303,17 @@ tools/audio/convert_gallery.sh extracted/linux/audio "$G/Data/voices" /home/clau
 - Check after an importer change: build/rebuild_cmp.sh (every earlier level byte-identical), build/rcmp.sh (renders vs a
   reference host binary).
 
+## Session 22: Dreamcast button labels (D-110)
+- Milla's HUD panel (GUIScoreTimeRings_345 direction 4, bank anim `hudm`): `tools/import_frame.py` redraws its "C" glyph as an
+  X (`dc_hud_c_to_x`, applied through the bank's `patch` hook in write_bank2 before cropping; the panel's own outline / white /
+  yellow-orange colours, so no palette changes). Per level only `<lv>/milla2.spr` (the MSK1 masks of those frames) and
+  `<lv>/milla2_2.tex` (the atlas page holding the HUD frames) change, the same bytes in every level. Regenerate with the levels
+  loop of HANDOFF "Pipeline" (every level dir; each rebuild otherwise byte-identical, checked for all 37 levels).
+- Gallery hints: `tools/import_gallery.py` writes "X - Close Card" (`dc_labels`, ListWarnings 5 / 6 / 8, same length); only
+  `gal/gal_text.txt` changes (the artworks are byte-identical). Regenerate with step 2 of "Session 15: Gallery".
+- Check: `python3 tests/test_dc_buttons.py` (pad mapping, transforms on the original images / strings, the gallery data once
+  regenerated).
+
 ## Session 21d: fixes
 - JC5: JC_BOSS ambush rows in json 44 (+ `jcb5_hc`); jc5_ens's second atlas 1024 x 512 (+256 KB); the subtanker's json-layer-4
   collision pieces at x < 1024 join the collision map (`jc5_sub` in tools/import_frame.py). SFX_JC5 + 297 77 33 60 (~182 KB).
