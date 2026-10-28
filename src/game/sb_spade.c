@@ -8,13 +8,20 @@
  * 4 card throw, 5 spinning card rain, 6 / 7 staggered, 9 carried out), H facing, I wanted direction, J / K / L / N timers and
  * counters, M jumps left before the card rain. Spade alterables: A cards thrown x 10, B cards per throw (3), F stagger time.
  * Hitbox: A HP 60 (Q20), D stagger stages 3 (one per 20 HP). Chopper (here): A 99 every frame, E / F position, G / H
- * velocity, I rotor bob (+6), L 8, M -1. */
+ * velocity, I rotor bob (+6), L 8, M -1.
+ * TH3 (session 21b, the Trap Hideout boss module's arena hands over: sbp_drop_start; RE handle_frame_59 group 0x228ef 13936-14043,
+ * the same rules as 9612-9727; RV build/orig_traces/th_bosses/a1_c): no chopper is placed, so Spade drops in (S.drop): 13938 D 15
+ * and anim 7 while B < E; 13939 / 13940 while B < E - 400: A - 128 while right of the view and > 11900, A + 128 while left of
+ * it and < 12600; 13941 landed: B = E, D 0, J + 1, anim 10; 13942 J > 40: F 0, I -1, J 0, K 9. The jump waits L > 120 (13957);
+ * the arena bounds are 11712 / 12784 (14015 / 14016); no taunt voices; beaten (14007): F 9 three frames after the stagger, C / D 0,
+ * anim 38, then anim 10 once J > 120 (14012 / 14013) and the results at J = 180 (14014: Sign.B 179; RV: J counts to 181 in about
+ * 226 frames, the port one a frame, INFERRED). Everyone plays it (Carol / Milla: Trap Hideout's characters). */
 #include "sb_boss.h"
 #include <stdio.h>
 #include <stdlib.h>
 
-enum { P_0, P_1, P_2, P_8, P_15, P_21, P_24, P_26, P_29, P_NA };              /* Spade animations 0 1 2 8 15 21 24 26 29 */
-static const char *const PN[P_NA] = { "sbp_0", "sbp_1", "sbp_2", "sbp_8", "sbp_15", "sbp_21", "sbp_24", "sbp_26", "sbp_29" };
+enum { P_0, P_1, P_2, P_8, P_15, P_21, P_24, P_26, P_29, P_7, P_10, P_38, P_NA };   /* Spade animations 0 1 2 8 15 21 24 26 29 (+ TH3: 7 10 38) */
+static const char *const PN[P_NA] = { "sbp_0", "sbp_1", "sbp_2", "sbp_8", "sbp_15", "sbp_21", "sbp_24", "sbp_26", "sbp_29", "sbp_7", "sbp_10", "sbp_38" };
 enum { Q_CARD, Q_CARD7, Q_HIT, Q_SPARK, Q_N };
 static const char *const QN[Q_N] = { "sbp_card", "sbp_card7", "sbp_hit", "sbp_tspark" };
 static short PA[P_NA][2], QA[Q_N];
@@ -22,7 +29,7 @@ static short PA[P_NA][2], QA[Q_N];
 #define NCARD 24
 #define NIMG 12
 static struct {
-    int on, once, ended, ak, fl2, f0, sdone;
+    int on, once, ended, ak, fl2, f0, sdone, drop, req;
     double A, B, C, D, E, F, H, I, J, K, L, M, N;      /* BossSpadeMask */
     double sA, sB, sF;                                  /* BossSpade A, B, F */
     double hD;                                          /* hitbox D */
@@ -57,6 +64,8 @@ void sbp_spawn(void) {
     for (int k = 0; k < Q_N; k++) QA[k] = (short)ens_anim(QN[k]);
     S.A = m->x; S.B = m->y; S.E = m->y; S.F = -1; S.H = -1; S.M = 3; S.ak = -1;   /* RV p_kill f55: A / B = the mask, E = B, F -1, H -1, M 3 */
     S.sB = 1; S.hD = 3; S.f0 = G.frame;
+    S.drop = sbb_count(OT_SB_CH) == 0;                                          /* TH3: no carrier, Spade drops in */
+    if (S.drop) S.B = 0;                                                        /* RV a1_c: B 0 until the group runs, E = the mask's y */
     obj_t *s = spade(), *h = hitbox();
     if (s) s->hidden = 1;
     if (h) { h->A = 60; h->fl |= F_NOFLY; if (QA[Q_HIT] >= 0) anim_set(&h->an, &G.ens, QA[Q_HIT]); }   /* ctor A 60, D 3 */
@@ -64,6 +73,8 @@ void sbp_spawn(void) {
     S.cL = 8; S.cM = -1;
 }
 void sbp_pre(player_t *p) { (void)p; }
+void sbp_drop_start(void) { if (S.drop) S.req = 1; }                            /* TH3 14064: ML.Y 1, group 0x228ef on */
+int  sbp_state(void) { return S.on ? (int)S.F : -2; }
 
 /* ---- the cards (9712-9727; 9715 / 9717 / 9722 PlayerReflect and 9726 / 9727 player projectiles: Milla / Carol only) */
 static void card_new(obj_t *s, double ax, double ay, double C, double D, int g) {
@@ -160,15 +171,16 @@ static void chopper_rise(double PX) {                                          /
 
 void sbp_frame(player_t *p) {
     obj_t *m = mask(), *s = spade(), *h = hitbox();
-    if (!m || !s || !h || G.character != CHR_LILAC) return;
+    if (!m || !s || !h || (!S.drop && G.character != CHR_LILAC)) return;
     double PX = sbb_px(p), PY = sbb_py(p);
     if (s->an.b && s->an.done && !S.sdone) s->an.acc += 100 - (s->c > 0 ? s->c : s->an.b->anims[s->an.anim].speed);   /* Active::update keeps the counter when an animation ends (RE) */
     S.sdone = s->an.b && s->an.done;
     if (h->fl & SB_DEF) h->ky = fmin(h->ky + 0.25, 15.0);                       /* 2765: the beaten hitbox's fall speed (its position is 9701's) */
     int pdead = player_orig_m(p) == 9;
     /* 9598: Lilac (MV.A 0) inside the arena (the flow's lock 9552), barriers up */
-    if (!S.on && sbb_lock_edge(&S.once) > 0 && sbb_bars() > 0) {
+    if (!S.on && (S.drop ? S.req : (sbb_lock_edge(&S.once) > 0 && sbb_bars() > 0))) {
         S.on = 1; S.cM = -1; S.cF = 600 + S.B; S.cE = PX + 200;
+        if (S.drop) { S.on = 2; s->hidden = 0; }
     }
     if (!S.on) { cards(p); imgs(); return; }
     if (S.on == 1) {                                                            /* 9599 (once): shown, the stage music fades */
@@ -183,8 +195,18 @@ void sbp_frame(player_t *p) {
         s->an.acc = v;
     }
     chopper();
+    /* F -1, TH3 (13938-13942): dropped in */
+    if (S.F == -1 && S.drop) {
+        if (S.B < S.E) { S.D = 15; sa(s, P_7); }                                /* 13938 */
+        if (S.B < S.E - 400) {                                                  /* 13939 / 13940: into the view in 128 px steps */
+            if (S.A > G.camx + SCREEN_W && S.A > 11900) S.A -= 128;
+            if (S.A < G.camx && S.A < 12600) S.A += 128;
+        }
+        if (S.B >= S.E) { S.B = S.E; S.D = 0; S.J += 1; sa(s, P_10); }          /* 13941 */
+        if (S.J > 40) { S.F = 0; S.I = -1; S.J = 0; S.K = 9; }                  /* 13942 */
+    }
     /* F -1 (0x228ea): carried in */
-    if (S.F == -1) {
+    if (S.F == -1 && !S.drop) {
         carried(s);
         if (S.cF > S.E - 160) chopper_rise(PX);                                   /* 9616 */
         else { S.cH = 0; S.J += 1; sbb_fight_start(); }                         /* 9617 / 9618: ML.Y 1 (the boss track) */
@@ -194,7 +216,8 @@ void sbp_frame(player_t *p) {
     if (S.F == 0) {
         if (PX + 100 < S.A) S.I = -1;                                           /* 9622 / 9623 (BossSpade Q, the dialogue: always 0) */
         if (S.A < PX - 100) S.I = 1;
-        if (pdead && fabs(S.A - PX) <= 99) { S.I = 0; S.N += 1;                 /* 9624: taunts the beaten player */
+        if (pdead && fabs(S.A - PX) <= 99 && S.drop) { S.I = 0; S.N += 1; }     /* 13946 (TH3: no voices) */
+        else if (pdead && fabs(S.A - PX) <= 99) { S.I = 0; S.N += 1;            /* 9624: taunts the beaten player */
             if (S.N == 30) voice_play(pdead ? "spade_goodenough" : "spade_comeon");   /* 9625 / 9626 (channel 27) */
             if (S.N == 90) voice_play("lilac_hitmeifyoucan");                   /* 9627 */
             if (S.N == 400) voice_play("spade_comeon2");                        /* 9628 */
@@ -214,7 +237,7 @@ void sbp_frame(player_t *p) {
             if (S.L == 0) S.L += 90;                                            /* 9638 / 9639 */
             if (S.L > 0) S.L += 1;
             if (S.L > 0 && (S.A < PX - 300 || S.A > PX + 300)) S.L += 4;       /* 9640: far away: sooner (RV p_kill 501 / 759) */
-            if (S.L > 140 && !pdead && cl + 200 < PX) {                        /* 9641 / 9642: the jump */
+            if (S.L > (S.drop ? 120 : 140) && !pdead && cl + 200 < PX) {       /* 9641 / 9642: the jump (TH3 13957: L > 120) */
                 S.L = 0; S.F = 2; S.D = -8; snd_play_orig(8, 220, 128); S.H = PX <= S.A ? -1 : 1;
             }
         }
@@ -288,19 +311,32 @@ void sbp_frame(player_t *p) {
         if (S.F == 7) {
             S.sF += 1; S.D = fmin(S.D + 0.3, 15); h->c = 20;                    /* 9686 */
             int beaten = (h->fl & SB_DEF) != 0;
-            if (!beaten) S.B = fmin(S.B, S.E);                                  /* 9687 */
+            if (!beaten || S.drop) S.B = fmin(S.B, S.E);                       /* 9687 (TH3: beaten on the floor) */
+            if (beaten && S.drop) { S.C = 0; S.D = 0; }                         /* (RV a1_c 1101-1103: A / B held) */
+            if (beaten && S.drop && S.sF >= 3) {                                /* 14007: F 9 (RV a1_c: 3 frames after F 6) */
+                S.C = 0; S.D = 0; S.F = 9; S.J = 0; S.K = 2; sa(s, P_38);
+            }
             if (s->an.frame >= 7) sframe(s, 7);                                 /* 9688 */
             if (S.sF > 18 && S.B >= S.E && !beaten) {                           /* 9689: back to the cards */
                 S.sF = 0; S.C = 0; S.D = 0; S.F = 4; S.L = 0; S.B = S.E; S.K = 0; S.M -= 1; sa(s, P_24);
             }
-            if (S.sF > 18 && S.B >= S.E + 600 && beaten) {                     /* 9691: fallen off the ship: the chopper comes */
+            if (S.sF > 18 && S.B >= S.E + 600 && beaten && !S.drop) {          /* 9691: fallen off the ship: the chopper comes */
                 sbb_music_fadeout();
                 S.C = 0; S.D = 0; S.F = 9; S.cF = S.B; S.cE = PX + 200; S.H = -1; S.J = 0;
             }
         }
     }
+    /* F 9, TH3 (14012-14014): kneeling, then the results */
+    if (S.F == 9 && S.drop) {
+        /* J (RV a1_c: 1 at the F 9 frame, + 1 every 3 frames up to about 24, then + 1 a frame: 51 at + 96, 181 at + 226; the
+         * timer behind the slow phase is not identified: INFERRED from the RV counts) */
+        if (S.J < 24) { if (++S.K >= 3) { S.K = 0; S.J += 1; } }
+        else if (S.J < 181) S.J += 1;
+        sa(s, S.J > 120 ? P_10 : P_38);
+        if (S.J == 180 && !S.ended) { S.ended = 1; results_begin_boss(game_timer()); }   /* 14014: Sign.B 179 */
+    }
     /* F 9 (0x228ec): carried away; the arena end */
-    if (S.F == 9) {
+    if (S.F == 9 && !S.drop) {
         carried(s);
         if (S.J == 0) chopper_rise(PX);                                           /* 9694 */
         if (S.J == 0 && S.cF <= S.E - 160) { S.cH = 0; S.J += 1; }               /* 9695 */
@@ -309,6 +345,7 @@ void sbp_frame(player_t *p) {
         if (S.J > 90 && !S.ended) { S.ended = 1; sbb_arena_end(1, 0x10); }      /* 9698 */
     }
     float cl = sbb_marker(OT_CAMLIM_L, 1), cr = sbb_marker(OT_CAMLIM_R, 1);
+    if (S.drop) { cl = 11712 - 200; cr = 12784; }                               /* TH3 14015 / 14016: the arena's walls */
     if (cl > -1e8f && S.A < cl + 200) { S.I = 1; S.A = (int)cl + 200; }         /* 9699 / 9700 */
     if (cr > -1e8f && S.A > cr) { S.I = -1; S.A = (int)cr; }
     if (S.F > -1) { h->x = m->x; h->y = m->y; }                                 /* 9701 (before the move: one frame behind, RV) */

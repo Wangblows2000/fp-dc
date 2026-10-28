@@ -22,6 +22,7 @@
 #define FLW2 0x20000                                 /* mask flag 2 (wall left) */
 #define FLW3 0x40000                                 /* mask flag 3 (ceiling) */
 #define FLGONE 0x80000                               /* totem / mask: A = -5 .. -1 (debris made): removed at its next events */
+#define FLARENA 0x100000                             /* mask dropped in by the TH3 arena (th_enemy_bike_drop) */
 #define RT0 OT_THE_FIRST
 #define NRT (OT_THE_LAST - OT_THE_FIRST + 1)
 static ek_list_t LST[NRT];
@@ -250,6 +251,10 @@ static void bmask_frame(obj_t *m, player_t *p) {
     const double U = -4;
     if (m->fl & FLGONE) { m->alive = 0; if (b) b->alive = 0; return; }           /* 13788 / 13789 */
     double X = floorf(m->x), px = ek_px(p);
+    if (*D == -2) { *H = 0; *I = 15; }                                             /* 13746: dropped in (TH3 arena): straight down */
+    if (*D == -2 && (m->fl & FL4)) {                                               /* 13747: landed: riding, a white burst, sound 61 */
+        *D = 0; obj_effect(m->x, m->y, "wburst"); snd_play_orig(61, 220, 128);
+    }
     m->st = 0;                                                                     /* 13740 */
     if (*D == 0 && X > G.camx + SCREEN_W + 30 && X < G.camx + SCREEN_W + 230) m->st = 1;   /* 13741 (outer bound INFERRED) */
     if (*D == 0 && X < G.camx - 30 && X > G.camx - 230) m->st = 1;                 /* 13742 */
@@ -305,6 +310,7 @@ static void bike_frame(obj_t *b) {
     obj_t *m = ek_partner(b);
     if (!m || m->type != OT_TH_BMASK) { b->alive = 0; return; }                   /* 13789 / 13790 */
     if (b->av[1] == 1) ek_face(b, 0); else if (b->av[1] == -1) ek_face(b, 16);     /* 13733 / 13734 */
+    if (b->av[0] == -2) ek_set_a(b, "thb_drop");                                   /* 13745: anim 10 while dropped in (TH3 arena) */
     if (b->av[0] == 0 && b->av[3] == 1) ek_set_a(b, "thb_ride");                   /* 13735 */
     if (b->av[0] == 0 && b->av[3] == 0) ek_set_a(b, "thb_jump");                   /* 13736 */
     if (b->av[0] == 1) ek_set_a(b, "thb_throw");                                   /* 13737 */
@@ -331,6 +337,27 @@ static void star_frame(obj_t *s, player_t *p) {
     if (*B > 40 && !(s->fl & FL2) && player_cube_hits(s)) { snd_play_orig(219, 220, 128); s->fl |= FL2; *A = -*A; }   /* 13772 (PlayerReflect shown) */
     if (*B > 40 && obj_overlaps_bg(s)) { snd_play_orig(240, 220, 128); obj_effect(s->x, s->y, "wburst"); s->alive = 0; return; }   /* 13773 */
     if (*B > 40 && ek_csens_hit(p, s) && ek_r_hurt(p, 5, 0)) ek_add_mvB(p, -2);   /* 13774 */
+}
+
+/* TH3 arena waves (the boss module's 14054; RE create_effectbikeninjawarning_3206 / mask_3204 / bikeninja_3203 at (x, y)): the
+ * warning, the mask (D -2: dropped in, 13745-13747; F the float x, E the side) and its bike. th_enemy_bikes_alive counts the masks
+ * the arena dropped that are still up (the original counts every EnemyBikeNinjaMask of the frame: the placed ones are far behind
+ * and gone by then, INFERRED) */
+obj_t *th_enemy_bike_drop(float x, float y, double F, double E) {
+    if (!S.on) return NULL;
+    obj_t *w = spawn(OT_TH_BWARN, "thb_warn", x, y, 0), *m = spawn(OT_TH_BMASK, "thb_m0", x, y, 0), *b = spawn(OT_TH_BIKE, "thb_drop", x, y, 0);
+    if (!m) { if (w) w->alive = 0; if (b) b->alive = 0; return NULL; }
+    bmask_spawn(m); m->layer = 3; m->fl |= FLARENA;
+    m->av[0] = -2; m->av[1] = E; m->av[2] = F; m->av[3] = floorf(y); m->x = (float)(int)F;
+    if (w) { w->hidden = 1; w->layer = 3; w->par = (int)(m - G.o); }
+    if (b) { b->layer = 3; b->par = (int)(m - G.o); b->av[0] = -2; b->av[1] = E; b->x = m->x; ek_face(b, E < 0 ? 16 : 0); m->par = (int)(b - G.o); }
+    return m;
+}
+int th_enemy_bikes_alive(void) {
+    if (!S.on) return 0;
+    int n = 0; obj_t *m;
+    EACH(OT_TH_BMASK, m) if ((m->fl & FLARENA) && !(m->fl & FLGONE)) n++;
+    return n;
 }
 
 /* ================================================================ spawn / passes */
