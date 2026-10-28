@@ -10,7 +10,14 @@
 
 /* ---- jc_gim.c (types 1370-1429) */
 
-/* ---- jc_boss.c (types 1430-1479: Hovercop, Neera; acts 2 / 3) */
+/* ---- jc_boss.c (types 1430-1479: Hovercop fly-by (act 1), Hovercop chase (acts 2 / 3), Neera (act 3); build/re/spec_jc_bosses.md).
+ * Placed classes (tools/import_frame.py JC_BOSS, json 40-43 only) then the runtime objects. */
+enum { OT_JCB_HC = 1430, OT_JCB_TB1, OT_JCB_TB2, OT_JCB_PROP1, OT_JCB_PROP2, OT_JCB_SIR1, OT_JCB_SIR2, OT_JCB_SIR3, OT_JCB_SIR4,
+       OT_JCB_HOOK, OT_JCB_HOOK2, OT_JCB_LIGHT, OT_JCB_ICED, OT_JCB_NEERA, OT_JCB_NHIT, OT_JCB_ICEBAR, OT_JCB_ICEPIECE,   /* 1430-1446 placed */
+       OT_JCB_GLOW = 1450, OT_JCB_CRYSTAL, OT_JCB_MISSILE, OT_JCB_STICKY, OT_JCB_METEOR, OT_JCB_RING, OT_JCB_NSHIELD, OT_JCB_BUBBLE,
+       OT_JCB_END = 1479 };                          /* (OT_JCB_LAST in fp.h is the whole JC boss range, 1535) */
+float jc_boss_hud_dy(void);                          /* the boss module's HUD offset (loop_gui_shiftup / shiftdown; 0: none in JC1-JC4, RE) */
+int   jc_boss_ml_y(void);                            /* MasterLevel Y (1 while the JC3 Neera fight runs: ControllerMusic slot 4) */
 
 /* ---- jc_boss5.c (types 1480-1535: act 5's bosses and scenes) */
 enum { OT_JCB5_FIRST = 1480 };

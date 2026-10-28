@@ -860,7 +860,44 @@ JC_FRAMES = {40, 41, 42, 43, 44}
 
 # ---- JC_GIM (jc_gim.c, 1370-1429)
 
-# ---- JC_BOSS (jc_boss.c, 1430-1479)
+# ---- JC_BOSS (jc_boss.c, 1430-1479): Jade Creek acts 1-4 bosses (build/re/spec_jc_bosses.md): the Hovercop rig (JC1 fly-by,
+# JC2 / JC3 chase), PlayerIceDeath, Neera + her hitbox and the LevelIceBarrier (JC3). Types mirror src/game/jc.h (OT_JCB_*). The
+# classes are shared with JC5 (jc_boss5.c): JCB_CLS remaps them by class name in JCB_FRAMES only (json 40-43; the per-frame
+# remap next to the SB_BOSS ones), the lvobj anim field carries the instance layer << 8.
+JCB_FRAMES = {40, 41, 42, 43}
+JCB_CLS = {'bosshovercop_2429': 1430, 'bosshovercopturbine1_2430': 1431, 'bosshovercopturbine2_2428': 1432,
+    'bosshovercoppropellor_2431': 1433, 'bosshovercoppropellor2_2432': 1434, 'bosshovercopsiren1_2433': 1435,
+    'bosshovercopsiren2_2434': 1436, 'bosshovercopsiren3_2427': 1437, 'bosshovercopsiren4_2426': 1438,
+    'bosshovercophook_2468': 1439, 'bosshovercophook2_2472': 1440, 'levelhovercraftlight_2465': 1441,
+    'playericedeath_2467': 1442, 'npcneera_2483': 1443, 'bossneerahitbox_2482': 1444, 'levelicebarrier_2480': 1445,
+    'levelicebarrierpiece_2495': 1446}
+for _c, _t in JCB_CLS.items(): ENGINE_TYPES_ID.setdefault((_c.rsplit('_', 1)[0], int(_c.rsplit('_', 1)[1])), _t)   # JC_BOSS (setdefault: JC5 may own the key)
+_HC, _NE, _ID, _IB = ('bosshovercop',), ('npcneera',), ('playericedeath',), ('levelicebarrier',)
+JCB_ENS = [(c, a, d, nm, None, w) for c, a, d, nm, w in (
+    ('bosshovercop_2429', 0, '0', 'jcb_hc', _HC), ('bosshovercop_2429', 0, '16', 'jcb_hc_l', _HC),
+    ('bosshovercopturbine1_2430', 0, '0', 'jcb_tb1', _HC), ('bosshovercopturbine1_2430', 0, '16', 'jcb_tb1_l', _HC),
+    ('bosshovercopturbine2_2428', 0, '0', 'jcb_tb2', _HC), ('bosshovercopturbine2_2428', 0, '16', 'jcb_tb2_l', _HC),
+    ('bosshovercoppropellor_2431', 0, '0', 'jcb_prop', _HC), ('bosshovercopsiren1_2433', 0, '0', 'jcb_sir1', _HC),
+    ('bosshovercopsiren2_2434', 0, '0', 'jcb_sir2', _HC), ('bosshovercophook2_2472', 0, '0', 'jcb_hook2', _HC),
+    ('bosshovercophook_2468', 0, '0', 'jcb_hook', _ID), ('bosshovercophook_2468', 0, '16', 'jcb_hook_l', _ID),
+    ('levelhovercraftlight_2465', 0, '0', 'jcb_light', _HC), ('levelhovercraftlight_2465', 0, '16', 'jcb_light_l', _HC),
+    ('bosshovercopchargeglow_2471', 4, '16', 'jcb_glow_l', _HC),   # dir 0's table has a missing image (frame 3): drawn mirrored
+    ('bossicecrystal_2466', 0, '0', 'jcb_crystal', _HC), ('bossicemissile_2470', 0, '0', 'jcb_mis', _HC),
+    ('bossicemissile_2470', 0, '16', 'jcb_mis_l', _HC), ('effectstickyice_2469', 0, '0', 'jcb_sticky', _HC),
+    ('bossmeteor_2435', 0, '0', 'jcb_meteor', _HC), ('playericedeath_2467', 0, '0', 'jcb_iced', _ID),
+    ('playericedeath_2467', 7, '0', 'jcb_iced7', _ID), ('levelicebarrier_2480', 0, '0', 'jcb_bar', _IB),
+    ('levelicebarrierpiece_2495', 0, '0', 'jcb_barp', _IB), ('bossicering_2481', 0, '0', 'jcb_ring', _NE),
+    ('bossneerahitbox_2482', 0, '0', 'jcb_nhit', _NE))] + \
+    [('npcneera_2483', a, d, 'jcb_n%d_%s' % (a, d), None, _NE) for a, d in (
+     (0, '1'), (0, '17'), (7, '0'), (7, '16'), (7, '1'), (7, '17'), (8, '1'), (8, '17'), (10, '0'), (10, '16'),
+     (10, '1'), (10, '17'), (12, '0'), (12, '16'), (13, '0'), (13, '16'), (16, '0'), (17, '0'), (17, '16'), (17, '1'), (17, '17'))]
+# Neera's directions (RE 10711 / 10712 / 10729-10732 / 10751 / 10752 / 10762 / 10763: 1 / 17; 10769: toward the player, any of
+# 32): anim 0 in 1 / 17 only (dirs 0 / 16 are other images, never set: INFERRED, VRAM); anim 16 dirs 0 / 16 share their images
+JCB_ENS_WITH = {'bosshovercopchargeglow_2471': _HC, 'bossicecrystal_2466': _HC, 'bossicemissile_2470': _HC, 'effectstickyice_2469': _HC,
+                'bossmeteor_2435': _HC, 'bossicering_2481': _NE}
+ENS += JCB_ENS   # JC_BOSS
+for _k, _v in JCB_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # JC_BOSS
+for _e in JCB_ENS: ROW_FRAMES[_e[3]] = JCB_FRAMES   # JC_BOSS rows only in JC1-JC4 (JC5 exports its own)
 
 # ---- JC_BOSS5 (jc_boss5.c, 1480-1535)
 
@@ -1160,6 +1197,9 @@ def main():
         if o['type'] == 478 and n == 39: o['type'] = 1188   # SB4's EffectWarning_1528: the spire's drop marker (10123 / col_30_38)
     objs = [o for o in objs if not (800 <= o['type'] < 860 and n not in FNBOSS_FRAMES)]   # FN_BOSS: its classes only in FN1-FN3 / FN5
     objs = [o for o in objs if not (1150 <= o['type'] < 1280 and n not in SBBOSS_FRAMES)]   # SB_BOSS: its classes only in SB1-SB4
+    for o in objs:                                   # JC_BOSS: the shared Hovercop / Neera classes are jc_boss.c's types in JC1-JC4
+        if n in JCB_FRAMES and o['cls'] in JCB_CLS: o['type'] = JCB_CLS[o['cls']]
+    objs = [o for o in objs if not (1430 <= o['type'] < 1480 and n not in JCB_FRAMES)]   # JC_BOSS: its types only in JC1-JC4
     for o in objs:                                   # SB_ENEMIES (session 19b): SB1 / SB3's placed EffectWarning_1528 (SB4's: the boss's 1188)
         if o['cls'] == 'effectwarning_1528' and n in SBE_WARN_FRAMES: o['type'] = 1039
     for o in objs: o['fna'] = FNA_SUB.get(o['cls'], 0) | FNA_FLAGS.get((o['cls'], n), 0) | (o['layer'] << 8)   # FN_GIMA (fn_gima.c)
@@ -1666,6 +1706,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         if 560 <= o['type'] < 680: a = o.get('fna', 0)            # FN_GIMA: member index | act flags | layer << 8 (fn_gima.c)
         if 680 <= o['type'] < 800: a = FNB_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # FN_GIMB (fn_gimb.c): member index | instance layer << 8
         if 800 <= o['type'] < 860: a = FNBOSS_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # FN_BOSS (fn_boss.c): sub id | instance layer << 8
+        if 1430 <= o['type'] < 1480: a = o['layer'] << 8   # JC_BOSS (jc_boss.c): instance layer << 8
         if 1150 <= o['type'] < 1280: a = SBBOSS_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # SB_BOSS (sb_boss.c): sub id | instance layer << 8
         if 1100 <= o['type'] < 1150: a = SBG_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # SB_GIM (sb_gim.c): member index | instance layer << 8 | 0x8000: json layer 1 of a mapped frame (session 20: behind the json-2 pieces, scrolls with layer 1)
         d += struct.pack('<2H2i', o['type'], a, o['x'], o['y'])
