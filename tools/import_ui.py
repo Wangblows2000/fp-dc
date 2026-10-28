@@ -63,6 +63,14 @@ def main():
     argv = sys.argv[5:]; excl = []
     while '-x' in argv:
         i = argv.index('-x'); excl.append(re.compile(argv[i + 1])); del argv[i:i + 2]
+    # "-k REGEX=a,b" keeps only animations a, b (indices) of the classes matching REGEX ("-k REGEX=" keeps none: the object
+    # stays in the scene without images); "-k REGEX=a.d" keeps only direction d of animation a (session 24, the ending /
+    # credits scenes: the cast skins are placed with every animation, the scene shows one or two)
+    keep = []
+    while '-k' in argv:
+        i = argv.index('-k'); r, _, al = argv[i + 1].rpartition('=')
+        keep.append((re.compile(r), [tuple(int(x) for x in a.split('.')) for a in al.split(',') if a]))
+        del argv[i:i + 2]
     sys.argv[5:] = argv
     frame_nos = [int(v) for v in sys.argv[5:] if '+' not in v]
     extra = {}
@@ -99,6 +107,10 @@ def main():
                         if fr_ids: ents.append((ai, int(dk), fr_ids, d['max_speed'], d['loop'], d['back_to']))
             elif e.get('images'):
                 ents.append((0, 0, [i for i in e['images'] if i is not None], 0, -1, 0))
+            for r, al in keep:
+                if r.search(o['cls']):
+                    ents = [en for en in ents if any(en[0] == a[0] and (len(a) == 1 or en[1] == a[1]) for a in al)]
+                    break
             ents = ents[:MAX_ENT]
             if not ents:
                 sb = solid(key) if o.get('kind') == 'bg' else None

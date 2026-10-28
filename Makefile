@@ -17,6 +17,7 @@ OBJS += src/game/fn_enemy.o   # Fortune Night enemies
 OBJS += src/game/sb_enemy.o   # Sky Battalion enemies
 OBJS += src/game/sb_gim.o     # Sky Battalion gimmicks
 OBJS += src/game/fd_flow.o src/game/fd_enemy.o src/game/fd_gim.o src/game/fd_boss.o   # Final Dreadnought (session 24)
+OBJS += src/game/ending.o src/game/cutscene.o src/game/cutscene_example.o   # end of the game, cutscene player (session 24)
 OBJS += src/game/bg_flow.o src/game/bg_enemy.o src/game/bg_gim.o src/game/bg_boss.o   # Battle Glacier (session 24)
 OBJS += src/game/bg_boss_sparky.o src/game/bg_boss_mech.o src/game/bg_boss_dail.o   # Battle Glacier bosses (bg_boss.h encounters)
 OBJS += src/game/pl_flow.o src/game/pl_enemy.o src/game/pl_gim.o src/game/pl_boss.o   # Pangu Lagoon (session 23)
@@ -82,6 +83,7 @@ build/disc/data: $(DATA_DIR)/levels.txt
 	cp $(DATA_DIR)/ui/*.ui $(DATA_DIR)/ui/*.spr $(DATA_DIR)/ui/*.tex $(DATA_DIR)/ui/*.bin build/disc/data/ui/
 	cp $(BGM) build/disc/data/bgm/
 	cp $(DATA_DIR)/sfx/*.wav build/disc/data/sfx/
+	mkdir -p build/disc/data/end; cp $(DATA_DIR)/end/* build/disc/data/end/   # the end of the game (session 24, tools/import_ending.sh): end.pak
 	mkdir -p build/disc/data/gal; cp $(DATA_DIR)/gal/*.tex $(DATA_DIR)/gal/*.pal $(DATA_DIR)/gal/*.wav $(DATA_DIR)/gal/*.txt $(wildcard $(DATA_DIR)/gal/*.adp) build/disc/data/gal/   # gallery (session 15): loose, on demand (.adp: streamed sound cards, session 18)
 	python3 tools/twiddle_disc.py build/disc/data
 	python3 tools/pack_disc.py build/disc/data
