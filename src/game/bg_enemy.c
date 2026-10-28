@@ -28,11 +28,28 @@ static bge_payload_fn PAY;                            /* (set by another module 
 
 static obj_t *spawn(int type, const char *anim, float x, float y) { return ek_spawn(&LST[type - RT0], type, anim, x, y, 0); }
 static int rnd(int n) { return cross_rand(n); }
-static void act_point(const obj_t *o, double *x, double *y) {             /* the current frame's action point */
+/* a point (lx, ly) relative to the hotspot, turned with the object (Chowdren angles: counter-clockwise, as obj_overlaps_bg) */
+static void turn(const obj_t *o, double lx, double ly, double *x, double *y) {
+    double a = ek_nrm(o->ang), c = ek_cos(a), sn = ek_sin(a);
+    *x = floorf(o->x) + lx * c + ly * sn; *y = floorf(o->y) - lx * sn + ly * c;
+}
+static void act_point(const obj_t *o, double *x, double *y) {             /* the current frame's action point (turned) */
     *x = floorf(o->x); *y = floorf(o->y);
     if (!o->an.b || !o->an.b->act) return;
     const frame_t *f = anim_frame(&o->an); int fi = (int)(f - o->an.b->frames);
-    *x += o->an.b->act[2 * fi] - f->hx; *y += o->an.b->act[2 * fi + 1] - f->hy;
+    turn(o, o->an.b->act[2 * fi] - f->hx, o->an.b->act[2 * fi + 1] - f->hy, x, y);
+}
+/* the image box turned with the object (the flying drill at 90 / 270 is 96 x 32; Chowdren collides the rotated image): the
+ * collisions of the drill's own events (14299 / 14301 / 14306) use it; its background test is obj_overlaps_bg (rotated mask) */
+static void turned_box(const obj_t *o, float *x0, float *y0, float *x1, float *y1) {
+    *x0 = *x1 = floorf(o->x); *y0 = *y1 = floorf(o->y);
+    if (!o->an.b) return;
+    const frame_t *f = anim_frame(&o->an);
+    for (int k = 0; k < 4; k++) {
+        double x, y; turn(o, (k & 1) ? f->w - f->hx : -f->hx, (k & 2) ? f->h - f->hy : -f->hy, &x, &y);
+        if (!k) { *x0 = *x1 = (float)x; *y0 = *y1 = (float)y; continue; }
+        *x0 = fminf(*x0, (float)x); *x1 = fmaxf(*x1, (float)x); *y0 = fminf(*y0, (float)y); *y1 = fmaxf(*y1, (float)y);
+    }
 }
 static int is_monitor(int t) {
     return t == OT_MONITOR || t == OT_MON_RINGS || t == OT_MON_1UP || t == OT_MON_INVINC || t == OT_MON_KEYSTONE ||
@@ -67,10 +84,11 @@ static void drill_home(obj_t *o, double I) {                                    
     o->x = (float)(int)o->av[7]; o->y = (float)(int)o->fy;
 }
 static void drill_hits(obj_t *o) {                                                 /* 14299: the flying drill on a Q20 enemy */
+    float x0, y0, x1, y1; turned_box(o, &x0, &y0, &x1, &y1);
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *e = &G.o[i];
         if (!e->alive || e == o || !e->an.b || fabsf(e->x - o->x) > 160 || fabsf(e->y - o->y) > 160 || !enemy_type(e->type)) continue;
-        if ((e->fl & 0x60) || e->c > 0 || e->A <= 0 || !obj_obj_hit(o, e)) continue;
+        if ((e->fl & 0x60) || e->c > 0 || e->A <= 0 || !obj_rect_hit(e, (int)x0, (int)y0, (int)x1, (int)y1)) continue;
         e->c = 5; e->kx = (float)o->av[1]; e->ky = 0; e->A -= 3; e->inv = 1;      /* (set_shader 0x15: the hit flash) */
         o->av[5] = 4; snd_play_orig(24, 220, 128);
     }
@@ -106,11 +124,12 @@ static void drill_frame(obj_t *o, player_t *p) {
     if (*D == 7 && (o->x > G.camx + 1626 || o->x < G.camx - 1200)) { drill_home(o, 10); return; }   /* 14297 / 14298 */
     if (*D == 7 && *I <= 0) drill_hits(o);                                         /* 14299 / 14406 / 14671 */
     if (*I > 0) *I -= 1;                                                           /* 14300 */
+    float bx0, by0, bx1, by1; turned_box(o, &bx0, &by0, &bx1, &by1);
     if (*D > 0 && LMON.n) {                                                        /* 14301: one monitor it touches breaks (Q19, flag 6) */
         obj_t *c[8]; int n = 0;
         for (int k = 0; k < LMON.n && n < 8; k++) {
             obj_t *m = &G.o[LMON.idx[k]];
-            if (m->alive && is_monitor(m->type) && !(m->fl & 0x200) && fabsf(m->x - o->x) < 96 && fabsf(m->y - o->y) < 128 && obj_obj_hit(o, m)) c[n++] = m;
+            if (m->alive && is_monitor(m->type) && !(m->fl & 0x200) && fabsf(m->x - o->x) < 96 && fabsf(m->y - o->y) < 128 && obj_rect_hit(m, (int)bx0, (int)by0, (int)bx1, (int)by1)) c[n++] = m;
         }
         if (n) c[rnd(n)]->fl |= 0x200;                                             /* (objects.c: the monitor's blast break, 3243) */
     }
@@ -121,7 +140,7 @@ static void drill_frame(obj_t *o, player_t *p) {
     }
     if (*D == -2) { o->hidden = 1; o->c = 5; }                                     /* 14304 */
     if (*D == -2 && *I <= 0) { *D = 0; *Gg = 0; *E = 0; *J = 0; ek_set_a(o, "bgd_idle"); }   /* 14305 */
-    if (LXB.n && tb_gim_xblock_ignite(o)) {                                        /* 14306 (hidden drills too: RE, no D test) */
+    if (LXB.n && tb_gim_xblock_ignite(bx0, by0, bx1, by1)) {                                        /* 14306 (hidden drills too: RE, no D test) */
         ek_shake(8); snd_play_orig(38, 220, 128); *D = 8;
     }
 }
