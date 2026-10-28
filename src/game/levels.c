@@ -276,11 +276,11 @@ static const zone_t DIGZ_BG_ALL[] = { { -32768, 32767, -32768, 32767 } };
 static const signed char DIGR_BG[] = { DIG_EARTH_MON, DIG_CRYSTALS, DIG_CRYSTALS, DIG_KEYSTONE_MON };
 /* the stage's own sounds per act (11025 Hz): the flow events play none of their own (RE: the Media calls of the BG flow events are the shared
  * pause / weapon / debris ones); 62 jump pads, 99 explosions; the enemy / gimmick / boss modules add theirs */
-static const short SFX_BG1[] = { 62, 99 };
-static const short SFX_BG2[] = { 62, 99 };
-static const short SFX_BG3[] = { 62, 99 };
-static const short SFX_BG4[] = { 62, 99 };
-static const short SFX_BG5[] = { 62, 99 };
+static const short SFX_BG1[] = { 62, 99, 55, 67, 127, 77, 110, 149 };
+static const short SFX_BG2[] = { 62, 99, 55, 438, 127, 77, 110, 149 };
+static const short SFX_BG3[] = { 62, 99, 55, 73, 127, 172, 173, 195, 306, 77 };
+static const short SFX_BG4[] = { 62, 99, 54, 127, 192, 195, 231, 233, 264, 275, 306, 438, 165, 344 };
+static const short SFX_BG5[] = { 62, 99, 54, 73, 127, 192, 195, 231, 233, 264, 306, 308, 316, 345, 346, 438, 165, 285, 344 };
 static const short SFX_BG6[] = { 62, 99 };
 #define BG(d, f, n, mus) .dir = d, .frame = f, .stage = 9, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_BG##n, .nsfx = N_(SFX_BG##n)
 /* Final Dreadnought (session 24, stages 10-13 = rounds 1-4, two levels each; provisional rows: the FD flow agent finalises) */

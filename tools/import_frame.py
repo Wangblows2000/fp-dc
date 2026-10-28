@@ -1656,9 +1656,77 @@ for _e in BGF_ENS: ROW_FRAMES[_e[3]] = {63, 64}         # BG_FLOW rows only in B
 # no water: ML.A 1 / ML.B 2000 (BG1-BG3) / 3000 (BG4-BG6) are written by the start events but handle_frame_60..65 hold none of the
 # water events 4150-4170 (RE; RV ml_B with no air HUD): not in WATER_FRAMES
 
-# ---- BG_ENEMIES (bg_enemy.c, 2336-2399)
+# ---- BG_ENEMIES (bg_enemy.c, 2336-2399; build/re/spec_bg_enemies.md). New classes: EnemyDrillSat_3291 (bg3-bg5, Q20) and the
+# reusable EnemyEliteSpawner_3361 (bg5; FD maps its spawners to the same type) + the runtime EliteSpawnerWave_3363, the spawner's
+# afterimage (EffectsSpadeImage_456 direction 12 = the pod's image) and the drill's dirt (EffectsDebris_427 anim 5).
+# Reused (no BG copy): Thermal Base's saucers / saucer limiters / lava squids (tb_enemy.c, RE: BG1-BG5 call 12400-12424 and
+# BG3 / BG5 11969-11991, the TB events), Jade Creek's Elite (jc_enemy.c: BG4 / BG5 call the JC5 Elite events 10949-11038; 14397
+# / 14655 = 11029 with the act's Q20 lists): BG frames take the enemies module's Elite types 1326 / 1327 (jee_* rows), not the
+# JC5 gunship module's 1498 / 1499.
+BG_E_FRAMES = {60, 61, 62, 63, 64, 65}
+BGE_TYPES_ID = {('enemydrillsat', 3291): 2336, ('enemyelitespawner', 3361): 2337}
+BGE_ENS = [('enemydrillsat_3291', 0, '0', 'bgd_idle'), ('enemydrillsat_3291', 7, '0', 'bgd_fly'), ('enemydrillsat_3291', 11, '0', 'bgd_rise'),
+    ('effectsdebris_427', 5, '0', 'bgd_deb', None, ('enemydrillsat',)),
+    ('enemyelitespawner_3361', 0, '0', 'bgs_pod'), ('enemyelitespawner_3361', 8, '0', 'bgs_open'),
+    ('enemyelitespawnerwave_3363', 0, '0', 'bgs_wave', None, ('enemyelitespawner',))]
+BGE_ENS_WITH = {'effectsdust_437': ('enemydrillsat',), 'effectsdebris_427': ('enemydrillsat',), 'enemyelitespawnerwave_3363': ('enemyelitespawner',),
+    # the Elite and its runtime parts come with a spawner too (14661 creates the mask and the sprite)
+    'enemyelite_2529': ('enemyelitespawner',), 'enemyelitemask_2528': ('enemyelitespawner',),
+    'enemyelitechargeglow_2527': ('enemyelite', 'enemyelitespawner'), 'enemytrooperlaser_2530': ('enemyelite', 'enemyelitespawner')}
+ENGINE_TYPES_ID.update(BGE_TYPES_ID); ENS += BGE_ENS   # BG_ENEMIES
+for _k, _v in BGE_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # BG_ENEMIES
+for _e in BGE_ENS: ROW_FRAMES[_e[3]] = BG_E_FRAMES
+for _e in JCE_ENS:                                   # the JC Elite rows (jee_*) in Battle Glacier (exact-mirror left rows stay out)
+    if _e[3].startswith('jee_') and _e[3] not in JCE_MIRRORED: ROW_FRAMES[_e[3]] = ROW_FRAMES.get(_e[3], set()) | BG_E_FRAMES
+for _e in TBE_ENS:                                   # TB saucer / saucer debris / lava squid rows in Battle Glacier
+    if _e[3].startswith(('tba_', 'tbq_')) and _e[3] not in TBE_MIRRORED: ROW_FRAMES[_e[3]] = ROW_FRAMES.get(_e[3], set()) | BG_E_FRAMES
+# the ObjectExplosiveBlock_2738 walls the drill sats break (tb_gim.c type 1913, BG3-BG6): their TB row, else they have no image and no
+# collision in BG (RE 14306; RV drill3_wall)
+ROW_FRAMES['tbg_xblock'] = ROW_FRAMES.get('tbg_xblock', set()) | BG_E_FRAMES
+FRAME_TYPE_REMAP = globals().get('FRAME_TYPE_REMAP', {})   # (json frame, type) -> type, applied after the type lookup
+for _n in BG_E_FRAMES: FRAME_TYPE_REMAP.update({(_n, 1498): 1326, (_n, 1499): 1327})   # BG Elites: jc_enemy.c's types
 
-# ---- BG_GIM (bg_gim.c, 2400-2479)
+# ---- BG_GIM (bg_gim.c, 2400-2479; build/re/spec_bg_gimmicks.md). Families share a type; BGG_SUB gives the member index (lvobj
+# anim bits 0-7, the instance layer in bits 8-14, as PL_GIM). Types mirror src/game/bg.h OT_BGG_*. Final Dreadnought places the
+# same classes (HazardSpinMine_3331, GimmickAntigravSpawner_3323, ObjectSiren_3362, ObjectTransporter_3360): its block maps them to
+# these types (one implementation; the rows below are not frame-restricted).
+BGG_TYPES_ID = {('objectteleblockmask', 3255): 2400, ('gimmickspiralslidestart', 3268): 2402, ('gimmickspiralslideend', 3269): 2402,
+    ('gimmicksnakedrill', 3273): 2403, ('gimmicksnowspire', 3249): 2404, ('gimmicksnowspiremask', 3251): 2405,
+    ('bgsolarpanel', 3252): 2406, ('levelglacierplatform1', 3275): 2407, ('levelglacierplatform2', 3293): 2408,
+    ('gimmickbgbar', 3283): 2409, ('gimmickbgbarmask', 3284): 2410, ('bgplatform1', 3313): 2411, ('levelcrankferris', 3317): 2412,
+    ('levelcrankferrismask', 3316): 2413, ('levelcrankferrismask2', 3318): 2413, ('levelcrankferrismask3', 3319): 2413,
+    ('levelcrankferrismask4', 3320): 2413, ('levelcrankferriscollisionstopper', 3324): 2414, ('gimmickantigravspawner', 3323): 2415,
+    ('gimmickmagnetlauncher', 3326): 2417, ('gimmickmagnetlauncherleft', 3328): 2418, ('gimmickmagnetlauncherright', 3329): 2418,
+    ('gimmickmagnetlauncherlight', 3330): 2419, ('hazardspinmine', 3331): 2420, ('objectswitchblock1', 3354): 2421,
+    ('objectswitchblock2', 3355): 2421, ('gimmickteleswitch', 3356): 2422, ('gimmickteleswitchcrystal1', 3357): 2423,
+    ('gimmickteleswitchcrystal2', 3358): 2423, ('objecttransporter', 3360): 2424, ('objectsiren', 3362): 2425}
+BGG_SUB = {'gimmickspiralslideend_3269': 1, 'levelcrankferrismask2_3318': 1, 'levelcrankferrismask3_3319': 2, 'levelcrankferrismask4_3320': 3,
+    'gimmickmagnetlauncherright_3329': 1, 'objectswitchblock2_3355': 1, 'gimmickteleswitchcrystal2_3358': 1}
+BGG_ENS = [(c, a, d, nm) for c, a, d, nm in (
+    ('objectteleblock_3254', 0, '0', 'bgg_tblock'),                                  # the runtime block (14175); also the mask's collision square
+    ('gimmicksnakedrill_3273', 0, '0', 'bgg_snake'), ('gimmicksnakedrill_3273', 0, '1', 'bgg_snakeh'),
+    ('gimmicksnowspire_3249', 0, '0', 'bgg_spire'),                                  # also the mask's collision (13546 = 13593 + 495 px)
+    ('bgsolarpanel_3252', 0, '0', 'bgg_solar'), ('levelglacierplatform1_3275', 0, '0', 'bgg_gplat'),
+    ('gimmickbgbar_3283', 0, '0', 'bgg_bar'), ('gimmickbgbarmask_3284', 0, '0', 'bgg_barmask'),
+    ('bgplatform1_3313', 0, '0', 'bgg_bgplat'), ('levelcrankferrismask_3316', 0, '0', 'bgg_ferris'),
+    ('levelcrankferrismask2_3318', 0, '0', 'bgg_ferris2'),                           # masks 2-4 share image 13665
+    ('gimmickantigravspawner_3323', 0, '0', 'bgg_agspawn'), ('gimmickantigrav_3322', 0, '0', 'bgg_ag'),
+    ('gimmickmagnetlauncher_3326', 0, '0', 'bgg_magnet'), ('gimmickmagnetlauncher_3326', 0, '1', 'bgg_magnet1'),   # dir 31 = mirror of 1
+    ('gimmickmagnetlauncherlight_3330', 0, '0', 'bgg_mlight'), ('effectsspringbeam_540', 4, '0', 'bgg_sbeam'),
+    ('hazardspinmine_3331', 0, '0', 'bgg_mine'),
+    ('objectswitchblock1_3354', 0, '0', 'bgg_swb1'), ('objectswitchblock1_3354', 0, '1', 'bgg_swb1o'),
+    ('objectswitchblock2_3355', 0, '0', 'bgg_swb2'), ('objectswitchblock2_3355', 0, '1', 'bgg_swb2o'),
+    ('gimmickteleswitch_3356', 0, '0', 'bgg_tsw0'), ('gimmickteleswitch_3356', 0, '1', 'bgg_tsw1'),
+    ('gimmickteleswitchcrystal1_3357', 0, '0', 'bgg_tsc0'), ('gimmickteleswitchcrystal1_3357', 0, '1', 'bgg_tsc1'),
+    ('objecttransporter_3360', 0, '0', 'bgg_transp'), ('objectsiren_3362', 0, '0', 'bgg_siren'))]
+BGG_ENS_WITH = {'objectteleblock_3254': ('objectteleblockmask',), 'gimmicksnowspire_3249': ('gimmicksnowspiremask',),
+    'levelglacierplatform1_3275': ('levelglacierplatform2',), 'levelcrankferrismask_3316': ('levelcrankferris',),
+    'gimmickantigrav_3322': ('gimmickantigravspawner',), 'effectsspringbeam_540': ('gimmickmagnetlauncher',),
+    'gimmickteleswitchcrystal1_3357': ('gimmickteleswitchcrystal2',), 'enemyrock_1194': ('gimmicksnakedrill',)}
+ROW_FRAMES['bgg_sbeam'] = {63, 64}                    # the magnet release beam (14390): BG4 / BG5 (the class's other rows stay as they were)
+ENS_FRAMES['enemyrock_1194'] = ENS_FRAMES['enemyrock_1194'] | {60, 61}   # 14154 / 14159: the snake drills throw EnemyRock_1194 (BG1 / BG2)
+ENGINE_TYPES_ID.update(BGG_TYPES_ID); ENS += BGG_ENS   # BG_GIM
+for _k, _v in BGG_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # BG_GIM
 
 # ---- BG_BOSS (bg_boss.c, 2480-2559; build/re/spec_bg_bosses.md). Types mirror src/game/bg.h (OT_BGB_*); the lvobj anim field carries the
 # instance layer << 8. Placed: the Sparky rig (BG4 boss, BG5 Milla's ride), the hatch doors (BG4 / BG6), the background Brevon mech
@@ -2141,6 +2209,7 @@ def main():
     objs = [o for o in objs if not (1150 <= o['type'] < 1280 and n not in SBBOSS_FRAMES and not (n in THB_SPADE_FRAMES and 1220 <= o['type'] <= 1222))]   # SB_BOSS: its classes only in SB1-SB4 (TH_BOSS: Spade in TH3)
     for o in objs:                                   # JC_BOSS: the shared Hovercop / Neera classes are jc_boss.c's types in JC1-JC4
         if n in JCB_REMAP_FRAMES and o['cls'] in JCB_CLS: o['type'] = JCB_CLS[o['cls']]
+    for o in objs: o['type'] = FRAME_TYPE_REMAP.get((n, o['type']), o['type'])   # per-frame type remaps (BG_ENEMIES: the BG Elites)
     objs = [o for o in objs if not (1430 <= o['type'] < 1480 and n not in JCB_REMAP_FRAMES)]   # JC_BOSS: its types only in JC1-JC5 (JC5: the ice ambush)
     for o in objs:                                   # SB_ENEMIES (session 19b): SB1 / SB3's placed EffectWarning_1528 (SB4's: the boss's 1188)
         if o['cls'] == 'effectwarning_1528' and n in SBE_WARN_FRAMES: o['type'] = 1039
@@ -2707,6 +2776,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         if 1620 <= o['type'] < 1680: a = THG_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # TH_GIM (th_gim.c): member index | instance layer << 8
         if 1888 <= o['type'] < 1968: a = TBG_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # TB_GIM (tb_gim.c): member index | instance layer << 8
         if 2144 <= o['type'] < 2224: a = PLG_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # PL_GIM (pl_gim.c): member index | instance layer << 8
+        if 2400 <= o['type'] < 2480: a = BGG_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # BG_GIM (bg_gim.c): member index | instance layer << 8
         if 1370 <= o['type'] < 1430: a = (JCG_LEAF_TILT.get((o['x'], o['y']), 0) // 30 if o['type'] == 1371 else JCG_SUB.get(o['cls'], 0)) | (o['layer'] << 8)   # JC_GIM (jc_gim.c): member index (leaf backs: tilt / 30) | instance layer << 8
         if 1536 <= o['type'] < 1560: a = (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # TH_FLOW (th_flow.c): instance layer << 8 | 0x8000 json layer 1
         if 1100 <= o['type'] < 1150: a = SBG_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # SB_GIM (sb_gim.c): member index | instance layer << 8 | 0x8000: json layer 1 of a mapped frame (session 20: behind the json-2 pieces, scrolls with layer 1)
