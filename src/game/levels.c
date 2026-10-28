@@ -207,9 +207,11 @@ static const cpzone_t CP_TH3[] = { { 5446, 5646, 6, 5546, 1520, 0, 0 }, { 11460,
 static const camshaft_t SHAFT_TH1 = { 2180, 2016, 100 };
 /* the stage's own sounds per act (11025 Hz): the flow plays none (RE: no Media::play_id in the flow events of handle_frame_57..59);
  * 62 jump pads (TH3), 99 explosions; the enemy / gimmick / boss modules add theirs */
-static const short SFX_TH1[] = { 62, 99 };
-static const short SFX_TH2[] = { 62, 99 };
-static const short SFX_TH3[] = { 62, 99 };
+/* (session 21b: the TH modules' ids that are not resident: enemies 314 151 167 371 / 71 232 240 335 219, traps 426 264 278;
+ * bosses add theirs) */
+static const short SFX_TH1[] = { 62, 99, 314 };
+static const short SFX_TH2[] = { 62, 99, 314, 151, 167, 371, 426, 264, 278 };
+static const short SFX_TH3[] = { 62, 99, 314, 151, 167, 371, 426, 264, 278, 71, 232, 240, 335, 219 };
 #define TH(d, f, n, mus) .dir = d, .frame = f, .stage = 8, .act = n, .nacts = 3, .music = mus, .checkpoints = 1, .sfx = SFX_TH##n, .nsfx = N_(SFX_TH##n)
 #define JC(d, f, n, mus) .dir = d, .frame = f, .stage = 5, .act = n, .nacts = 5, .music = mus, .checkpoints = 1, .sfx = SFX_JC##n, .nsfx = N_(SFX_JC##n)
 #define RM(d, f, n, mus) .dir = d, .frame = f, .stage = 2, .act = n, .nacts = 5, .music = mus, .checkpoints = 1, .sfx = SFX_RM, .nsfx = N_(SFX_RM)
