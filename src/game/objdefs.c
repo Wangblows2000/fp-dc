@@ -881,6 +881,13 @@ static const objdef_t DEFS[] = {
     /* ---- TB_ENEMIES (tb_enemy.c) */
     /* ---- TB_GIM (tb_gim.c) */
     /* ---- TB_BOSS (tb_boss.c) */
+    { OT_TBB_SHRIMP,    0,                                     NULL         }, /* bossroboshrimp_2673 (Q20, A 1) */
+    { OT_TBB_SH_SEG,    0,                                     NULL         }, /* bossroboshrimpsegment_2672 (Q20, A 10) */
+    { OT_TBB_SH_TAIL,   0,                                     NULL         }, /* bossroboshrimptail_2675 */
+    { OT_TBB_SH_LIGHT,  0,                                     NULL         }, /* bossroboshrimplightning_2674 */
+    { OT_TBB_SH_BLOCK,  OD_HIDDEN,                             NULL         }, /* bossroboshrimpblocker_2691 (ctor set_visible(0)) */
+    { OT_TBB_TRAPDOOR,  OD_SOLID,                              NULL         }, /* minibosstrapdoor_2747 (the room's ceiling door; INFERRED solid) */
+    { OT_TBB_PUSHER,    0,                                     NULL         }, /* enemywallpusher_2748 (Q20, armoured) */
     /* ==== end Thermal Base */
 };
 static objdef_t BY_TYPE[MAX_OT];

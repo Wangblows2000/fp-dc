@@ -1235,7 +1235,29 @@ for _e in THB_ENS: ROW_FRAMES[_e[3]] = TH_FRAMES   # TH_BOSS rows only in Trap H
 
 # ---- TB_GIM (tb_gim.c, 1888-1967)
 
-# ---- TB_BOSS (tb_boss.c, 1968-2047)
+# ---- TB_BOSS (tb_boss.c, 1968-2047): Thermal Base bosses (build/re/spec_tb_bosses.md). Types mirror src/game/tb.h (OT_TBB_*); the
+# lvobj anim field carries TBB_SUB (the member of a family type) | instance layer << 8 (tb_boss.c spawn). Rows tied to their
+# encounter's on-map class (the off-map templates do not pull rows in a NEWPACK frame): the RoboShrimp (TB1), the wall pusher (TB2).
+TBB_TYPES_ID = {('bossroboshrimp', 2673): 1968, ('bossroboshrimpsegment', 2672): 1969, ('bossroboshrimptail', 2675): 1970,
+                ('bossroboshrimplightning', 2674): 1971, ('bossroboshrimpblocker', 2691): 1972,
+                ('minibosstrapdoor', 2747): 1973, ('enemywallpusher', 2748): 1974}
+ENGINE_TYPES_ID.update(TBB_TYPES_ID)   # TB_BOSS
+TBB_SUB = {}   # class -> member index (low byte of the lvobj anim field)
+_SH = ('bossroboshrimp',)
+_WP = ('enemywallpusher',)
+TBB_ENS = [(c, a, d, nm, None, w) for c, a, d, nm, w in (
+    ('bossroboshrimp_2673', 0, '0', 'tbs_head', _SH), ('bossroboshrimp_2673', 8, '0', 'tbs_head8', _SH),
+    ('bossroboshrimpsegment_2672', 0, '0', 'tbs_seg', _SH), ('bossroboshrimpsegment_2672', 8, '0', 'tbs_seg8', _SH),
+    ('bossroboshrimpsegment_2672', 9, '0', 'tbs_seg9', _SH), ('bossroboshrimptail_2675', 0, '0', 'tbs_tail', _SH),
+    ('bossroboshrimptail_2675', 9, '0', 'tbs_tail9', _SH), ('bossroboshrimplightning_2674', 0, '0', 'tbs_lt0', _SH),
+    ('bossroboshrimplightning_2674', 0, '1', 'tbs_lt1', _SH),
+    ('minibosstrapdoor_2747', 0, '0', 'tbw_trap', ('minibosstrapdoor',)), ('enemywallpusher_2748', 0, '0', 'tbw_wp', _WP),
+    ('enemywallpusher_2748', 0, '16', 'tbw_wp16', _WP))]
+TBB_ENS_WITH = {'effectsexplosion06_435': _SH + _WP, 'effectshade_436': _SH, 'effectsdebris_427': _SH + _WP,
+    'bossroboshrimpsegment_2672': _SH, 'bossroboshrimptail_2675': _SH, 'bossroboshrimplightning_2674': _SH}   # (off-map templates)
+ENS += TBB_ENS   # TB_BOSS
+for _k, _v in TBB_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # TB_BOSS
+for _e in TBB_ENS: ROW_FRAMES[_e[3]] = TB_FRAMES   # TB_BOSS rows only in Thermal Base
 
 # ==== end Thermal Base
 SHL_CLASSES = {'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
@@ -2121,6 +2143,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         if 1536 <= o['type'] < 1560: a = (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # TH_FLOW (th_flow.c): instance layer << 8 | 0x8000 json layer 1
         if 1100 <= o['type'] < 1150: a = SBG_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # SB_GIM (sb_gim.c): member index | instance layer << 8 | 0x8000: json layer 1 of a mapped frame (session 20: behind the json-2 pieces, scrolls with layer 1)
         if 1680 <= o['type'] < 1720: a = THB_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # TH_BOSS (th_boss.c): sub id | instance layer << 8 | 0x8000 json layer 1
+        if 1968 <= o['type'] < 2016: a = TBB_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # TB_BOSS (tb_boss.c): member index | instance layer << 8
         d += struct.pack('<2H2i', o['type'], a, o['x'], o['y'])
     for t in table: d += t
     d += struct.pack('<%dH' % len(smap), *smap)
