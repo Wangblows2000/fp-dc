@@ -142,6 +142,16 @@ spec_rm_golems, spec_rm_claw, spec_rm_mantalith, rm_inventory.
   m_1up restarted per award frame; also the 1-up monitors); Continue sets the act-start lives / counter from the file (a death
   after Continue went back to 200). Host commands `<f> CRYS v`, `<f> ADDCRYS n`. tests/test_crystal_lives.py.
 
+## Session 21e (2026-10-28): Thermal Base user reports
+- **TB4 switch wall:** a switch makes three ObjectExplosiveBlockDestroyers (RE 11957 right: (x, y), (x - 64, y - 64), (x - 128,
+  y - 128), C 1; 11958 left: + 64 / - 64, C -1); the port made one at the switch, which missed TB4's left wall (a row above the
+  switch). The destroyer goes 12 px a frame, then 2 px a frame inside a wall (11961), each new lit block resetting B of every
+  destroyer touching a block (11962 selection); lit blocks hide at once and burn 30 frames (still solid). RV
+  build/orig_traces/tb_gim/btn4l (frame-exact lighting order), btn4r (TB3 / TB4's right switches are mid-air: Carol's cling).
+- **TB6 Syntax:** RE 12636 keeps N == 5: the hitbox hurts (15, pushed away) only as the dive's ball, not as the head target (RV
+  build/orig_traces/tb_bosses_hit/x3_l). The dive's legs now hold O (RE 12614; RV x2_l), so round 3 can finish with real attacks.
+  Host: `<f> TPO type dx dy [ymax]` (the player next to the first live, visible object of a type); test_tb_bosses fights.
+
 ## Session 21d (2026-10-28): user-reported fixes
 - **JC5 gate (Neera's ice ambush, RE 11043-11072, RV build/orig_traces/jc_boss5/amb_l/c/m):** ported in jc_boss.c (M_AMBUSH):
   missile from the Hovercop, Neera drops, the burst freezes her, the Hovercop turns, the railings turn to crystals (40) and the

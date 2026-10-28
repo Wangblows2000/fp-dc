@@ -154,8 +154,13 @@
       seeker breaking a monitor, tank-bot cooldown cut at MV.M 9, Adventure-only branches
 - [ ] INFERRED: TB2 lift rider range 32 px (RE 31), fire-platform start phases (TB3 / TB5), crank phase origin, presser crush,
       lava-fall end, key-card HUD look (text), debris motion (push-up, saucer, squid), tank pellets 3 frames late, spider's hook
-      descent / spike damage, TB6 arm ring during the spin, ball contact damage, HUD shift rate
+      descent / spike damage, TB6 arm ring during the spin, HUD shift rate
 - [ ] Perf: TB5 update ~9.3 ms (Flycast); fine, but the heaviest act
+- [x] Session 21e: switch buttons make RE 11957 / 11958's three destroyers (TB4's left switch wall now blows; RV btn4l), the
+      destroyer creeps 2 px a frame column by column (no INFERRED spread); TB6's hitbox hurts only as the dive ball (RE 12636
+      N == 5; RV x3_l), the dive's legs hold O (RE 12614-12634, RV x2_l; the third round could softlock)
+- [ ] TB3's two switches (6912,2848 / 7056,2976) and TB4's right one (7096,544) hang in mid-air: only Carol's cling presses
+      them (the same in the original: RV btn4r, Lilac slides past); TB6's dive starts ~10 frames before RV x2_l (N 3 timing)
 
 ## Trap Hideout (session 21b)
 - [x] TH1-TH3 for Carol / Milla: route from JC5, enemies, traps, Laser Iris, Crystal Basher, arena + Spade, results, save, TA
