@@ -122,7 +122,7 @@ void pl_flow_frame(player_t *p) {
 #endif
     if (D.act == 3) {                                         /* 13007: fadeout_music(6000) on entering the door room (CAM.M 1: levels.c CAM_PL3) */
         int lk = level_cam_locked();
-        if (lk && !D.cam_prev && D.st == DS_ARMED) music_fade(360, 0);
+        if (lk && !D.cam_prev && D.st == DS_ARMED) { music_fade(360, 0); PLLOG("room lock 3"); }
         D.cam_prev = lk;
     }
     if (D.act == 6 && !D.arena) {                             /* 13329: the door room's lock, once per entry */
