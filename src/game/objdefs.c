@@ -1075,6 +1075,13 @@ static const objdef_t DEFS[] = {
     /* ---- FD_ENEMIES (fd_enemy.c) */
     /* ---- FD_GIM (fd_gim.c) */
     /* ---- FD_BOSS (fd_boss.c) */
+    /* -- bosses A (fd_boss_r12.c; tools/import_frame.py FD_BOSS A) */
+    { OT_FDB_PB,        OD_HIDDEN,                             NULL         }, /* minibosspushbeam_3493 (ctor invisible, A 1) */
+    { OT_FDB_PBC,       0,                                     NULL         }, /* minibosspushbeamcannon_3494 */
+    { OT_FDB_SXV,       OD_HIDDEN,                             NULL         }, /* bosssyntaxvalues_3467 (the morpher's controller) */
+    { OT_FDB_ALARM,     OD_HIDDEN,                             NULL         }, /* alarmlight_3495 (an overlay: fd_boss_r12.c pb_draw) */
+    { OT_FDB_SFLOOR,    0,                                     NULL         }, /* scrollingfloor_3466 (the fd1b tunnel's floor) */
+    { OT_FDB_SFLOOR2,   0,                                     NULL         }, /* scrollingfloor2_3465 (the fd1b tunnel's ceiling) */
     /* ==== end Final Dreadnought */
 };
 static objdef_t BY_TYPE[MAX_OT];
