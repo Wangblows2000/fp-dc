@@ -1744,12 +1744,20 @@ def write_bank2(src, bank, out, report):
                 size = 1024; lo, hi = 0, len(ids)       # the longest prefix that fits the first atlas (binary search; session 21: the old
                 # 7/8 steps could leave a whole 1024 page for the rest, e.g. jc5). JC frames take the largest images first, so the
                 # second page holds small ones and crops to 1024 x 512 (JC2 / JC3 / JC5: -512 KB of VRAM each)
-                order = sorted(ids, key=lambda i: -imgs[i][0].width * imgs[i][0].height) if bank['name'][:2] == 'jc' else list(ids)
-                while lo < hi:
-                    mid = (lo + hi + 1) // 2
-                    if pk([(i, imgs[i][0]) for i in order[:mid]], 1024): lo = mid
-                    else: hi = mid - 1
-                take = list(order[:lo]); pos = pk([(i, imgs[i][0]) for i in take], 1024)
+                jcb = bank['name'][:2] == 'jc'
+                order = sorted(ids, key=lambda i: -imgs[i][0].width * imgs[i][0].height) if jcb else list(ids)
+                if jcb:
+                    while lo < hi:
+                        mid = (lo + hi + 1) // 2
+                        if pk([(i, imgs[i][0]) for i in order[:mid]], 1024): lo = mid
+                        else: hi = mid - 1
+                    take = list(order[:lo]); pos = pk([(i, imgs[i][0]) for i in take], 1024)
+                else:                                  # every other level: the original 7/8 steps (their data unchanged)
+                    take = list(ids)
+                    while take:
+                        pos = pack([(i, imgs[i][0]) for i in take], 1024)
+                        if pos: break
+                        take = take[:len(take) * 7 // 8]
                 second = [i for i in ids if i not in take]
                 if os.environ.get('FP_ENS_AREAS'): print('atlas split', bank['name'], 'first', sum(imgs[i][0].width * imgs[i][0].height for i in take), 'second', sum(imgs[i][0].width * imgs[i][0].height for i in second), 'max h', max([imgs[i][0].height for i in second] or [0]))
                 pos2 = None; s2 = 64
