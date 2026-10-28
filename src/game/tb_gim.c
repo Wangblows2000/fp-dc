@@ -366,6 +366,19 @@ static void xblocks(void) {
     }
 }
 
+/* another module's object setting off the explosive blocks its box [x0, x1) x [y0, y1) touches (Battle Glacier 14306: a drill sat;
+ * RE: flag 0 set, hidden, explosion01 at the block's centre; the caller makes the shake and the sound). The block's own explosion
+ * (11964 / 11965) runs above. Returns the blocks set off. */
+int tb_gim_xblock_ignite(float x0, float y0, float x1, float y1) {
+    obj_t *o; int n = 0;
+    if (!S.on) return 0;
+    EACH(OT_TBG_XBLOCK, o) {
+        float c0, d0, c1, d1; img_box(o, &c0, &d0, &c1, &d1);
+        if (!(o->fl & F1) && x0 < c1 && c0 < x1 && y0 < d1 && d0 < y1) { o->fl |= F1; o->hidden = 1; obj_effect(o->x + 32, o->y + 32, "explosion01"); n++; }
+    }
+    return n;
+}
+
 /* ================================================================ 9. floor traps (RE 12070-12072, test_collisions_47; RV ftrap4)
  * HazardFloorTrap (64 x 8 plate, q7): stood on (S_BB, grounded): flag 1, animation 7 (sound 173 at its frame 1); flag 1: A + 1;
  * A > 35: it bursts (debris, explosion) and is gone; RV: the player on it is hurt (4 half-petals, the knock-back). */
