@@ -1509,7 +1509,55 @@ for _e in TBB_ENS: ROW_FRAMES[_e[3]] = TB_FRAMES   # TB_BOSS rows only in Therma
 
 # ---- PL_ENEMIES (pl_enemy.c, 2080-2143)
 
-# ---- PL_GIM (pl_gim.c, 2144-2223)
+# ---- PL_GIM (pl_gim.c, 2144-2223; build/re/spec_pl_gimmicks.md). Families share a type; PLG_SUB gives the member index (lvobj
+# anim bits 0-7, the instance layer in bits 8-14, as TB_GIM). Types mirror src/game/pl.h OT_PLG_*. BreakablePLRock_3012 is Fortune
+# Night's breakable wall (fn_gima.c OT_FN_BWALL = 577, member 1: the same events 12899-12905 = 7211 / 7213-7217, RE), and
+# GimmickSpinball_1173 runs Pangu Lagoon's own orbit (13040 / 13118 / 13225, not RM's 5684-5690): OT_PLG_SPINBALL in PL frames only.
+PLG_TYPES_ID = {('objectvanishingblock', 3035): 2144, ('objecttimegate', 2915): 2145, ('objecttimegatepiece', 2916): 2146,
+    ('gimmickbowstring', 2997): 2147, ('gimmickbowarrow', 2998): 2148, ('gimmickbowarrowplatform', 2999): 2149,
+    ('objectpinwheel', 2992): 2150, ('objectcyclonetop', 2969): 2151,
+    ('gimmickbreakoutwallleft', 3053): 2152, ('gimmickbreakoutwallright', 3049): 2152, ('gimmickbreakoutball', 3052): 2153,
+    ('gimmickbreakoutplatform', 3050): 2154, ('gimmickbreakoutplatformmask', 3051): 2155,
+    ('levellagoonplatform1', 2994): 2156, ('levellagoonplatform2', 3000): 2157,
+    ('hazardgiantsword', 3067): 2158, ('hazardgiantswordmask', 3068): 2159,
+    ('gimmickspinballchain', 3042): 2161, ('gimmickspinballchain2', 3043): 2161, ('gimmickspinballchain3', 3044): 2161,
+    ('gimmickspinballchain4', 3045): 2161, ('gimmickhangingplswitch', 3023): 2162,
+    ('objectstonedoor1', 3015): 2163, ('objectstonedoor2', 3018): 2163, ('objectstonedoor3', 3016): 2163, ('objectstonedoor4', 3017): 2163,
+    ('active', 2927): 2164, ('breakableplrock', 3012): 577}
+PLG_SUB = {'gimmickbreakoutwallright_3049': 1, 'gimmickspinballchain2_3043': 1, 'gimmickspinballchain3_3044': 2,
+    'gimmickspinballchain4_3045': 3, 'objectstonedoor2_3018': 1, 'objectstonedoor3_3016': 2, 'objectstonedoor4_3017': 3}
+FNA_SUB['breakableplrock_3012'] = 1                  # fn_gima.c: the PL rock member (sprite, pieces, no 7212 pass-through)
+PLG_SPINBALL = (272, 2160)                           # OT_SPINBALL -> OT_PLG_SPINBALL in PL_FRAMES (the remap in main)
+PLG_ENS = [(c, a, d, nm) for c, a, d, nm in (
+    ('objectvanishingblock_3035', 0, '0', 'plg_vblock'),
+    ('objecttimegatepiece_2916', 0, '0', 'plg_tpiece'), ('objecttimegatepiece_2916', 7, '0', 'plg_tpiece7'),
+    ('gimmickbowstring_2997', 0, '0', 'plg_string'), ('gimmickbowarrow_2998', 0, '0', 'plg_arrow'),
+    ('gimmickbowarrowplatform_2999', 0, '0', 'plg_arrowplat'), ('objectpinwheel_2992', 0, '0', 'plg_pinwheel'),
+    ('objectcyclonetop_2969', 0, '0', 'plg_ctop0'), ('objectcyclonetop_2969', 0, '1', 'plg_ctop1'), ('objectcyclonetop_2969', 0, '2', 'plg_ctop2'),
+    ('effectswhiteburst_31', 4, '0', 'plg_burst'),
+    ('gimmickbreakoutball_3052', 0, '0', 'plg_bball'), ('gimmickbreakoutball_3052', 7, '0', 'plg_bball7'),
+    ('gimmickbreakoutplatform_3050', 0, '0', 'plg_bplat'), ('gimmickbreakoutplatform_3050', 7, '0', 'plg_bplat7'),
+    ('gimmickbreakoutplatformmask_3051', 0, '0', 'plg_bmask'),
+    ('effectrebound_3054', 0, '0', 'plg_reb0'), ('effectrebound2_3055', 0, '0', 'plg_reb1'),
+    ('levellagoonplatform1_2994', 0, '0', 'plg_lplat'),
+    ('hazardgiantsword_3067', 0, '0', 'plg_sword'), ('hazardgiantswordmask_3068', 0, '0', 'plg_swmask'),
+    ('hazardgiantswordmask_3068', 7, '0', 'plg_swmask7'),
+    ('gimmickspinballchain_3042', 0, '0', 'plg_chain'), ('gimmickhangingplswitch_3023', 0, '0', 'plg_plswitch'),
+    ('objectstonedoor1_3015', 0, '0', 'plg_sdoor0'), ('objectstonedoor2_3018', 0, '0', 'plg_sdoor1'),
+    ('objectstonedoor3_3016', 0, '0', 'plg_sdoor2'), ('objectstonedoor4_3017', 0, '0', 'plg_sdoor3'),
+    ('active_2927', 0, '0', 'plg_active'),
+    ('breakableplrock_3012', 0, '0', 'plrock'), ('breakableplrockpiece_3013', 0, '0', 'plrockpiece'))]
+PLG_ENS_WITH = {'gimmickbowarrowplatform_2999': ('gimmickbowarrow',), 'effectswhiteburst_31': ('objectcyclonetop',),
+    'effectrebound_3054': ('gimmickbreakoutball',), 'effectrebound2_3055': ('gimmickbreakoutball',),
+    'levellagoonplatform1_2994': ('levellagoonplatform2',), 'gimmickspinballchain_3042': ('gimmickspinballchain2', 'gimmickspinballchain3', 'gimmickspinballchain4'),
+    'breakableplrockpiece_3013': ('breakableplrock',)}
+ENGINE_TYPES_ID.update(PLG_TYPES_ID); ENS += PLG_ENS   # PL_GIM
+for _e in PLG_ENS: ROW_FRAMES[_e[3]] = PL_FRAMES     # PL_GIM rows only in Pangu Lagoon
+for _k, _v in PLG_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # PL_GIM
+# the poses the gimmicks force on Lilac's skin (RE 12971 / 12875 / 13157: the arrow ride, skin animation 40 direction 6; 13002 /
+# 13234: the stone door, direction 24): 'a40_d6' / 'a40_d24' rows in the acts that place a bow / a door (player_pose)
+for _n, _dirs in ((52, ('6',)), (53, ('6', '24')), (54, ('6',)), (55, ('6',)), (56, ('24',))):
+    POSE_DIRS[_n] = {**POSE_DIRS.get(_n, {}), 40: tuple(sorted(set(POSE_DIRS.get(_n, {}).get(40, ())) | set(_dirs)))}
 
 # ---- PL_BOSS (pl_boss.c, 2224-2303)
 
@@ -1890,6 +1938,8 @@ def main():
     objs = [o for o in objs if not (1430 <= o['type'] < 1480 and n not in JCB_REMAP_FRAMES)]   # JC_BOSS: its types only in JC1-JC5 (JC5: the ice ambush)
     for o in objs:                                   # SB_ENEMIES (session 19b): SB1 / SB3's placed EffectWarning_1528 (SB4's: the boss's 1188)
         if o['cls'] == 'effectwarning_1528' and n in SBE_WARN_FRAMES: o['type'] = 1039
+    for o in objs:                                   # PL_GIM: Pangu Lagoon's spinball rule (pl_gim.c)
+        if n in PL_FRAMES and o['type'] == PLG_SPINBALL[0]: o['type'] = PLG_SPINBALL[1]
     for o in objs: o['fna'] = FNA_SUB.get(o['cls'], 0) | FNA_FLAGS.get((o['cls'], n), 0) | (o['layer'] << 8)   # FN_GIMA (fn_gima.c)
     objs += [{'type': 604, 'x': v, 'y': k, 'cls': 'fnparam', 'layer': 0, 'fna': 0} for k, v in FNA_PARAMS.get(n, ())]   # FN_GIMA parameters
     # ---- piece atlases
@@ -2440,6 +2490,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         if 1280 <= o['type'] < 1536: a = JC_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # Jade Creek (jc_*.c): member index | instance layer << 8 | 0x8000 json layer 1 of a mapped frame
         if 1620 <= o['type'] < 1680: a = THG_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # TH_GIM (th_gim.c): member index | instance layer << 8
         if 1888 <= o['type'] < 1968: a = TBG_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # TB_GIM (tb_gim.c): member index | instance layer << 8
+        if 2144 <= o['type'] < 2224: a = PLG_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # PL_GIM (pl_gim.c): member index | instance layer << 8
         if 1370 <= o['type'] < 1430: a = (JCG_LEAF_TILT.get((o['x'], o['y']), 0) // 30 if o['type'] == 1371 else JCG_SUB.get(o['cls'], 0)) | (o['layer'] << 8)   # JC_GIM (jc_gim.c): member index (leaf backs: tilt / 30) | instance layer << 8
         if 1536 <= o['type'] < 1560: a = (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # TH_FLOW (th_flow.c): instance layer << 8 | 0x8000 json layer 1
         if 1100 <= o['type'] < 1150: a = SBG_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # SB_GIM (sb_gim.c): member index | instance layer << 8 | 0x8000: json layer 1 of a mapped frame (session 20: behind the json-2 pieces, scrolls with layer 1)

@@ -565,6 +565,8 @@ typedef struct {
     int tint;                     /* RE OTHERS.R: AT acid / slime green tint timer (100; 2513 counts down, 2514 resets the colour) */
     uint32_t tint_argb;           /* its blend colour (0: the AT green 0x80ff80; RM burn 0x80a0ff, golem shot 0xff80ff; session 14) */
     int water, y26, cyc_block, drown;   /* RE OTHERS.H; OTHERS.Y = 26 swim code; OTHERS.P < 3 after leaving water; drowned (M10) */
+    int sboost;                   /* RE SKIN flag 8, the super boost (spec_boost 2; set by Pangu Lagoon's time gates, col_9_50): x1.25 burst (2009),
+                                   * the +20 dash hits (2758), energy refilled when the boost ends (2012); cleared by 1637 / 1639 / 1677 / 2012 */
 } player_t;
 
 #define F_NOFLY 0x10000          /* enemy alterable flag 16: no death flight (bosses keep the object) */
@@ -766,6 +768,7 @@ void   serp_fireball_update(obj_t *f, player_t *p);
 obj_t *fireball_fly(obj_t *f);                                 /* GimmickFireball_1192 (relic_gima.c): move + ember; RM and TB saucers */
 int    fireball_rules(obj_t *f, player_t *p, int in_back);     /* its burst / player / cube rules; 0 = gone */
 #define FB_EXTERNAL 0x100                               /* a fireball another module runs (TB saucers): relic_gima.c's pass skips it */
+#define RMSW_EXTERNAL 0x40000                  /* a GimmickHangingIdleSwitch (OT_RM_IDLESW) another module moves: relic_gimb.c runs only its grab (Pangu Lagoon 12987, pl_gim.c) */
 void   chase_spawn(void), chase_update(player_t *p), chase_chunk_update(obj_t *d), chase_end(void);
 int    chase_running(void);
 int    boss_progress(void), serp_progress(void), serp4_input(uint32_t *held), serp4_flash(void);
@@ -838,6 +841,7 @@ int    fn_enemy_obj(obj_t *o, player_t *p), fn_enemy_q20(int type);
 void   fn_gima_spawn(void), fn_gima_frame(player_t *p), fn_gima_draw(int pass);
 int    fn_gima_enemy(int type);                          /* Q20 members of this set (lampposts, boost blocks): combat.c's shared hits */
 void   fn_gima_floor_hit(obj_t *f, double X, double Y);  /* a boss breaks a BreakableFloor1/2 (flag 6, piece speeds X, Y; RE 7392 / 7800 ...) */
+int    fn_gima_wall_hit(obj_t *w, double X, double Y);   /* Pangu Lagoon's bow arrow breaks a BreakablePLRock (flag 6, piece speeds X, Y; RE col_0_51) */
 void   results_begin_boss(int time_frames), results_script_input(uint32_t held), results_request_end(void);   /* results path 3 (any boss) */
 int    results_tally_done(void), results_frames(void);
 void   rock_at_new(float x, float y), rock_at_break(obj_t *r), rocks_at_frame(player_t *p);   /* EnemyRock (aqua_boss.c), shared */
@@ -1066,6 +1070,7 @@ void   pl_enemy_spawn(void), pl_enemy_pre(player_t *p), pl_enemy_draw(int pass);
 int    pl_enemy_obj(obj_t *o, player_t *p), pl_enemy_q20(int type);
 void   pl_gim_spawn(void), pl_gim_pre(player_t *p), pl_gim_frame(player_t *p), pl_gim_draw(int pass);
 int    pl_gim_obj(obj_t *o, player_t *p), pl_gim_q20(int type);
+int    pl_gim_player(player_t *p, const input_t *in), pl_gim_ride_m(void), pl_gim_player_hidden(void);   /* ST_RIDE: the bow arrow ride M 99, the stone-door walk (pl_gim.c) */
 void   pl_boss_spawn(void), pl_boss_pre(player_t *p), pl_boss_frame(player_t *p);
 int    pl_boss_obj(obj_t *o, player_t *p), pl_boss_q20(int type), pl_boss_draw_obj(const obj_t *o, int pass), pl_boss_input(uint32_t *held);
 int    pl_boss_player_hidden(void);
