@@ -75,6 +75,10 @@ void tbs_frame(player_t *p) {
     if (!S.fight && PX > L && PX < Rm && PY >= B - 100 && PY < B) S.fight = 1;
     /* 11848: the camera box (CAM.M 1) once the player is inside: X > L, T + 240 < Y < B (INFERRED: CAM.U, the 2-frame repeat guard) */
     if (!S.locked && PX > L && PY > T + 240 && PY < B) { S.locked = 1; level_lock_markers(); }
+    /* inline after 11848 (handle_frame_45): CAM.U > 0 and Y < T + 240 -> CAM.U 0, CAM.M 2 (released). The room's way out (and the
+     * key card at y 1344) is above the box: without this the camera bounds held the player in (session 21c fix; U = S.locked,
+     * INFERRED) */
+    if (S.locked && PY < T + 240) { S.locked = 0; level_release_camera(0); }
     if (!S.fight) return;
     obj_t *t = tail(), *lt = light();
     if (h && S.swim) {

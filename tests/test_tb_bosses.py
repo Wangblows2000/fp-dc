@@ -81,6 +81,12 @@ for ch, nm in CHARS:
     check('tb1 %s: sound 38 then the crystals (40) ~41 frames later (RV 1050 / 1091)' % nm,
           len(s38) >= 1 and len(s40) == 1 and 1040 <= s38[0] <= 1060 and 38 <= s40[0] - s38[0] <= 44, '%s %s' % (s38, s40))
     check('tb1 %s: the arena is open (state 4)' % nm, s and s[max(s)]['st'] == '4', s[max(s)]['st'] if s else '-')
+# the way out is above the camera box (key card at y 1344): above T + 240 the camera is released (inline after 11848: CAM.M 2), so the
+# player can leave through the upper-left door (session 21c user report: the camera bounds held the player at x 10008)
+for ch, nm in CHARS:
+    rows, ev, d = run('tb1', ch, 1500, '3 SETV others E 99999\n5 TP 10120 1380\n100 TP 10120 1890\n698 BOSSHPT 1969 0\n948 BOSSHPT 1968 0\n'
+                      '1150 TP 10030 1300\n1200 1500 L\n')
+    check('tb1 %s: after the fight the player leaves the room to the left (camera released)' % nm, rows and rows[-1]['x'] < 9900, str(rows[-1]['x'] if rows else '-'))
 
 # ======================================================================== TB2: the wall pusher (spec Part B)
 # Real hits: the player walks right and attacks every 16 frames; each deflected hit (C > 3) pushes the wall right. The barrier reaches
