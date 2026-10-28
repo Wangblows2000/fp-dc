@@ -11,6 +11,7 @@
  * Adding an existing object to a new level needs no change here: placing the class is enough (RE_NOTES "Reusable
  * objects"). A newly ported class gets a row here, an ENGINE_TYPES entry and its behaviour code. */
 #include "../fp.h"
+#include "jc.h"                                 /* Jade Creek types (session 21) */
 
 static const objdef_t DEFS[] = {
     { OT_START,         0,                                     NULL         }, /* playerstartingpoint */
@@ -725,7 +726,32 @@ static const objdef_t DEFS[] = {
     /* ---- JC_FLOW (jc_flow.c) */
     /* ---- JC_ENEMIES (jc_enemy.c) */
     /* ---- JC_GIM (jc_gim.c) */
-    /* ---- JC_BOSS (jc_boss.c) */
+    /* ---- JC_BOSS (jc_boss.c; spec_jc_bosses; sprites set by jc_boss_spawn). OD_HIDDEN: the constructor's set_visible(0) */
+    { OT_JCB_HC,        0,                                     NULL         }, /* bosshovercop_2429 */
+    { OT_JCB_TB1,       0,                                     NULL         }, /* bosshovercopturbine1_2430 */
+    { OT_JCB_TB2,       0,                                     NULL         }, /* bosshovercopturbine2_2428 */
+    { OT_JCB_PROP1,     0,                                     NULL         }, /* bosshovercoppropellor_2431 */
+    { OT_JCB_PROP2,     0,                                     NULL         }, /* bosshovercoppropellor2_2432 */
+    { OT_JCB_SIR1,      0,                                     NULL         }, /* bosshovercopsiren1_2433 */
+    { OT_JCB_SIR2,      0,                                     NULL         }, /* bosshovercopsiren2_2434 */
+    { OT_JCB_SIR3,      0,                                     NULL         }, /* bosshovercopsiren3_2427 */
+    { OT_JCB_SIR4,      0,                                     NULL         }, /* bosshovercopsiren4_2426 */
+    { OT_JCB_HOOK,      OD_HIDDEN,                             NULL         }, /* bosshovercophook_2468 (shown by the ice death) */
+    { OT_JCB_HOOK2,     0,                                     NULL         }, /* bosshovercophook2_2472 (the missile chain) */
+    { OT_JCB_LIGHT,     0,                                     NULL         }, /* levelhovercraftlight_2465 (additive, x scale 8) */
+    { OT_JCB_ICED,      OD_HIDDEN,                             NULL         }, /* playericedeath_2467 */
+    { OT_JCB_NEERA,     OD_HIDDEN,                             NULL         }, /* npcneera_2483 (shown by 10666) */
+    { OT_JCB_NHIT,      OD_HIDDEN,                             NULL         }, /* bossneerahitbox_2482 (Q20, A 120) */
+    { OT_JCB_ICEBAR,    OD_SOLID,                              NULL         }, /* levelicebarrier_2480 (q 0x218c0: solid) */
+    { OT_JCB_ICEPIECE,  0,                                     NULL         }, /* levelicebarrierpiece_2495 (template) */
+    { OT_JCB_GLOW,      0,                                     NULL         }, /* - (BossHoverCopChargeglow_2471) */
+    { OT_JCB_CRYSTAL,   0,                                     NULL         }, /* - (BossIceCrystal_2466) */
+    { OT_JCB_MISSILE,   0,                                     NULL         }, /* - (BossIceMissile_2470) */
+    { OT_JCB_STICKY,    0,                                     NULL         }, /* - (EffectStickyIce_2469) */
+    { OT_JCB_METEOR,    0,                                     NULL         }, /* - (BossMeteor_2435) */
+    { OT_JCB_RING,      0,                                     NULL         }, /* - (BossIceRing_2481) */
+    { OT_JCB_NSHIELD,   0,                                     NULL         }, /* - (Neera's elemental shield) */
+    { OT_JCB_BUBBLE,    0,                                     NULL         }, /* - (MediumBubble_805 behind a missile) */
     /* ---- JC_BOSS5 (jc_boss5.c) */
     /* ==== end Jade Creek */
 };
