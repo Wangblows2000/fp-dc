@@ -345,6 +345,8 @@ void voice_play_once(const char *name) {
 void snd_play_orig(int id, int vol, int pan) {
 #ifdef FP_HOST_ENV
     if (getenv("FP_TRACE_SID")) printf("sid %d\n", id);   /* original sound id, belongs to the next 'f' row */
+    if (getenv("FP_SID_MISS") && id >= 0 && id < 512 && snd_handle[id] < 0) {   /* sounds a level plays but has not loaded (session 21) */
+        FILE *mf = fopen(getenv("FP_SID_MISS"), "a"); if (mf) { fprintf(mf, "%s %d\n", G.lvdir, id); fclose(mf); } }
 #endif
     if (id >= 0 && id < 512 && snd_handle[id] >= 0) snd_play(snd_handle[id], vol, pan); }
 void snd_group_load(int who) {       /* 0 Lilac (+ voices), 1 Carol, 2 Milla */

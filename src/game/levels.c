@@ -187,11 +187,15 @@ static const cpzone_t CP_JC3[] = { { 5300, 5700, 2, 5555, 1530, 800, 0 } };
 static const cpzone_t CP_JC4[] = { { 4100, 4400, 2, 4184, 1640, 0, 0 } };
 static const cpzone_t CP_JC5[] = { { 9800, 9999, 2, 9826, 780, 0, 0 } };
 /* the stage's own sounds per act (11025 Hz): 62 jump pads (JC2-JC4), 99 explosions; the enemy / gimmick / boss modules add theirs */
-static const short SFX_JC1[] = { 62, 99 };
-static const short SFX_JC2[] = { 62, 99 };
-static const short SFX_JC3[] = { 62, 99 };
-static const short SFX_JC4[] = { 62, 99 };
-static const short SFX_JC5[] = { 62, 99 };
+/* Jade Creek stage groups (session 21; ids the JC modules play that are not resident, host FP_SID_MISS runs + the module
+ * reports): enemies 60 99 101 192 233 275 314 (314 is Lilac's own: kept for her, loaded for Carol / Milla), gimmicks 208 426
+ * 72 69, act 5 (jc_boss5.c + the FN Serpentine variant) 61 67 70 126 134 165 166 191 192 193 194 195 196 233 292 427 */
+#define SFX_JC_ACTS 62, 99, 60, 101, 192, 233, 275, 314, 208, 426, 72, 69
+static const short SFX_JC1[] = { SFX_JC_ACTS };
+static const short SFX_JC2[] = { SFX_JC_ACTS };
+static const short SFX_JC3[] = { SFX_JC_ACTS };
+static const short SFX_JC4[] = { SFX_JC_ACTS };
+static const short SFX_JC5[] = { 62, 99, 61, 67, 70, 126, 134, 165, 166, 191, 192, 193, 194, 195, 196, 233, 292, 427, 314, 208, 426 };
 #define JC(d, f, n, mus) .dir = d, .frame = f, .stage = 5, .act = n, .nacts = 5, .music = mus, .checkpoints = 1, .sfx = SFX_JC##n, .nsfx = N_(SFX_JC##n)
 #define RM(d, f, n, mus) .dir = d, .frame = f, .stage = 2, .act = n, .nacts = 5, .music = mus, .checkpoints = 1, .sfx = SFX_RM, .nsfx = N_(SFX_RM)
 static const level_def_t LEVELS[] = {
@@ -275,7 +279,8 @@ static const level_def_t LEVELS[] = {
     { JC("jc4", 42, 4, "bgm/m_stage5b.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage5.adp", .mus7 = "bgm/m_stage5.adp",
       .card_first = 58, .water = 1600, .cps = CP_JC4, .ncps = N_(CP_JC4), .cam_right = 10240 + 213 },
     { JC("jc5", 43, 5, "bgm/m_stage5b.adp"), .mus4 = "bgm/m_boss.adp", .mus6 = "bgm/m_stage5.adp", .mus7 = "bgm/m_stage5.adp",
-      .water = 1600, .cps = CP_JC5, .ncps = N_(CP_JC5), .res_wipe = 1 },
+      .water = 1600, .cps = CP_JC5, .ncps = N_(CP_JC5), .res_wipe = 1,
+      .vox = (const char *const[]){ "serp_gotyounow", "serp_kungfu" }, .nvox = 2 },
 };
 static const level_def_t DEFAULT = { .dir = "", .frame = -1, .stage = -1, .act = 1, .nacts = 1, .music = "bgm/m_stage1.adp" };
 

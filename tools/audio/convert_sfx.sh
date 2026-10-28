@@ -48,9 +48,12 @@ R0=$RATE; RATE=11025; conv "$VOX/eng/group/teamlilac_madeit.ogg" "$OUT/teamlilac
 for i in 103 156 237 255 263 264 265 266 267 268 269 270 271 272 273 274 438 446 71 155 445; do R0=$RATE; RATE=11025; conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; RATE=$R0; done
 # Sky Battalion boss voices (session 21, level_def_t.vox: loaded with the stage group, character lines only for that
 # character): Kujacker 9012-9022 / 9163 (da_04_01-04, carol_fatchance, milla_icantiwont; lilac_never is converted above),
-# Spade 9625-9628 (spade_comeon / goodenough / comeon2). Real files from the user's PC install; half rate, tails trimmed.
+# Spade 9625-9628 (spade_comeon / goodenough / comeon2); Jade Creek 5's Serpentine (serp_gotyounow 11197, serp_kungfu). Real files from the user's PC install; half rate, tails trimmed.
 R0=$RATE; RATE=11025; TRIM_ALL=1
-for v in da/da_04_01 da/da_04_02 da/da_04_03 da/da_04_04 ca/carol_fatchance mi/milla_icantiwont sp/spade_comeon sp/spade_goodenough sp/spade_comeon2 li/lilac_never li/lilac_hitmeifyoucan; do conv "$VOX/eng/$v.ogg" "$OUT/$(basename $v).wav"; done
+for v in da/da_04_01 da/da_04_02 da/da_04_03 da/da_04_04 ca/carol_fatchance mi/milla_icantiwont sp/spade_comeon sp/spade_goodenough sp/spade_comeon2 li/lilac_never li/lilac_hitmeifyoucan se/serp_gotyounow se/serp_kungfu; do conv "$VOX/eng/$v.ogg" "$OUT/$(basename $v).wav"; done
 RATE=$R0; TRIM_ALL=
+# Jade Creek (session 21, stage groups SFX_JC1..5 in levels.c): ids the JC modules play that were not converted above:
+# 233 (enemies / act 5), 275 (BullFrag volley), 72 (bubble spring bounce), 292 (act-5 storm bolt), 427 (act 5); half rate, trimmed
+R0=$RATE; RATE=11025; TRIM_ALL=1; for i in 233 275 72 292 427; do conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; done; RATE=$R0; TRIM_ALL=
 rm -rf "$TMP"
 awk -F, 'NR>1{s+=$4} END {printf "%d sounds, %.1f KB\n", NR-1, s/1024}' "$OUT/sfx_manifest.csv"

@@ -50,7 +50,7 @@ for nm, ch in CHARS:
     check('jc1_music_stage5_%s' % nm, music(ev)[:1] == ['bgm/m_stage5.adp'], str(music(ev)))
 card = [l for l in out.splitlines() if l.startswith('card jc1')]
 check('jc1_card_images', card and 'stage 0x0' not in card[0] and 'name 0x0' not in card[0], str(card))
-check('jc1_stage_sounds', 'stage sounds 2' in out)
+check('jc1_stage_sounds', 'stage sounds 12' in out)   # SFX_JC1 (session 21 merge: the modules' ids)
 
 # ---- the act chain by the right edge (4135: X > W - 50, B > 0; 3578: g4 -1, frame + 1) and the walk-ins from x -32 at the
 # start point + 16 (4490 / 4526 / 10482: B 3 for 32 frames, then g4 1); JC3 after its boss (JCACT3 = jc_flow_act3_cleared)
