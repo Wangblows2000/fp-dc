@@ -129,3 +129,13 @@
       strobe lights) still drawn with the play-layer objects (not reported; same layer rule as D-100 if they are visible)
 - [ ] The user's "RM1" switch room was identified as the port's rm2 basement (axle tunnel, plates); if another switch was
       meant, it is still open
+
+## Jade Creek (session 21)
+- [x] JC1-JC5 for Lilac, Carol, Milla: flow / route, enemies, gimmicks, bosses (Hovercop fly-by / chase, Neera, subtanker ride,
+      JC5 ambush, Tredd, Serpentine 2, gunship), results, save, Time Attack, stage groups; SB boss voices / HUD
+- [ ] Not ported: Brevon mech fly-by scene (needs half-resolution ENS rows), the ice death (PlayerIceDeath), LevelRain,
+      Adventure dialogue / cutscenes, the bubble hitting enemies (10445)
+- [ ] INFERRED: Elite constants, bubble-spring bounce constants, slab carry, subtanker bob phase, meteor speed, ring bounce
+      outside observed cases, JC1 Hovercop y fit, JC3 park x 8084, buoy period (+3), plant first shot (-3), JC4 first volley
+- [ ] Not play-tested end to end: every act was checked in sections (teleports) and the act chain, not by a full run
+- [ ] SB2 Spade carry-in HUD hide (9615 / 9702) not ported

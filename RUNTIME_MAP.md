@@ -690,3 +690,8 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
   drawn with frame_draw_rot at the tail angle; its images are the original glow frames with rows >= 48 blanked by the
   importer (TOP_ROWS) so they crop to the eye. r_sprite_rot (soft) and the PVR cull radius use the farthest image corner
   from the hotspot, so sprites whose hotspot lies outside the image rotate correctly.
+
+## Session 21
+- Jade Creek = stage index 5, set_frame 39-43 (json 40-44), port jc1-jc5; types 1280-1309 flow, 1310-1369 enemies, 1370-1429
+  gimmicks, 1430-1479 bosses (acts 1-4), 1480-1535 act 5. Music: m_stage5 / m_stage5b, slot 4 m_midboss (JC5 m_boss).
+- HUD offset: game.c hud_offset() (sum of the modules' shifts); host FP_TRACE_HUD prints it per frame.

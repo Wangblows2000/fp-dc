@@ -1249,3 +1249,14 @@ ship end, cannons intact / beaten), rm_s20 (ax_a / ax_b: RM2 basement plates and
 - **Hand-car bumper (RE 6142-6149):** CartProbe 3 placed at (+45, 4) then (-45, 4) from the cart's action point every frame;
   6143 / 6147 bounce (B * -0.5) only when overlapping a backdrop and moving that way (B > 0 at the front, B < 0 at the rear);
   6144 / 6148 slow-cart spike bounce in (0, 3] / [-3, 0); 6145 / 6149 the bumper on a wall plate presses it.
+
+## Session 21: Sky Battalion voices / HUD, Jade Creek
+- **SB1 HUD (RE 9006 / 9010):** the night shifts the GUI up 1 px a frame to 80 (loop_gui_shiftup_14); 9010 shifts it down
+  2 px a frame while the pilot's A < 60 once the Kujacker group 0x22840 is on. RV k_def / k_end screenshots: HUD visible.
+- **Kujacker dialogue (RE 9011-9022, 9163; RV k_def / k_end Lilac):** pilot B +1 a frame to 700 from the fight start:
+  da_04_01 at 200, the reply at 380 (MV.A 0 lilac_never, 2-3 carol_fatchance, 4 milla_icantiwont), da_04_02 at 500 (Milla 550),
+  da_04_03 once with base I 0, S 3, H > 3, da_04_04 at the pilot's C 153 -> 154; channel 24. SB1 results 6589-6592
+  (lilac_howitsdone 75 frames after m_clear, RV; Carol / Milla same point INFERRED). Spade 9625-9628 taunts by N.
+- **Jade Creek:** full specs in build/re/spec_jc_*.md (RE / RV / INFERRED per fact). Classic route: SB1 results -> frame 39
+  (JC1) for every character; JC1-JC4 end at the right edge (4135 -> 3578), JC5 by its boss and the results; after JC the
+  route goes to Thermal Base (Lilac, frame 44) / Trap Hideout (Carol, Milla, frame 56).

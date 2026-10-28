@@ -290,3 +290,15 @@ tools/audio/convert_gallery.sh extracted/linux/audio "$G/Data/voices" /home/clau
   extracted/linux` (9 s). Frames: `tools/re/dump_frames.py`, `dump_anims.py`, `dump_backdrops.py` (needs `pip install
   pyelftools`) into build/frames (identical to the user's uploaded copy). Gallery strings: decompile the five List*
   constructors first (`tools/re/decomp.sh 'ListSongFilenames_285::ListSongFilenames_285(int, int)' ...`).
+
+## Session 21: Jade Creek
+- Levels: `for i in 1 2 3 4 5; do tools/build_level.sh $((39+i)) jc$i converted2; done` (each act its own folder / pack).
+- Sounds: convert_sfx.sh converts the SB boss voices and Serpentine's JC5 lines (real clips from the user's PC install,
+  staged to /mnt/user-data/uploads/Freedom Planet/Data/voices and copied over the /home/claude/fprun placeholders) and JC ids
+  233 275 72 292 427 276 277 296-299 (11025 Hz, trimmed). Stage groups SFX_JC1..5 <= 200 KB (host `FP_SID_MISS=file` lists
+  sounds a level plays without having loaded them).
+- VRAM tools (JC only, D-105): skyline piece atlases, greedy-filled first _ens page, mirrored enemy rows dropped (JCE_MIRRORED),
+  off-map JC templates ignored; `FP_ENS_AREAS=1` prints a bank's largest rows and the atlas split. JC3 writes jc3_mvl.bin
+  (moving collision map, 108 KB main RAM).
+- Check after an importer change: build/rebuild_cmp.sh (every earlier level byte-identical), build/rcmp.sh (renders vs a
+  reference host binary).
