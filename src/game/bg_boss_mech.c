@@ -405,6 +405,9 @@ static void mech_end(void) {                         /* 14502: every part and th
     kill_rig();
     obj_t *b = bgmech(); if (b) b->alive = 0;
     M.phase = 2;
+#ifdef FP_HOST_ENV
+    if (getenv("FP_DBG_BGM")) printf("bgm-end %d\n", G.frame);
+#endif
     bg_flow_opening_cleared();
 }
 static void hatches(void) {                          /* 14511: the background mech gone -> the hatch doors sink 8 a frame (back to their place) */
