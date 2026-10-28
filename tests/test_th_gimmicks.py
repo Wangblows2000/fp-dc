@@ -216,6 +216,11 @@ for ch, nm in CHARS:
         top = min((MY(r) for r in rows if 7050 < r['x'] < 7300), default=9999)
         check('path_th2_pillar_tower_%s' % nm, top < 990 and min(r['hp'] for r in rows) > 0, 'top Y %.0f' % top)
     else: check('path_th2_pillar_tower_%s' % nm, False, 'no route file')
+    # the pillars are solid on every side (RE: frames 57-59 do not run the one-way events 4737 / 4738; RV
+    # build/orig_traces/th_gim/pside_c: Carol walking right is stopped at x 6799, 6863 and 6927 by the pillars' sides)
+    rows, ev, _ = run('3 SETV others E 99999\n60 TP 6650 1500\n120 360 R\n', 400, {'FP_LEVEL': 'th2', 'FP_CHAR': str(ch)})
+    held = [r for r in rows if abs(r['x'] - 6799) < 3]
+    check('pillar_side_solid_%s' % nm, len(held) >= 20, '%d frames at x 6799' % len(held))
 
 print('%d failures' % fails)
 sys.exit(1 if fails else 0)
