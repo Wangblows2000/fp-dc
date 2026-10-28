@@ -5,7 +5,7 @@ plant turretus (rise 2 px a frame, shot sound 28 every 190 frames, recoil), the 
 defeat it, the wreck crashes 35 frames later, Milla's attack does not reach), meteor roller (lands 50 frames apart, sound 38,
 blast pieces at speed 6), buoy (jets every 197 frames, sound 60, jets live 71 frames), shark torpedo (torpedoes up / down at
 4 px, 152 frames apart, the limiter turn), torpedo launchers (JC4: sound 99 per shot 7 frames apart, a 179-frame cycle, the
-bomb bursts 62 frames later with sound 38), bull frag (bubbles), bubbl orbiter (JC2 ring), elite (JC5: none at the start).
+bomb bursts 62 frames later with sound 38), bull frag (ten bubbles, the first pops 34 frames after sound 275, 9-frame gaps), bubbl orbiter (JC2 ring), elite (JC5: none at the start).
 usage: test_jc_enemies.py [data_dir]   (default: converted2)"""
 import subprocess, sys, os, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -129,10 +129,14 @@ check('orbiter_ring_15', len(ring) == 15 and all(y == 1334 and abs(x - 888) <= 9
 oy = [y for f, t, x, y, d in obs if t == 1323]
 check('orbiter_bobs', oy and min(oy) <= 1290 and max(oy) >= 1316, '%s %s' % (min(oy) if oy else None, max(oy) if oy else None))
 
-# ---- bull frag (JC1 7151, 960): ten bubbles a volley, sound 275 once, each pops with sound 314
-s, obs = run(INV + '160 TP 7000 1060\n', 500, {'FP_LEVEL': 'jc1'})
-b275, b314 = sid(s, 275), sid(s, 314)
-check('frog_blows', len(b275) >= 1 and len(b314) >= 10, '%s %d' % (b275, len(b314)))
+# ---- bull frag (JC1 7151, 960; RV frog2 / frog2_c2 / frog2_c4: sound 275 at 209, the ten bubbles pop (314) at 243 .. 325, gaps 9 9 10 9 ..,
+# the first 34 frames after 275 (the bubble moves in the frame it is blown))
+for ch in (0, 2, 4):
+    s, obs = run(INV + '160 TP 7000 1060\n' + ('240 660 B\n' if ch == 4 else ''), 400, {'FP_LEVEL': 'jc1', 'FP_CHAR': str(ch)})
+    b275, b314 = sid(s, 275), sid(s, 314)
+    check('frog_c%d_blows' % ch, len(b275) >= 1 and abs(b275[0] - 209) <= 4 and len(b314) >= 10, '%s %d' % (b275, len(b314)))
+    check('frog_c%d_pop_34' % ch, b275 and b314 and b314[0] - b275[0] == 34, '%s %s' % (b275[:1], b314[:1]))
+    check('frog_c%d_pop_gaps' % ch, gaps(b314[:10]) == [9, 9, 10, 9, 9, 9, 9, 9, 9], str(gaps(b314[:10])))
 
 # ---- the JC5 elite: no instance at the act start (RV elite: its lists are empty)
 s, obs = run(INV, 30, {'FP_LEVEL': 'jc5', 'FP_TRACK': '1326:-1,1327:-1'})
