@@ -283,8 +283,23 @@ static const short SFX_BG4[] = { 62, 99 };
 static const short SFX_BG5[] = { 62, 99 };
 static const short SFX_BG6[] = { 62, 99 };
 #define BG(d, f, n, mus) .dir = d, .frame = f, .stage = 9, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_BG##n, .nsfx = N_(SFX_BG##n)
-/* Final Dreadnought (session 24, stages 10-13 = rounds 1-4, two levels each; provisional rows: the FD flow agent finalises) */
-static const short SFX_FD1A[] = { 62, 99 }; static const short SFX_FD1B[] = { 62, 99 };
+/* Final Dreadnought (session 24, stages 10-13 = rounds 1-4, two levels each; spec_fd_flow, fd_flow.c). Checkpoints (RE, g4 / g5 / g6 +
+ * loop_cp_16, all inline in handle_frame_66 / 68 / 70 / 72; the b frames have none): fd1a (g4 < 2, 4856 < X < 4956 -> (2, 4856, 880);
+ * g4 < 3, 8728 < X < 8928, MV.Y > 1380 -> (3, 8728, 1512); g4 < 4, 14112 < X < 14212 -> (4, 14112, 1616)), fd2a (g4 < 2, 2980 < X < 3080,
+ * MV.Y < 1420 -> (2, 3000, 1390); g4 < 3, 3964 < X < 4090, MV.Y > 1900 -> (3, 3964, 2030)), fd3a (g4 < 2, 3874 < X < 3974, MV.Y > 920 ->
+ * (2, 3874, 1090); g4 < 3, 7500 < X < 7684 -> (3, 7584, 1080); g4 < 4, 10000 < X < 10364, MV.Y < 504 -> (4, 10208, 480)), fd4a (g4 < 2,
+ * X > 2300, MV.Y < 2960 -> (2, 48, 2960); g4 < 3, X > 2300, MV.Y < 1224 -> (3, 208, 1224); g4 < 4, 2300 < X < 4300, MV.Y > 4112 -> (4,
+ * 2352, 6352); g4 < 5, 2300 < X < 4300, MV.Y < 4112 -> (5, 2472, 4112); g4 < 6, 2300 < X < 4300, MV.Y < 2032 -> (5, 2472, 2032): the
+ * binary writes 5, so it re-arms while g4 < 6: nosnap bit 2) */
+static const cpzone_t CP_FD1A[] = { { 4856, 4956, 2, 4856, 880, 0, 0 }, { 8728, 8928, 3, 8728, 1512, 1380, 0 }, { 14112, 14212, 4, 14112, 1616, 0, 0 } };
+static const cpzone_t CP_FD2A[] = { { 2980, 3080, 2, 3000, 1390, -1420, 0 }, { 3964, 4090, 3, 3964, 2030, 1900, 0 } };
+static const cpzone_t CP_FD3A[] = { { 3874, 3974, 2, 3874, 1090, 920, 0 }, { 7500, 7684, 3, 7584, 1080, 0, 0 }, { 10000, 10364, 4, 10208, 480, -504, 0 } };
+static const cpzone_t CP_FD4A[] = { { 2300, 32767, 2, 48, 2960, -2960, 0 }, { 2300, 32767, 3, 208, 1224, -1224, 0 }, { 2300, 4300, 4, 2352, 6352, 4112, 0 },
+                                    { 2300, 4300, 5, 2472, 4112, -4112, 0 }, { 2300, 4300, 5, 2472, 2032, -2032, 2 } };
+static const exit_t EX_FD2A[] = { { 1, 0, -50, 1100, 32767, NULL } };   /* 15652: X > W - 50, B > 0 and MV.Y > 1100 */
+/* the stage's own sounds per act (11025 Hz): the flow plays fd1a's entry (98 / 99 / 311 / 354, fd_flow.c); 62 jump pads,
+ * 99 explosions; the enemy / gimmick / boss modules add theirs */
+static const short SFX_FD1A[] = { 62, 99, 98, 311, 354 };   /* + fd1a's entry: 98 / 99 / 311 (15298), 354 (15300) */ static const short SFX_FD1B[] = { 62, 99 };
 static const short SFX_FD2A[] = { 62, 99 }; static const short SFX_FD2B[] = { 62, 99 };
 static const short SFX_FD3A[] = { 62, 99 }; static const short SFX_FD3B[] = { 62, 99 };
 static const short SFX_FD4A[] = { 62, 99 }; static const short SFX_FD4B[] = { 62, 99 };
@@ -453,10 +468,32 @@ static const level_def_t LEVELS[] = {
       .max_objs = 1280 /* 747 on-map placements (118 + 102 switch blocks, 55 platforms) + elite / anti-grav spawns, crystals, shots */ },
     { BG("bg6", 64, 6, "bgm/m_stage9b.adp"), .mus4 = "bgm/m_boss3.adp", .mus6 = "bgm/m_hub4.adp", .mus7 = "bgm/m_rescue.adp", .res_wipe = 1,
       .cam_right = 2448 + 213 /* RV bg6_start_lilac: CAM.E 2661 = the Sign (2448) + 213 */ },
-    { FD("fd1a", 65, 10, 1, SFX_FD1A, "bgm/m_stage10.adp") }, { FD("fd1b", 66, 10, 2, SFX_FD1B, "bgm/m_stage10.adp") },
-    { FD("fd2a", 67, 11, 1, SFX_FD2A, "bgm/m_stage10b.adp") }, { FD("fd2b", 68, 11, 2, SFX_FD2B, "bgm/m_stage10b.adp") },
-    { FD("fd3a", 69, 12, 1, SFX_FD3A, "bgm/m_stage10c.adp") }, { FD("fd3b", 70, 12, 2, SFX_FD3B, "bgm/m_stage10c.adp") },
-    { FD("fd4a", 71, 13, 1, SFX_FD4A, "bgm/m_stage10d.adp") }, { FD("fd4b", 72, 13, 2, SFX_FD4B, "bgm/m_stage10d.adp") },
+    /* Final Dreadnought: frame index 65-72 (session 24, spec_fd_flow; fd_flow.c). Stages 10-13 = rounds 1-4, two frames each; every
+     * character. Music (RE loop wrappers 4-7 of frames 65-72, bgm_refs): slot 5 m_stage10 (5_65) in fd1a / fd1b, m_stage10b (5_67 / 5_68)
+     * in fd2a / fd2b, m_stage10c (5_69 / 5_70) in fd3a / fd3b, m_stage10d (7_15) in fd4a, m_stage10e (5_72) in fd4b; slot 4 m_midboss
+     * (4_13 / 4_36) in the a frames, m_boss (4_23) fd1b, m_boss6 / m_boss6b (15688 / 15689 by the music group) fd2b, m_boss4 (4_55) fd3b,
+     * m_boss7 (16740: g4 < 3) / m_boss5 (16739: g4 >= 3) fd4b; slot 7 m_stage10d (7_69 / 7_15) fd3a-fd4a, m_stage10e fd4b; slot 6 m_boss7 fd4b. Cards (spec_stage_cards
+     * 4: Intro2 frame 11-14 "ROUND n", Intro3 frame 8 "Final Dreadnought"; importer stage_card); no collectable cards (ObjectCodec none).
+     * The a frames start with the card (4307: on_frame_66 / 68 / 70 / 72_start_events), the b frames walk in (4477 / 6051 / 4526; RV
+     * fd1b / fd2b / fd3b / fd4b_start: MV (61, Y) at g4 1). Ends (RE handlers): fd1a / fd3a the right edge (4135 / 16102 -> 3578); fd2a
+     * the right edge below y 1100 (15652); fd4a the right edge with the world stopped for 100 frames (16721: group 0x21a5d off, Sign
+     * flag 8 + Sign.B; 16723 at B > 100 -> the fade); every b frame by its boss's results (4560-4586 / 5394) and the wipe (8547-8549 ->
+     * frame 8 -> route I 10-13; s 13 -> the ending, results.c / ending.c). ML.A 1 / ML.B 2000 (4800 fd2a / fd2b) but only fd2b holds
+     * air events, its own (15790-15796: the siren alarm's vacuum, not ML.B; spec_fd_flow 3): dry. ML.Q 48-55. */
+    { FD("fd1a", 65, 10, 1, SFX_FD1A, "bgm/m_stage10.adp"), .mus4 = "bgm/m_midboss.adp", .start_card = 1, .cps = CP_FD1A, .ncps = N_(CP_FD1A),
+      .max_objs = 1280 },
+    { FD("fd1b", 66, 10, 2, SFX_FD1B, "bgm/m_stage10.adp"), .mus4 = "bgm/m_boss.adp", .res_wipe = 1, .max_objs = 1280 },
+    { FD("fd2a", 67, 11, 1, SFX_FD2A, "bgm/m_stage10b.adp"), .mus4 = "bgm/m_midboss.adp", .start_card = 1, .cps = CP_FD2A, .ncps = N_(CP_FD2A),
+      .exits = EX_FD2A, .nexits = N_(EX_FD2A), .max_objs = 1280 },
+    { FD("fd2b", 68, 11, 2, SFX_FD2B, "bgm/m_stage10b.adp"), .mus4 = "bgm/m_boss6.adp", .res_wipe = 1, .max_objs = 1280 },
+    { FD("fd3a", 69, 12, 1, SFX_FD3A, "bgm/m_stage10c.adp"), .mus4 = "bgm/m_midboss.adp", .mus7 = "bgm/m_stage10d.adp", .start_card = 1,
+      .cps = CP_FD3A, .ncps = N_(CP_FD3A), .max_objs = 1280 },
+    { FD("fd3b", 70, 12, 2, SFX_FD3B, "bgm/m_stage10c.adp"), .mus4 = "bgm/m_boss4.adp", .mus7 = "bgm/m_stage10d.adp", .res_wipe = 1,
+      .max_objs = 1280 },
+    { FD("fd4a", 71, 13, 1, SFX_FD4A, "bgm/m_stage10d.adp"), .mus4 = "bgm/m_midboss.adp", .mus7 = "bgm/m_stage10d.adp", .start_card = 1,
+      .cps = CP_FD4A, .ncps = N_(CP_FD4A), .exit_hold = 100, .max_objs = 1280 },
+    { FD("fd4b", 72, 13, 2, SFX_FD4B, "bgm/m_stage10e.adp"), .mus4 = "bgm/m_boss7.adp", .mus4b = "bgm/m_boss5.adp", .mus4b_g4 = 3,
+      .mus6 = "bgm/m_boss7.adp", .mus7 = "bgm/m_stage10e.adp", .res_wipe = 1 },
 };
 static const level_def_t DEFAULT = { .dir = "", .frame = -1, .stage = -1, .act = 1, .nacts = 1, .music = "bgm/m_stage1.adp" };
 
@@ -566,10 +603,12 @@ const entry_t *level_entry(const char *from) {
  * MenuSequence.I = the finished stage s -> the next frame, by g1 (0 Lilac / != 0 Carol, bike-Carol, Milla): I 0 / 1 -> 24 (RM),
  * 2 -> 29 (FN), 3 -> 35 (SB), 4 -> 39 (JC), 5 -> 44 (Thermal Base, g1 = 0) / 56 (Trap Hideout, g1 != 0), 6 -> 50 (Pangu Lagoon,
  * g1 = 0) / 84 (before Battle Glacier), 7 -> 84 (g1 = 0) / 56 (g1 != 0), 8 -> 84 (g1 = 0) / 44 (g1 != 0), 9 -> 65 (Final Dreadnought
- * round 1, every g1). Frame 84 is the shoot-'em-up lead-in to Battle Glacier (on_frame_85: m_schmup, the dragon ride; not ported): its
+ * round 1, every g1), 10 -> 67 (round 2), 11 -> 69 (round 3), 12 -> 71 (round 4), 13 -> 83 (the ending: results.c / ending.c, not
+ * a stage: NULL here). Frame 84 is the shoot-'em-up lead-in to Battle Glacier (on_frame_85: m_schmup, the dragon ride; not ported): its
  * end (22695) sets g4 0 and frame 59 = BG1, so the port routes I 6 (g1 != 0) / I 7 / I 8 (g1 = 0) straight to Battle Glacier (stage 9;
  * session 24). As stage indices; a stage the port lacks gives NULL: back to the front end. */
-static const signed char ROUTE[10][2] = { { 2, 2 }, { 2, 2 }, { 3, 3 }, { 4, 4 }, { 5, 5 }, { 6, 8 }, { 7, 9 }, { 9, 8 }, { 9, 6 }, { 10, 10 } };
+static const signed char ROUTE[14][2] = { { 2, 2 }, { 2, 2 }, { 3, 3 }, { 4, 4 }, { 5, 5 }, { 6, 8 }, { 7, 9 }, { 9, 8 }, { 9, 6 }, { 10, 10 },
+                                          { 11, 11 }, { 12, 12 }, { 13, 13 }, { -1, -1 } };
 const char *level_route_next(int stage) {
     if (stage < 0 || stage >= (int)(sizeof ROUTE / sizeof ROUTE[0])) return NULL;
     int s = ROUTE[stage][G.character != CHR_LILAC];               /* g1 = 0: Lilac only */
