@@ -110,7 +110,7 @@ static void drill_frame(obj_t *o, player_t *p) {
     if (*D == 2 && *Gg >= 90) { *D = 3; *F -= H * 0.5; }                           /* 14285 */
     if (*D == 3) { o->y = (float)(int)(*F - ek_sin(*Gg) * H * 0.5); *Gg = fmod(*Gg + 3, 360); }   /* 14286 */
     Y = floorf(o->y);
-    if (*D <= 0) o->bd = 0;                                                        /* 14287 */
+    if (*D > 0) o->bd = 0;                                                         /* 14287 (RV drill3_idle: B 0 unless the player is above) */
     if (*D > 0 && p->shield != 3 && py < Y) o->bd = 5;                             /* 14288 (OTHERS.B 3: the metal shield) */
     if (*D < 6 && DEFEATED(o)) { *D = 6; *E = o->kx; snd_play_orig(74, 220, 128); o->hidden = 0; }   /* 14289 */
     if (*D == 6 && *E >= 0 && *E < 10) *E = 10;                                    /* 14290 */
