@@ -196,10 +196,22 @@ static const short SFX_JC2[] = { SFX_JC_ACTS, 277, 165, 166, 195, 77 };         
 static const short SFX_JC3[] = { SFX_JC_ACTS, 277, 165, 166, 195, 77, 296, 297, 298, 299, 315, 31, 33 };   /* + Neera (31 / 33: Lilac's / Carol's own, kept) */
 static const short SFX_JC4[] = { SFX_JC_ACTS };
 static const short SFX_JC5[] = { 62, 99, 61, 67, 70, 126, 134, 165, 166, 191, 192, 193, 194, 195, 196, 233, 292, 427 };   /* (no frogs, streams or collapsing platforms in JC5: 314 208 426 left out, Milla sound RAM) */
-/* Trap Hideout (session 21b, stage index 8; Carol / Milla only; provisional rows: the flow agent sets music, cards, routes) */
-static const short SFX_TH1[] = { 62, 99 };
-static const short SFX_TH2[] = { 62, 99 };
-static const short SFX_TH3[] = { 62, 99 };
+/* Trap Hideout (session 21b, stage index 8; Carol / Milla only; spec_th_flow, th_flow.c). Checkpoints (RE): TH1 13501 (g4 < 2, MV.Y > 2208,
+ * X < 2000 -> (2, 180, 2288); RV th1_bottom_carol), TH2 13690 + its inline copy in handle_frame_58 (7280 < X < 7480 -> (2, 7380, 570)),
+ * TH3 13878 (5446 < X < 5646 -> (6, 5546, 1520)) and 13879 (11460 < X < 11560, MV.Y < 400 -> (7, 11500, 160)); TH3's g4 5 comes from
+ * the Crystal Basher's end (13931, th_flow_basher_cleared). TH1's shaft camera (13498-13500, RV th1_start / th1_bottom: E 511 until
+ * MV.Y > 2180, then D 2016, E 6100) */
+static const cpzone_t CP_TH1[] = { { -32768, 2000, 2, 180, 2288, 2208, 0 } };
+static const cpzone_t CP_TH2[] = { { 7280, 7480, 2, 7380, 570, 0, 0 } };
+static const cpzone_t CP_TH3[] = { { 5446, 5646, 6, 5546, 1520, 0, 0 }, { 11460, 11560, 7, 11500, 160, -400, 0 } };   /* ymin -400: MV.Y < 400 */
+static const camshaft_t SHAFT_TH1 = { 2180, 2016, 100 };
+/* the stage's own sounds per act (11025 Hz): the flow plays none (RE: no Media::play_id in the flow events of handle_frame_57..59);
+ * 62 jump pads (TH3), 99 explosions; the enemy / gimmick / boss modules add theirs */
+/* (session 21b: the TH modules' ids that are not resident: enemies 314 151 167 371 / 71 232 240 335 219, traps 426 264 278;
+ * bosses add theirs) */
+static const short SFX_TH1[] = { 62, 99, 314 };
+static const short SFX_TH2[] = { 62, 99, 314, 151, 167, 371, 426, 264, 278 };
+static const short SFX_TH3[] = { 62, 99, 314, 151, 167, 371, 426, 264, 278, 71, 232, 240, 335, 219 };
 #define TH(d, f, n, mus) .dir = d, .frame = f, .stage = 8, .act = n, .nacts = 3, .music = mus, .checkpoints = 1, .sfx = SFX_TH##n, .nsfx = N_(SFX_TH##n)
 #define JC(d, f, n, mus) .dir = d, .frame = f, .stage = 5, .act = n, .nacts = 5, .music = mus, .checkpoints = 1, .sfx = SFX_JC##n, .nsfx = N_(SFX_JC##n)
 #define RM(d, f, n, mus) .dir = d, .frame = f, .stage = 2, .act = n, .nacts = 5, .music = mus, .checkpoints = 1, .sfx = SFX_RM, .nsfx = N_(SFX_RM)
@@ -286,7 +298,21 @@ static const level_def_t LEVELS[] = {
     { JC("jc5", 43, 5, "bgm/m_stage5b.adp"), .mus4 = "bgm/m_boss.adp", .mus6 = "bgm/m_stage5.adp", .mus7 = "bgm/m_stage5.adp",
       .water = 1600, .cps = CP_JC5, .ncps = N_(CP_JC5), .res_wipe = 1,
       .vox = (const char *const[]){ "serp_gotyounow", "serp_kungfu" }, .nvox = 2 },
-    { TH("th1", 56, 1, "bgm/m_stage8.adp") }, { TH("th2", 57, 2, "bgm/m_stage8.adp") }, { TH("th3", 58, 3, "bgm/m_stage8.adp") },
+    /* Trap Hideout: frame index 56-58 (session 21b, spec_th_flow; th_flow.c). Carol / Milla only (Classic: JC's end routes g1 != 0 here,
+     * handle_frame_9 inline; 13536 / the inline copy in on_frame_57_start turn g1 0 into 2). Music (RE loop wrappers): slots 5-7
+     * m_stage7 (loop_play_music_5_56) in every act, slot 4 m_midboss (loop_play_music_4_13; TH3 13701 while g4 < 5, 13702 m_boss2 from
+     * g4 5). Cards (ObjectCodec A newest first, RE start events): 71 (TH1), 72 (TH2), 76 (TH3) = cards 71-80; ML.Q 38 / 39 / 40.
+     * ML.A 1, ML.B 2000 in every act but no water events (4150-4170) in handle_frame_57..59: dry (RE; RV th1_bottom OTHERS.H 0).
+     * TH1 starts with the card (4307) at the start point + 16 (269, -19), held there until the card fade's B reaches 96 (13533,
+     * th_flow_card), then falls down the shaft; TH1 / TH2 end at the right edge (4135 -> 3578); TH2 / TH3 are entered by the
+     * walk-in (4526; RV th2_start / th3_start: B 3 for 30 frames, g4 1); TH3 ends with its boss's results and the wipe (4560-4586,
+     * 5394, 8547 / 8548, 13795: LevelCardFade2 F > 50 -> frame 8). Signs 6000 / 12984 / 12984: E beyond the frame (no cam_right). */
+    { TH("th1", 56, 1, "bgm/m_stage7.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage7.adp", .mus7 = "bgm/m_stage7.adp",
+      .card_first = 71, .start_card = 1, .cps = CP_TH1, .ncps = N_(CP_TH1), .cam_shaft = &SHAFT_TH1 },
+    { TH("th2", 57, 2, "bgm/m_stage7.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage7.adp", .mus7 = "bgm/m_stage7.adp",
+      .card_first = 72, .cps = CP_TH2, .ncps = N_(CP_TH2) },
+    { TH("th3", 58, 3, "bgm/m_stage7.adp"), .mus4 = "bgm/m_midboss.adp", .mus4b = "bgm/m_boss2.adp", .mus4b_g4 = 5, .mus6 = "bgm/m_stage7.adp",
+      .mus7 = "bgm/m_stage7.adp", .card_first = 76, .cps = CP_TH3, .ncps = N_(CP_TH3), .res_wipe = 1 },
 };
 static const level_def_t DEFAULT = { .dir = "", .frame = -1, .stage = -1, .act = 1, .nacts = 1, .music = "bgm/m_stage1.adp" };
 
@@ -315,9 +341,10 @@ static int cam_locked;
 int level_cam_locked(void) { return cam_locked; }   /* 4212 / 4451: the boss camera trigger flag */
 /* the act start: remove the item sets this character does not get (4318 / 4319) and the AT2 jelly / petal row (4484 /
  * 4485: only while g1 != 1, i.e. always in the port) */
+static int shaft_on;   /* TH1 13499: Sign D = 1 once the player is deeper than the shaft (reset at every act start) */
 void level_flow_spawn(void) {
     const level_def_t *L = level_cur();
-    cam_locked = 0;
+    cam_locked = 0; shaft_on = 0;
     for (int k = 0; k < L->nkills; k++) {
         const killbox_t *z = &L->kills[k];
         if ((z->who == 1 && chr_is_milla(G.character)) || (z->who == 2 && !chr_is_milla(G.character))) continue;
@@ -363,6 +390,7 @@ void level_lock_markers(void) {
 /* the act's track for play_music(slot) (the frame's loop table: 4 boss / midboss, 5 the stage, 6 / 7 per frame) */
 const char *level_music_slot(int slot) {
     const level_def_t *L = level_cur();
+    if (slot == 4 && L->mus4b && G.at_g4 >= L->mus4b_g4) return L->mus4b;   /* TH3 13702 (g4 >= 5: m_boss2) */
     return slot == 4 ? L->mus4 : slot == 5 ? L->music : slot == 6 ? L->mus6 : slot == 7 ? L->mus7 : NULL;
 }
 /* the exit the player is taking this frame (NULL: none); acts without an exit list use the right edge (4135 / 5045) */
@@ -387,12 +415,17 @@ const entry_t *level_entry(const char *from) {
     for (int k = 0; k < L->nentries; k++) if (!L->entries[k].from || (from && !strcmp(L->entries[k].from, from))) return &L->entries[k];
     return NULL;
 }
-/* Classic route after a stage (RE frame 8, spec_records_saves 1 / spec_rm_flow 1.1 / spec_fn_flow 1.1 / spec_sb_flow 1): Aqua Tunnel
- * (s 0) and Dragon Valley (s 1) -> Relic Maze (s 2) -> Fortune Night (s 3, MenuSequence.I = 2 -> frame 29 for every character)
- * -> Sky Battalion (s 4, I = 3 -> frame 35 = sb1 for every character) -> Jade Creek (s 5, I = 4 -> frame 39 = jc1 for every
- * character, RE handle_frame_9 inline); after Jade Creek I = 5 -> frame 44 (Thermal Base, g1 = 0) / 56 (g1 != 0), not ported
- * (NULL: back to the front end) */
-const char *level_route_next(int stage) { return stage == 0 || stage == 1 ? level_first_of_stage(2) : stage >= 2 && stage <= 4 ? level_first_of_stage(stage + 1) : NULL; }
+/* Classic route after a stage (RE frame 8 = handle_frame_9 inline, Classic block g0 = 1; spec_records_saves 1 / spec_th_flow 1.2):
+ * MenuSequence.I = the finished stage s -> the next frame, by g1 (0 Lilac / != 0 Carol, bike-Carol, Milla): I 0 / 1 -> 24 (RM),
+ * 2 -> 29 (FN), 3 -> 35 (SB), 4 -> 39 (JC), 5 -> 44 (Thermal Base, g1 = 0) / 56 (Trap Hideout, g1 != 0), 6 -> 50 (Pangu Lagoon,
+ * g1 = 0) / 84 (before Battle Glacier), 7 -> 84 (g1 = 0) / 56 (g1 != 0), 8 -> 84 (g1 = 0) / 44 (g1 != 0). As stage indices (-1:
+ * frame 84, Battle Glacier's lead-in). A stage the port lacks gives NULL: back to the front end (TB / PL / BG not ported). */
+static const signed char ROUTE[9][2] = { { 2, 2 }, { 2, 2 }, { 3, 3 }, { 4, 4 }, { 5, 5 }, { 6, 8 }, { 7, -1 }, { -1, 8 }, { -1, 6 } };
+const char *level_route_next(int stage) {
+    if (stage < 0 || stage >= (int)(sizeof ROUTE / sizeof ROUTE[0])) return NULL;
+    int s = ROUTE[stage][G.character != CHR_LILAC];               /* g1 = 0: Lilac only */
+    return s >= 0 ? level_first_of_stage(s) : NULL;
+}
 /* RM5 labyrinth warps (spec_rm_flow 2.5): the player is in a warp zone moving its way */
 const warp_t *level_warp_check(const player_t *p) {
     const level_def_t *L = level_cur();
@@ -416,6 +449,10 @@ void level_camera_bounds(void) {
     if (L->cam_cp10_pad && G.at_g4 >= 10) { G.cam_nC = (float)L->cam_cp10_left; G.cam_nE = (float)G.lvl.w + L->cam_cp10_pad; }
     else if (L->cam_right) G.cam_nE = (float)L->cam_right;
     if (L->cam_box) { G.cam_nC = L->cam_box->C; G.cam_nD = L->cam_box->D; G.cam_nE = L->cam_box->E; G.cam_nF = L->cam_box->F; }   /* FN6 8553 */
+    if (L->cam_shaft) {                                             /* TH1 13498 (Sign D 0: E = the right marker's x) / 13500 (D 1) */
+        if (!shaft_on) { for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == OT_CAMLIM_R) { G.cam_nE = G.o[i].x; break; } }
+        else { G.cam_nD = L->cam_shaft->D; G.cam_nE = (float)G.lvl.w + L->cam_shaft->E_pad; }
+    }
     if (L->nrooms) {                                                /* RM5 6745-6750: room bounds (the last matching row wins) */
         double X = G.p.x, Y = G.p.y - ORIG_REF_DY;
         int rails = 0; for (int i = 0; i < G.nobjs && !rails; i++) if (G.o[i].alive && G.o[i].type == OT_WR_RAIL) rails = 1;
@@ -436,6 +473,7 @@ void level_flow_frame(const player_t *p) {
     const level_def_t *L = level_cur();
     if (L->nrooms && !G.act_in) level_camera_bounds();                       /* RM5 group 0x2250b: room bounds every frame (not during a walk-in: 6597) */
     if (L->cam_box) level_camera_bounds();                                   /* FN6 8553 + the inline tail of handle_frame_35: every frame */
+    if (L->cam_shaft && !shaft_on && p->y - ORIG_REF_DY > L->cam_shaft->y_on) { shaft_on = 1; level_camera_bounds(); }   /* TH1 13499 -> 13500 */
     double X = p->x;
     for (int k = 0; k < L->ncps; k++) {
         const cpzone_t *c = &L->cps[k];

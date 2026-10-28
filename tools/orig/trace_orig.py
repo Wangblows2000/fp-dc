@@ -38,6 +38,9 @@ for _kv in os.environ.get('XVT_EXTRA', '').split(','):
         XVT[_n] = int(_v, 0)
 # instances picked by x position instead of the last one found (probes of one specific enemy)
 XVT_PICK = {'turr': 1233}   # others = PlayerOthers_126 (invulnerability timer E, RE)
+# XVT_PICKX="name=x,name2=x2": pick the XVT_EXTRA instance nearest to that x (one specific enemy of a multi-instance class)
+for _kv in os.environ.get('XVT_PICKX', '').split(','):
+    if '=' in _kv: XVT_PICK[_kv.split('=')[0]] = int(_kv.split('=')[1])
 # HUD counters (Counter::set: value double @+0xa0, min int @+0xa8, max int @+0xac)
 CVT = {'c_petals': 0x20aa330, 'c_lives': 0x20bc670, 'c_crystals': 0x20aa290,
        'c_tm': 0x20bd890, 'c_ts': 0x20bd750, 'c_tms': 0x20bd610}
@@ -336,7 +339,13 @@ class Tracer(gdb.Breakpoint):
                                 if not ob: continue
                                 x_, y_ = struct.unpack('<ii', rq(ob + 8, 8))
                                 fl_ = struct.unpack('<I', rq(struct.unpack('<Q', rq(ob + 0x20, 8))[0] + 0x120, 4))[0]
-                                self.xlf.write('%d %s%d.%d %d %d fl %x obj %x\n' % (self.f, nm_, bi_, i_, x_, y_, fl_, ob))
+                                ext_ = ''
+                                if os.environ.get('XLIST_ALT'):   # XLIST_ALT=n: + direction (+0x54) and alterables A.. (n of them; 1 = A-E)
+                                    al_ = struct.unpack('<Q', rq(ob + 0x20, 8))[0]
+                                    na_ = max(5, min(26, int(os.environ['XLIST_ALT'])))
+                                    ext_ = ' dir %d alt %s' % (struct.unpack('<i', rq(ob + 0x54, 4))[0],
+                                                               ' '.join('%g' % v_ for v_ in struct.unpack('<%dd' % na_, rq(al_ + 0x50, 8 * na_))))
+                                self.xlf.write('%d %s%d.%d %d %d fl %x obj %x%s\n' % (self.f, nm_, bi_, i_, x_, y_, fl_, ob, ext_))
                                 if not hasattr(self, 'xlobj'): self.xlobj = {}
                                 self.xlobj['%s%d.%d' % (nm_, bi_, i_)] = ob
                     self.xlf.flush()

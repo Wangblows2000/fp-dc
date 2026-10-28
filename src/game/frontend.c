@@ -73,7 +73,7 @@ static int scr_load(int which) {
     static const char *const BK[3] = { "chsel", "tasel", "gal" }, *const SC[3] = { "chsel_7", "tasel_6", "gal_11" };
     if (which < 0 || which > 2) return -1;
     lp_begin(BK[which]);
-    int bad = ui_banks_load(&b_scr, BK[which], 1) < 0 || ui_load(&s_scr, SC[which], &b_scr) < 0;
+    int bad = ui_banks_load(&b_scr, BK[which], 2) < 0 || ui_load(&s_scr, SC[which], &b_scr) < 0;   /* (a second atlas if the import made one: tasel, session 21) */
     pack_release(); lp_end();
     if (bad) { plat_log("front end screen %d missing\n", which); return -1; }
     scr_loaded = which;
