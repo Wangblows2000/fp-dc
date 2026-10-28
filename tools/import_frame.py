@@ -1741,6 +1741,11 @@ for _k, _v in BGG_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   #
 
 # ---- FD_BOSS (fd_boss.c, 2912-3071)
 
+# ---- FD_BOSS B (fd_boss_r34.c, 2992-3071; build/re/spec_fd_bosses_b.md): rounds 3-4 (json 70-73)
+# FD3b's MinibossBulldozer (json 71) is FN1 / FN2's Fusion object (same handles 1745-1754, same events 7404-7464): its classes are
+# mapped to FN_BOSS's types (fn_boss.c runs it) in json 71 too.
+FNBOSS_FRAMES.add(71)
+
 # ==== end Final Dreadnought
 SHL_CLASSES = {'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 ENS_ONLY_WITH = {'guiweaponslot_426', 'effectswatersplash_379', 'bubblepatch_804', 'mediumbubble_805', 'generalwaterhorizon_377', 'bubblenumbers_405', 'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
