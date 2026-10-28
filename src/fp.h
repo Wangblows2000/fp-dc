@@ -608,6 +608,7 @@ typedef struct {
     int debug_select, in_select, sel, sel_top, sel_msg_t;
     int mode, card_t, pause_sel, time_attack, res_t, res_time;
     int pause_a, pause_wipe_f, frame_draw_t; float pause_wipe_x;   /* pause menu (GUIPause.A, wipe) */
+    int slowmo, slowmo_t;           /* GUIPause.B: the game runs one frame in B (slow motion; JC5 11352 / 11359) */
     int act_lives, act_crystals, act_keystones, act_stage_crystals;  /* RE 4311/4312: lives / crystals at act start (restart restores them) */
     int stage_crystals, keystones;  /* MasterLevel J (crystals this stage, results Bonus1) / O (keystones, Bonus2) */
     int stage_deaths;               /* SaveData x3 y3: deaths this stage (RE 1966 / 1985), saved with the stage block */
@@ -971,6 +972,8 @@ float  hud_offset(void);                              /* the HUD's vertical offs
  * dispatch (1: handled; every rule runs in fn_boss_frame after the gimmicks), draw (1: drawn / skipped), scripted pad (CTRL.M) */
 void   fn_boss_spawn(void), fn_boss_pre(player_t *p), fn_boss_frame(player_t *p);
 int    fn_boss_obj(obj_t *o, player_t *p), fn_boss_q20(int type), fn_boss_draw_obj(const obj_t *o, int pass), fn_boss_input(uint32_t *held);
+int    fn_boss_serp_falling(float *y), fn_boss_serp_jc5(void);   /* JC5's Serpentine 2 (the FN3 fight, hitbox 2552): jc_boss5.c starts the gunship */
+void   fn_boss_serp_remove(void);
 /* src/game/sb_boss*.c (Sky Battalion bosses, spec_sb_bosses): spawn, the test_collisions handlers (before combat), the per-object
  * dispatch (1: handled), the encounters' event blocks (after the gimmicks), Q20, draw (1: drawn / skipped), scripted pad, the
  * player hidden in the plane (MV.M 43), ML.Y (MasterLevel Y = 1 while a boss fight runs: the stage music's switch), the plane's

@@ -721,6 +721,7 @@ void game_update(const input_t *in) {
     if (G.paused) { pause_update(in); return; }
     if (G.pause_a > 0) G.pause_a--;                  /* RE 2928: closing lockout 1 -> 0 */
     if (pause_try_open(in)) return;                  /* (the original pauses after this frame's gameplay events) */
+    if (G.slowmo > 1 && ++G.slowmo_t % G.slowmo) return;   /* GUIPause.B > 1: one gameplay frame in B (the original's slow motion, JC5 11352) */
     G.frame++;
     input_t none = {0}, rin = results_input(in), sin_ = {0};
     const input_t *pin = ((G.clear_t && !level_cur()->clear_free) || G.act_in || G.input_lock) ? &none : results_on() ? &rin : in;   /* act end / walk-in / results: no control (RE); SB1's launch fade keeps it */
