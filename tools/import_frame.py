@@ -1240,7 +1240,69 @@ ENGINE_TYPES_ID.update(TBF_TYPES_ID); ENS += TBF_ENS   # TB_FLOW
 # effect, left out like TH; TB1-TB3 A 0): air meter + water effects. RV tb4_start / tb5_start: ml_A 1, ml_B 3400 / 2920
 WATER_FRAMES = WATER_FRAMES + (48, 49)
 
-# ---- TB_ENEMIES (tb_enemy.c, 1824-1887)
+# ---- TB_ENEMIES (tb_enemy.c, 1824-1887; build/re/spec_tb_enemies.md). Placed classes 1824-1855 (src/game/tb.h OT_TBE_*), runtime
+# children 1856-1887. Rows 'tbX_name' + a direction suffix ('' = 0, '_l' = 16, '_<d>' otherwise); a row whose every frame is the
+# exact mirror of the row of direction (16 - d) & 31 is left out (_tbe_mirror_rows) and drawn flipped (enemy_kit.h ek_set_ad).
+# Not here: EnemyWallPusher_2748 (TB2's miniboss arena script with the trap door, 11996-12011: bosses), NPCSyntaxEye_2682 (no Q20,
+# invisible: flow / bosses), EnemySeeker2_2700 / 3_2703 (TB2 off-map templates no event references).
+TBE_TYPES_ID = {('enemyseeker', 2603): 1824, ('enemypushup', 2669): 1825, ('enemypushuphitbox', 2663): 1826,
+    ('enemylavasquid', 2740): 1827, ('enemytankbot', 2838): 1828, ('enemysaucer', 2828): 1829, ('enemysaucerleg1', 2827): 1830,
+    ('enemysaucerleg2', 2829): 1831, ('enemysaucerleg3', 2830): 1832, ('enemysaucerleg4', 2826): 1833, ('enemysaucerlimiter', 2832): 1834}
+_TBE_SFX = {'0': '', '16': '_l'}
+_TBE_ROWS = [   # (class, anim, directions, row)
+    ('enemyseeker_2603', 0, ('0', '16'), 'tbs_idle'), ('enemyseeker_2603', 7, ('0', '16'), 'tbs_open'), ('enemyseeker_2603', 8, ('0', '16'), 'tbs_close'),
+    ('enemyhomingbullet_2648', 0, ('0',), 'tbs_bul'),
+    ('enemypushup_2669', 0, ('0', '1'), 'tbp_up'), ('enemypushup_2669', 5, ('0', '1'), 'tbp_fire'),
+    ('enemypushuphitbox_2663', 0, ('0',), 'tbp_head'), ('enemypushuphitbox_2663', 8, ('0',), 'tbp_head8'),
+    ('enemypushuplaser_2670', 0, ('0',), 'tbp_las'), ('enemypushuplaser2_2695', 0, ('0',), 'tbp_las2'), ('enemypushuplaser3_2696', 4, ('0',), 'tbp_las3'),
+    ('enemypushupdebris_2664', 0, ('0',), 'tbp_deb'),
+    ('enemylavasquid_2740', 0, ('0', '16'), 'tbq_idle'), ('enemylavasquid_2740', 7, ('0', '1', '15', '16', '17', '31'), 'tbq_fire'),
+    ('enemylavasquid_2740', 9, ('0',), 'tbq_turn'), ('enemylavasquid_2740', 11, ('0', '1', '15', '16', '17', '31'), 'tbq_swim'),
+    ('enemylavasquidlaser_2741', 0, ('0',), 'tbq_las'), ('enemylavasquiddebris_2742', 0, ('0', '16'), 'tbq_deb'),
+    ('enemytankbot_2838', 0, ('0', '16'), 'tbt_idle'), ('enemytankbot_2838', 1, ('0', '16'), 'tbt_walk'), ('enemytankbot_2838', 7, ('0', '16'), 'tbt_fire'),
+    ('enemytankbot_2838', 8, ('0', '16'), 'tbt_dead'), ('enemytankbotdebris_2839', 0, ('0', '16'), 'tbt_deb'),
+    ('enemysaucer_2828', 0, ('0',), 'tba_body'), ('enemysaucer_2828', 0, ('1',), 'tba_open'), ('enemysaucerleg1_2827', 0, ('0',), 'tba_leg1'),
+    ('enemysaucerleg2_2829', 0, ('0',), 'tba_leg2'), ('enemysaucerdebris_2831', 0, ('0',), 'tba_deb')]
+# runtime rows come with their creator (the class's on-map placements)
+_TBE_WITH = {'enemyhomingbullet_2648': ('enemyseeker',), 'enemypushuplaser_2670': ('enemypushup',), 'enemypushuplaser2_2695': ('enemypushup',),
+    'enemypushuplaser3_2696': ('enemypushup',), 'enemypushupdebris_2664': ('enemypushup',), 'enemylavasquidlaser_2741': ('enemylavasquid',),
+    'enemylavasquiddebris_2742': ('enemylavasquid',), 'enemytankbotdebris_2839': ('enemytankbot',), 'enemysaucerdebris_2831': ('enemysaucer',),
+    'enemypushuphitbox_2663': ('enemypushup',)}
+TBE_ENS = [(c, a, d, nm + _TBE_SFX.get(d, '_' + d), None, _TBE_WITH.get(c, (c.rsplit('_', 1)[0],))) for c, a, ds, nm in _TBE_ROWS for d in ds]
+_TBE_ALL = ('enemyseeker', 'enemypushup', 'enemylavasquid', 'enemytankbot', 'enemysaucer')
+# GimmickFireball_1192 / EffectEmber_1025 (Relic Maze's fireball, the same class: the saucer's shots, 12406-12409 / 12423 / 5703 / 5710);
+# EnemyPellet_934 (the tank's shots) is the objects bank's 'pellet'; keystones / debris for the Turretus-style crashes
+TBE_ENS_WITH = {'gimmickfireball_1192': ('enemysaucer',), 'effectember_1025': ('enemysaucer',), 'objectkeystone_429': _TBE_ALL,
+    'effectsdebris_427': _TBE_ALL, **_TBE_WITH}
+def _tbe_mirror_rows(rows):   # rows of direction d that are the exact mirror of direction (16 - d) & 31 (generalised _jce_mirror_rows)
+    from PIL import ImageChops
+    an_ = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'build', 'frames', 'anims.json')))
+    src_ = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'extracted', 'linux', 'images')
+    out_ = set()
+    for e in rows:
+        c, ai, d, nm = e[:4]
+        if not d.isdigit() or int(d) not in (15, 16, 17): continue   # the left-facing side; its mirror is 1 / 0 / 31
+        dm = str((16 - int(d)) & 31)
+        try: ad = an_[c]['anims'][ai]; R, L = ad[dm]['frames'], ad[d]['frames']
+        except (KeyError, IndexError, TypeError): continue
+        ok = len(R) == len(L)
+        for r, l in zip(R, L):
+            if not ok: break
+            A = Image.open(os.path.join(src_, 'img_%d.png' % r)).convert('RGBA'); B_ = Image.open(os.path.join(src_, 'img_%d.png' % l)).convert('RGBA')
+            mr = [int(v, 0) for v in open(os.path.join(src_, 'img_%d_meta.txt' % r)).read().split()]
+            ml = [int(v, 0) for v in open(os.path.join(src_, 'img_%d_meta.txt' % l)).read().split()]
+            ok = (A.size == B_.size and ImageChops.difference(A.transpose(Image.FLIP_LEFT_RIGHT), B_).getbbox() is None
+                  and ml[0] == A.width - 1 - mr[0] and ml[1] == mr[1])
+        if ok: out_.add(nm)
+    return out_
+ENGINE_TYPES_ID.update(TBE_TYPES_ID); ENS += TBE_ENS   # TB_ENEMIES
+for _k, _v in TBE_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # TB_ENEMIES
+for _e in TBE_ENS: ROW_FRAMES[_e[3]] = TB_FRAMES   # TB_ENEMIES rows only in Thermal Base
+try:
+    TBE_MIRRORED = _tbe_mirror_rows(TBE_ENS)
+except FileNotFoundError:
+    TBE_MIRRORED = set()
+for _nm in TBE_MIRRORED: ROW_FRAMES[_nm] = set()   # TB_ENEMIES
 
 # ---- TB_GIM (tb_gim.c, 1888-1967; build/re/spec_tb_gimmicks.md). Families share a type; TBG_SUB gives the member index (lvobj
 # anim bits 0-7, the instance layer in bits 8-14, as TH_GIM). Types mirror src/game/tb.h OT_TBG_*.
