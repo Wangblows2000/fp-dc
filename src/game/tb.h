@@ -69,6 +69,7 @@ obj_t *tb_gim_key_drop(float x, float y);       /* a key card dropped at (x, y):
 void tb_gim_blockers(int solid);                /* TB3 PlayerBlockers: 0 = flag 0 (passable: the spider chase 12260), 1 = solid (12262) */
 int  tb_gim_keycards(void);                     /* GUIKeyCards K: key cards held (HUD, tests) */
 int  tb_gim_button_presses(void);               /* switch buttons pressed so far this act (the bosses' trapdoor, tests) */
+int  tb_gim_xblock_ignite(float x0, float y0, float x1, float y1);   /* sets off the unlit ObjectExplosiveBlocks touching the box (BG drill sats 14306); returns the count */
 
 /* ---- tb_boss.c (types 1968-2047; build/re/spec_tb_bosses.md): tb_boss.c (spawn, lists, shared helpers, dispatch) and the
  * encounter files tb_boss_shrimp.c (TB1 RoboShrimp), tb_boss_pusher.c (TB2 wall pusher), tb_boss_spider.c (TB3 Syntax Spider),

@@ -1066,8 +1066,39 @@ static const objdef_t DEFS[] = {
     { OT_BGF_LOOP1,     OD_SOLID|OD_LAYER1,                    "bgl1"       }, /* bgloop1_3340 (Q7 + Q11: solid on loop layer 1; visible Active) */
     { OT_BGF_LOOP2,     OD_SOLID|OD_LAYER0,                    "bgl2"       }, /* bgloop2_3343 (Q7 + Q10: solid on loop layer 0) */
     { OT_BGF_LOOP3,     OD_SOLID|OD_LAYER0,                    "bgl3"       }, /* bgloop3_3344 (Q7 + Q10) */
-    /* ---- BG_ENEMIES (bg_enemy.c) */
-    /* ---- BG_GIM (bg_gim.c) */
+    /* ---- BG_ENEMIES (bg_enemy.c, spec_bg_enemies; sprites set by bg_enemy_spawn; RE on_frame_62..64_init q20: the drill) */
+    { OT_BGE_DRILL,     OD_HIDDEN,                             NULL         }, /* enemydrillsat_3291 (q20; ctor invisible) */
+    { OT_BGE_SPAWNER,   OD_HIDDEN,                             NULL         }, /* enemyelitespawner_3361 (ctor invisible) */
+    { OT_BGE_WAVE,      0,                                     NULL         }, /* - (runtime: enemyelitespawnerwave_3363) */
+    { OT_BGE_GHOST,     OD_HIDDEN,                             NULL         }, /* - (runtime: effectsspadeimage_456 dir 12, bg_enemy_draw) */
+    { OT_BGE_DEB,       0,                                     NULL         }, /* - (runtime: effectsdebris_427 anim 5) */
+    /* ---- BG_GIM (bg_gim.c; qualifiers RE on_frame_60..65_init; box = initialize_active(1) in the constructor) */
+    { OT_BGG_TBMASK,    OD_SOLID|OD_HIDDEN,                    NULL         }, /* objectteleblockmask_3255 (Q7, ctor invisible; rotated by its A) */
+    { OT_BGG_TBLOCK,    0,                                     NULL         }, /* - (runtime: objectteleblock_3254, the flying block) */
+    { OT_BGG_SLIDE,     OD_HIDDEN,                             NULL         }, /* gimmickspiralslidestart_3268 / end_3269 (ctor invisible) */
+    { OT_BGG_SNAKE,     0,                                     NULL         }, /* gimmicksnakedrill_3273 (no qualifier: scenery + rocks) */
+    { OT_BGG_SPIRE,     0,                                     NULL         }, /* gimmicksnowspire_3249 (drawn at its mask) */
+    { OT_BGG_SPMASK,    OD_SOLID|OD_HIDDEN,                    NULL         }, /* gimmicksnowspiremask_3251 (Q7, ctor invisible) */
+    { OT_BGG_SOLAR,     0,                                     NULL         }, /* bgsolarpanel_3252 (scenery) */
+    { OT_BGG_GPLAT1,    OD_OBSTACLE|OD_NOEDGE,                 NULL         }, /* levelglacierplatform1_3275 (Q8 Q9 Q12 Q13) */
+    { OT_BGG_GPLAT2,    OD_OBSTACLE|OD_NOEDGE,                 NULL         }, /* levelglacierplatform2_3293 (Q8 Q9 Q12 Q13) */
+    { OT_BGG_BAR,       0,                                     NULL         }, /* gimmickbgbar_3283 (drawn at its mask) */
+    { OT_BGG_BARMASK,   OD_HANG|OD_BOXCOL|OD_HIDDEN,           NULL         }, /* gimmickbgbarmask_3284 (Q23, ctor invisible) */
+    { OT_BGG_BGPLAT,    OD_OBSTACLE|OD_NOEDGE|OD_BOXCOL,       NULL         }, /* bgplatform1_3313 (Q8 Q9) */
+    { OT_BGG_FERRIS,    OD_OBSTACLE|OD_NOEDGE|OD_BOXCOL|OD_HIDDEN, NULL     }, /* levelcrankferris_3317 (Q8 Q9 Q13, ctor invisible) */
+    { OT_BGG_FERRISV,   0,                                     NULL         }, /* levelcrankferrismask / 2 / 3 / 4 (sub 0-3: the drawn car and spokes) */
+    { OT_BGG_FSTOP,     OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* levelcrankferriscollisionstopper_3324 (ctor invisible) */
+    { OT_BGG_AGSPAWN,   OD_BOXCOL,                             NULL         }, /* gimmickantigravspawner_3323 */
+    { OT_BGG_AG,        OD_BOXCOL,                             NULL         }, /* - (runtime: gimmickantigrav_3322) */
+    { OT_BGG_MAGNET,    OD_BOXCOL,                             NULL         }, /* gimmickmagnetlauncher_3326 */
+    { OT_BGG_MSTOP,     OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* gimmickmagnetlauncherleft_3328 / right_3329 (sub 0-1, ctor invisible) */
+    { OT_BGG_MLIGHT,    OD_BOXCOL,                             NULL         }, /* gimmickmagnetlauncherlight_3330 */
+    { OT_BGG_SPINMINE,  0,                                     NULL         }, /* hazardspinmine_3331 (Q20, flag 5 armoured) */
+    { OT_BGG_SWBLOCK,   OD_SOLID|OD_BOXCOL,                    NULL         }, /* objectswitchblock1_3354 / 2_3355 (sub 0-1, Q7; flag 0 = off) */
+    { OT_BGG_TSWITCH,   0,                                     NULL         }, /* gimmickteleswitch_3356 */
+    { OT_BGG_TSCRYSTAL, OD_BOXCOL,                             NULL         }, /* gimmickteleswitchcrystal1_3357 / 2_3358 (sub 0-1) */
+    { OT_BGG_TRANSP,    OD_SOLID|OD_BOXCOL,                    NULL         }, /* objecttransporter_3360 (Q7) */
+    { OT_BGG_SIREN,     OD_BOXCOL,                             NULL         }, /* objectsiren_3362 (scenery) */
     /* ---- BG_BOSS (bg_boss.c) */
     /* ==== end Battle Glacier */
     /* ==== Final Dreadnought (session 24): one block per module */
