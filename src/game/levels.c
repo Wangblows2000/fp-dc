@@ -478,7 +478,8 @@ static const level_def_t LEVELS[] = {
      * fd1b / fd2b / fd3b / fd4b_start: MV (61, Y) at g4 1). Ends (RE handlers): fd1a / fd3a the right edge (4135 / 16102 -> 3578); fd2a
      * the right edge below y 1100 (15652); fd4a the right edge with the world stopped for 100 frames (16721: group 0x21a5d off, Sign
      * flag 8 + Sign.B; 16723 at B > 100 -> the fade); every b frame by its boss's results (4560-4586 / 5394) and the wipe (8547-8549 ->
-     * frame 8 -> route I 10-13; s 13 -> the ending, results.c / ending.c). ML.A 1 / ML.B 2000 (4800 fd2a / fd2b) but only fd2b holds
+     * frame 8 -> route I 10-12) except fd4b, whose boss script ends its results (no wipe in handle_frame_73) -> results.c's stage end ->
+     * the ending (s 13 -> frame 83, ending.c). ML.A 1 / ML.B 2000 (4800 fd2a / fd2b) but only fd2b holds
      * air events, its own (15790-15796: the siren alarm's vacuum, not ML.B; spec_fd_flow 3): dry. ML.Q 48-55. */
     { FD("fd1a", 65, 10, 1, SFX_FD1A, "bgm/m_stage10.adp"), .mus4 = "bgm/m_midboss.adp", .start_card = 1, .cps = CP_FD1A, .ncps = N_(CP_FD1A),
       .max_objs = 1280 },
@@ -493,7 +494,8 @@ static const level_def_t LEVELS[] = {
     { FD("fd4a", 71, 13, 1, SFX_FD4A, "bgm/m_stage10d.adp"), .mus4 = "bgm/m_midboss.adp", .mus7 = "bgm/m_stage10d.adp", .start_card = 1,
       .cps = CP_FD4A, .ncps = N_(CP_FD4A), .exit_hold = 100, .max_objs = 1280 },
     { FD("fd4b", 72, 13, 2, SFX_FD4B, "bgm/m_stage10e.adp"), .mus4 = "bgm/m_boss7.adp", .mus4b = "bgm/m_boss5.adp", .mus4b_g4 = 3,
-      .mus6 = "bgm/m_boss7.adp", .mus7 = "bgm/m_stage10e.adp", .res_wipe = 1 },
+      .mus6 = "bgm/m_boss7.adp", .mus7 = "bgm/m_stage10e.adp" /* no wipe (handle_frame_73 has no 8547-8549): the final boss's
+      script ends the results (results_request_end) and results.c's stage end starts the ending (ending.c) */ },
 };
 static const level_def_t DEFAULT = { .dir = "", .frame = -1, .stage = -1, .act = 1, .nacts = 1, .music = "bgm/m_stage1.adp" };
 
