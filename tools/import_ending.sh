@@ -12,10 +12,10 @@ export PYTHONDONTWRITEBYTECODE=1
 # frame index 83: space, the Dreadnought, the lift-off jets, the hero ship, Brevon's mech, debris, dust, the explosions it creates
 python3 tools/import_ui.py build/frames extracted/linux/images "$D/end" end 84 84+effectsexplosion06_435 \
   -x '^(shockwave|levelcardfade|ringsparkle|separatormasterobjects2)$'
-# frame index 85: the credits (stars, clouds, sky, the cast, Torque's rocket, MP2, Thanks for playing, CONTINUE)
+# frame index 85: the credits (the Scientist is NPCHologram1's direction 3; its direction 0 is Syntax's full-size hologram eye) (stars, clouds, sky, the cast, Torque's rocket, MP2, Thanks for playing, CONTINUE)
 P='^(npc|brevon|themagister|gongshield|lamppostfront|serpentinechestplate|playerskinspade|playerskintorque)'
 python3 tools/import_ui.py build/frames extracted/linux/images "$D/end" cred 86 \
   -x '^(fade|separatormasterobjects2|lamppostback|playerskinsashhair)$' \
-  -k "$P=0.0" -k '^playerskin(sash|carol|milla)(tail)?$=37.1' -k '^star$=0.0'
+  -k '^npchologram1$=0.3' -k "$P=0.0" -k '^playerskin(sash|carol|milla)(tail)?$=37.1' -k '^star$=0.0'
 python3 tools/import_ending.py "${FP_BIN:-/home/claude/fprun/bin64/Chowdren}" build/re "$D/end"
 cp "$D/ui/font.spr" "$D/ui/font.tex" "$D/end/"   # the credits font in the ending's own pack (end.pak: one pack per load)

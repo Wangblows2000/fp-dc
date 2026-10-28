@@ -335,7 +335,7 @@ static void credits_draw(void) {
         const frame_t *f = anim_frame(&o->an); if (!f) continue;
         float y = t * 594.f - 0.2f * (float)E.A - 76.f;
         if (y > SCREEN_H || y + f->h < 0) continue;
-        frame_draw(o->an.b, f, o->x - 107 + f->hx, y + f->hy, 0, 0x90ffffff);   /* soft clouds: the images' graded alpha is 1 bit in ARGB1555 (INFERRED vertex alpha) */
+        frame_draw(o->an.b, f, o->x - 107 + f->hx, y + f->hy, 0, 0x70ffffff);   /* soft clouds: the images' graded alpha is 1 bit in ARGB1555 (INFERRED vertex alpha) */
     }
     if (E.rocket_on) cred_draw_obj("creditstorquerocket", 0, E.rocket_y, 0xffffffff);
     else cred_draw_obj("creditstorquerocket", 0, 0, 0xffffffff);
