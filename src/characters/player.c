@@ -1116,7 +1116,14 @@ void player_update(player_t *p, const input_t *in) {
         break;
     case ST_PUSH:     /* M11: normal ground physics; jump (1881); attack -> M0 (2322); leave per 1875-1880 */
         if (in->pressed & BTN_JUMP) { ground_move(p, in, 1, 1); if (p->ground) { jump(p); p->state = ST_NORMAL; } break; }
-        if (in->pressed & BTN_ATTACK) { p->state = ST_NORMAL; ground_move(p, in, 1, 1); break; }
+        if (in->pressed & BTN_ATTACK) {   /* 2322: attack -> M0, and the attack starts on that frame (RV tb_bosses w1_l 202: M 11 -> 20 against
+                                             the TB2 wall; Carol / Milla INFERRED the same: the M0 rules run, as for the press from M0) */
+            p->state = ST_NORMAL;
+            if (carol) { carol_normal(p, in, &crouch_look); break; }
+            if (milla) { milla_normal(p, in, &crouch_look); break; }
+            if (!ground_actions(p, in)) ground_move(p, in, 1, 1);
+            break;
+        }
         ground_move(p, in, 1, 1);
         if (!p->ground || (p->gsp != 0 && p->push_s <= 0)) { p->state = ST_NORMAL; break; }   /* 1875 / 1876 (PAV_B.S grace) */
         if (!(((in->held & BTN_RIGHT) && mv_sensor_right_big()) || ((in->held & BTN_LEFT) && mv_sensor_left_big()))) p->state = ST_NORMAL;   /* 1877-1880 */
