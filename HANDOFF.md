@@ -128,6 +128,27 @@ spec_rm_golems, spec_rm_claw, spec_rm_mantalith, rm_inventory.
   Mantalith sounds 147 / 214 / 215 not ported; INFERRED items in RE_NOTES. An agent published a private working page
   (spec_rm_enemies) during research; it is still in the user's artifacts (delete only if the user asks).
 
+## Session 23 (2026-10-28): Pangu Lagoon (Lilac only)
+Specs (not committed): build/re/pl_inventory.md, PL_BRIEF.md, spec_pl_flow / enemies / gimmicks / bosses.md; traces
+build/orig_traces/pl_*.
+- **Pangu Lagoon (stage index 7, json 51-56 = pl1-pl6, set_frame 50-55; Lilac only; types 2048-2303, MAX_OT 2304):**
+  pl_flow.c (rows: m_stage8 / m_stage8b, slot 4 m_midboss / m_boss4 (PL6), cards 81-90, PL1 card start, walk-ins, checkpoints,
+  stone-door exits PL3 -> PL4 and PL6 -> the arena, PL3 door-room camera, loop pieces PLLayer01/02/11/12, parallax, `.lilac_only`),
+  pl_enemy.c (stingers + nests, wall stingers + back swarm, sunflora + sleep gas, terreons + shockwaves (relic_shock), obelisk +
+  laser; Cacteon reused), pl_gim.c (vanishing blocks (view-culled sorted list), time gates + super boost (`p->sboost`), bows /
+  arrows (ST_RIDE), pinwheels, cyclone tops, breakout rooms, BreakablePLRock (= FN breakable wall member 1), lagoon platforms
+  (path registry), giant swords, spinball chains, hanging switch + stone doors (relic_gimb RMSW_EXTERNAL)), pl_boss.c (the
+  Holo-Dragon: neck/head rig, 93 scales with hit spots, laser / claws / flames, Eye2 weak point, defeat -> Pangu, results).
+- **Route / restriction:** Classic TB6 -> PL1 for Lilac (RE I 6 -> 50, g1 = 0); PL6 -> front end (the next stage is not
+  ported); Time Attack slot 7 is PL for Lilac, TB for Carol / Milla (RE 623-625); `.lilac_only` forces g1 = 0 at act start
+  (RE 12844), so a debug select of Carol / Milla plays PL as Lilac.
+- **Shared changes:** combat.c 2758 (the boost-dash bonus now needs the super boost, RE spec_boost 2: every stage),
+  player.c (super boost, PL ride hooks), fn_gima.c (wall member 1), relic_gimb.c (RMSW_EXTERNAL), game.c (`act_fade_step`,
+  `pl_enemy_draw(-1)` back pass), importer PL blocks + PL `_ens` greedy split; TB2 lost 3 unused rows (an over-broad 'active'
+  class match: off-map templates).
+- **Not verified:** a complete start-to-finish run of each act (module tests teleport between sections; a naive hold-right
+  bot stalls where the route needs gimmicks); RV for the enemies (RE only) and the door / route sequences.
+
 ## Session 22 (2026-10-28): targeted gameplay fixes (lead summary)
 Seven user fixes + one added: TB4 bomb switches and TB6 boss contact ("Session 21e" below), rails / FN zip-line grips and DC button
 labels / crystal lives ("Session 22" below), plus:
@@ -380,6 +401,10 @@ D-072, BUILD_AND_TEST_LOG "Session 15". Spec: build/re/fe/spec_gallery.md (not c
   Aqua Tunnel: session 12.)
 
 ## Latest verified
+- session 23 (Pangu Lagoon merged): full regression 50 suites 0 failures (test_pl_flow / enemies / gimmicks / bosses included);
+  every level incl. TB / PL rebuilds byte-identical to converted2; renders unchanged except FN4 Lilac (session 22 grip fix);
+  comparers unchanged. Flycast (build/fpdc_pldemo.cdi, s23_pl_verify.txt, Lilac): PL1-PL6 VRAM free 2815-3170 KB, sound RAM
+  largest free block >= 294 KB, update 2.8-11.5 ms (PL5 heaviest), ~11-17 slow frames per 600. **Nothing on real hardware.**
 - host-test (session 21d): 42 suites 0 failures; comparers unchanged (76/76, 43/53, 37/43, 21/35); every earlier level
   rebuilds byte-identical and renders identically. Flycast (build/fpdc_fixdemo.cdi, s21_fix_verify.txt): JC5 VRAM free 653 KB
   (Carol) / 821 (Milla) / 1181 (Lilac), sound RAM largest free block >= 138 KB (Milla JC5); TH2 >= 3214 KB; TB1 3351 KB.
@@ -397,7 +422,8 @@ D-072, BUILD_AND_TEST_LOG "Session 15". Spec: build/re/fe/spec_gallery.md (not c
   RAM >= 113 KB (Milla JC5, before the JC5 group trim); SB1 HUD back during the Kujacker fight. **Nothing on real hardware.**
 
 ## Next actions
-1. TB leftovers (TODO "Thermal Base"): no full-act play-through; which locked doors gate progression is not verified.
+1. Pangu Lagoon: an end-to-end playthrough of each act (TODO "Pangu Lagoon").
+1b. TB leftovers (TODO "Thermal Base"): no full-act play-through; which locked doors gate progression is not verified.
 2. TH leftovers (TODO "Trap Hideout").
 3. JC leftovers (TODO "Jade Creek"): Brevon mech fly-by (half-resolution ENS rows), ice death, rain, Elite constants.
 4. Real hardware: SB1 / JC2 / JC3 with Carol (VRAM), JC5 Milla (sound RAM).

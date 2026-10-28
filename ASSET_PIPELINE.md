@@ -314,6 +314,13 @@ tools/audio/convert_gallery.sh extracted/linux/audio "$G/Data/voices" /home/clau
 - Check: `python3 tests/test_dc_buttons.py` (pad mapping, transforms on the original images / strings, the gallery data once
   regenerated).
 
+## Session 23: Pangu Lagoon
+- Levels: `for i in 1 2 3 4 5 6; do tools/build_level.sh $((50+i)) pl$i converted2; done` (session-21 packers; PL `_ens` half-page
+  split with the greedy skyline fill).
+- Time Attack previews: `python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui tasel 6 -x '^bg(1[0-9])layer'`
+  (now keeps bg8 Pangu Lagoon too).
+- Sounds: convert_sfx.sh PL line (44 147 150 322-334, 11025 Hz trimmed); non-resident SFX_PL1-6 38-153 KB.
+
 ## Session 21d: fixes
 - JC5: JC_BOSS ambush rows in json 44 (+ `jcb5_hc`); jc5_ens's second atlas 1024 x 512 (+256 KB); the subtanker's json-layer-4
   collision pieces at x < 1024 join the collision map (`jc5_sub` in tools/import_frame.py). SFX_JC5 + 297 77 33 60 (~182 KB).

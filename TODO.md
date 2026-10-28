@@ -1,5 +1,13 @@
 # TODO (priority order)
 
+## Pangu Lagoon (session 23)
+- [x] PL1-PL6 for Lilac: route from TB6, Lilac-only (TA slot / g1 = 0), enemies, gimmicks, stone doors, Holo-Dragon, results
+- [ ] Not verified: a full start-to-finish run of each act (sections tested with teleports); enemy timings are RE only (no RV)
+- [ ] INFERRED: wall-stinger respawn home, stinger wrap width (G16 = view width), terreon pale frames drawn additive, spinball
+      chain 3/4 radius, vanishing-block first cycle, door walk speed / fade, Pangu's arms (13431/13432), flame damage 10, the
+      ending's backdrop; achievements 13437-13446 not ported; PLWiiUSign / Adventure dialog not exported
+- [ ] PL5 is the heaviest act on Flycast (~11.5 ms update)
+
 ## Session 22 targeted fixes
 - [x] TB4 bomb switches (3 destroyers per switch, RE 11957/11958), TB6 boss contact only in the dive + dive softlock, TB rails /
       FN zip-line grips (whole-image hang boxes), hurt-state 3 s cap, C -> X labels + pad mapping, 200-crystal lives with m_1up,

@@ -707,3 +707,7 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
 
 ## Session 21d
 - jc_boss.c M_AMBUSH (JC5 start), tb_boss_shrimp.c camera release, objects.c `objects_plat_oneway` (th_gim.c pillars).
+
+## Session 23
+- Pangu Lagoon = stage index 7, set_frame 50-55 (json 51-56), port pl1-pl6; types 2048-2079 flow, 2080-2143 enemies, 2144-2223
+  gimmicks, 2224-2303 bosses (MAX_OT 2304). `level_def_t.lilac_only`; `player_t.sboost`; game.c `act_fade_step()`.
