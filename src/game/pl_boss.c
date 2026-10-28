@@ -27,9 +27,10 @@ static short L_[NT][LMAX]; static short nL[NT];
 #define NARM 18
 
 static struct {
-    int on, fight, snd333, results, landed, black, lock, ended;
+    int on, fight, snd333, results, landed, black, lock, ended, burn;
     double A, B, D, E, F, G, H, I, J, K, L, M, N, O;   /* the neck's alterables (RE ctor F 20 G 2 J -1 K -2 L 255 M -360 N 1) */
     int fl2, fl16;                     /* neck flags 1 (the laser's closing sound) and 4 (a claw landed) */
+    float rx;                          /* CameraLimitBossRight.x (13333) */
     double flash;                      /* the white flash (LevelCardFade_423 direction 8): opacity 0..255 */
     double pK, pD, pV;                 /* Pangu: K its y anchor, D the bob phase, the fall speed */
     short claw[3], eye2, laser, warn[3], flame[NFLAME], pangu, arm[NARM], fx; int nwarn;
@@ -67,6 +68,7 @@ void pl_boss_spawn(void) {
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i];
         if (!o->alive) continue;
+        if (o->type == OT_CAMLIM_R && H.rx == 0) H.rx = o->x;
         if (o->type == OT_MT_WARN && H.nwarn < 3) { H.warn[H.nwarn++] = (short)i; o->hidden = 1; o->layer = 3; set_s(o, "plb_warn"); continue; }   /* EffectWarning_1528 (json layer 4: over the player) */
         if (o->type < OT_PLB_NECK || o->type > OT_PLB_PLACED_LAST) continue;
         int ti = o->type - OT_PLB_NECK;
@@ -213,9 +215,11 @@ static void attacks(player_t *p) {
                 if (!px_span_solid(&G.lvl, nx - 8, nx + 8, y) && !px_span_solid(&G.lvl, nx - 8, nx + 8, y - 20)) p->x += (float)(10 * H.J);
                 if (p->invuln <= 4) p->vy = fminf(p->vy, 0);                    /* MV.G 0 */
             }
-            if (hurt(p, 3, 1) || p->state == ST_HURT) {                       /* 13374: R 1, LIFE.C 1 (no knock-back), LIFE.B + 3 */
-                if (p->state == ST_HURT) { p->vx = 0; p->vy = fminf(p->vy, 0); }
-            }
+            /* 13374: R 1, LIFE.C 1 (no knock-back), LIFE.B + 3. The original loses 0.6 half-petal a burn (RV p7: 14 -> 5 in 15 burns);
+             * the port's petals are whole (player_damage: amount / 5), so the burns' remainder is carried here: 3 (no loss) or 5 (one) */
+            if (!dead(p) && !p->hurt_pending && !player_invincible(p)) { H.burn += 3; hurt(p, H.burn >= 5 ? 5 : 3, 1); if (H.burn >= 5) H.burn -= 5; }
+            if (p->state == ST_HURT) { p->vx = 0; p->vy = fminf(p->vy, 0); }   /* no knock-back: the beam carries her (13373) */
+            if (p->state == ST_HURT && p->invuln > 4 && !p->invinc) p->invuln = 4;   /* RV p7: OTHERS.E 4 after each burn, a hit every 5 frames */
         }
     }
     /* ---- K 2: the claws (13375-13383) */
@@ -424,8 +428,7 @@ void pl_boss_frame(player_t *p) {
 #endif
     /* ---- asleep (13333-13336): the player inside the arena (past the right CameraLimitBoss marker) */
     if (H.K == -2) {
-        float rx = -1e9f;
-        for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == OT_CAMLIM_R) { rx = G.o[i].x; break; }
+        float rx = H.rx;                                                        /* CameraLimitBossRight.x (found at spawn) */
         if (H.M < 120 && (H.M >= 0 || X > rx)) H.M += 1;                      /* 13333 (RV p1: M + 1 a frame from the arena entry) */
         if (H.M >= 120 && !H.snd333) { H.snd333 = 1; snd_play_orig(333, 220, 128); }   /* 13334 */
         if (H.M >= 120) H.lock = 1;                                            /* 13335: CTRL.M 1 */
