@@ -308,42 +308,61 @@ static void lava(player_t *p) {
 
 /* ================================================================ 8. explosive blocks, switch buttons, the destroyer
  * (RE 11957-11965, foreach_ec_45; sounds 49 / 38)
- * SwitchButtonLeft / Right (16 x 32): pressed like a wall plate (switches_wall_push: S_LEFTBIG / S_RIGHTBIG with the push M 11
- * or Carol's cling M 47): hidden, sound 49, an ObjectExplosiveBlockDestroyer at the button, C = -1 (left button) / +1 (right): the walls of
- * blocks stand behind the buttons in every placement.
- * Destroyer (invisible 32 x 32): A 0: x + 12 C (11959); on an explosive block: A 1 (11960); A 1: x + 12 C, B + 1 (11961); the
- * blocks it overlaps are lit (11962: CAM.Z 8, sound 38); B > 30: gone (11963). A lit block shakes (A + 2, debris; foreach_ec_45)
- * and is destroyed at A > 60 (11965), with an explosion. INFERRED: the light spreads to the blocks the lit one touches (the
- * walls are stacks of 64 x 64 blocks) so a wall goes at once. */
+ * SwitchButtonLeft / Right (16 x 32, hotspot 0,0): pressed like a wall plate (switches_wall_push: S_LEFTBIG / S_RIGHTBIG with
+ * the push M 11 or Carol's cling M 47): hidden, flag 1, sound 49 and THREE ObjectExplosiveBlockDestroyers (RE 11957 right button:
+ * at (x, y), (x - 64, y - 64), (x - 128, y - 128), the ctor's C 1; 11958 left button: (x, y), (x + 64, y - 64), (x + 128, y - 128),
+ * C -1), one per block row: TB4's left switch (2528,1416) sits a row below its 3 x 2 wall (rows 1256 / 1320), so only the
+ * two upper destroyers reach it (the single destroyer at the button the port used to place missed the wall: TB4 bug).
+ * Destroyer (invisible 32 x 32, hotspot 16,16): A 0: x + 12 C (11959); on an explosive block: A 1 (11960); A 1: x + 2 C, B + 1
+ * (11961: x + C + C); the unlit blocks it overlaps are lit: flag 1, hidden, an explosion at their centre, CAM.Z 8, a sound,
+ * the destroyer's B = 0 (11962); B > 30: gone (11963). So it creeps through a wall 2 px a frame, lighting one column of
+ * blocks after the other. A lit block (still solid while it burns: hidden objects keep their q7 collision) grows a spiral
+ * of explosions, A + 2 a frame (foreach_ec_45: explosion06 at the centre + A (cos, sin)(41 A)) and is destroyed at A > 60
+ * (11965). INFERRED (DC cost): one spiral explosion every 4th frame instead of every frame. */
 static void buttons(player_t *p) {
     obj_t *b;
     EACH(OT_TBG_BUTTON, b) {
         if (b->hidden) continue;
         if (!switches_wall_push(p, b, b->par == 1 ? SENS_RIGHTBIG : SENS_LEFTBIG)) continue;   /* 11957: Right <- S_RIGHTBIG, 11958: Left <- S_LEFTBIG */
         b->hidden = 1; snd(49); S.presses++;
-        obj_t *d = spawn(OT_TBG_DESTROYER, "tbg_destroyer", b->x + 8, b->y + 16, b->layer);
-        if (d) { d->av[2] = b->par == 1 ? 1 : -1; d->hidden = 1; }             /* toward the blocks behind the button (TB2-TB4 placements) */
+        int c = b->par == 1 ? 1 : -1;                                                             /* 11957 ctor C 1 / 11958 C -1 */
+        for (int k = 0; k < 3; k++) {
+            obj_t *d = spawn(OT_TBG_DESTROYER, "tbg_destroyer", floorf(b->x) - 64 * k * c, floorf(b->y) - 64 * k, b->layer);
+            if (d) { d->av[2] = c; d->hidden = 1; }
+        }
     }
-}
-static void light_block(obj_t *k) {
-    if (k->fl & F1) return;
-    k->fl |= F1;
-    obj_t *o; EACH(OT_TBG_XBLOCK, o) if (!(o->fl & F1) && fabsf(o->x - k->x) <= 64 && fabsf(o->y - k->y) <= 64) light_block(o);   /* INFERRED spread */
 }
 static void xblocks(void) {
     obj_t *d, *o;
     EACH(OT_TBG_DESTROYER, d) {
-        d->x += 12 * (float)d->av[2];                                                             /* 11959 / 11961 */
-        int hit = 0;
-        EACH(OT_TBG_XBLOCK, o) if (!(o->fl & F1) && box_ov(d, o)) { light_block(o); hit = 1; }    /* 11960 / 11962 */
-        if (hit) { if (d->av[0] == 0) { shake(8); snd(38); } d->av[0] = 1; }
-        if (d->av[0] == 1) d->av[1] += 1;
-        if (d->av[1] > 30 || d->x < -64 || d->x > G.lvl.w + 64) d->alive = 0;                     /* 11963 */
+        if (d->av[0] == 0) {
+            d->x += 12 * (float)d->av[2];                                                         /* 11959 */
+            EACH(OT_TBG_XBLOCK, o) if (box_ov(d, o)) { d->av[0] = 1; break; }                     /* 11960 (lit or not) */
+        }
+        if (d->av[0] == 1) { d->x += 2 * (float)d->av[2]; d->av[1] += 1; }                         /* 11961 */
     }
+    /* 11962 with Chowdren's selection: check_overlap(destroyers A 1, blocks) keeps every A 1 destroyer touching ANY block (lit
+     * ones too: hidden objects keep their collision) and the blocks they touch; then the lit blocks are dropped. If an unlit one
+     * is left, it is lit and EVERY selected destroyer's B goes back to 0, so one destroyer's hit keeps the other ones alive (RV
+     * btn4l: TB4's third column at 2304 is only reached because the row-1256 destroyer's hit at 129 resets the row-1320 one). */
+    int lit = 0;
+    EACH(OT_TBG_DESTROYER, d) if (d->av[0] == 1) {
+        d->fx = 0;
+        EACH(OT_TBG_XBLOCK, o) if (box_ov(d, o)) { d->fx = 1; if (!(o->fl & F1)) { o->fl |= F6; lit = 1; } }
+    }
+    if (lit) {
+        EACH(OT_TBG_XBLOCK, o) if (o->fl & F6) { o->fl = (o->fl & ~F6) | F1; o->hidden = 1; obj_effect(o->x + 32, o->y + 32, "explosion01"); }
+        EACH(OT_TBG_DESTROYER, d) if (d->av[0] == 1 && d->fx) d->av[1] = 0;
+        shake(8); snd(38);
+    }
+    EACH(OT_TBG_DESTROYER, d) if (d->av[1] > 30 || d->x < -64 || d->x > G.lvl.w + 64) d->alive = 0;   /* 11963 */
     EACH(OT_TBG_XBLOCK, o) if (o->fl & F1) {
-        o->av[0] += 2;                                                                            /* foreach_ec_45 */
-        if (((int)o->av[0] % 8) == 2) obj_explode(o->x + 8 + R(48), o->y + 8 + R(48));
-        if (o->av[0] > 60) { obj_explode(o->x + 32, o->y + 32); o->alive = 0; }                  /* 11965 */
+        o->av[0] += 2;                                                                            /* 11964 foreach_ec_45 */
+        if (((int)o->av[0] % 8) == 2) {
+            double a = o->av[0], t = 41 * a / RAD;
+            obj_effect(o->x + 32 + (float)(cos(t) * a), o->y + 32 + (float)(sin(t) * a), "explosion06");
+        }
+        if (o->av[0] > 60) o->alive = 0;                                                          /* 11965 */
     }
 }
 
