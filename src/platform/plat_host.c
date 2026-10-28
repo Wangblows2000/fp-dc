@@ -207,6 +207,7 @@ static void apply_dbg(int f, int tp) {
         if (dbg[i].k == 'a') objects_add_crystals(p, (int)dbg[i].a);
         if (dbg[i].k == 'J') { void jc_flow_act3_cleared(void); jc_flow_act3_cleared(); }   /* test: JC3's boss beaten (10772 / 10773, jc_flow.c) */
         if (dbg[i].k == 'C') th_flow_basher_cleared();   /* test: TH3's Crystal Basher beaten (13931's flow part, th_flow.c) */
+        if (dbg[i].k == 'R') results_request_end();
         if (dbg[i].k == 'N') printf("ending force %d\n", ending_host_force());
         if (dbg[i].k == 'n') printf("ending try %d\n", game_ending_begin());
         if (dbg[i].k == 'y') ending_host_dump();
@@ -267,6 +268,7 @@ int main(int argc, char **argv) {
             if (sscanf(line, "%d RESBOSS%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'S', 0, 0 }; continue; }   /* results_begin_boss now */
             if (sscanf(line, "%d JCACT3%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'J', 0, 0 }; continue; }   /* jc_flow_act3_cleared now */
             if (sscanf(line, "%d THBASH%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'C', 0, 0 }; continue; }   /* th_flow_basher_cleared now */
+            if (sscanf(line, "%d RESEND%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'R', 0, 0 }; continue; }   /* results_request_end (a boss script's end) */
             if (sscanf(line, "%d ENDING%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'N', 0, 0 }; continue; }   /* session 24: the ending, as after FD4 */
             if (sscanf(line, "%d ENDTRY%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'n', 0, 0 }; continue; }   /* game_ending_begin as a stage script would call it */
             if (sscanf(line, "%d ENDSTATS%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'y', 0, 0 }; continue; }   /* print the credits' statistics */

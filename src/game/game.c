@@ -614,6 +614,7 @@ static void next_act(void) {
      * ported, so the end of DV4 goes straight to the results. Time Attack plays every act as well. */
     const char *nx = G.exit_to ? G.exit_to : level_next(d);
     G.exit_to = NULL; G.exit_b = 0;
+    if (!nx && game_ending_begin() == 0) return;   /* session 24: the last act of Final Dreadnought 4 left without a results sequence */
     if (!nx) {
         G.mode = MODE_RESULTS; G.res_t = 0; G.res_time = G.frame; music_play("bgm/m_clear.adp");
         game_save_stage_end((uint32_t)((uint64_t)G.frame * 1000 / FPS)); save_store();   /* a last act without a results sequence */
