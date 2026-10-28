@@ -213,10 +213,24 @@ static const short SFX_TH1[] = { 62, 99, 314, 336, 169 };   /* + the Laser Iris 
 static const short SFX_TH2[] = { 62, 99, 314, 151, 167, 371, 426, 264, 278 };
 static const short SFX_TH3[] = { 62, 99, 314, 151, 167, 371, 426, 264, 278, 71, 232, 240, 335, 219,
                                   132, 74, 363, 61, 155, 156, 103, 446, 445 };   /* + the Crystal Basher, the arena, Spade */
-/* Thermal Base (session 21c, stage index 6; provisional rows: the flow agent sets music, cards, routes) */
-static const short SFX_TB1[] = { 62, 99 };
-static const short SFX_TB2[] = { 62, 99 };
-static const short SFX_TB3[] = { 62, 99 };
+/* Thermal Base (session 21c, stage index 6; spec_tb_flow, tb_flow.c). Checkpoints (RE, g4 / g5 / g6 + loop_cp_16): TB1 inline
+ * handle_frame_45 (g4 < 2, 6823 < X < 7250 -> (2, 6932, 2026); g4 < 3, 9814 < X < 10014 -> (3, 9914, 1374)), TB2 inline handle_frame_46
+ * (g4 < 2, 2000 < X < 2400, MV.Y < 2260 -> (2, 2120, 2222); g4 < 3, 6100 < X < 6300, MV.Y > 2900 -> (3, 6144, 3184)), TB3 12096 (g4 < 2,
+ * 3048 < X < 3248, MV.Y > 3200 -> (2, 3333, 3440)), TB4 inline handle_frame_48 (g4 < 2, 2500 < X < 2600 -> (2, 2664, 2648); g4 < 3,
+ * 2800 < X < 2900, MV.Y > 2500 -> (3, 2912, 2648)), TB5 12539-12541 (g4 < 2, 1700 < X < 2200, MV.Y > 3260 -> (2, 1855, 3096); g4 < 3,
+ * 6540 < X < 6740 -> (3, 6880, 2774); g4 < 4, 10344 < X < 10544 -> (4, 10400, 2712)) and inline handle_frame_49 (g4 < 5, 14620 < X <
+ * 14820 -> (4, 14720, 2328): nosnap bit 2); TB6 has none (no loop_cp_16 in handle_frame_50) */
+static const cpzone_t CP_TB1[] = { { 6823, 7250, 2, 6932, 2026, 0, 0 }, { 9814, 10014, 3, 9914, 1374, 0, 0 } };
+static const cpzone_t CP_TB2[] = { { 2000, 2400, 2, 2120, 2222, -2260, 0 }, { 6100, 6300, 3, 6144, 3184, 2900, 0 } };
+static const cpzone_t CP_TB3[] = { { 3048, 3248, 2, 3333, 3440, 3200, 0 } };
+static const cpzone_t CP_TB4[] = { { 2500, 2600, 2, 2664, 2648, 0, 0 }, { 2800, 2900, 3, 2912, 2648, 2500, 0 } };
+static const cpzone_t CP_TB5[] = { { 1700, 2200, 2, 1855, 3096, 3260, 0 }, { 6540, 6740, 3, 6880, 2774, 0, 0 },
+                                   { 10344, 10544, 4, 10400, 2712, 0, 0 }, { 14620, 14820, 4, 14720, 2328, 0, 2 } };
+/* the stage's own sounds per act (11025 Hz): 62 jump pads, 99 explosions; the flow plays 49 (the lifts' stop, 11716 / 11719: TB1-TB3);
+ * the enemy / gimmick / boss modules add theirs */
+static const short SFX_TB1[] = { 62, 99, 49 };
+static const short SFX_TB2[] = { 62, 99, 49 };
+static const short SFX_TB3[] = { 62, 99, 49 };
 static const short SFX_TB4[] = { 62, 99 };
 static const short SFX_TB5[] = { 62, 99 };
 static const short SFX_TB6[] = { 62, 99 };
@@ -322,8 +336,26 @@ static const level_def_t LEVELS[] = {
       .card_first = 72, .cps = CP_TH2, .ncps = N_(CP_TH2) },
     { TH("th3", 58, 3, "bgm/m_stage7.adp"), .mus4 = "bgm/m_midboss.adp", .mus4b = "bgm/m_boss2.adp", .mus4b_g4 = 5, .mus6 = "bgm/m_stage7.adp",
       .mus7 = "bgm/m_stage7.adp", .card_first = 76, .cps = CP_TH3, .ncps = N_(CP_TH3), .res_wipe = 1 , .max_objs = 1536 },
-    { TB("tb1", 44, 1, "bgm/m_stage6.adp") }, { TB("tb2", 45, 2, "bgm/m_stage6.adp") }, { TB("tb3", 46, 3, "bgm/m_stage6.adp") },
-    { TB("tb4", 47, 4, "bgm/m_stage6.adp") }, { TB("tb5", 48, 5, "bgm/m_stage6.adp") }, { TB("tb6", 49, 6, "bgm/m_stage6.adp") },
+    /* Thermal Base: frame index 44-49 (session 21c, spec_tb_flow; tb_flow.c). Music (RE loop wrappers 4-7 of frames 44-49): slots 5-7
+     * m_stage6 in TB1-TB3, m_stage6b in TB4-TB6; slot 4 m_midboss in TB1-TB5, m_boss2 in TB6 (loop_wrapper_play_music_4_49); TB6's start
+     * stops channel 31 (12735: the arena starts silent, its boss plays slot 4). Cards (ObjectCodec A newest first, RE start events):
+     * 61 (TB1 inline), 62 (TB2), 63 (TB3), 65 (TB4 12461), 67 (TB5 12546) = cards 61-70; ML.Q 26-31. Water: ML.A 1 in TB4 (B 3400) and TB5
+     * (B 2920; the levers move it between 2920 and 3240: level_water_set), TB6 writes B 2920 below its 2000-px frame (dry in effect);
+     * TB1-TB3 A 0. TB1 starts with the card (4307; the start lift rides up from the card's frame 161: 11881, tb_flow.c); TB2-TB6 by the
+     * walk-in (4490 / 4526); TB1-TB5 end at the right edge (4135 / 12089 -> 3578); TB6 by its boss's results and the wipe (8547-8549).
+     * Camera E = the Sign's x + 213 (4240-4242; the Signs stand at the frames' right edges, TB3 8032): beyond the frame, no cam_right. */
+    { TB("tb1", 44, 1, "bgm/m_stage6.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage6.adp", .mus7 = "bgm/m_stage6.adp",
+      .card_first = 61, .start_card = 1, .cps = CP_TB1, .ncps = N_(CP_TB1) },
+    { TB("tb2", 45, 2, "bgm/m_stage6.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage6.adp", .mus7 = "bgm/m_stage6.adp",
+      .card_first = 62, .cps = CP_TB2, .ncps = N_(CP_TB2) },
+    { TB("tb3", 46, 3, "bgm/m_stage6.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage6.adp", .mus7 = "bgm/m_stage6.adp",
+      .card_first = 63, .cps = CP_TB3, .ncps = N_(CP_TB3) },
+    { TB("tb4", 47, 4, "bgm/m_stage6b.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage6b.adp", .mus7 = "bgm/m_stage6b.adp",
+      .card_first = 65, .water = 3400, .cps = CP_TB4, .ncps = N_(CP_TB4) },
+    { TB("tb5", 48, 5, "bgm/m_stage6b.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage6b.adp", .mus7 = "bgm/m_stage6b.adp",
+      .card_first = 67, .water = 2920, .cps = CP_TB5, .ncps = N_(CP_TB5) },
+    { TB("tb6", 49, 6, "bgm/m_stage6b.adp"), .mus4 = "bgm/m_boss2.adp", .mus6 = "bgm/m_stage6b.adp", .mus7 = "bgm/m_stage6b.adp",
+      .music_off = 1, .res_wipe = 1 },
 };
 static const level_def_t DEFAULT = { .dir = "", .frame = -1, .stage = -1, .act = 1, .nacts = 1, .music = "bgm/m_stage1.adp" };
 
@@ -353,9 +385,12 @@ int level_cam_locked(void) { return cam_locked; }   /* 4212 / 4451: the boss cam
 /* the act start: remove the item sets this character does not get (4318 / 4319) and the AT2 jelly / petal row (4484 /
  * 4485: only while g1 != 1, i.e. always in the port) */
 static int shaft_on;   /* TH1 13499: Sign D = 1 once the player is deeper than the shaft (reset at every act start) */
+static int water_rt = -1;   /* ML.B moved by a script this act (-1: the level's .water; TB5's levers 12491-12501) */
+int  level_water(void) { return water_rt >= 0 ? water_rt : level_cur()->water; }
+void level_water_set(int b) { water_rt = b; }
 void level_flow_spawn(void) {
     const level_def_t *L = level_cur();
-    cam_locked = 0; shaft_on = 0;
+    cam_locked = 0; shaft_on = 0; water_rt = -1;
     for (int k = 0; k < L->nkills; k++) {
         const killbox_t *z = &L->kills[k];
         if ((z->who == 1 && chr_is_milla(G.character)) || (z->who == 2 && !chr_is_milla(G.character))) continue;
@@ -488,8 +523,8 @@ void level_flow_frame(const player_t *p) {
     double X = p->x;
     for (int k = 0; k < L->ncps; k++) {
         const cpzone_t *c = &L->cps[k];
-        if (!(X > c->x0 && X < c->x1 && G.at_g4 < c->g4) || (c->ymin > 0 && !(p->y - ORIG_REF_DY > c->ymin)) || (c->ymin < 0 && !(p->y - ORIG_REF_DY < -c->ymin))) continue;
-        if (c->nosnap) { G.at_g4 = c->g4; G.at_g5 = c->x; G.at_g6 = c->y; } else checkpoint(c->g4, c->x, c->y);
+        if (!(X > c->x0 && X < c->x1 && G.at_g4 < c->g4 + ((c->nosnap & 2) ? 1 : 0)) || (c->ymin > 0 && !(p->y - ORIG_REF_DY > c->ymin)) || (c->ymin < 0 && !(p->y - ORIG_REF_DY < -c->ymin))) continue;
+        if (c->nosnap & 1) { G.at_g4 = c->g4; G.at_g5 = c->x; G.at_g6 = c->y; } else checkpoint(c->g4, c->x, c->y);
         if (L->music_cp && c->g4 >= 10) music_play(L->music_cp);                 /* loop_next_act_17 / _26: play_music(5) */
     }
     if (L->flag1_y) G.stage_flags = (G.stage_flags & ~1) | (p->y - ORIG_REF_DY > L->flag1_y);   /* RM1 inline: ML flag 0x1 */

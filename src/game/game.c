@@ -185,7 +185,7 @@ int game_load_level(const char *dir) {
     loading_end();
     G.mus_resume_t = 0;
     music_fade(0, 0);                              /* a running fade ends with the level */
-    { uint64_t tm = plat_time_us(); music_play(level_music(dir)); LP.music_us += plat_time_us() - tm; }
+    { uint64_t tm = plat_time_us(); if (level_def(dir)->music_off) music_stop(); else music_play(level_music(dir)); LP.music_us += plat_time_us() - tm; }   /* TB6 12735: silent start */
     lp_end();
     return 0;
 }
@@ -719,6 +719,7 @@ void game_update(const input_t *in) {
         player_update(&G.p, &none);
         jc_flow_card(&G.p, CARD_DONE - G.card_t);   /* JC1 10365-10367: held at x -40, thrown in at the card's end (jc_flow.c) */
         th_flow_card(&G.p, CARD_DONE - G.card_t);   /* TH1 13533: held at the top of the shaft until the card fade's B reaches 96 (th_flow.c) */
+        tb_flow_card(&G.p);                         /* TB1 11881: the start lift rises from the card's frame 161 (tb_flow.c) */
         camera_update();
         return;
     }
