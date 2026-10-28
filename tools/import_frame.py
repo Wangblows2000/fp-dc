@@ -1677,6 +1677,13 @@ for _e in BGF_ENS: ROW_FRAMES[_e[3]] = {63, 64}         # BG_FLOW rows only in B
 # TBB_TYPES_ID already maps it to OT_TBB_SQUID..; tb_boss.c runs it in any level that places it. Its rows also in json 68.
 for _e in TBB_ENS:
     if _e[3].startswith('tbq_'): ROW_FRAMES[_e[3]] = ROW_FRAMES[_e[3]] | {68}
+# Types mirror src/game/fd.h (OT_FDB_*). The push beam (fd1b): rows only in json 67 (direction 0; the beam's 2 frames loop at 75).
+FDB_TYPES_ID = {('minibosspushbeam', 3493): 2912, ('minibosspushbeamcannon', 3494): 2913, ('bosssyntaxvalues', 3467): 2914,
+                ('alarmlight', 3495): 2915, ('scrollingfloor', 3466): 2916, ('scrollingfloor2', 3465): 2917}
+ENGINE_TYPES_ID.update(FDB_TYPES_ID)   # FD_BOSS (A)
+FDB_ENS = [('minibosspushbeam_3493', 0, '0', 'fdb_pb'), ('minibosspushbeamcannon_3494', 0, '0', 'fdb_pbc')]
+ENS += FDB_ENS   # FD_BOSS (A)
+for _e in FDB_ENS: ROW_FRAMES[_e[3]] = {67}
 
 # ==== end Final Dreadnought
 SHL_CLASSES = {'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
