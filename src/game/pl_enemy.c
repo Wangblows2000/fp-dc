@@ -27,7 +27,7 @@
 typedef struct { short idx[PL_LMAX]; int n; } pl_list_t;
 static pl_list_t LST[NRT];
 #define EACH(T, OB) for (int _k = 0; _k < LST[(T) - RT0].n; _k++) if (((OB) = &G.o[LST[(T) - RT0].idx[_k]])->alive && (OB)->type == (T))
-static struct { int on, swarm, nstingers; ek_limiters_t lim; } S;
+static struct { int on, swarm, nstingers; ek_limiters_t lim; short shk[32]; int nshk; } S;
 
 static int R(int n) { return cross_rand(n); }
 static int g3(void) { return (int)(G.frame % 100000); }                      /* global value 3 (the frame counter) */
@@ -241,6 +241,24 @@ static int gas_alpha(const obj_t *g) { double v = 3 * g->av[0] - 90; return v <=
  * sound 51, camera shake 4, D 3, J 240 -> 360 -> 60, then J 300, D 0. Hurts: its spiky top (Player_326 above its centre: 10, not in
  * M 26 / 99), the legs while J is 180..240 (B 10), the shockwaves (10). Defeated: anim 8, explosions every 7th frame (K to 12),
  * then sound 38, a keystone, four debris pieces (the legs and shoulders) and it goes. The warning marks it 50..200 px off view. */
+/* HazardShockwave_1576 (the Relic Maze golem's: relic_boss.c moves it 6.25 px a frame and hurts 10 while B <= 50). PL's own rules
+ * (RE 12923-12926): B + 1 a frame, gone past B 50 or off a ledge (2 px below it neither the background nor a Q7 / Q8 object) */
+static void shock_new(double x, double y, int dir) {
+    obj_t *k = relic_shock_new(x, y, dir, 0);
+    if (!k) return;
+    int i = (int)(k - G.o);
+    for (int j = 0; j < S.nshk; j++) if (!G.o[S.shk[j]].alive || G.o[S.shk[j]].type != OT_SHOCK) { S.shk[j] = (short)i; return; }
+    if (S.nshk < 32) S.shk[S.nshk++] = (short)i;
+}
+static void shocks_frame(void) {
+    for (int j = 0; j < S.nshk; j++) {
+        obj_t *k = &G.o[S.shk[j]];
+        if (!k->alive || k->type != OT_SHOCK) continue;
+        k->av[1] += 1; k->y += 2;                                              /* 12923 */
+        if (k->av[1] > 50 || (!obj_overlaps_bg(k) && !objects_mask_hit_groups(k, 1))) k->alive = 0;   /* 12924 / 12925 */
+        else k->y -= 2;                                                        /* 12926 */
+    }
+}
 static void terreon_init(obj_t *o) {
     o->A = 40; o->av[6] = 300; o->av[1] = floorf(o->x); o->av[2] = floorf(o->y); o->av[5] = (R(32768) * 60) >> 15;   /* ctor + 12961 */
     o->fl |= F_NOFLY; o->hidden = 1; ek_set_a(o, "plt_body");
@@ -287,11 +305,11 @@ static void terreon_frame(obj_t *o, player_t *p) {
         if (*Gx == 0 && *E > MVX(p) && !px_solid(&G.lvl, (int)(*E - 30), (int)*F)) *Gx = -3;  /* 12860 */
         if (*H < 0 && px_solid(&G.lvl, (int)*E, (int)(*F - 16))) *H = 0;       /* 12861 */
         if (*H >= 0 && px_solid(&G.lvl, (int)*E, (int)(36 + *F))) {           /* 12862 / 12863 */
-            relic_shock_new(floorf(o->x) - 16, floorf(o->y) + 76, 16, 0);
+            shock_new(floorf(o->x) - 16, floorf(o->y) + 76, 16);
             *D = 3; *H = 0; *J = 240;
             obj_effect(floorf(o->x) - 24, floorf(o->y) + 72, "explosion"); obj_effect(floorf(o->x) + 24, floorf(o->y) + 72, "explosion");
             snd_play_orig(51, 220, 128); ek_shake(4);
-            relic_shock_new(floorf(o->x) + 16, floorf(o->y) + 76, 0, 0);
+            shock_new(floorf(o->x) + 16, floorf(o->y) + 76, 0);
         }
     }
     if (*D == 2) { *J = fmin(*J + 10, 180); *E += *Gx; *F += *H; *H = fmin(*H + 0.4, 15); }   /* 12920 */
@@ -456,6 +474,7 @@ void pl_enemy_pre(player_t *p) {
     if (!S.on) return;
     obj_t *o, *t;
     S.nstingers = list_alive(OT_PL_STINGER);                                   /* the group events (pick one of, the wrap) once a frame */
+    if (S.nshk) shocks_frame();
     stinger_group(p);
     if (LST[OT_PL_WSTINGER - RT0].n || LST[OT_PL_WSPAWN - RT0].n) wstinger_group();
     if (LST[OT_PL_WBACK - RT0].n) {                                            /* the back swarm wraps with the view: run every instance */
@@ -474,7 +493,7 @@ void pl_enemy_pre(player_t *p) {
     }
     EACH(OT_PL_OLASER, o) if (ek_csens_hit(p, o)) ek_r_hurt(p, 5, 0);         /* col_3_53 -> 13024 */
     EACH(OT_PL_TERREON, t) {                                                   /* 12928: the spiky top */
-        if (t->av[0] >= 7 || !ek_p326_hit(t) || ek_py(p) < floorf(t->y)) continue;
+        if (t->av[0] >= 7 || !ek_p326_hit(t) || ek_py(p) >= floorf(t->y)) continue;   /* (the selection keeps Player_326 Y < its Y) */
         int M = player_orig_m(p);
         if (M != 26 && M != 99) ek_r_hurt(p, 10, 0);
     }
