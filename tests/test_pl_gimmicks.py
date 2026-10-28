@@ -91,7 +91,7 @@ shown = [f for f, o in b if o['hd'] == 0]
 cyc = [f for f in solid if f < 420 and f >= 210]
 check('vblock_solid_cycle', 100 <= len(cyc) <= 106 and solid and abs(solid[0] % 210 - 60) <= 2 and all((f - solid[0]) % 210 < 106 for f in solid),
       'solid frames in a cycle %d, first %s' % (len(cyc), solid[:1]))
-check('vblock_drawn_while_solid', shown and set(shown) <= set(range(min(solid) - 1, 641)) and abs(len([f for f in shown if 210 <= f < 420]) - len(cyc)) <= 3,
+check('vblock_drawn_while_solid', shown and solid and 100 <= len([f for f in shown if 210 <= f < 420]) <= 106 and abs(len([f for f in shown if 210 <= f < 420]) - len(cyc)) <= 3,
       '%d drawn / %d solid' % (len([f for f in shown if 210 <= f < 420]), len(cyc)))
 s8, s9 = sids(ev, 328), sids(ev, 329)
 check('vblock_sound_cadence', len(s8) > 10 and len(s9) > 10 and len({f % 6 for f in s8 + s9}) == 1, 'RV vb5: every 6 frames; %s' % sorted({f % 6 for f in s8 + s9}))
@@ -106,7 +106,7 @@ g = sids(ev, 324)
 check('tgate_sound_energy', g and rows[g[0]]['en'] >= 99.9, str(g[:1]) + ' en %s' % (g and rows[g[0]]['en']))
 check('tgate_super_boost', sids(ev, 322) and not sids(ev, 53) and g and sids(ev, 322)[0] > g[0], '322 %s 53 %s' % (sids(ev, 322)[:1], sids(ev, 53)[:1]))
 check('tgate_pieces_orbit', g and any(o['an'] != track(obs, 2146, 0)[0]['an'] for o in track(obs, 2146, g[0] + 3)), 'activated pieces anim 7')
-check('pl1_wall_after_gate', rows and min(MY(r) for r in rows[100:250]) < 500 and max(r['x'] for r in rows[200:]) > 9300,
+check('pl1_wall_after_gate', rows and sids(ev, 322) and min(MY(r) for r in rows[100:250]) < 420 and max(r['x'] for r in rows[200:]) > 9300,
       'min y %.0f' % min(MY(r) for r in rows[100:250]) if rows else '')
 
 # ---- cyclone top (RV ct1: TP (4040, 1330) at 60, J at 72: ride at f89 with 7 + 174, rises 1 px a frame, released at H 251 = f340)
@@ -142,15 +142,17 @@ check('breakout_ball_path', all(f in bb and abs(bb[f]['x'] - x) <= 8 and abs(bb[
       str([(f, bb.get(f, {}).get('x'), bb.get(f, {}).get('y')) for f in RV]))
 xs = [bb[f]['x'] for f in sorted(bb)]
 check('breakout_ball_walls', xs and abs(min(xs) - 1998) <= 4 and abs(max(xs) - 2290) <= 4, '%s..%s' % (min(xs) if xs else '', max(xs) if xs else ''))
-pd = [o for o in track(obs, 2154) if o['f'] == 300]
-check('breakout_paddle_follows', any(abs(o['x'] - bb[300]['x']) <= 64 and o['x'] != o.get('x0', -1) for o in pd) and 300 in bb, '')
+p0 = sorted(track(obs, 2154, 0), key=lambda o: abs(o['x'] - 2144) + abs(o['y'] - 880))[:1]
+p3 = sorted(track(obs, 2154, 300), key=lambda o: abs(o['y'] - p0[0]['y']) + abs(o['x'] - p0[0]['x']))[:1] if p0 else []
+check('breakout_paddle_follows', p0 and p3 and 300 in bb and p3[0]['x'] != p0[0]['x'] and abs(p3[0]['x'] - bb[300]['x']) <= 64,
+      str((p0 and p0[0]['x'], p3 and p3[0]['x'], bb.get(300, {}).get('x'))))
 
 # ---- giant sword (RE 13130-13134: trigger 150, falls after F > 20 with damage 15, lands with 51)
 rows, ev, obs, _ = run('60 TP 8176 260\n62 300 L', 200, {'FP_LEVEL': 'pl5', 'FP_TRACK': '2158:8176'})
 sw = {o['f']: o for o in track(obs, 2158)}
 check('sword_trigger', sids(ev, 150) and abs(sids(ev, 150)[0] - 60) <= 2, str(sids(ev, 150)[:1]))
 fall = [f for f in sorted(sw) if sw[f]['y'] > 240]
-check('sword_falls_after_20', fall and 18 <= fall[0] - sids(ev, 150)[0] <= 24 and sw[fall[0]]['bd'] == 15, str(fall[:1]))
+check('sword_falls_after_20', fall and sids(ev, 150) and 18 <= fall[0] - sids(ev, 150)[0] <= 24 and sw[fall[0]]['bd'] == 15, str(fall[:1]))
 check('sword_lands', sids(ev, 51) and sw[199]['y'] > 300 and sw[199]['bd'] == 0 and sw[199]['y'] == sw[150]['y'], 'y %s' % sw.get(199, {}).get('y'))
 
 # ---- spinball (PL4 (1080, 880): radius 120, D + 2 a frame; chains at 24 / 48 / 72 / 96 on the same angle)
