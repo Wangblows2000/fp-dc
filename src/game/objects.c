@@ -45,13 +45,20 @@ obj_t *obj_alloc(void) { return alloc_obj(); }
 static int A_LOG = -1;
 /* path platforms of other stages that share the rule (3270-3307 / 4061 / 4737 / 4738) with their own constructor F (step) and G
  * (amplitude), registered by their module's spawn (Trap Hideout's LevelHideoutPlatform1, th_gim.c) */
-static struct { int type; float F, G; } plat_x[8]; static int nplat_x;
-void objects_plat_type(int type, float F, float Gm) {
+/* Session 21c: the registry also takes the full path rule (3283-3289) of the q13 platforms whose constructors set it: X moves
+ * too (M = I + C cos|sin A, A += B; O = floor(M) - floor(K), 4061 carries O), Y may use cos (H 0), and the q12 dip / one-way
+ * flags (3270-3272, 3303-3307, 4737 / 4738) apply only to q12 members (dip 1). Thermal Base: fire, piston, spin and scrolling
+ * platforms (tb_gim.c). Fields of a registered object: ox / oy = I / J, vx = E, vy = S (dip), fx = N, dir = P, kx = A, ky = M,
+ * fy = O; the owner may set E / A / I / J itself (phase at the start, scripted I / J). */
+static struct { int type; float F, G, B, C; signed char D, H, dip; } plat_x[12]; static int nplat_x;
+void objects_plat_path(int type, float B, float C, int D, float F, float Gm, int H, int dip) {
     int k = 0;
     while (k < nplat_x && plat_x[k].type != type) k++;
-    if (k == nplat_x) { if (nplat_x >= 8) return; nplat_x++; }
-    plat_x[k].type = type; plat_x[k].F = F; plat_x[k].G = Gm;
+    if (k == nplat_x) { if (nplat_x >= 12) return; nplat_x++; }
+    plat_x[k].type = type; plat_x[k].F = F; plat_x[k].G = Gm; plat_x[k].B = B; plat_x[k].C = C;
+    plat_x[k].D = (signed char)D; plat_x[k].H = (signed char)H; plat_x[k].dip = (signed char)dip;
 }
+void objects_plat_type(int type, float F, float Gm) { objects_plat_path(type, 0, 0, 1, F, Gm, 1, 1); }
 static int plat_x_of(int t) { for (int k = 0; k < nplat_x; k++) if (plat_x[k].type == t) return k; return -1; }
 static int plat_type(int t) { return t == OT_PLAT_VALLEY || t == OT_PLAT_MOVE2 || t == OT_PLAT_MOVE3 || t == OT_GEYSER || (nplat_x && plat_x_of(t) >= 0); }
 void objects_spawn(void) {
@@ -163,6 +170,8 @@ static void plat_params(int t, double *F, double *Gm) {
     else { int k = plat_x_of(t); if (k >= 0) { *F = plat_x[k].F; *Gm = plat_x[k].G; } else { *F = 1; *Gm = 10; } }
 }
 static int plat_x_present(void) { for (int k = 0; k < nplat_x; k++) if (objects_have(plat_x[k].type)) return 1; return 0; }
+static int plat_dip(int t) { int k = plat_x_of(t); return k < 0 || plat_x[k].dip; }   /* q12 members (the dip and the one-way flags) */
+static double p_cos(double n) { return (n == 90. || n == 270.) ? 0. : fd_cos(n / 57.29577951308232); }   /* Chowdren cos: 0 at exactly 90 / 270 */
 static int box_hits_disc27(float bx, float by, float bw, float bh, int px, int py) {   /* Player_326: 27-px disc at (int X, int Y) */
     float cx = fmaxf(bx, fminf((float)px, bx + bw - 1)), cy = fmaxf(by, fminf((float)py, by + bh - 1));
     float dx = cx - px, dy = cy - py;
@@ -201,13 +210,21 @@ void objects_platforms(player_t *p) {
         obj_t *o = &G.o[i];
         if (!o->alive || !plat_type(o->type)) continue;
         double F, Gm; plat_params(o->type, &F, &Gm);
+        int kx = plat_x_of(o->type), dip = kx < 0 || plat_x[kx].dip;
+        if (dip) {
         o->y -= floorf(o->vy);                                    /* 3270 */
         if (!(o->fl & 4)) o->vy -= o->vy * 0.2f;                   /* 3271 */
         o->fl &= ~4;                                              /* 3272 */
+        }
         double L = o->fx;                                         /* 3283: L = N */
         o->vx = (float)fmod(o->vx + F, 360.);
         if (o->type == OT_GEYSER && fmod(o->vx, 360.) > 240) { o->vx = (float)fmod(o->vx + 2, 360.); o->fl |= 0x40; }   /* 4969: fast phase, no carry */
-        double N = o->oy + Gm * p_sin(o->vx);                     /* 3287 (H = 1) */
+        if (kx >= 0 && (plat_x[kx].B != 0 || plat_x[kx].C != 0)) {   /* 3283-3285, 3288: X = floor(M), M = I + C cos|sin A */
+            double K = o->ky; o->kx = fmod(o->kx + plat_x[kx].B, 360.); if (o->kx < 0) o->kx += 360.;
+            double M = o->ox + plat_x[kx].C * (plat_x[kx].D ? p_sin(o->kx) : p_cos(o->kx));
+            o->fy = (float)(floor(M) - floor(K)); o->ky = M; o->x = (float)floor(M);
+        } else if (kx >= 0 && !plat_x[kx].dip) { double K = o->ky; o->ky = o->ox; o->fy = (float)(floor(o->ox) - floor(K)); o->x = (float)floor(o->ox); }   /* C = 0: X = floor(I) (a scripted I) */
+        double N = o->oy + Gm * (kx >= 0 && !plat_x[kx].H ? p_cos(o->vx) : p_sin(o->vx));   /* 3286 / 3287 */
         o->dir = (int)(floor(N) - floor(L));                      /* 3288: P */
         o->fx = (float)N;
         o->y = (float)floor(N);                                   /* 2989 */
@@ -220,6 +237,7 @@ void objects_platforms(player_t *p) {
             int k = mv_sensor_obj(p->x, MY + 1, p->N, SENSOR_BOTTOMBIG, t);
             if (k < 0 || (G.o[k].fl & 0x40)) continue;
             p->y += G.o[k].dir; MY = p->y - ORIG_REF_DY;
+            if (ti > OT_PLAT_MOVE3 && !plat_x[ti - OT_PLAT_MOVE3 - 1].dip) p->x += G.o[k].fy;   /* 4061: X += O (path platforms with an X rule) */
             if (!p->ground) { p->gsp = p->vx; p->ground = 1; }   /* L = 1; B kept (no landing conversion) */
             p->vy = 0; p->N = 0; p->O = 0;
             player_sync_sensors(p);
@@ -229,7 +247,7 @@ void objects_platforms(player_t *p) {
     }
     for (int i = 0; i < G.nobjs; i++) {                           /* 4737 / 4738 */
         obj_t *o = &G.o[i];
-        if (!o->alive || !plat_type(o->type)) continue;
+        if (!o->alive || !plat_type(o->type) || !plat_dip(o->type)) continue;
         o->fl &= ~0x41;
         if (o->y < PY) o->fl |= 0x41;
     }
@@ -275,7 +293,7 @@ void objects_platforms(player_t *p) {
     /* 3303 / 3304 / 3307: dip while stood on */
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i];
-        if (!o->alive || !plat_type(o->type)) continue;
+        if (!o->alive || !plat_type(o->type) || !plat_dip(o->type)) continue;
         if (p->ground && mv_sensor_obj(p->x, MY, p->N, SENSOR_BOTTOMBIG, o->type) == i) o->fl |= 4;
         if (o->fl & 4) o->vy += (9 - o->vy) * 0.2f;
         o->y += floorf(o->vy);

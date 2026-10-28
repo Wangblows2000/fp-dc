@@ -1233,7 +1233,91 @@ for _e in THB_ENS: ROW_FRAMES[_e[3]] = TH_FRAMES   # TH_BOSS rows only in Trap H
 
 # ---- TB_ENEMIES (tb_enemy.c, 1824-1887)
 
-# ---- TB_GIM (tb_gim.c, 1888-1967)
+# ---- TB_GIM (tb_gim.c, 1888-1967; build/re/spec_tb_gimmicks.md). Families share a type; TBG_SUB gives the member index (lvobj
+# anim bits 0-7, the instance layer in bits 8-14, as TH_GIM). Types mirror src/game/tb.h OT_TBG_*.
+TBG_TYPES_ID = {('levellift', 2649): 1888, ('levellifttop', 2650): 1889, ('levelliftbottom', 2651): 1889,
+    ('objectkeycard', 2685): 1890, ('lockeddoorterminal', 2689): 1891, ('lockeddoorback', 2658): 1892, ('lockeddoorfront', 2659): 1892,
+    ('lockeddoorseal', 2660): 1892, ('lockeddoorbarrier', 2688): 1893, ('metaldoorback', 2641): 1894, ('metaldoorfront', 2643): 1894,
+    ('tbwalllightanim', 2644): 1895, ('levelfireplatform1', 2708): 1896, ('levelfireplatform1', 2665): 1934,
+    ('levelfireplatformflame1', 2666): 1897, ('levelfireplatformflame2', 2667): 1897,
+    ('levelscrollingplatform1', 2677): 1898, ('levelscrollingplatform2', 2678): 1898, ('levelscrollingplatformmask1', 2680): 1899,
+    ('levelscrollingplatformmask2', 2681): 1899, ('levelscrollingplatformflame1', 2668): 1900, ('levelscrollingplatformflame2', 2679): 1900,
+    ('levelscrollingplatformstart', 2687): 1901, ('levelscrollingplatformend', 2686): 1901, ('levelscrollingplatformplayerpush', 2697): 1902,
+    ('levelpistonplatform1', 2713): 1903, ('levelpistonplatformmask', 2712): 1904, ('levelspinplatform', 2731): 1905,
+    ('levelspinplatformmask', 2733): 1906, ('levelspinplaformsupport', 2732): 1907, ('airventplatform', 2694): 1908,
+    ('hazardlavapit', 2736): 1909, ('hazardlavafall', 2737): 1910, ('hazardlavafall3', 2777): 1910, ('hazardlavafallwarning', 2739): 1911,
+    ('magmaflow', 2676): 1912, ('objectexplosiveblock', 2738): 1913, ('switchbuttonleft', 2707): 1914, ('switchbuttonright', 2705): 1914,
+    ('hazardfloortrap', 2761): 1915, ('playerblocker', 2780): 1916,
+    ('gimmickconveyorbeltright', 2835): 1917, ('gimmickconveyorbeltright2', 2836): 1917, ('gimmickconveyorbeltright3', 2837): 1917,
+    ('gimmickconveyorbeltleft', 2844): 1917, ('gimmickconveyorbeltleft2', 2845): 1917, ('gimmickconveyorbeltleft3', 2846): 1917,
+    ('tbpipeloop2', 2816): 1918, ('tbpipeloop3', 2817): 1918, ('tbpipeloop6', 2821): 1918, ('tbpipeloop7', 2822): 1918,
+    ('tbpipeloop5', 2820): 1919, ('tbpipeloop9', 2842): 1919, ('tbpipeloop11', 2859): 1919,
+    ('tbpipeloop1', 2815): 1920, ('tbpipeloop4', 2818): 1920, ('tbpipeloop8', 2841): 1920, ('tbpipeloop10', 2858): 1921,
+    ('gimmickcrankplatformtop1', 2809): 1922, ('gimmickcrankplatformtop2', 2810): 1922,
+    ('gimmickcrankplatformmid1', 2803): 1923, ('gimmickcrankplatformmid2', 2804): 1923, ('gimmickcrankplatformbase1', 2805): 1923,
+    ('gimmickcrankplatformbase2', 2806): 1923, ('gimmickcrankplatformarm1', 2808): 1923, ('gimmickcrankplatformarm2', 2807): 1923,
+    ('gimmickgiantpressertube', 2856): 1924, ('gimmckgiantpresser', 2857): 1924, ('gimmckgiantpresserhitbox', 2879): 1925,
+    ('gimmickwaterturbine', 2863): 1926, ('tubebubblespawner', 2848): 1927, ('underwaterbgturbine', 2880): 1929,
+    ('tbwaterlight', 2866): 1930, ('gimmickwaterlever1', 2871): 1931, ('gimmickwaterlever2', 2877): 1931,
+    ('gimmickwaterlevelmask1', 2872): 1932, ('gimmickwaterlevelmask2', 2878): 1932,
+    ('gimmickbubblewavespawner', 2833): 1933, ('gimmickbubblewavespawner2', 2834): 1933}
+TBG_SUB = {'levelliftbottom_2651': 1, 'lockeddoorfront_2659': 1, 'lockeddoorseal_2660': 2, 'metaldoorfront_2643': 1,
+    'levelfireplatformflame2_2667': 1, 'levelscrollingplatform2_2678': 1, 'levelscrollingplatformmask2_2681': 1,
+    'levelscrollingplatformflame2_2679': 1, 'levelscrollingplatformend_2686': 1, 'hazardlavafall3_2777': 1, 'switchbuttonright_2705': 1,
+    'gimmickconveyorbeltright2_2836': 1, 'gimmickconveyorbeltright3_2837': 2, 'gimmickconveyorbeltleft_2844': 3,
+    'gimmickconveyorbeltleft2_2845': 4, 'gimmickconveyorbeltleft3_2846': 5,
+    'tbpipeloop3_2817': 1, 'tbpipeloop6_2821': 2, 'tbpipeloop7_2822': 3, 'tbpipeloop9_2842': 1, 'tbpipeloop11_2859': 2,
+    'tbpipeloop4_2818': 1, 'tbpipeloop8_2841': 2,
+    'gimmickcrankplatformtop2_2810': 1, 'gimmickcrankplatformmid2_2804': 1, 'gimmickcrankplatformbase1_2805': 2,
+    'gimmickcrankplatformbase2_2806': 3, 'gimmickcrankplatformarm1_2808': 4, 'gimmickcrankplatformarm2_2807': 5,
+    'gimmckgiantpresser_2857': 1, 'gimmickwaterlever2_2877': 1, 'gimmickwaterlevelmask2_2878': 1, 'gimmickbubblewavespawner2_2834': 1}
+TBG_ENS = [(c, a, d, nm) for c, a, d, nm in (
+    ('levellift_2649', 0, '0', 'tbg_lift'), ('objectkeycard_2685', 0, '0', 'tbg_key'),
+    ('lockeddoorterminal_2689', 0, '0', 'tbg_term'), ('lockeddoorterminal_2689', 7, '0', 'tbg_term7'),
+    ('lockeddoorback_2658', 0, '0', 'tbg_ldback'), ('lockeddoorfront_2659', 0, '0', 'tbg_ldfront'), ('lockeddoorseal_2660', 0, '0', 'tbg_seal'),
+    ('lockeddoorbarrier_2688', 0, '0', 'tbg_barrier'), ('metaldoorback_2641', 0, '0', 'tbg_mdback'), ('metaldoorfront_2643', 0, '0', 'tbg_mdfront'),
+    ('tbwalllightanim_2644', 0, '0', 'tbg_wlight'), ('levelfireplatform1_2708', 0, '0', 'tbg_fplat'),
+    ('levelfireplatformflame1_2666', 0, '0', 'tbg_ff0'), ('levelfireplatformflame1_2666', 0, '1', 'tbg_ff1'),
+    ('levelfireplatformflame1_2666', 0, '16', 'tbg_ff16'), ('levelfireplatformflame1_2666', 0, '17', 'tbg_ff17'),
+    ('levelscrollingplatform1_2677', 0, '0', 'tbg_splat0'), ('levelscrollingplatform2_2678', 0, '0', 'tbg_splat1'),
+    ('levelscrollingplatformmask1_2680', 0, '0', 'tbg_smask0'), ('levelscrollingplatformmask2_2681', 0, '0', 'tbg_smask1'),
+    ('levelscrollingplatformflame1_2668', 0, '0', 'tbg_sf0'), ('levelscrollingplatformflame1_2668', 0, '1', 'tbg_sf1'),
+    ('levelscrollingplatformflame1_2668', 0, '16', 'tbg_sf16'), ('levelscrollingplatformflame1_2668', 0, '17', 'tbg_sf17'),
+    ('levelpistonplatform1_2713', 0, '0', 'tbg_piston'), ('levelpistonplatformmask_2712', 0, '0', 'tbg_pmask'),
+    ('levelspinplatform_2731', 0, '0', 'tbg_spin'), ('levelspinplatformmask_2733', 0, '0', 'tbg_spinmask'),
+    ('levelspinplaformsupport_2732', 0, '0', 'tbg_spinsup'), ('airventplatform_2694', 0, '0', 'tbg_vent'),
+    ('hazardlavapit_2736', 0, '0', 'tbg_lava'), ('hazardlavafall_2737', 0, '0', 'tbg_lfall'), ('hazardlavafall3_2777', 0, '0', 'tbg_lfall3'),
+    ('hazardlavafallwarning_2739', 0, '0', 'tbg_lwarn0'), ('hazardlavafallwarning_2739', 0, '1', 'tbg_lwarn1'),
+    ('magmaflow_2676', 0, '0', 'tbg_magma'), ('objectexplosiveblock_2738', 0, '0', 'tbg_xblock'),
+    ('switchbuttonleft_2707', 0, '0', 'tbg_btn0'), ('switchbuttonright_2705', 0, '0', 'tbg_btn1'),
+    ('objectexplosiveblockdestroyer_2744', 0, '0', 'tbg_destroyer'),
+    ('hazardfloortrap_2761', 0, '0', 'tbg_ftrap'), ('hazardfloortrap_2761', 7, '0', 'tbg_ftrap7'), ('playerblocker_2780', 0, '0', 'tbg_blocker'),
+    ('gimmickconveyorbeltright_2835', 0, '0', 'tbg_conv0'), ('gimmickconveyorbeltright2_2836', 0, '0', 'tbg_conv1'),
+    ('gimmickconveyorbeltright3_2837', 0, '0', 'tbg_conv2'),
+    ('tbpipeloop2_2816', 0, '0', 'tbl_0_0'), ('tbpipeloop3_2817', 0, '0', 'tbl_0_1'), ('tbpipeloop6_2821', 0, '0', 'tbl_0_2'),
+    ('tbpipeloop7_2822', 0, '0', 'tbl_0_3'), ('tbpipeloop5_2820', 0, '0', 'tbl_0b_0'), ('tbpipeloop9_2842', 0, '0', 'tbl_0b_1'),
+    ('tbpipeloop11_2859', 0, '0', 'tbl_0b_2'), ('tbpipeloop1_2815', 0, '0', 'tbl_1_0'), ('tbpipeloop4_2818', 0, '0', 'tbl_1_1'),
+    ('tbpipeloop8_2841', 0, '0', 'tbl_1_2'), ('tbpipeloop10_2858', 0, '0', 'tbl_1b_0'),
+    ('gimmickcrankplatformtop1_2809', 0, '0', 'tbg_ctop'), ('gimmickcrankplatformmid1_2803', 0, '0', 'tbg_cmid'),
+    ('gimmickcrankplatformbase1_2805', 0, '0', 'tbg_cbase'),
+    ('gimmickgiantpressertube_2856', 0, '0', 'tbg_ptube'), ('gimmckgiantpresser_2857', 0, '0', 'tbg_press'),
+    ('gimmckgiantpresserhitbox_2879', 0, '0', 'tbg_phit'), ('gimmickwaterturbine_2863', 0, '0', 'tbg_turb'),
+    ('tubebubble_2849', 0, '0', 'tbg_tbub'), ('underwaterbgturbine_2880', 0, '0', 'tbg_bgturb'), ('tbwaterlight_2866', 0, '0', 'tbg_wtlight'),
+    ('gimmickwaterlever1_2871', 0, '0', 'tbg_lever'), ('gimmickwaterlevelmask1_2872', 0, '0', 'tbg_wmask'),
+    ('gimmickbubblewavespawner_2833', 0, '0', 'tbg_bwave0'), ('gimmickbubblewavespawner2_2834', 0, '0', 'tbg_bwave1'),
+    ('guikeycardicon_2692', 0, '0', 'tbg_kicon'))]
+# rows shared by sibling classes (same images) or created at run time: exported where a sibling / creator is placed
+TBG_ENS_WITH = {'levelfireplatform1_2708': ('levelfireplatform1',), 'levelfireplatformflame1_2666': ('levelfireplatformflame2',),
+    'levelscrollingplatformflame1_2668': ('levelscrollingplatformflame2',), 'gimmickconveyorbeltright_2835': ('gimmickconveyorbeltleft',),
+    'gimmickconveyorbeltright2_2836': ('gimmickconveyorbeltleft2',), 'gimmickconveyorbeltright3_2837': ('gimmickconveyorbeltleft3',),
+    'gimmickcrankplatformtop1_2809': ('gimmickcrankplatformtop2',), 'gimmickcrankplatformmid1_2803': ('gimmickcrankplatformmid2',),
+    'gimmickcrankplatformbase1_2805': ('gimmickcrankplatformbase2', 'gimmickcrankplatformarm1', 'gimmickcrankplatformarm2'),
+    'gimmickwaterlever1_2871': ('gimmickwaterlever2',), 'gimmickwaterlevelmask1_2872': ('gimmickwaterlevelmask2',),
+    'objectexplosiveblockdestroyer_2744': ('switchbuttonleft', 'switchbuttonright'),
+    'tubebubble_2849': ('tubebubblespawner', 'gimmickwaterturbine'), 'guikeycardicon_2692': ('objectkeycard',)}
+ENGINE_TYPES_ID.update(TBG_TYPES_ID); ENS += TBG_ENS   # TB_GIM
+for _e in TBG_ENS: ROW_FRAMES[_e[3]] = TB_FRAMES   # TB_GIM rows only in Thermal Base
+for _k, _v in TBG_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # TB_GIM
 
 # ---- TB_BOSS (tb_boss.c, 1968-2047)
 
@@ -2117,6 +2201,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         if 1150 <= o['type'] < 1280: a = SBBOSS_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # SB_BOSS (sb_boss.c): sub id | instance layer << 8
         if 1280 <= o['type'] < 1536: a = JC_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # Jade Creek (jc_*.c): member index | instance layer << 8 | 0x8000 json layer 1 of a mapped frame
         if 1620 <= o['type'] < 1680: a = THG_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # TH_GIM (th_gim.c): member index | instance layer << 8
+        if 1888 <= o['type'] < 1968: a = TBG_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # TB_GIM (tb_gim.c): member index | instance layer << 8
         if 1370 <= o['type'] < 1430: a = (JCG_LEAF_TILT.get((o['x'], o['y']), 0) // 30 if o['type'] == 1371 else JCG_SUB.get(o['cls'], 0)) | (o['layer'] << 8)   # JC_GIM (jc_gim.c): member index (leaf backs: tilt / 30) | instance layer << 8
         if 1536 <= o['type'] < 1560: a = (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # TH_FLOW (th_flow.c): instance layer << 8 | 0x8000 json layer 1
         if 1100 <= o['type'] < 1150: a = SBG_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # SB_GIM (sb_gim.c): member index | instance layer << 8 | 0x8000: json layer 1 of a mapped frame (session 20: behind the json-2 pieces, scrolls with layer 1)

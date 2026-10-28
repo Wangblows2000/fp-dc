@@ -238,7 +238,7 @@ static void fires(player_t *p) {
         set_s(o, NM[o->par & 3][on]);
         if (on || !in_view(o, 50) || dead(p) || p->shield == 2) continue;          /* 9337-9340: near, test_directions(1) = mask bit 0 = direction 0 (the tall jet), not the fire shield */
         if (!disc_hit(p, o) || (SN[o->par & 3] >= 0 && !sens_hit(SN[o->par & 3], o))) continue;
-        if (r_hurt(p, 5)) { p->tint = 30; p->tint_argb = 0xffffa080; }             /* LIFE.B + 5, OTHERS.R 30, blend 0x80a0ff */
+        player_burn(p, 5);                                                        /* LIFE.B + 5, OTHERS.R 30, blend 0x80a0ff (combat.c, shared with TB) */
     }
 }
 

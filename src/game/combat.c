@@ -421,3 +421,11 @@ void ach_boss_finish(void) {
     if (cube == 3) ach_earn(16);                              /* Phantom Block: PlayerReflect_463 A == 3 */
     if (cube == 5 && player_cube_beam()) ach_earn(17);        /* Super Shield Burst: cube A == 5 and anim 5 playing */
 }
+
+/* the fire hurt shared by the stages' jets and flames (SB 9337-9340, TB 11727 / 11751 / 11953): a vulnerable player without the
+ * fire shield (OTHERS.B 2) takes R-hurt n (MV.R 1, LIFE.B + n) and the burn tint (OTHERS.R 30, blend 0x80a0ff) */
+int player_burn(player_t *p, int n) {
+    if (p->state == ST_DEAD || p->hp <= 0 || p->hurt_pending || player_invincible(p) || p->shield == 2) return 0;
+    player_contact(p, n); p->tint = 30; p->tint_argb = 0xffffa080;
+    return 1;
+}
