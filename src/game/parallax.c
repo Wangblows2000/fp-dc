@@ -37,7 +37,12 @@ static uint16_t rd16(const uint8_t *p) { return (uint16_t)(p[0] | (p[1] << 8)); 
 static int32_t rd32(const uint8_t *p) { return (int32_t)(p[0] | (p[1] << 8) | (p[2] << 16) | ((uint32_t)p[3] << 24)); }
 static float rdf(const uint8_t *p) { uint32_t u = (uint32_t)rd32(p); float f; memcpy(&f, &u, 4); return f; }
 
+/* a stage script's layer-0 objects drawn in the piece order (session 21b: TH3's ThSpotlight_3209, json layer 0 after piece0 and before
+ * the json-layer-1 piece2): fn runs just before the piece with this handle is considered (shown or hidden) in the back pass */
+static int hook_handle = -1; static void (*hook_fn)(void);
+void par_set_hook(int handle, void (*fn)(void)) { hook_handle = fn ? handle : -1; hook_fn = fn; }
 void par_free(void) {
+    hook_handle = -1; hook_fn = NULL;
     for (int i = 0; i < nimg; i++) for (int k = 0; k < IMG[i].n; k++) if (IMG[i].ch[k].t.w > 0) r_tex_free(&IMG[i].ch[k].t);
     for (int k = 0; k < 2; k++) if (WT[k].w > 0) r_tex_free(&WT[k]);
     memset(IMG, 0, sizeof IMG); memset(WT, 0, sizeof WT); nimg = npc = has_water = 0;
@@ -153,6 +158,7 @@ static void draw_pieces_pass(int gframe, int front) {
     if (!front) jw_update(vt);
     for (int i = 0; i < npc; i++) {
         const ppiece_t *p = &PC[i];
+        if (!front && hook_fn && p->handle == hook_handle) hook_fn();
         if (((p->flags & 256) != 0) != front || (p->flags & 512)) continue;
         if ((p->flags & 1) && vt >= 1360) continue;      /* 5101 / 5102 */
         if ((p->flags & 2) && vt < 1360) continue;
