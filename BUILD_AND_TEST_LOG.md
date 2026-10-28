@@ -541,3 +541,13 @@ Labels: original-trace (RV), RE, host-test, emulator (Flycast, emulated time). *
   select (now loaded).
 - **Flycast:** TH1-TH3 Carol / Milla VRAM free 2044-4155 KB, sound RAM >= 152 KB; first disc TH1 update 33 ms / TH3 22 ms (every
   frame slow) -> after the cost fixes TH1 9.0 ms (16 slow / 600 frames), TH3 10.4 ms (~25 / 600). **Emulator only.**
+
+## Session 21c (2026-10-28): Thermal Base
+- **Suites:** test_tb_flow, test_tb_enemies, test_tb_gimmicks, test_tb_bosses: 0 failures (Lilac / Carol / Milla); full set 41
+  suites 0 failures; comparers unchanged; 23 earlier levels + JC1-5 + TH1-3 rebuild byte-identical (build/rebuild_cmp.sh now
+  covers JC / TH), renders identical to 6a260d8 (L / C / M); every existing sfx file byte-identical after the reconversion.
+  Fixed on the way: TB5 -> TB6 tests now ride the end elevator; the lava-fall test removes a seeker that hit first; TB2 lift
+  rider at the shaft wall (31.9 px) now starts the lift.
+- **Flycast** (build/fpdc_tbdemo.cdi, s21_tb_verify.txt, 18 loads): VRAM free TB1 2823-3351, TB2 2260-2788, TB3 2256-2784, TB4
+  2483-3011, TB5 2227-2755, TB6 3209-3737 KB; sound RAM largest free block 231-359 KB; update TB1 5.1, TB2 4.5, TB3 2.8, TB4 5.0,
+  TB5 9.1-9.5, TB6 2.6 ms; 11-14 slow frames per 600. Screenshots fine. **Emulator only.**

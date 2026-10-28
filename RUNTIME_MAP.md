@@ -699,3 +699,8 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
 ## Session 21b
 - Trap Hideout = stage index 8, set_frame 56-58 (json 57-59), port th1-th3; types 1536-1559 flow, 1560-1619 enemies (+
   enemy_kit.h), 1620-1679 traps, 1680-1791 bosses. Music m_stage7, slot 4 m_midboss / m_boss2 (TH3 g4 >= 5).
+
+## Session 21c
+- Thermal Base = stage index 6, set_frame 44-49 (json 45-50), port tb1-tb6; types 1792-1823 flow, 1824-1887 enemies, 1888-1967
+  gimmicks, 1968-2047 bosses (tb_boss.c dispatch). Music m_stage6 (TB1-3) / m_stage6b (TB4-6), slot 4 m_midboss / m_boss2 (TB6).
+  Frame order: tb_flow, enemies, tb_gim_frame, tb_boss_frame; tb_gim_draw(3) after hud_draw (key-card count).

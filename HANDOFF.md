@@ -128,6 +128,20 @@ spec_rm_golems, spec_rm_claw, spec_rm_mantalith, rm_inventory.
   Mantalith sounds 147 / 214 / 215 not ported; INFERRED items in RE_NOTES. An agent published a private working page
   (spec_rm_enemies) during research; it is still in the user's artifacts (delete only if the user asks).
 
+## Session 21c (2026-10-28): Thermal Base
+Specs (not committed): build/re/tb_inventory.md, TB_BRIEF.md, spec_tb_flow / enemies / gimmicks.md (the bosses' notes are in the
+tb_boss*.c headers; its worker was stopped before writing its spec); traces build/orig_traces/tb_*.
+- **Thermal Base (stage index 6, json 45-50 = tb1-tb6, set_frame 44-49; Lilac / Carol / Milla; types 1792-2047):** tb_flow.c
+  (TB1 card start lift, marker lifts, wall lights, act chain, walk-ins, checkpoints, TB6 music off), tb_enemy.c (seeker + homing
+  bullet, push-up, lava squid, tank bot, saucer), tb_gim.c (key cards / terminals / locked doors + HUD count, metal doors, fire /
+  scrolling / piston / spin platforms, vents, lava falls, explosive blocks + switches, floor traps, conveyors, pipe loops, cranks,
+  pressers, TB5 water levers, player blockers), tb_boss.c + tb_boss_shrimp.c (TB1 RoboShrimp), _pusher.c (TB2 wall-pusher room),
+  _squid.c (TB3 RoboSquid), _spider.c (TB3 Syntax Spider + lava chase), _lift.c (TB5 end elevator), _syntax.c (TB6 arena).
+  Route: Lilac JC5 -> TB1; Carol / Milla TH3 -> TB1; TB6 results -> front end (the next stage is not ported). TB4 has no boss.
+- **Shared changes:** objects_plat_path (the full q13 path rule; objects_plat_type calls it), player_burn (combat.c; SB fire jets
+  use it), switches_wall_push, fireball_fly / fireball_rules split out of relic_gima.c (FB_EXTERNAL), OD_LANDS_KS, enemy_kit.h
+  mirrored-row helpers, host `<f> KILLT <type>`, DC demo command cap 96.
+
 ## Session 21b (2026-10-28): Trap Hideout
 Specs (not committed): build/re/th_inventory.md, TH_BRIEF.md, spec_th_flow / enemies / gimmicks / bosses.md; traces
 build/orig_traces/th_*.
@@ -317,6 +331,12 @@ D-072, BUILD_AND_TEST_LOG "Session 15". Spec: build/re/fe/spec_gallery.md (not c
   Aqua Tunnel: session 12.)
 
 ## Latest verified
+- host-test (session 21c, Thermal Base merged): 41 suites 0 failures (incl. test_tb_flow / enemies / gimmicks / bosses);
+  comparers unchanged (cmp_all 76/76 strict 11311/11377, cmp_carol 43/53, cmp_milla 37/43, cmp_at 21/35); every earlier level
+  incl. JC1-5 and TH1-3 rebuilds byte-identical; renders identical to the session-start build (L / C / M); existing sfx unchanged.
+- emulator (Flycast, session 21c, build/fpdc_tbdemo.cdi, tests/play/s21_tb_verify.txt): TB1-TB6 x Lilac / Carol / Milla load;
+  VRAM free >= 2227 KB, sound RAM largest free block >= 231 KB, update <= 9.5 ms (TB5), ~11-14 slow frames per 600 (load
+  windows included; same as SB1). **Nothing on real hardware.**
 - host-test (session 21, Jade Creek merged): 33 suites 0 failures (incl. test_jc_flow / enemies / gimmicks / bosses / act5 /
   progress); comparers unchanged (cmp_all 76/76 strict 11311/11377, cmp_carol 43/53, cmp_milla 37/43, cmp_at 21/35); all 23
   earlier levels rebuild byte-identical with the session-21 importer and render pixel-identical to the session-start build
@@ -325,7 +345,7 @@ D-072, BUILD_AND_TEST_LOG "Session 15". Spec: build/re/fe/spec_gallery.md (not c
   RAM >= 113 KB (Milla JC5, before the JC5 group trim); SB1 HUD back during the Kujacker fight. **Nothing on real hardware.**
 
 ## Next actions
-1. Thermal Base (Lilac after Jade Creek; json 45-50) — session 21c.
+1. TB leftovers (TODO "Thermal Base"): no full-act play-through; which locked doors gate progression is not verified.
 2. TH leftovers (TODO "Trap Hideout").
 3. JC leftovers (TODO "Jade Creek"): Brevon mech fly-by (half-resolution ENS rows), ice death, rain, Elite constants.
 4. Real hardware: SB1 / JC2 / JC3 with Carol (VRAM), JC5 Milla (sound RAM).

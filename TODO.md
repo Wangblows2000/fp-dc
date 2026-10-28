@@ -140,6 +140,18 @@
 - [ ] Not play-tested end to end: every act was checked in sections (teleports) and the act chain, not by a full run
 - [ ] SB2 Spade carry-in HUD hide (9615 / 9702) not ported
 
+## Thermal Base (session 21c)
+- [x] TB1-TB6 for Lilac / Carol / Milla: route (Lilac JC5, others TH3), enemies, gimmicks, key cards / doors, water levers,
+      RoboShrimp, wall-pusher room, RoboSquid, Syntax Spider + lava chase, TB5 end elevator, TB6 Syntax arena, results, save
+- [ ] Not verified: a full play-through of each act; which locked doors are progression gates (TB2's door at x 1952 has no card
+      before it; a route search passed it); host tests teleport between sections
+- [ ] Not ported: Syntax's TB3 voice (sx_lost is a silent stub in the Linux data, not in the user's files), NPCSyntaxEye,
+      seeker breaking a monitor, tank-bot cooldown cut at MV.M 9, Adventure-only branches
+- [ ] INFERRED: TB2 lift rider range 32 px (RE 31), fire-platform start phases (TB3 / TB5), crank phase origin, presser crush,
+      lava-fall end, key-card HUD look (text), debris motion (push-up, saucer, squid), tank pellets 3 frames late, spider's hook
+      descent / spike damage, TB6 arm ring during the spin, ball contact damage, HUD shift rate
+- [ ] Perf: TB5 update ~9.3 ms (Flycast); fine, but the heaviest act
+
 ## Trap Hideout (session 21b)
 - [x] TH1-TH3 for Carol / Milla: route from JC5, enemies, traps, Laser Iris, Crystal Basher, arena + Spade, results, save, TA
 - [ ] Not ported: RocketPuncherShield's second hit (13679) and barrel bounce (col_6_57), arena petal drop (14055 / 14056), the
