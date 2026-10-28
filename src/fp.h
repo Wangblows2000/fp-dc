@@ -1018,6 +1018,7 @@ void   th_enemy_spawn(void), th_enemy_pre(player_t *p), th_enemy_draw(int pass);
 int    th_enemy_obj(obj_t *o, player_t *p), th_enemy_q20(int type);
 void   th_gim_spawn(void), th_gim_pre(player_t *p), th_gim_frame(player_t *p), th_gim_draw(int pass);
 int    th_gim_obj(obj_t *o, player_t *p), th_gim_q20(int type);
+int    th_gim_player(player_t *p, const input_t *in), th_gim_ride_m(void);   /* ST_RIDE: Trap Hideout's barrel ride, M 98 (th_gim.c) */
 void   th_boss_spawn(void), th_boss_pre(player_t *p), th_boss_frame(player_t *p);
 int    th_boss_obj(obj_t *o, player_t *p), th_boss_q20(int type), th_boss_draw_obj(const obj_t *o, int pass), th_boss_input(uint32_t *held);
 int    th_boss_player_hidden(void);
@@ -1037,6 +1038,8 @@ const entry_t *level_entry(const char *from);
 const warp_t *level_warp_check(const player_t *p);
 void level_warp_do(player_t *p, const warp_t *w);
 int objects_have(int type), objects_have_from(int type);
+void objects_plat_type(int type, float F, float Gm);
+void obj_pinball_start(obj_t *o, int dir, float speed), obj_pinball_step(obj_t *o, float grav);   /* objects.c: PinballMovement (pellets, debris) */   /* objects.c: a module's type that follows the shared path-platform rule (F step, G amplitude, H 1) */
 void objects_sense_snapshot(int on);
 int  objects_alive_type(int type);    /* objects.c: superset test, any slot of this type alive (pass gates) */   /* objects.c: packed sensor prefilter for the player phase (game.c) */
 void game_save_stage_end(uint32_t time_ms);

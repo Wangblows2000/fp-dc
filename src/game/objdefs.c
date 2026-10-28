@@ -846,7 +846,18 @@ static const objdef_t DEFS[] = {
     { OT_TH_BWARN,      OD_HIDDEN,                             NULL         }, /* effectbikeninjawarning_3206 (ctor invisible) */
     { OT_TH_STAR,       0,                                     NULL         }, /* enemyninjastar_3221 (runtime) */
     { OT_TH_BDEAD,      0,                                     NULL         }, /* enemybikeninjadefeated_3205 (runtime) */
-    /* ---- TH_GIM (th_gim.c) */
+    /* ---- TH_GIM (th_gim.c; qualifiers RE on_frame_57..59_init) */
+    { OT_THG_BEAM,        0,                                   NULL         }, /* hazardscanlasersweep / right / left / down / up (Q33: th_gim.c) */
+    { OT_THG_HEAD,        0,                                   NULL         }, /* hazardscanlaserhead / head2-5 */
+    { OT_THG_PILLAR,      OD_SOLID,                            NULL         }, /* levelhideoutplatform1 (Q7 Q12 Q13: a path platform, objects.c) */
+    { OT_THG_PFLAME,      0,                                   NULL         }, /* levelhideoutplatformflame */
+    { OT_THG_FLAME,       0,                                   NULL         }, /* thflame (scenery) */
+    { OT_THG_SHUR,        0,                                   NULL         }, /* hazardshuriken (Q20) */
+    { OT_THG_SHBASE,      0,                                   NULL         }, /* hazardshurikenbase */
+    { OT_THG_SHTURN,      OD_HIDDEN,                           NULL         }, /* hazardshurikenturn (ctor set_visible(0)) */
+    { OT_THG_BARREL,      0,                                   NULL         }, /* gimmickbarrel */
+    { OT_THG_BDEBRIS,     0,                                   NULL         }, /* - (GimmickBarrelDebris_3127, runtime) */
+    { OT_THG_BLIGHT,      0,                                   NULL         }, /* thbacklight1 */
     /* ---- TH_BOSS (th_boss.c) */
     /* ==== end Trap Hideout */
 };
