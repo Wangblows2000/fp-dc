@@ -44,6 +44,7 @@ static void demo_load(void) {
         { int tf; float tv; char d[8];
           if (ndemo_cmd < 48 && sscanf(line, "%d SETV others E %f", &tf, &tv) == 2) { demo_cmd[ndemo_cmd].f = tf; demo_cmd[ndemo_cmd].k = 'I'; demo_cmd[ndemo_cmd].v = tv; ndemo_cmd++; continue; }
           if (ndemo_cmd < 48 && sscanf(line, "%d BOSSHP %f", &tf, &tv) == 2) { demo_cmd[ndemo_cmd].f = tf; demo_cmd[ndemo_cmd].k = 'B'; demo_cmd[ndemo_cmd].v = tv; ndemo_cmd++; continue; }
+          if (ndemo_cmd < 48 && sscanf(line, "%d CHARSET %f", &tf, &tv) == 2) { demo_cmd[ndemo_cmd].f = tf; demo_cmd[ndemo_cmd].k = 'C'; demo_cmd[ndemo_cmd].v = tv; ndemo_cmd++; continue; }   /* (session 21) the character of the next LOAD */
           if (ndemo_cmd < 48 && sscanf(line, "%d LOAD %7s", &tf, d) == 2) { demo_cmd[ndemo_cmd].f = tf; demo_cmd[ndemo_cmd].k = 'L'; memcpy(demo_cmd[ndemo_cmd].dir, d, 8); ndemo_cmd++; continue; } }
         if (!strncmp(line, "LETTERBOX ", 10)) { demo_letterbox = line[10] - '0'; continue; }   /* verification: presentation mode */
         if (!strncmp(line, "CHAR ", 5)) { demo_char = line[5] - '0'; continue; }
@@ -115,6 +116,8 @@ void plat_poll_input(input_t *in) {
         for (int i = 0; i < ndemo_cmd; i++) if (demo_frame == demo_cmd[i].f) {
             if (demo_cmd[i].k == 'I') G.p.invuln = (int)demo_cmd[i].v;
             if (demo_cmd[i].k == 'B') for (int k = 0; k < G.nobjs; k++) { obj_t *o = &G.o[k]; if (o->alive && (o->type == OT_FNP_HIT || sb_boss_q20(o->type) || sb_gim_q20(o->type))) o->A = demo_cmd[i].v; }
+            if (demo_cmd[i].k == 'C') G.character = (int)demo_cmd[i].v;
+            if (demo_cmd[i].k == 'B') for (int k = 0; k < G.nobjs; k++) { obj_t *o = &G.o[k]; if (o->alive && (jc_boss_q20(o->type) || jc_enemy_q20(o->type))) o->A = demo_cmd[i].v; }
             if (demo_cmd[i].k == 'L' && game_load_level(demo_cmd[i].dir) == 0) G.mode = MODE_PLAY;
             printf("demo f %d cmd %c lv %s pvis %d\n", demo_frame, demo_cmd[i].k, G.lvdir, game_player_visible());
         }
