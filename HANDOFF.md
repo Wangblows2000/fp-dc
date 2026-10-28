@@ -128,6 +128,18 @@ spec_rm_golems, spec_rm_claw, spec_rm_mantalith, rm_inventory.
   Mantalith sounds 147 / 214 / 215 not ported; INFERRED items in RE_NOTES. An agent published a private working page
   (spec_rm_enemies) during research; it is still in the user's artifacts (delete only if the user asks).
 
+## Session 21d (2026-10-28): user-reported fixes
+- **JC5 gate (Neera's ice ambush, RE 11043-11072, RV build/orig_traces/jc_boss5/amb_l/c/m):** ported in jc_boss.c (M_AMBUSH):
+  missile from the Hovercop, Neera drops, the burst freezes her, the Hovercop turns, the railings turn to crystals (40) and the
+  barrier opens; the Hovercop tows the ice away. g4 >= 2 removes the set (barrier open). The player is never frozen and the
+  camera is never locked (RV). test_jc_ambush. Also: JC5's start stands on the parked subtanker (json layer 4, x < 1024, was
+  falling into the water); the shared ice code's white burst now goes to the ring spikes (RE 10549; JC2 / JC3 look changes).
+- **TB1 RoboShrimp room:** the camera is released when the player climbs above the box top + 240 (RE inline after 11848), so the
+  room's upper-left exit is reachable after the fight (the bounds held the player at x 10008).
+- **TH pillars (LevelHideoutPlatform1):** solid on every side. TH's frames do not run the one-way events 4737 / 4738 (RE); RV
+  build/orig_traces/th_gim/pside_c (Carol stopped at 6799 / 6863 / 6927). `objects_plat_oneway(type, 0)`; new TH2 tower
+  routes for Carol / Milla (tests/play/th2_*_pillars.txt).
+
 ## Session 21c (2026-10-28): Thermal Base
 Specs (not committed): build/re/tb_inventory.md, TB_BRIEF.md, spec_tb_flow / enemies / gimmicks.md (the bosses' notes are in the
 tb_boss*.c headers; its worker was stopped before writing its spec); traces build/orig_traces/tb_*.
@@ -331,6 +343,9 @@ D-072, BUILD_AND_TEST_LOG "Session 15". Spec: build/re/fe/spec_gallery.md (not c
   Aqua Tunnel: session 12.)
 
 ## Latest verified
+- host-test (session 21d): 42 suites 0 failures; comparers unchanged (76/76, 43/53, 37/43, 21/35); every earlier level
+  rebuilds byte-identical and renders identically. Flycast (build/fpdc_fixdemo.cdi, s21_fix_verify.txt): JC5 VRAM free 653 KB
+  (Carol) / 821 (Milla) / 1181 (Lilac), sound RAM largest free block >= 138 KB (Milla JC5); TH2 >= 3214 KB; TB1 3351 KB.
 - host-test (session 21c, Thermal Base merged): 41 suites 0 failures (incl. test_tb_flow / enemies / gimmicks / bosses);
   comparers unchanged (cmp_all 76/76 strict 11311/11377, cmp_carol 43/53, cmp_milla 37/43, cmp_at 21/35); every earlier level
   incl. JC1-5 and TH1-3 rebuilds byte-identical; renders identical to the session-start build (L / C / M); existing sfx unchanged.

@@ -140,6 +140,11 @@
 - [ ] Not play-tested end to end: every act was checked in sections (teleports) and the act chain, not by a full run
 - [ ] SB2 Spade carry-in HUD hide (9615 / 9702) not ported
 
+## Session 21d fixes
+- [x] JC5 gate: Neera's ice ambush (11043-11072) + subtanker start collision; TB1 shrimp room camera release; TH pillars solid
+- [ ] INFERRED (JC5 ambush): Neera's start height, hidden until she drops, frame-box overlaps, ML.C 1600, Hovercop anim 7 not
+      exported, rig removal 1200 px off view; subtanker collision limited to x < 1024 (json layer 4)
+
 ## Thermal Base (session 21c)
 - [x] TB1-TB6 for Lilac / Carol / Milla: route (Lilac JC5, others TH3), enemies, gimmicks, key cards / doors, water levers,
       RoboShrimp, wall-pusher room, RoboSquid, Syntax Spider + lava chase, TB5 end elevator, TB6 Syntax arena, results, save

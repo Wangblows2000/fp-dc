@@ -426,3 +426,7 @@ TB platforms go through the objects.c path-platform registry (objects_plat_path)
 through switches_wall_push, saucer fireballs through RM's shared fireball code; new types only where the mechanic is new (key cards /
 doors, conveyors, cranks, pressers, water levers). Small inferred deviations are allowed where they keep progression reliable (TB2
 lift rider range 32 px instead of 31).
+
+## D-109 (session 21d): one-way platform flags per type
+The q12 one-way rule (4737 / 4738) is a per-type switch of the path-platform registry (`objects_plat_oneway`), off for Trap
+Hideout's pillars because TH's frames do not run those events; earlier levels and Thermal Base are unchanged.
