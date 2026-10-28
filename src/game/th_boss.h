@@ -13,6 +13,7 @@
 
 /* ---- sprites (tools/import_frame.py TH_BOSS rows), looked up once per level */
 enum { TS_IRIS, TS_IRIS8, TS_IRIS16, TS_IRIS24, TS_CAN, TS_CAN16, TS_WL, TS_WL16, TS_WR, TS_WR16, TS_LAS, TS_LAS1, TS_DUST,
+       TS_DOOR, TS_CB_BASE, TS_CB_HEAD, TS_CB_SEG, TS_CB_SPIKE, TS_CB_SPIKE2, TS_CB_FACE,
        TS_N };
 extern short thb_sa[TS_N];
 
@@ -36,7 +37,10 @@ void   thb_act_point(const obj_t *o, float *ax, float *ay);
  * MinibossRailing (y + 12, y + 36), sound 40, railings and barriers destroyed */
 void   thb_arena_open(void);
 int    thb_rails_alive(void);
+void   thb_rails_kill(void);
+float  thb_marker(int t, int x);                                                /* CameraLimitBoss L / R / T / B (x: 1 -> x, 0 -> y; -1e9 none) */                                                    /* the railings destroyed (TH3 14094: a restart past the Crystal Basher) */
 
 /* ---- encounters (each returns at once when its classes are not placed) */
 void thi_spawn(void), thi_frame(player_t *p); int thi_draw(const obj_t *o, int pass);   /* TH1 Laser Iris (th_boss_iris.c) */
+void thc_spawn(void), thc_frame(player_t *p); int thc_draw(const obj_t *o, int pass);   /* TH3 Crystal Basher (th_boss_basher.c) */
 #endif

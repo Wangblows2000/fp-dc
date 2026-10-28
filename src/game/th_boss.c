@@ -13,7 +13,8 @@
 #include <stdlib.h>
 
 static const char *const SN[TS_N] = { "thb_iris", "thb_iris8", "thb_iris16", "thb_iris24", "thb_can", "thb_can16", "thb_wl", "thb_wl16",
-    "thb_wr", "thb_wr16", "thb_las", "thb_las1", "dust" };
+    "thb_wr", "thb_wr16", "thb_las", "thb_las1", "dust",
+    "thb_door", "thc_base", "thc_head", "thc_seg", "thc_spike", "thc_spike2", "thc_face" };
 short thb_sa[TS_N];
 thb_list_t thb_l[THB_NT];
 static int on;                                       /* the level places any of these types */
@@ -54,7 +55,9 @@ void thb_act_point(const obj_t *o, float *ax, float *ay) {
 }
 
 /* ---- railings / barriers (MinibossRailing_953 / MinibossBarrier_969: the engine's OT_WR_RAIL / OT_WR_BARRIER) */
-static short rails[24], bars[48]; static int nrails, nbars;
+static short rails[24], bars[48], marks[4]; static int nrails, nbars;
+float thb_marker(int t, int x) { obj_t *o = t >= OT_CAMLIM_L && t <= OT_CAMLIM_B ? thb_slot(marks[t - OT_CAMLIM_L]) : NULL; return o ? (x ? o->x : o->y) : -1e9f; }
+void thb_rails_kill(void) { for (int k = 0; k < nrails; k++) { obj_t *o = thb_slot(rails[k]); if (o && o->type == OT_WR_RAIL) o->alive = 0; } }
 int thb_rails_alive(void) { int n = 0; for (int k = 0; k < nrails; k++) { obj_t *o = thb_slot(rails[k]); if (o && o->type == OT_WR_RAIL) n++; } return n; }
 void thb_arena_open(void) {
     int ca = bank_anim(&G.objs, "objectcrystal_3");
@@ -152,7 +155,7 @@ void thb_laser_rule(const thb_laser_t *l, player_t *p) {
 static void snap_once(void) { static int reg; if (!reg) { reg = 1; snap_register(&R, sizeof R); snap_register(&nR, sizeof nR); } }
 void th_boss_spawn(void) {
     snap_once();
-    memset(thb_l, 0, sizeof thb_l); nR = 0; nrails = nbars = nsolids = 0;
+    memset(thb_l, 0, sizeof thb_l); nR = 0; nrails = nbars = nsolids = 0; marks[0] = marks[1] = marks[2] = marks[3] = -1;
     on = 0;
     for (int j = 0; j < G.lvl.nobj && !on; j++) if (G.lvl.objs[j].type >= OT_THB_FIRST && G.lvl.objs[j].type <= OT_THB_PLACED_LAST) on = 1;
     if (!on) return;
@@ -167,13 +170,14 @@ void th_boss_spawn(void) {
         int t = o->type;
         if (t == OT_WR_RAIL && nrails < 24) rails[nrails++] = (short)i;
         if (t == OT_WR_BARRIER && nbars < 48) bars[nbars++] = (short)i;
+        if (t >= OT_CAMLIM_L && t <= OT_CAMLIM_B && marks[t - OT_CAMLIM_L] < 0) marks[t - OT_CAMLIM_L] = (short)i;
         if (t < OT_THB_FIRST || t > OT_THB_PLACED_LAST) continue;
         int ti = t - OT_THB_FIRST, an = seen[ti] < na[ti] ? AN[ti][seen[ti]] : (3 << 8); seen[ti]++;
         o->layer = (an >> 8) & 0xff; o->st = o->tm = o->c = o->fl = o->dir = 0; o->ang = 0; o->scale = 0; o->bd = 0;
         memset(o->av, 0, sizeof o->av); o->hidden = (objdef(t)->flags & OD_HIDDEN) != 0; o->an.b = NULL;
         thb_list_t *l = &thb_l[ti]; if (l->n < THB_LMAX) l->i[l->n++] = (short)i;
     }
-    thi_spawn();
+    thi_spawn(); thc_spawn();
     if (nrails) { float x0 = 1e9f, x1 = -1e9f; for (int k = 0; k < nrails; k++) { obj_t *r = thb_slot(rails[k]); if (r) { x0 = fminf(x0, r->x); x1 = fmaxf(x1, r->x); } } solids_collect(x0 - 64, x1 + 64); }
 }
 void th_boss_pre(player_t *p) { (void)p; if (!on) return; r_compact(); }
@@ -181,12 +185,13 @@ void th_boss_frame(player_t *p) {
     if (!on) return;
     for (int k = 0; k < nR; k++) { obj_t *o = &G.o[R[k]]; if (o->alive && o->type == OT_THB_DUST && (!o->an.b || o->an.done)) o->alive = 0; }   /* a puff plays once */
     thi_frame(p);
+    thc_frame(p);
 }
 int  th_boss_obj(obj_t *o, player_t *p) { (void)o; (void)p; return 1; }        /* every rule runs in th_boss_frame */
-int  th_boss_q20(int type) { return type == OT_THB_IRIS; }                      /* RE qualifier 20 (RV i2_m XLIST q20: list 1 = the iris) */
+int  th_boss_q20(int type) { return type == OT_THB_IRIS || type == OT_THB_CB_FACE; }   /* RE qualifier 20 (RV XLIST q20: i2_m the iris, c1_c the face) */
 int  th_boss_draw_obj(const obj_t *o, int pass) {
     if (!on) return 1;
-    if (thi_draw(o, pass)) return 1;
+    if (thi_draw(o, pass) || thc_draw(o, pass)) return 1;
     if (o->hidden) return 1;
     sbb_draw(o, 0xffffffff);
     return 1;

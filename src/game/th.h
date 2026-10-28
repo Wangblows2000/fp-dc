@@ -27,6 +27,7 @@ enum {
        OT_THB_RT = 1720 /* runtime objects from here */, OT_THB_DUST = 1720 /* EffectsDust_437 at a firing laser's tip (13486 / 13489) */,
        OT_THB_END = 1791 };
 int   th_boss_iris_state(void);                       /* tests: BossLaserIris I (-1 none) */
+int   th_boss_basher_state(void);                     /* tests: BossCrystalBasherHead D (-1 none) */
 /* the boss laser: the scan-laser cast and hit rule (RE loop_l_56 = 13458-13461 + its inline grow event, 13484, 13490-13493),
  * written for the boss laser and reusable by any laser of qualifier 0x22d98 */
 typedef struct { double A; float x, y, ang; int dir, flag1; } thb_laser_t;
