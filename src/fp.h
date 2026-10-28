@@ -117,6 +117,15 @@ void   save_unlock_all(void);                /* title cheat: progress + cards + 
 uint32_t save_file_time(const save_file_t *f);
 int    save_file_crystals(const save_file_t *f), save_file_deaths(const save_file_t *f);
 void   save_stage_end(int s, int character, uint32_t time_ms, int crystals, int deaths, int story, int file_slot);
+/* session 24 (end of the game): a story run without a file slot (developer select, host tests) keeps its stage blocks in a
+ * RAM-only file so the credits' statistics still come from the run's own data; reset at every new run */
+void   save_run_reset(void);
+const save_file_t *save_run_file(int file_slot);   /* the file the run writes: SV.file[slot], or the RAM-only run file */
+/* the final score (RE credits frame index 85, events 22723 / 22794-22800): no single number; the original shows the file's
+ * totals (y6 time, y4 crystals, y7 deaths = sums of the stage blocks, RE 954) and one block per stage with a time > 0 */
+#define SCORE_STAGES 14                       /* stage names 0..13 (CreditsStageNames_4202); s 14 (Shang Mu) has none */
+typedef struct { uint32_t time_ms; int crystals, deaths; struct { uint32_t time_ms; int crystals, deaths; } stage[SCORE_STAGES]; uint16_t shown; } final_score_t;
+void   save_final_score(const save_file_t *f, final_score_t *out);   /* the one place it is computed (ending.c, once) */
 /* src/physics/fmath.c: portable trig (identical results on host and DC) */
 double fd_sin(double x), fd_cos(double x), fd_atan(double x), fd_atan2(double y, double x);
 /* src/game/snap.c: state snapshots for the host route search */
@@ -646,14 +655,31 @@ typedef struct {
 
 extern game_t G;
 
-enum { MODE_FRONTEND, MODE_PLAY, MODE_RESULTS, MODE_SELECT };
+enum { MODE_FRONTEND, MODE_PLAY, MODE_RESULTS, MODE_SELECT, MODE_ENDING };
+/* the end of the game (session 24, src/game/ending.c; RE frame 8 routing: s 13 (Final Dreadnought 4) -> frame index 83 in
+ * Classic and Adventure; Time Attack -> its stage select). results.c's stage end calls it after Final Dreadnought round 4's
+ * results (and the achievement pop-up); a stage script without results may call it at the round's end: it saves the stage
+ * block first. Refused (-1) unless the current act is the last act of stage 13 in a story run (no ending from Time Attack,
+ * another stage or a second call). */
+int  game_ending_begin(void);
+int  ending_arm(void);                       /* results.c: validate and save while the act is loaded; game_ending_begin after the pop-up */
+void ending_update(const input_t *in);
+void ending_draw(void);
+int  ending_state(void);                     /* 0 off, 1 space (83), 2 epilogue hold, 3 credits (85), 4 end screen, 5 leaving */
+void game_sfx_set(const short *ids, int n);  /* game.c: load a sound set in place of the stage's (the ending's own sounds) */
+void game_run_reset(void);                   /* game.c: a new run (stage counters, the RAM run file) */
+#ifdef FP_HOST_ENV
+int  ending_host_force(void);                /* host "<f> ENDING": as if Final Dreadnought 4 had just been cleared */
+void ending_host_dump(void);                 /* host "<f> ENDSTATS" */
+int  cutscene_host_example(void);            /* host "<f> CUTSCENE": the example template (src/game/cutscene_example.c) */
+#endif
 int  game_init(void);
 void game_unload_all(void);
 void game_start_adventure(const char *dir, int time_attack);
 void game_dev_select(void);
 int  fe_enter(void);
 int  fe_enter_from_stage(int time_attack);
-int  fe_enter_ach_popup(int time_attack, int next_stage);   /* session 16: frame index 9 after a stage (achievement pop-up), then on */
+int  fe_enter_ach_popup(int time_attack, int next_stage);   /* session 16: frame index 9 after a stage (achievement pop-up), then on (next_stage 1: the route's next stage, 2: the ending) */
 int  game_next_stage(void);   /* Classic: load the route's next stage after the results (1: done) */
 /* hub (frame index 3: title menu / file select / mode select / options), src/game/fe_hub.c */
 enum { HUB_EXIT_TIME_ATTACK = 1, HUB_EXIT_QUIT, HUB_EXIT_NEW_ADVENTURE, HUB_EXIT_NEW_CLASSIC, HUB_EXIT_CONTINUE, HUB_EXIT_GALLERY };
@@ -759,7 +785,8 @@ void   obj_spawn_pellet(float x, float y, int dir);
 void   bosses_spawn(void), bosses_update(player_t *p), bosses_draw(void);
 void   tredd_bomb_update(obj_t *o, player_t *p);
 void   results_reset(void), results_begin(int pathB), results_draw(void);
-int    results_on(void), results_update(player_t *p), results_state(void);
+int    results_on(void), results_update(player_t *p), results_state(void), results_saved(void);
+void   results_game_clear_ach(void);            /* achievements 1-6 (FD4 results, once per act load) */
 float  results_hud_dy(void);
 input_t results_input(const input_t *in);
 int    act_of(const char *dir);

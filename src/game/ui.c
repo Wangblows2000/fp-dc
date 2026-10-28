@@ -12,7 +12,7 @@ int ui_banks_load(ui_banks_t *b, const char *prefix, int n) {
     char nm[48];
     memset(b, 0, sizeof *b);
     for (int i = 0; i < n && i < UI_MAX_BANKS; i++) {
-        snprintf(nm, sizeof nm, "ui/%s_ui%d", prefix, i);
+        snprintf(nm, sizeof nm, "%s%s_ui%d", strchr(prefix, '/') ? "" : "ui/", prefix, i);   /* "dir/name": another data dir (session 24: end/) */
         if (bank_load(&b->bank[i], nm) < 0) return i > 0 ? 0 : -1;   /* banks after the first are optional (session 21: tasel_ui1) */
         b->n = i + 1;
     }
@@ -27,7 +27,7 @@ void ui_banks_free(ui_banks_t *b) {
 int ui_load(ui_scene_t *s, const char *file, ui_banks_t *banks) {
     size_t sz; char path[48];
     memset(s, 0, sizeof *s);
-    snprintf(path, sizeof path, "ui/%s.ui", file);
+    snprintf(path, sizeof path, "%s%s.ui", strchr(file, '/') ? "" : "ui/", file);
     uint8_t *d = plat_load_file(path, &sz);
     if (!d) return -1;
     if (sz < 12 || memcmp(d, "FPU1", 4)) { free(d); return -1; }

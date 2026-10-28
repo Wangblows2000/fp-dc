@@ -11,6 +11,7 @@ SRC += ../src/game/fn_enemy.c   # Fortune Night enemies
 SRC += ../src/game/sb_enemy.c   # Sky Battalion enemies
 SRC += ../src/game/sb_gim.c     # Sky Battalion gimmicks
 SRC += ../src/game/fd_flow.c ../src/game/fd_enemy.c ../src/game/fd_gim.c ../src/game/fd_boss.c   # Final Dreadnought (session 24)
+SRC += ../src/game/ending.c ../src/game/cutscene.c ../src/game/cutscene_example.c   # end of the game, cutscene player (session 24)
 SRC += ../src/game/bg_flow.c ../src/game/bg_enemy.c ../src/game/bg_gim.c ../src/game/bg_boss.c   # Battle Glacier (session 24)
 SRC += ../src/game/pl_flow.c ../src/game/pl_enemy.c ../src/game/pl_gim.c ../src/game/pl_boss.c   # Pangu Lagoon (session 23)
 SRC += ../src/game/tb_flow.c ../src/game/tb_enemy.c ../src/game/tb_gim.c ../src/game/tb_boss.c   # Thermal Base (session 21c)
