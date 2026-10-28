@@ -865,7 +865,45 @@ ENGINE_TYPES_ID.update(JCF_TYPES_ID); ENS += JCF_ENS   # JC_FLOW
 # water (MasterLevel A = 1: JC1 10378 ML.B 1200, JC2 10566 / JC3 10822 / JC4 10863 ML.B 1600; JC5: the act-5 start events)
 WATER_FRAMES = WATER_FRAMES + (40, 41, 42, 43, 44)
 
-# ---- JC_ENEMIES (jc_enemy.c, 1310-1369)
+# ---- JC_ENEMIES (jc_enemy.c, 1310-1369; build/re/spec_jc_enemies.md). Placed classes 1310-1339, runtime children 1340-1369
+# (jc.h OT_JCE_*). Rows 'jeX_name' ('_l' = direction 16); runtime children are exported with their creators (ENS_WITH).
+JCE_TYPES_ID = {('enemymeteorroller', 2416): 1310, ('enemymeteorrollerflame', 2417): 1311, ('enemybuoybuoy', 2407): 1312,
+    ('enemyplantturretus', 2393): 1314, ('enemyplantturretushat', 2394): 1315, ('enemyplantturretusstalk', 2395): 1316,
+    ('enemybullfrag', 2389): 1318, ('enemybullfragmask', 2410): 1319, ('enemysharktorpedo', 2421): 1321,
+    ('enemybubblorbiter', 2455): 1323, ('hazardtorpedolauncher', 2515): 1325, ('enemyelite', 2529): 1326,
+    ('enemyelitemask', 2528): 1327}
+JCE_ENS = [(c, a, d, nm + ('' if d == '0' else '_l')) for c, a, nm in (
+    ('enemymeteorroller_2416', 0, 'jem_roll'), ('enemymeteorroller_2416', 5, 'jem_land'), ('enemymeteorroller_2416', 8, 'jem_fall'),
+    ('enemymeteorroller_2416', 9, 'jem_hurt'), ('enemymeteorrollerflame_2417', 0, 'jem_flame'),
+    ('enemyplantturretus_2393', 0, 'jep_idle'), ('enemyplantturretus_2393', 7, 'jep_shoot'), ('enemyplantturretushat_2394', 0, 'jep_hat'),
+    ('enemybuoybuoy_2407', 9, 'jeb_dead'), ('enemybullfrag_2389', 0, 'jef_idle'), ('enemybullfrag_2389', 8, 'jef_hurt'),
+    ('enemybullfrag_2389', 10, 'jef_blow'), ('enemybullfrag_2389', 11, 'jef_shut'), ('enemybubblorbiter_2455', 0, 'jeo_body'))
+    for d in ('0', '16')] + [(c, a, d, nm) for c, a, d, nm in (
+    ('enemyplantturretusstalk_2395', 0, '0', 'jep_stalk'), ('effectfallingleaf_2396', 0, '0', 'jep_leaf'),
+    ('enemybuoybuoy_2407', 0, '0', 'jeb_idle'), ('enemybuoybuoy_2407', 7, '0', 'jeb_open'), ('enemybuoybuoy_2407', 8, '0', 'jeb_shut'),
+    ('enemybuoybullet_2409', 0, '0', 'jeb_jet'), ('enemybuoybullet_2409', 0, '16', 'jeb_jet_l'), ('enemybullfragbubble_2408', 0, '0', 'jef_bubble'),
+    ('enemysharktorpedo_2421', 0, '0', 'jes_r0'), ('enemysharktorpedo_2421', 0, '1', 'jes_r1'), ('enemysharktorpedo_2421', 0, '16', 'jes_l0'),
+    ('enemysharktorpedo_2421', 0, '17', 'jes_l1'), ('enemysharktorpedo_2421', 7, '0', 'jes_hr0'), ('enemysharktorpedo_2421', 7, '1', 'jes_hr1'),
+    ('enemysharktorpedo_2421', 7, '16', 'jes_hl0'), ('enemysharktorpedo_2421', 7, '17', 'jes_hl1'), ('enemysharktorpedo2_2422', 0, '0', 'jes_torp'),
+    ('badnikgolemshot_1260', 0, '0', 'jeo_shot'), ('badnikgolemshot_1260', 4, '0', 'jeo_pop'), ('hazardtorpedolauncher_2515', 0, '0', 'jet_hatch'),
+    ('effectwarning_1528', 0, '0', 'jem_warn'))] + \
+    [(c, a, d, nm + ('' if d == '0' else '_l')) for c, a, nm in (
+    ('enemyelite_2529', 0, 'jee_idle'), ('enemyelite_2529', 1, 'jee_walk'), ('enemyelite_2529', 2, 'jee_run'), ('enemyelite_2529', 5, 'jee_down'),
+    ('enemyelite_2529', 7, 'jee_jump'), ('enemyelite_2529', 8, 'jee_knock'), ('enemyelite_2529', 10, 'jee_charge'), ('enemyelite_2529', 11, 'jee_rec'),
+    ('enemyelite_2529', 12, 'jee_shoot'), ('enemyelite_2529', 13, 'jee_up')) for d in ('0', '16')] + \
+    [('enemyelitemask_2528', 0, str(d), 'jee_m%d' % d) for d in range(5)] + \
+    [('enemyelitechargeglow_2527', 0, '0', 'jee_glow'), ('enemytrooperlaser_2530', 0, '0', 'jee_laser')]
+_JCE_ALL = ('enemymeteorroller', 'enemybuoybuoy', 'enemyplantturretus', 'enemybullfrag', 'enemysharktorpedo', 'enemybubblorbiter', 'enemyelite')
+JCE_ENS_WITH = {'effectfallingleaf_2396': ('enemyplantturretus',), 'enemybuoybullet_2409': ('enemybuoybuoy',),
+    'enemybullfragbubble_2408': ('enemybullfrag',), 'enemysharktorpedo2_2422': ('enemysharktorpedo', 'hazardtorpedolauncher'),
+    'badnikgolemshot_1260': ('enemybubblorbiter',), 'minibosstreddbomb_1060': ('hazardtorpedolauncher',),
+    'effectwarning_1528': ('enemymeteorroller',), 'enemyelitechargeglow_2527': ('enemyelite',), 'enemytrooperlaser_2530': ('enemyelite',),
+    'objectkeystone_429': _JCE_ALL, 'effectsdebris_427': _JCE_ALL, 'effectsexplosion06_435': _JCE_ALL + ('hazardtorpedolauncher',),
+    }
+JCE_ROW_FRAMES = {'jem_warn': JC_FRAMES, 'jeo_shot': JC_FRAMES, 'jeo_pop': JC_FRAMES}   # (the Tredd bomb: DV's 'td_bomb' row; white burst: the objects bank's 'wburst')
+ENGINE_TYPES_ID.update(JCE_TYPES_ID); ENS += JCE_ENS   # JC_ENEMIES
+for _k, _v in JCE_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # JC_ENEMIES
+ROW_FRAMES.update(JCE_ROW_FRAMES)   # JC_ENEMIES
 
 # ---- JC_GIM (jc_gim.c, 1370-1429)
 
