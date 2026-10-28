@@ -323,6 +323,29 @@ static void fb_move(obj_t *o) {
     double sx = floor(dx), sy = floor(dy); o->av[5] = dx - sx; o->av[6] = dy - sy; o->x += (float)sx; o->y += (float)sy;
 }
 static void fb_burst(obj_t *f) { if (!anim_named(f, "fball_burst")) { f->av[4] = 0; restart_ens(f, "fball_burst"); } }
+/* GimmickFireball_1192, shared with Thermal Base's saucers (tb_enemy.c, 12406-12409 / 12423 / 5703 / 5710 / col_17_25 / col_18_24 /
+ * col_23_24: the same class and rules). fireball_fly: the BallMovement step (from the frame after its creation) and the ember
+ * (5703, every even frame; returns it); fireball_rules: the background burst, the end of the burst, the player and the cube
+ * (in_back: inside an RM turret back, which suspends the background burst). Returns 0 when the fireball is gone. */
+obj_t *fireball_fly(obj_t *f) {
+    if (f->born != G.frame) fb_move(f);
+    if ((G.frame & 1) == 0) { obj_t *e = spawn(OT_EMBER, "ember", f->x, f->y); if (e) e->layer = 2; return e; }   /* 5703 */
+    return NULL;
+}
+int fireball_rules(obj_t *f, player_t *p, int in_back) {
+    if ((f->fl & 2) && !in_back) f->fl &= ~2;                                         /* 5709 */
+    { int bg = obj_overlaps_bg(f);                                                    /* 5649 / col_33_24: edge-triggered (born inside the ceiling) */
+      if (f->born == G.frame) f->fl = (f->fl & ~4) | (bg ? 4 : 0);
+      else { if (!in_back && f->av[4] > 0 && bg && !(f->fl & 4)) fb_burst(f); f->fl = (f->fl & ~4) | (bg ? 4 : 0); } }
+    if (anim_named(f, "fball_burst") && f->an.done) { f->alive = 0; return 0; }       /* 5710 */
+    if (!anim_named(f, "fball_burst") && csens_hit(p, f)) {
+        if (p->shield == 2) { snd_play_orig(101, 220, 128); fb_burst(f); }             /* col_23_24: the fire shield deflects */
+        else if (p->state != ST_DEAD && !p->hurt_pending && !player_invincible(p)) player_contact(p, 10);   /* col_18_24 */
+    }
+    if (!anim_named(f, "fball_burst") && player_cube_state() >= 4 && player_cube_hits(f)) { snd_play_orig(219, 220, 128); fb_burst(f); }   /* col_21_24 (RM1; RM2 U2) */
+    if (f->y > G.lvl.h + 32 || f->y < -32) { f->alive = 0; return 0; }              /* (TB 12424: above the frame top) */
+    return 1;
+}
 static void fireballs(player_t *p) {
     int run = 0;
     if (!objects_alive_type(OT_FBSPAWN) && !objects_alive_type(OT_FBBACK) && !objects_alive_type(OT_FBALL) && !objects_alive_type(OT_EMBER)) return;
@@ -344,9 +367,8 @@ static void fireballs(player_t *p) {
         }
     }
     for (int i = 0; i < G.nobjs; i++) {
-        obj_t *f = &G.o[i]; if (!f->alive || f->type != OT_FBALL) continue;
-        if (f->born != G.frame) fb_move(f);
-        if ((G.frame & 1) == 0) { obj_t *e = spawn(OT_EMBER, "ember", f->x, f->y); if (e) e->layer = 2; }   /* 5703 */
+        obj_t *f = &G.o[i]; if (!f->alive || f->type != OT_FBALL || (f->fl & FB_EXTERNAL)) continue;
+        fireball_fly(f);                                                                  /* movement, 5703 */
         int in_back = 0;
         for (int j = 0; j < G.nobjs; j++) {
             obj_t *b = &G.o[j]; if (!b->alive || b->type != OT_FBBACK || !obj_obj_hit(f, b)) continue;
@@ -356,17 +378,7 @@ static void fireballs(player_t *p) {
             if (loading && b->an.done) { f->av[4] = 40; f->av[3] = b->dir; restart_ens(b, b->dir == 16 ? "fbback_fire_l" : "fbback_fire"); f->x = b->x; f->y = b->y; snd_play_orig(46, 220, 128); }   /* 5706 */
             else if (firing && !b->an.done) { f->av[4] = 40; f->av[3] = b->dir; }        /* 5707 */
         }
-        if ((f->fl & 2) && !in_back) f->fl &= ~2;                                         /* 5709 */
-        { int bg = obj_overlaps_bg(f);                                                    /* 5649 / col_33_24: edge-triggered (born inside the ceiling) */
-          if (f->born == G.frame) f->fl = (f->fl & ~4) | (bg ? 4 : 0);
-          else { if (!in_back && f->av[4] > 0 && bg && !(f->fl & 4)) fb_burst(f); f->fl = (f->fl & ~4) | (bg ? 4 : 0); } }
-        if (anim_named(f, "fball_burst") && f->an.done) { f->alive = 0; continue; }       /* 5710 */
-        if (!anim_named(f, "fball_burst") && csens_hit(p, f)) {
-            if (p->shield == 2) { snd_play_orig(101, 220, 128); fb_burst(f); }             /* col_23_24: the fire shield deflects */
-            else if (p->state != ST_DEAD && !p->hurt_pending && !player_invincible(p)) player_contact(p, 10);   /* col_18_24 */
-        }
-        if (!anim_named(f, "fball_burst") && player_cube_state() >= 4 && player_cube_hits(f)) { snd_play_orig(219, 220, 128); fb_burst(f); }   /* col_21_24 (RM1; RM2 U2) */
-        if (f->y > G.lvl.h + 32) f->alive = 0;
+        fireball_rules(f, p, in_back);
     }
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *b = &G.o[i]; if (!b->alive || b->type != OT_FBBACK) continue;

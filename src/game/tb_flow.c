@@ -120,7 +120,7 @@ static void lifts(player_t *p) {
         obj_t *o = &G.o[T.lift[j]];
         if (!o->alive || (T.top[j] < 0 && T.bot[j] < 0)) continue;    /* no markers (TB5): the boss module's elevator */
         int f = lflags(o) & ~LF_ON;                                      /* 11709 */
-        if (j == k && p->y - ORIG_REF_DY < o->y && fabs(p->x - o->x) <= 31 && !(o->st & 1)) f |= LF_ON;   /* 11710 */
+        if (j == k && p->y - ORIG_REF_DY < o->y && fabs(p->x - o->x) <= 32 && !(o->st & 1)) f |= LF_ON;   /* 11710 (RE 31; INFERRED 32: a player pushing the TB2 shaft wall stands at +31.9) */
         if (!(o->st & 1) && o->tm > 0) o->tm--;                          /* 11711 */
         if ((f & LF_WAIT) && !(f & (LF_ON | LF_SCRIPT)) && o->tm <= 0 && !(o->st & 1)) f &= ~LF_WAIT;   /* 11712 */
         if ((f & LF_ON) && !(f & (LF_WAIT | LF_USED)) && !(o->st & 1)) { f |= LF_USED; o->st++; TBLOG("lift %d go %d", j, o->st); }   /* 11713 */
