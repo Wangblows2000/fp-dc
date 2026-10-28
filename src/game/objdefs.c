@@ -1123,6 +1123,21 @@ static const objdef_t DEFS[] = {
     { OT_FDG_PDOOR,     OD_BOXCOL,                             NULL         }, /* pressuredoor1_3489 / pressuredoor2_3490 (sub 0-1) */
     { OT_FDG_PDOOR3,    OD_SOLID|OD_BOXCOL,                    NULL         }, /* pressuredoor3_3492 (Q7) */
     { OT_FDG_SFLOOR,    OD_SOLID|OD_BOXCOL,                    NULL         }, /* scrollingfloor_3466 / scrollingfloor2_3465 (sub 0-1; only 2 is Q7: 1 keeps flag 0) */
+    { OT_FDG_PUSH,      OD_OBSTACLE|OD_NOEDGE|OD_HIDDEN,       NULL         }, /* levelfdpushplatform_3540 (Q8 Q9 Q13, ctor invisible) */
+    { OT_FDG_PUSHMASK,  OD_BOXCOL,                             NULL         }, /* levelfdpushplatformmask_3544 */
+    { OT_FDG_FDPLAT,    OD_OBSTACLE|OD_NOEDGE,                 NULL         }, /* fdplatform_3557 (Q8 Q9) */
+    { OT_FDG_CONSOLE,   OD_BOXCOL,                             NULL         }, /* fdconsole1_3552 / fdconsole2_3553 (sub 0-1, scenery) */
+    { OT_FDG_TUBESHADE, OD_BOXCOL,                             NULL         }, /* effecttubeshade_3521 */
+    { OT_FDG_ECRUSH,    OD_SOLID|OD_HIDDEN,                    NULL         }, /* levelelectriccrusher_3541 (Q7 Q13, ctor invisible) */
+    { OT_FDG_ECBOLT,    0,                                     NULL         }, /* levelelectriccrusherbolt_3542 */
+    { OT_FDG_ECMASK,    OD_BOXCOL,                             NULL         }, /* levelelectriccrushermask_3543 */
+    { OT_FDG_CDOOR,     OD_SOLID,                              NULL         }, /* corkscrewdoor_3537 (Q7) */
+    { OT_FDG_CSWITCH,   OD_BOXCOL,                             NULL         }, /* switchcorkscrewdoor_3536 */
+    { OT_FDG_SHGIVER,   OD_BOXCOL,                             NULL         }, /* playershieldgiver_3528 */
+    { OT_FDG_RBARRIER,  OD_SOLID,                              NULL         }, /* fdrotatingbarrier_3567 (Q7, rotated) */
+    { OT_FDG_BUTTON,    OD_BOXCOL,                             NULL         }, /* switchbuttonleft_2707 / right_2705 in fd2b (sub 0-1) */
+    { OT_FDG_BIGLIFT,   OD_SOLID,                              NULL         }, /* objectbiglift_3584 (Q7 Q13) */
+    { OT_FDG_LSWITCH,   OD_BOXCOL,                             NULL         }, /* switchbiglift1_3586 / 2_3587 (sub 0-1) */
     { OT_FDG_FX,        0,                                     NULL         }, /* - (runtime: one-shot moving effects) */
     { OT_FDG_SPARK,     0,                                     NULL         }, /* - (runtime: hazardspiralspark_3435) */
     { OT_FDG_WIND,      0,                                     NULL         }, /* - (runtime: effectairlockwind_3460) */

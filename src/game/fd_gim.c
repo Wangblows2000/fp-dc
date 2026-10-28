@@ -16,6 +16,7 @@
  * layer = instance layer; av[] = class alterables A..H as named per family. */
 #include "fd.h"
 #include "bg.h"
+#include "tb.h"
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
@@ -196,6 +197,7 @@ static void transporters(player_t *p) {
     EACH(OT_FDG_TNODE, o) {                                                     /* 15195-15198 */
         double a = 90. * (o->par & 3), nx = floorf(o->x), ny = floorf(o->y);
         if (S.ra == a || !(S.rx - 12 < nx && nx < S.rx + 12) || !(S.ry - 32 < ny && ny < S.ry + 32)) continue;
+        if ((o->par & 3) == 1 && (S.act == 3 || S.act == 7 || S.act == 8)) { S.rx = nx; S.ra = 90; continue; }   /* 15591 (fd2a, fd4a, fd4b): x only, no sound */
         S.rx = nx; S.ry = ny; S.ra = a; snd(345);
     }
     for (int k = 0; k < S.npad; k++) {                                          /* 15199 */
@@ -434,6 +436,181 @@ static void floors(void) {                                                      
     }
 }
 
+/* ================================================================ 8. FD push platforms (fd2a; RE 15622-15629, on_frame_68_start)
+ * platform (Q8 Q9 Q13, invisible 128 x 24): the objects.c path rule with C = G = 0 (X = floor(I), Y = floor(J)); Q delay (start:
+ * (reversed index mod 12) 32), R side (0 up, 1 right, 2 down, 3 left), S frames on the side. 15623: Q 0, R 0: J - 3; 15624: R 1:
+ * I + 4 and Lilac on it X - 4 (15625); 15626: R 2: J + 3; 15627 / 15628: R 3: I - 4, Lilac X + 4; S + 1 on every side; 15629: R 0 / 2
+ * at S >= 117, R 1 / 3 at S >= 80: R = (R + 1) mod 4, S 0 (a 351 x 320 loop). 15622: Q - 1 (min 0); the mask at its platform, frame
+ * min((g3 / 2) mod 20, 4) (FDPlatforms too). */
+static int fd_frame(void) { int f = (g3() / 2) % 20; return f > 4 ? 4 : f; }
+static void push_pre(player_t *p) {
+    obj_t *o;
+    int on = -1;
+    if (p->ground && !dead(p)) on = mv_sensor_obj(p->x, MY(p) + 1, p->N, SENSOR_BOTTOMBIG, OT_FDG_PUSH);
+    EACH(OT_FDG_PUSH, o) {
+        double *Q = &o->av[0], *R = &o->av[1], *Sv = &o->av[2];
+        if (*Q > 0) { *Q = fmax(*Q - 1, 0); continue; }                         /* 15622 */
+        int r = (int)*R, me = on == (int)(o - G.o);
+        if (r == 0) o->oy -= 3; else if (r == 2) o->oy += 3;                   /* 15623 / 15626 */
+        else if (r == 1) { o->ox += 4; if (me) p->x -= 4; } else { o->ox -= 4; if (me) p->x += 4; }   /* 15624 / 15625, 15627 / 15628 */
+        *Sv += 1;
+        if (*Sv >= ((r & 1) ? 80 : 117)) { *R = (r + 1) % 4; *Sv = 0; }        /* 15629 */
+    }
+}
+static void push(void) {
+    obj_t *o;
+    EACH(OT_FDG_PUSHMASK, o) { obj_t *q = partner(o, OT_FDG_PUSH); if (q) { o->x = q->x; o->y = q->y; } set_frame(o, fd_frame()); }
+    EACH(OT_FDG_FDPLAT, o) set_frame(o, S.act == 4 ? (((int)floorf(o->y) / 6) % 6 > 4 ? 4 : ((int)floorf(o->y) / 6) % 6) : fd_frame());   /* 15622 / 15758 */
+}
+
+/* ================================================================ 9. electric crushers (fd2a, fd2b; RE 15630 / 15631 / 15753, on_frame_68 / 69_start)
+ * crusher (Q7 Q13, invisible 128 x 128, hot spot 64, 128): the objects.c path rule N = J + 64 cos E, E + 2 (ctor F 2, G 64);
+ * start: E = 45 x (reversed index). The bolt (128 x 24, under it) and the drawn mask sit at the crusher (15630). 15631: the bolt
+ * on PLAYERCHARACTERSENSOR, MV.R 0, not the metal shield (OTHERS.B 3), OTHERS.E <= 0: hurt 10, CAM.Z >= 3, sound 371, G = 10. */
+static void crushers(player_t *p) {
+    obj_t *o, *c;
+    EACH(OT_FDG_ECBOLT, o) { if ((c = partner(o, OT_FDG_ECRUSH))) { o->x = c->x; o->y = c->y; } }
+    EACH(OT_FDG_ECMASK, o) { if ((c = partner(o, OT_FDG_ECRUSH))) { o->x = c->x; o->y = c->y; } }
+    if (dead(p) || p->shield == 3) return;
+    EACH(OT_FDG_ECBOLT, o) {
+        if (!csens_hit(p, o) || !vulnerable(p)) continue;
+        player_contact(p, 10); shake(3); snd(371);
+        if (p->ground) { p->vx = p->gsp; p->ground = 0; }
+        p->vy = 10;
+        break;
+    }
+}
+
+/* ================================================================ 10. corkscrew doors + switches (fd2a, fd2b; RE 15609-15621, 15740-15752)
+ * switch (64 x 8 floor button): shown every frame; pressed (hidden, flag 0) while Lilac stands on it (BottomBig, L 1), the bike or
+ * an object of the qualifier 0x21968 is on it (INFERRED: Lilac / Carol's bike only); a new press plays sound 49. door (Q7 128 x 32):
+ * B = its x, C opening (0 .. -128), D = its switch's flag 0 (index pairing, inline after 15614). 15618: D 1: C - 2 (min -128);
+ * 15619: D 0 and the door off Lilac's LeftBig: C + 1 (max 0); x = B + C, frame (-C) mod 8 (15609); sounds 368 (opening) / 369
+ * (closing) and CAM.Z >= 2 while it moves (15616-15621). */
+static void corkscrews(player_t *p) {
+    obj_t *o, *d;
+    EACH(OT_FDG_CSWITCH, o) {
+        int pr = !dead(p) && p->ground && sens_hit(SENS_BOTTOMBIG, o);          /* 15612 */
+        if (pr && !(o->fl & F0)) snd(49);                                       /* 15613 */
+        o->fl = pr ? (o->fl | F0) : (o->fl & ~F0); o->hidden = pr;              /* 15609-15614 */
+    }
+    EACH(OT_FDG_CDOOR, d) {
+        obj_t *s = partner(d, OT_FDG_CSWITCH);
+        double *C = &d->av[2], c0 = *C;
+        d->av[3] = s && (s->fl & F0) ? 1 : 0;                                   /* (inline after 15614) */
+        if (d->av[3] == 1) *C = fmax(*C - 2, -128);                             /* 15618 */
+        else if (!sens_hit(SENS_LEFTBIG, d)) *C = fmin(*C + 1, 0);              /* 15619 */
+        if (*C != c0) { shake(2); if (obj_near_view(d, 100)) snd_cool(1, *C < c0 ? 368 : 369); }   /* 15616 / 15617 / 15621 (INFERRED: not looped) */
+        d->x = trunc_i(d->av[1] + *C); set_frame(d, ((int)(-*C)) % 8);           /* 15609 */
+    }
+}
+
+/* ================================================================ 11. player shield givers (fd2a, fd2b; RE 15592-15608, 15722-15728; Milla only)
+ * A 0: Milla (MV.A 4) within 150 px (x) / 100 px (y): A 1. A 1: B + 1, frame B / 3; B > 30: animation 11, A 2, B 0. A 2: B + 1
+ * (her cube held at the giver, INFERRED: not drawn there); B > 30: the cube is taken (hidden), sound 241, a monitor at the giver's
+ * action point (fd2a: a wood shield from the first giver (C 0), a ring monitor from the others; fd2b: a water shield), A 3, B 0.
+ * A 3: B + 1; B 20: animation 10; B > 50: animation 0; B > 100: A 4 (done; INFERRED for fd2a, fd2b resets it when she leaves). */
+static void give_monitor(obj_t *g, int type) {
+    obj_t *m = obj_alloc();
+    if (!m) return;
+    memset(m, 0, sizeof *m); m->type = type; m->alive = 1; m->hp = 1; m->layer = 2; m->born = G.frame;
+    m->x = m->ox = floorf(g->x) - 16; m->y = m->oy = floorf(g->y) - 21 - 16;
+    if (type == OT_MON_RINGS) { int a = bank_anim(&G.objs, "monitorrings_35"); if (a >= 0) anim_set(&m->an, &G.objs, a); }
+    else { const char *e = objdef(type)->ens; int a = e ? ens_anim(e) : -1; if (a >= 0) anim_set(&m->an, &G.ens, a); }
+    if (!m->an.b) m->alive = 0;
+}
+static void givers(player_t *p) {
+    obj_t *o;
+    int milla = chr_is_milla(G.character);
+    EACH(OT_FDG_SHGIVER, o) {
+        double *A = &o->av[0], *B = &o->av[1];
+        if (*A == 0 && milla && !dead(p) && fabs(floorf(o->x) - p->x) < 150 && fabs(floorf(o->y) - MY(p)) < 100) *A = 1;   /* 15592 */
+        if (*A == 1) { *B += 1; set_s(o, "fdg_shg"); set_frame(o, (int)(*B / 3)); if (*B > 30) { *A = 2; *B = 0; set_s(o, "fdg_shg11"); } }   /* 15593 / 15594 */
+        else if (*A == 2) {                                                     /* 15595-15597 / 15722 */
+            *B += 1;
+            if (*B > 30) {
+                player_cube_cancel(); snd(241);
+                give_monitor(o, S.act == 4 ? OT_MON_WATER : o->av[2] == 0 ? OT_MON_WOOD : OT_MON_RINGS);
+                *A = 3; *B = 0;
+            }
+        } else if (*A == 3) {                                                   /* 15598, 15605-15608 */
+            *B += 1;
+            if (*B == 20) set_s(o, "fdg_shg10");
+            if (*B > 50) { set_s(o, "fdg_shg"); set_frame(o, 0); }
+            if (*B > 100) *A = 4;
+        }
+        if (*A == 4 && S.act == 4 && (fabs(floorf(o->x) - p->x) >= 150 || !milla)) { *A = 0; *B = 0; }   /* 15726-15728 (INFERRED) */
+    }
+}
+
+/* ================================================================ 12. rotating barriers + switch buttons (fd2b; RE 15729-15739)
+ * barrier (Q7 160 x 48, hot spot 0, 24, rotated by A): A -> B by 3 (15729), CAM.Z >= 2 and sound 370 while it turns (15731 / 15732).
+ * button (SwitchButtonLeft / Right, fd2b: momentary): shown every frame, pressed (hidden, flag 0) while Lilac pushes it (M 11 / 47 on
+ * S_LEFTBIG / S_RIGHTBIG: switches_wall_push, as Thermal Base's); a new press with the cool-down (the off-map siren's C) at 0:
+ * the barriers' B + 90, sounds 49 + 369, cool-down 40 (15735 / 15736, 15737). INFERRED: a button turns the barriers within 400 px. */
+static void barriers(player_t *p) {
+    obj_t *o, *b;
+    static int cool;
+    if (cool > 0) cool--;                                                       /* 15737 */
+    EACH(OT_FDG_BUTTON, o) {
+        int pr = switches_wall_push(p, o, o->par & 1 ? SENS_RIGHTBIG : SENS_LEFTBIG);   /* 15733 / 15734 */
+        if (pr && !(o->fl & F0) && cool <= 0) {                                 /* 15735 / 15736 */
+            int n = 0;
+            EACH(OT_FDG_RBARRIER, b) if (fabsf(b->x - o->x) < 400 && fabsf(b->y - o->y) < 400) { b->av[1] += 90; n++; }
+            if (n) { snd(49); snd(369); cool = 40; }
+        }
+        o->fl = pr ? (o->fl | F0) : (o->fl & ~F0); o->hidden = pr;
+    }
+    EACH(OT_FDG_RBARRIER, b) {
+        if (b->av[0] < b->av[1]) { b->av[0] = fmin(b->av[0] + 3, b->av[1]); shake(2); if (obj_near_view(b, 100)) snd_cool(2, 370); }
+        b->ang = (float)fmod(b->av[0], 360.);
+    }
+}
+
+/* ================================================================ 13. big lifts + their switches (fd2b; RE 15758-15777, foreach_lift_68)
+ * lift (Q7 Q13 256 x 64, hot spot 128, 0): the objects.c path rule with a scripted J (C = G = 0), Q its speed, S its home J (the
+ * placed y). Switches 1 / 2 ride on it (15758) and are pressed (hidden, flag 0, sound 49) while Lilac stands on one (BottomBig, L 1).
+ * 15758: J += Q. foreach_lift_68 (a switch pressed): Q = max(Q - 0.1, -3) (up); 15773: none pressed: Q = min(Q + 0.05, 4) (it falls);
+ * 15770 / 15771: falling onto an FDPlatform (a ledge of the shaft): J = the ledge's y, Q 0, CAM.Z >= 3, sound 51; 15760 / 15774: at
+ * home (J >= S): J = S, Q 0 (the same landing). Sound 262 while it rises (15776 / 15777). INFERRED: it lands on a ledge only falling. */
+static void lifts_pre(player_t *p) {
+    obj_t *o, *s, *l;
+    EACH(OT_FDG_BIGLIFT, o) {
+        int pressed = 0;
+        EACH(OT_FDG_LSWITCH, s) if (partner(s, OT_FDG_BIGLIFT) == o && (s->fl & F0)) pressed = 1;
+        double *Q = &o->av[0], Sh = o->av[1], J0 = o->oy;
+        if (pressed) *Q = fmax(*Q - 0.1, -3); else *Q = fmin(*Q + 0.05, 4);      /* foreach_lift_68 / 15773 */
+        o->oy = (float)(o->oy + *Q);                                            /* 15758 */
+        if (*Q > 0) {
+            EACH(OT_FDG_FDPLAT, l) {                                            /* 15770 / 15771 */
+                float ly = floorf(l->y);
+                if (fabsf(l->x - o->x) < 160 && J0 <= ly && o->oy >= ly) { o->oy = ly; if (*Q > 1) { shake(3); snd(51); } *Q = 0; break; }
+            }
+            if (o->oy >= Sh) { o->oy = (float)Sh; if (*Q > 1) { shake(3); snd(51); } *Q = 0; }   /* 15760 / 15774 */
+        }
+        if (*Q < 0 && obj_near_view(o, 100)) snd_cool(3, 262);                  /* 15776 (INFERRED: re-played, not looped) */
+    }
+    (void)p;
+}
+static void lifts(player_t *p) {
+    obj_t *s, *o;
+    EACH(OT_FDG_LSWITCH, s) {
+        if (!(o = partner(s, OT_FDG_BIGLIFT))) continue;
+        s->x = trunc_i(floorf(o->x) + ((s->par & 1) ? 64 : -64)); s->y = o->y;   /* 15758 (INFERRED: the switches' offsets) */
+        int pr = !dead(p) && p->ground && sens_hit(SENS_BOTTOMBIG, s);           /* 15761 / 15762 */
+        if (pr && !(s->fl & F0)) snd(49);                                       /* 15763 / 15765 */
+        s->fl = pr ? (s->fl | F0) : (s->fl & ~F0); s->hidden = pr;
+    }
+    EACH(OT_FDG_BIGLIFT, o) set_frame(o, (g3() / 4) % 6);                       /* (INFERRED: its lights cycle) */
+}
+
+/* ================================================================ 14. consoles, tube shades (fd2a, fd2b: scenery; RE 15667)
+ * Tube shade: B = (B + 2) mod 360, y = A + 24 sin B (A = the placed y: INFERRED). */
+static void scenery(void) {
+    obj_t *o;
+    EACH(OT_FDG_TUBESHADE, o) { o->av[1] = fmod(o->av[1] + 2, 360.); o->y = trunc_i(o->av[0] + 24 * c_sin(o->av[1])); }
+}
+
 /* ================================================================ effects */
 static void effects(void) {
     obj_t *o;
@@ -456,7 +633,11 @@ void fd_gim_spawn(void) {
     static int reg;
     if (!reg) { reg = 1; snap_register(&S, sizeof S); }
     memset(&S, 0, sizeof S); S.wind_ch = -1;
+    tb_gim_mdoor_ywin(fd_flow_act() ? 79 : 59);                                /* the lab doors (TB's metal doors): 15641 / 15646 */
     objects_plat_path(OT_FDG_DHPLAT, 0, 0, 1, 0, 0, 1, 0);                      /* C = G = 0: X = floor(I), Y = floor(J) (15231 sets them) */
+    objects_plat_path(OT_FDG_PUSH, 0, 0, 1, 0, 0, 1, 0);                        /* (15623-15628 set I / J) */
+    objects_plat_path(OT_FDG_BIGLIFT, 0, 0, 1, 0, 0, 1, 0);                     /* (15758 sets J) */
+    objects_plat_path(OT_FDG_ECRUSH, 0, 0, 1, 2, 64, 0, 0);                     /* ctor F 2, G 64, H 0: N = J + 64 cos E */
     if (!objects_have_from(RT0) && !objects_have(OT_BGG_TRANSP)) return;
     S.act = fd_flow_act();
     int seen[NRT] = { 0 };
@@ -500,10 +681,43 @@ void fd_gim_spawn(void) {
     EACH(OT_FDG_PDOOR, o) { set_s(o, o->par & 1 ? "fdg_pdoor2" : "fdg_pdoor1"); o->av[0] = floorf(o->y); o->av[1] = o->par & 1 ? 192 : -192; o->y = trunc_i(o->av[0] + o->av[1]); }
     EACH(OT_FDG_PDOOR3, o) { o->av[0] = floorf(o->y); o->av[1] = 192; o->y = trunc_i(o->av[0] - 192); o->hidden = 1; o->fl |= F0; }   /* (INFERRED: the wall waits above, out of the way) */
     EACH(OT_FDG_SFLOOR, o) { set_s(o, o->par & 1 ? "fdg_sfloor2" : "fdg_sfloor"); o->av[1] = floorf(o->x); if (!(o->par & 1)) o->fl |= F0; }   /* Q7: ScrollingFloor2 only */
+    int n = N(OT_FDG_PUSH), k = 0;
+    EACH(OT_FDG_PUSH, o) { set_s(o, "fdg_push"); o->av[0] = ((n - 1 - k++) % 12) * 32.; o->fl = 0; }   /* on_frame_68_start: Q = (k mod 12) 32 */
+    link_pairs(OT_FDG_PUSHMASK, OT_FDG_PUSH);
+    EACH(OT_FDG_PUSHMASK, o) set_s(o, "fdg_pushmask");
+    EACH(OT_FDG_FDPLAT, o) set_s(o, "fdg_pushmask");                           /* (the same images) */
+    EACH(OT_FDG_CONSOLE, o) set_s(o, o->par & 1 ? "fdg_console2" : "fdg_console1");
+    EACH(OT_FDG_TUBESHADE, o) { set_s(o, "fdg_tubeshade"); o->av[0] = floorf(o->y); }
+    n = N(OT_FDG_ECRUSH); k = 0;
+    EACH(OT_FDG_ECRUSH, o) {                                                    /* on_frame_68 / 69_start: E = 45 k */
+        set_s(o, "fdg_ecmask"); o->vx = (float)(45. * (n - 1 - k++)); o->fl = 0;
+        o->fx = (float)(o->oy + 64 * c_cos(o->vx)); o->y = floorf(o->fx);
+    }
+    EACH(OT_FDG_ECBOLT, o) set_s(o, "fdg_ecbolt");
+    EACH(OT_FDG_ECMASK, o) set_s(o, "fdg_ecmask");
+    link_pairs(OT_FDG_ECBOLT, OT_FDG_ECRUSH); link_pairs(OT_FDG_ECMASK, OT_FDG_ECRUSH);
+    EACH(OT_FDG_CSWITCH, o) set_s(o, "fdg_cswitch");
+    EACH(OT_FDG_CDOOR, o) { set_s(o, "fdg_cdoor"); o->av[1] = floorf(o->x); }
+    link_pairs(OT_FDG_CDOOR, OT_FDG_CSWITCH);
+    n = N(OT_FDG_SHGIVER); k = 0;
+    EACH(OT_FDG_SHGIVER, o) { set_s(o, "fdg_shg"); set_frame(o, 0); o->av[2] = n - 1 - k++; }   /* on_frame_68_start: C = the index */
+    EACH(OT_FDG_RBARRIER, o) set_s(o, "fdg_rbarrier");
+    k = 0;
+    EACH(OT_FDG_RBARRIER, o) { if (k++ & 1) o->av[0] = o->av[1] = 180; o->ang = (float)o->av[0]; }   /* (INFERRED: the pairs at one spot face apart) */
+    EACH(OT_FDG_BUTTON, o) set_s(o, o->par & 1 ? "tbg_btn1" : "tbg_btn0");
+    EACH(OT_FDG_BIGLIFT, o) { set_s(o, "fdg_biglift"); o->av[1] = o->oy; o->av[0] = 0; o->fl = 0; }   /* S = home J */
+    EACH(OT_FDG_LSWITCH, o) set_s(o, "fdg_lswitch");
+    link_pairs(OT_FDG_LSWITCH, OT_FDG_BIGLIFT);
+    if (N(OT_FDG_LSWITCH) == 2 * N(OT_FDG_BIGLIFT)) {                           /* (INFERRED: each lift takes its two switches, by class) */
+        int i1 = 0, i2 = 0;
+        EACH(OT_FDG_LSWITCH, o) { int j = (o->par & 1) ? i2++ : i1++; if (j < N(OT_FDG_BIGLIFT)) o->tm = LST[OT_FDG_BIGLIFT - RT0][j]; }
+    }
 }
 void fd_gim_pre(player_t *p) {
     if (!S.on) return;
     if (N(OT_FDG_DHPLAT)) downhill_pre(p);                                       /* 15229-15238 (I / J before the path rule) */
+    if (N(OT_FDG_PUSH)) push_pre(p);                                             /* 15622-15629 */
+    if (N(OT_FDG_BIGLIFT)) lifts_pre(p);                                         /* 15758-15777 */
 }
 void fd_gim_frame(player_t *p) {
     if (!S.on) return;
@@ -514,6 +728,13 @@ void fd_gim_frame(player_t *p) {
     if (N(OT_FDG_AIRBASE)) airlocks(p);                                          /* 15357-15372 */
     if (N(OT_FDG_PDOOR) || N(OT_FDG_PDOOR3)) pdoors(p);                          /* 15373-15382 */
     if (N(OT_FDG_SFLOOR)) floors();                                              /* 15341-15344 */
+    if (N(OT_FDG_CSWITCH) || N(OT_FDG_CDOOR)) corkscrews(p);                     /* 15609-15621 / 15740-15752 */
+    if (N(OT_FDG_PUSHMASK) || N(OT_FDG_FDPLAT)) push();                          /* 15622 */
+    if (N(OT_FDG_ECRUSH)) crushers(p);                                           /* 15630 / 15631 / 15753 */
+    if (N(OT_FDG_SHGIVER)) givers(p);                                            /* 15592-15608 / 15722-15728 */
+    if (N(OT_FDG_RBARRIER) || N(OT_FDG_BUTTON)) barriers(p);                     /* 15729-15739 */
+    if (N(OT_FDG_LSWITCH)) lifts(p);                                             /* 15758-15768 */
+    if (N(OT_FDG_TUBESHADE)) scenery();                                          /* 15667 */
     effects();
 #ifdef FP_HOST_ENV
     { static int dbg = -1; if (dbg < 0) dbg = getenv("FP_DBG_FDG") != NULL;

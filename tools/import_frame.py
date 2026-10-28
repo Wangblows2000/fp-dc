@@ -1748,9 +1748,20 @@ FDG_TYPES_ID = {('objecttransporterstart', 3416): 2752, ('objecttransporterstart
     ('gimmickdownhillplatform', 3441): 2760, ('gimmickdownhillplatformwheel', 3442): 2761, ('objectlowspring', 3448): 2762,
     ('breakablefdhangarwall', 3407): 2763, ('airlockbase', 3459): 2764, ('airlock1', 3457): 2765, ('airlock4', 3458): 2765,
     ('airlock2', 3455): 2766, ('airlock3', 3456): 2766, ('pressuredoor1', 3489): 2767, ('pressuredoor2', 3490): 2767,
-    ('pressuredoor3', 3492): 2768, ('scrollingfloor', 3466): 2769, ('scrollingfloor2', 3465): 2769}
+    ('pressuredoor3', 3492): 2768, ('scrollingfloor', 3466): 2769, ('scrollingfloor2', 3465): 2769,
+    ('levelfdpushplatform', 3540): 2770, ('levelfdpushplatformmask', 3544): 2771, ('fdplatform', 3557): 2772,
+    ('fdconsole1', 3552): 2773, ('fdconsole2', 3553): 2773, ('effecttubeshade', 3521): 2774, ('levelelectriccrusher', 3541): 2775,
+    ('levelelectriccrusherbolt', 3542): 2776, ('levelelectriccrushermask', 3543): 2777, ('corkscrewdoor', 3537): 2778,
+    ('switchcorkscrewdoor', 3536): 2779, ('playershieldgiver', 3528): 2780, ('fdrotatingbarrier', 3567): 2781,
+    ('objectbiglift', 3584): 2783, ('switchbiglift1', 3586): 2784, ('switchbiglift2', 3587): 2784,
+    # reused Thermal Base types (tb_gim.c): the lab doors are its metal doors, the locked lab doors its locked doors
+    ('labdoorback', 3512): 1894, ('labdoorfront', 3513): 1894, ('lockedlabdoorback', 3522): 1892, ('lockedlabdoorfront', 3524): 1892,
+    ('lockedlabdoorbarrier', 3523): 1893}
 FDG_SUB = {'objecttransporternode90_3419': 1, 'objecttransporternode180_3420': 2, 'objecttransporternode270_3421': 3,
-    'airlock4_3458': 1, 'airlock3_3456': 1, 'pressuredoor2_3490': 1, 'scrollingfloor2_3465': 1}
+    'airlock4_3458': 1, 'airlock3_3456': 1, 'pressuredoor2_3490': 1, 'scrollingfloor2_3465': 1, 'fdconsole2_3553': 1,
+    'switchbiglift2_3587': 1, 'switchbuttonright_2705': 1}
+TBG_SUB.update({'labdoorfront_3513': 1, 'lockedlabdoorfront_3524': 1})   # FD_GIM: TB types' member index
+FRAME_TYPE_REMAP[(69, 1914)] = 2782    # FD_GIM: fd2b's switch buttons are momentary (15733-15739: OT_FDG_BUTTON), not TB's one-shot
 FDG_ENS = [(c, a, d, nm) for c, a, d, nm in (
     ('objecttransporterstart_3416', 0, '0', 'fdg_tstart'), ('objecttransporterstart2_3417', 0, '0', 'fdg_tstart2'),
     ('enemyelitespawnerwave_3363', 0, '0', 'fdg_wave'),                             # the pipe exit's shock ring (15201)
@@ -1765,12 +1776,24 @@ FDG_ENS = [(c, a, d, nm) for c, a, d, nm in (
     ('airlock4_3458', 0, '0', 'fdg_air4'), ('effectairlockwind_3460', 0, '0', 'fdg_wind'),
     ('pressuredoor1_3489', 0, '0', 'fdg_pdoor1'), ('pressuredoor1_3489', 7, '0', 'fdg_pdoor1c'),
     ('pressuredoor2_3490', 0, '0', 'fdg_pdoor2'), ('pressuredoor2_3490', 7, '0', 'fdg_pdoor2c'),
-    ('scrollingfloor_3466', 0, '0', 'fdg_sfloor'), ('scrollingfloor2_3465', 0, '0', 'fdg_sfloor2'))]
+    ('scrollingfloor_3466', 0, '0', 'fdg_sfloor'), ('scrollingfloor2_3465', 0, '0', 'fdg_sfloor2'),
+    ('levelfdpushplatform_3540', 0, '0', 'fdg_push'), ('levelfdpushplatformmask_3544', 0, '0', 'fdg_pushmask'),
+    ('fdconsole1_3552', 0, '0', 'fdg_console1'), ('fdconsole2_3553', 0, '0', 'fdg_console2'),
+    ('effecttubeshade_3521', 0, '0', 'fdg_tubeshade'), ('levelelectriccrusherbolt_3542', 0, '0', 'fdg_ecbolt'),
+    ('levelelectriccrushermask_3543', 0, '0', 'fdg_ecmask'),                         # also the crusher's collision (the same 128 x 128 box)
+    ('corkscrewdoor_3537', 0, '0', 'fdg_cdoor'), ('switchcorkscrewdoor_3536', 0, '0', 'fdg_cswitch'),
+    ('playershieldgiver_3528', 0, '0', 'fdg_shg'), ('playershieldgiver_3528', 10, '0', 'fdg_shg10'), ('playershieldgiver_3528', 11, '0', 'fdg_shg11'),
+    ('fdrotatingbarrier_3567', 0, '0', 'fdg_rbarrier'), ('objectbiglift_3584', 0, '0', 'fdg_biglift'),
+    ('switchbiglift2_3587', 0, '0', 'fdg_lswitch'),                                  # switch 1 shares the images (RE ctor)
+    ('labdoorback_3512', 0, '0', 'tbg_mdback'), ('labdoorfront_3513', 0, '0', 'tbg_mdfront'),   # TB's metal-door rows (FD frames)
+    ('lockedlabdoorback_3522', 0, '0', 'tbg_ldback'), ('lockedlabdoorfront_3524', 0, '0', 'tbg_ldfront'),
+    ('lockedlabdoorbarrier_3523', 0, '0', 'tbg_barrier'))]
 FDG_ENS_WITH = {'enemyelitespawnerwave_3363': ('objecttransporterstart',), 'hazardspiralspark_3435': ('hazardspiralsparkmaker',),
     'breakablefdhangarwallpiece_3408': ('breakablefdhangarwall',), 'effectairlockwind_3460': ('airlockbase',),
-    'pressuredoor2_3490': ('pressuredoor3',)}
+    'pressuredoor2_3490': ('pressuredoor3',), 'switchbiglift2_3587': ('switchbiglift1',),
+    'levelelectriccrushermask_3543': ('levelelectriccrusher',)}
 ENGINE_TYPES_ID.update(FDG_TYPES_ID); ENS += FDG_ENS   # FD_GIM
-for _e in FDG_ENS: ROW_FRAMES[_e[3]] = FD_FRAMES        # FD_GIM rows only in Final Dreadnought
+for _e in FDG_ENS: ROW_FRAMES[_e[3]] = ROW_FRAMES.get(_e[3], set()) | FD_FRAMES if _e[3].startswith('tbg_') else FD_FRAMES   # FD_GIM rows only in Final Dreadnought (TB's names keep theirs)
 for _k, _v in FDG_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # FD_GIM
 for _nm in ('tbg_key', 'tbg_term', 'tbg_term7', 'tbg_seal', 'tbg_barrier', 'tbg_kicon', 'tbg_btn0', 'tbg_btn1'):   # FD_GIM: TB's key cards,
     ROW_FRAMES[_nm] = ROW_FRAMES.get(_nm, set()) | FD_FRAMES                     # terminals, seals, switch buttons placed in FD
