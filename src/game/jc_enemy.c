@@ -520,6 +520,8 @@ static int elite_sensor(obj_t *m, int d) {                                      
 }
 static void elite_spawn(obj_t *m) {
     m->A = 20; m->av[1] = 1; m->hidden = 1; m->fx = m->x; m->fy = m->y; set_a(m, "jee_m0");
+    m->fl |= F_NOFLY;          /* flag 16 (RV bg_enemies/elite4: placed masks carry 0x10000; the spawners set it, 14661): no shared
+                                  fly-away (combat.c 2765 turned the mask and its sensors while it lay knocked down) */
 }
 static void elite_laser(obj_t *e, int dir) {                                      /* 10949: TrooperLaser A 12, B (1 + B) 90 - 180 */
     double ax, ay; relic_act_point(e, &ax, &ay);
@@ -649,7 +651,7 @@ obj_t *jc_enemy_elite_create(float x, float y) {
     obj_t *e = spawn(OT_JC_ELITE, NULL, x, y, 0);
     if (!e) { m->alive = 0; return NULL; }
     S.on = 1; lim_collect();
-    elite_spawn(m); m->fl |= F_NOFLY;
+    elite_spawn(m);
     set_a(e, "jee_idle"); e->layer = 2;
     e->par = (int)(m - G.o); m->par = (int)(e - G.o);
     return m;
