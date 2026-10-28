@@ -160,12 +160,9 @@ static void ghost(const obj_t *s) {                                             
     obj_t *g = spawn(OT_BGE_GHOST, "bgs_pod", s->x, s->y);
     if (g) { g->hidden = 1; g->tm = 0; g->layer = s->layer; }
 }
-static void payload(obj_t *s) {                                                    /* 14661: the payload at its feet, the spawner goes */
-    int code = (int)s->av[BGE_SPAWNER_C];
-    if (!(PAY && PAY(s, code)) && code == 0) {                                     /* 0: an Elite (mask F = x, G = y, flag 16) */
-        obj_t *m = jc_enemy_elite_create(floorf(s->x), floorf(s->y));
-        if (m) m->layer = s->layer;
-    }
+static void payload(obj_t *s) {                                                    /* 14661 / FD 15245: an Elite at its feet (any C), the spawner goes */
+    obj_t *m = jc_enemy_elite_create(floorf(s->x), floorf(s->y));                 /* (mask F = x, G = y, flag 16) */
+    if (m) m->layer = s->layer;
     s->alive = 0;
 }
 static void spawner_frame(obj_t *s, player_t *p) {
@@ -180,7 +177,9 @@ static void spawner_frame(obj_t *s, player_t *p) {
         obj_t *w = spawn(OT_BGE_WAVE, "bgs_wave", s->x, s->y); if (w) w->layer = s->layer;
     }
     if (*B > 1) { *B += 1; ek_set_a(s, "bgs_open"); ek_force_frame(s, (int)(*B / 6)); }   /* 14660 */
-    if (*B > 30) payload(s);                                                       /* 14661 */
+    if (*B > 1 && s->av[BGE_SPAWNER_C] != 0 && PAY && PAY(s, (int)s->av[BGE_SPAWNER_C])) { s->alive = 0; return; }   /* FD1 15246-15249: C 1-4
+                                                                                      on landing (B > 1), by another module */
+    if (*B > 30) payload(s);                                                       /* 14661 / 15245 */
 }
 static void wave_frame(obj_t *w) {                                                 /* 14656 (y - 4, A + 1) / 14662 (A > 15: gone) */
     if (w->born == G.frame) return;
@@ -191,6 +190,12 @@ static void wave_frame(obj_t *w) {                                              
 static void ghost_frame(obj_t *g) { if (++g->tm > GHOST_LIFE) g->alive = 0; }
 
 void bg_enemy_spawner_payload(bge_payload_fn fn) { PAY = fn; }
+obj_t *bg_enemy_spawner_drop(float x, float y, int code) {                         /* a runtime pod, shown, B 1, A = y (FD1 15287) */
+    obj_t *s = spawn(OT_BGE_SPAWNER, "bgs_pod", x, y);
+    if (!s) return NULL;
+    S.on = 1; s->hidden = 0; s->par = -1; s->av[0] = floorf(y); s->av[1] = 1; s->av[BGE_SPAWNER_C] = code;
+    return s;
+}
 int bg_enemy_spawners_open(void) { obj_t *s; int n = 0; if (!S.on) return 0; EACH(OT_BGE_SPAWNER, s) n++; return n; }
 
 /* ================================================================ spawn / passes */
