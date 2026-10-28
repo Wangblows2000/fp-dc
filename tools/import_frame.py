@@ -891,11 +891,18 @@ JCB5_ENS = [(c, a, d, nm, None, _G5) for c, a, d, nm in (
     ('bossgunshiptrooper_2554', 0, '0', 'j5g_trp'), ('bossgunshiptrooper_2554', 0, '16', 'j5g_trp_l'),
     ('bossgunshipturbineleft_2560', 0, '0', 'j5g_turbl'), ('bossgunshipturbineleft_2560', 0, '8', 'j5g_turbl8'), ('bossgunshipturbineright_2561', 0, '0', 'j5g_turbr'),
     ('bossgunshipflare_2568', 0, '0', 'j5g_flare'), ('bossgunshipflare_2568', 10, '0', 'j5g_flare10'),
-    ('bossgunshipflare_2568', 11, '0', 'j5g_flare11'), ('bossgunshipflare_2568', 11, '16', 'j5g_flare11_l'))]
+    ('bossgunshipflare_2568', 11, '0', 'j5g_flare11'), ('bossgunshipflare_2568', 11, '16', 'j5g_flare11_l'),
+    # the Elite troopers (10954-11041): walk 1, jump 7, hurt 8, charge 10, fire 12 (right facing only: drawn flipped), the charge glow,
+    # the laser; the lightning bolt (11619, both facings: its hot spots differ)
+    ('enemyelite_2529', 1, '0', 'j5e_walk'), ('enemyelite_2529', 7, '0', 'j5e_jump'), ('enemyelite_2529', 8, '0', 'j5e_hurt'),
+    ('enemyelite_2529', 10, '0', 'j5e_charge'), ('enemyelite_2529', 12, '0', 'j5e_fire'), ('enemyelitechargeglow_2527', 0, '0', 'j5e_glow'),
+    ('enemytrooperlaser_2530', 0, '0', 'j5e_laser'), ('levellightningbolt_2525', 0, '0', 'j5_bolt'), ('levellightningbolt_2525', 0, '16', 'j5_bolt_l'))]
 ENS += JCB5_ENS
 for _e in JCB5_ENS: ENS_FRAMES[_e[0]] = ENS_FRAMES.get(_e[0], set()) | JCB5_FRAMES
 JCB5_ENS_WITH = {'bossgunshipflare_2568': _G5, 'bossmissile_1867': _G5, 'effectsexplosion06_435': _G5, 'effectsexplosion01_367': _G5,
-                 'effectsdebris_427': _G5}
+                 'effectsdebris_427': _G5, 'enemyelitechargeglow_2527': _G5, 'enemytrooperlaser_2530': _G5,
+                 'playerskinsash_341': _G5, 'playerskincarol_449': _G5, 'playerskinmilla_461': _G5}
+for _nm in ('fc_l37l', 'fc_c37l', 'fc_m37'): ROW_FRAMES[_nm] = ROW_FRAMES.get(_nm, {35}) | {44}   # the closing's three heroes (11369 / 11372): FN6's cast rows
 for _k, _v in JCB5_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # JC_BOSS5
 
 # ==== end Jade Creek

@@ -749,6 +749,10 @@ static const objdef_t DEFS[] = {
     { 1499,               OD_HIDDEN,                           NULL         }, /* J5_ELITEMASK: enemyelitemask_2528 (Q20) */
     { 1500,               0,                                   NULL         }, /* J5_WARN2: - (EffectWarning2_1895) */
     { 1501,               0,                                   NULL         }, /* J5_ELITELASER: - (EnemyTrooperLaser) */
+    { 1502,               0,                                   NULL         }, /* J5_BOLT: - (LevelLightningBolt, runtime) */
+    { 1503,               0,                                   NULL         }, /* J5_GLOW: - (EnemyEliteChargeGlow) */
+    { 1504,               0,                                   NULL         }, /* J5_HERO: - (the closing's heroes) */
+    { 1505,               0,                                   NULL         }, /* J5_FADE: - (LevelCardFade, the white card) */
     /* ==== end Jade Creek */
 };
 static objdef_t BY_TYPE[MAX_OT];
