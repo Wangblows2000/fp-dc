@@ -132,7 +132,7 @@ static int bot(uint32_t *held) {
     if (!tg) { obj_t *c = sbb_get(OT_SB_CH, 0); if (c && c->av[7] == 2 && !(c->fl & BGB_DEF) && !c->hidden) tg = c; }   /* BG2: the chopper (sb_chopper.c) */
     if (!tg) for (int i = 0; i < G.nobjs && !tg; i++) {                      /* BG5: the Wretchnid's weak spot (bosses.c; host scan) */
         obj_t *o = &G.o[i];
-        if (o->alive && o->type == OT_WR_WEAK && o->A > 0 && fabsf(o->x - G.p.x) < 400 && fabsf(o->y - G.p.y) < 300) tg = o;
+        if (o->alive && o->type == OT_WR_WEAK && o->A > 0 && fabs(o->x - G.p.x) < 400 && fabs(o->y - G.p.y) < 300) tg = o;
     }
     if (!tg) { ph = 0; return 0; }
     const player_t *p = &G.p;
