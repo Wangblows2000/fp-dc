@@ -576,9 +576,12 @@ FNB_ENS_FRAMES['switchwallplate_1149'] = RMB_ENS_FRAMES['switchwallplate_1149'] 
 # 8194 restroom anim 40 dir 24): Lilac's, her hair's and Carol's banks get 'a40_d<dir>' rows in these frames only (Milla's bank
 # already holds every direction)
 FNB_POSE_FRAMES, FNB_POSE_DIRS = {33, 34}, {40: ('7', '8', '24')}
+# the extra pose directions per json frame (player_pose 'a<index>_d<dir>' rows): FN_GIMB's, and other stages' (TH_GIM: the barrel)
+POSE_DIRS = {n_: FNB_POSE_DIRS for n_ in FNB_POSE_FRAMES}
+CAROL_POSE_DIRS = {}   # Carol's skin / tail / bike banks only (Trap Hideout: TH_GIM)
 def fnb_pose_rows(entries, n, pre=''):
     out = []
-    for ai, dirs in (FNB_POSE_DIRS.items() if n in FNB_POSE_FRAMES else ()):
+    for ai, dirs in POSE_DIRS.get(n, {}).items():
         for dk in dirs:
             if ai < len(entries) and entries[ai] and dk in entries[ai]:
                 d = entries[ai][dk]; out.append({'name': '%sa%d_d%s' % (pre, ai, dk), 'frames': d['frames'], 'speed': d['max_speed'], 'loop': d['loop'], 'back_to': d['back_to']})
@@ -1117,7 +1120,39 @@ for _nm in JCE_MIRRORED: ROW_FRAMES[_nm] = set()
 
 # ---- TH_ENEMIES (th_enemy.c, 1560-1619)
 
-# ---- TH_GIM (th_gim.c, 1620-1679)
+# ---- TH_GIM (th_gim.c, 1620-1679; build/re/spec_th_gimmicks.md). Families share a type; THG_SUB gives the member index (lvobj
+# anim bits 0-7, the instance layer in bits 8-14, as JC_GIM). LevelTHCollapsingPlatform_3186 (+ Piece_3187) is Jade Creek's
+# collapsing platform (jc_gim.c OT_JCG_COLL member 2: the same events 13598-13602 / loop_collapse_57, RE).
+THG_TYPES_ID = {('hazardscanlasersweep', 3128): 1620, ('hazardscanlaserright', 3129): 1620, ('hazardscanlaserleft', 3130): 1620,
+    ('hazardscanlaserdown', 3131): 1620, ('hazardscanlaserup', 3132): 1620, ('hazardscanlaserhead', 3133): 1621,
+    ('hazardscanlaserhead2', 3134): 1621, ('hazardscanlaserhead3', 3137): 1621, ('hazardscanlaserhead4', 3135): 1621,
+    ('hazardscanlaserhead5', 3136): 1621, ('levelhideoutplatform1', 3172): 1622, ('levelhideoutplatformflame', 3173): 1623,
+    ('thflame', 3176): 1624, ('hazardshuriken', 3166): 1625, ('hazardshurikenbase', 3167): 1626, ('hazardshurikenturn', 3168): 1627,
+    ('gimmickbarrel', 3177): 1628, ('thbacklight1', 3113): 1630, ('levelthcollapsingplatform', 3186): 1378}
+THG_SUB = {'hazardscanlasersweep_3128': 0, 'hazardscanlaserright_3129': 1, 'hazardscanlaserleft_3130': 2, 'hazardscanlaserdown_3131': 3,
+    'hazardscanlaserup_3132': 4, 'hazardscanlaserhead_3133': 0, 'hazardscanlaserhead2_3134': 2, 'hazardscanlaserhead3_3137': 3,
+    'hazardscanlaserhead4_3135': 4, 'hazardscanlaserhead5_3136': 5}
+JCG_SUB['levelthcollapsingplatform_3186'] = 2
+THG_ENS = [(c, 0, d, nm) for c, d, nm in (
+    ('hazardscanlasersweep_3128', '0', 'thg_beam0'), ('hazardscanlasersweep_3128', '1', 'thg_beam1'),   # the five beam classes share these images
+    ('hazardscanlaserhead_3133', '0', 'thg_head'), ('hazardscanlaserhead2_3134', '0', 'thg_head2'), ('hazardscanlaserhead3_3137', '0', 'thg_head3'),
+    ('hazardscanlaserhead4_3135', '0', 'thg_head4'), ('hazardscanlaserhead5_3136', '0', 'thg_head5'),
+    ('levelhideoutplatform1_3172', '0', 'thg_pillar'), ('levelhideoutplatformflame_3173', '8', 'thg_pflame'), ('thflame_3176', '0', 'thg_flame'),
+    ('hazardshuriken_3166', '0', 'thg_shur'), ('hazardshurikenbase_3167', '0', 'thg_shbase'), ('gimmickbarrel_3177', '0', 'thg_barrel'),
+    ('gimmickbarreldebris_3127', '0', 'thg_bdebris'), ('thbacklight1_3113', '0', 'thg_blight'),
+    ('levelthcollapsingplatform_3186', '0', 'thg_coll'), ('levelthcollapsingplatformpiece_3187', '0', 'thg_cpiece'))]
+_THG_BEAMS = ('hazardscanlasersweep', 'hazardscanlaserright', 'hazardscanlaserleft', 'hazardscanlaserdown', 'hazardscanlaserup')
+THG_ENS.append(('effectsspringbeam_540', 4, '0', 'thg_sbeam', None, ('gimmickbarrel',)))   # 13588: a barrel on a YellowSpringUp
+ROW_FRAMES['thg_sbeam'] = {58, 59}                   # (the class's FN rows stay FN-only through ENS_FRAMES)
+THG_ENS_WITH = {'hazardscanlasersweep_3128': _THG_BEAMS[1:], 'effectsdust_437': _THG_BEAMS,
+    'gimmickbarreldebris_3127': ('gimmickbarrel',), 'levelthcollapsingplatformpiece_3187': ('levelthcollapsingplatform',),
+    'effectsspringbeam_540': ('gimmickbarrel',)}
+# the barrel ride (13581 / 13582) forces skin animation 40 direction 14 / 30 on Carol (her banks hold directions 0 / 16 only); Milla's
+# bank holds every direction. Direction 30 is the pixel mirror of 14 on Carol's skin, tail and bike (checked against the images):
+# player_pose draws the 14 row flipped. Only the acts that place a barrel (TH2 / TH3).
+for _n in (58, 59): CAROL_POSE_DIRS[_n] = {**CAROL_POSE_DIRS.get(_n, {}), 40: ('14',)}
+ENGINE_TYPES_ID.update(THG_TYPES_ID); ENS += THG_ENS   # TH_GIM
+for _k, _v in THG_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # TH_GIM
 
 # ---- TH_BOSS (th_boss.c, 1680-1791)
 
@@ -1747,7 +1782,7 @@ def main():
                                     'loop': dd['loop'], 'back_to': dd['back_to']})
             # extra directions the events select: Wild Kick in the air (2425: direction + 1 -> 1 / 17) and the bored idle
             # (1735: direction + 4 -> 4 / 20), named 'a<index>_d<direction>'
-            for dkey in {21: ('1', '17'), 0: ('4', '20'), **(FNB_POSE_DIRS if n in FNB_POSE_FRAMES else {})}.get(ai, ()):   # + FN_GIMB poses
+            for dkey in {21: ('1', '17'), 0: ('4', '20'), **POSE_DIRS.get(n, {}), **CAROL_POSE_DIRS.get(n, {})}.get(ai, ()):   # + the stages' poses
                 if dkey in entry and not (dkey == '17' and mirrored(entry.get('1', d0), entry[dkey])):
                     dd = entry[dkey]
                     cb['anims'].append({'name': 'a%d_d%s' % (ai, dkey), 'frames': dd['frames'], 'speed': dd['max_speed'],
@@ -1990,6 +2025,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         if 1430 <= o['type'] < 1480: a = o['layer'] << 8   # JC_BOSS (jc_boss.c): instance layer << 8
         if 1150 <= o['type'] < 1280: a = SBBOSS_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # SB_BOSS (sb_boss.c): sub id | instance layer << 8
         if 1280 <= o['type'] < 1536: a = JC_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # Jade Creek (jc_*.c): member index | instance layer << 8 | 0x8000 json layer 1 of a mapped frame
+        if 1620 <= o['type'] < 1680: a = THG_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # TH_GIM (th_gim.c): member index | instance layer << 8
         if 1370 <= o['type'] < 1430: a = (JCG_LEAF_TILT.get((o['x'], o['y']), 0) // 30 if o['type'] == 1371 else JCG_SUB.get(o['cls'], 0)) | (o['layer'] << 8)   # JC_GIM (jc_gim.c): member index (leaf backs: tilt / 30) | instance layer << 8
         if 1100 <= o['type'] < 1150: a = SBG_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # SB_GIM (sb_gim.c): member index | instance layer << 8 | 0x8000: json layer 1 of a mapped frame (session 20: behind the json-2 pieces, scrolls with layer 1)
         d += struct.pack('<2H2i', o['type'], a, o['x'], o['y'])
