@@ -1265,3 +1265,12 @@ ship end, cannons intact / beaten), rm_s20 (ax_a / ax_b: RM2 basement plates and
 Full facts in build/re/spec_th_*.md (RE / RV / INFERRED). Classic routing (RE handle_frame_9): I 5 -> 44 (Lilac, Thermal Base) /
 56 (others, TH1); I 8 -> 44 (g1 != 0) / 84 (g1 = 0). No water in TH (no 4150-4170 events). Cards 71-80; achievements 30 / 50
 (14067 / 14066, 6 min).
+
+## Session 21c: Thermal Base
+Full facts in build/re/spec_tb_*.md and the tb_*.c headers (RE / RV / INFERRED). Stage index 6, json 45-50. TB1 starts with the
+card and its lift ride (11881, RV frame 161); TB2-TB6 walk in; TB1-TB5 end at the right edge (4135 / 12089), TB5 only after the end
+elevator (12524-12532: CameraTriggerBoss C 1, lifts 3 px a frame, sound 51 at the top, music fade); TB6 ends with the boss's results
+and the wipe. Key cards: the k-th terminal opens the k-th door (11893 selection order). Lava pits / magma flows have no damage event
+(RE); lava falls burn on a 240-frame cycle. TB5 water: levers move ML.B between 2920 and 3240 (12491-12501). None of the boss events
+test the character (RE): the same fights for all three. Syntax voices: sx_still (TB6, RV x1_l 413); sx_lost (TB3, 12172) is silent
+in the Linux data.

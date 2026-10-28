@@ -303,6 +303,14 @@ tools/audio/convert_gallery.sh extracted/linux/audio "$G/Data/voices" /home/clau
 - Check after an importer change: build/rebuild_cmp.sh (every earlier level byte-identical), build/rcmp.sh (renders vs a
   reference host binary).
 
+## Session 21c: Thermal Base
+- Levels: `for i in 1 2 3 4 5 6; do tools/build_level.sh $((44+i)) tb$i converted2; done` (session-21 packers; TB enemies drop
+  exact-mirror left rows in every direction; TB2 / TB4 _ens split over two 1024 atlases).
+- Time Attack previews: `python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui tasel 6 -x '^bg(1[0-9]|8)layer'`
+  (now keeps bg7 Thermal Base too; tasel_ui0 1024 + tasel_ui1 512).
+- Sounds: convert_sfx.sh adds 52 92 279 280 282-286 302-305 309 310 321 437 and sx_still (from the user's voice files), 11025 Hz,
+  tails trimmed; SFX_TB1-6 74 / 105 / 163 / 88 / 106 / 80 KB.
+
 ## Session 21b: Trap Hideout
 - Levels: `for i in 1 2 3; do tools/build_level.sh $((56+i)) th$i converted2; done` (session-21 packers, NEWPACK_FRAMES).
 - Time Attack previews: `python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui tasel 6 -x '^bg(1[0-9]|[78])layer'`

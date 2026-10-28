@@ -420,3 +420,9 @@ level's data stays byte-identical; mirrored left rows of JC enemies are drawn fl
 A level may offset whole port layers (draw) and one moving collision map (`<lv>_mvl.bin`); used only by JC3's subtanker.
 
 ## D-107 (session 21): off-map templates of JC classes do not pull their sprite rows in
+
+## D-108 (session 21c): Thermal Base reuses the shared object systems
+TB platforms go through the objects.c path-platform registry (objects_plat_path), fire hazards through player_burn, wall switches
+through switches_wall_push, saucer fireballs through RM's shared fireball code; new types only where the mechanic is new (key cards /
+doors, conveyors, cranks, pressers, water levers). Small inferred deviations are allowed where they keep progression reliable (TB2
+lift rider range 32 px instead of 31).
