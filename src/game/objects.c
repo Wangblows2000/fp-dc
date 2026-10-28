@@ -34,7 +34,9 @@ int objects_alive_type(int t) {
     return (unsigned)t < MAX_OT && (alive_bits[t >> 3] >> (t & 7) & 1);
 }
 static obj_t *alloc_obj(void) {
-    for (int i = 0; i < MAX_OBJS; i++)
+    const level_def_t *L = level_cur();
+    int cap = L && L->max_objs > 0 && L->max_objs <= MAX_OBJS ? L->max_objs : 1024;   /* (earlier levels keep their 1024: RM3's rubble) */
+    for (int i = 0; i < cap; i++)
         if (!G.o[i].alive) { if (i >= G.nobjs) G.nobjs = i + 1; memset(&G.o[i], 0, sizeof G.o[i]); obj_gen++; return &G.o[i]; }
     return NULL;
 }

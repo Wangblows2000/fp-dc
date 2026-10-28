@@ -313,7 +313,7 @@ static const level_def_t LEVELS[] = {
     { TH("th2", 57, 2, "bgm/m_stage7.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage7.adp", .mus7 = "bgm/m_stage7.adp",
       .card_first = 72, .cps = CP_TH2, .ncps = N_(CP_TH2) },
     { TH("th3", 58, 3, "bgm/m_stage7.adp"), .mus4 = "bgm/m_midboss.adp", .mus4b = "bgm/m_boss2.adp", .mus4b_g4 = 5, .mus6 = "bgm/m_stage7.adp",
-      .mus7 = "bgm/m_stage7.adp", .card_first = 76, .cps = CP_TH3, .ncps = N_(CP_TH3), .res_wipe = 1 },
+      .mus7 = "bgm/m_stage7.adp", .card_first = 76, .cps = CP_TH3, .ncps = N_(CP_TH3), .res_wipe = 1 , .max_objs = 1536 },
 };
 static const level_def_t DEFAULT = { .dir = "", .frame = -1, .stage = -1, .act = 1, .nacts = 1, .music = "bgm/m_stage1.adp" };
 
