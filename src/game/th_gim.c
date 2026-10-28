@@ -229,6 +229,7 @@ static int beam_rect(const obj_t *o, int x0, int y0, int x1, int y1) {
     }
     return 0;
 }
+int th_gim_beam_rect(const obj_t *beam, int x0, int y0, int x1, int y1) { return beam && beam->type == OT_THG_BEAM && beam_rect(beam, x0, y0, x1, y1); }   /* (merge: 13488 totems) */
 /* 13490-13493 for one burning beam: the character sensor on it */
 static int beam_hurt(obj_t *o, player_t *p) {
     if (o->dir != 1 || dead(p)) return 0;
@@ -336,7 +337,7 @@ static void lasers(player_t *p) {
         obj_effect((float)floor(b->x + b->av[0] * c_cos(b->ang)), (float)floor(b->y - b->av[0] * c_sin(b->ang)), "dust");
     }
     if (p->state != ST_HURT) S.hurt0 = -1;
-    EACH(OT_THG_BEAM, b) if (near_ext(b, 600)) beam_hurt(b, p);                  /* 13490-13493 */
+    EACH(OT_THG_BEAM, b) if (near_ext(b, 600)) { beam_hurt(b, p); th_enemy_totem_zap(b); }   /* 13490-13493; 13488: a beam on a totem (th_enemy.c) */
     EACH(OT_THG_BEAM, b) if (b->par >= 1) b->ang = BEAM_ANG[b->par];             /* 13541 */
     heads_limit();                                                                /* 13542-13545 */
 }
@@ -471,6 +472,10 @@ static void barrels(player_t *p) {
         obj_pinball_step(d, 25);
         if (!obj_near_view(d, 64)) d->alive = 0;                                      /* removal INFERRED */
     }
+}
+void th_gim_barrel_break(obj_t *b);
+void th_gim_barrels_hit_by(const obj_t *h) {           /* 13688: a flying RocketPuncher fist on barrels (th_enemy.c calls it) */
+    obj_t *b; EACH(OT_THG_BARREL, b) if (fabsf(b->x - h->x) < 96 && fabsf(b->y - h->y) < 96 && obj_obj_hit(h, b)) th_gim_barrel_break(b);
 }
 void th_gim_barrel_break(obj_t *b) { if (b && b->type == OT_THG_BARREL && !(b->fl & FBR6)) { b->fl |= FBR6; snd_play_orig(278, 220, 128); snd_play_orig(311, 220, 128); } }   /* 13688 */
 

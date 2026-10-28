@@ -57,7 +57,9 @@ enum { OT_THG_BEAM = 1620,     /* HazardScanLaserSweep / Right / Left / Down / U
 int  th_gim_beam(obj_t *o, player_t *p);
 void th_gim_beam_draw(const obj_t *o);                  /* the x-scaled, rotated beam (call from the owner's draw pass) */
 void th_gim_scan_off(void);                             /* 13513: the Laser Iris wakes up: every scan laser and head goes */
-void th_gim_barrel_break(obj_t *b);                     /* 13688: a RocketPuncher's fist on a barrel (the enemies module calls it) */
+void th_gim_barrel_break(obj_t *b);
+void th_gim_barrels_hit_by(const obj_t *h);             /* 13688: breaks every barrel the object overlaps */
+int  th_gim_beam_rect(const obj_t *beam, int x0, int y0, int x1, int y1);   /* a scan laser's footprint touches the rectangle (inclusive) */                     /* 13688: a RocketPuncher's fist on a barrel (the enemies module calls it) */
 
 /* ---- th_boss.c (types 1680-1791) */
 
