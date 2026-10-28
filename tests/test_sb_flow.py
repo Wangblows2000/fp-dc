@@ -110,7 +110,7 @@ check('sb1_no_night_before_three_ships', not sbf(ev, 'night'))
 # ---- results in SB1 (the boss module calls results_begin_boss at the Kujacker's end; host: RESBOSS): m_clear, the stage-4
 # results, the wipe (sound 56) and frame 8 -> Jade Creek 1 (I = 4 -> frame 39, session 21; tests/test_jc_flow.py)
 with tempfile.TemporaryDirectory() as d:
-    rows, ev, out = run('60 RESBOSS\n' + ''.join('%d TP 1300 1180\n' % f for f in range(10, 1000, 30)), 900,
+    rows, ev, out = run('60 RESBOSS\n' + ''.join('%d TP 1300 1180\n' % f for f in range(10, 520, 30)) + ''.join('%d %d J\n' % (f, f + 2) for f in range(560, 1500, 40)), 1500,   # (session 21: the run earns the stage's speedrunner achievement; Jump closes its pop-up, as in the original)
                         {'FP_LEVEL': 'sb1', 'FP_SAVE': os.path.join(d, 's.bin')})
 lines = out.splitlines()
 check('sb1_results_clear', any(l.startswith('music bgm/m_clear.adp') for l in lines) and any(l.startswith('ach results stage 4') for l in lines))

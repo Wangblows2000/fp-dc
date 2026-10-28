@@ -152,8 +152,11 @@ for lv, want in (('th1', {(3458.0, 2093.0): 71}), ('th2', {(8514.0, 541.0): 72, 
 # (Carol, Milla), frame 44 = Thermal Base for Lilac (not ported: the front end)
 for nm, ch, want in (('carol', '2', 'th1'), ('milla', '4', 'th1'), ('lilac', '0', 'frontend')):
     with tempfile.TemporaryDirectory() as d:
-        rows, ev, out = run('60 RESBOSS\n', 900, {'FP_LEVEL': 'jc5', 'FP_CHAR': ch, 'FP_SAVE': os.path.join(d, 's.bin')})
+        # (session 21: the fast run earns JC's speedrunner achievement: its pop-up loads the front end, Jump closes it; then
+        # Carol / Milla go on to TH1 and Lilac stays on the title menu: the Jump presses stop before they could start a game)
+        rows, ev, out = run('60 RESBOSS\n' + ''.join('%d %d J\n' % (f, f + 2) for f in range(560, 1100 if ch != '0' else 640, 40)), 1500, {'FP_LEVEL': 'jc5', 'FP_CHAR': ch, 'FP_SAVE': os.path.join(d, 's.bin')})
     st = [l for l in loads(ev) if l != 'gal']
+    st = [l for i, l in enumerate(st) if not (l == 'frontend' and i + 1 < len(st))]   # the pop-up's front end on the way
     ok = st[-2:] == ['jc5', want] and (want != 'th1' or (rows[-1]['act'] == 1 and rows[-1]['g4'] == 1 and music(ev)[-1:] == ['bgm/m_stage7.adp']))
     check('route_jc5_to_%s_%s' % (want, nm), ok and 'th1' not in st[:-1] and (want == 'th1' or 'th1' not in st), str((st, music(ev)[-2:])))
 
