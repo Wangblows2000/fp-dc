@@ -139,3 +139,11 @@
       outside observed cases, JC1 Hovercop y fit, JC3 park x 8084, buoy period (+3), plant first shot (-3), JC4 first volley
 - [ ] Not play-tested end to end: every act was checked in sections (teleports) and the act chain, not by a full run
 - [ ] SB2 Spade carry-in HUD hide (9615 / 9702) not ported
+
+## Trap Hideout (session 21b)
+- [x] TH1-TH3 for Carol / Milla: route from JC5, enemies, traps, Laser Iris, Crystal Basher, arena + Spade, results, save, TA
+- [ ] Not ported: RocketPuncherShield's second hit (13679) and barrel bounce (col_6_57), arena petal drop (14055 / 14056), the
+      crowd's sound during Spade, a mid-fight voice on channel 27 (RV a1_c 1330), EnemyNinja_3193 finale prop / Adventure dialog
+- [ ] INFERRED: laser start phase (G.frame), sweep beam length +-1 px, Iris beam length (~14 px), far sweep beams / bike
+      ninjas frozen off view (cost), Spade's J rate, buoy-like anim phases; no full-act play-through, only sections + chains
+- [ ] Perf: TH3 update ~10.4 ms (Flycast, ~25 slow frames / 600), TH1 9 ms after the fixes (33 ms before)

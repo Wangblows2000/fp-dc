@@ -128,6 +128,20 @@ spec_rm_golems, spec_rm_claw, spec_rm_mantalith, rm_inventory.
   Mantalith sounds 147 / 214 / 215 not ported; INFERRED items in RE_NOTES. An agent published a private working page
   (spec_rm_enemies) during research; it is still in the user's artifacts (delete only if the user asks).
 
+## Session 21b (2026-10-28): Trap Hideout
+Specs (not committed): build/re/th_inventory.md, TH_BRIEF.md, spec_th_flow / enemies / gimmicks / bosses.md; traces
+build/orig_traces/th_*.
+- **Trap Hideout (stage index 8, json 57-59 = th1-th3, set_frame 56-58; Carol / Milla only; types 1536-1791):** th_flow.c
+  (route JC5 -> TH1 for Carol / Milla, Lilac -> front end (Thermal Base); TH1 held drop start, shaft camera, cards 71-80,
+  scenery), th_enemy.c + enemy_kit.h (totem, metal pup, shock puppet, blade orbiter, rocket puncher, bike ninja), th_gim.c (scan
+  lasers + heads, shurikens, pillars, collapsing platforms (jc_gim.c's), barrels (ST_RIDE)), th_boss_iris.c (Laser Iris),
+  th_boss_basher.c (Crystal Basher), th_boss_arena.c (TH3 arena waves, goal / enemies-left HUD, crowd), Spade's TH3 drop-in in
+  sb_spade.c. After TH3's results: front end (the stage after it is not ported).
+- **Shared changes:** objects_plat_type registry (path platforms), obj_pinball_*, OD_LANDS, FLIP_HX (mirrored rows' boxes),
+  per-level object cap (`level_def_t.max_objs`, TH3 1536; storage MAX_OBJS 1536), optional second UI atlas (Time Attack
+  previews of JC and TH), SB / JC achievement rows, data-table Classic route (`ROUTE[s][g1 != 0]`), exact cost fast paths in
+  obj_overlaps_bg and the mask sensors (objects_mask_hit_groups).
+
 ## Session 21 (2026-10-27/28): SB boss voices / HUD, Jade Creek
 Details: RE_NOTES / RUNTIME_MAP "Session 21", DECISIONS D-103 to D-107, BUILD_AND_TEST_LOG "Session 21", ASSET_PIPELINE
 "Session 21". Specs (not committed): build/re/jc_inventory.md, spec_jc_flow / enemies / gimmicks / bosses / boss5.md, JC_BRIEF.md;
@@ -311,8 +325,8 @@ D-072, BUILD_AND_TEST_LOG "Session 15". Spec: build/re/fe/spec_gallery.md (not c
   RAM >= 113 KB (Milla JC5, before the JC5 group trim); SB1 HUD back during the Kujacker fight. **Nothing on real hardware.**
 
 ## Next actions
-1. Trap Hideout (Carol / Milla after Jade Creek; json 57-59) — session 21 continues with it.
-2. Thermal Base (Lilac after Jade Creek; json 45-50).
+1. Thermal Base (Lilac after Jade Creek; json 45-50) — session 21c.
+2. TH leftovers (TODO "Trap Hideout").
 3. JC leftovers (TODO "Jade Creek"): Brevon mech fly-by (half-resolution ENS rows), ice death, rain, Elite constants.
 4. Real hardware: SB1 / JC2 / JC3 with Carol (VRAM), JC5 Milla (sound RAM).
 

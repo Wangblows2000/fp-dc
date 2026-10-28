@@ -532,3 +532,12 @@ Labels: original-trace (RV), RE, host-test, emulator (Flycast, emulated time). *
   Milla 1532 / 764 / 764 / 2199 / 1077, Lilac JC2 / JC3 / JC5 1125 / 1125 / 1437 KB; sound RAM min 113 KB (Milla JC5, then
   trimmed by ~38 KB); 600-frame windows show the usual ~12 slow frames (as SB1). Audio not checked (no audio device).
   **Emulator only.**
+
+## Session 21b (2026-10-28): Trap Hideout
+- **Suites:** test_th_flow (74), test_th_enemies, test_th_gimmicks (67), test_th_bosses: 0 failures; full set 37 suites 0
+  failures; comparers unchanged; 23 earlier levels + JC rebuild byte-identical, renders identical to 6a260d8 (L / C / M).
+  Regressions found and fixed on the way: a global object pool of 1536 grew RM3's claw rubble (now a per-level cap); the new SB /
+  JC speedrunner achievements stalled the route tests on their pop-up (Jump now closes it); a second UI atlas crashed the TA
+  select (now loaded).
+- **Flycast:** TH1-TH3 Carol / Milla VRAM free 2044-4155 KB, sound RAM >= 152 KB; first disc TH1 update 33 ms / TH3 22 ms (every
+  frame slow) -> after the cost fixes TH1 9.0 ms (16 slow / 600 frames), TH3 10.4 ms (~25 / 600). **Emulator only.**

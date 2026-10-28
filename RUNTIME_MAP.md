@@ -695,3 +695,7 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
 - Jade Creek = stage index 5, set_frame 39-43 (json 40-44), port jc1-jc5; types 1280-1309 flow, 1310-1369 enemies, 1370-1429
   gimmicks, 1430-1479 bosses (acts 1-4), 1480-1535 act 5. Music: m_stage5 / m_stage5b, slot 4 m_midboss (JC5 m_boss).
 - HUD offset: game.c hud_offset() (sum of the modules' shifts); host FP_TRACE_HUD prints it per frame.
+
+## Session 21b
+- Trap Hideout = stage index 8, set_frame 56-58 (json 57-59), port th1-th3; types 1536-1559 flow, 1560-1619 enemies (+
+  enemy_kit.h), 1620-1679 traps, 1680-1791 bosses. Music m_stage7, slot 4 m_midboss / m_boss2 (TH3 g4 >= 5).

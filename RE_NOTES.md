@@ -1260,3 +1260,8 @@ ship end, cannons intact / beaten), rm_s20 (ax_a / ax_b: RM2 basement plates and
 - **Jade Creek:** full specs in build/re/spec_jc_*.md (RE / RV / INFERRED per fact). Classic route: SB1 results -> frame 39
   (JC1) for every character; JC1-JC4 end at the right edge (4135 -> 3578), JC5 by its boss and the results; after JC the
   route goes to Thermal Base (Lilac, frame 44) / Trap Hideout (Carol, Milla, frame 56).
+
+## Session 21b: Trap Hideout
+Full facts in build/re/spec_th_*.md (RE / RV / INFERRED). Classic routing (RE handle_frame_9): I 5 -> 44 (Lilac, Thermal Base) /
+56 (others, TH1); I 8 -> 44 (g1 != 0) / 84 (g1 = 0). No water in TH (no 4150-4170 events). Cards 71-80; achievements 30 / 50
+(14067 / 14066, 6 min).
