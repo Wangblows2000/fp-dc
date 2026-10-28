@@ -1507,7 +1507,43 @@ for _e in TBB_ENS: ROW_FRAMES[_e[3]] = TB_FRAMES   # TB_BOSS rows only in Therma
 # ==== Pangu Lagoon (session 23; json 51-56 = pl1-pl6; types 2048-2303, one block per module like Thermal Base)
 # ---- PL_FLOW (pl_flow.c, 2048-2079)
 
-# ---- PL_ENEMIES (pl_enemy.c, 2080-2143)
+# ---- PL_ENEMIES (pl_enemy.c, 2080-2143; build/re/spec_pl_enemies.md). Placed classes 2080-2111, runtime children 2112-2143 (pl.h
+# OT_PL_*). Rows 'plX_name' ('_l' = direction 16; exact-mirror left rows are left out: _jce_mirror_rows). EnemyCacteon_1013 is the
+# engine's cacteon (same class and handle as DV). The lvobj anim word carries the instance layer << 8 | 0x8000 json layer 1 of a
+# mapped frame (the wall stingers' back swarm). Stinger anim 11 = anim 1's images (RE ctor): one row.
+PLE_TYPES_ID = {('enemystinger', 2933): 2080, ('enemystingernest', 2937): 2081, ('enemysunflora', 2940): 2082, ('enemysleepgas', 2941): 2083,
+    ('enemyterreon', 3006): 2084, ('enemyterreonleftleg', 3004): 2085, ('enemyterreonrightleg', 3005): 2086,
+    ('enemyterreonleftshoulder', 3002): 2087, ('enemyterreonrightshoulder', 3003): 2088, ('effectterreonwarning', 3008): 2089,
+    ('enemyobelisk', 3047): 2090, ('enemywallstinger', 3056): 2091, ('enemywallstingerback', 3058): 2092,
+    ('wallstingerlimittop', 3060): 2093, ('wallstingerlimitbottom', 3061): 2094}
+PLE_ENS = [(c, a, d, nm + ('' if d == '0' else '_l')) for c, a, nm in (
+    ('enemystinger_2933', 0, 'pls_idle'), ('enemystinger_2933', 1, 'pls_fly'), ('enemystinger_2933', 8, 'pls_dead'),
+    ('enemystinger_2933', 9, 'pls_att'), ('enemysunflora_2940', 10, 'plf_shoot'), ('enemysunflora_2940', 11, 'plf_grow'),
+    ('enemyobelisk_3047', 0, 'plo_idle'), ('enemyobelisk_3047', 7, 'plo_fire'), ('enemyobelisk_3047', 8, 'plo_dead'),
+    ('enemyobelisk_3047', 10, 'plo_close'), ('enemyobelisk_3047', 11, 'plo_open'), ('enemyobelisklaser_3048', 0, 'plo_laser'),
+    ('enemywallstingerback_3058', 0, 'plw_back')) for d in ('0', '16')] + [
+    ('enemystingernest_2937', 0, '0', 'pln_nest'), ('enemystingernest_2937', 8, '0', 'pln_dead'),
+    ('enemysunflora_2940', 0, '0', 'plf_turn'), ('enemysleepgas_2941', 0, '0', 'plz_gas'), ('effectsconfetti_2943', 0, '0', 'plf_conf'),
+    ('enemyterreon_3006', 0, '0', 'plt_body'), ('enemyterreon_3006', 5, '0', 'plt_blink'), ('enemyterreon_3006', 8, '0', 'plt_dead'),
+    ('enemyterreonleftleg_3004', 0, '16', 'plt_ll'), ('enemyterreonleftleg_3004', 8, '0', 'plt_ll8'),
+    ('enemyterreonrightleg_3005', 0, '16', 'plt_rl'), ('enemyterreonrightleg_3005', 8, '0', 'plt_rl8'),
+    ('enemyterreonleftshoulder_3002', 0, '0', 'plt_ls'), ('enemyterreonleftshoulder_3002', 8, '0', 'plt_ls8'),
+    ('enemyterreonrightshoulder_3003', 0, '0', 'plt_rs'), ('enemyterreonrightshoulder_3003', 8, '0', 'plt_rs8'),
+    ('enemyterreondebris_3007', 0, '0', 'plt_deb'), ('effectterreonwarning_3008', 0, '0', 'plt_warn'),
+    ('enemywallstinger_3056', 0, '0', 'plw_fly'), ('enemywallstingerspawn_3057', 0, '0', 'plw_spawn')]
+_PLE_ALL = ('enemystinger', 'enemystingernest', 'enemysunflora', 'enemyterreon', 'enemyobelisk', 'enemywallstinger')
+PLE_ENS_WITH = {'enemystinger_2933': ('enemystingernest', 'enemywallstinger'), 'enemysleepgas_2941': ('enemysunflora',),
+    'effectsconfetti_2943': ('enemysunflora',), 'enemyterreondebris_3007': ('enemyterreon',), 'enemyobelisklaser_3048': ('enemyobelisk',),
+    'enemywallstingerspawn_3057': ('enemywallstinger',), 'hazardshockwave_1576': ('enemyterreon',),
+    'objectkeystone_429': ('enemystingernest', 'enemyterreon', 'enemyobelisk'), 'effectsdebris_427': ('enemystingernest',),
+    'effectsexplosion06_435': ('enemystingernest', 'enemyterreon', 'enemyobelisk')}
+ENGINE_TYPES_ID.update(PLE_TYPES_ID); ENS += PLE_ENS   # PL_ENEMIES
+for _k, _v in PLE_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # PL_ENEMIES
+try:
+    PLE_MIRRORED = _jce_mirror_rows(PLE_ENS)
+except FileNotFoundError:
+    PLE_MIRRORED = set()
+for _nm in PLE_MIRRORED: ROW_FRAMES[_nm] = set()   # PL_ENEMIES
 
 # ---- PL_GIM (pl_gim.c, 2144-2223)
 
@@ -1891,6 +1927,7 @@ def main():
     for o in objs:                                   # SB_ENEMIES (session 19b): SB1 / SB3's placed EffectWarning_1528 (SB4's: the boss's 1188)
         if o['cls'] == 'effectwarning_1528' and n in SBE_WARN_FRAMES: o['type'] = 1039
     for o in objs: o['fna'] = FNA_SUB.get(o['cls'], 0) | FNA_FLAGS.get((o['cls'], n), 0) | (o['layer'] << 8)   # FN_GIMA (fn_gima.c)
+    for o in objs: o['s08'] = SCROLL08.get(n) == o.get('layer0')   # PL_ENEMIES: the instance's json layer scrolls at 0.8 (pl_enemy.c)
     objs += [{'type': 604, 'x': v, 'y': k, 'cls': 'fnparam', 'layer': 0, 'fna': 0} for k, v in FNA_PARAMS.get(n, ())]   # FN_GIMA parameters
     # ---- piece atlases
     ids = sorted({p['img'] for p in pieces})
@@ -2445,6 +2482,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         if 1100 <= o['type'] < 1150: a = SBG_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # SB_GIM (sb_gim.c): member index | instance layer << 8 | 0x8000: json layer 1 of a mapped frame (session 20: behind the json-2 pieces, scrolls with layer 1)
         if 1680 <= o['type'] < 1720: a = THB_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # TH_BOSS (th_boss.c): sub id | instance layer << 8 | 0x8000 json layer 1
         if 1968 <= o['type'] < 2016: a = TBB_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # TB_BOSS (tb_boss.c): member index | instance layer << 8
+        if 2080 <= o['type'] < 2144: a = (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 and o.get('s08') else 0)   # PL_ENEMIES (pl_enemy.c): instance layer << 8 | 0x8000 json layer 1 scrolled at 0.8
         d += struct.pack('<2H2i', o['type'], a, o['x'], o['y'])
     for t in table: d += t
     d += struct.pack('<%dH' % len(smap), *smap)
