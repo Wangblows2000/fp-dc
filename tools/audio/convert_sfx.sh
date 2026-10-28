@@ -54,7 +54,7 @@ for v in da/da_04_01 da/da_04_02 da/da_04_03 da/da_04_04 ca/carol_fatchance mi/m
 RATE=$R0; TRIM_ALL=
 # Jade Creek (session 21, stage groups SFX_JC1..5 in levels.c): ids the JC modules play that were not converted above:
 # 233 (enemies / act 5), 275 (BullFrag volley), 72 (bubble spring bounce), 292 (act-5 storm bolt), 427 (act 5), 276 (JC1 Hovercop
-# fly-by), 277 (Hovercop), 296-299 (Neera), 335 (Trap Hideout bike ninja skid); half rate, trimmed
-R0=$RATE; RATE=11025; TRIM_ALL=1; for i in 233 275 72 292 427 276 277 296 297 298 299 335; do conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; done; RATE=$R0; TRIM_ALL=
+# fly-by), 277 (Hovercop), 296-299 (Neera), 335 (Trap Hideout bike ninja skid), 336 (Laser Iris), 363 (TH3 crowd); half rate, trimmed
+R0=$RATE; RATE=11025; TRIM_ALL=1; for i in 233 275 72 292 427 276 277 296 297 298 299 335 336 363; do conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; done; RATE=$R0; TRIM_ALL=
 rm -rf "$TMP"
 awk -F, 'NR>1{s+=$4} END {printf "%d sounds, %.1f KB\n", NR-1, s/1024}' "$OUT/sfx_manifest.csv"

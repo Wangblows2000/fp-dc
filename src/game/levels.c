@@ -209,9 +209,10 @@ static const camshaft_t SHAFT_TH1 = { 2180, 2016, 100 };
  * 62 jump pads (TH3), 99 explosions; the enemy / gimmick / boss modules add theirs */
 /* (session 21b: the TH modules' ids that are not resident: enemies 314 151 167 371 / 71 232 240 335 219, traps 426 264 278;
  * bosses add theirs) */
-static const short SFX_TH1[] = { 62, 99, 314 };
+static const short SFX_TH1[] = { 62, 99, 314, 336, 169 };   /* + the Laser Iris (th_boss_iris.c) */
 static const short SFX_TH2[] = { 62, 99, 314, 151, 167, 371, 426, 264, 278 };
-static const short SFX_TH3[] = { 62, 99, 314, 151, 167, 371, 426, 264, 278, 71, 232, 240, 335, 219 };
+static const short SFX_TH3[] = { 62, 99, 314, 151, 167, 371, 426, 264, 278, 71, 232, 240, 335, 219,
+                                  132, 74, 363, 61, 155, 156, 103, 446, 445 };   /* + the Crystal Basher, the arena, Spade */
 #define TH(d, f, n, mus) .dir = d, .frame = f, .stage = 8, .act = n, .nacts = 3, .music = mus, .checkpoints = 1, .sfx = SFX_TH##n, .nsfx = N_(SFX_TH##n)
 #define JC(d, f, n, mus) .dir = d, .frame = f, .stage = 5, .act = n, .nacts = 5, .music = mus, .checkpoints = 1, .sfx = SFX_JC##n, .nsfx = N_(SFX_JC##n)
 #define RM(d, f, n, mus) .dir = d, .frame = f, .stage = 2, .act = n, .nacts = 5, .music = mus, .checkpoints = 1, .sfx = SFX_RM, .nsfx = N_(SFX_RM)
