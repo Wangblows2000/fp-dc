@@ -90,6 +90,10 @@ for c in CHARS:
           '%s %s' % (home, back))
     hd = next((d for f, d in dr if f == home), None)
     check('%s_drill_back_home' % n, hd and F(hd, 'x') == 5520 and F(hd, 'y') == 264 and hd['hd'] == '1' and F(hd, 'A') == 5, str(hd and (hd['x'], hd['y'], hd['A'])))
+    # the wall of explosive blocks (5904-6032) holds the player until two drill runs open its 248 row (RV drill3_wall: one block a run)
+    s, obs, rows = run(INV + '60 TP 5470 300;61 63 R;' + attacks(c, 100, 640) + '700 950 R', 960, {'FP_LEVEL': 'bg3', 'FP_CHAR': str(c), 'FP_ENERGY': '100'})
+    s0, obs0, rows0 = run(INV + '60 TP 5470 300;700 950 R', 960, {'FP_LEVEL': 'bg3', 'FP_CHAR': str(c)})
+    check('%s_drills_open_the_wall' % n, float(rows0[950]['x']) < 5900 and float(rows[950]['x']) > 6200, '%s %s' % (rows0[950]['x'], rows[950]['x']))
 
 # contact damage (14287 / 14288; RV drill3_idle): B 5 while the player is above a risen drill, else 0
 s, obs, rows = run(INV + '60 TP 7180 1300', 230, {'FP_LEVEL': 'bg3', 'FP_CHAR': '0', 'FP_TRACK': '2336:7272'})

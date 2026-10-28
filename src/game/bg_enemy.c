@@ -81,6 +81,8 @@ static void dirt(obj_t *o) {                                                    
 }
 static void drill_home(obj_t *o, double I) {                                       /* 14297 / 14298 / 14303 */
     o->hidden = 1; o->ang = 0; o->fl &= ~0x40; o->av[0] = -2; o->A = 5; o->bd = 0; o->av[5] = I;
+    if (o->tm > 0) { snd_loop_stop(o->tm - 1); o->tm = 0; }                       /* 14303 stop_sample 195 (the flight; INFERRED also when it
+                                                                                      goes home off the view: the loop channel must not run on) */
     o->x = (float)(int)o->av[7]; o->y = (float)(int)o->fy;
 }
 static void drill_hits(obj_t *o) {                                                 /* 14299: the flying drill on a Q20 enemy */
@@ -117,7 +119,9 @@ static void drill_frame(obj_t *o, player_t *p) {
     if (*D == 6 && *E < 0 && *E > -10) *E = -10;                                   /* 14291 */
     if (*D == 6) { *J += -2 * *E; o->ang = (float)ek_nrm(*J); o->x = (float)(int)(floorf(o->x) + 0.6 * o->kx); }   /* 14292 */
     if (*D == 6 && (*J >= 450 || *J <= -450)) {                                    /* 14293 / 14294 */
-        o->ang = *J >= 450 ? 90.f : 270.f; *D += 1; *E *= 1.25; ek_restart_a(o, "bgd_fly"); snd_play_orig(195, 220, 128);
+        o->ang = *J >= 450 ? 90.f : 270.f; *D += 1; *E *= 1.25; ek_restart_a(o, "bgd_fly");
+        if (o->tm > 0) snd_loop_stop(o->tm - 1);
+        o->tm = 1 + snd_loop_orig(195, 220, 0);                                    /* (a 3 s sample that 14303 stops: its own channel) */
     }
     if (*D == 7 && *I <= 0) o->x = (float)(int)(floorf(o->x) + *E);               /* 14295 */
     if (*D == 7 && g3 % 2 == 0) { double ax, ay; act_point(o, &ax, &ay); obj_effect((float)ax, (float)ay, "dust"); }   /* 14296 */
@@ -170,7 +174,7 @@ static void spawner_frame(obj_t *s, player_t *p) {
     if (*B == 0 && X > PX - 200 && X < PX + 200 && *A > PY - 50 && *A < PY + 150) {   /* 14657 */
         s->hidden = 0; *B += 1; snd_play_orig(345, 220, 128);
     }
-    if (*B == 1) { s->y = (float)(int)fmin(*A, floorf(s->y) + 20); ghost(s); }     /* 14658 */
+    if (*B == 1) { s->hidden = 0; s->y = (float)(int)fmin(*A, floorf(s->y) + 20); ghost(s); }   /* 14658 (shown: also when another module set B) */
     if (*B == 1 && floorf(s->y) >= *A) {                                           /* 14659 */
         *B += 1; snd_play_orig(346, 220, 128);
         obj_t *w = spawn(OT_BGE_WAVE, "bgs_wave", s->x, s->y); if (w) w->layer = s->layer;
