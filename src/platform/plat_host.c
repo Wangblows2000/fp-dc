@@ -198,6 +198,7 @@ static void apply_dbg(int f, int tp) {
         if (dbg[i].k == 'b') for (int k = 0; k < G.nobjs; k++) if (G.o[k].alive && G.o[k].type == (int)dbg[i].a) G.o[k].A = dbg[i].b;   /* BOSSHPT type value */
         if (dbg[i].k == 'Z') p->mD = (int)dbg[i].a;
         if (dbg[i].k == 'J') { void jc_flow_act3_cleared(void); jc_flow_act3_cleared(); }   /* test: JC3's boss beaten (10772 / 10773, jc_flow.c) */
+        if (dbg[i].k == 'C') th_flow_basher_cleared();   /* test: TH3's Crystal Basher beaten (13931's flow part, th_flow.c) */
         if (dbg[i].k == 'S') results_begin_boss(G.frame);   /* test: a boss starts the results (path 3; FN6 8785 before the boss module) */
         if (dbg[i].k == 'F') G.stage_flags = (int)dbg[i].a;   /* test: ML stage flags (Relic Maze gates) */
         if (dbg[i].k == 'I') p->invuln = (int)dbg[i].a;      /* test: Milla inside a dig zone (MILLA.D, set by other stages' zone events) */
@@ -249,6 +250,7 @@ int main(int argc, char **argv) {
             if (sscanf(line, "%d MON %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'M', fx, 0 }; continue; }
             if (sscanf(line, "%d RESBOSS%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'S', 0, 0 }; continue; }   /* results_begin_boss now */
             if (sscanf(line, "%d JCACT3%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'J', 0, 0 }; continue; }   /* jc_flow_act3_cleared now */
+            if (sscanf(line, "%d THBASH%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'C', 0, 0 }; continue; }   /* th_flow_basher_cleared now */
             { char lv[8]; if (sscanf(line, "%d LOAD %7s", &ff, lv) == 2 && nload < 8) { loads[nload].f = ff; snprintf(loads[nload].dir, sizeof loads[nload].dir, "%s", lv); nload++; continue; } }   /* load a level (host tests: load order) */
             if (sscanf(line, "%d PB3 %f %f", &ff, &fx, &fy) == 3 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'Q', fx, fy }; continue; }   /* RM3 PushableBlock3 to (x, y) */
             if (sscanf(line, "%d PB %f %f", &ff, &fx, &fy) == 3 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'P', fx, fy }; continue; }   /* first pushable block to original (x, y) */

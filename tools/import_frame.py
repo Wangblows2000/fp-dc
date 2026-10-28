@@ -1114,6 +1114,12 @@ for _nm in JCE_MIRRORED: ROW_FRAMES[_nm] = set()
 
 # ==== Trap Hideout (session 21b; json 57-59 = th1-th3; types 1536-1791, one block per module like Jade Creek)
 # ---- TH_FLOW (th_flow.c, 1536-1559)
+# Stage-wide scenery (spec_th_flow 5, RE create_* / 13532 / 14082 / 14083 / 14099): ThBacklight1_3113 (6 frames, frame by g3), ThFlame_3176
+# (torch flame, looping speed 16), ThSpotlight_3209 (TH3 json layer 0, ctor invisible; drawn by the parallax hook). lvobj anim =
+# instance layer << 8 | 0x8000 json layer 1 of a mapped frame (write_lv2); the rows come with on-map placements only.
+THF_TYPES_ID = {('thbacklight1', 3113): 1536, ('thflame', 3176): 1537, ('thspotlight', 3209): 1538}
+THF_ENS = [('thbacklight1_3113', 0, '0', 'thbl'), ('thflame_3176', 0, '0', 'thfl'), ('thspotlight_3209', 0, '0', 'thsp', slice(0, 1))]   # the spotlight's 2 frames (6123 / 2740) are pixel-identical: one image
+ENGINE_TYPES_ID.update(THF_TYPES_ID); ENS += THF_ENS   # TH_FLOW
 
 # ---- TH_ENEMIES (th_enemy.c, 1560-1619)
 
@@ -1257,6 +1263,16 @@ PAR_BOXH.update({'levelparallaxpiece5_2338': 270})
 PAR_DEG.update({2336: (1.0, .94, 0), 19: (.90, .90, 0), 2337: (.95, .95, 0), 2338: (.85, .85, 0), 2374: (1.0, 0, 0), 2524: (.80, .85, 0)})
 PAR_DEG_FRAME.update({(43, h): (d, e, (1 - d) * -4) for h, (d, e, g) in PAR_DEG.items() if h in (2336, 19, 2337, 2338, 2374, 2524)})
 SCROLL08.update({40: 1, 41: 1, 42: 1, 44: 1})
+# ---- TH_FLOW parallax / layers (th_flow.c, session 21b)
+# Layer::init (RE on_frame_57..59_init): layer 1 scrolls 0.8 in every act (layer 6 0, others 1). No water: ML.A 1 / ML.B 2000 are
+# written (start events) but handle_frame_57..59 hold no water events (4150-4170): not in WATER_FRAMES (RV th1_bottom: OTHERS.H 0)
+SCROLL08.update({57: 1, 58: 1, 59: 1})
+# Parallax (RE create_levelparallaxpiece0_3109 / 3147 / 3192, 1_3207, 2_3208: SystemBox image, box w x h; D / E: TH1 start inline,
+# TH2 13539, TH3 14090; no drift). TH3: piece2 hidden at the start (14099), piece0 hidden / piece2 shown once g4 >= 5 (14083, th_flow.c)
+PAR_IMG.update({'levelparallaxpiece0_3109': 10992, 'levelparallaxpiece0_3147': 13021, 'levelparallaxpiece0_3192': 13021,
+                'levelparallaxpiece1_3207': 5994, 'levelparallaxpiece2_3208': 2737})
+PAR_BOXH.update({'levelparallaxpiece0_3109': 863, 'levelparallaxpiece0_3147': 720, 'levelparallaxpiece0_3192': 1000})
+PAR_DEG.update({3109: (.6, .6, 0), 3147: (.6, .6, 0), 3192: (.6, .6, 0), 3207: (.95, .95, 0), 3208: (.8, .85, 0)})
 JC_WATER = {40: 1200, 41: 1600, 42: 1600, 43: 1600, 44: 1600}   # ML.B (10378 / 10566 / 10822 / 10863 / 11643)
 JC_SURF_FRAMES = [7795, 7802, 7803, 7804, 7796, 7797, 7798]      # LevelParalaxWaterSurface_14 anim 0 (both directions use the same images);
                                                                  # its 8th frame (7799) is shown as the 7th: one 512 x 512 4 bpp atlas (VRAM)
@@ -1991,6 +2007,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         if 1150 <= o['type'] < 1280: a = SBBOSS_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # SB_BOSS (sb_boss.c): sub id | instance layer << 8
         if 1280 <= o['type'] < 1536: a = JC_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # Jade Creek (jc_*.c): member index | instance layer << 8 | 0x8000 json layer 1 of a mapped frame
         if 1370 <= o['type'] < 1430: a = (JCG_LEAF_TILT.get((o['x'], o['y']), 0) // 30 if o['type'] == 1371 else JCG_SUB.get(o['cls'], 0)) | (o['layer'] << 8)   # JC_GIM (jc_gim.c): member index (leaf backs: tilt / 30) | instance layer << 8
+        if 1536 <= o['type'] < 1560: a = (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # TH_FLOW (th_flow.c): instance layer << 8 | 0x8000 json layer 1
         if 1100 <= o['type'] < 1150: a = SBG_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # SB_GIM (sb_gim.c): member index | instance layer << 8 | 0x8000: json layer 1 of a mapped frame (session 20: behind the json-2 pieces, scrolls with layer 1)
         d += struct.pack('<2H2i', o['type'], a, o['x'], o['y'])
     for t in table: d += t

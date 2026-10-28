@@ -827,6 +827,9 @@ static const objdef_t DEFS[] = {
     /* ==== end Jade Creek */
     /* ==== Trap Hideout (session 21b): one block per module */
     /* ---- TH_FLOW (th_flow.c) */
+    { OT_THF_BACKLIGHT, 0,                                     NULL         }, /* thbacklight1_3113 (frame by th_flow.c, 13532) */
+    { OT_THF_FLAME,     0,                                     NULL         }, /* thflame_3176 (torch flame, looping) */
+    { OT_THF_SPOT,      OD_HIDDEN,                             NULL         }, /* thspotlight_3209 (ctor invisible; TH3 14083 shows it) */
     /* ---- TH_ENEMIES (th_enemy.c) */
     /* ---- TH_GIM (th_gim.c) */
     /* ---- TH_BOSS (th_boss.c) */
