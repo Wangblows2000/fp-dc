@@ -72,7 +72,7 @@ for ch, nm in CHARS:
     if ch == 0 and rv:
         bad = [f for f in range(62, 690) if f - 2 in s and f in rv and (num(s[f - 2], 'x') != float(rv[f]['shrimp_x']) or num(s[f - 2], 'y') != float(rv[f]['shrimp_y']))]
         check('tb1 lilac: the head path is frame-exact vs RV s1_l (62-690, port = RV - 2)', not bad, 'first %s' % (bad[:1],))
-    s45 = [f for f, l in ev if l == 'sid 45']
+    s45 = [f for f, l in ev if l.split()[:2] == ['sid', '45']]
     check('tb1 %s: six segments down, sound 45 each' % nm, len(s45) == 6, str(s45[:8]))
     ex = sids(ev, 311, 319, 320)
     exs = [f for f in ex if 948 <= f <= 1060]
@@ -88,8 +88,12 @@ for ch, nm in CHARS:
 W3 = open(os.path.join(HERE, 'data', 'tb2_push.txt')).read() if os.path.exists(os.path.join(HERE, 'data', 'tb2_push.txt')) else None
 if W3 is None:
     W3 = '3 SETV others E 99999\n5 TP 6300 3560\n50 2400 R\n' + ''.join('%d %d X\n' % (f, f + 4) for f in range(150, 2400, 16)) + INV
+def milla_push():   # Milla deflects with the shield burst (B), released between pushes (R 18 / B 10)
+    s, f = '3 SETV others E 99999\n5 TP 6300 3560\n50 150 R\n', 150
+    while f < 2600: s += '%d %d R\n%d %d B\n' % (f, f + 17, f + 18, f + 27); f += 30
+    return s + INV
 for ch, nm in CHARS:
-    rows, ev, d = run('tb2', ch, 2600, W3)
+    rows, ev, d = run('tb2', ch, 2600, milla_push() if ch == 4 else W3)
     w = d.get('tbw', {})
     f1 = first(w, lambda r: r['C'] == '1')
     check('tb2 %s: the trapdoor closes behind the player (C 1)' % nm, f1 is not None and f1 < 120, str(f1))
@@ -100,7 +104,7 @@ for ch, nm in CHARS:
     check('tb2 %s: the barrier presses the switch (49) and the robot explodes 3 frames later (29; RV 344 / 347)' % nm,
           f2 is not None and len(s49) == 1 and len(s29) == 1 and s29[0] - s49[0] == 3, '%s %s %s' % (f2, s49, s29))
     check('tb2 %s: the switch counts as pressed and the blocks are lit (38 x2)' % nm,
-          w and w[max(w)].get('presses') == '1' and len([f for f in sids(ev, 38) if s49 and f >= s49[0]]) >= 2, w[max(w)].get('presses') if w else '-')
+          w and w[max(w)].get('presses') == '1' and len([f for f, l in ev if l.split()[:2] == ['sid', '38'] and s49 and f >= s49[0]]) >= 2, w[max(w)].get('presses') if w else '-')
     f3 = first(w, lambda r: r['C'] == '3')
     check('tb2 %s: the room opens (C 3, crystals 40)' % nm, f3 is not None and len(sids(ev, 40)) == 1, str(f3))
 
@@ -124,7 +128,7 @@ for ch, nm in CHARS:
     ex = [f for f in sids(ev, 311, 319, 320) if 800 <= f <= 940]
     s38 = sids(ev, 38)
     check('tb3 %s: second defeat: 18 explosions every 7 frames then 38 (RV 801-913, 920)' % nm,
-          len(ex) == 18 and len(s38) == 1 and s38[0] > ex[-1] and q[max(q)]['R'] == '1', '%d %s' % (len(ex), s38))
+          len(ex) == 18 and len(s38) == 1 and s38[0] > ex[-1] and q[max(q)]['R'] == '1', '%d %s %s R %s' % (len(ex), ex[-2:], s38, q[max(q)]['R']))
     g = d.get('tbg', {})
     keys = max((int(r.get('keys', 0)) for r in g.values()), default=-1)
     check('tb3 %s: the dropped card is picked up (keys 1)' % nm, keys >= 1, str(keys))
@@ -161,7 +165,59 @@ for ch, nm in CHARS:
     check('tb6 %s: the HUD slid up 40 px' % nm, x and num(x[max(x)], 'hud') == 40)
 # a real hit: the player on the platform under the hitbox (N 1 near 790), attacking
 for ch, nm in CHARS:
-    rows, ev, d = run('tb6', ch, 900, '3 SETV others E 99999\n60 400 R\n790 TP 1430 1380\n791 800 X\n806 815 X\n821 830 X\n836 845 X\n')
+    atk = 'B' if ch == 4 else 'X'
+    rows, ev, d = run('tb6', ch, 900, '3 SETV others E 99999\n60 400 R\n790 TP 1430 1380\n' + ''.join('%d %d %s\n' % (f, f + 9, atk) for f in (791, 806, 821, 836)))
     x = d.get('tbx', {})
     a0, a1 = num(x.get(785, {}), 'hA', -1), min((num(r, 'hA', 99) for f, r in x.items() if 790 <= f <= 899), default=-1)
     check('tb6 %s: a real attack hurts the hitbox (A 50 -> lower)' % nm, a0 == 50 and 0 < a1 < 50, '%s %s' % (a0, a1))
+
+# ======================================================================== TB3: the Syntax Spider and the lava chase (spec Part C)
+# RV p5_l (Lilac on the left ledge, HP refilled): the trigger at 60 (284), the walker's steps K 1-16 (a cycle of 1654 frames), the
+# stream / cannon sounds; RV p6_l / p7_l: A 0 at 400 -> 13 explosions, 38 at 487 (the parts fly off), 52 at 527 (the line), the
+# spikes (71 every 6 frames, 28 per shot); A 0 at 1100 -> 310 at 1214 (the chase), 309 at 1394, K 1 at 1445, K 2 below y 4288.
+SPK = {1: 189, 2: 288, 3: 426, 4: 552, 5: 629, 6: 764, 7: 903, 8: 932, 9: 990, 10: 1117, 11: 1267, 12: 1402, 13: 1479, 14: 1606, 15: 1756, 16: 1785}
+P5 = '3 SETV others E 99999\n59 TP 2860 3990\n' + ''.join('%d HP 14\n' % f for f in range(80, 1900, 20))
+rows, ev, d = run('tb3', 0, 1900, P5)
+sp = d.get('tbp', {})
+ks = {}
+for f in sorted(sp):
+    k = int(num(sp[f], 'K'))
+    if sp[f]['ph'] == '3' and k not in ks: ks[k] = f
+bad = [(k, ks.get(k), v) for k, v in SPK.items() if ks.get(k) is None or abs(ks[k] - v) > 6]
+check('tb3 lilac: the walker steps K 1-16 within 6 frames of RV p5', not bad, str(bad[:4]))
+s305, s303 = sids(ev, 305), sids(ev, 303)
+check('tb3 lilac: the stream (305) and cannon (303) sounds alternate (RV 297 / 572 / 773 / 932 ...)',
+      len(s305) >= 4 and len(s303) >= 4 and abs(s305[0] - 297) <= 3 and abs(s303[0] - 572) <= 3, '%s %s' % (s305[:4], s303[:4]))
+check('tb3 lilac: the stream pieces end in the cannon / the falls (sound 55)', len([f for f, l in ev if l.split()[:2] == ['sid', '55']]) >= 60)
+check('tb3 lilac: the stage voice when the walker lands (sx_lost) and the slot-4 music at the trigger',
+      [l for f, l in ev if l.startswith('voice') and 'sx_lost' in l] and music(ev, 'm_midboss'), str(music(ev, 'm_midboss')))
+def p9(ch):   # both defeats by BOSSHPT, then the run right (jumping)
+    return ('3 SETV others E 99999\n59 TP 2860 3990\n398 BOSSHPT 1980 0\n1098 BOSSHPT 1980 0\n' + ''.join('%d HP 14\n' % f for f in range(80, 1440, 30)) +
+            '1440 2600 R\n' + ''.join('%d %d J\n' % (f, f + 14) for f in range(1460, 2600, 40)))
+for ch, nm in CHARS:
+    rows, ev, d = run('tb3', ch, 2400, p9(ch))
+    sp = d.get('tbp', {})
+    hang = first(sp, lambda r: r['ph'] == '5')
+    s38, s52 = sids(ev, 38), sids(ev, 52)
+    check('tb3 %s: walker beaten: explosions, 38 and the hanging phase (RV 487), 52 (RV 527)' % nm,
+          hang is not None and s38 and abs(s38[0] - 487) <= 3 and s52 and abs(s52[0] - 527) <= 3, '%s %s %s' % (hang, s38[:1], s52[:1]))
+    s71 = sids(ev, 71)
+    check('tb3 %s: the hanging mask drops spikes (71 every 6 frames; RV 587-629)' % nm, len(s71) >= 8 and all(b - a == 6 for a, b in zip(s71[:8], s71[1:8])), str(s71[:4]))
+    s310, s309 = sids(ev, 310), sids(ev, 309)
+    check('tb3 %s: the end: 310 (RV 1214), the wall comes (309; RV 1394)' % nm,
+          s310 and abs(s310[0] - 1214) <= 6 and s309 and abs(s309[0] - 1394) <= 6, '%s %s' % (s310, s309))
+    k1 = first(sp, lambda r: r['ph'] == '6' and r['K'] == '1')
+    k2 = first(sp, lambda r: r['ph'] == '6' and r['K'] == '2')
+    check('tb3 %s: the run starts (K 1; RV 1445) and ends in the room below (K 2: y > 4288)' % nm,
+          k1 is not None and abs(k1 - 1445) <= 6 and k2 is not None and num(sp[k2], 'py') > 4288, '%s %s' % (k1, k2))
+    check('tb3 %s: the player outruns the wall (alive, HP left)' % nm, rows and rows[-1].get('hp', 0) > 0 and rows[-1]['x'] > 7000, '%s %s' % (rows[-1].get('hp') if rows else '-', rows[-1]['x'] if rows else '-'))
+# real hits on the walker's mask (standing at the right end in K 2)
+for ch, nm in CHARS:
+    atk = 'B' if ch == 4 else 'X'
+    sc = '3 SETV others E 99999\n59 TP 2860 3990\n300 TP 3670 3980\n' + ''.join('%d %d %s\n' % (f, f + 9, atk) for f in range(302, 400, 14)) + ''.join('%d HP 14\n' % f for f in range(80, 400, 20))
+    rows, ev, d = run('tb3', ch, 400, sc)
+    sp = d.get('tbp', {})
+    check('tb3 %s: real attacks hurt the mask (A 200 -> lower)' % nm, sp and num(sp[max(sp)], 'A') < 200, sp[max(sp)]['A'] if sp else '-')
+
+print('%d failures' % fails)
+sys.exit(1 if fails else 0)

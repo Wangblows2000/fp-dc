@@ -119,7 +119,7 @@ void tbw_frame(player_t *p) {
     if (W.C == 2) {
         W.B = fmin(W.B + 3, 128);                                               /* inline: the door opens */
         W.boom_t++;
-        if (W.boom_t == 3 && r && !W.boomed) {                                  /* 12010: sound 29, explosions, debris, the robot gone (RV: 3 frames after 49) */
+        if (W.boom_t == 4 && r && !W.boomed) {                                  /* 12010: sound 29, explosions, debris, the robot gone (RV w1_l: 3 frames after 49) */
             W.boomed = 1; snd_play_orig(29, 220, 128); snd_play_orig(38, 220, 128);
             obj_effect(r->x, r->y - 20, "explosion"); obj_effect(r->x, r->y - 20, "explosion06");
             for (int k = 0; k < 4; k++) {
