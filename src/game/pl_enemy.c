@@ -23,7 +23,7 @@
 #define FLS10 0x80000                                /* back swarm: on json layer 1 scrolling at 1 (objects_draw(-1) would use 0.8: drawn by pl_enemy_draw(-1)) */
 #define RT0 OT_PLE_FIRST
 #define NRT (OT_PLE_LAST - OT_PLE_FIRST + 1)
-#define PL_LMAX 320                                  /* the stingers' list: nests (15 each) and wall stingers add them at run time */
+#define PL_LMAX 160                                  /* per type (the stingers: nests (15 each) and wall stingers add them; the port caps them at 152, INFERRED budget) */
 typedef struct { short idx[PL_LMAX]; int n; } pl_list_t;
 static pl_list_t LST[NRT];
 #define EACH(T, OB) for (int _k = 0; _k < LST[(T) - RT0].n; _k++) if (((OB) = &G.o[LST[(T) - RT0].idx[_k]])->alive && (OB)->type == (T))
