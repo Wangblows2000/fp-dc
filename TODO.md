@@ -1,5 +1,13 @@
 # TODO (priority order)
 
+## Session 22 targeted fixes
+- [x] TB4 bomb switches (3 destroyers per switch, RE 11957/11958), TB6 boss contact only in the dive + dive softlock, TB rails /
+      FN zip-line grips (whole-image hang boxes), hurt-state 3 s cap, C -> X labels + pad mapping, 200-crystal lives with m_1up,
+      TH3 camera after the basher
+- [ ] TH3 pillars for Milla: no change made (matches the original; Milla passes in host tests) — get the exact spot from the user
+- [ ] Spike-sphere contact rule (TB6, RE 12710) not fully matched; the 1UP pop-up / sparkles not ported; lit-block spiral every
+      4th frame (INFERRED, perf)
+
 ## Gameplay evidence still missing
 - [x] Turretus firing pattern / pellet / damage (RE, session 4)
 - [x] Handlebar grab and hold (RE); [ ] release and moving along the bar (events 4057-4066)
