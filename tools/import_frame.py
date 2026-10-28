@@ -989,6 +989,22 @@ JCB_ENS_WITH = {'bosshovercopchargeglow_2471': _HC, 'bossicecrystal_2466': _HC, 
 ENS += JCB_ENS   # JC_BOSS
 for _k, _v in JCB_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # JC_BOSS
 for _e in JCB_ENS: ROW_FRAMES[_e[3]] = JCB_FRAMES   # JC_BOSS rows only in JC1-JC4 (JC5 exports its own)
+# JC5's ice ambush (session 22; jc_boss.c M_AMBUSH, RE 11043-11072 group 0x22afe, RV build/orig_traces/jc_boss5 amb_l / amb_c /
+# amb_m): JC5 places the same Hovercop rig, NPCNeera, her hitbox, PlayerIceDeath (her ice block) and the hook, so the remap also runs
+# in json 44 (JCB_REMAP_FRAMES). Only the rows that ambush draws are exported there: the rig, the ice missile flying left, the
+# spikes, the ice block (anim 7), the hook facing left, Neera's fall / landing / cast (anims 7 / 10 / 12 facing left). The rig's
+# parts and the ice block are off-map templates in json 44 (y < 0): JCB_AMBUSH_WITH pulls their rows in with the placed Neera.
+JCB_AMBUSH_FRAMES = {44}
+JCB_REMAP_FRAMES = JCB_FRAMES | JCB_AMBUSH_FRAMES
+JCB_AMBUSH_ROWS = ('jcb_hc_l', 'jcb_tb1', 'jcb_tb1_l', 'jcb_tb2', 'jcb_tb2_l', 'jcb_prop', 'jcb_sir1', 'jcb_sir2', 'jcb_hook2',
+                   'jcb_hook_l', 'jcb_light', 'jcb_light_l', 'jcb_mis_l', 'jcb_sticky', 'jcb_iced7', 'jcb_n7_17', 'jcb_n10_17', 'jcb_n12_16')
+for _nm in JCB_AMBUSH_ROWS: ROW_FRAMES[_nm] = ROW_FRAMES[_nm] | JCB_AMBUSH_FRAMES
+# BossHovercop anim 0 (direction 0) runs at speed 0: only its first image is ever shown (RE anims.json max_speed 0), so JC5 takes
+# that image alone ('jcb5_hc'; jc_boss.c falls back to it when 'jcb_hc' is absent). Its anim 7 (11068, E 3) is not exported: the
+# body is above the view then (RV amb_l f420: view top 1578, the Hovercop's box 1496-1624) and the frames are 192 x 128 (INFERRED)
+ENS.append(('bosshovercop_2429', 0, '0', 'jcb5_hc', slice(0, 1), _HC)); ROW_FRAMES['jcb5_hc'] = JCB_AMBUSH_FRAMES
+JCB_AMBUSH_WITH = {'bosshovercopturbine1', 'bosshovercopturbine2', 'bosshovercoppropellor', 'bosshovercopsiren1', 'bosshovercopsiren2',
+                   'bosshovercophook', 'bosshovercophook2', 'levelhovercraftlight', 'playericedeath'}
 # JC3's moving layer (the subtanker scene 0x22a5d, 10799-10817, spec_jc_bosses 4.8): json layer 4 (port 3) moves after Neera, and
 # a player beyond X 10580 is on it (10804 / 10805: she tests that layer's backdrops only). <name>_mvl.bin: 'MVL1' u8 port layer,
 # u8 json layer, u16 nobj, tw, th, nuniq, tx0; nobj x {u16 type; s32 x, y} (the layer's objects: they move with it); pad to 4;
@@ -1835,8 +1851,8 @@ def main():
     objs = [o for o in objs if not (800 <= o['type'] < 860 and n not in FNBOSS_FRAMES)]   # FN_BOSS: its classes only in FN1-FN3 / FN5
     objs = [o for o in objs if not (1150 <= o['type'] < 1280 and n not in SBBOSS_FRAMES and not (n in THB_SPADE_FRAMES and 1220 <= o['type'] <= 1222))]   # SB_BOSS: its classes only in SB1-SB4 (TH_BOSS: Spade in TH3)
     for o in objs:                                   # JC_BOSS: the shared Hovercop / Neera classes are jc_boss.c's types in JC1-JC4
-        if n in JCB_FRAMES and o['cls'] in JCB_CLS: o['type'] = JCB_CLS[o['cls']]
-    objs = [o for o in objs if not (1430 <= o['type'] < 1480 and n not in JCB_FRAMES)]   # JC_BOSS: its types only in JC1-JC4
+        if n in JCB_REMAP_FRAMES and o['cls'] in JCB_CLS: o['type'] = JCB_CLS[o['cls']]
+    objs = [o for o in objs if not (1430 <= o['type'] < 1480 and n not in JCB_REMAP_FRAMES)]   # JC_BOSS: its types only in JC1-JC5 (JC5: the ice ambush)
     for o in objs:                                   # SB_ENEMIES (session 19b): SB1 / SB3's placed EffectWarning_1528 (SB4's: the boss's 1188)
         if o['cls'] == 'effectwarning_1528' and n in SBE_WARN_FRAMES: o['type'] = 1039
     for o in objs: o['fna'] = FNA_SUB.get(o['cls'], 0) | FNA_FLAGS.get((o['cls'], n), 0) | (o['layer'] << 8)   # FN_GIMA (fn_gima.c)
@@ -2035,6 +2051,7 @@ def main():
         placed = {o['cls'].rsplit('_', 1)[0] for o in fr['objects']
                   if o['cls'] not in _jct or (o['x'] is not None and 0 <= o['x'] < fr['width'] and 0 <= o['y'] < fr['height'])}
     if any(o['cls'].startswith('monitor') and o['cls'].endswith('shield') and o['x'] >= 0 for o in fr['objects']): placed.add('shieldmonitor_onmap')
+    if n in JCB_AMBUSH_FRAMES and 'npcneera' in placed: placed |= JCB_AMBUSH_WITH   # JC_BOSS: the ice ambush's off-map rig / ice block (above)
     # Lilac's own shields (spec_shields 0): every stage frame places the six off-map q21 instances and runs 2673-2705 (RE,
     # build/re/f17..f29_calls), and OTHERS.B is global, so a shield carried into an act without an on-map shield monitor is
     # still drawn there. Those acts get the shield rows in a separate bank <name>_shl, loaded only when a shield is carried
