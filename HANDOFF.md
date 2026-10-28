@@ -128,6 +128,22 @@ spec_rm_golems, spec_rm_claw, spec_rm_mantalith, rm_inventory.
   Mantalith sounds 147 / 214 / 215 not ported; INFERRED items in RE_NOTES. An agent published a private working page
   (spec_rm_enemies) during research; it is still in the user's artifacts (delete only if the user asks).
 
+## Session 21 (2026-10-27/28): SB boss voices / HUD, Jade Creek
+Details: RE_NOTES / RUNTIME_MAP "Session 21", DECISIONS D-103 to D-107, BUILD_AND_TEST_LOG "Session 21", ASSET_PIPELINE
+"Session 21". Specs (not committed): build/re/jc_inventory.md, spec_jc_flow / enemies / gimmicks / bosses / boss5.md, JC_BRIEF.md;
+traces build/orig_traces/jc_*.
+- **SB fixes:** the Kujacker's HUD return (RE 9010) and Prince Dail's dialogue / replies (9011-9022, 9163), Spade's taunts
+  (9625-9628), SB1's results voice (6589-6592). Stage voices (`level_def_t.vox`) load with the stage sound group.
+- **Jade Creek (stage index 5, json 40-44 = jc1-jc5, set_frame 39-43; types 1280-1535):** jc_flow.c (route SB1 -> JC1 ->
+  ... -> JC5, JC1 throw-in entry, water band, loops), jc_enemy.c (8 enemies + launchers), jc_gim.c (water streams, leaf /
+  flying leaf / slab / collapsing platforms, seeds and bubbles (ST_RIDE), slippery walls), jc_boss.c (JC1 Hovercop fly-by,
+  JC2 chase, JC3 Neera + the subtanker ride on moving layers), jc_boss5.c (JC5: ice ambush, Tredd, Serpentine 2, gunship,
+  storm, results). The Brevon mech fly-by scene, the ice death and the Adventure dialogue are not ported.
+- **Engine additions (inactive unless a level sets them):** per-layer draw offsets and a moving collision map
+  (`level_t.lay_dx/dy`, `level_t.mv`, `<lv>_mvl.bin`), `ST_RIDE`, G.slowmo, parallax water mode 2, flip 2 (mirrored left
+  rows), FP_SID_MISS / FP_TRACE_HUD host tracers, DC demo CHARSET.
+- Process: five parallel module agents in worktrees from a skeleton commit (types / stubs / marker blocks), merged by the lead.
+
 ## Session 20 (2026-10-27): bug-fix addendum (8 user-reported bugs)
 Restored from fpdc_session19b.bundle (c5fbcc4); toolchain, KOS, mkdcdisc, Flycast, Ghidra 11.4.2, fprun and all 23 levels
 rebuilt (see ASSET_PIPELINE "Session 20"). The user's Ghidra project and traces are unpacked under build/re and
@@ -287,17 +303,18 @@ D-072, BUILD_AND_TEST_LOG "Session 15". Spec: build/re/fe/spec_gallery.md (not c
   Aqua Tunnel: session 12.)
 
 ## Latest verified
-- host-test (session 20, final code): the 24 session-19 suites plus transitions and rm_visuals, all 0 failures. Trace
-  comparers unchanged (cmp_all 76/76 strict 11311/11377, cmp_carol 43/53, cmp_milla 37/43, cmp_at 21/35).
-- emulator (Flycast, session 20): FN6 -> SB1 -> DV1 -> RM1 with Milla and Lilac, player drawn throughout; SB1 sail in
-  front of the airships; Kujacker glow; SB3 bases pass. SB1 Carol Kujacker perf identical to c5fbcc4 (VRAM free 515 KB both).
-  Audio not checked in the emulator (host-verified). **Nothing measured on real hardware.**
+- host-test (session 21, Jade Creek merged): 33 suites 0 failures (incl. test_jc_flow / enemies / gimmicks / bosses / act5 /
+  progress); comparers unchanged (cmp_all 76/76 strict 11311/11377, cmp_carol 43/53, cmp_milla 37/43, cmp_at 21/35); all 23
+  earlier levels rebuild byte-identical with the session-21 importer and render pixel-identical to the session-start build
+  (Lilac / Carol / Milla, 720 frames each).
+- emulator (Flycast, session 21): JC1-JC5 load for Lilac / Carol / Milla, VRAM free >= 596 KB (Carol JC2 / JC3 worst), sound
+  RAM >= 113 KB (Milla JC5, before the JC5 group trim); SB1 HUD back during the Kujacker fight. **Nothing on real hardware.**
 
 ## Next actions
-1. Real hardware: the FN -> SB transition, SB1 (Carol: 515 KB VRAM free), the Kujacker's lightning, FN3 / FN5 Carol.
-2. Play each SB act through per character and the TODO "Sky Battalion" INFERRED items (Kujacker S==4 red glow).
-3. Decide on the RM3 / FN5 solid Quick Backdrops (TODO).
-4. Next stage: Jade Creek (json 40-44, stage index 5) via ASSET_PIPELINE "Adding a level".
+1. Trap Hideout (Carol / Milla after Jade Creek; json 57-59) — session 21 continues with it.
+2. Thermal Base (Lilac after Jade Creek; json 45-50).
+3. JC leftovers (TODO "Jade Creek"): Brevon mech fly-by (half-resolution ENS rows), ice death, rain, Elite constants.
+4. Real hardware: SB1 / JC2 / JC3 with Carol (VRAM), JC5 Milla (sound RAM).
 
 ## Carol: verified vs approximated
 - **Matched to original traces (RV, cmp_carol, 53 traces):** on-foot movement, pounce chains, roll and roll jump, crouch

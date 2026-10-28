@@ -403,3 +403,20 @@ long as they fit the object generalisation rules; decompile where the behaviour 
 ## D-102 (session 20): one verification disc per batch
 User instruction: do not build a disc per change. Batch all changes, build one verification disc, check everything on it,
 then go back to code if needed; keep other process steps lean (fewer reruns, shorter logs).
+
+## D-103 (session 21): stage voices with the stage sound group
+`level_def_t.vox`: voice clips a level plays mid-play (boss dialogue) load with its stage sound group (lilac_ / carol_ / milla_
+names only for that character) and play through voice_play; one-shot result voices stay on demand (voice_play_once).
+
+## D-104 (session 21): parallel module agents from a skeleton
+A new stage is split into flow / enemies / gimmicks / bosses modules with fixed type ranges, stub files, hook wiring and
+marker blocks committed first; agents work in worktrees and the lead merges, rebuilds and runs the batched regression.
+
+## D-105 (session 21): Jade Creek-only packers
+The skyline packer (pieces, _ens) and the greedy-filled first _ens page are used for Jade Creek frames only, so every earlier
+level's data stays byte-identical; mirrored left rows of JC enemies are drawn flipped (flip 2, 1 px hotspot shift).
+
+## D-106 (session 21): moving collision layers
+A level may offset whole port layers (draw) and one moving collision map (`<lv>_mvl.bin`); used only by JC3's subtanker.
+
+## D-107 (session 21): off-map templates of JC classes do not pull their sprite rows in

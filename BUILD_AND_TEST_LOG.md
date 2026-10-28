@@ -519,3 +519,16 @@ Labels: original-trace (RV), RE, host-test, emulator (Flycast, emulated time). *
   bases; 602 vblanks / 600 frames in steady windows. SB1 Carol Kujacker, new vs c5fbcc4: VRAM free 515 / 515 KB, update
   2.0-3.9 ms / 2.0-3.8 ms, draw 12.8-14.7 ms both, slow-frame counts identical. Audio not checked in the emulator.
 - **DC build:** 0 warnings. **Emulator only; nothing measured on real hardware.**
+
+## Session 21 (2026-10-27/28): SB voices / HUD, Jade Creek
+- **SB:** test_sb_bosses voices / HUD checks for Lilac, Carol, Milla (CHARS fixed: FP_CHAR 0 / 2 / 4) 0 failures.
+- **Jade Creek host suites:** test_jc_flow (76+), test_jc_enemies (39), test_jc_gimmicks, test_jc_bosses (incl. the JC3
+  subtanker route for all three), test_jc_act5 (32), test_jc_progress (save / results / TA, 19): 0 failures.
+- **Batched regression (after the last JC merge):** 33 suites 0 failures (test_pack's stale resident count fixed: it failed at
+  the session start too); cmp_all 76/76 strict 11311/11377, cmp_carol 43/53, cmp_milla 37/43, cmp_at 21/35 (unchanged); 23
+  earlier levels byte-identical rebuilds, renders identical to 6a260d8 for Lilac / Carol / Milla.
+- **Flycast (2 verification discs):** first disc: SB1 HUD visible in the Kujacker fight; JC2 / JC3 with Carol 84 / 8 KB VRAM
+  free (JC3 textures failing) -> skyline piece atlases; second disc: VRAM free JC1-JC5 Carol 1364 / 596 / 596 / 2031 / 909,
+  Milla 1532 / 764 / 764 / 2199 / 1077, Lilac JC2 / JC3 / JC5 1125 / 1125 / 1437 KB; sound RAM min 113 KB (Milla JC5, then
+  trimmed by ~38 KB); 600-frame windows show the usual ~12 slow frames (as SB1). Audio not checked (no audio device).
+  **Emulator only.**
