@@ -76,7 +76,11 @@ with tempfile.TemporaryDirectory() as d:
               all(s['rec'][x][y][0] == 0 for x in range(STAGES) for y in range(CHARS) if (x, y) != (JC, c)), str(s and s['rec'][JC]))
         rows = [l.split() for l in out.splitlines() if l.startswith('f ')]
         modes = [int(r[r.index('mode') + 1]) for r in rows if 'mode' in r]
-        check('%s_leaves_stage_after_results' % cn, modes and modes[-1] != modes[len(modes) // 2], 'mode %s -> %s' % (modes[len(modes) // 2] if modes else None, modes[-1] if modes else None))
+        if ch == 0:
+            check('%s_leaves_stage_after_results' % cn, modes and modes[-1] != modes[len(modes) // 2], 'mode %s -> %s' % (modes[len(modes) // 2] if modes else None, modes[-1] if modes else None))
+        else:   # session 21b: Classic routes Carol / Milla on to Trap Hideout (RE handle_frame_9: I 5, g1 != 0 -> frame 56)
+            acts = [int(r[r.index('act') + 1]) for r in rows if 'act' in r]
+            check('%s_leaves_stage_after_results' % cn, acts and acts[len(acts) // 2] == 5 and acts[-1] == 1 and modes[-1] == 1, 'act %s -> %s' % (acts[len(acts) // 2] if acts else None, acts[-1] if acts else None))
         # ---- Time Attack: the record only, no file
         st = os.path.join(d, 'ta_%s.bin' % cn)
         run('jc5', ch, 4200, fight(ch, 2400), {'FP_TA': '1', 'FP_SAVE': st})
