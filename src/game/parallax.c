@@ -12,7 +12,8 @@
  * Sky Battalion (session 19, spec_sb_flow 4): 9198 replaces 3542 in every SB act, K = (vt + 20 sin(g3 deg) - 20) E + C (the
  * whole sky bobs with the frame counter g3, flag 2048; the port's g3 is the stage frame counter); Zao's airship
  * (LevelParallaxZaoShip_2243, a layer-0 SystemBox at a world position) is drawn once at (D, y0) in world coordinates in its
- * place between the pieces (flag 4096). */
+ * place between the pieces (flag 4096). Battle Glacier (session 24, spec_bg_flow 5): Brevon's ship and its close views (BG4 / BG5) are
+ * placed by 14550 / 14551 at (D vl + F, E vt + C) without the wrap: drawn once (flag 8192; F = the world x, stored in bw). */
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -173,6 +174,8 @@ static void draw_pieces_pass(int gframe, int front) {
             continue;
         }
         if (p->flags & 4096) { draw_image(p->img, (int)p->D - vl, p->y0 - vt, -32768, 32767); continue; }   /* SB Zao's airship (world) */
+        if (p->flags & 8192) {                            /* BG Brevon's ship (14550 / 14551): once at (D vl + x, E vt + C), x = bw */
+            draw_image(p->img, (int)trunc(p->D * vl + p->bw) - vl, (int)trunc(p->E * vt + p->y0) - vt, -32768, 32767); continue; }
         int A = p->bw, ih = IMG[p->img].h, iw = IMG[p->img].w;   /* box width (AT4 piece6_853: 400 for a 384-px image) */
         double C = p->y0;
         double bvt = vt;

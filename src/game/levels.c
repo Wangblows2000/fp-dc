@@ -257,12 +257,30 @@ static const short SFX_PL3[] = { 99, 10, 50, 323, 38, 311, 319, 320, 44, 33, 325
 static const short SFX_PL4[] = { 99, 10, 50, 323, 38, 311, 319, 320, 147, 51, 327, 29, 328, 329, 33, 325, 326, 7, 174, 288, 322, 324 };
 static const short SFX_PL5[] = { 99, 10, 50, 323, 38, 311, 319, 320, 147, 51, 327, 29, 44, 328, 329, 150, 33, 325, 326, 322, 324 };
 static const short SFX_PL6[] = { 99, 147, 51, 38, 311, 319, 320, 150, 62, 132, 7, 174, 288, 322, 324, 333, 330, 331, 332, 200, 169, 45, 334, 76, 29, 23, 24, 25 };
-/* Battle Glacier (session 24, stage index 9; provisional rows: the flow agent sets music, cards, routes) */
-static const short SFX_BG1[] = { 62, 99 };
-static const short SFX_BG2[] = { 62, 99 };
-static const short SFX_BG3[] = { 62, 99 };
-static const short SFX_BG4[] = { 62, 99 };
-static const short SFX_BG5[] = { 62, 99 };
+/* Battle Glacier (session 24, stage index 9 = the "STAGE 8" card for everyone; spec_bg_flow, bg_flow.c). Checkpoints (RE, g4 / g5 / g6 +
+ * loop_cp_16, all inline in handle_frame_60..64): BG1 (g4 < 2, 4438 < X < 4538 -> (2, 4438, 900); g4 < 3, 9400 < X < 9500 -> (3, 9458,
+ * 620)), BG2 (g4 < 2, 6040 < X < 6200 -> (2, 6150, 96)), BG3 (g4 < 2, 6044 < X < 6200 -> (2, 6138, 420)), BG4 none of its own (14502:
+ * the opening Brevon mech's end -> (5, 444, 1800), bg_flow_opening_cleared), BG5 (g4 < 1, 2736 < X < 2936, MV.Y > 1000 -> (1, 2836,
+ * 1260): only before the walk-in's g4 1; g4 < 2, 5000 < X < 5200 -> (2, 5000, 720); g4 < 3, 7450 < X < 7650 -> (3, 7550, 400); g4 < 4,
+ * 8100 < X < 8400, MV.Y > 1600 -> (4, 8260, 1870)), BG6 none (no loop_cp_16 in handle_frame_65) */
+static const cpzone_t CP_BG1[] = { { 4438, 4538, 2, 4438, 900, 0, 0 }, { 9400, 9500, 3, 9458, 620, 0, 0 } };
+static const cpzone_t CP_BG2[] = { { 6040, 6200, 2, 6150, 96, 0, 0 } };
+static const cpzone_t CP_BG3[] = { { 6044, 6200, 2, 6138, 420, 0, 0 } };
+static const cpzone_t CP_BG5[] = { { 2736, 2936, 1, 2836, 1260, 1000, 0 }, { 5000, 5200, 2, 5000, 720, 0, 0 },
+                                   { 7450, 7650, 3, 7550, 400, 0, 0 }, { 8100, 8400, 4, 8260, 1870, 1600, 0 } };
+/* Milla's dig in BG1 / BG2 (RE handle_frame_60 inline / 14165: MV.L = 1 -> every MILLA.D = 1, i.e. anywhere on the ground; 3313 clears it
+ * each frame): one zone over the whole frame. BG3-BG6 run 3313 and the spot events but no D writer (RE by absence): no dig there. Rewards
+ * by spot index A (newest first; 5821 A 0 MonitorEarthShield, 5822 A 1 crystals x5, 14166 A 2 crystals x5, 5824 A 3 MonitorKeystone +
+ * crystals x2; BG2's spots 4 / 5 have none) */
+static const zone_t DIGZ_BG_ALL[] = { { -32768, 32767, -32768, 32767 } };
+static const signed char DIGR_BG[] = { DIG_EARTH_MON, DIG_CRYSTALS, DIG_CRYSTALS, DIG_KEYSTONE_MON };
+/* the stage's own sounds per act (11025 Hz): the flow events play none of their own (RE: the Media calls of the BG flow events are the shared
+ * pause / weapon / debris ones); 62 jump pads, 99 explosions; the enemy / gimmick / boss modules add theirs */
+static const short SFX_BG1[] = { 62, 99, 55, 67, 127 };
+static const short SFX_BG2[] = { 62, 99, 55, 438, 127 };
+static const short SFX_BG3[] = { 62, 99, 55, 73, 127, 172, 173, 195, 306 };
+static const short SFX_BG4[] = { 62, 99, 54, 127, 192, 195, 231, 233, 264, 275, 306, 438 };
+static const short SFX_BG5[] = { 62, 99, 54, 73, 127, 192, 195, 231, 233, 264, 306, 308, 316, 345, 346, 438 };
 static const short SFX_BG6[] = { 62, 99 };
 #define BG(d, f, n, mus) .dir = d, .frame = f, .stage = 9, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_BG##n, .nsfx = N_(SFX_BG##n)
 /* Final Dreadnought (session 24, stages 10-13 = rounds 1-4, two levels each; provisional rows: the FD flow agent finalises) */
@@ -415,8 +433,26 @@ static const level_def_t LEVELS[] = {
       .card_first = 88, .cps = CP_PL5, .ncps = N_(CP_PL5) , .max_objs = 1280 /* session 23: A5 ~812 + 152 stingers / gas (pl_gim / pl_enemy reports) */ },
     { PL("pl6", 55, 6, "bgm/m_stage8b.adp"), .mus4 = "bgm/m_boss4.adp", .mus6 = "bgm/m_stage8b.adp", .mus7 = "bgm/m_stage8b.adp",
       .cps = CP_PL6, .ncps = N_(CP_PL6), .res_wipe = 1 },
-    { BG("bg1", 59, 1, "bgm/m_stage9.adp") }, { BG("bg2", 60, 2, "bgm/m_stage9.adp") }, { BG("bg3", 61, 3, "bgm/m_stage9.adp") },
-    { BG("bg4", 62, 4, "bgm/m_stage9b.adp") }, { BG("bg5", 63, 5, "bgm/m_stage9b.adp") }, { BG("bg6", 64, 6, "bgm/m_stage9b.adp") },
+    /* Battle Glacier: frame index 59-64 (session 24, spec_bg_flow; bg_flow.c). Every character (no g1 write in the start events). Music
+     * (RE loop wrappers 4-7 of frames 59-64): slot 5 m_stage9 in BG1-BG3 (loop_play_music_5_59), m_stage9b in BG4-BG6 (5_62 / 5_64);
+     * slot 4 m_midboss (4_13) in BG1-BG3, m_boss6 in BG4 / BG5 (4_62), m_boss3 in BG6 (4_64); slots 6 / 7 play nothing in BG1-BG5
+     * (6_59 only resets ControllerMusic), BG6 m_hub4 / m_rescue (6_64 / 7_64). Every start plays slot 5 (2968 BG1-BG3, 12465 BG5 /
+     * BG6) except BG4: 14607 fadeout_music(2000) while g4 < 5 (the opening mech fight), 14608 play_music(5) from g4 5 (.music_fade_g4).
+     * Cards (ObjectCodec A newest first from the start counters 91 / 93 / 95 / 97 / 99) = cards 91-100; ML.Q 42-47. ML.A 1 / ML.B 2000
+     * (BG1-BG3) / 3000 (BG4-BG6) but no water events (4150-4170) in handle_frame_60..65: dry. BG1 starts with the card (4307), BG2-BG6
+     * walk in (4477 / 6051 / 4526); BG1-BG5 end at the right edge (4135 -> 3578); BG6 by its boss's results and the wipe (8547-8549 ->
+     * frame 8 -> I 9 -> frame 65, Final Dreadnought round 1). Camera E (RV bg*_start): beyond the frame width in BG1-BG4 (13197 / 13973 /
+     * 11453 / 13197) and BG5 (the Sign at its right edge + 213): no cam_right; BG6 2661 = its Sign (2448) + 213. */
+    { BG("bg1", 59, 1, "bgm/m_stage9.adp"), .mus4 = "bgm/m_midboss.adp", .card_first = 91, .start_card = 1, .cps = CP_BG1, .ncps = N_(CP_BG1),
+      .dig_zones = DIGZ_BG_ALL, .ndig_zones = N_(DIGZ_BG_ALL), .dig_rewards = DIGR_BG, .ndig_rewards = N_(DIGR_BG) },
+    { BG("bg2", 60, 2, "bgm/m_stage9.adp"), .mus4 = "bgm/m_midboss.adp", .card_first = 93, .cps = CP_BG2, .ncps = N_(CP_BG2),
+      .dig_zones = DIGZ_BG_ALL, .ndig_zones = N_(DIGZ_BG_ALL), .dig_rewards = DIGR_BG, .ndig_rewards = N_(DIGR_BG) },
+    { BG("bg3", 61, 3, "bgm/m_stage9.adp"), .mus4 = "bgm/m_midboss.adp", .card_first = 95, .cps = CP_BG3, .ncps = N_(CP_BG3) },
+    { BG("bg4", 62, 4, "bgm/m_stage9b.adp"), .mus4 = "bgm/m_boss6.adp", .card_first = 97, .music_fade_g4 = 5 },
+    { BG("bg5", 63, 5, "bgm/m_stage9b.adp"), .mus4 = "bgm/m_boss6.adp", .card_first = 99, .cps = CP_BG5, .ncps = N_(CP_BG5),
+      .max_objs = 1280 /* 747 on-map placements (118 + 102 switch blocks, 55 platforms) + elite / anti-grav spawns, crystals, shots */ },
+    { BG("bg6", 64, 6, "bgm/m_stage9b.adp"), .mus4 = "bgm/m_boss3.adp", .mus6 = "bgm/m_hub4.adp", .mus7 = "bgm/m_rescue.adp", .res_wipe = 1,
+      .cam_right = 2448 + 213 /* RV bg6_start_lilac: CAM.E 2661 = the Sign (2448) + 213 */ },
     { FD("fd1a", 65, 10, 1, SFX_FD1A, "bgm/m_stage10.adp") }, { FD("fd1b", 66, 10, 2, SFX_FD1B, "bgm/m_stage10.adp") },
     { FD("fd2a", 67, 11, 1, SFX_FD2A, "bgm/m_stage10b.adp") }, { FD("fd2b", 68, 11, 2, SFX_FD2B, "bgm/m_stage10b.adp") },
     { FD("fd3a", 69, 12, 1, SFX_FD3A, "bgm/m_stage10c.adp") }, { FD("fd3b", 70, 12, 2, SFX_FD3B, "bgm/m_stage10c.adp") },
@@ -529,10 +565,11 @@ const entry_t *level_entry(const char *from) {
 /* Classic route after a stage (RE frame 8 = handle_frame_9 inline, Classic block g0 = 1; spec_records_saves 1 / spec_th_flow 1.2):
  * MenuSequence.I = the finished stage s -> the next frame, by g1 (0 Lilac / != 0 Carol, bike-Carol, Milla): I 0 / 1 -> 24 (RM),
  * 2 -> 29 (FN), 3 -> 35 (SB), 4 -> 39 (JC), 5 -> 44 (Thermal Base, g1 = 0) / 56 (Trap Hideout, g1 != 0), 6 -> 50 (Pangu Lagoon,
- * g1 = 0) / 84 (before Battle Glacier), 7 -> 84 (g1 = 0) / 56 (g1 != 0), 8 -> 84 (g1 = 0) / 44 (g1 != 0). As stage indices (-1:
- * frame 84, Battle Glacier's lead-in). A stage the port lacks gives NULL: back to the front end (frame 84 / Battle Glacier not ported:
- * TB6 -> PL1 for Lilac, PL6 -> the front end). */
-static const signed char ROUTE[9][2] = { { 2, 2 }, { 2, 2 }, { 3, 3 }, { 4, 4 }, { 5, 5 }, { 6, 8 }, { 7, -1 }, { -1, 8 }, { -1, 6 } };
+ * g1 = 0) / 84 (before Battle Glacier), 7 -> 84 (g1 = 0) / 56 (g1 != 0), 8 -> 84 (g1 = 0) / 44 (g1 != 0), 9 -> 65 (Final Dreadnought
+ * round 1, every g1). Frame 84 is the shoot-'em-up lead-in to Battle Glacier (on_frame_85: m_schmup, the dragon ride; not ported): its
+ * end (22695) sets g4 0 and frame 59 = BG1, so the port routes I 6 (g1 != 0) / I 7 / I 8 (g1 = 0) straight to Battle Glacier (stage 9;
+ * session 24). As stage indices; a stage the port lacks gives NULL: back to the front end. */
+static const signed char ROUTE[10][2] = { { 2, 2 }, { 2, 2 }, { 3, 3 }, { 4, 4 }, { 5, 5 }, { 6, 8 }, { 7, 9 }, { 9, 8 }, { 9, 6 }, { 10, 10 } };
 const char *level_route_next(int stage) {
     if (stage < 0 || stage >= (int)(sizeof ROUTE / sizeof ROUTE[0])) return NULL;
     int s = ROUTE[stage][G.character != CHR_LILAC];               /* g1 = 0: Lilac only */
@@ -575,10 +612,11 @@ void level_camera_bounds(void) {
     }
 }
 void level_release_camera(int keep_trigger) { if (!keep_trigger) cam_locked = 0; camera_normal_bounds(); G.cam_m2 = 1; }
-static void checkpoint(int g4, float x, float y) {                  /* g4 / g5 / g6 + loop_cp_16 (restart values) */
+void level_checkpoint(int g4, float x, float y) {                   /* g4 / g5 / g6 + loop_cp_16 (restart values; public for stage scripts, session 24) */
     G.at_g4 = g4; G.at_g5 = x; G.at_g6 = y;
     G.act_lives = G.p.lives; G.act_crystals = G.p.crystals; G.act_keystones = G.keystones; G.act_stage_crystals = G.stage_crystals;
 }
+#define checkpoint level_checkpoint
 /* per frame, after the objects: checkpoints, then the boss camera lock (lock: X > lock_x and lock_ymin < Y < lock_ymax;
  * release: X < unlock_x and Y < unlock_y; a zone with g4_max does nothing once g4 >= g4_max) */
 void level_flow_frame(const player_t *p) {
