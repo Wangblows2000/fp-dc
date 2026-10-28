@@ -5,8 +5,8 @@ build/orig_traces/jc_boss5: l_kill / l_kill2 Lilac, c_serp / c_gun Carol, l_tp /
  - the storm: the first bolt (sound 292) at frame 108 of every trace, then every 115-415 frames (11618-11620);
  - Serpentine 2: voice serp_gotyounow and m_boss at his trigger, his fall (0x22af5) and the gunship 105 frames later
    (sound 427, voice serp_kungfu; RV l_kill2 1414 -> 1519, c_gun 1518 -> 1623);
- - the gunship's first state (troopers): the cable 165 / 166 at +90 / +136, the Elites' drops (233) at +176 / +275 (both traces);
- - its health: 300 for Lilac, capped at 220 for Carol (RV c_gun 1624) and 50 for Milla (11340 / 11341);
+ - the gunship's first state (troopers): the cable 165 / 166 at +90 / +136, the Elites. drops (233) at +176 / +275 (l_kill2, c_gun, m_gun2);
+ - its health: 300 for Lilac, capped at 220 for Carol (RV c_gun 1624) and 50 for Milla (RV m_gun2 1522; 11340 / 11341);
  - its end (RV l_kill2, defeat at 2997): F 70 -> the slow motion (GUIPause B 6: F 1000 -> 1060 in 360 frames), the flash 76 at
    +568, the closing (player hidden) and the results at +751; Milla's life-petal box for Lilac / Carol.
 usage: test_jc_act5.py [data_dir]   (default: cv, the Jade Creek build)"""
