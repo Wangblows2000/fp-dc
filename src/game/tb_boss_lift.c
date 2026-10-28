@@ -36,7 +36,7 @@ void tbl_spawn(void) {
     }
     E.on = E.nlift > 0;
 #ifdef FP_HOST_ENV
-    if (getenv("FP_DBG_TBL")) printf("tbl spawn trig %d (%.0f,%.0f) lifts %d marks %d\n", E.trig, E.trig >= 0 ? G.o[E.trig].x : 0, E.trig >= 0 ? G.o[E.trig].y : 0, E.nlift, nmark);
+    if (getenv("FP_DBG_TBL")) printf("tblspawn trig %d (%.0f,%.0f) lifts %d marks %d\n", E.trig, E.trig >= 0 ? G.o[E.trig].x : 0, E.trig >= 0 ? G.o[E.trig].y : 0, E.nlift, nmark);
 #endif
 }
 

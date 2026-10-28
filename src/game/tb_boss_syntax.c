@@ -364,9 +364,9 @@ void tbx_frame(player_t *p) {
 #ifdef FP_HOST_ENV
     if (getenv("FP_DBG_TBX")) {
         const obj_t *b = part(P_BODY);
-        printf("tbx %d px %.0f py %.0f N %.0f O %.0f R %.0f T %.0f A %.1f B %.1f C %.1f D %.0f J %.2f K %.0f bx %.0f by %.0f hA %.0f hD %.0f hE %.0f hF %.0f hG %.0f fight %d end %d res %d hud %.0f\n",
+        printf("tbx %d px %.0f py %.0f N %.0f O %.0f R %.0f T %.0f A %.1f B %.1f C %.1f D %.0f J %.2f K %.0f bx %.0f by %.0f hA %.0f hD %.0f hE %.0f hF %.0f hG %.0f fight %d end %d res %d hud %.0f hx %.0f hy %.0f\n",
             G.frame, PX, PY, X.N, X.O, X.R, X.T, X.A, X.B, X.C, X.D, X.J, X.K, b ? b->x : -1, b ? b->y : -1, h ? h->A : -1, X.hD, X.hE, X.hF, X.hG,
-            X.fight, X.end, X.results, X.hud);
+            X.fight, X.end, X.results, X.hud, h ? h->x : -1, h ? h->y : -1);
     }
 #endif
 }

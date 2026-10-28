@@ -944,6 +944,14 @@ static const objdef_t DEFS[] = {
     { OT_TBB_SQ_JET,    0,                                     NULL         }, /* bossrobosquidjet_2766 */
     { OT_TBB_SQ_ARML,   0,                                     NULL         }, /* bossrobosquidleftarm_2762 */
     { OT_TBB_SQ_ARMR,   0,                                     NULL         }, /* bossrobosquidrightarm_2763 */
+    { OT_TBB_SPIDER,    0,                                     NULL         }, /* bosssyntaxspider_2755 (the mask: Q20, A 200 / 30) */
+    { OT_TBB_SP_BODY,   0,                                     NULL         }, /* bosssyntaxspiderbody_2753 */
+    { OT_TBB_SP_CANNON, 0,                                     NULL         }, /* bosssyntaxspiderlavacannon_2752 */
+    { OT_TBB_SP_ARM,    0,                                     NULL         }, /* bosssyntaxspiderarm_2754 */
+    { OT_TBB_SP_LEGF,   0,                                     NULL         }, /* bosssyntaxspiderlegfront_2756 */
+    { OT_TBB_SP_LEGB,   0,                                     NULL         }, /* bosssyntaxspiderlegback_2751 */
+    { OT_TBB_SP_GRAPPLE, 0,                                    NULL         }, /* bosssyntaxgrappleline_2770 */
+    { OT_TBB_SPLASH,    0,                                     NULL         }, /* bosslavasplash1_2758 / 2_2759 */
     { OT_TBB_SX_PART,   0,                                     NULL         }, /* bosssyntaxsquid back / shoulders / head / body / claws (TB6 rig) */
     { OT_TBB_SX_ARML,   0,                                     NULL         }, /* bosssyntaxsquidarmleft_2891 */
     { OT_TBB_SX_ARMR,   0,                                     NULL         }, /* bosssyntaxsquidarmright_2892 */

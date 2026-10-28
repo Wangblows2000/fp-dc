@@ -1335,6 +1335,9 @@ TBB_TYPES_ID = {('bossroboshrimp', 2673): 1968, ('bossroboshrimpsegment', 2672):
                 ('minibosstrapdoor', 2747): 1973, ('enemywallpusher', 2748): 1974,
                 ('bossrobosquid', 2765): 1975, ('bossrobosquidglass', 2764): 1976, ('bossrobosquidjet', 2766): 1977,
                 ('bossrobosquidleftarm', 2762): 1978, ('bossrobosquidrightarm', 2763): 1979,
+                ('bosssyntaxspider', 2755): 1980, ('bosssyntaxspiderbody', 2753): 1981, ('bosssyntaxspiderlavacannon', 2752): 1982,
+                ('bosssyntaxspiderarm', 2754): 1983, ('bosssyntaxspiderlegfront', 2756): 1984, ('bosssyntaxspiderlegback', 2751): 1985,
+                ('bosssyntaxgrappleline', 2770): 1987, ('bosslavasplash1', 2758): 1988, ('bosslavasplash2', 2759): 1988,
                 ('bosssyntaxsquidback', 2887): 1990, ('bosssyntaxsquidshoulderright', 2888): 1990, ('bosssyntaxsquidshoulderleft', 2889): 1990,
                 ('bosssyntaxsquidhead', 2890): 1990, ('bosssyntaxsquidbody', 2893): 1990, ('bosssyntaxsquidclawright', 2894): 1990,
                 ('bosssyntaxsquidclawleft', 2895): 1990, ('bosssyntaxsquidarmleft', 2891): 1991, ('bosssyntaxsquidarmright', 2892): 1992,
@@ -1345,11 +1348,12 @@ ENGINE_TYPES_ID.update(TBB_TYPES_ID)   # TB_BOSS
 TBB_SUB = {'bosssyntaxsquidback_2887': 0, 'bosssyntaxsquidshoulderright_2888': 1, 'bosssyntaxsquidshoulderleft_2889': 2,
            'bosssyntaxsquidhead_2890': 3, 'bosssyntaxsquidbody_2893': 4, 'bosssyntaxsquidclawright_2894': 5, 'bosssyntaxsquidclawleft_2895': 6,
            'bossspikesphere_2897': 0, 'bossspikesphere2_2898': 1, 'bosslavasplashleft1_2899': 0, 'bosslavasplashright1_2901': 1,
-           'bosslavasplashleft2_2903': 2, 'bosslavasplashright2_2904': 3}   # class -> member index (low byte of the lvobj anim field)
+           'bosslavasplashleft2_2903': 2, 'bosslavasplashright2_2904': 3, 'bosslavasplash1_2758': 0, 'bosslavasplash2_2759': 1}   # class -> member index (low byte of the lvobj anim field)
 _SX = ('bosswaypoint',)   # (the rig's instances lie below the frame: tied to the on-map waypoints)
 _SH = ('bossroboshrimp',)
 _WP = ('enemywallpusher',)
 _SQ = ('bossrobosquid',)
+_SP = ('bosssyntaxspider',)
 TBB_ENS = [(c, a, d, nm, None, w) for c, a, d, nm, w in (
     ('bossroboshrimp_2673', 0, '0', 'tbs_head', _SH), ('bossroboshrimp_2673', 8, '0', 'tbs_head8', _SH),
     ('bossroboshrimpsegment_2672', 0, '0', 'tbs_seg', _SH), ('bossroboshrimpsegment_2672', 8, '0', 'tbs_seg8', _SH),
@@ -1363,6 +1367,40 @@ TBB_ENS = [(c, a, d, nm, None, w) for c, a, d, nm, w in (
     ('bossrobosquidglass_2764', 0, '0', 'tbq_glass', _SQ), ('bossrobosquidglass_2764', 0, '1', 'tbq_glass1', _SQ),
     ('bossrobosquidjet_2766', 0, '0', 'tbq_jet', _SQ), ('bossrobosquidjet_2766', 7, '0', 'tbq_jet7', _SQ),
     ('bossrobosquidleftarm_2762', 0, '0', 'tbq_arm', _SQ), ('enemyhomingbullet_2648', 0, '0', 'tbq_hb', _SQ),
+    ('bosssyntaxspider_2755', 0, '0', 'tbp_head0', _SP),
+    ('bosssyntaxspider_2755', 0, '16', 'tbp_head16', _SP),
+    ('bosssyntaxspider_2755', 0, '24', 'tbp_head24', _SP),
+    ('bosssyntaxspider_2755', 7, '24', 'tbp_head7', _SP),
+    ('bosssyntaxspider_2755', 8, '0', 'tbp_head8_0', _SP),
+    ('bosssyntaxspider_2755', 8, '16', 'tbp_head8_16', _SP),
+    ('bosssyntaxspider_2755', 8, '24', 'tbp_head8_24', _SP),
+    ('bosssyntaxspider_2755', 11, '0', 'tbp_head11', _SP),
+    ('bosssyntaxspiderbody_2753', 0, '0', 'tbp_body0', _SP),
+    ('bosssyntaxspiderbody_2753', 0, '16', 'tbp_body16', _SP),
+    ('bosssyntaxspiderbody_2753', 0, '24', 'tbp_body24', _SP),
+    ('bosssyntaxspiderbody_2753', 8, '0', 'tbp_body8_0', _SP),
+    ('bosssyntaxspiderbody_2753', 8, '16', 'tbp_body8_16', _SP),
+    ('bosssyntaxspiderbody_2753', 8, '24', 'tbp_body8_24', _SP),
+    ('bosssyntaxspiderlavacannon_2752', 0, '0', 'tbp_can0', _SP),
+    ('bosssyntaxspiderlavacannon_2752', 0, '16', 'tbp_can16', _SP),
+    ('bosssyntaxspiderlavacannon_2752', 0, '24', 'tbp_can24', _SP),
+    ('bosssyntaxspiderlavacannon_2752', 0, '1', 'tbp_can1', _SP),
+    ('bosssyntaxspiderlavacannon_2752', 0, '17', 'tbp_can17', _SP),
+    ('bosssyntaxspiderlavacannon_2752', 7, '0', 'tbp_can7_0', _SP),
+    ('bosssyntaxspiderlavacannon_2752', 7, '16', 'tbp_can7_16', _SP),
+    ('bosssyntaxspiderarm_2754', 0, '0', 'tbp_arm0', _SP),
+    ('bosssyntaxspiderarm_2754', 0, '16', 'tbp_arm16', _SP),
+    ('bosssyntaxspiderlegfront_2756', 0, '0', 'tbp_legf0', _SP),
+    ('bosssyntaxspiderlegfront_2756', 0, '16', 'tbp_legf16', _SP),
+    ('bosssyntaxspiderlegback_2751', 0, '0', 'tbp_legb0', _SP),
+    ('bosssyntaxspiderlegback_2751', 0, '16', 'tbp_legb16', _SP),
+    ('bosssyntaxgrappleline_2770', 0, '0', 'tbp_line', _SP),
+    ('bosslavasplash1_2758', 0, '0', 'tbp_spl1', _SP),
+    ('bosslavasplash2_2759', 0, '0', 'tbp_spl2', _SP),
+    ('hazardlavafall2_2757', 0, '0', 'tbp_lf2', _SP),
+    ('bossspikelauncher_2769', 0, '0', 'tbp_launch', _SP),
+    ('bossspikelauncher_2769', 7, '0', 'tbp_launch7', _SP),
+    ('bossspikelauncher_2769', 8, '0', 'tbp_launch8', _SP),
     ('bosssyntaxsquidback_2887', 0, '0', 'tbx_back', _SX), ('bosssyntaxsquidshoulderright_2888', 0, '0', 'tbx_shr', _SX),
     ('bosssyntaxsquidshoulderright_2888', 7, '0', 'tbx_shr7', _SX), ('bosssyntaxsquidshoulderleft_2889', 0, '0', 'tbx_shl', _SX),
     ('bosssyntaxsquidshoulderleft_2889', 7, '0', 'tbx_shl7', _SX), ('bosssyntaxsquidhead_2890', 0, '0', 'tbx_head', _SX),
@@ -1374,7 +1412,7 @@ TBB_ENS = [(c, a, d, nm, None, w) for c, a, d, nm, w in (
     ('bossspikesphere2_2898', 0, '0', 'tbx_sph2', _SX), ('bosslavasplashleft1_2899', 0, '0', 'tbx_spl1', _SX),
     ('bosslavasplashleft2_2903', 0, '0', 'tbx_spl2', _SX), ('bosslavasplashmain_2900', 4, '0', 'tbx_splash', _SX),
     ('bosstbplatform_2886', 0, '0', 'tbx_plat', ('bosstbplatform', 'bosstbplatform2')))]
-TBB_ENS_WITH = {'effectsexplosion06_435': _SH + _WP + _SQ, 'enemyhomingbullet_2648': _SQ, 'effectsexplosion02_368': _SQ, 'effectshade_436': _SH, 'effectsdebris_427': _SH + _WP + _SQ,
+TBB_ENS_WITH = {'effectsexplosion06_435': _SH + _WP + _SQ + _SP, 'enemyhomingbullet_2648': _SQ, 'effectsexplosion02_368': _SQ + _SP, 'bosslavasplash1_2758': _SP, 'bosslavasplash2_2759': _SP, 'bossspikelauncher_2769': _SP, 'bosssyntaxgrappleline_2770': _SP, 'bosssyntaxspider_2755': _SP, 'bosssyntaxspiderarm_2754': _SP, 'bosssyntaxspiderbody_2753': _SP, 'bosssyntaxspiderlavacannon_2752': _SP, 'bosssyntaxspiderlegback_2751': _SP, 'bosssyntaxspiderlegfront_2756': _SP, 'hazardlavafall2_2757': _SP, 'effectshade_436': _SH, 'effectsdebris_427': _SH + _WP + _SQ,
     'bossroboshrimpsegment_2672': _SH, 'bossroboshrimptail_2675': _SH, 'bossroboshrimplightning_2674': _SH,   # (off-map templates)
     'effectswhiteburst_31': _SX, 'bosslavalaser_2896': _SX, 'bosslavasplashmain_2900': _SX, 'bosstbplatform_2886': ('bosstbplatform2',),
     **{c: _SX for c in ('bosssyntaxsquidback_2887', 'bosssyntaxsquidshoulderright_2888', 'bosssyntaxsquidshoulderleft_2889', 'bosssyntaxsquidhead_2890',
