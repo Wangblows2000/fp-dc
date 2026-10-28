@@ -788,6 +788,8 @@ void   relic_spawn(void), relic_frame(player_t *p);
 void   relic_gima_spawn(void), relic_gima_pre(player_t *p), relic_gima_post(player_t *p), relic_gima_draw_overlay(void), relic_axle_turn(void), relic_hang_hold(player_t *p);
 int    relic_gima_obj(obj_t *o, player_t *p), relic_boss_clear_type(int type);
 void   obj_hang_try(obj_t *o, player_t *p);       /* a hang handle (OD_HANG): the grab (4064-4066) */
+int    obj_hang_box(const obj_t *o, float *x0, float *y0, float *x1, float *y1);   /* RE whole-image box of a rope / hang target type (0: not listed) */
+int    sens_rows_box(int s, float x0, float y0, float x1, float y1);               /* placed player sensor s overlaps the box */
 int    relic_obj_update(obj_t *o, player_t *p);   /* 1: a relic.c type (handled) */
 int    relic_keeps_state(int type);               /* its own events set D on defeat (2764 leaves st) */
 obj_t *relic_flame_new(float x, float y, double C, double D);
