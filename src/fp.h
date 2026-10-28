@@ -858,6 +858,8 @@ typedef struct { signed char who; short t0, t1; } classkill_t;
 /* CameraLimitBoss markers moved at the act start by the same character test (8083: around the samurai); -32768 = unchanged */
 typedef struct { signed char who; short l, t, r, b; } markmove_t;
 typedef struct { short C, D, E, F; } cambox_t;   /* fixed camera bounds every frame (FN6 8553 + the inline end of handle_frame_35) */
+typedef struct { short y_on, D, E_pad; } camshaft_t; /* TH1 13498-13500: until MV.Y > y_on once (Sign D 0 -> 1) E = the CameraLimitBossRight
+                                                     marker's x; from then on D = D, E = frame width + E_pad (session 21b) */
 typedef struct { short x0, x1, y0, y1; signed char who, jelly; } killbox_t;   /* items removed at the act start: who 0 all, 1 not Milla, 2 Milla, 3 all but Lilac, 4 all but Carol on foot (RM2 6013 / 6014) */
 /* Relic Maze acts 3-5 gimmicks (relic_gimb.c, spec_rm_gimmicks_b): per-act values of shared objects (level_def_t.rmg) */
 typedef struct { short x0, x1, y0, y1, C; } pillarzone_t;   /* moving pillars with their box origin in [x0, x1) x [y0, y1) travel C */
@@ -940,6 +942,10 @@ typedef struct {
                                                         lilac_ / carol_ / milla_ loads only for that character */
     int res_skin_voice;                              /* the results' character voice (6589-6592: Lilac howitsdone, Carol feelmypower, Milla yay) */
     int clear_free;                                  /* the act-end fade leaves the player alone (no 3311 walk, control kept): SB1's launch pads (8874-8878) */
+    /* session 21b (Trap Hideout, spec_th_flow) */
+    const char *mus4b; int mus4b_g4;                 /* play_music(4) once g4 >= mus4b_g4 (TH3 loop_wrapper_play_music_4_58: 13701 m_midboss while
+                                                        g4 < 5, 13702 m_boss2 from g4 5 on) */
+    const camshaft_t *cam_shaft;                     /* a camera bound rule driven by the player's depth (TH1 13498-13500) */
 } level_def_t;
 const char *level_music_slot(int slot);              /* the current act's music for a play_music(slot) of its scripts (NULL: none) */
 void level_lock_markers(void);                       /* CAM.M = 1: the boss bounds of the CameraLimitBoss markers (as placed / moved) */
@@ -1006,10 +1012,13 @@ enum { OT_THF_FIRST = 1536, OT_THF_LAST = 1559, OT_THE_FIRST = 1560, OT_THE_LAST
 void   th_flow_spawn(void), th_flow_frame(player_t *p), th_flow_draw(int pass);
 int    th_flow_obj(obj_t *o, player_t *p), th_flow_act(void);
 float  th_flow_hud_dy(void);
+void   th_flow_card(player_t *p, int left);          /* during the act-start card (frames left): TH1's hold at the top of the shaft (13533) */
+void   th_flow_basher_cleared(void);                 /* TH3: the Crystal Basher beaten (13931's flow part: g4 5, restart (560, 170), camera released) */
 void   th_enemy_spawn(void), th_enemy_pre(player_t *p), th_enemy_draw(int pass);
 int    th_enemy_obj(obj_t *o, player_t *p), th_enemy_q20(int type);
 void   th_gim_spawn(void), th_gim_pre(player_t *p), th_gim_frame(player_t *p), th_gim_draw(int pass);
 int    th_gim_obj(obj_t *o, player_t *p), th_gim_q20(int type);
+int    th_gim_player(player_t *p, const input_t *in), th_gim_ride_m(void);   /* ST_RIDE: Trap Hideout's barrel ride, M 98 (th_gim.c) */
 void   th_boss_spawn(void), th_boss_pre(player_t *p), th_boss_frame(player_t *p);
 int    th_boss_obj(obj_t *o, player_t *p), th_boss_q20(int type), th_boss_draw_obj(const obj_t *o, int pass), th_boss_input(uint32_t *held);
 int    th_boss_player_hidden(void);
@@ -1021,6 +1030,7 @@ float  fn_flow_hud_dy(void);                          /* FN3 7712: the HUD slide
 void   fn_flow_panther_view(void);                    /* FN5 8370 (the boss script): parallax pieces 1898 / 1899 hidden */
 void   player_bike_off(player_t *p, int park);        /* Carol leaves the bike (MV.A 3 -> 2; park: an ObjectBike is left at her, FN5 8383) */
 int    par_hidden(int handle);
+void   par_set_hook(int handle, void (*fn)(void));   /* a stage script's layer-0 objects drawn just before that piece (parallax.c) */
 const level_def_t *level_def(const char *dir), *level_cur(void);
 const char *level_first_of_stage(int stage), *level_next(const char *dir), *level_route_start(int character), *level_route_next(int stage);
 const exit_t *level_exit_check(const player_t *p);
@@ -1028,11 +1038,13 @@ const entry_t *level_entry(const char *from);
 const warp_t *level_warp_check(const player_t *p);
 void level_warp_do(player_t *p, const warp_t *w);
 int objects_have(int type), objects_have_from(int type);
+void objects_plat_type(int type, float F, float Gm);
+void obj_pinball_start(obj_t *o, int dir, float speed), obj_pinball_step(obj_t *o, float grav);   /* objects.c: PinballMovement (pellets, debris) */   /* objects.c: a module's type that follows the shared path-platform rule (F step, G amplitude, H 1) */
 void objects_sense_snapshot(int on);
 int  objects_alive_type(int type);    /* objects.c: superset test, any slot of this type alive (pass gates) */   /* objects.c: packed sensor prefilter for the player phase (game.c) */
 void game_save_stage_end(uint32_t time_ms);
 /* object registry (src/game/objdefs.c): properties of each engine type shared by every level */
-enum { OD_SOLID = 1, OD_OBSTACLE = 2, OD_NOEDGE = 4, OD_BOXCOL = 8, OD_HANG = 16, OD_LAYER0 = 32, OD_LAYER1 = 64, OD_HIDDEN = 128 };   /* OD_HIDDEN: the constructor calls set_visible(0) (RE create_*), a collision-only or event-shown object */   /* OD_HANG: a hang handle (Q23); OD_LAYER0 / 1: loop-layer pieces solid while MV.P = 0 / 1 */
+enum { OD_SOLID = 1, OD_OBSTACLE = 2, OD_NOEDGE = 4, OD_BOXCOL = 8, OD_HANG = 16, OD_LAYER0 = 32, OD_LAYER1 = 64, OD_HIDDEN = 128, OD_LANDS = 256 };   /* OD_LANDS: a defeated Q20 enemy explodes where its fly-away meets the background / a Q7 object (the Ganseki landing, combat.c corpse_land: sound 50; TH 13616 / 13627 / 13645) */   /* OD_HIDDEN: the constructor calls set_visible(0) (RE create_*), a collision-only or event-shown object */   /* OD_HANG: a hang handle (Q23); OD_LAYER0 / 1: loop-layer pieces solid while MV.P = 0 / 1 */
 typedef struct { uint16_t type, flags; const char *ens; } objdef_t;
 const objdef_t *objdef(int type);
 void level_flow_spawn(void), level_flow_frame(const player_t *p), level_camera_bounds(void), level_release_camera(int keep_trigger);

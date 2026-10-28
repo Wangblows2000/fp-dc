@@ -576,9 +576,12 @@ FNB_ENS_FRAMES['switchwallplate_1149'] = RMB_ENS_FRAMES['switchwallplate_1149'] 
 # 8194 restroom anim 40 dir 24): Lilac's, her hair's and Carol's banks get 'a40_d<dir>' rows in these frames only (Milla's bank
 # already holds every direction)
 FNB_POSE_FRAMES, FNB_POSE_DIRS = {33, 34}, {40: ('7', '8', '24')}
+# the extra pose directions per json frame (player_pose 'a<index>_d<dir>' rows): FN_GIMB's, and other stages' (TH_GIM: the barrel)
+POSE_DIRS = {n_: FNB_POSE_DIRS for n_ in FNB_POSE_FRAMES}
+CAROL_POSE_DIRS = {}   # Carol's skin / tail / bike banks only (Trap Hideout: TH_GIM)
 def fnb_pose_rows(entries, n, pre=''):
     out = []
-    for ai, dirs in (FNB_POSE_DIRS.items() if n in FNB_POSE_FRAMES else ()):
+    for ai, dirs in POSE_DIRS.get(n, {}).items():
         for dk in dirs:
             if ai < len(entries) and entries[ai] and dk in entries[ai]:
                 d = entries[ai][dk]; out.append({'name': '%sa%d_d%s' % (pre, ai, dk), 'frames': d['frames'], 'speed': d['max_speed'], 'loop': d['loop'], 'back_to': d['back_to']})
@@ -1085,12 +1088,12 @@ for _e in JCE_ENS:
 # VRAM (session 21 merge): a JC enemy's direction-16 row whose every frame is the exact mirror of the direction-0 frame
 # (pixels flipped, hotspot x = w - hx, same hy) is left out; jc_enemy.c draws the base row flipped (frame_draw: flip
 # hotspot w - hx). RE images: BullFrag 22/22, SharkTorpedo 14/14 mirrored; the Elite has 3 genuine left frames (kept).
-def _jce_mirror_rows():
+def _jce_mirror_rows(rows=None):   # rows: any ENS list (default the JC one; TH_ENEMIES passes its own)
     from PIL import ImageChops
     an_ = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'build', 'frames', 'anims.json')))
     src_ = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'extracted', 'linux', 'images')
     out_ = set()
-    for c, ai, d, nm in JCE_ENS:
+    for c, ai, d, nm in (JCE_ENS if rows is None else rows):
         if not nm.endswith('_l') or not (d.isdigit() and int(d) >= 16): continue   # (jc_enemy.c falls back from '<base>_l' to '<base>' only)
         d0 = str(int(d) - 16)
         try: ad = an_[c]['anims'][ai]; R, L = ad[d0]['frames'], ad[d]['frames']
@@ -1114,10 +1117,80 @@ for _nm in JCE_MIRRORED: ROW_FRAMES[_nm] = set()
 
 # ==== Trap Hideout (session 21b; json 57-59 = th1-th3; types 1536-1791, one block per module like Jade Creek)
 # ---- TH_FLOW (th_flow.c, 1536-1559)
+# Stage-wide scenery (spec_th_flow 5, RE create_* / 13532 / 14082 / 14083 / 14099): ThBacklight1_3113 (6 frames, frame by g3), ThFlame_3176
+# (torch flame, looping speed 16), ThSpotlight_3209 (TH3 json layer 0, ctor invisible; drawn by the parallax hook). lvobj anim =
+# instance layer << 8 | 0x8000 json layer 1 of a mapped frame (write_lv2); the rows come with on-map placements only.
+THF_TYPES_ID = {('thbacklight1', 3113): 1536, ('thflame', 3176): 1537, ('thspotlight', 3209): 1538}
+THF_ENS = [('thbacklight1_3113', 0, '0', 'thbl'), ('thflame_3176', 0, '0', 'thfl'), ('thspotlight_3209', 0, '0', 'thsp', slice(0, 1))]   # the spotlight's 2 frames (6123 / 2740) are pixel-identical: one image
+ENGINE_TYPES_ID.update(THF_TYPES_ID); ENS += THF_ENS   # TH_FLOW
 
-# ---- TH_ENEMIES (th_enemy.c, 1560-1619)
+# ---- TH_ENEMIES (th_enemy.c, 1560-1619; build/re/spec_th_enemies.md). Placed classes 1560-1589, runtime children 1590-1619
+# (th.h OT_TH_*). Rows 'thX_name' ('_l' = direction 16; left rows that are exact mirrors are left out: _ens_mirror_rows).
+# EnemyNinja_3193 (th3) belongs to the act-3 finale (th_boss.c), not here.
+THE_TYPES_ID = {('enemytotematic', 3144): 1560, ('enemymetalpup', 3148): 1561, ('enemyshockpuppet', 3149): 1562,
+    ('enemybladeorbiter', 3165): 1563, ('enemybladeorbiterleft', 3163): 1564, ('enemybladeorbiterright', 3164): 1565,
+    ('enemyrocketpuncher', 3182): 1566, ('enemyrocketpuncherhand', 3183): 1567, ('enemyrocketpunchershield', 3184): 1568,
+    ('effectrocketpuncherwarning', 3185): 1569, ('enemybikeninja', 3203): 1570, ('enemybikeninjamask', 3204): 1571,
+    ('effectbikeninjawarning', 3206): 1572}
+THE_ENS = [(c, a, d, nm + ('' if d == '0' else '_l')) for c, a, nm in (
+    ('enemymetalpup_3148', 0, 'thp_idle'), ('enemymetalpup_3148', 1, 'thp_walk'), ('enemymetalpup_3148', 7, 'thp_bite'),
+    ('enemymetalpup_3148', 8, 'thp_dead'), ('enemymetalpup_3148', 10, 'thp_turn'),
+    ('enemyrocketpuncher_3182', 0, 'thr_idle'), ('enemyrocketpuncher_3182', 7, 'thr_wind'), ('enemyrocketpuncher_3182', 8, 'thr_back'),
+    ('enemyrocketpuncher_3182', 10, 'thr_dead'), ('enemyrocketpuncherhand_3183', 0, 'thr_hand'), ('enemyrocketpuncherhand_3183', 7, 'thr_fly'),
+    ('enemyrocketpuncherhand_3183', 8, 'thr_hand2'), ('enemyrocketpunchershield_3184', 0, 'thr_shield'),
+    ('enemybikeninja_3203', 0, 'thb_ride'), ('enemybikeninja_3203', 7, 'thb_jump'), ('enemybikeninja_3203', 9, 'thb_throw'),
+    ('enemybikeninjadefeated_3205', 0, 'thb_dead')) for d in ('0', '16')] + [
+    ('enemytotematic_3144', 0, '0', 'tht_body'), ('enemyshockpuppet_3149', 0, '0', 'ths_idle'), ('enemyshockpuppet_3149', 7, '0', 'ths_wind'),
+    ('enemyshockpuppet_3149', 8, '0', 'ths_shock'), ('enemyshockpuppet_3149', 10, '0', 'ths_dead'),
+    ('enemybladeorbiter_3165', 0, '0', 'tho_body'), ('enemybladeorbiter_3165', 7, '0', 'tho_blink'), ('enemybladeorbiter_3165', 8, '0', 'tho_dead'),
+    ('enemybladeorbiterleft_3163', 0, '0', 'tho_bl'), ('enemybladeorbiterright_3164', 0, '0', 'tho_br'),
+    ('effectrocketpuncherwarning_3185', 0, '0', 'thr_warn'), ('effectbikeninjawarning_3206', 0, '0', 'thb_warn'),
+    ('enemyninjastar_3221', 0, '0', 'thb_star'), ('enemyninjastar_3221', 0, '1', 'thb_star1')] + \
+    [('enemybikeninjamask_3204', 0, str(d), 'thb_m%d' % d) for d in range(5)]
+_THE_ALL = ('enemytotematic', 'enemymetalpup', 'enemyshockpuppet', 'enemybladeorbiter', 'enemyrocketpuncher', 'enemybikeninjamask')
+THE_ENS_WITH = {'enemyninjastar_3221': ('enemybikeninjamask',), 'enemybikeninjadefeated_3205': ('enemybikeninjamask',),
+    'objectkeystone_429': ('enemyrocketpuncher',), 'effectsdebris_427': _THE_ALL, 'effectsexplosion06_435': ('enemyrocketpuncher',)}
+ENGINE_TYPES_ID.update(THE_TYPES_ID); ENS += THE_ENS   # TH_ENEMIES
+for _k, _v in THE_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # TH_ENEMIES
+try:
+    THE_MIRRORED = _jce_mirror_rows(THE_ENS)   # (the JC helper, generalised to any row list)
+except FileNotFoundError:
+    THE_MIRRORED = set()
+for _nm in THE_MIRRORED: ROW_FRAMES[_nm] = set()   # TH_ENEMIES
 
-# ---- TH_GIM (th_gim.c, 1620-1679)
+# ---- TH_GIM (th_gim.c, 1620-1679; build/re/spec_th_gimmicks.md). Families share a type; THG_SUB gives the member index (lvobj
+# anim bits 0-7, the instance layer in bits 8-14, as JC_GIM). LevelTHCollapsingPlatform_3186 (+ Piece_3187) is Jade Creek's
+# collapsing platform (jc_gim.c OT_JCG_COLL member 2: the same events 13598-13602 / loop_collapse_57, RE).
+THG_TYPES_ID = {('hazardscanlasersweep', 3128): 1620, ('hazardscanlaserright', 3129): 1620, ('hazardscanlaserleft', 3130): 1620,
+    ('hazardscanlaserdown', 3131): 1620, ('hazardscanlaserup', 3132): 1620, ('hazardscanlaserhead', 3133): 1621,
+    ('hazardscanlaserhead2', 3134): 1621, ('hazardscanlaserhead3', 3137): 1621, ('hazardscanlaserhead4', 3135): 1621,
+    ('hazardscanlaserhead5', 3136): 1621, ('levelhideoutplatform1', 3172): 1622, ('levelhideoutplatformflame', 3173): 1623,
+    ('hazardshuriken', 3166): 1625, ('hazardshurikenbase', 3167): 1626, ('hazardshurikenturn', 3168): 1627,
+    ('gimmickbarrel', 3177): 1628, ('levelthcollapsingplatform', 3186): 1378}   # (THFlame / THBacklight1: th_flow.c types 1537 / 1536, merge)
+THG_SUB = {'hazardscanlasersweep_3128': 0, 'hazardscanlaserright_3129': 1, 'hazardscanlaserleft_3130': 2, 'hazardscanlaserdown_3131': 3,
+    'hazardscanlaserup_3132': 4, 'hazardscanlaserhead_3133': 0, 'hazardscanlaserhead2_3134': 2, 'hazardscanlaserhead3_3137': 3,
+    'hazardscanlaserhead4_3135': 4, 'hazardscanlaserhead5_3136': 5}
+JCG_SUB['levelthcollapsingplatform_3186'] = 2
+THG_ENS = [(c, 0, d, nm) for c, d, nm in (
+    ('hazardscanlasersweep_3128', '0', 'thg_beam0'), ('hazardscanlasersweep_3128', '1', 'thg_beam1'),   # the five beam classes share these images
+    ('hazardscanlaserhead_3133', '0', 'thg_head'), ('hazardscanlaserhead2_3134', '0', 'thg_head2'), ('hazardscanlaserhead3_3137', '0', 'thg_head3'),
+    ('hazardscanlaserhead4_3135', '0', 'thg_head4'), ('hazardscanlaserhead5_3136', '0', 'thg_head5'),
+    ('levelhideoutplatform1_3172', '0', 'thg_pillar'), ('levelhideoutplatformflame_3173', '8', 'thg_pflame'),
+    ('hazardshuriken_3166', '0', 'thg_shur'), ('hazardshurikenbase_3167', '0', 'thg_shbase'), ('gimmickbarrel_3177', '0', 'thg_barrel'),
+    ('gimmickbarreldebris_3127', '0', 'thg_bdebris'),
+    ('levelthcollapsingplatform_3186', '0', 'thg_coll'), ('levelthcollapsingplatformpiece_3187', '0', 'thg_cpiece'))]
+_THG_BEAMS = ('hazardscanlasersweep', 'hazardscanlaserright', 'hazardscanlaserleft', 'hazardscanlaserdown', 'hazardscanlaserup')
+THG_ENS.append(('effectsspringbeam_540', 4, '0', 'thg_sbeam', None, ('gimmickbarrel',)))   # 13588: a barrel on a YellowSpringUp
+ROW_FRAMES['thg_sbeam'] = {58, 59}                   # (the class's FN rows stay FN-only through ENS_FRAMES)
+THG_ENS_WITH = {'hazardscanlasersweep_3128': _THG_BEAMS[1:], 'effectsdust_437': _THG_BEAMS,
+    'gimmickbarreldebris_3127': ('gimmickbarrel',), 'levelthcollapsingplatformpiece_3187': ('levelthcollapsingplatform',),
+    'effectsspringbeam_540': ('gimmickbarrel',)}
+# the barrel ride (13581 / 13582) forces skin animation 40 direction 14 / 30 on Carol (her banks hold directions 0 / 16 only); Milla's
+# bank holds every direction. Direction 30 is the pixel mirror of 14 on Carol's skin, tail and bike (checked against the images):
+# player_pose draws the 14 row flipped. Only the acts that place a barrel (TH2 / TH3).
+for _n in (58, 59): CAROL_POSE_DIRS[_n] = {**CAROL_POSE_DIRS.get(_n, {}), 40: ('14',)}
+ENGINE_TYPES_ID.update(THG_TYPES_ID); ENS += THG_ENS   # TH_GIM
+for _k, _v in THG_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # TH_GIM
 
 # ---- TH_BOSS (th_boss.c, 1680-1791): Trap Hideout bosses (build/re/spec_th_bosses.md). Types mirror src/game/th.h (OT_THB_*); the
 # lvobj anim field carries the instance layer << 8 (th_boss.c spawn). Rows: the Laser Iris rig (TH1), the scan laser boss.
@@ -1282,6 +1355,16 @@ PAR_BOXH.update({'levelparallaxpiece5_2338': 270})
 PAR_DEG.update({2336: (1.0, .94, 0), 19: (.90, .90, 0), 2337: (.95, .95, 0), 2338: (.85, .85, 0), 2374: (1.0, 0, 0), 2524: (.80, .85, 0)})
 PAR_DEG_FRAME.update({(43, h): (d, e, (1 - d) * -4) for h, (d, e, g) in PAR_DEG.items() if h in (2336, 19, 2337, 2338, 2374, 2524)})
 SCROLL08.update({40: 1, 41: 1, 42: 1, 44: 1})
+# ---- TH_FLOW parallax / layers (th_flow.c, session 21b)
+# Layer::init (RE on_frame_57..59_init): layer 1 scrolls 0.8 in every act (layer 6 0, others 1). No water: ML.A 1 / ML.B 2000 are
+# written (start events) but handle_frame_57..59 hold no water events (4150-4170): not in WATER_FRAMES (RV th1_bottom: OTHERS.H 0)
+SCROLL08.update({57: 1, 58: 1, 59: 1})
+# Parallax (RE create_levelparallaxpiece0_3109 / 3147 / 3192, 1_3207, 2_3208: SystemBox image, box w x h; D / E: TH1 start inline,
+# TH2 13539, TH3 14090; no drift). TH3: piece2 hidden at the start (14099), piece0 hidden / piece2 shown once g4 >= 5 (14083, th_flow.c)
+PAR_IMG.update({'levelparallaxpiece0_3109': 10992, 'levelparallaxpiece0_3147': 13021, 'levelparallaxpiece0_3192': 13021,
+                'levelparallaxpiece1_3207': 5994, 'levelparallaxpiece2_3208': 2737})
+PAR_BOXH.update({'levelparallaxpiece0_3109': 863, 'levelparallaxpiece0_3147': 720, 'levelparallaxpiece0_3192': 1000})
+PAR_DEG.update({3109: (.6, .6, 0), 3147: (.6, .6, 0), 3192: (.6, .6, 0), 3207: (.95, .95, 0), 3208: (.8, .85, 0)})
 JC_WATER = {40: 1200, 41: 1600, 42: 1600, 43: 1600, 44: 1600}   # ML.B (10378 / 10566 / 10822 / 10863 / 11643)
 JC_SURF_FRAMES = [7795, 7802, 7803, 7804, 7796, 7797, 7798]      # LevelParalaxWaterSurface_14 anim 0 (both directions use the same images);
                                                                  # its 8th frame (7799) is shown as the 7th: one 512 x 512 4 bpp atlas (VRAM)
@@ -1772,7 +1855,7 @@ def main():
                                     'loop': dd['loop'], 'back_to': dd['back_to']})
             # extra directions the events select: Wild Kick in the air (2425: direction + 1 -> 1 / 17) and the bored idle
             # (1735: direction + 4 -> 4 / 20), named 'a<index>_d<direction>'
-            for dkey in {21: ('1', '17'), 0: ('4', '20'), **(FNB_POSE_DIRS if n in FNB_POSE_FRAMES else {})}.get(ai, ()):   # + FN_GIMB poses
+            for dkey in {21: ('1', '17'), 0: ('4', '20'), **POSE_DIRS.get(n, {}), **CAROL_POSE_DIRS.get(n, {})}.get(ai, ()):   # + the stages' poses
                 if dkey in entry and not (dkey == '17' and mirrored(entry.get('1', d0), entry[dkey])):
                     dd = entry[dkey]
                     cb['anims'].append({'name': 'a%d_d%s' % (ai, dkey), 'frames': dd['frames'], 'speed': dd['max_speed'],
@@ -2015,7 +2098,9 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         if 1430 <= o['type'] < 1480: a = o['layer'] << 8   # JC_BOSS (jc_boss.c): instance layer << 8
         if 1150 <= o['type'] < 1280: a = SBBOSS_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # SB_BOSS (sb_boss.c): sub id | instance layer << 8
         if 1280 <= o['type'] < 1536: a = JC_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # Jade Creek (jc_*.c): member index | instance layer << 8 | 0x8000 json layer 1 of a mapped frame
+        if 1620 <= o['type'] < 1680: a = THG_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # TH_GIM (th_gim.c): member index | instance layer << 8
         if 1370 <= o['type'] < 1430: a = (JCG_LEAF_TILT.get((o['x'], o['y']), 0) // 30 if o['type'] == 1371 else JCG_SUB.get(o['cls'], 0)) | (o['layer'] << 8)   # JC_GIM (jc_gim.c): member index (leaf backs: tilt / 30) | instance layer << 8
+        if 1536 <= o['type'] < 1560: a = (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # TH_FLOW (th_flow.c): instance layer << 8 | 0x8000 json layer 1
         if 1100 <= o['type'] < 1150: a = SBG_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # SB_GIM (sb_gim.c): member index | instance layer << 8 | 0x8000: json layer 1 of a mapped frame (session 20: behind the json-2 pieces, scrolls with layer 1)
         if 1680 <= o['type'] < 1720: a = THB_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # TH_BOSS (th_boss.c): sub id | instance layer << 8
         d += struct.pack('<2H2i', o['type'], a, o['x'], o['y'])

@@ -827,8 +827,37 @@ static const objdef_t DEFS[] = {
     /* ==== end Jade Creek */
     /* ==== Trap Hideout (session 21b): one block per module */
     /* ---- TH_FLOW (th_flow.c) */
-    /* ---- TH_ENEMIES (th_enemy.c) */
-    /* ---- TH_GIM (th_gim.c) */
+    { OT_THF_BACKLIGHT, 0,                                     NULL         }, /* thbacklight1_3113 (frame by th_flow.c, 13532) */
+    { OT_THF_FLAME,     0,                                     NULL         }, /* thflame_3176 (torch flame, looping) */
+    { OT_THF_SPOT,      OD_HIDDEN,                             NULL         }, /* thspotlight_3209 (ctor invisible; TH3 14083 shows it) */
+    /* ---- TH_ENEMIES (th_enemy.c, spec_th_enemies; sprites set by th_enemy_spawn; RE on_frame_57..59_init q7 / q20, create_* set_visible) */
+    { OT_TH_TOTEM,      OD_SOLID,                              NULL         }, /* enemytotematic_3144 (q7 q20; flag 0 while the player is a ball) */
+    { OT_TH_PUP,        OD_LANDS,                              NULL         }, /* enemymetalpup_3148 (q20; 13616) */
+    { OT_TH_PUPPET,     OD_LANDS,                              NULL         }, /* enemyshockpuppet_3149 (q20; 13627) */
+    { OT_TH_ORB,        OD_LANDS,                              NULL         }, /* enemybladeorbiter_3165 (q20; 13645) */
+    { OT_TH_BLADEL,     0,                                     NULL         }, /* enemybladeorbiterleft_3163 */
+    { OT_TH_BLADER,     0,                                     NULL         }, /* enemybladeorbiterright_3164 */
+    { OT_TH_PUNCH,      0,                                     NULL         }, /* enemyrocketpuncher_3182 (q20; drawn with its rig) */
+    { OT_TH_PHAND,      0,                                     NULL         }, /* enemyrocketpuncherhand_3183 */
+    { OT_TH_PSHIELD,    OD_SOLID,                              NULL         }, /* enemyrocketpunchershield_3184 (q7 q20) */
+    { OT_TH_PWARN,      OD_HIDDEN,                             NULL         }, /* effectrocketpuncherwarning_3185 (ctor invisible) */
+    { OT_TH_BIKE,       0,                                     NULL         }, /* enemybikeninja_3203 */
+    { OT_TH_BMASK,      OD_HIDDEN,                             NULL         }, /* enemybikeninjamask_3204 (q20; ctor invisible) */
+    { OT_TH_BWARN,      OD_HIDDEN,                             NULL         }, /* effectbikeninjawarning_3206 (ctor invisible) */
+    { OT_TH_STAR,       0,                                     NULL         }, /* enemyninjastar_3221 (runtime) */
+    { OT_TH_BDEAD,      0,                                     NULL         }, /* enemybikeninjadefeated_3205 (runtime) */
+    /* ---- TH_GIM (th_gim.c; qualifiers RE on_frame_57..59_init) */
+    { OT_THG_BEAM,        0,                                   NULL         }, /* hazardscanlasersweep / right / left / down / up (Q33: th_gim.c) */
+    { OT_THG_HEAD,        0,                                   NULL         }, /* hazardscanlaserhead / head2-5 */
+    { OT_THG_PILLAR,      OD_SOLID,                            NULL         }, /* levelhideoutplatform1 (Q7 Q12 Q13: a path platform, objects.c) */
+    { OT_THG_PFLAME,      0,                                   NULL         }, /* levelhideoutplatformflame */
+    { OT_THG_FLAME,       0,                                   NULL         }, /* thflame (scenery) */
+    { OT_THG_SHUR,        0,                                   NULL         }, /* hazardshuriken (Q20) */
+    { OT_THG_SHBASE,      0,                                   NULL         }, /* hazardshurikenbase */
+    { OT_THG_SHTURN,      OD_HIDDEN,                           NULL         }, /* hazardshurikenturn (ctor set_visible(0)) */
+    { OT_THG_BARREL,      0,                                   NULL         }, /* gimmickbarrel */
+    { OT_THG_BDEBRIS,     0,                                   NULL         }, /* - (GimmickBarrelDebris_3127, runtime) */
+    { OT_THG_BLIGHT,      0,                                   NULL         }, /* thbacklight1 */
     /* ---- TH_BOSS (th_boss.c) */
     { OT_THB_IRIS,      0,                                     NULL         }, /* bosslaseriris_3141 (Q20, A 60) */
     { OT_THB_CANNON,    0,                                     NULL         }, /* bosslaseririscannon_3140 */

@@ -5,6 +5,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include "../fp.h"
+/* the image box of a flipped frame: x - (w - hx); a left row drawn as the mirror of the right one (flip 2: jc_enemy.c / enemy_kit.h
+ * mirror rows) has the original's left hotspot w - 1 - hx, so its box is 1 px further right (as objects_draw adds) */
+#define FLIP_HX(o, f) ((o)->flip ? (f)->w - (f)->hx - ((o)->flip == 2) : (f)->hx)
 
 static uint8_t have_type[MAX_OT / 8];   /* bit per engine type placed on the map (objects_spawn) */
 int objects_have(int type) { return (unsigned)type < MAX_OT && (have_type[type >> 3] >> (type & 7) & 1); }
@@ -37,7 +40,17 @@ static obj_t *alloc_obj(void) {
 obj_t *obj_alloc(void) { return alloc_obj(); }
 
 static int A_LOG = -1;
-static int plat_type(int t) { return t == OT_PLAT_VALLEY || t == OT_PLAT_MOVE2 || t == OT_PLAT_MOVE3 || t == OT_GEYSER; }
+/* path platforms of other stages that share the rule (3270-3307 / 4061 / 4737 / 4738) with their own constructor F (step) and G
+ * (amplitude), registered by their module's spawn (Trap Hideout's LevelHideoutPlatform1, th_gim.c) */
+static struct { int type; float F, G; } plat_x[8]; static int nplat_x;
+void objects_plat_type(int type, float F, float Gm) {
+    int k = 0;
+    while (k < nplat_x && plat_x[k].type != type) k++;
+    if (k == nplat_x) { if (nplat_x >= 8) return; nplat_x++; }
+    plat_x[k].type = type; plat_x[k].F = F; plat_x[k].G = Gm;
+}
+static int plat_x_of(int t) { for (int k = 0; k < nplat_x; k++) if (plat_x[k].type == t) return k; return -1; }
+static int plat_type(int t) { return t == OT_PLAT_VALLEY || t == OT_PLAT_MOVE2 || t == OT_PLAT_MOVE3 || t == OT_GEYSER || (nplat_x && plat_x_of(t) >= 0); }
 void objects_spawn(void) {
     A_EXPLODE = bank_anim(&G.objs, "explosion");
     { static const char *tn[6] = { "turr_idle", "turr_idle_l", "turr_shoot", "turr_shoot_l", "turr_off", "turr_off_l" };
@@ -142,8 +155,10 @@ void objects_spawn(void) {
 static double p_sin(double n) { return n == 180. ? 0. : fd_sin(n / 57.29577951308232); }
 static void plat_params(int t, double *F, double *Gm) {
     if (t == OT_GEYSER) { *F = 2; *Gm = 240; }                    /* RE create_levelgeyserplate_994: F = 2, G = 240, H = 1 */
-    else if (t == OT_PLAT_MOVE2) { *F = 2; *Gm = 120; } else if (t == OT_PLAT_MOVE3) { *F = 1; *Gm = 100; } else { *F = 1; *Gm = 10; }
+    else if (t == OT_PLAT_MOVE2) { *F = 2; *Gm = 120; } else if (t == OT_PLAT_MOVE3) { *F = 1; *Gm = 100; }
+    else { int k = plat_x_of(t); if (k >= 0) { *F = plat_x[k].F; *Gm = plat_x[k].G; } else { *F = 1; *Gm = 10; } }
 }
+static int plat_x_present(void) { for (int k = 0; k < nplat_x; k++) if (objects_have(plat_x[k].type)) return 1; return 0; }
 static int box_hits_disc27(float bx, float by, float bw, float bh, int px, int py) {   /* Player_326: 27-px disc at (int X, int Y) */
     float cx = fmaxf(bx, fminf((float)px, bx + bw - 1)), cy = fmaxf(by, fminf((float)py, by + bh - 1));
     float dx = cx - px, dy = cy - py;
@@ -174,7 +189,7 @@ void objects_platforms(player_t *p) {
     jc_gim_pre(p);                                /* Jade Creek platforms before the movement (jc_gim.c) */
     th_gim_pre(p);                                /* Trap Hideout platforms / traps before the movement (th_gim.c) */
     relic_gima_pre(p);                            /* Relic Maze acts 1-2: rolling platform, hanging switch / mover, moving handles */
-    if (!objects_have(OT_PLAT_VALLEY) && !objects_have(OT_PLAT_MOVE2) && !objects_have(OT_PLAT_MOVE3) && !objects_have(OT_GEYSER) && !objects_have(OT_BRIDGE)) return;
+    if (!objects_have(OT_PLAT_VALLEY) && !objects_have(OT_PLAT_MOVE2) && !objects_have(OT_PLAT_MOVE3) && !objects_have(OT_GEYSER) && !objects_have(OT_BRIDGE) && !plat_x_present()) return;
     double MY = p->y - ORIG_REF_DY;
     int PX = (int)p->x, PY = (int)MY;
     for (int i = 0; i < G.nobjs; i++) {
@@ -194,7 +209,9 @@ void objects_platforms(player_t *p) {
     }
     /* 4061: carry / snap onto a moving platform (G >= 0, BottomBig 1 px lower, flag 6 of last frame off) */
     if (p->vy >= 0 || p->ground) {
-        for (int t = OT_PLAT_VALLEY; t <= OT_PLAT_MOVE3; t++) {
+        for (int ti = OT_PLAT_VALLEY; ti <= OT_PLAT_MOVE3 + nplat_x; ti++) {
+            int t = ti <= OT_PLAT_MOVE3 ? ti : plat_x[ti - OT_PLAT_MOVE3 - 1].type;
+            if (ti > OT_PLAT_MOVE3 && !objects_have(t)) continue;
             int k = mv_sensor_obj(p->x, MY + 1, p->N, SENSOR_BOTTOMBIG, t);
             if (k < 0 || (G.o[k].fl & 0x40)) continue;
             p->y += G.o[k].dir; MY = p->y - ORIG_REF_DY;
@@ -349,14 +366,20 @@ void obj_spawn_pellet(float x, float y, int dir) {
 
 /* PinballMovement::update (RE; floor split of the position reproduces the logged path exactly):
  * vy += gravity/10; speed = |v| (<= 100); position += v/10 with the fraction carried */
-static void pellet_move(obj_t *o) {
-    o->vy += PELLET_GRAV / 10.f;
+/* shared by every PinballMovement object (pellets; Trap Hideout's barrel debris, th_gim.c): vx / vy in tenths of a px a frame */
+void obj_pinball_start(obj_t *o, int dir, float speed) {
+    float a = (float)(dir & 31) * 11.25f * 3.14159265f / 180.f;      /* PinballMovement::set_direction */
+    o->vx = speed * (float)fd_cos(a); o->vy = -speed * (float)fd_sin(a); o->fx = o->fy = 0;
+}
+void obj_pinball_step(obj_t *o, float grav) {
+    o->vy += grav / 10.f;
     float sp = sqrtf(o->vx * o->vx + o->vy * o->vy);
     if (sp > 100.f) { o->vx *= 100.f / sp; o->vy *= 100.f / sp; }
     float dx = o->vx / 10.f + o->fx, dy = o->vy / 10.f + o->fy;
     float ix = floorf(dx), iy = floorf(dy);
     o->fx = dx - ix; o->fy = dy - iy; o->x += ix; o->y += iy;
 }
+static void pellet_move(obj_t *o) { obj_pinball_step(o, PELLET_GRAV); }
 
 /* RE (events 2632-2670): MonitorCrystals spawns 7 crystals (loop_spawn_crystals, event 1323),
  * MonitorRings spawns petals (loop_spawn_rings, 6 per loop), Monitor1up an extra life, MonitorInvincibility
@@ -470,7 +493,7 @@ static void obj_box(const obj_t *o, float *x0, float *y0, float *x1, float *y1) 
 static void rot_cs(const obj_t *o, double *c, double *s) { double a = fmod((double)o->ang, 360.0) / 57.29577951308232; *c = fd_cos(a); *s = fd_sin(a); }
 static void rot_bounds(const obj_t *o, const frame_t *f, int *x0, int *y0, int *x1, int *y1) {
     double c, s; rot_cs(o, &c, &s);
-    int hx = o->flip ? f->w - f->hx : f->hx;
+    int hx = FLIP_HX(o, f);
     double cx[4] = { -hx, f->w - hx, -hx, f->w - hx }, cy[4] = { -f->hy, -f->hy, f->h - f->hy, f->h - f->hy };
     double a0 = 1e9, b0 = 1e9, a1 = -1e9, b1 = -1e9;
     for (int k = 0; k < 4; k++) {
@@ -481,7 +504,7 @@ static void rot_bounds(const obj_t *o, const frame_t *f, int *x0, int *y0, int *
     *x0 = ox + (int)floor(a0) - 1; *y0 = oy + (int)floor(b0) - 1; *x1 = ox + (int)ceil(a1) + 1; *y1 = oy + (int)ceil(b1) + 1;
 }
 static int rot_px(const obj_t *o, const frame_t *f, double c, double s, int wx, int wy) {
-    int hx = o->flip ? f->w - f->hx : f->hx;
+    int hx = FLIP_HX(o, f);
     double dx = wx + 0.5 - (int)floorf(o->x), dy = wy + 0.5 - (int)floorf(o->y);
     int lx = (int)floor(dx * c - dy * s + hx), ly = (int)floor(dx * s + dy * c + f->hy);
     if (lx < 0 || lx >= f->w || ly < 0 || ly >= f->h) return 0;
@@ -492,7 +515,7 @@ int obj_px(const obj_t *o, int wx, int wy) {
     if (!o->an.b) return 0;
     const frame_t *f = anim_frame(&o->an);
     if (o->ang != 0) { double c, s; rot_cs(o, &c, &s); return rot_px(o, f, c, s, wx, wy); }
-    int bx = (int)floorf(o->x) - (o->flip ? f->w - f->hx : f->hx), by = (int)floorf(o->y) - f->hy;
+    int bx = (int)floorf(o->x) - FLIP_HX(o, f), by = (int)floorf(o->y) - f->hy;
     int lx = wx - bx, ly = wy - by;
     if (lx < 0 || lx >= f->w || ly < 0 || ly >= f->h) return 0;
     return frame_mask_px(o->an.b, f, o->flip ? f->w - 1 - lx : lx, ly);
@@ -523,7 +546,7 @@ int obj_rect_hit(const obj_t *o, int rx0, int ry0, int rx1, int ry1) {
             for (int x = rx0 > a0 ? rx0 : a0; x < (rx1 < a1 ? rx1 : a1); x++) if (rot_px(o, f, c, s, x, y)) return 1;
         return 0;
     }
-    int ox = (int)floorf(o->x) - (o->flip ? f->w - f->hx : f->hx), oy = (int)floorf(o->y) - f->hy;
+    int ox = (int)floorf(o->x) - FLIP_HX(o, f), oy = (int)floorf(o->y) - f->hy;
     int x0 = rx0 > ox ? rx0 : ox, x1 = rx1 < ox + f->w ? rx1 : ox + f->w;
     int y0 = ry0 > oy ? ry0 : oy, y1 = ry1 < oy + f->h ? ry1 : oy + f->h;
     for (int y = y0; y < y1; y++)
@@ -540,7 +563,7 @@ int obj_rows_hit(const obj_t *o, int ox, int oy, const signed char *x0, const si
     if (!o->an.b) return 0;
     const frame_t *f = anim_frame(&o->an);
     if (o->ang != 0) return rows_hit_rot(o, f, ox, oy, x0, x1, h);
-    int bx = (int)floorf(o->x) - (o->flip ? f->w - f->hx : f->hx), by = (int)floorf(o->y) - f->hy;
+    int bx = (int)floorf(o->x) - FLIP_HX(o, f), by = (int)floorf(o->y) - f->hy;
     if (ox > bx + f->w || ox + 27 < bx || oy >= by + f->h || oy + h <= by) return 0;
     for (int j = 0; j < h; j++) {
         int y = oy + j;
@@ -560,8 +583,8 @@ int obj_obj_hit(const obj_t *a, const obj_t *b) {
     const frame_t *fa = anim_frame(&a->an), *fb = anim_frame(&b->an);
     if (a->ang != 0 || b->ang != 0) {
         int a0, b0, a1, b1, c0, d0, c1, d1;
-        if (a->ang != 0) rot_bounds(a, fa, &a0, &b0, &a1, &b1); else { a0 = (int)floorf(a->x) - (a->flip ? fa->w - fa->hx : fa->hx); b0 = (int)floorf(a->y) - fa->hy; a1 = a0 + fa->w; b1 = b0 + fa->h; }
-        if (b->ang != 0) rot_bounds(b, fb, &c0, &d0, &c1, &d1); else { c0 = (int)floorf(b->x) - (b->flip ? fb->w - fb->hx : fb->hx); d0 = (int)floorf(b->y) - fb->hy; c1 = c0 + fb->w; d1 = d0 + fb->h; }
+        if (a->ang != 0) rot_bounds(a, fa, &a0, &b0, &a1, &b1); else { a0 = (int)floorf(a->x) - FLIP_HX(a, fa); b0 = (int)floorf(a->y) - fa->hy; a1 = a0 + fa->w; b1 = b0 + fa->h; }
+        if (b->ang != 0) rot_bounds(b, fb, &c0, &d0, &c1, &d1); else { c0 = (int)floorf(b->x) - FLIP_HX(b, fb); d0 = (int)floorf(b->y) - fb->hy; c1 = c0 + fb->w; d1 = d0 + fb->h; }
         int x0 = a0 > c0 ? a0 : c0, x1 = a1 < c1 ? a1 : c1, y0 = b0 > d0 ? b0 : d0, y1 = b1 < d1 ? b1 : d1;
         /* the same test as obj_px(a) && obj_px(b) per pixel, with each object's rotation (cos, sin) computed once
          * (session 13 perf: the DV4 boulder against the tunnel walls took 16-25 ms a frame in Flycast) */
@@ -574,8 +597,8 @@ int obj_obj_hit(const obj_t *a, const obj_t *b) {
         }
         return 0;
     }
-    int ax = (int)floorf(a->x) - (a->flip ? fa->w - fa->hx : fa->hx), ay = (int)floorf(a->y) - fa->hy;
-    int bx = (int)floorf(b->x) - (b->flip ? fb->w - fb->hx : fb->hx), by = (int)floorf(b->y) - fb->hy;
+    int ax = (int)floorf(a->x) - FLIP_HX(a, fa), ay = (int)floorf(a->y) - fa->hy;
+    int bx = (int)floorf(b->x) - FLIP_HX(b, fb), by = (int)floorf(b->y) - fb->hy;
     int x0 = ax > bx ? ax : bx, x1 = ax + fa->w < bx + fb->w ? ax + fa->w : bx + fb->w;
     int y0 = ay > by ? ay : by, y1 = ay + fa->h < by + fb->h ? ay + fa->h : by + fb->h;
     for (int y = y0; y < y1; y++)
@@ -591,7 +614,7 @@ int obj_obj_hit(const obj_t *a, const obj_t *b) {
 int obj_overlaps_bg(const obj_t *o) {
     if (!o->an.b) return solid_at(&G.lvl, o->x, o->y);
     const frame_t *f = anim_frame(&o->an);
-    int bx = (int)floorf(o->x) - (o->flip ? f->w - f->hx : f->hx), by = (int)floorf(o->y) - f->hy;
+    int bx = (int)floorf(o->x) - FLIP_HX(o, f), by = (int)floorf(o->y) - f->hy;
     if (o->ang == 0) {
         for (int y = 0; y < f->h; y++)
             for (int x = 0; x < f->w; x++)
@@ -600,7 +623,7 @@ int obj_overlaps_bg(const obj_t *o) {
     }
     /* rotated image (angle CCW around the hotspot): each opaque pixel's centre, rotated */
     double a = fmod((double)o->ang, 360.0) / 57.29577951308232, c = fd_cos(a), sn = fd_sin(a);
-    int hx = o->flip ? f->w - f->hx : f->hx, ox = (int)floorf(o->x), oy = (int)floorf(o->y);
+    int hx = FLIP_HX(o, f), ox = (int)floorf(o->x), oy = (int)floorf(o->y);
     for (int y = 0; y < f->h; y++)
         for (int x = 0; x < f->w; x++) {
             if (!frame_mask_px(o->an.b, f, o->flip ? f->w - 1 - x : x, y)) continue;
@@ -1038,7 +1061,7 @@ static int sensor_hit_any(int grp, int type, int ox, int oy, const signed char *
         { int m = ext_slot_m[i] * (o->ang != 0 ? 2 : 1) + 2;   /* cheap reject before the frame lookup (same result) */
           if (o->x < ox - m || o->x > ox + 27 + m || o->y < oy - m || o->y > oy + h + m) continue; }
         const frame_t *f = anim_frame(&o->an);
-        int bx = (int)floorf(o->x) - (o->flip ? f->w - f->hx : f->hx), by = (int)floorf(o->y) - f->hy;
+        int bx = (int)floorf(o->x) - FLIP_HX(o, f), by = (int)floorf(o->y) - f->hy;
         if (o->type == OT_JELLY) {                                 /* AT jelly spring: scaled box (spec_at_gimmicks_a 3) */
             float jx0, jy0, jx1, jy1; aqua_jelly_box(o, &jx0, &jy0, &jx1, &jy1);
             for (int j = 0; j < h; j++) { int y = oy + j; if (x1[j] < x0[j] || y < jy0 || y >= jy1) continue; if (ox + x1[j] >= jx0 && ox + x0[j] < jx1) return i; }

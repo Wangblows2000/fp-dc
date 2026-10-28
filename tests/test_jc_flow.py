@@ -147,7 +147,7 @@ for lv, want in (('jc1', {(10074.0, 237.0): 51, (5722.0, 1429.0): 52, (5594.0, 5
 
 # ---- the Classic route: SB1's results -> frame 8 -> JC1 (MenuSequence.I = 4 -> frame 39, RE handle_frame_9), fresh (g4 1)
 with tempfile.TemporaryDirectory() as d:
-    rows, ev, out = run('60 RESBOSS\n' + ''.join('%d TP 1300 1180\n' % f for f in range(10, 1000, 30)), 900,
+    rows, ev, out = run('60 RESBOSS\n' + ''.join('%d TP 1300 1180\n' % f for f in range(10, 520, 30)) + ''.join('%d %d J\n' % (f, f + 2) for f in range(560, 1500, 40)), 1500,   # (session 21: the run earns the stage's speedrunner achievement; Jump closes its pop-up, as in the original)
                         {'FP_LEVEL': 'sb1', 'FP_SAVE': os.path.join(d, 's.bin')})
 st = [l for l in loads(ev) if l not in ('frontend', 'gal')]
 j1 = [r for r in rows if r['mode'] == 1 and r['act'] == 1 and r['f'] < 50 and r['x'] < 0]

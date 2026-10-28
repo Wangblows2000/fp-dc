@@ -13,7 +13,7 @@ int ui_banks_load(ui_banks_t *b, const char *prefix, int n) {
     memset(b, 0, sizeof *b);
     for (int i = 0; i < n && i < UI_MAX_BANKS; i++) {
         snprintf(nm, sizeof nm, "ui/%s_ui%d", prefix, i);
-        if (bank_load(&b->bank[i], nm) < 0) return -1;
+        if (bank_load(&b->bank[i], nm) < 0) return i > 0 ? 0 : -1;   /* banks after the first are optional (session 21: tasel_ui1) */
         b->n = i + 1;
     }
     return 0;
