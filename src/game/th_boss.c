@@ -75,87 +75,22 @@ void thb_arena_open(void) {
     for (int k = 0; k < nbars; k++) { obj_t *b = thb_slot(bars[k]); if (b && b->type == OT_WR_BARRIER) b->alive = 0; }
 }
 
-/* ======================================================================== the scan laser (qualifier 0x22d98)
- * RE 13484: flag 1 cleared, then loop_l_56 sixteen times a frame. One pass (13458-13461 + the loop's own event): overlapping a
- * backdrop: A - 1; overlapping the always-solid group 0x218c0: A - 1; Milla (MV.A 4) and her PlayerReflect (the cube) on it:
- * A - 1, flag 1; free of all three: A + 1. x scale = 0.1 A on the 10-px image: the beam is A px long from its hot spot (0, 4 /
- * 0, 7) along the angle. RV i1_c: + 16 a frame while free; a beam swept into a barrier anywhere along its length shrinks 16 a
- * frame back to its first contact (f523-f531: 126 -> 7 at the barrier tops).
- * The port marches the beam (1 px steps, its cross-section every 2 px) to its first contact D with the play layer's solid
- * pixels, the solid objects listed at the fight start and the cube's box; "the beam overlaps" is then A >= D. */
-static short solids[48]; static int nsolids;
-static void solids_collect(float x0, float x1) {
-    nsolids = 0;
-    for (int i = 0; i < G.nobjs && nsolids < 48; i++) {
-        const obj_t *o = &G.o[i];
-        if (o->alive && obj_in_group(o->type, OBJGRP_SOLID) && o->x >= x0 && o->x <= x1) solids[nsolids++] = (short)i;
-    }
-}
-static int solid_obj_at(float x, float y) {
-    for (int k = 0; k < nsolids; k++) {
-        const obj_t *o = thb_slot(solids[k]);
-        if (!o || !o->an.b) continue;
-        const frame_t *f = anim_frame(&o->an);
-        float x0 = floorf(o->x) - f->hx, y0 = floorf(o->y) - f->hy;
-        if (x >= x0 && x < x0 + f->w && y >= y0 && y < y0 + f->h) return 1;
-    }
-    return 0;
-}
-static int section_hits(const thb_laser_t *l, double d, double c, double s, double hw, int *cube) {   /* the beam's cross-section at d */
-    double tx = l->x + d * c, ty = l->y - d * s;
-    for (double w = -hw; w <= hw; w += 2) {
-        int px = (int)floor(tx + w * s), py = (int)floor(ty + w * c);
-        if (px_solid(&G.lvl, px, py) || solid_obj_at((float)px, (float)py)) return 1;
-    }
-    if (G.character == CHR_MILLA) {
-        int x0 = (int)floor(tx - hw), y0 = (int)floor(ty - hw);
-        if (player_cube_rect(x0, y0, x0 + (int)(2 * hw) + 1, y0 + (int)(2 * hw) + 1)) { *cube = 1; return 1; }
-    }
-    return 0;
-}
-void thb_laser_cast(thb_laser_t *l, int layer) {
-    (void)layer;
-    double c = sbb_cos(l->ang), s = sbb_sin(l->ang), hw = l->dir ? 7 : 4, D = 1e9;
-    int cube = 0;
-    for (double d = 0; d <= l->A + 16; d += 1) if (section_hits(l, d, c, s, hw, &cube)) { D = d; break; }
-    l->flag1 = 0;
-    for (int it = 0; it < 16; it++) {
-        if (l->A >= D) { l->A -= 1; if (cube) l->flag1 = 1; }                   /* 13458 / 13459 / 13460 (13461) */
-        if (!(l->A >= D) && !l->flag1) l->A += 1;                               /* the loop's grow event */
-    }
-    if (l->A < 0) l->A = 0;
-}
-void thb_laser_dust(const thb_laser_t *l, int layer) {
-    if (l->dir != 1) return;                                                    /* 13486: firing beams (direction 1) */
-    float tx = (float)(l->x + l->A * sbb_cos(l->ang)), ty = (float)(l->y - l->A * sbb_sin(l->ang));
-    if (tx <= G.camx - 20 || tx >= G.camx + SCREEN_W + 20 || ty <= G.camy - 20 || ty >= G.camy + SCREEN_H + 20) return;   /* D / E in the view +- 20 (INFERRED: the tip) */
-    obj_t *d = thb_spawn(OT_THB_DUST, TS_DUST, (float)(int)tx, (float)(int)ty, layer);   /* EffectsDust_437 at the action point (the tip) */
-    if (d) d->ang = (float)cross_rand(360);                                     /* 13489: on a laser: a random angle */
-}
-int thb_laser_hits(const thb_laser_t *l, const player_t *p) {
-    if (l->dir != 1 || l->A <= 0) return 0;
-    int X = (int)sbb_px(p), Y = (int)sbb_py(p), y0, y1;                         /* PlayerCharacterSensor (combat.c char_rect) */
-    if (player_char_sensor_small(p)) { y0 = Y - 13; y1 = Y + 14; } else { y0 = Y - 34; y1 = Y + 12; }
-    int x0 = X - 7, x1 = X + 8;
-    double c = sbb_cos(l->ang), s = sbb_sin(l->ang), hw = 7;
-    for (double d = 0; d <= l->A; d += 3) {                                     /* the beam (14 px wide) sampled every 3 px */
-        double bx = l->x + d * c, by = l->y - d * s;
-        if (bx + hw >= x0 && bx - hw <= x1 && by + hw >= y0 && by - hw <= y1) return 1;
-    }
-    return 0;
-}
-void thb_laser_rule(const thb_laser_t *l, player_t *p) {
-    if (!thb_laser_hits(l, p) || p->state == ST_DEAD) return;
-    if (!p->hurt_pending && p->invuln <= 0) player_contact(p, 5);              /* 13490: MV.R 0, OTHERS.E <= 0: R 1, LIFE.B + 5 */
-    if (p->state == ST_HURT) { p->vx = p->vy = 0; p->gsp = 0; }                 /* 13492: MV.M 8: B 0, G 0 */
-    if (p->invuln > 6) p->invuln = 6;                                           /* 13493: OTHERS.E = min(E, 6) */
+/* ======================================================================== the boss laser's dust (13486 / 13489)
+ * A burning beam (direction 1) whose end point D / E lies in the view +- 20: an EffectsDust_437 at its action point (the tip), turned
+ * to a random angle while it touches a laser (it does at birth). */
+void thb_beam_dust(const obj_t *b) {
+    if (!b || !b->alive || b->dir != 1) return;
+    float tx = (float)b->av[3], ty = (float)b->av[4];                            /* D / E (th_gim_beam) */
+    if (tx <= G.camx - 20 || tx >= G.camx + SCREEN_W + 20 || ty <= G.camy - 20 || ty >= G.camy + SCREEN_H + 20) return;
+    obj_t *d = thb_spawn(OT_THB_DUST, TS_DUST, tx, ty, b->layer);
+    if (d) d->ang = (float)cross_rand(360);
 }
 
 /* ======================================================================== spawn / dispatch */
 static void snap_once(void) { static int reg; if (!reg) { reg = 1; snap_register(&R, sizeof R); snap_register(&nR, sizeof nR); } }
 void th_boss_spawn(void) {
     snap_once();
-    memset(thb_l, 0, sizeof thb_l); nR = 0; nrails = nbars = nsolids = 0; marks[0] = marks[1] = marks[2] = marks[3] = -1;
+    memset(thb_l, 0, sizeof thb_l); nR = 0; nrails = nbars = 0; marks[0] = marks[1] = marks[2] = marks[3] = -1;
     on = 0;
     for (int j = 0; j < G.lvl.nobj && !on; j++) if (G.lvl.objs[j].type >= OT_THB_FIRST && G.lvl.objs[j].type <= OT_THB_PLACED_LAST) on = 1;
     if (!on) return;
@@ -178,7 +113,6 @@ void th_boss_spawn(void) {
         thb_list_t *l = &thb_l[ti]; if (l->n < THB_LMAX) l->i[l->n++] = (short)i;
     }
     thi_spawn(); thc_spawn();
-    if (nrails) { float x0 = 1e9f, x1 = -1e9f; for (int k = 0; k < nrails; k++) { obj_t *r = thb_slot(rails[k]); if (r) { x0 = fminf(x0, r->x); x1 = fmaxf(x1, r->x); } } solids_collect(x0 - 64, x1 + 64); }
 }
 void th_boss_pre(player_t *p) { (void)p; if (!on) return; r_compact(); }
 void th_boss_frame(player_t *p) {

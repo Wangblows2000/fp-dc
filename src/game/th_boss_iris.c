@@ -1,6 +1,6 @@
 /* TH1: the Laser Iris (BossLaserIris_3141 + Cannon_3140, WingLeft_3138, WingRight_3139, HazardScanLaserBoss_3142).
  * RE handle_frame_57_events 13502-13531 (fight group 0x22db0 from 13514; arena-end once 0x22db8), constructors; the shared laser
- * rules 13484 / loop_l_56 / 13490-13493 (th_boss.c thb_laser_*); RV build/orig_traces/th_bosses i1_c (Carol: fly-by, fight, kill
+ * rules 13484 / loop_l_56 / 13490-13493 (th_gim.c th_gim_beam, shared with the act's scan lasers); RV build/orig_traces/th_bosses i1_c (Carol: fly-by, fight, kill
  * at f1300), i2_m (Milla: jumps, kill at f1500). spec_th_bosses.md Part A.
  * Iris alterables (ctor A 60 (Q20 HP), D 270): D the cannon angle, E the flap phase, F the flap speed, G / H the base position
  * (x = G, y = H + 5 sin E), I the state (0 asleep, 1 waking, 2 flying ahead, 3 aiming, 4 tracking, 5 firing, 6 defeated),
@@ -15,7 +15,6 @@ static struct {
     double D, E, F, G, H, I, J, M, O, Q; int fl3;    /* BossLaserIris */
     double wlX, wlY, wrX, wrY, cX, cY;               /* the parts' X / Y (13529: their fall velocities) */
     double railA;                                    /* MinibossRailing A (13530; every railing the same) */
-    thb_laser_t las;                                 /* HazardScanLaserBoss: A, position, angle, direction (0 aim, 1 fire) */
 } I;
 
 static obj_t *iris(void) { return thb_get(OT_THB_IRIS, 0); }
@@ -25,7 +24,7 @@ void thi_spawn(void) {
     static int reg; if (!reg) { reg = 1; snap_register(&I, sizeof I); }
     memset(&I, 0, sizeof I);
     obj_t *o = iris(), *c = thb_get(OT_THB_CANNON, 0), *wl = thb_get(OT_THB_WINGL, 0), *wr = thb_get(OT_THB_WINGR, 0), *l = thb_get(OT_THB_LASER, 0);
-    if (l) { thb_set_a(l, TS_LAS); I.las.A = 10; I.las.x = l->x; I.las.y = l->y; I.las.ang = 0; I.las.dir = 0; }   /* ctor A 10 */
+    if (l) { thb_set_a(l, TS_LAS); l->av[0] = 10; l->ang = 0; l->dir = 0; }    /* ctor A 10 (av[0] = A for th_gim_beam), direction 0 */
     if (!o) return;
     I.on = 1;
     thb_set_a(o, TS_IRIS24); o->A = 60; o->fl |= F_NOFLY;                       /* ctor: direction 24, A 60, D 270 */
@@ -46,16 +45,16 @@ static void parts_follow(obj_t *o) {
 
 static void fight_start(obj_t *o) {                  /* 13513 */
     I.fight = 1; I.I = 3; thb_set_a(o, TS_IRIS); I.F = 10; I.J = 0;
-    if (th_gim_scanlasers_off) th_gim_scanlasers_off();   /* every HazardScanLaser* of the act destroyed (th_gim.c) */
+    th_gim_scan_off();                                    /* every HazardScanLaser* and head of the act destroyed (th_gim.c) */
 }
 
 void thi_frame(player_t *p) {
     obj_t *l = thb_get(OT_THB_LASER, 0);
     /* the shared laser events run before the boss's own block (RE handler order 13484, 13490-13493 < 13502) */
     if (l) {
-        thb_laser_cast(&I.las, l->layer);
-        thb_laser_dust(&I.las, l->layer);
-        thb_laser_rule(&I.las, p);
+        th_gim_beam(l, p);                                                      /* the length (16 steps), the burn (5), the knock-back off */
+        thb_beam_dust(l);                                                       /* 13486 / 13489 */
+        th_enemy_totem_zap(l);                                                  /* 13488: a totem in the beam breaks */
     }
     if (!I.on) return;
     obj_t *o = iris();
@@ -80,14 +79,14 @@ void thi_frame(player_t *p) {
     if (!I.fight) return;
     /* ---- group 0x22db0 */
     obj_t *c = thb_get(OT_THB_CANNON, 0);
-    if (l && c) { float ax, ay; thb_act_point(c, &ax, &ay); I.las.x = ax; I.las.y = ay; I.las.ang = c->ang; l->x = ax; l->y = ay; l->ang = c->ang; }   /* 13514 */
+    if (l && c) { float ax, ay; thb_act_point(c, &ax, &ay); l->x = ax; l->y = ay; l->ang = c->ang; }   /* 13514 */
     if (o) {
-        if (I.I == 3) { I.J += 1; I.las.dir = 0; I.D = 270 + 45 * sbb_sin(I.O); I.O = sbb_fmod360(I.O + 2); }   /* 13515 */
+        if (I.I == 3) { I.J += 1; if (l) l->dir = 0; I.D = 270 + 45 * sbb_sin(I.O); I.O = sbb_fmod360(I.O + 2); }   /* 13515 */
         if (I.I == 3 && I.J > 90) { I.J = 0; I.I = 4; I.F = 15; }                      /* 13516 */
         if (I.I < 5 && fmod(I.J, 40) == 30) I.M = PX > I.G ? 2 : -2;                   /* 13517 / 13518 */
-        if (I.I == 4) { I.D = 270 + 45 * sbb_sin(I.O); I.O = sbb_fmod360(I.O + 4); I.J += 1; I.las.dir = 0; }   /* 13519 */
+        if (I.I == 4) { I.D = 270 + 45 * sbb_sin(I.O); I.O = sbb_fmod360(I.O + 4); I.J += 1; if (l) l->dir = 0; }   /* 13519 */
         if (I.I == 4 && I.J > 40) { I.J = 0; I.I = 5; I.M = PX > I.G ? 4 : -4; snd_play_orig(169, 220, 128); }   /* 13520 / 13521 */
-        if (I.I == 5) { I.D = 270 + 45 * sbb_sin(I.O); I.O = sbb_fmod360(I.O + 4); I.las.dir = 1; I.J += 1; }   /* 13522 */
+        if (I.I == 5) { I.D = 270 + 45 * sbb_sin(I.O); I.O = sbb_fmod360(I.O + 4); if (l) l->dir = 1; I.J += 1; }   /* 13522 */
         if (I.I == 5 && fmod(I.J, 40) == 30) I.M = PX > I.G ? 4 : -4;                  /* 13523 / 13524 */
         if (I.I == 5 && I.J > 120) { I.J = 0; I.I = 3; I.F = 10; I.M *= 0.5; }        /* 13525 */
         if (I.M < 0 && I.G < 4740) I.M = -I.M;                                          /* 13526 */
@@ -122,13 +121,13 @@ void thi_frame(player_t *p) {
     }
     if (I.railA > 30 && !I.opened) { I.opened = 1; thb_arena_open(); }              /* 13531 */
     l = thb_get(OT_THB_LASER, 0);
-    if (l) thb_set_a(l, I.las.dir ? TS_LAS1 : TS_LAS);                                  /* force_direction 1 / 0 (13515 / 13519 / 13522) */
+    if (l) thb_set_a(l, l->dir ? TS_LAS1 : TS_LAS);                                  /* force_direction 1 / 0 (13515 / 13519 / 13522) */
 #ifdef FP_HOST_ENV
     if (getenv("FP_DBG_THI")) {
-        const obj_t *ir = iris();
+        const obj_t *ir = iris(), *lz = thb_get(OT_THB_LASER, 0);
         printf("thi %d px %.0f py %.0f x %.0f y %.0f A %.0f D %.3f E %.0f F %.0f G %.0f H %.0f I %.0f J %.0f M %.1f O %.0f Q %.0f lA %.0f lx %.0f ly %.0f la %.3f ld %d fight %d rail %.0f\n",
             G.frame, PX, sbb_py(p), ir ? ir->x : -1, ir ? ir->y : -1, ir ? ir->A : -1, I.D, I.E, I.F, I.G, I.H, I.I, I.J, I.M, I.O, I.Q,
-            I.las.A, I.las.x, I.las.y, I.las.ang, I.las.dir, I.fight, I.railA);
+            lz ? lz->av[0] : -1, lz ? lz->x : -1, lz ? lz->y : -1, lz ? lz->ang : -1, lz ? lz->dir : -1, I.fight, I.railA);
     }
 #endif
 }
@@ -145,10 +144,7 @@ int thi_draw(const obj_t *o, int pass) {
         r_set_xscale(1.f);
         return 1; }
     case OT_THB_LASER: {
-        if (!o->an.b || I.las.A <= 0) return 1;
-        r_set_xscale((float)(I.las.A * 0.1));
-        sbb_draw(o, 0xffffffff);
-        r_set_xscale(1.f);
+        th_gim_beam_draw(o);
         return 1; }
     case OT_THB_IRIS: case OT_THB_CANNON: sbb_draw(o, 0xffffffff); return 1;
     }
