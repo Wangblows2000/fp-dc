@@ -85,6 +85,44 @@ def pack(images, size, height=None):
     return pos
 
 
+def pack_skyline(images, size, height=None):
+    """Skyline bottom-left packer (session 21, Jade Creek _ens banks: the shelf packer filled 74 % of a page). Same contract
+    as pack(): {key: (x, y)} or None; 1 px gutter; tallest first."""
+    height = height or size
+    order = sorted(images, key=lambda kv: (-kv[1].height, -kv[1].width, kv[0]))
+    sky = [(0, 0, size)]                      # segments (x, y, w): the top of the used area
+    pos = {}
+    for key, im in order:
+        w, h = im.width + 1, im.height + 1
+        if im.width > size: return None
+        best = None
+        for i in range(len(sky)):
+            x = sky[i][0]
+            if x + w > size: break
+            y, wl, j = 0, w, i
+            while wl > 0:                     # the highest segment under [x, x + w)
+                y = max(y, sky[j][1]); wl -= sky[j][2]; j += 1
+                if wl > 0 and j >= len(sky): y = None; break
+            if y is None or y + h > height: continue
+            if best is None or (y, x) < (best[1], best[0]): best = (x, y, i)
+        if best is None: return None
+        x, y, i = best
+        pos[key] = (x, y)
+        ns = [(x, y + h, w)]                  # rebuild the skyline over [x, x + w)
+        rest = []
+        for sx, sy, sw in sky:
+            if sx + sw <= x or sx >= x + w: rest.append((sx, sy, sw)); continue
+            if sx < x: rest.append((sx, sy, x - sx))
+            if sx + sw > x + w: rest.append((x + w, sy, sx + sw - x - w))
+        sky = sorted(rest + ns)
+        merged = []
+        for seg in sky:
+            if merged and merged[-1][1] == seg[1] and merged[-1][0] + merged[-1][2] == seg[0]: merged[-1] = (merged[-1][0], seg[1], merged[-1][2] + seg[2])
+            else: merged.append(seg)
+        sky = merged
+    return pos
+
+
 def write_bank(src, bank, out_dir, report):
     """Sprite bank: 'FPSB' u16 nframes, u16 nanims, u16 texw, u16 texh
        frame: u16 u, v, w, h; s16 hx, hy                  (12 bytes)

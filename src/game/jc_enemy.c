@@ -47,11 +47,19 @@ static int ens_of(const obj_t *o, const char *base) {
     int a = ens_anim(nm);
     return a >= 0 ? a : ens_anim(base);
 }
+/* a direction-16 row left out by the importer (JCE_MIRRORED: exact mirrors) is drawn as the base row flipped; flip 2 also
+ * moves it 1 px right (the original's left hotspot is w - 1 - hx, frame_draw's flip uses w - hx) */
+static void mirror_fix(obj_t *o, const char *base) {
+    char nm[24]; snprintf(nm, sizeof nm, "%s_l", base);
+    if ((o->dir & 31) == 16 && ens_anim(nm) < 0 && ens_anim(base) >= 0) o->flip = 2;
+    else if (o->flip == 2) o->flip = 0;
+}
 static void set_a(obj_t *o, const char *base) {                                 /* force_animation: frame 0, the speed counter kept (RE_NOTES) */
+    mirror_fix(o, base);
     int a = ens_of(o, base);
     if (a >= 0 && (o->an.b != &G.ens || o->an.anim != a)) { int acc = o->an.b ? o->an.acc : 0; anim_set(&o->an, &G.ens, a); o->an.acc = acc; }
 }
-static void restart_a(obj_t *o, const char *base) { int a = ens_of(o, base); if (a >= 0) { anim_set(&o->an, &G.ens, a); anim_restart(&o->an); } }
+static void restart_a(obj_t *o, const char *base) { mirror_fix(o, base); int a = ens_of(o, base); if (a >= 0) { anim_set(&o->an, &G.ens, a); anim_restart(&o->an); } }
 static int a_is(const obj_t *o, const char *base) { return o->an.b == &G.ens && o->an.anim == ens_of(o, base); }
 static void face(obj_t *o, int dir) {                                           /* set_direction: animation frame and counter kept */
     if ((o->dir & 31) == dir) return;
@@ -59,6 +67,7 @@ static void face(obj_t *o, int dir) {                                           
     if (o->an.b == &G.ens) { snprintf(stem, sizeof stem, "%s", G.ens.anims[o->an.anim].name); size_t n = strlen(stem); if (n > 2 && !strcmp(stem + n - 2, "_l")) stem[n - 2] = 0; }
     o->dir = dir;
     if (!stem[0]) return;
+    mirror_fix(o, stem);
     int a = ens_of(o, stem);
     if (a < 0 || a == o->an.anim) return;
     animator_t k = o->an;
