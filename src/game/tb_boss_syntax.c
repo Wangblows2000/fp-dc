@@ -32,7 +32,13 @@ static obj_t *arm(int side, int a) {                                            
     int t = side ? OT_TBB_SX_ARMR : OT_TBB_SX_ARML, n = tbb_count(t);
     return tbb_get(t, n - a);
 }
-static obj_t *sphere(int k, int big) { return tbb_get(OT_TBB_SX_SPHERE, big ? 3 + k : k); }
+static obj_t *sphere(int k, int big) {                                         /* par 0: BossSpikeSphere k (placement order); par 1: the BossSpikeSphere2 at its x */
+    int n = 0; obj_t *s = NULL;
+    for (int j = 0; j < tbb_count(OT_TBB_SX_SPHERE); j++) { obj_t *o = tbb_get(OT_TBB_SX_SPHERE, j); if (o && o->par == 0 && n++ == k) { s = o; break; } }
+    if (!s || !big) return s;
+    for (int j = 0; j < tbb_count(OT_TBB_SX_SPHERE); j++) { obj_t *o = tbb_get(OT_TBB_SX_SPHERE, j); if (o && o->par == 1 && (int)o->ox == (int)s->ox) return o; }
+    return NULL;
+}
 static obj_t *splash(int m) { for (int k = 0; k < tbb_count(OT_TBB_SX_SPLASH); k++) { obj_t *o = tbb_get(OT_TBB_SX_SPLASH, k); if (o && o->par == m) return o; } return NULL; }
 int tb_boss_syntax_state(void) { return !X.on ? -100 : X.end ? 10 + (int)X.hG : (int)X.N; }
 int tb_boss_syntax_rounds(void) { return X.on ? (int)X.hE : -1; }
@@ -89,7 +95,7 @@ static void spheres_frame(player_t *p, float lava_y) {
             X.sph_g[k] += 0.2; X.sph_y[k] += X.sph_g[k];
             if (X.sph_g[k] > 0 && X.sph_y[k] >= X.sph_home[k]) { X.sph_d[k] = 0; X.sph_y[k] = X.sph_home[k]; }   /* 12645 */
             float py = s->y; s->y = (float)(int)X.sph_y[k];
-            if ((py > lava_y) != (s->y > lava_y)) { snd_play_orig(252, 220, 128); obj_effect(s->x, lava_y, "tbx_splash"); }   /* 12681 / 12682 */
+            if ((py > lava_y) != (s->y > lava_y)) { snd_play_orig(s->y < lava_y ? 252 : 251, 220, 128); obj_effect(s->x, lava_y, "tbx_splash"); }   /* 12681 / 12682 (RV x2_l: 252 out, 251 in) */
         }
         X.sph_ang[k] = sbb_nrm(X.sph_ang[k] + (X.sph_d[k] ? 10 : 2));           /* 12644 (INFERRED turn rate) */
         if (s2) { s2->x = s->x; s2->y = s->y; s2->ang = (float)X.sph_ang[k]; }
@@ -144,7 +150,7 @@ void tbx_spawn(void) {
     memset(&X, 0, sizeof X);
     obj_t *body = part(P_BODY), *h = hitbox();
     for (int t = OT_TBB_PLAT; t <= OT_TBB_PLAT2; t++)
-        for (int k = 0; k < tbb_count(t); k++) { obj_t *o = tbb_get(t, k); if (o) { tbb_set_a(o, TS_PLAT); o->A = 0; if (o->an.b) o->an.speed_override = 0; } }
+        for (int k = 0; k < tbb_count(t); k++) { obj_t *o = tbb_get(t, k); if (o) { tbb_set_a(o, TS_PLAT); o->A = 0; } }
     if (!body || !h) return;
     X.on = 1;
     X.A = body->x; X.B = body->y; X.E = 30; X.F = 5; X.G = 15; X.H = 45; X.I = 135; X.J = 1; X.M = 20; X.N = -1; X.R = 1; X.S = -15;   /* ctor (RV x1_l f60) */
@@ -179,7 +185,7 @@ void tbx_frame(player_t *p) {
             if (X.O > 20 && !X.voice) { X.voice = 1; voice_play("sx_still"); }   /* 12574: the stage voice (RV x1_l 413 = O 21) */
             if (X.O < 140 && tbb_g3() % 3 == 0 && hd) obj_effect(hd->x, lava_y + 3, "tbx_splash");   /* 12577 */
             if (X.O == 120 && !X.music) { X.music = 1; const char *m = level_music_slot(4); if (m) music_play(m); }   /* 12578: ML.Y 1 -> play_music(4) (RV m_boss2 at 512) */
-            if (X.O > 120) { X.S = fmin(X.S + 0.2, 0); X.B += X.S; }            /* 12579: the rise */
+            if (X.O > 120) { X.B += X.S; X.S = fmin(X.S + 0.2, 0); }            /* 12579: the rise (RV x1_l 520: B 1993.6, S -13.4) */
             if (X.O > 250) { X.O = 0; X.N = 0; }                                /* 12580 */
             camera_shake(3);
         }
@@ -191,30 +197,30 @@ void tbx_frame(player_t *p) {
             X.O += 1;
             int nw = tbb_count(OT_TBB_WAYPOINT);
             if (X.O == 25 && nw > 0 && !(h && X.hD == 1)) {                     /* 12592: P / Q = waypoint T, T = (T + 1) mod n */
-                obj_t *w = tbb_get(OT_TBB_WAYPOINT, (int)X.T % nw);
+                obj_t *w = tbb_get(OT_TBB_WAYPOINT, nw - 1 - (int)X.T % nw);  /* the waypoint whose A = T (RV x2_l: A 4..0 in placement order) */
                 if (w) { X.P = w->x; X.Q = w->y; }
                 X.T = fmod(X.T + 1, nw);
             }
             if (X.O > 30) {
-                for (int k = 0; k < 2; k++) {                                   /* 12593 (x 2): turn up to 1 degree toward the target */
+                for (int k = 0; k < (h && X.hD == 1 ? 4 : 2); k++) {             /* 12593 x 2 (+ 12594 x 2 stunned: RV x2_l -4 a frame) */
                     double want = atan2(X.Q - X.B, X.A - X.P) * SB_RAD + 90;
                     double d = fmod(want - X.C + 540, 360); if (d < 0) d += 360; d -= 180;
                     X.C += d > 1 ? 1 : d < -1 ? -1 : d;
                 }
-                double sp = h && X.hD == 1 ? 3 : 5;                             /* 12595 / 12596: 5 px a frame along C + 90 (3 while stunned) */
+                double sp = h && X.hD == 1 ? 8 : 5;                             /* 12595 / 12596: 5 px a frame along C + 90 (+ 3 while stunned) */
                 X.A += sp * sbb_cos(90 + X.C); X.B += -sp * sbb_sin(90 + X.C);
             }
             X.M = 20;
             if (h && X.hD == 1 && X.B > Bm + 200) { X.N = 3; X.O = 0; }         /* 12597: stunned and under the lava: the spheres */
             else {
-                double c = fmod(X.C, 360); if (c < 0) c += 360;
-                if (X.O > 90 && (c <= 20 || c >= 340) && !(h && X.hD == 1)) { X.O = 0; X.N = X.R; }   /* 12598 (INFERRED: the upright test) */
+                if (X.O > 90 && (X.C < 20 || X.C > 340) && !(h && X.hD == 1)) { X.O = 0; X.N = X.R; }   /* 12598: C as stored (RV x1_l: N 1 at C -100, N 2 at 341) */
                 if (X.O > 300 && !(h && X.hD == 1)) { X.O = 0; X.N = X.R; }    /* 12598: the time-out */
             }
         }
         /* ---- N 1: lava pillars from the floor's splash points (12649-12661) */
         else if (X.N == 1) {
-            X.O += 1; X.M = 0; X.C *= 0.9;                                      /* 12647 */
+            X.O += 1; X.M = 0;
+            { double c = fmod(X.C, 360); if (c < 0) c += 360; X.C = c >= 180 ? (X.C * 9 + 360) * 0.1 : X.C * 0.9; }   /* 12647 / 12648 */
             if (X.O == 1) snd_play_orig(305, 220, 128);                         /* 12650 (RV 732) */
             if (X.O == 60) snd_play_orig(304, 220, 128);                        /* 12651 (RV 791) */
             for (int m = 0; m < 2; m++) { obj_t *s = splash(m); if (s) s->hidden = !(X.O > 1 && X.O <= 120); }
@@ -273,30 +279,39 @@ void tbx_frame(player_t *p) {
         else if (X.N == 5) {
             X.O += 1; X.M = 0;
             if (X.O == 1) { parts_hidden(1); tbb_set_a(body, TS_SX_BODY8); if (h) tbb_set_a(h, TS_SX_HIT8); }   /* 12635 */
-            float sl = splash(0) ? splash(0)->y : Bm - 21;
-            if (X.O > 80 && X.O < 101) { X.S = -12; }                           /* 12617 */
-            if (X.O > 80 && X.O <= 100) { X.S = fmin(X.S + 0.3, 15); X.B += X.S; } /* 12618 (INFERRED: the leap) */
+            /* RV x2_l 1639-1900: 80 frames under the lava, a leap (S -12), then along the walls: each leg accelerates 0.3 a frame to 12
+             * and stops at an edge with sound 51 (the floor = the bottom marker - 133, the sides / top 96 px inside the markers: RV 1826 /
+             * 1016); O holds on each leg (12620-12633) */
+            double fl = Bm - 133, lw = L + 96, rw = Rm - 96, tw = T + 96;
+            if (X.O > 80 && X.O < 100) { X.S = -12; X.B += X.S; }               /* 12617 / 12618 */
+            if (X.O >= 100 && (tbb_g3() % 5) == 0) snd_play_orig(264, 220, 128);   /* RV: the ball's sound every 5 frames from O 100 */
             int leg = (int)X.O - 100;
             if (leg >= 0 && leg <= 6) {
-                double sp = 12;
-                switch (leg) {                                                  /* 12620-12633: down, left, up, right, down, left, fall */
-                case 0: X.B += sp; if (X.B >= sl) { X.B = sl; X.O += 1; snd_play_orig(51, 220, 128); } else X.O -= 1; break;
-                case 1: X.A -= sp; if (X.A <= L + 96) { X.A = L + 96; X.O += 1; snd_play_orig(51, 220, 128); } else X.O -= 1; break;
-                case 2: X.B -= sp; if (X.B <= T + 96) { X.B = T + 96; X.O += 1; snd_play_orig(51, 220, 128); } else X.O -= 1; break;
-                case 3: X.A += sp; if (X.A >= Rm - 96) { X.A = Rm - 96; X.O += 1; snd_play_orig(51, 220, 128); } else X.O -= 1; break;
-                case 4: X.B += sp; if (X.B >= sl) { X.B = sl; X.O += 1; snd_play_orig(51, 220, 128); } else X.O -= 1; break;
-                case 5: X.A -= sp; if (X.A <= (L + Rm) / 2) { X.A = (L + Rm) / 2; X.O += 1; X.S = -15; } else X.O -= 1; break;
-                case 6: X.S += 0.3; X.B += X.S; X.O -= 1;
-                    if (X.S > 0 && X.B >= Bm - 380) {                           /* 12634: back to the rig */
+                X.O -= 1;
+                int next = 0;
+                switch (leg) {
+                case 0: X.S = fmin(X.S + 0.3, 12); X.B += X.S; if (X.S > 0 && X.B >= fl) { X.B = fl; X.S = 0; next = 1; } break;
+                case 1: X.U = fmax(X.U - 0.3, -12); X.A += X.U; if (X.A <= lw) { X.A = lw; X.U = 0; next = 1; } break;
+                case 2: X.S = fmax(X.S - 0.3, -12); X.B += X.S; if (X.B <= tw) { X.B = tw; X.S = 0; next = 1; } break;
+                case 3: X.U = fmin(X.U + 0.3, 12); X.A += X.U; if (X.A >= rw) { X.A = rw; X.U = 0; next = 1; } break;
+                case 4: X.S = fmin(X.S + 0.3, 12); X.B += X.S; if (X.B >= fl) { X.B = fl; X.S = 0; next = 1; } break;
+                case 5: X.U = fmax(X.U - 0.3, -12); X.A += X.U; if (X.A <= (L + Rm) / 2) { X.A = (L + Rm) / 2; X.U = 0; X.S = -15; X.O += 1; } break;
+                case 6: X.S = fmin(X.S + 0.3, 15); X.B += X.S;
+                    if (X.S > 0 && X.B >= Bm + 150) {                           /* 12634: back to the rig, under the lava */
                         parts_hidden(0); tbb_set_a(body, TS_SX_BODY); if (h) tbb_set_a(h, TS_SX_HIT);
-                        X.N = 0; X.O = 0;
+                        X.N = 0; X.O = -1;
                     }
                     break;
                 }
+                if (next) { snd_play_orig(51, 220, 128); X.O += 1; }
+                X.O += 1;
             }
             if (body && sbb_csens_hit(p, body)) sbb_hurt(p, 15);                /* the ball (INFERRED: its own contact; 12636 skips N 5) */
         }
-        rig_place();
+        { float by0 = body ? body->y : 0;
+          rig_place();
+          if (body && hd && (by0 > lava_y) != (body->y > lava_y)) {             /* 12671-12680: the rig through the lava: splash, Z 3 (RV x2_l 788 / 1134) */
+              snd_play_orig(body->y < lava_y ? 252 : 251, 220, 128); obj_effect(body->x, lava_y, "tbx_splash"); camera_shake(3); } }
         /* ---- the hitbox: contact (12636), the stun (12701-12703), the defeat (12704) */
         if (h) {
             if (X.N != 5 && hd && !hd->hidden && sbb_csens_hit(p, h) && sbb_vulnerable(p)) {
@@ -311,9 +326,7 @@ void tbx_frame(player_t *p) {
                 X.N = 0; X.P = (L + Rm) * 0.5; X.Q = Bm + 250; X.R = 3; X.K = 0; X.J = 1;
                 if (body && body->an.b != NULL && X.hE < 3) { parts_hidden(0); tbb_set_a(body, TS_SX_BODY); tbb_set_a(h, TS_SX_HIT); }
             }
-            if (X.hD == 1 && X.N == 0 && X.O > 30) {                            /* 12703: steer to the centre (the waypoints wait) */
-                X.P = (L + Rm) * 0.5; X.Q = Bm + 250;
-            }
+            if (X.hD == 1 && X.N == 0) { X.O = fmin(X.O, 40); X.P = (L + Rm) * 0.5; X.Q = Bm + 250; }   /* 12703: O held at 40 (RV x2_l), the centre under the lava */
             if (X.hE >= 3) {                                                    /* 12704: the defeat */
                 X.fight = 0; X.end = 1; X.hF = 0; X.hG = 0;
                 snd_play_orig(309, 220, 128);
@@ -331,8 +344,9 @@ void tbx_frame(player_t *p) {
         if (X.hG == 0) {
             if (X.hF == 1) ach_boss_finish();                                   /* 12718-12726: the finishing-move achievements 10-17 */
             camera_shake((int)fmin(12, 0.1 * X.hF));
-            if ((int)X.hF % 6 == 0 && hd) { obj_effect(hd->x - 40 + cross_rand(81), hd->y - 40 + cross_rand(81), "tbx_burst"); tbb_explode_snd(); }
-            if (X.hF > 340 && hd) {                                             /* 12712: the parts close in on the head */
+            if (X.hF == 270) snd_play_orig(92, 220, 128);                      /* RV x2_l 2171 (F 270; INFERRED its event) */
+            if (X.hF > 340 && hd) {                                             /* 12712: the parts close in on the head, white bursts at +-40 */
+                obj_effect(hd->x - 40 + cross_rand(81), hd->y - 40 + cross_rand(81), "wburst");
                 for (int k = 0; k < tbb_count(OT_TBB_SX_PART); k++) { obj_t *o = tbb_get(OT_TBB_SX_PART, k); if (o && o != hd) { o->x = (o->x * 9 + hd->x) / 10; o->y = (o->y * 9 + hd->y) / 10; } }
                 for (int s = 0; s < 2; s++) for (int a = 1; a <= NARM; a++) { obj_t *o = arm(s, a); if (o) { o->x = (o->x * 9 + hd->x) / 10; o->y = (o->y * 9 + hd->y) / 10; } }
             }

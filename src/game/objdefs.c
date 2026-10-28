@@ -892,6 +892,18 @@ static const objdef_t DEFS[] = {
     { OT_TBB_SH_BLOCK,  OD_HIDDEN,                             NULL         }, /* bossroboshrimpblocker_2691 (ctor set_visible(0)) */
     { OT_TBB_TRAPDOOR,  OD_SOLID,                              NULL         }, /* minibosstrapdoor_2747 (the room's ceiling door; INFERRED solid) */
     { OT_TBB_PUSHER,    0,                                     NULL         }, /* enemywallpusher_2748 (Q20, armoured) */
+    { OT_TBB_SX_PART,   0,                                     NULL         }, /* bosssyntaxsquid back / shoulders / head / body / claws (TB6 rig) */
+    { OT_TBB_SX_ARML,   0,                                     NULL         }, /* bosssyntaxsquidarmleft_2891 */
+    { OT_TBB_SX_ARMR,   0,                                     NULL         }, /* bosssyntaxsquidarmright_2892 */
+    { OT_TBB_SX_HIT,    OD_HIDDEN,                             NULL         }, /* bosssyntaxsquidhitbox_2902 (Q20, A 50; ctor set_visible(0)) */
+    { OT_TBB_SX_LASER,  OD_HIDDEN,                             NULL         }, /* bosslavalaser_2896 (the off-map template; blobs are OT_TBB_SHOT) */
+    { OT_TBB_SX_SPHERE, 0,                                     NULL         }, /* bossspikesphere_2897 / 2_2898 */
+    { OT_TBB_SX_SPLASH, OD_HIDDEN,                             NULL         }, /* bosslavasplash left / right 1 / 2 (ctor set_visible(0)) */
+    { OT_TBB_PLAT,      OD_SOLID,                              NULL         }, /* bosstbplatform_2886 (the arena floor / ledges; INFERRED solid) */
+    { OT_TBB_PLAT2,     OD_SOLID,                              NULL         }, /* bosstbplatform2_2908 */
+    { OT_TBB_WAYPOINT,  OD_HIDDEN,                             NULL         }, /* bosswaypoint_2905 (ctor set_visible(0)) */
+    { OT_TBB_FX,        0,                                     NULL         }, /* - (runtime: a one-shot effect) */
+    { OT_TBB_SHOT,      0,                                     NULL         }, /* - (runtime: a lava blob BossLavaLaser_2896) */
     /* ==== end Thermal Base */
 };
 static objdef_t BY_TYPE[MAX_OT];

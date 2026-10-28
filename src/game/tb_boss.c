@@ -12,7 +12,9 @@
 
 static const char *const SN[TS_N] = { "tbs_head", "tbs_head8", "tbs_seg", "tbs_seg8", "tbs_seg9", "tbs_tail", "tbs_tail9", "tbs_lt0", "tbs_lt1",
     "tbw_trap", "tbw_wp", "tbw_wp16",
-    "explosion06", "shade_at" };
+    "explosion06", "shade_at",
+    "tbx_back", "tbx_shr", "tbx_shr7", "tbx_shl", "tbx_shl7", "tbx_head", "tbx_body", "tbx_body8", "tbx_clawr", "tbx_clawl",
+    "tbx_arml", "tbx_armr", "tbx_hit", "tbx_hit8", "tbx_laser", "tbx_sph", "tbx_sph2", "tbx_spl1", "tbx_spl2", "tbx_plat" };
 short tbb_sa[TS_N];
 tbb_list_t tbb_l[TBB_NT];
 static int on;                                       /* the level places any of these types */
@@ -79,6 +81,8 @@ void tb_boss_spawn(void) {
     snap_once();
     memset(tbb_l, 0, sizeof tbb_l); nR = 0; nrails = nbars = 0; marks[0] = marks[1] = marks[2] = marks[3] = -1;
     on = 0;
+    for (int i = 0; i < G.nobjs; i++) { const obj_t *o = &G.o[i]; if (o->alive && o->type >= OT_CAMLIM_L && o->type <= OT_CAMLIM_B && marks[o->type - OT_CAMLIM_L] < 0) marks[o->type - OT_CAMLIM_L] = (short)i; }
+    tbl_spawn();                                                                /* TB5's elevator (flow types only: before the placement test) */
     for (int j = 0; j < G.lvl.nobj && !on; j++) if (G.lvl.objs[j].type >= OT_TBB_SHRIMP && G.lvl.objs[j].type <= OT_TBB_PLACED_LAST) on = 1;
     if (!on) return;
     for (int k = 0; k < TS_N; k++) tbb_sa[k] = (short)ens_anim(SN[k]);
@@ -92,7 +96,6 @@ void tb_boss_spawn(void) {
         int t = o->type;
         if ((t == OT_WR_RAIL || t == OT_RAIL2) && nrails < 24) rails[nrails++] = (short)i;
         if (t == OT_WR_BARRIER && nbars < 24) bars[nbars++] = (short)i;
-        if (t >= OT_CAMLIM_L && t <= OT_CAMLIM_B && marks[t - OT_CAMLIM_L] < 0) marks[t - OT_CAMLIM_L] = (short)i;
         if (t < OT_TBB_SHRIMP || t > OT_TBB_PLACED_LAST) continue;
         int ti = t - OT_TBB_SHRIMP, an = seen[ti] < na[ti] ? AN[ti][seen[ti]] : (3 << 8); seen[ti]++;
         o->layer = (an & 0x8000) ? -1 : (an >> 8) & 0x7f; o->par = an & 0xff;
@@ -100,24 +103,26 @@ void tb_boss_spawn(void) {
         memset(o->av, 0, sizeof o->av); o->hidden = (objdef(t)->flags & OD_HIDDEN) != 0; o->an.b = NULL;
         tbb_list_t *l = &tbb_l[ti]; if (l->n < TBB_LMAX) l->i[l->n++] = (short)i;
     }
-    tbs_spawn(); tbw_spawn();
+    tbs_spawn(); tbw_spawn(); tbx_spawn();
 }
 void tb_boss_pre(player_t *p) { (void)p; if (!on) return; r_compact(); }
 void tb_boss_frame(player_t *p) {
+    tbl_frame(p);
     if (!on) return;
     for (int k = 0; k < nR; k++) { obj_t *o = &G.o[R[k]]; if (o->alive && o->type == OT_TBB_FX && (!o->an.b || o->an.done)) o->alive = 0; }   /* a one-shot effect */
     tbs_frame(p);
     tbw_frame(p);
+    tbx_frame(p);
 }
 int  tb_boss_obj(obj_t *o, player_t *p) { (void)o; (void)p; return 1; }        /* every rule runs in tb_boss_frame */
-int  tb_boss_q20(int type) { return type == OT_TBB_SHRIMP || type == OT_TBB_SH_SEG || type == OT_TBB_PUSHER; }   /* RE qualifier 20 */
+int  tb_boss_q20(int type) { return type == OT_TBB_SHRIMP || type == OT_TBB_SH_SEG || type == OT_TBB_PUSHER || type == OT_TBB_SX_HIT; }   /* RE qualifier 20 */
 int  tb_boss_draw_obj(const obj_t *o, int pass) {
     if (!on) return 1;
-    if (tbs_draw(o, pass) || tbw_draw(o, pass)) return 1;
+    if (tbs_draw(o, pass) || tbw_draw(o, pass) || tbx_draw(o, pass)) return 1;
     if (o->hidden) return 1;
     sbb_draw(o, 0xffffffff);
     return 1;
 }
 int   tb_boss_input(uint32_t *held) { (void)held; return 0; }
 int   tb_boss_player_hidden(void) { return 0; }
-float tb_boss_hud_dy(void) { return 0.f; }
+float tb_boss_hud_dy(void) { return on ? tbx_hud_dy() : 0.f; }   /* TB6 12575 / 12581 / 12713: the HUD slides up */
