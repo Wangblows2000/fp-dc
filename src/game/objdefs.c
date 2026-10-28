@@ -1063,6 +1063,9 @@ static const objdef_t DEFS[] = {
     /* ==== end Pangu Lagoon */
     /* ==== Battle Glacier (session 24): one block per module */
     /* ---- BG_FLOW (bg_flow.c) */
+    { OT_BGF_LOOP1,     OD_SOLID|OD_LAYER1,                    "bgl1"       }, /* bgloop1_3340 (Q7 + Q11: solid on loop layer 1; visible Active) */
+    { OT_BGF_LOOP2,     OD_SOLID|OD_LAYER0,                    "bgl2"       }, /* bgloop2_3343 (Q7 + Q10: solid on loop layer 0) */
+    { OT_BGF_LOOP3,     OD_SOLID|OD_LAYER0,                    "bgl3"       }, /* bgloop3_3344 (Q7 + Q10) */
     /* ---- BG_ENEMIES (bg_enemy.c) */
     /* ---- BG_GIM (bg_gim.c) */
     /* ---- BG_BOSS (bg_boss.c) */
