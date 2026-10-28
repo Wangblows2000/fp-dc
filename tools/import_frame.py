@@ -2007,6 +2007,7 @@ PAR_DEG.update({3390: (.9, .9, 0), 3391: (.8, .88, 0), 3393: (.7, .9, 0), 3394: 
                 3565: (.3, .3, 0), 3566: (.6, .6, 0), 3569: (.45, .45, 0), 3570: (.6, .6, 0), 3571: (.6, .6, 0), 3590: (1, 1, -1),
                 3608: (.99, .94, 0), 3609: (.8, .8, 0), 3611: (.8, .8, 0), 3612: (.7, .7, 0), 3613: (.6, .65, 0), 3725: (1, .98, 0)})
 PAR_DEG_FRAME.update({(69, 3224): (1, 1, 0)})          # fd2b's mist (BG's piece1_3224 with D 1 E 1, on_frame_69 start inline)
+PAR_ALPHA.update({1281: 2})                           # fd3a / fd3b sky piece0_3608 (2048 x 320, D .99): half resolution, drawn x2 (VRAM, INFERRED)
 JC_WATER = {40: 1200, 41: 1600, 42: 1600, 43: 1600, 44: 1600}   # ML.B (10378 / 10566 / 10822 / 10863 / 11643)
 JC_SURF_FRAMES = [7795, 7802, 7803, 7804, 7796, 7797, 7798]      # LevelParalaxWaterSurface_14 anim 0 (both directions use the same images);
                                                                  # its 8th frame (7799) is shown as the 7th: one 512 x 512 4 bpp atlas (VRAM)
