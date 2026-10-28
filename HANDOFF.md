@@ -128,6 +128,19 @@ spec_rm_golems, spec_rm_claw, spec_rm_mantalith, rm_inventory.
   Mantalith sounds 147 / 214 / 215 not ported; INFERRED items in RE_NOTES. An agent published a private working page
   (spec_rm_enemies) during research; it is still in the user's artifacts (delete only if the user asks).
 
+## Session 22 (2026-10-28): targeted gameplay fixes (lead summary)
+Seven user fixes + one added: TB4 bomb switches and TB6 boss contact ("Session 21e" below), rails / FN zip-line grips and DC button
+labels / crystal lives ("Session 22" below), plus:
+- **Hurt state (M8):** ends on landing (RE) or at 3 s at the latest (`PHYS_HURT_MAX_T` 180, player.c; the user chose a cap, not a
+  fixed 3 s); the timer runs from the first hit of a hurt sequence. tests/test_hurt.py. INFERRED vs the original (landing only).
+- **TH3 camera after the Crystal Basher:** handle_frame_59 inline (g4 >= 5, X < 11650 -> CAM.F = frame height, RE) in th_flow.c;
+  the basher door had raised CAM.F (13886) and nothing restored it, so the view stayed at y 112 down the slope to the arena.
+- **TH3 pillars:** not changed. The start-shaft pillar (x 264) matches the original (RE ctor F 2 G 64, phase 14091; RV positions);
+  Milla gets past it in the port (from the y 706 ledge onto the pillar, ride up, jump right: host search). Needs the user's
+  exact spot if it still fails.
+- **Data:** converted2 rebuilt for all 37 levels (only `milla2.spr` / `milla2_2.tex` changed) + `gal/gal_text.txt`.
+- **Pad mapping changed (D-110):** A jump, B attack, X special (the original's C).
+
 ## Session 22 (2026-10-28): rails / ropes / zip-line grips
 - **TB rails (GimmickClothesline_1987, TB2-TB5) were never grabbable; FN ropes / clotheslines / trolley grips had shrunken boxes.**
   Hang targets now use RE whole-image boxes (objects.c obj_hang_box) instead of the cropped (or, in TB, missing) sprite; release

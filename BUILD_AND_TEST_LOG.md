@@ -558,3 +558,11 @@ Labels: original-trace (RV), RE, host-test, emulator (Flycast, emulated time). *
   now JC5 -> TB1). Full regression: 42 suites 0 failures, rebuild / render identical, comparers unchanged.
 - Flycast (build/fpdc_fixdemo.cdi): JC5 VRAM free 653 / 1181 / 821 KB (Carol / Lilac / Milla), sound RAM >= 138 KB, update
   2.3-3.4 ms; TH2 3214-3382 KB, update 8.1-8.6 ms; TB1 3351 KB. **Emulator only.**
+
+## Session 22 (2026-10-28): targeted gameplay fixes
+- New tests: test_hurt (12), test_hang_fix, test_crystal_lives (26), test_dc_buttons (16); test_tb_gimmicks / test_tb_bosses /
+  test_th_bosses extended (TB4 switch order vs RV btn4l, TB6 real-attack fights for L / C / M, TH3 camera after the basher and
+  down the arena slope).
+- Full regression (build/regress.sh): 46 suites 0 failures; every level rebuilds byte-identical to the regenerated converted2;
+  renders identical to the session-start build except FN4 Lilac (4 of 12 frames: the zip-line grip now uses its whole box, RV
+  fn4_barmargin_l); comparers unchanged (76/76, 43/53, 37/43, 21/35).
