@@ -257,6 +257,20 @@ static const short SFX_PL3[] = { 99, 10, 50, 323, 38, 311, 319, 320, 44, 33, 325
 static const short SFX_PL4[] = { 99, 10, 50, 323, 38, 311, 319, 320, 147, 51, 327, 29, 328, 329, 33, 325, 326, 7, 174, 288, 322, 324 };
 static const short SFX_PL5[] = { 99, 10, 50, 323, 38, 311, 319, 320, 147, 51, 327, 29, 44, 328, 329, 150, 33, 325, 326, 322, 324 };
 static const short SFX_PL6[] = { 99, 147, 51, 38, 311, 319, 320, 150, 62, 132, 7, 174, 288, 322, 324, 333, 330, 331, 332, 200, 169, 45, 334, 76, 29, 23, 24, 25 };
+/* Battle Glacier (session 24, stage index 9; provisional rows: the flow agent sets music, cards, routes) */
+static const short SFX_BG1[] = { 62, 99 };
+static const short SFX_BG2[] = { 62, 99 };
+static const short SFX_BG3[] = { 62, 99 };
+static const short SFX_BG4[] = { 62, 99 };
+static const short SFX_BG5[] = { 62, 99 };
+static const short SFX_BG6[] = { 62, 99 };
+#define BG(d, f, n, mus) .dir = d, .frame = f, .stage = 9, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_BG##n, .nsfx = N_(SFX_BG##n)
+/* Final Dreadnought (session 24, stages 10-13 = rounds 1-4, two levels each; provisional rows: the FD flow agent finalises) */
+static const short SFX_FD1A[] = { 62, 99 }; static const short SFX_FD1B[] = { 62, 99 };
+static const short SFX_FD2A[] = { 62, 99 }; static const short SFX_FD2B[] = { 62, 99 };
+static const short SFX_FD3A[] = { 62, 99 }; static const short SFX_FD3B[] = { 62, 99 };
+static const short SFX_FD4A[] = { 62, 99 }; static const short SFX_FD4B[] = { 62, 99 };
+#define FD(d, f, st, n, sx, mus) .dir = d, .frame = f, .stage = st, .act = n, .nacts = 2, .music = mus, .checkpoints = 1, .sfx = sx, .nsfx = N_(sx)
 #define PL(d, f, n, mus) .dir = d, .frame = f, .stage = 7, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_PL##n, .nsfx = N_(SFX_PL##n), .lilac_only = 1
 #define TB(d, f, n, mus) .dir = d, .frame = f, .stage = 6, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_TB##n, .nsfx = N_(SFX_TB##n)
 #define TH(d, f, n, mus) .dir = d, .frame = f, .stage = 8, .act = n, .nacts = 3, .music = mus, .checkpoints = 1, .sfx = SFX_TH##n, .nsfx = N_(SFX_TH##n)
@@ -401,6 +415,12 @@ static const level_def_t LEVELS[] = {
       .card_first = 88, .cps = CP_PL5, .ncps = N_(CP_PL5) , .max_objs = 1280 /* session 23: A5 ~812 + 152 stingers / gas (pl_gim / pl_enemy reports) */ },
     { PL("pl6", 55, 6, "bgm/m_stage8b.adp"), .mus4 = "bgm/m_boss4.adp", .mus6 = "bgm/m_stage8b.adp", .mus7 = "bgm/m_stage8b.adp",
       .cps = CP_PL6, .ncps = N_(CP_PL6), .res_wipe = 1 },
+    { BG("bg1", 59, 1, "bgm/m_stage9.adp") }, { BG("bg2", 60, 2, "bgm/m_stage9.adp") }, { BG("bg3", 61, 3, "bgm/m_stage9.adp") },
+    { BG("bg4", 62, 4, "bgm/m_stage9b.adp") }, { BG("bg5", 63, 5, "bgm/m_stage9b.adp") }, { BG("bg6", 64, 6, "bgm/m_stage9b.adp") },
+    { FD("fd1a", 65, 10, 1, SFX_FD1A, "bgm/m_stage10.adp") }, { FD("fd1b", 66, 10, 2, SFX_FD1B, "bgm/m_stage10.adp") },
+    { FD("fd2a", 67, 11, 1, SFX_FD2A, "bgm/m_stage10b.adp") }, { FD("fd2b", 68, 11, 2, SFX_FD2B, "bgm/m_stage10b.adp") },
+    { FD("fd3a", 69, 12, 1, SFX_FD3A, "bgm/m_stage10c.adp") }, { FD("fd3b", 70, 12, 2, SFX_FD3B, "bgm/m_stage10c.adp") },
+    { FD("fd4a", 71, 13, 1, SFX_FD4A, "bgm/m_stage10d.adp") }, { FD("fd4b", 72, 13, 2, SFX_FD4B, "bgm/m_stage10d.adp") },
 };
 static const level_def_t DEFAULT = { .dir = "", .frame = -1, .stage = -1, .act = 1, .nacts = 1, .music = "bgm/m_stage1.adp" };
 

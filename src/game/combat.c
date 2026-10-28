@@ -169,7 +169,9 @@ static int enemy_type_list(int t) {
            jc_enemy_q20(t) || jc_gim_q20(t) || jc_boss_q20(t) ||
            th_enemy_q20(t) || th_gim_q20(t) || th_boss_q20(t) ||
            tb_enemy_q20(t) || tb_gim_q20(t) || tb_boss_q20(t) ||
-           pl_enemy_q20(t) || pl_gim_q20(t) || pl_boss_q20(t);   /* Pangu Lagoon Q20 (pl_*.c) */
+           pl_enemy_q20(t) || pl_gim_q20(t) || pl_boss_q20(t) ||
+           bg_enemy_q20(t) || bg_gim_q20(t) || bg_boss_q20(t) ||
+           fd_enemy_q20(t) || fd_gim_q20(t) || fd_boss_q20(t);   /* Pangu Lagoon Q20 (pl_*.c) */
              /* Thermal Base Q20 (tb_*.c) */   /* Trap Hideout Q20 (th_*.c) */   /* Jade Creek Q20 (jc_*.c) */        /* Sky Battalion Q20 (sb_enemy.c / sb_gim.c) */
 }
 /* per-type table of the list above (called for every slot several times a frame: the chain of compares cost ~1 ms in RM) */

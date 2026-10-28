@@ -146,6 +146,8 @@ void objects_spawn(void) {
     sb_gim_spawn(); sb_enemy_spawn();             /* Sky Battalion enemies / gimmicks (src/game/sb_enemy.c, sb_gim.c) */
     jc_gim_spawn(); jc_enemy_spawn(); jc_boss_spawn();   /* Jade Creek (src/game/jc_*.c) */
     th_gim_spawn(); th_enemy_spawn(); th_boss_spawn();
+    fd_gim_spawn(); fd_enemy_spawn(); fd_boss_spawn();   /* Final Dreadnought */
+    bg_gim_spawn(); bg_enemy_spawn(); bg_boss_spawn();   /* Battle Glacier */
     pl_gim_spawn(); pl_enemy_spawn(); pl_boss_spawn();   /* Pangu Lagoon (src/game/pl_*.c) */
     tb_gim_spawn(); tb_enemy_spawn(); tb_boss_spawn();   /* Thermal Base (src/game/tb_*.c) */   /* Trap Hideout (src/game/th_*.c) */
     wlogs_spawn(); dv3_switch_spawn(); switches_spawn(); tunnels_reset(); shields_reset(); water_reset();
@@ -208,6 +210,8 @@ void objects_platforms(player_t *p) {
     sb_gim_pre(p);                                /* Sky Battalion platforms / switch plates before the movement (sb_gim.c) */
     jc_gim_pre(p);                                /* Jade Creek platforms before the movement (jc_gim.c) */
     th_gim_pre(p);
+    fd_gim_pre(p);                                /* Final Dreadnought platforms before the movement */
+    bg_gim_pre(p);                                /* Battle Glacier platforms before the movement */
     pl_gim_pre(p);                                /* Pangu Lagoon platforms before the movement (pl_gim.c) */
     tb_gim_pre(p);                                /* Thermal Base platforms before the movement (tb_gim.c) */                                /* Trap Hideout platforms / traps before the movement (th_gim.c) */
     relic_gima_pre(p);                            /* Relic Maze acts 1-2: rolling platform, hanging switch / mover, moving handles */
@@ -825,6 +829,8 @@ void objects_update(void) {
     sb_boss_pre(p);                                   /* Sky Battalion bosses: their test_collisions handlers (sb_boss.c) */
     jc_enemy_pre(p); jc_boss_pre(p);
     th_enemy_pre(p); th_boss_pre(p);
+    fd_enemy_pre(p); fd_boss_pre(p);                  /* Final Dreadnought */
+    bg_enemy_pre(p); bg_boss_pre(p);                  /* Battle Glacier */
     pl_enemy_pre(p); pl_boss_pre(p);                  /* Pangu Lagoon enemies / bosses (pl_*.c) */
     tb_enemy_pre(p); tb_boss_pre(p);                  /* Thermal Base enemies / bosses (tb_*.c) */                  /* Trap Hideout enemies / bosses: their collision handlers (th_*.c) */
                      /* Jade Creek enemies / bosses: their collision handlers (jc_enemy.c, jc_boss.c) */
@@ -845,6 +851,14 @@ void objects_update(void) {
         if (o->type >= OT_SBE_FIRST && o->type <= OT_SBG_LAST && (o->type <= OT_SBE_LAST ? sb_enemy_obj(o, p) : sb_gim_obj(o, p))) continue;   /* Sky Battalion (sb_enemy.c / sb_gim.c) */
         if (o->type >= OT_FNBOSS_FIRST && o->type <= OT_FNBOSS_LAST && fn_boss_obj(o, p)) continue;   /* Fortune Night bosses (src/game/fn_boss.c) */
         if (o->type >= OT_SBB_FIRST && o->type <= OT_SBB_LAST && sb_boss_obj(o, p)) continue;
+        if (o->type >= OT_FDF_FIRST && o->type <= OT_FDB_LAST) {                  /* Final Dreadnought */
+            if (o->type <= OT_FDF_LAST ? fd_flow_obj(o, p) : o->type <= OT_FDE_LAST ? fd_enemy_obj(o, p) :
+                o->type <= OT_FDG_LAST ? fd_gim_obj(o, p) : fd_boss_obj(o, p)) continue;
+        }
+        if (o->type >= OT_BGF_FIRST && o->type <= OT_BGB_LAST) {                  /* Battle Glacier */
+            if (o->type <= OT_BGF_LAST ? bg_flow_obj(o, p) : o->type <= OT_BGE_LAST ? bg_enemy_obj(o, p) :
+                o->type <= OT_BGG_LAST ? bg_gim_obj(o, p) : bg_boss_obj(o, p)) continue;
+        }
         if (o->type >= OT_PLF_FIRST && o->type <= OT_PLB_LAST) {                  /* Pangu Lagoon (src/game/pl_*.c) */
             if (o->type <= OT_PLF_LAST ? pl_flow_obj(o, p) : o->type <= OT_PLE_LAST ? pl_enemy_obj(o, p) :
                 o->type <= OT_PLG_LAST ? pl_gim_obj(o, p) : pl_boss_obj(o, p)) continue;
@@ -1014,6 +1028,8 @@ void objects_draw(int pass) {
         if (o->type >= OT_SBB_FIRST && o->type <= OT_SBB_LAST && sb_boss_draw_obj(o, pass)) continue;
         if (o->type >= OT_JCB_FIRST && o->type <= OT_JCB_LAST && jc_boss_draw_obj(o, pass)) continue;
         if (o->type >= OT_THB_FIRST && o->type <= OT_THB_LAST && th_boss_draw_obj(o, pass)) continue;   /* TH bosses (th_boss.c) */
+        if (o->type >= OT_FDB_FIRST && o->type <= OT_FDB_LAST && fd_boss_draw_obj(o, pass)) continue;   /* Final Dreadnought bosses */
+        if (o->type >= OT_BGB_FIRST && o->type <= OT_BGB_LAST && bg_boss_draw_obj(o, pass)) continue;   /* Battle Glacier bosses */
         if (o->type >= OT_PLB_FIRST && o->type <= OT_PLB_LAST && pl_boss_draw_obj(o, pass)) continue;   /* PL bosses (pl_boss.c) */
         if (o->type >= OT_TBB_FIRST && o->type <= OT_TBB_LAST && tb_boss_draw_obj(o, pass)) continue;   /* TB bosses (tb_boss.c) */   /* JC bosses (jc_boss.c) */   /* SB bosses: rig order, scaled parts (sb_boss.c) */
         float sx = floorf(o->x - G.camx), sy = floorf(o->y - G.camy);
@@ -1050,6 +1066,8 @@ void objects_draw(int pass) {
     sb_gim_draw(pass);                               /* Sky Battalion gimmick parts drawn out of the object order (sb_gim.c) */
     jc_flow_draw(pass); jc_enemy_draw(pass); jc_gim_draw(pass);   /* Jade Creek (src/game/jc_*.c) */
     th_flow_draw(pass); th_enemy_draw(pass); th_gim_draw(pass);   /* Trap Hideout (src/game/th_*.c) */
+    fd_flow_draw(pass); fd_enemy_draw(pass); fd_gim_draw(pass);   /* Final Dreadnought */
+    bg_flow_draw(pass); bg_enemy_draw(pass); bg_gim_draw(pass);   /* Battle Glacier */
     pl_flow_draw(pass); pl_enemy_draw(pass); pl_gim_draw(pass);   /* Pangu Lagoon (src/game/pl_*.c) */
     tb_flow_draw(pass); tb_enemy_draw(pass); tb_gim_draw(pass);   /* Thermal Base (src/game/tb_*.c) */
 }

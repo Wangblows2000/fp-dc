@@ -211,9 +211,10 @@ enum { COL_NONE, COL_SOLID, COL_PLATFORM, COL_LADDER };
 typedef struct { int32_t x, y; uint16_t u, v, w, h; uint8_t atlas, layer, col, pad; uint16_t tw, th; } piece_t;   /* tw > 0: tiled (session 19): the tile u, v, tw x th repeats over w x h */
 typedef struct { uint16_t type, anim; int32_t x, y; } lvobj_t;
 
-#define MAX_OT 2304                /* engine types are < MAX_OT (object-presence bits, registry, groups); 1024-1279: Sky Battalion (session 19);
+#define MAX_OT 3200                /* engine types are < MAX_OT (object-presence bits, registry, groups); 1024-1279: Sky Battalion (session 19);
                                       1280-1535: Jade Creek (session 21); 1536-1791: Trap Hideout (session 21b);
-                                      1792-2047: Thermal Base (session 21c); 2048-2303: Pangu Lagoon (session 23) */
+                                      1792-2047: Thermal Base (session 21c); 2048-2303: Pangu Lagoon (session 23);
+                                      2304-2559: Battle Glacier, 2560-3071: Final Dreadnought (session 24); 3072-3199 spare (ending) */
 /* engine object types (tools/import_frame.py ENGINE_TYPES) */
 enum { OT_START = 1, OT_CRYSTAL = 2, OT_DRAGONFLY = 3, OT_MON_INVINC = 4, OT_MON_RINGS = 18, OT_MON_1UP = 19, OT_PETAL = 6, OT_SPIKES = 7,
        OT_SPRING = 8, OT_SIGN = 9, OT_TURRETUS = 10, OT_ROCK = 11, OT_MONITOR = 12,
@@ -1077,6 +1078,36 @@ void   pl_boss_spawn(void), pl_boss_pre(player_t *p), pl_boss_frame(player_t *p)
 int    pl_boss_obj(obj_t *o, player_t *p), pl_boss_q20(int type), pl_boss_draw_obj(const obj_t *o, int pass), pl_boss_input(uint32_t *held);
 int    pl_boss_player_hidden(void);
 float  pl_boss_hud_dy(void);
+/* ---- Battle Glacier (session 24; stage index 9, json 60-65 = bg1-bg6, set_frame 59-64). Type ranges:
+ *   2304-2335 bg_flow.c, 2336-2399 bg_enemy.c, 2400-2479 bg_gim.c, 2480-2559 bg_boss.c; module enums in src/game/bg.h. */
+enum { OT_BGF_FIRST = 2304, OT_BGF_LAST = 2335, OT_BGE_FIRST = 2336, OT_BGE_LAST = 2399, OT_BGG_FIRST = 2400, OT_BGG_LAST = 2479,
+       OT_BGB_FIRST = 2480, OT_BGB_LAST = 2559 };
+void   bg_flow_spawn(void), bg_flow_frame(player_t *p), bg_flow_draw(int pass);
+int    bg_flow_obj(obj_t *o, player_t *p), bg_flow_act(void);
+float  bg_flow_hud_dy(void);
+void   bg_enemy_spawn(void), bg_enemy_pre(player_t *p), bg_enemy_draw(int pass);
+int    bg_enemy_obj(obj_t *o, player_t *p), bg_enemy_q20(int type);
+void   bg_gim_spawn(void), bg_gim_pre(player_t *p), bg_gim_frame(player_t *p), bg_gim_draw(int pass);
+int    bg_gim_obj(obj_t *o, player_t *p), bg_gim_q20(int type);
+void   bg_boss_spawn(void), bg_boss_pre(player_t *p), bg_boss_frame(player_t *p);
+int    bg_boss_obj(obj_t *o, player_t *p), bg_boss_q20(int type), bg_boss_draw_obj(const obj_t *o, int pass), bg_boss_input(uint32_t *held);
+int    bg_boss_player_hidden(void);
+float  bg_boss_hud_dy(void);
+/* ---- Final Dreadnought (session 24; stages 10-13, json 66-73 = fd1a..fd4b, set_frame 65-72). Type ranges:
+ *   2560-2623 fd_flow.c, 2624-2751 fd_enemy.c, 2752-2911 fd_gim.c, 2912-3071 fd_boss.c; module enums in src/game/fd.h. */
+enum { OT_FDF_FIRST = 2560, OT_FDF_LAST = 2623, OT_FDE_FIRST = 2624, OT_FDE_LAST = 2751, OT_FDG_FIRST = 2752, OT_FDG_LAST = 2911,
+       OT_FDB_FIRST = 2912, OT_FDB_LAST = 3071 };
+void   fd_flow_spawn(void), fd_flow_frame(player_t *p), fd_flow_draw(int pass);
+int    fd_flow_obj(obj_t *o, player_t *p), fd_flow_act(void);
+float  fd_flow_hud_dy(void);
+void   fd_enemy_spawn(void), fd_enemy_pre(player_t *p), fd_enemy_draw(int pass);
+int    fd_enemy_obj(obj_t *o, player_t *p), fd_enemy_q20(int type);
+void   fd_gim_spawn(void), fd_gim_pre(player_t *p), fd_gim_frame(player_t *p), fd_gim_draw(int pass);
+int    fd_gim_obj(obj_t *o, player_t *p), fd_gim_q20(int type);
+void   fd_boss_spawn(void), fd_boss_pre(player_t *p), fd_boss_frame(player_t *p);
+int    fd_boss_obj(obj_t *o, player_t *p), fd_boss_q20(int type), fd_boss_draw_obj(const obj_t *o, int pass), fd_boss_input(uint32_t *held);
+int    fd_boss_player_hidden(void);
+float  fd_boss_hud_dy(void);
 void   sb_boss_spawn(void), sb_boss_pre(player_t *p), sb_boss_frame(player_t *p), sb_boss_cannon_down(void);
 int    sb_boss_obj(obj_t *o, player_t *p), sb_boss_q20(int type), sb_boss_draw_obj(const obj_t *o, int pass), sb_boss_input(uint32_t *held);
 int    sb_boss_player_hidden(void), sb_boss_ml_y(void);

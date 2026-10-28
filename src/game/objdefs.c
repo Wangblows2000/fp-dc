@@ -13,6 +13,8 @@
 #include "../fp.h"
 #include "jc.h"                                 /* Jade Creek types (session 21) */
 #include "th.h"                                 /* Trap Hideout types (session 21b) */
+#include "fd.h"                                 /* Final Dreadnought types (session 24) */
+#include "bg.h"                                 /* Battle Glacier types (session 24) */
 #include "pl.h"                                 /* Pangu Lagoon types (session 23) */
 #include "tb.h"                                 /* Thermal Base types (session 21c) */
 
@@ -1059,6 +1061,18 @@ static const objdef_t DEFS[] = {
     { OT_PLB_ARM,       0,                                     NULL         }, /* - (runtime: npcpanguleftarm / rightarm_3101 / 3102) */
     { OT_PLB_FX,        0,                                     NULL         }, /* - (runtime: the flash / backdrop) */
     /* ==== end Pangu Lagoon */
+    /* ==== Battle Glacier (session 24): one block per module */
+    /* ---- BG_FLOW (bg_flow.c) */
+    /* ---- BG_ENEMIES (bg_enemy.c) */
+    /* ---- BG_GIM (bg_gim.c) */
+    /* ---- BG_BOSS (bg_boss.c) */
+    /* ==== end Battle Glacier */
+    /* ==== Final Dreadnought (session 24): one block per module */
+    /* ---- FD_FLOW (fd_flow.c) */
+    /* ---- FD_ENEMIES (fd_enemy.c) */
+    /* ---- FD_GIM (fd_gim.c) */
+    /* ---- FD_BOSS (fd_boss.c) */
+    /* ==== end Final Dreadnought */
 };
 static objdef_t BY_TYPE[MAX_OT];
 static int built;
