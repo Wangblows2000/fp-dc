@@ -65,7 +65,7 @@ with tempfile.TemporaryDirectory() as d:
         c = SAVE_CH[ch]
         # ---- story: file 3, new game started in Jade Creek 5
         sv = os.path.join(d, 'story_%s.bin' % cn)
-        out = run('jc5', ch, 4200, fight(ch, 2400), {'FP_FILE': '3', 'FP_FILE_NEW': '1', 'FP_SAVE': sv})
+        out = run('jc5', ch, 4800, fight(ch, 2400) + ('' if ch == 0 else ''.join('%d %d J\n' % (f, f + 2) for f in range(3000, 4600, 40))), {'FP_FILE': '3', 'FP_FILE_NEW': '1', 'FP_SAVE': sv})
         s = parse(sv)
         f = s and s['files'][3]
         check('%s_story_save_written' % cn, s is not None and any(l.startswith('save ') for l in out.splitlines()))
@@ -80,7 +80,7 @@ with tempfile.TemporaryDirectory() as d:
             check('%s_leaves_stage_after_results' % cn, modes and modes[-1] != modes[len(modes) // 2], 'mode %s -> %s' % (modes[len(modes) // 2] if modes else None, modes[-1] if modes else None))
         else:   # session 21b: Classic routes Carol / Milla on to Trap Hideout (RE handle_frame_9: I 5, g1 != 0 -> frame 56)
             acts = [int(r[r.index('act') + 1]) for r in rows if 'act' in r]
-            check('%s_leaves_stage_after_results' % cn, acts and acts[len(acts) // 2] == 5 and acts[-1] == 1 and modes[-1] == 1, 'act %s -> %s' % (acts[len(acts) // 2] if acts else None, acts[-1] if acts else None))
+            check('%s_leaves_stage_after_results' % cn, acts and acts[100] == 5 and acts[-1] == 1 and modes[-1] == 1, 'act %s -> %s' % (acts[100] if acts else None, acts[-1] if acts else None))
         # ---- Time Attack: the record only, no file
         st = os.path.join(d, 'ta_%s.bin' % cn)
         run('jc5', ch, 4200, fight(ch, 2400), {'FP_TA': '1', 'FP_SAVE': st})

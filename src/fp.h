@@ -941,6 +941,8 @@ typedef struct {
     /* session 21 */
     const char *const *vox; int nvox;                /* stage voices loaded with the stage sound group (voice_play); a name starting
                                                         lilac_ / carol_ / milla_ loads only for that character */
+    int max_objs;                                    /* object pool cap of the level (0: 1024, the cap every stage before Trap Hideout had;
+                                                        session 21b: TH3's arena needs more, MAX_OBJS is the storage) */
     int res_skin_voice;                              /* the results' character voice (6589-6592: Lilac howitsdone, Carol feelmypower, Milla yay) */
     int clear_free;                                  /* the act-end fade leaves the player alone (no 3311 walk, control kept): SB1's launch pads (8874-8878) */
     /* session 21b (Trap Hideout, spec_th_flow) */
