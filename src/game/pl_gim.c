@@ -7,15 +7,15 @@
  * (12968-12986, 13011, 13157; PL2 / PL5 12864-12890, 12958; col_0_51 / col_16_51), pinwheels (12780-12783, 12850), cyclone
  * tops (12761-12771, 13109 / 13114, col_4_50), breakout ball / paddle / walls (13019-13023, 13042-13056; PL5 13108 / 13119 /
  * 13128 / 13129), lagoon platforms (the objects.c path registry), giant swords + masks (13130-13137, 13146, col_19_51),
- * spinball + chains (13040 / 13041 / 13118 / 13225 / 5845), the hanging PL switch + stone doors + the door scene (12987-12993,
- * 13000-13009, 13012, 13232-13237, 13330), Active_2927 (an invisible Q8 floor, registry only).
+ * spinball + chains (13040 / 13041 / 13118 / 13225 / 5845), the hanging PL switch + stone doors (12987-12993, 13012; the
+ * door scene 13000-13009 / 13232-13237 / 13330 is pl_flow.c's: pl_flow_door_report), Active_2927 (an invisible Q8 floor, registry only).
  * Reused systems: objects.c path-platform registry (LevelLagoonPlatform1 / 2), the Q7 / Q8 / Q9 groups (objdefs.c flags; a vanished
  * block is flag 0 = ignored by the sensors), fn_gima.c's breakable wall (BreakablePLRock = OT_FN_BWALL member 1, its pieces and the
  * bow arrow's hit: fn_gima_wall_hit), relic_gimb.c's hanging idle switch (OT_RM_IDLESW: the grab; this file moves it, flag
- * RMSW_EXTERNAL), combat.c's Q20 contact (the falling sword's B), player_pose (the arrow ride / the door pose), the boost code's SKIN
- * flag 8 (p->sboost: the time gates' super boost), the level-exit / warp fades of game.c (the door scene).
+ * RMSW_EXTERNAL), combat.c's Q20 contact (the falling sword's B), player_pose (the arrow ride), the boost code's SKIN
+ * flag 8 (p->sboost: the time gates' super boost).
  * Passes: pl_gim_pre (nothing), pl_gim_obj (nothing: the families run in pl_gim_frame), pl_gim_frame (after the player block, in event
- * order), pl_gim_draw (pass 1 / 2: the x-scaled stone doors, the additive rebound effects), pl_gim_player (ST_RIDE: arrow / door).
+ * order), pl_gim_draw (pass 1 / 2: the x-scaled stone doors, the additive rebound effects), pl_gim_player (ST_RIDE: the arrow).
  * Object fields: par = family member (importer PLG_SUB, lvobj anim bits 0-7), layer = instance layer (bits 8-14); av[] = class
  * alterables named per family below. */
 #include "pl.h"
@@ -42,8 +42,8 @@ static struct {
     int t;                                         /* frames since the act start (the vanishing blocks' A) */
     short vb[VBMAX]; int nvb;                      /* vanishing blocks (slots), sorted by x */
     uint32_t held, prev_held;                      /* this frame's input (jump pressed: the cyclone top's leap) */
-    int ride, ride_obj;                            /* 1: the bow arrow (M 99), 2: the stone-door walk; the arrow / door1 slot */
-    int door_c, door_done, door_enter;             /* the door scene: C (13003), the fade started, the enter pose taken (13002) */
+    int ride, ride_obj;                            /* 1: the bow arrow (M 99); the arrow slot */
+    int door_c, door_enter;                        /* pl_flow.c's door scene: running last frame, doors drawn in front (13002) */
     int top_ride;                                  /* the cyclone top ridden (slot) or -1 */
     int snd328, snd329;                            /* once-per-frame sound latches (13033 / 13035) */
 } S;
@@ -435,10 +435,9 @@ static void spinballs(player_t *p) {
  * flag 1, sound 62 (12989; RV sd3: f62, one frame after the grab); A - B (opening) / + B (closing), B + 0.0005 a frame (12990 / 12991;
  * RV sd3: open at f125); sound 132 at either end once (12992 / 12993). Doors 1 / 2 are drawn x-scaled by A from their hot spots, 3 / 4
  * by 1 - A at the action points of 1 / 2, tinted (127 + 128 A, 191 + 64 A, 127 + 127 A) (12988).
- * The scene (13009 PL3 / 13330 PL6): PLAYER between door1.x and door2.x, A < 0.4, M 0, grounded: control off, the door closes (flags
- * cleared, B 0); she walks 2 px a frame to door1.x + 48 (13000 / 13001, anim 1), turns in (anim 40 dir 24) with the doors drawn in
- * front (13002); C + 1 a frame (13003); at C 120 the fade (13004 / 13235); then PL3 goes to the next act (13006) and PL6 sets the
- * checkpoint (g4 3, 4480, 208: 13236) and puts her at (6080, 24) (13237). */
+ * The scene (13009 PL3 / 13330 PL6: the walk to door1.x + 48, C, the fade, PL3's next act / PL6's arena) is pl_flow.c's: this file
+ * reports door1.x / door2.x / A every frame (pl_flow_door_report); while it runs (pl_flow_door_busy) the door closes (flags cleared,
+ * B 0) and once she stands at door1.x + 48 doors 1 / 3 / 4 are drawn in front of her (13002). */
 static obj_t *door_part(int k) { obj_t *o; EACH(OT_PLG_SDOOR, o) if (o->par == k) return o; return NULL; }
 static void doors(player_t *p) {
     obj_t *d1 = door_part(0), *d2 = door_part(1), *o, *sw = NULL;
@@ -456,35 +455,13 @@ static void doors(player_t *p) {
     if (d1->fl & F1) { *A = fmax(*A - *B, 0); *B += 0.0005; }                /* 12990 */
     else { *A = fmin(*A + *B, 1); *B += 0.0005; }                            /* 12991 */
     if (!(d1->fl & F2) && (((d1->fl & F1) && *A <= 0) || (!(d1->fl & F1) && *A >= 1))) { snd(132); d1->fl |= F2; }   /* 12992 / 12993 */
-    if (!S.ride && d2 && !dead(p) && p->ground && p->state == ST_NORMAL && !G.clear_t && !G.act_in &&   /* 13009 / 13330 */
-        PX(p) > d1->x && PX(p) < d2->x && *A < 0.4) {
-        S.ride = 2; S.ride_obj = (int)(d1 - G.o); S.door_c = 0; S.door_done = 0; S.door_enter = 0;
-        p->state = ST_RIDE; p->state_t = 0; p->gsp = p->vx = p->vy = 0;
-        d1->fl &= ~(F1 | F2); *B = 0;
+    if (d2) pl_flow_door_report(d1->x, d2->x, (float)*A);                     /* 13009 / 13330 run in pl_flow.c (the walk, the fade, the exit) */
+    int busy = pl_flow_door_busy();
+    if (busy && !S.door_c) { d1->fl &= ~(F1 | F2); *B = 0; }                   /* the scene starts: the door closes behind her (13009 / 13330) */
+    if (busy && !S.door_enter && fabs(PX(p) - (d1->x + 48)) < 1) {          /* 13002: there; doors 1 / 3 / 4 drawn in front of her */
+        S.door_enter = 1; EACH(OT_PLG_SDOOR, o) if (o->par != 1) o->layer = 3;
     }
-    if (S.ride == 2) {
-        S.door_c++;                                                            /* 13003 */
-        if (S.door_c == 120 && !S.door_done) {                                 /* 13004 / 13235: the fade */
-            S.door_done = 1; p->face = 1;
-            if (pl_flow_act() == 6) {                                          /* 13236 / 13237: the checkpoint at the switch, then (6080, 24) */
-                static const warp_t W6 = { 0, 0, 0, 0, 1, 6080, 24, 1, 0, 3, 0 };
-                G.at_g5 = 4480; G.at_g6 = 208;
-                G.clear_t = 1; G.warp = &W6; G.exit_b = 0; G.input_lock = 1;
-            } else { G.clear_t = 1; G.exit_to = level_next(G.lvdir); G.exit_b = 0; G.input_lock = 1; }   /* 13006: the next act */
-        }
-    }
-}
-static void door_walk(player_t *p) {                                          /* 13000-13002: the walk in, then the pose */
-    obj_t *d1 = &G.o[S.ride_obj];
-    double tx = d1->x + 48;
-    p->vx = p->vy = p->gsp = 0;
-    if (p->x < tx) { p->x = fmin(p->x + 2, tx); p->face = 1; player_pose(p, 1, 0, 25); }
-    else if (p->x > tx) { p->x = fmax(p->x - 2, tx); p->face = -1; player_pose(p, 1, 16, 25); }
-    else {
-        player_pose(p, 40, 24, -1);
-        if (!S.door_enter) { obj_t *o; S.door_enter = 1; EACH(OT_PLG_SDOOR, o) if (o->par != 1) o->layer = 3; }   /* in front of her */
-    }
-    player_sync_sensors(p);
+    S.door_c = busy;
 }
 
 /* ================================================================ passes */
@@ -605,13 +582,12 @@ void pl_gim_draw(int pass) {
     }
 }
 int pl_gim_q20(int type) { return type == OT_PLG_SWORD; }
-/* ST_RIDE (player.c): the bow arrow (M 99) and the stone-door walk replace the player block (12971 / 13000-13002 place her) */
+/* ST_RIDE (player.c): the bow arrow (M 99) replaces the player block (12971 places her) */
 int pl_gim_player(player_t *p, const input_t *in) {
     if (!S.ride) return 0;
     p->held = in->held;
-    if (S.ride == 1) { const obj_t *a = &G.o[S.ride_obj]; if (a->alive && a->type == OT_PLG_ARROW) ride_pose(p, a); else { S.ride = 0; p->state = ST_NORMAL; } }
-    else door_walk(p);
+    const obj_t *a = &G.o[S.ride_obj]; if (a->alive && a->type == OT_PLG_ARROW) ride_pose(p, a); else { S.ride = 0; p->state = ST_NORMAL; }
     return 1;
 }
-int pl_gim_ride_m(void) { return S.ride == 1 ? 99 : S.ride == 2 ? 0 : -1; }
+int pl_gim_ride_m(void) { return S.ride == 1 ? 99 : -1; }
 int pl_gim_player_hidden(void) { return 0; }
