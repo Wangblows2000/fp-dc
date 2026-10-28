@@ -268,6 +268,12 @@ static const cpzone_t CP_BG2[] = { { 6040, 6200, 2, 6150, 96, 0, 0 } };
 static const cpzone_t CP_BG3[] = { { 6044, 6200, 2, 6138, 420, 0, 0 } };
 static const cpzone_t CP_BG5[] = { { 2736, 2936, 1, 2836, 1260, 1000, 0 }, { 5000, 5200, 2, 5000, 720, 0, 0 },
                                    { 7450, 7650, 3, 7550, 400, 0, 0 }, { 8100, 8400, 4, 8260, 1870, 1600, 0 } };
+/* Milla's dig in BG1 / BG2 (RE handle_frame_60 inline / 14165: MV.L = 1 -> every MILLA.D = 1, i.e. anywhere on the ground; 3313 clears it
+ * each frame): one zone over the whole frame. BG3-BG6 run 3313 and the spot events but no D writer (RE by absence): no dig there. Rewards
+ * by spot index A (newest first; 5821 A 0 MonitorEarthShield, 5822 A 1 crystals x5, 14166 A 2 crystals x5, 5824 A 3 MonitorKeystone +
+ * crystals x2; BG2's spots 4 / 5 have none) */
+static const zone_t DIGZ_BG_ALL[] = { { -32768, 32767, -32768, 32767 } };
+static const signed char DIGR_BG[] = { DIG_EARTH_MON, DIG_CRYSTALS, DIG_CRYSTALS, DIG_KEYSTONE_MON };
 /* the stage's own sounds per act (11025 Hz): the flow events play none of their own (RE: the Media calls of the BG flow events are the shared
  * pause / weapon / debris ones); 62 jump pads, 99 explosions; the enemy / gimmick / boss modules add theirs */
 static const short SFX_BG1[] = { 62, 99 };
@@ -437,11 +443,14 @@ static const level_def_t LEVELS[] = {
      * walk in (4477 / 6051 / 4526); BG1-BG5 end at the right edge (4135 -> 3578); BG6 by its boss's results and the wipe (8547-8549 ->
      * frame 8 -> I 9 -> frame 65, Final Dreadnought round 1). Camera E (RV bg*_start): beyond the frame width in BG1-BG4 (13197 / 13973 /
      * 11453 / 13197) and BG5 (the Sign at its right edge + 213): no cam_right; BG6 2661 = its Sign (2448) + 213. */
-    { BG("bg1", 59, 1, "bgm/m_stage9.adp"), .mus4 = "bgm/m_midboss.adp", .card_first = 91, .start_card = 1, .cps = CP_BG1, .ncps = N_(CP_BG1) },
-    { BG("bg2", 60, 2, "bgm/m_stage9.adp"), .mus4 = "bgm/m_midboss.adp", .card_first = 93, .cps = CP_BG2, .ncps = N_(CP_BG2) },
+    { BG("bg1", 59, 1, "bgm/m_stage9.adp"), .mus4 = "bgm/m_midboss.adp", .card_first = 91, .start_card = 1, .cps = CP_BG1, .ncps = N_(CP_BG1),
+      .dig_zones = DIGZ_BG_ALL, .ndig_zones = N_(DIGZ_BG_ALL), .dig_rewards = DIGR_BG, .ndig_rewards = N_(DIGR_BG) },
+    { BG("bg2", 60, 2, "bgm/m_stage9.adp"), .mus4 = "bgm/m_midboss.adp", .card_first = 93, .cps = CP_BG2, .ncps = N_(CP_BG2),
+      .dig_zones = DIGZ_BG_ALL, .ndig_zones = N_(DIGZ_BG_ALL), .dig_rewards = DIGR_BG, .ndig_rewards = N_(DIGR_BG) },
     { BG("bg3", 61, 3, "bgm/m_stage9.adp"), .mus4 = "bgm/m_midboss.adp", .card_first = 95, .cps = CP_BG3, .ncps = N_(CP_BG3) },
     { BG("bg4", 62, 4, "bgm/m_stage9b.adp"), .mus4 = "bgm/m_boss6.adp", .card_first = 97, .music_fade_g4 = 5 },
-    { BG("bg5", 63, 5, "bgm/m_stage9b.adp"), .mus4 = "bgm/m_boss6.adp", .card_first = 99, .cps = CP_BG5, .ncps = N_(CP_BG5) },
+    { BG("bg5", 63, 5, "bgm/m_stage9b.adp"), .mus4 = "bgm/m_boss6.adp", .card_first = 99, .cps = CP_BG5, .ncps = N_(CP_BG5),
+      .max_objs = 1280 /* 747 on-map placements (118 + 102 switch blocks, 55 platforms) + elite / anti-grav spawns, crystals, shots */ },
     { BG("bg6", 64, 6, "bgm/m_stage9b.adp"), .mus4 = "bgm/m_boss3.adp", .mus6 = "bgm/m_hub4.adp", .mus7 = "bgm/m_rescue.adp", .res_wipe = 1,
       .cam_right = 2448 + 213 /* RV bg6_start_lilac: CAM.E 2661 = the Sign (2448) + 213 */ },
     { FD("fd1a", 65, 10, 1, SFX_FD1A, "bgm/m_stage10.adp") }, { FD("fd1b", 66, 10, 2, SFX_FD1B, "bgm/m_stage10.adp") },
