@@ -1103,6 +1103,16 @@ static const objdef_t DEFS[] = {
     /* ==== end Battle Glacier */
     /* ==== Final Dreadnought (session 24): one block per module */
     /* ---- FD_FLOW (fd_flow.c) */
+    { OT_FDF_LOOP01, OD_SOLID|OD_LAYER0, "fdl01"        }, /* fdlooplayer01_3643 (Q10: solid on loop layer 0; visible Active) */
+    { OT_FDF_LOOP02, OD_SOLID|OD_LAYER0, "fdl02"        }, /* fdlooplayer02_3644 (Q10: solid on loop layer 0; visible Active) */
+    { OT_FDF_LOOP03, OD_SOLID|OD_LAYER0, "fdl03"        }, /* fdlooplayer03_3646 (Q10: solid on loop layer 0; visible Active) */
+    { OT_FDF_LOOP04, OD_SOLID|OD_LAYER0, "fdl04"        }, /* fdlooplayer04_3663 (Q10: solid on loop layer 0; visible Active) */
+    { OT_FDF_LOOP05, OD_SOLID|OD_LAYER0, "fdl05"        }, /* fdlooplayer05_3664 (Q10: solid on loop layer 0; visible Active) */
+    { OT_FDF_LOOP11, OD_SOLID|OD_LAYER1, "fdl11"        }, /* fdlooplayer11_3647 (Q11: solid on loop layer 1; visible Active) */
+    { OT_FDF_LOOP12, OD_SOLID|OD_LAYER1, "fdl12"        }, /* fdlooplayer12_3648 (Q11: solid on loop layer 1; visible Active) */
+    { OT_FDF_LOOP13, OD_SOLID|OD_LAYER1, "fdl13"        }, /* fdlooplayer13_3649 (Q11: solid on loop layer 1; visible Active) */
+    { OT_FDF_LOOP14, OD_SOLID|OD_LAYER1, "fdl14"        }, /* fdlooplayer14_3662 (Q11: solid on loop layer 1; visible Active) */
+    { OT_FDF_LOOP15, OD_SOLID|OD_LAYER1, "fdl15"        }, /* fdlooplayer15_3665 (Q11: solid on loop layer 1; visible Active) */
     /* ---- FD_ENEMIES (fd_enemy.c) */
     /* ---- FD_GIM (fd_gim.c) */
     /* ---- FD_BOSS (fd_boss.c) */
