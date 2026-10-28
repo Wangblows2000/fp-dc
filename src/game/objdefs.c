@@ -994,6 +994,28 @@ static const objdef_t DEFS[] = {
     /* ---- PL_ENEMIES (pl_enemy.c) */
     /* ---- PL_GIM (pl_gim.c) */
     /* ---- PL_BOSS (pl_boss.c) */
+    { OT_PLB_NECK,      OD_HIDDEN,                             NULL         }, /* bossholodragonneck_3086 (the controller, invisible) */
+    { OT_PLB_BREATH,    OD_HIDDEN,                             "plb_breath" }, /* bossholodragonbreath_3078 (ctor invisible) */
+    { OT_PLB_TTOOTH,    0,                                     "plb_ttooth" }, /* bossholodragontoptooth_3080 */
+    { OT_PLB_BTOOTH,    0,                                     "plb_btooth" }, /* bossholodragonbottomtooth_3081 */
+    { OT_PLB_HSCALE,    0,                                     "plb_hscale" }, /* bossholodragonscale_3082 */
+    { OT_PLB_SCALE2,    0,                                     "plb_s2"     }, /* bossholodragonscale2_3083 */
+    { OT_PLB_SCALE3,    0,                                     "plb_s3"     }, /* bossholodragonscale3_3084 */
+    { OT_PLB_SCALE4,    0,                                     "plb_s4"     }, /* bossholodragonscale4_3085 */
+    { OT_PLB_EAR,       0,                                     "plb_ear"    }, /* bossholodragonear_3087 */
+    { OT_PLB_EYE,       0,                                     "plb_eye"    }, /* bossholodragoneye_3088 */
+    { OT_PLB_PUPIL,     0,                                     "plb_pupil"  }, /* bossholodragonpupil_3089 */
+    { OT_PLB_BROW,      0,                                     "plb_brow"   }, /* bossholodragonbrow_3090 */
+    { OT_PLB_HIT1,      0,                                     "plb_hit1"   }, /* bossholodragonhitspot1_3094 (Q20, A 3) */
+    { OT_PLB_HIT2,      0,                                     "plb_hit2"   }, /* bossholodragonhitspot2_3095 (Q20, A 3) */
+    { OT_PLB_HIT3,      0,                                     "plb_hit3"   }, /* bossholodragonhitspot3_3096 (Q20, A 3) */
+    { OT_PLB_CLAW,      OD_HIDDEN,                             NULL         }, /* - (runtime: bossholodragonclaw_3093) */
+    { OT_PLB_EYE2,      OD_HIDDEN,                             NULL         }, /* - (runtime: bossholodragoneye2_3097, Q20 A 20) */
+    { OT_PLB_LASER,     OD_HIDDEN,                             NULL         }, /* - (runtime: bossholodragonlaser_3079) */
+    { OT_PLB_FLAME,     0,                                     NULL         }, /* - (runtime: bossholodragonflame_3092) */
+    { OT_PLB_PANGU,     0,                                     NULL         }, /* - (runtime: npcpangu_3098) */
+    { OT_PLB_ARM,       0,                                     NULL         }, /* - (runtime: npcpanguleftarm / rightarm_3101 / 3102) */
+    { OT_PLB_FX,        0,                                     NULL         }, /* - (runtime: the flash / backdrop) */
     /* ==== end Pangu Lagoon */
 };
 static objdef_t BY_TYPE[MAX_OT];
