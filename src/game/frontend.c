@@ -491,7 +491,7 @@ int fe_enter_ach_popup(int time_attack, int next_stage) {
     if (fe_load() < 0) return -1;
     G.mode = MODE_FRONTEND;
     if (scr_load(2) < 0) { fe_unload(); return -1; }      /* no gallery data: the stage flow goes on without the pop-up */
-    set_state(FE_ACH); achpop_enter(time_attack ? 1 : next_stage ? 2 : 0);
+    set_state(FE_ACH); achpop_enter(time_attack ? 1 : next_stage == 2 ? 3 : next_stage ? 2 : 0);   /* next_stage 2: the ending (session 24) */
     return 0;
 }
 

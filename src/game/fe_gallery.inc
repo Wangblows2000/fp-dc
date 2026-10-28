@@ -497,7 +497,7 @@ static void gal_draw(void) {
  * stage_end() when an achievement is at 1; the screen is black under the pop-up (INFERRED: frame 9's own backdrop is not
  * ported) and silent (the stage end stopped the music). Afterwards the stage flow continues where it would have gone:
  * the route's next stage (Classic / Adventure), the Time Attack stage select, or the title menu. */
-static int ap_next;                                      /* 0 title menu, 1 Time Attack stage select, 2 the route's next stage */
+static int ap_next;                                      /* 0 title menu, 1 Time Attack stage select, 2 the route's next stage, 3 the ending (session 24) */
 static void achpop_enter(int next) {
     gal_bind(); pop_begin(); ap_next = next;
     cam_x = 107; cam_y = 0;
@@ -508,6 +508,7 @@ static void achpop_update(const input_t *now) {
     Y.prev = *now;
     if (!pop_step(p & (BTN_JUMP | BTN_START))) return;
     gal_release();
+    if (ap_next == 3) { fe_unload(); if (game_ending_begin() != 0) fe_enter_from_stage(0); return; }   /* frame 9 -> 8 -> 83 (RE) */
     if (ap_next == 2) { fe_unload(); if (!game_next_stage()) fe_enter_from_stage(0); return; }
     if (ap_next == 1 && scr_load(1) == 0) { fe_mode = 0; set_state(FE_STSEL); stsel_enter(); return; }
     set_state(FE_HUB); hub_enter();
