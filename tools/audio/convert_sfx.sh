@@ -64,5 +64,8 @@ for v in sx/sx_still; do conv "$VOX/eng/$v.ogg" "$OUT/$(basename $v).wav"; done;
 # Pangu Lagoon (session 23, SFX_PL1..6): 44 sunflora spray, 147 terreon jump, 150 / 322-329 gimmicks (time gate, super boost, bow,
 # breakout, sword), 327 obelisk laser, 330-334 the Holo-Dragon; half rate, tails trimmed
 R0=$RATE; RATE=11025; TRIM_ALL=1; for i in 44 147 150 322 323 324 325 326 327 328 329 330 331 332 333 334; do conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; done; RATE=$R0; TRIM_ALL=
+# the end of the game (session 24, src/game/ending.c END_SFX): 425 rumble and 294 hero-ship engine (looped: tails kept), 435 lift-off
+# jets and 354 hull pieces (tails trimmed); 284 (Torque's rocket) is converted above. Half rate.
+R0=$RATE; RATE=11025; for i in 425 294; do conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; done; TRIM_ALL=1; for i in 435 354; do conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; done; RATE=$R0; TRIM_ALL=
 rm -rf "$TMP"
 awk -F, 'NR>1{s+=$4} END {printf "%d sounds, %.1f KB\n", NR-1, s/1024}' "$OUT/sfx_manifest.csv"
