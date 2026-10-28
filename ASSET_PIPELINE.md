@@ -302,3 +302,9 @@ tools/audio/convert_gallery.sh extracted/linux/audio "$G/Data/voices" /home/clau
   (moving collision map, 108 KB main RAM).
 - Check after an importer change: build/rebuild_cmp.sh (every earlier level byte-identical), build/rcmp.sh (renders vs a
   reference host binary).
+
+## Session 21b: Trap Hideout
+- Levels: `for i in 1 2 3; do tools/build_level.sh $((56+i)) th$i converted2; done` (session-21 packers, NEWPACK_FRAMES).
+- Time Attack previews: `python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui tasel 6 -x '^bg(1[0-9]|[78])layer'`
+  (keeps bg6 Jade Creek and bg9 Trap Hideout; a second 64 KB atlas tasel_ui1, loaded by frontend.c).
+- Sounds: convert_sfx.sh adds 335 336 363; SFX_TH1-3 44 / 76 / 171 KB.
