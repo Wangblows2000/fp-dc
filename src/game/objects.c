@@ -887,6 +887,7 @@ void objects_draw(int pass) {
         if (addv) r_set_additive(1);
         if (o->type == OT_JELLY) { const frame_t *f = anim_frame(&o->an); float x0, y0, x1, y1; aqua_jelly_box(o, &x0, &y0, &x1, &y1);
             int v; const tex_t *t = bank_frame_tex(o->an.b, f, &v); r_sprite(t, f->u, v, f->w, f->h, floorf(x0 - G.camx), floorf(y0 - G.camy), x1 - x0, y1 - y0 - 1, 0, col); continue; }
+        if (o->flip == 2) sx += 1;                                                         /* a left image drawn as its mirror (jc_enemy.c mirror_fix) */
         if (o->scale != 0 && o->scale != 1.f) r_set_scale(o->scale);
         if (o->ang != 0 || (o->scale != 0 && o->scale != 1.f)) frame_draw_rot(o->an.b, anim_frame(&o->an), sx, sy, o->ang, o->flip, col);
         else frame_draw(o->an.b, anim_frame(&o->an), sx, sy, o->flip, col);
