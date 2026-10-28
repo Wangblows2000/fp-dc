@@ -23,7 +23,10 @@ static short rails[48], bars[64], marks[4]; static int nrails, nbars;
 
 /* ---- helpers */
 obj_t *bgb_slot(int i) { return i >= 0 && i < G.nobjs && G.o[i].alive ? &G.o[i] : NULL; }
-obj_t *bgb_get(int type, int k) { const bgb_list_t *l = &bgb_l[type - OT_BGB_SPARKY]; return k >= 0 && k < l->n ? bgb_slot(l->i[k]) : NULL; }
+obj_t *bgb_get(int type, int k) {                                              /* the slot may have been reused since: check the type */
+    const bgb_list_t *l = &bgb_l[type - OT_BGB_SPARKY]; obj_t *o = k >= 0 && k < l->n ? bgb_slot(l->i[k]) : NULL;
+    return o && o->type == type ? o : NULL;
+}
 void bgb_set_i(obj_t *o, int a) { if (o && a >= 0 && (o->an.b != &G.ens || o->an.anim != a)) anim_set(&o->an, &G.ens, a); }
 void bgb_set(obj_t *o, const char *row) { if (o && row) bgb_set_i(o, ens_anim(row)); }
 int bgb_is(const obj_t *o, const char *row) { int a = row ? ens_anim(row) : -1; return o && a >= 0 && o->an.b == &G.ens && o->an.anim == a; }
@@ -57,7 +60,7 @@ void bgb_act_point(const obj_t *o, float *ax, float *ay) {
     double c = sbb_cos(a), s = sbb_sin(a);
     *ax = floorf(o->x) + (float)(int)floor(dx * c + dy * s + 0.5); *ay = floorf(o->y) + (float)(int)floor(-dx * s + dy * c + 0.5);
 }
-float bgb_marker(int t, int x) { obj_t *o = t >= OT_CAMLIM_L && t <= OT_CAMLIM_B ? bgb_slot(marks[t - OT_CAMLIM_L]) : NULL; return o ? (x ? o->x : o->y) : -1e9f; }
+float bgb_marker(int t, int x) { obj_t *o = t >= OT_CAMLIM_L && t <= OT_CAMLIM_B ? bgb_slot(marks[t - OT_CAMLIM_L]) : NULL; return o && o->type == t ? (x ? o->x : o->y) : -1e9f; }
 void bgb_arena_open(float x0, float x1) {
     int ca = bank_anim(&G.objs, "objectcrystal_3");
     for (int k = 0; k < nrails; k++) {
@@ -138,14 +141,20 @@ static int bot(uint32_t *held) {
     const player_t *p = &G.p;
     double tx = tg->x, ty = tg->y;                                             /* the target image's centre */
     if (tg->an.b) { const frame_t *f = anim_frame(&tg->an); tx = floorf(tg->x) - (tg->flip ? f->w - 1 - f->hx : f->hx) + f->w / 2; ty = floorf(tg->y) - f->hy + f->h / 2; }
+    if (level_cam_locked()) {                                                  /* stay off the room's edges (BG4: the exit's anti-grav column) */
+        float l = bgb_marker(OT_CAMLIM_L, 1), r = bgb_marker(OT_CAMLIM_R, 1);
+        if (l > -1e8f && tx < l + 170) tx = l + 170;
+        if (r > -1e8f && tx > r - 170) tx = r - 170;
+    }
     double dx = tx - p->x, dy = ty - sbb_py(p);
     uint32_t b = 0;
+    if (p->state == ST_RIDE) { *held = (t++ & 8) ? BTN_ATTACK : 0; ph = 0; return 1; }   /* a magnet / slide caught the bot: let go (14390) */
     int milla = bgb_milla(), carol = G.character == CHR_CAROL;
     t++;
     switch (ph) {
     case 0:                                                                    /* walk under the target */
         if (dx > 10) b |= BTN_RIGHT; else if (dx < -10) b |= BTN_LEFT;
-        if (fabs(dx) < 40 && p->ground) { ph = 1; t = 0; }
+        if (fabs(dx) < 40 && p->ground && fabs(p->gsp) < 3) { ph = 1; t = 0; }
         break;
     case 1:                                                                    /* full jump, steer toward it */
         b |= BTN_JUMP;
