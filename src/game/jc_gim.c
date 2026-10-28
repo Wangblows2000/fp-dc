@@ -18,6 +18,10 @@
 #include "jc.h"
 #include <math.h>
 #include <string.h>
+#ifdef FP_HOST_ENV
+#include <stdio.h>
+#include <stdlib.h>
+#endif
 
 #define RAD 57.29577951308232
 #define RT0 OT_JCG_FIRST_
@@ -30,7 +34,7 @@ static short LST[NRT][LMAX]; static int NLS[NRT];
 #define EACH(T, OB) for (int _k = 0; _k < NLS[(T) - RT0]; _k++) if (((OB) = &G.o[LST[(T) - RT0][_k]])->alive && (OB)->type == (T))
 #define N(T) NLS[(T) - RT0]
 static struct {
-    int on, push, ride, ride_obj, ride_m;           /* ride: 0 none, 1 seed (M 97), 2 bubble (M 99) */
+    int on, push, ride, ride_obj, ride_m, carry_obj;  /* carry_obj: the Q13 platform 4061 carried her on last frame */           /* ride: 0 none, 1 seed (M 97), 2 bubble (M 99) */
     uint32_t pressed, held;                          /* ST_RIDE: this frame's input (jc_gim_player) */
     int seed_once[4];                                /* 10203-10206 "once" latches */
     short lim_x[64], lim_y[64]; int nlim;            /* the act's EnemyLimiter_383 markers (the flying leaves' stops) */
@@ -104,17 +108,25 @@ static void path_step(obj_t *o) {
 }
 static void carry(player_t *p) {                     /* 4061: G >= 0 or grounded, S_BB 1 px lower on a Q13 platform with flag 6 off */
     static const int Q13[] = { OT_JCG_SLIDE, OT_JCG_FLEAFM };
-    if (!(p->vy >= 0 || p->ground) || dead(p) || p->state == ST_HANG || p->state == ST_HELD || p->state == ST_RIDE) return;
+    if (!(p->vy >= 0 || p->ground) || dead(p) || p->state == ST_HANG || p->state == ST_HELD || p->state == ST_RIDE) { S.carry_obj = -1; return; }
     for (unsigned q = 0; q < sizeof Q13 / sizeof Q13[0]; q++) {
         if (!N(Q13[q])) continue;
         int k = mv_sensor_obj(p->x, MY(p) + 1, p->N, SENSOR_BOTTOMBIG, Q13[q]);
+        if (k < 0 && p->ground && S.carry_obj >= 0 && G.o[S.carry_obj].alive && G.o[S.carry_obj].type == Q13[q]) {
+            /* RV slide2: the player stays on a slab falling 15 px a frame (MV.Y = slab y - 14 every frame), which S_BB 1 px lower
+             * cannot reach after the slab's step: the platform she stood on last frame is tested where she will be (INFERRED) */
+            const obj_t *c = &G.o[S.carry_obj];
+            if (mv_sensor_obj(p->x + c->vx, MY(p) + c->vy + 1, p->N, SENSOR_BOTTOMBIG, Q13[q]) == S.carry_obj) k = S.carry_obj;
+        }
         if (k < 0 || (G.o[k].fl & 0x40)) continue;
         p->x += G.o[k].vx; p->y += G.o[k].vy;
         if (!p->ground) { p->gsp = p->vx; p->ground = 1; }
         p->vy = 0; p->N = 0; p->O = 0;
         player_sync_sensors(p);
-        break;
+        S.carry_obj = k;
+        return;
     }
+    S.carry_obj = -1;
 }
 
 /* ================================================================ 1. water streams (RE 10195-10200; RV st_idle / st_walk)
@@ -242,16 +254,16 @@ static void slides(player_t *p) {
         }
         EACH(OT_JCG_SLIDEL, q) {
             if (!obj_obj_hit(o, q)) continue;
-            if (*St == 1 && *I < *T) { *T += 180; continue; }                        /* 10223 (INFERRED reading: a land point on the slope extends it) */
-            if (*St == 1 && o->y < q->y) {                                           /* 10224: lands */
+            if (*St == 1 && *I < *T) { q->alive = 0; *T += 180; continue; }          /* 10223: a land point met on the slope goes, the slope extends 180 px */
+            if (*St == 1 && o->y > q->y) {                                           /* 10224: lands once its top passes the point (RV slide2: y 974 no, 989 yes) */
                 *St = 2; *J = q->y; snd_play_orig(51, 220, 128); shake((float)(0.5 * *Rr)); *Rr = 0;
             }
         }
         if (*St == 2) { *I += *Q; *Q = fmax(*Q - 0.1, 0); }                         /* 10225: slides to a stop */
         if (*St == 2 && *Q > 0) { int on = 0; EACH(OT_JCG_SLIDEL, q) if (obj_obj_hit(o, q)) on = 1; if (!on) *St = 1; }   /* 10226 */
-        int wl = level_cur() ? level_cur()->water : 0;
-        if (*St == 1 && wl > 0 && water_on() && *J >= wl) { *St = 3; *Rr *= 0.5; snd_play_orig(26, 220, 128); }   /* 10227 (splash id INFERRED) */
-        if (*St == 3) { *I += *Q; *J += *Rr; *Q = fmax(*Q - 0.04, 0); *Rr = fmax(*Rr - 0.1, -1); if (*J < wl) { *J = wl; *Rr = 0; } }   /* 10228 */
+        int wl = level_cur() ? level_cur()->water : 0;                                 /* ML.B; the slab's action point is 55 px below its top */
+        if (*St == 1 && wl > 0 && water_on() && *J + 55 >= wl) { *St = 3; *Rr *= 0.5; snd_play_orig(14, 220, 128); }   /* 10227 (RV slide2: sound 14, R 15 -> 7.5) */
+        if (*St == 3) { *I += *Q; *J += *Rr; *Q = fmax(*Q - 0.04, 0); *Rr = fmax(*Rr - 0.1, -1); if (*J + 55 < wl) { *J = wl - 55; *Rr = 0; } }   /* 10228 (the surface clamp INFERRED) */
     }
     int k = 0;
     EACH(OT_JCG_SLIDEM, q) { int i = 0; EACH(OT_JCG_SLIDE, o) if (i++ == k) { q->x = o->x; q->y = o->y; } k++; }   /* 10229 */
@@ -293,6 +305,9 @@ static void slippery(player_t *p) {
         if (!disc_hit(p, o)) continue;
         if (p->cM < 3) p->cM = 3;
         if (p->state == ST_WALL) { p->state = ST_NORMAL; p->state_t = 0; p->m1 = 1; }
+#ifdef FP_HOST_ENV
+        { static int dbg = -1; if (dbg < 0) dbg = getenv("FP_DBG_JCG") != NULL; if (dbg) printf("jcg slip %d cM %d st %d\n", G.frame, p->cM, p->state); }
+#endif
     }
 }
 
@@ -345,17 +360,18 @@ static void seeds(player_t *p) {
     if (sd) {                                                                         /* 10214: hanging under the seed */
         double E = sd->av[4];
         p->x = sd->x + c_sin(E) * 40; p->y = sd->y + c_cos(E) * 40 + ORIG_REF_DY;
-        p->rot = (float)nrm(E + 360); p->N = nrm(E); p->ground = 0; p->gsp = 0; p->vx = sd->av[2]; p->vy = 0;
+        p->rot = (float)nrm(E + 360); p->N = nrm(E); p->ground = 0; p->gsp = 0; p->vx = sd->av[2];
+        p->vy = fmin(p->vy + 0.25, 15.25);                                             /* RV seed2j: MV.G keeps falling (0.25 a frame, 15.25) under the seed */
         player_sync_sensors(p);
         sd->av[3] = fmin(sd->av[3] + 0.05, 4);
-        int hit = sens_on_bg(SENS_LEFTBIG, 0) || sens_on_bg(SENS_RIGHTBIG, 0) || sens_on_bg(SENS_TOPBIG, 0) || sens_on_bg(SENS_BOTTOMBIG, 0) ||
-                  p->water || sens_grp(SENS_BOTTOMBIG, OBJGRP_OBSTACLE, 0);
-        if (sd->av[3] > -1 && hit) seed_release(p, sd, 0, 0);                        /* 10215: M 0, T = U = 1 */
+        int hit = p->water || sens_grp(SENS_BOTTOMBIG, OBJGRP_OBSTACLE, 0);          /* the big sensors' Z (background or a Q7 object), water, S_BB on Q8 */
+        for (int s4 = SENS_LEFTBIG; s4 <= SENS_BOTTOMBIG && !hit; s4 += 2) hit = sens_on_bg(s4, 0) || sens_grp(s4, OBJGRP_SOLID, 0);
+        if (sd->av[3] > -1 && hit) seed_release(p, sd, 0, p->vy);                    /* 10215: M 0, T = U = 1 (G kept) */
         else if (S.pressed & BTN_JUMP) {                                              /* 10216 / 10217 */
-            if (S.held & BTN_DOWN) seed_release(p, sd, 40, 0); else seed_release(p, sd, 1, -4.5);
+            if (S.held & BTN_DOWN) seed_release(p, sd, 40, 0); else seed_release(p, sd, 1, -4.5);   /* RV seed2j: G -4.5 */
         }
     }
-    EACH(OT_JCG_SEED, sd) if (!(sd->fl & F1) && !near_view(sd, 80)) sd->alive = 0;    /* 10218 */
+    EACH(OT_JCG_SEED, sd) if (!(sd->fl & F1) && near_view(sd, 80)) sd->alive = 0;     /* 10218: RV seed2j: the three free seeds are gone the next frame */
 }
 
 /* ================================================================ 8. bubble springs (RE 10435-10456, col_20_40)
@@ -418,10 +434,10 @@ static void bubbles(player_t *p) {
                 *A = 2; b->av[4] = 0; set_s(b, "jcg_bub01"); b->y += 32; *C = 0; shake((float)(0.25 * *D)); snd_play_orig(72, 220, 128);
             }
         } else if (*A == 2) {                                                         /* 10450 / 10451 */
-            b->av[1] = c_sin(b->av[4]) * 0.6; b->av[4] += 10;
+            b->av[1] = c_sin(b->av[4]) * 0.6; b->av[4] += 10;                       /* E + 10 (RE; RV bub2 shows 8-12 grounded frames: open) */
             double ax, ay; act_pt(b, &ax, &ay); p->x = (int)ax; p->y = (int)ay + ORIG_REF_DY; player_sync_sensors(p);
             if (b->av[4] >= 180) {
-                *A = 1; b->av[4] = 0; *D = fmax(-4 - *D, -15); set_s(b, "jcg_bub00"); b->y -= 32; b->av[1] = 0;
+                *A = 1; b->av[4] = 0; *D = fmax(-4 - *D, -15);                        /* RE (RV bub2 launches -4.2 / -7.6 / -11.6: open) */ set_s(b, "jcg_bub00"); b->y -= 32; b->av[1] = 0;
                 p->vy = *D; b->av[5] += 1;
             }
         }
@@ -453,7 +469,7 @@ static void fall_leaves(void) {
 void jc_gim_spawn(void) {
     static int reg;
     if (!reg) { reg = 1; snap_register(&S, sizeof S); snap_register(LST, sizeof LST); snap_register(NLS, sizeof NLS); }
-    memset(&S, 0, sizeof S); memset(NLS, 0, sizeof NLS); S.ride_obj = -1;
+    memset(&S, 0, sizeof S); memset(NLS, 0, sizeof NLS); S.ride_obj = -1; S.carry_obj = -1;
     if (objects_have(OT_PLAT_VALLEY) && ens_anim("jcg_creek") >= 0)                 /* LevelCreekPlatform_2425 = a valley platform drawn from _ens */
         for (int i = 0; i < G.nobjs; i++) { obj_t *o = &G.o[i]; if (o->alive && o->type == OT_PLAT_VALLEY && !o->an.b) set_s(o, "jcg_creek"); }
     if (!objects_have_from(RT0)) return;
