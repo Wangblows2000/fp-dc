@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "../fp.h"
+#include "th.h"                                   /* OT_THB_CROWD (the TH3 crowd's speed, th_boss_arena.c) */
 /* the image box of a flipped frame: x - (w - hx); a left row drawn as the mirror of the right one (flip 2: jc_enemy.c / enemy_kit.h
  * mirror rows) has the original's left hotspot w - 1 - hx, so its box is 1 px further right (as objects_draw adds) */
 #define FLIP_HX(o, f) ((o)->flip ? (f)->w - (f)->hx - ((o)->flip == 2) : (f)->hx)
@@ -707,12 +708,15 @@ void objects_update(void) {
         o->t++;
         /* sleep far off-screen objects (Fusion-style "inactive if far") */
         if (fabsf(o->x - (G.camx + SCREEN_W / 2)) > SCREEN_W * 1.5f && o->type != OT_EXPLODE &&
-            o->type != OT_TURRETUS && o->type != OT_PELLET && !(o->type == OT_GANSEKI && o->st != 0) && !(o->fl & 0x40 && enemy_type(o->type))) continue;
+            o->type != OT_TURRETUS && o->type != OT_PELLET && !(o->type == OT_GANSEKI && o->st != 0) && !(o->fl & 0x40 && enemy_type(o->type)) &&
+            !(o->type >= OT_TH_BIKE && o->type <= OT_TH_BWARN) && o->type != OT_TH_BDEAD && o->type != OT_DEBRIS && o->type != OT_ITEM_FLY) continue;
+            /* TH bike ninjas stay active (RV a1_c: the arena drops land 676 px off the view centre); debris, a beaten bike ninja and
+             * thrown items run their own off-view removal / settling (asleep they held object slots: the TH3 arena's 99 ninjas) */
         /* objects created by this frame's events are first moved/tested next frame (RE frame order:
          * update_objects, then events) */
         if (o->type == OT_PELLET && o->born == G.frame) continue;
         if (o->type == OT_PELLET) pellet_move(o);                 /* update_objects: movement, then animation */
-        anim_tick(&o->an, (o->type == OT_AXEL1 || o->type == OT_AXEL2 || o->type == OT_AXEL1P || o->type == OT_AXEL2P || (o->type == OT_SB_SPADE && o->c > 0)) ? o->c : -1);   /* AT axels: speed set by 4085 / 4519; SB2 Spade: force_speed (sb_spade.c) */
+        anim_tick(&o->an, (o->type == OT_AXEL1 || o->type == OT_AXEL2 || o->type == OT_AXEL1P || o->type == OT_AXEL2P || (o->type == OT_SB_SPADE && o->c > 0) || (o->type == OT_THB_CROWD && o->c > 0)) ? o->c : -1);   /* AT axels: speed set by 4085 / 4519; SB2 Spade: force_speed (sb_spade.c); TH3 crowd (th_boss_arena.c 14047) */
         act[i] = 1;
     }
     /* test_collisions: enemies absorb free crystals (col_3_13 + 1290 + 2546) */
