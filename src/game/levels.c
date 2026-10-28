@@ -196,6 +196,11 @@ static const short SFX_JC2[] = { SFX_JC_ACTS, 277, 165, 166, 195, 77 };         
 static const short SFX_JC3[] = { SFX_JC_ACTS, 277, 165, 166, 195, 77, 296, 297, 298, 299, 315, 31, 33 };   /* + Neera (31 / 33: Lilac's / Carol's own, kept) */
 static const short SFX_JC4[] = { SFX_JC_ACTS };
 static const short SFX_JC5[] = { 62, 99, 61, 67, 70, 126, 134, 165, 166, 191, 192, 193, 194, 195, 196, 233, 292, 427 };   /* (no frogs, streams or collapsing platforms in JC5: 314 208 426 left out, Milla sound RAM) */
+/* Trap Hideout (session 21b, stage index 8; Carol / Milla only; provisional rows: the flow agent sets music, cards, routes) */
+static const short SFX_TH1[] = { 62, 99 };
+static const short SFX_TH2[] = { 62, 99 };
+static const short SFX_TH3[] = { 62, 99 };
+#define TH(d, f, n, mus) .dir = d, .frame = f, .stage = 8, .act = n, .nacts = 3, .music = mus, .checkpoints = 1, .sfx = SFX_TH##n, .nsfx = N_(SFX_TH##n)
 #define JC(d, f, n, mus) .dir = d, .frame = f, .stage = 5, .act = n, .nacts = 5, .music = mus, .checkpoints = 1, .sfx = SFX_JC##n, .nsfx = N_(SFX_JC##n)
 #define RM(d, f, n, mus) .dir = d, .frame = f, .stage = 2, .act = n, .nacts = 5, .music = mus, .checkpoints = 1, .sfx = SFX_RM, .nsfx = N_(SFX_RM)
 static const level_def_t LEVELS[] = {
@@ -281,6 +286,7 @@ static const level_def_t LEVELS[] = {
     { JC("jc5", 43, 5, "bgm/m_stage5b.adp"), .mus4 = "bgm/m_boss.adp", .mus6 = "bgm/m_stage5.adp", .mus7 = "bgm/m_stage5.adp",
       .water = 1600, .cps = CP_JC5, .ncps = N_(CP_JC5), .res_wipe = 1,
       .vox = (const char *const[]){ "serp_gotyounow", "serp_kungfu" }, .nvox = 2 },
+    { TH("th1", 56, 1, "bgm/m_stage8.adp") }, { TH("th2", 57, 2, "bgm/m_stage8.adp") }, { TH("th3", 58, 3, "bgm/m_stage8.adp") },
 };
 static const level_def_t DEFAULT = { .dir = "", .frame = -1, .stage = -1, .act = 1, .nacts = 1, .music = "bgm/m_stage1.adp" };
 
