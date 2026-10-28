@@ -983,6 +983,55 @@ JCB_ENS_WITH = {'bosshovercopchargeglow_2471': _HC, 'bossicecrystal_2466': _HC, 
 ENS += JCB_ENS   # JC_BOSS
 for _k, _v in JCB_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # JC_BOSS
 for _e in JCB_ENS: ROW_FRAMES[_e[3]] = JCB_FRAMES   # JC_BOSS rows only in JC1-JC4 (JC5 exports its own)
+# JC3's moving layer (the subtanker scene 0x22a5d, 10799-10817, spec_jc_bosses 4.8): json layer 4 (port 3) moves after Neera, and
+# a player beyond X 10580 is on it (10804 / 10805: she tests that layer's backdrops only). <name>_mvl.bin: 'MVL1' u8 port layer,
+# u8 json layer, u16 nobj, tw, th, nuniq, tx0; nobj x {u16 type; s32 x, y} (the layer's objects: they move with it); pad to 4;
+# nuniq x 32 B tiles; solid map u8[tw*th]; platform map u8[tw*th] (the layer's own collision in its unmoved coordinates, tile columns from tx0:
+# the player is on it only at X > 10580, its x offset is at most 600)
+MVL_FRAMES = {42: (4, 3, 9900)}   # json frame: (json layer, port layer, first x of the collision kept)
+def write_mvl(path, n, pieces, imgs, objs, W, H):
+    jl, pl, x0 = MVL_FRAMES[n]
+    TW, TH = (W + 15) // 16, (H + 15) // 16
+    tx0 = x0 // 16
+    stride = TW * 16
+    solid = bytearray(TW * 16 * TH * 16); plat = bytearray(TW * 16 * TH * 16)
+    for p in pieces:
+        if p.get('layer0') != jl or p['col'] not in (1, 2): continue
+        im = imgs[p['img']][0]
+        m = b'\x01' * (im.width * im.height) if p['box'] else im.getchannel('A').point(lambda v: 1 if v >= ALPHA_MIN else 0).tobytes()
+        tgt = solid if p['col'] == 1 else plat
+        for yy in range(p.get('ch', im.height)):
+            Y = p['y'] + yy
+            if Y < 0 or Y >= TH * 16: continue
+            row = m[yy * im.width:yy * im.width + p.get('cw', im.width)]
+            for xx, v in enumerate(row):
+                X = p['x'] + xx
+                if v and 0 <= X < stride: tgt[Y * stride + X] = 1
+    uniq = {bytes(32): 0, b'\xff' * 32: 1}; table = [bytes(32), b'\xff' * 32]
+    def tilemap(buf):
+        out_map = []
+        for ty in range(TH):
+            for tx in range(tx0, TW):
+                bits = bytearray(32)
+                for yy in range(16):
+                    base = (ty * 16 + yy) * stride + tx * 16; v = 0
+                    for xx in range(16):
+                        if buf[base + xx]: v |= 1 << xx
+                    bits[yy * 2] = v & 255; bits[yy * 2 + 1] = v >> 8
+                b = bytes(bits)
+                if b not in uniq: uniq[b] = len(table); table.append(b)
+                out_map.append(uniq[b])
+        return out_map
+    sm, pm = tilemap(solid), tilemap(plat)
+    mo = [o for o in objs if o['layer'] == pl]
+    assert len(table) <= 256
+    d = bytearray(b'MVL1' + struct.pack('<2B5H', pl, jl, len(mo), TW - tx0, TH, len(table), tx0))
+    for o in mo: d += struct.pack('<H2i', o['type'], o['x'], o['y'])
+    d += bytes(-len(d) & 3)   # the tiles start 4-byte aligned (u16 reads on the SH4)
+    for t in table: d += t
+    d += bytes(sm) + bytes(pm)
+    open(path, 'wb').write(bytes(d))
+    return 'moving layer: json %d (port %d), %d objects, %d collision tiles' % (jl, pl, len(mo), len(table))
 
 # ---- JC_BOSS5 (jc_boss5.c, 1480-1535): Jade Creek act 5's finale (build/re/spec_jc_boss5.md). Types mirror src/game/jc.h
 # (OT_J5_*); they are placed only in json 44. Serpentine 2 is FN3's fight (fn_boss.c types 820-825) with its own hitbox handle
@@ -1510,6 +1559,7 @@ def main():
         return out_map
     smap = tilemap(solid); pmap = tilemap(plat)
     report.append('collision: %dx%d tiles, %d unique 16x16 patterns (%d bytes), layers %s' % (TW, TH, len(table), len(table) * 32, sorted(col_layers)))
+    if n in MVL_FRAMES: report.append(write_mvl(os.path.join(out, name + '_mvl.bin'), n, pieces, imgs, objs, W, H))   # JC_BOSS: JC3's moving layer
 
     # ---- active-object sprite bank (first anim, right-facing) for implemented classes
     bank_classes = sorted({o['cls'] for o in objs if (o['type'] < 20 or 30 <= o['type'] < 37) and o['type'] not in (1, 31, 35) and o['cls'] not in OBJ_BANK_SKIP})   # >= 37: the _ens bank   # 20-27 parallax pieces; Ganseki uses its gan_* anims; the bridge box is invisible; OBJ_BANK_SKIP: drawn from the _ens bank

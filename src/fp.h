@@ -456,6 +456,10 @@ typedef struct {
     const uint16_t *smap, *pmap;
     void *blob;
     tex_t atlas[MAX_ATLAS];
+    /* moving layers (session 21, JC3's subtanker 0x22a5d): per-layer offsets of the pieces (drawn, ladders) and, when mv.on, the
+     * moving layer's own collision for x >= mv.x0 at (x - dx, y - dy) (u8 tile maps from column tx0); all zero elsewhere */
+    int16_t lay_dx[8], lay_dy[8];
+    struct { const uint8_t *smap, *pmap; const uint16_t *tiles; int tw, th, tx0, nuniq, on, x0, dx, dy; } mv;
 } level_t;
 
 int  level_load(level_t *l, const char *name);
@@ -994,6 +998,7 @@ int    jc_gim_player(player_t *p, const input_t *in), jc_gim_ride_m(void);   /* 
 void   jc_boss_spawn(void), jc_boss_pre(player_t *p), jc_boss_frame(player_t *p);
 int    jc_boss_obj(obj_t *o, player_t *p), jc_boss_q20(int type), jc_boss_draw_obj(const obj_t *o, int pass), jc_boss_input(uint32_t *held);
 int    jc_boss_player_hidden(void);
+int    jc_boss_player_front(void);   /* the player drawn after the layer-3 pieces (JC3: on the moving subtanker layer) */
 void   sb_boss_spawn(void), sb_boss_pre(player_t *p), sb_boss_frame(player_t *p), sb_boss_cannon_down(void);
 int    sb_boss_obj(obj_t *o, player_t *p), sb_boss_q20(int type), sb_boss_draw_obj(const obj_t *o, int pass), sb_boss_input(uint32_t *held);
 int    sb_boss_player_hidden(void), sb_boss_ml_y(void);
