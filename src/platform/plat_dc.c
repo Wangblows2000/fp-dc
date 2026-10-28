@@ -53,7 +53,7 @@ static void demo_load(void) {
             uint32_t m = 0;
             for (char *c = btn; *c; c++) switch (*c) {
                 case 'L': m |= BTN_LEFT; break; case 'R': m |= BTN_RIGHT; break; case 'U': m |= BTN_UP; break; case 'D': m |= BTN_DOWN; break;
-                case 'J': m |= BTN_JUMP; break; case 'X': m |= BTN_ATTACK; break; case 'B': m |= BTN_SPECIAL; break; case 'S': m |= BTN_START; break; }
+                case 'J': m |= BTN_JUMP; break; case 'X': m |= BTN_ATTACK; break; case 'B': m |= BTN_SPECIAL; break; case 'S': m |= BTN_START; break; }   /* script letters are logical (X attack, B special; host scripts too), not pad buttons (D-110) */
             demo[ndemo].a = a; demo[ndemo].b = b; demo[ndemo].m = m; ndemo++;
         }
     }
@@ -134,9 +134,12 @@ void plat_poll_input(input_t *in) {
             if ((b & CONT_DPAD_RIGHT) || st->joyx > 64) held |= BTN_RIGHT;
             if ((b & CONT_DPAD_UP) || st->joyy < -64) held |= BTN_UP;
             if ((b & CONT_DPAD_DOWN) || st->joyy > 64) held |= BTN_DOWN;
+            /* D-110 (session 22, user request): the original's buttons A / B / C (RV keys z / x / c: jump / attack / special;
+             * Milla's HUD labels the cube B and the shield C, the gallery says "C - Close Card") map to the pad's A / B / X,
+             * and every player-facing "C" is shown as X. B also matches the menus' "B: Return" (attack = back, RE). */
             if (b & CONT_A) held |= BTN_JUMP;
-            if (b & CONT_X) held |= BTN_ATTACK;
-            if (b & CONT_B) held |= BTN_SPECIAL;
+            if (b & CONT_B) held |= BTN_ATTACK;
+            if (b & CONT_X) held |= BTN_SPECIAL;
             if (b & CONT_Y) held |= BTN_GUARD;
             if (b & CONT_START) held |= BTN_START;
             if (st->ltrig > 128) held |= BTN_LT;

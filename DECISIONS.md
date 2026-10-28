@@ -36,7 +36,7 @@ Music alone exceeds RAM, so everything is loaded per level from disc.
 
 **D-009 Control mapping (port design, UNVERIFIED vs original defaults):**
 A = jump, X = attack, B = special (Dragon Boost), Y = guard (reserved), Start = pause. D-pad or
-analog stick to move.
+analog stick to move. *(Attack / special swapped by D-110: B = attack, X = special.)*
 
 **D-010 One data directory per level (`converted2/<lvl>/`).**
 palettize.py builds the 4 PAL8 palettes per level, so each level dir carries its own palettes and Lilac bank (≈5 MB). Shared sounds/music stay at the data root; `levels.txt` lists built levels. Level change frees all textures (`r_reset` → `pvr_mem_reset`) and reloads.
@@ -430,3 +430,20 @@ lift rider range 32 px instead of 31).
 ## D-109 (session 21d): one-way platform flags per type
 The q12 one-way rule (4737 / 4738) is a per-type switch of the path-platform registry (`objects_plat_oneway`), off for Trap
 Hideout's pillars because TH's frames do not run those events; earlier levels and Thermal Base are unchanged.
+
+## D-110 (session 22, user request): the original's "C" button is the pad's X
+The original names its buttons A / B / C (RV keys z / x / c = jump / attack / special; fp.h; Milla's HUD labels the cube B
+and the shield C; the gallery's hints say "C - Close Card"; the menus' "B: Return" is attack = back). The pad now maps
+A = jump, B = attack, X = special (was X = attack, B = special, D-009), so the original's A and B labels are the pad's own
+and every player-facing "C" is shown as X: Milla's HUD glyph is redrawn by tools/import_frame.py (`dc_hud_c_to_x`, in the
+panel's own colours) and the gallery hints by tools/import_gallery.py (`dc_labels`). Script letters (host / DC demo
+`X` = attack, `B` = special) are logical and unchanged. Flycast keyboard: x = A (jump), c = B (attack), s = X (special).
+
+## D-111 (session 22, user request): an extra life every 200 crystals through one path
+The counter stays the original's countdown (RV: 200 on a fresh file, - 1 per crystal / keystone; RE 2580: at <= 0 back to
+200 and an ObjectExtraLife; RE 2602: lives + 1; the 1-up jingle m_1up, RE 1313). Every pickup goes through
+`objects_add_crystals(p, n)`: a pickup of several crystals keeps the remainder and may award several lives; each award goes
+through `objects_award_life` (also the 1-up monitor and the FN 1-ups): lives + 1, no cap (the original has none), the
+jingle restarted once per award frame. Death / RESTART restore the act-start counter and keep earned lives (RE, as the
+original); Continue now sets the act-start lives / counter from the file. `FP_CRYSTAL_HUD_UP=1` (fp.h) would show the
+crystals collected toward the next life instead of the countdown (display only).

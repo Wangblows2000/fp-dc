@@ -5,7 +5,7 @@ Native Dreamcast (KallistiOS) port of Freedom Planet. A custom C engine plays da
 
 ## Environment (ephemeral cloud VM; rebuild if missing)
 - KOS git 5f834c1 at /opt/toolchains/dc/kos, toolchain /opt/toolchains/dc/sh-elf (GCC 15.2.0). **environ.sh patch**: `export KOS_LD_SCRIPT=-T$KOS_BASE/utils/ldscripts/shlelf.xc` before environ_base.sh.
-- mkdcdisc: third_party/mkdcdisc/builddir/mkdcdisc. Flycast: third_party/flycast/build/flycast, driven by `tools/flycast_run.sh` (x=A c=B s=X Return=Start, f/v = L/R; developer select = `key:f key:v` on the title).
+- mkdcdisc: third_party/mkdcdisc/builddir/mkdcdisc. Flycast: third_party/flycast/build/flycast, driven by `tools/flycast_run.sh` (x=A jump, c=B attack, s=X special (D-110), Return=Start, f/v = L/R; developer select = `key:f key:v` on the title).
 - Original game: writable copy /home/claude/fprun (never the user's folder). /home/claude/fprun_user = the same game
   with the user's PC saves (Carol unlocked); for traces and reference only, never shipped or read by the port.
   Carol traces: `CHAR=2` (on foot) / bike via the fuel can; scripts tests/orig_carol, CSVs build/orig_traces/carol.
@@ -133,6 +133,14 @@ spec_rm_golems, spec_rm_claw, spec_rm_mantalith, rm_inventory.
   Hang targets now use RE whole-image boxes (objects.c obj_hang_box) instead of the cropped (or, in TB, missing) sprite; release
   per RE 4041 / 4042 (Jump lets go, Jump + Down drops, Down alone keeps the hang); rope shimmy pose OTHERS.Y 41 / 42. RE_NOTES
   "Session 22", tests/test_hang_fix.py, traces build/orig_traces/hang_fix. No data rebuild.
+
+## Session 22 (2026-10-28): Dreamcast button labels, crystal lives
+- **Buttons (D-110):** pad A / B / X = the original's A / B / C (jump / attack / special); was X = attack, B = special.
+  Player-facing "C" shown as X: Milla's HUD panel glyph (import_frame.py `dc_hud_c_to_x`) and the gallery's "X - Close Card"
+  (import_gallery.py `dc_labels`); data regeneration in ASSET_PIPELINE "Session 22". tests/test_dc_buttons.py.
+- **Crystal lives (D-111):** `objects_add_crystals` (remainder kept, several lives per pickup) and `objects_award_life` (lives + 1,
+  m_1up restarted per award frame; also the 1-up monitors); Continue sets the act-start lives / counter from the file (a death
+  after Continue went back to 200). Host commands `<f> CRYS v`, `<f> ADDCRYS n`. tests/test_crystal_lives.py.
 
 ## Session 21d (2026-10-28): user-reported fixes
 - **JC5 gate (Neera's ice ambush, RE 11043-11072, RV build/orig_traces/jc_boss5/amb_l/c/m):** ported in jc_boss.c (M_AMBUSH):

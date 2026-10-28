@@ -1304,3 +1304,20 @@ fn4_fall_l, fn4_bar_l, fn4_barmargin_l, fn1_clothes_l; scripts *.txt next to the
   Down not held (CTRL.B = 0) -> M 1, G -4.5 (4041); Down held -> M 40, G 0 (4042, a drop); every Q23 handle Q = 0. Down alone
   does nothing (RV tb2_rel_l; the port used to drop on Down, INFERRED). Under a rope a jump-off is caught again 31 frames later
   (RV); after the 4042 drop the hang TopBig rows (Y - 18 .. Y - 8) are already below the rope, so there is no regrab (RV tb2_drop_l).
+
+## Session 22: Dreamcast button labels, crystal lives
+- **Buttons (RE + RV):** the original's buttons are A / B / C = jump / attack / special (RV keys z / x / c; fp.h). Player-facing
+  "C": Milla's HUD panel GUIScoreTimeRings_345 direction 4 (images 2483-2486, 2803-2806, 4235: "B" + cube icon = attack, "C" +
+  shield arc = special; no other character's panel has letters) and the gallery's ListWarnings 5 / 6 / 8 ("C - Close Card";
+  the gallery closes a card with special). Other strings of the executable name A or B only ("Press A ...", "Press B for
+  preview", not shown by the port). The console help icons (IconA_214 / IconB_213 / IconX_288 / IconY_289) are PlayStation
+  glyphs and stay hidden. Port: pad A / B / X = jump / attack / special, the "C" drawn as X (D-110).
+- **Crystal counter (RE):** 1289 (loop_collect_item) collects one crystal per frame (a random candidate within X +-19,
+  Y - 39 .. + 19) and subtracts 1 from the counter (+0x1af0); 2564 (keystone) subtracts 1 too. 2580: counter <= 0 -> the
+  counter is set to MasterLevel's value at +0x90 (200, RV) and ObjectExtraLife_433 is created at the player. The 1-up monitor
+  (2665, frame 8) creates the same object. 2602: an ExtraLife touching the player (its A past a threshold) -> destroyed,
+  Frame::set_lives(lives + 1) once (no cap), four RingSparkles, Obj1up_394 (the "1UP" pop-up) at the player + (22, 4). The
+  jingle is m_1up: play_music loop 2 = event 1313 (Media::play on channel 31). 4311 / 4312 keep the act-start counter in
+  MasterLevel +0xe8 and lives in +0xe0; RESTART (1276) sets the counter from +0xe8 and lives = +0xe0 - 1. Death (1986):
+  set_lives(lives - 1), so lives earned in the act are kept; the port restores the act-start counter after a death as after
+  RESTART (INFERRED for the death path).

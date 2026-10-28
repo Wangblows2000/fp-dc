@@ -20,7 +20,7 @@ Output:
               PC warnings / hints 0..8 (ListWarnings paragraphs, spaces kept: the original lays the hint line out with
               spaces in a 50-column box). Card file field = type digit + name: 0 music (loop), 1 music (once), 2 sound,
               3 music after a game clear, 4NN art frame NN. Sound cards without a file in the original play a sample
-              (RV t_gal6): written as 2s<id>.
+              (RV t_gal6): written as 2s<id>. The hints name the Dreamcast pad's buttons ("X - Close Card", dc_labels).
 """
 import json, os, re, struct, sys
 from PIL import Image
@@ -43,6 +43,14 @@ def elf_strings(binary, src):
     txt = open(src).read()
     out = [cstr(int(m.group(1), 16)) for m in re.finditer(r'&(?:UNK|DAT|s_\w+?)_?([0-9a-f]{6,})', txt)]
     return out[1:]          # [0] is the font name ('Arial')
+
+# Dreamcast button labels (D-110, session 22): the original's buttons are A / B / C (jump / attack / special); the port maps
+# them to the pad's A / B / X, so a player-facing "C" hint becomes "X" (ListWarnings 5 / 6 / 8: "C - Close Card"; the
+# gallery closes a card with special, src/game/fe_gallery.inc). Only the "<button> - <action>" hint form changes (same
+# length, so the hint line's 50-column layout is kept); names, descriptions and every other "C" stay as they are.
+DC_BUTTON = {'C': 'X'}
+def dc_labels(s):
+    return re.sub(r'(?<![A-Za-z])([ABC])( - )', lambda m: DC_BUTTON.get(m.group(1), m.group(1)) + m.group(2), s)
 
 def argb1555(r, g, b, a=255):
     return ((1 if a >= 128 else 0) << 15) | ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3)
@@ -90,7 +98,7 @@ def main():
         if f == '2': f = '2s%d' % SAMPLE_FOR_CARD[i + 1]
         elif f[0] == '2': f = '2' + f.rsplit('/', 1)[-1]
         cf.append(f)
-    lines = ['FPGT1 100 56 9'] + cf + songs + names + descs + warns[:9]
+    lines = ['FPGT1 100 56 9'] + cf + songs + names + descs + [dc_labels(w) for w in warns[:9]]
     for s in lines: assert '\n' not in s and '\r' not in s and all(32 <= ord(c) < 127 for c in s), repr(s)
     open(os.path.join(out, 'gal_text.txt'), 'w').write('\n'.join(lines) + '\n')
     print('gal_text.txt: %d lines' % len(lines))

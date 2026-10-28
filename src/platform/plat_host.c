@@ -198,6 +198,8 @@ static void apply_dbg(int f, int tp) {
         if (dbg[i].k == 'K') for (int k = 0; k < G.nobjs; k++) if (G.o[k].alive && G.o[k].type == (int)dbg[i].a) G.o[k].alive = 0;   /* KILLT type */
         if (dbg[i].k == 'b') for (int k = 0; k < G.nobjs; k++) if (G.o[k].alive && G.o[k].type == (int)dbg[i].a) G.o[k].A = dbg[i].b;   /* BOSSHPT type value */
         if (dbg[i].k == 'Z') p->mD = (int)dbg[i].a;
+        if (dbg[i].k == 'c') p->crystals = (int)dbg[i].a;
+        if (dbg[i].k == 'a') objects_add_crystals(p, (int)dbg[i].a);
         if (dbg[i].k == 'J') { void jc_flow_act3_cleared(void); jc_flow_act3_cleared(); }   /* test: JC3's boss beaten (10772 / 10773, jc_flow.c) */
         if (dbg[i].k == 'C') th_flow_basher_cleared();   /* test: TH3's Crystal Basher beaten (13931's flow part, th_flow.c) */
         if (dbg[i].k == 'S') results_begin_boss(G.frame);   /* test: a boss starts the results (path 3; FN6 8785 before the boss module) */
@@ -250,6 +252,8 @@ int main(int argc, char **argv) {
             if (sscanf(line, "%d KILLT %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'K', fx, 0 }; continue; }   /* host test: remove every object of a type */
             if (sscanf(line, "%d FLAGS %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'F', fx, 0 }; continue; }   /* host test: G.stage_flags */   /* host test: AT boss HP */
             if (sscanf(line, "%d MON %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'M', fx, 0 }; continue; }
+            if (sscanf(line, "%d CRYS %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'c', fx, 0 }; continue; }      /* host test: the crystal counter (countdown) */
+            if (sscanf(line, "%d ADDCRYS %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'a', fx, 0 }; continue; }   /* host test: n crystals at once (objects_add_crystals) */
             if (sscanf(line, "%d RESBOSS%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'S', 0, 0 }; continue; }   /* results_begin_boss now */
             if (sscanf(line, "%d JCACT3%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'J', 0, 0 }; continue; }   /* jc_flow_act3_cleared now */
             if (sscanf(line, "%d THBASH%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'C', 0, 0 }; continue; }   /* th_flow_basher_cleared now */

@@ -517,7 +517,7 @@ void keystone_update(obj_t *k, player_t *p) {
         if (keystones_taken_frame != G.frame) {
             keystones_taken_frame = G.frame;
             p->energy = fminf(PHYS_ENERGY_MAX, p->energy + 10); G.keystones++;
-            if (--p->crystals <= 0) { p->crystals = CRYSTALS_PER_LIFE; p->lives++; }
+            objects_add_crystals(p, 1);                                  /* 2564: the crystal counter - 1 (2580: a life at 0) */
             snd_play_orig(39, 220, 128);
         }
         k->tm = 2; k->st = 0; int a = ens_anim("keystone_t"); if (a >= 0) anim_set(&k->an, &G.ens, a);

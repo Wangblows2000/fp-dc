@@ -966,7 +966,8 @@ void hud_draw(void) {
     /* character head + crystal icon, lives (2 digits), crystals (3 digits) */
     hud_img(chr_is_milla(G.character) ? 18 : chr_is_carol(G.character) || G.p.bike ? 17 : 3, 0, 128, 8 + hud_dy, -1);   /* guiicon direction = MV.A (RE anims: dir 2 and 3 = image 395 for Carol on foot and on the bike; dir 1 = image 112 is not Carol) */
     hud_number(p->lives < 0 ? 0 : p->lives > 99 ? 99 : p->lives, 2, 144, 8 + hud_dy);
-    hud_number(p->crystals < 0 ? 0 : p->crystals > 999 ? 999 : p->crystals, 3, 176, 8 + hud_dy);
+    { int c = FP_CRYSTAL_HUD_UP ? CRYSTALS_PER_LIFE - p->crystals : p->crystals;   /* fp.h: the original's countdown by default (RV) */
+      hud_number(c < 0 ? 0 : c > 999 ? 999 : c, 3, 176, 8 + hud_dy); }
     /* clock + stage timer mm:ss:cc (RV GUITimerM/S/Milli counters; colons are part of the clock image) */
     hud_img(4, 0, 322, 0 + hud_dy, -1);
     int cs = game_timer() * 100 / FPS, mm = cs / 6000, ss = cs / 100 % 60;

@@ -4,6 +4,7 @@
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include "../fp.h"
 #include "th.h"                                   /* OT_THB_CROWD (the TH3 crowd's speed, th_boss_arena.c) */
 #include "tb.h"                                   /* OT_TBG_WMASK (obj_hang_box) */
@@ -442,11 +443,43 @@ void obj_launch_crystal(float x, float y, int d) {     /* a crystal thrown out i
     e->vx = 4.f * (float)fd_cos(a); e->vy = -4.f * (float)fd_sin(a);
     if (A_CRYSTAL >= 0) anim_set(&e->an, &G.objs, A_CRYSTAL);
 }
+/* One extra life. RE: the 1-up monitor (2665) and the crystal counter (2580) both create ObjectExtraLife_433 at the
+ * player; touching it (2602) gives lives + 1 (Frame::set_lives(lives + 1), no cap in the original), four RingSparkles and
+ * the "1UP" pop-up Obj1up_394 (neither is ported), and the 1-up jingle m_1up (play_music loop 2 = event 1313, channel 31).
+ * The port awards at once (ExtraLife's pick-up delay not ported, INFERRED) and the jingle replaces the stage music for
+ * 240 frames (length INFERRED). A later award restarts the jingle; two lives in one frame give one jingle start (the
+ * original's 2602 also gives one set_lives per frame however many ExtraLife objects touch the player). */
+void objects_award_life(player_t *p) {
+    static int last_f = -1;
+    p->lives++;
+    if (G.frame != last_f) music_stop();               /* Media::play on channel 31 restarts it: one jingle per award frame */
+    last_f = G.frame;
+    music_play("bgm/m_1up.adp"); G.mus_resume_t = 240;
+#ifdef FP_HOST_ENV
+    if (getenv("FP_TRACE_SND")) printf("life award lives %d\n", p->lives);
+#endif
+}
+
+/* n crystals collected (session 22, user request: an extra life every 200 crystals). The counter is the original's
+ * countdown (RV: 200 on a fresh file, - 1 per crystal, RE 1289; keystones too, RE 2564); RE 2580: at <= 0 it is set back to
+ * 200 and one extra life is awarded. A pickup of several crystals keeps the remainder and may cross several thresholds
+ * (counter 30, 80 crystals -> one life, counter 150; 450 from 200 -> two lives, 150), one award per threshold. The
+ * original collects one crystal per frame (1289 picks one candidate), so these cases never arise there (INFERRED rule).
+ * Returns the number of lives awarded. */
+int objects_add_crystals(player_t *p, int n) {
+    int lives = 0;
+    if (n <= 0) return 0;
+    if (p->crystals <= 0) p->crystals = CRYSTALS_PER_LIFE;      /* never 0 between frames (RE 2580); guards a damaged save value */
+    p->crystals -= n;
+    while (p->crystals <= 0) { p->crystals += CRYSTALS_PER_LIFE; objects_award_life(p); lives++; }
+    return lives;
+}
+
 static void monitor_reward(const obj_t *o, player_t *p) {
     switch (o->type) {
     case OT_MONITOR: case OT_MON_CRATE: throw_items(o, OT_CRYSTAL, 7); break;   /* the crate's icon frame 7 = the crystal monitor's (RE 2662) */
     case OT_MON_RINGS: throw_items(o, OT_PETAL, 6); break;
-    case OT_MON_1UP: p->lives++; music_play("bgm/m_1up.adp"); G.mus_resume_t = 240; break;   /* jingle length INFERRED */
+    case OT_MON_1UP: objects_award_life(p); break;   /* RE 2665: ObjectExtraLife_433 (objects_award_life) */
     case OT_MON_INVINC: p->invuln = 1800; p->invinc = 1; music_play("bgm/m_invincibility.adp"); break;
     case OT_MON_KEYSTONE:                       /* RE 2627 / 2666-2668: 3 keystones at (x + 16, y + 16) */
         keystone_spawn(o->x + 16, o->y + 16, -2.7, -1); keystone_spawn(o->x + 16, o->y + 16, -2.7, 1); keystone_spawn(o->x + 16, o->y + 16, -3, 0); break;
@@ -830,7 +863,7 @@ void objects_update(void) {
              * the crystal counter - 1 (RV: counts down from 200), a RingSparkle at the crystal, sound 27 (RV) */
             if (!dead && p->state != 5 /* ST_HURT */ && item_in_reach(o, p, 39)) {
                 o->alive = 0; p->energy = fminf(PHYS_ENERGY_MAX, p->energy + PHYS_ENERGY_CRYSTAL);
-                if (--p->crystals <= 0) { p->crystals = CRYSTALS_PER_LIFE; p->lives++; }   /* extra life INFERRED */
+                objects_add_crystals(p, 1);                                             /* RE 1289 / 2580: an extra life every 200 */
                 G.stage_crystals++;                                                     /* MasterLevel J */
                 shield_on_crystal(p);                                                   /* 1289: ShieldWood.A += 1 */
                 snd_play_orig(27, 200, 128);
