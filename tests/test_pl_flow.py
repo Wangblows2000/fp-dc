@@ -6,7 +6,7 @@ every act loads for Lilac with its music (m_stage8 PL1-PL3, m_stage8b PL4-PL6) a
 PL5; PL3's stone door, RE 13009 / 12997-13006, with the door reported open) and the walk-ins (RV pl2..pl6_start_lilac: MV.Y at the end
 of the walk-in); PL6 without an edge exit, its door into the Holo-Dragon arena (13236 / 13237: g4 3 at (4480, 208), MV (6080, 24)) and
 the restart there; the door needs the door open (A < 0.4) and the player between the two doors; PL3's door room camera and music fade;
-the checkpoints; no water; cards 81-90; the Classic route (TB6's results -> PL1 for Lilac; PL6's results -> the front end); the stage-7
+the checkpoints; no water; cards 81-90; the Classic route (TB6's results -> PL1 for Lilac, BG1 for Carol / Milla; PL6's results -> BG1); the stage-7
 save (story block, last stage, progress, TA record) and the achievements row (51 under 480 s); Time Attack (Lilac's slot 7 -> PL1;
 Carol's / Milla's slot 7 is Thermal Base: they never reach Pangu Lagoon); the loop pieces (types 2048-2051 follow the loop layer);
 the parallax set.
@@ -166,17 +166,18 @@ for lv, want in (('pl1', {81, 82}), ('pl2', {83, 84, 85}), ('pl4', {86, 87}), ('
     check('%s_card_ids' % lv, c >= want and min(c) == min(want), str(c))
 
 # ---- the Classic route (RE handle_frame_9 inline, Classic block): Thermal Base's results (I 6) -> frame 50 = PL1 for g1 = 0 (Lilac),
-# frame 84 (not ported: the front end) for Carol / Milla; PL6's results (I 7) -> frame 84 for g1 = 0: the front end
+# frame 84 for Carol / Milla; PL6's results (I 7) -> frame 84 for g1 = 0. Frame 84 (the shoot-'em-up lead-in, not ported) ends in frame
+# 59 = BG1 (22695; session 24): the port goes straight to Battle Glacier
 JPRESS = '1200 1202 J\n'   # closes the achievement pop-up (frame 9) once
-for nm, ch, want in (('lilac', '0', 'pl1'), ('carol', '2', 'frontend'), ('milla', '4', 'frontend')):
+for nm, ch, want in (('lilac', '0', 'pl1'), ('carol', '2', 'bg1'), ('milla', '4', 'bg1')):
     with tempfile.TemporaryDirectory() as d:
         rows, ev, out = run('700 RESBOSS\n' + JPRESS, 2000, {'FP_LEVEL': 'tb6', 'FP_CHAR': ch, 'FP_SAVE': os.path.join(d, 's.bin'), 'FP_FILE': '2', 'FP_FILE_NEW': '1'})
     st = [l for l in loads(ev) if l not in ('gal', 'frontend')] + (['frontend'] if loads(ev)[-1:] in (['frontend'], ['gal']) else [])
     ok = st[-2:] == ['tb6', want] and (want != 'pl1' or (rows[-1]['act'] == 1 and rows[-1]['chr'] == 0 and music(ev)[-1:] == ['bgm/m_stage8.adp']))
-    check('route_tb6_to_%s_%s' % (want, nm), ok and (want == 'pl1' or 'pl1' not in st), str((st, music(ev)[-2:])))
+    check('route_tb6_to_%s_%s' % (want, nm), ok and (want == 'pl1' or ('pl1' not in st and rows[-1]['chr'] == int(ch))), str((st, music(ev)[-2:])))
 with tempfile.TemporaryDirectory() as d:
     rows, ev, out = run('700 RESBOSS\n' + JPRESS, 2000, {'FP_LEVEL': 'pl6', 'FP_CHAR': '0', 'FP_SAVE': os.path.join(d, 's.bin'), 'FP_FILE': '2', 'FP_FILE_NEW': '1'})
-check('route_pl6_to_frontend', loads(ev)[-1:] in (['frontend'], ['gal']) and loads(ev).count('pl6') == 1, str(loads(ev)))
+check('route_pl6_to_bg1', loads(ev)[-1:] == ['bg1'] and loads(ev).count('pl6') == 1 and rows[-1]['chr'] == 0, str(loads(ev)))
 
 # ---- PL6's results (the boss path, .res_wipe) -> the front end; the save: the story block of stage 7, last stage 7, progress 8, the record
 # rec[7][Lilac] (RE 954 / 955 / 907 / 908), the achievements row (13437 / 13436: 51 with ML.Z <= 480000 ms); Time Attack: the record only

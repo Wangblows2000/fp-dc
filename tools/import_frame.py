@@ -1643,7 +1643,18 @@ POSE_DIRS[56] = {**POSE_DIRS.get(56, {}), 41: ('24',)}
 # ==== end Pangu Lagoon
 
 # ==== Battle Glacier (session 24; json 60-65 = bg1-bg6; types 2304-2559)
-# ---- BG_FLOW (bg_flow.c, 2304-2335)
+# ---- BG_FLOW (bg_flow.c, 2304-2335; build/re/spec_bg_flow.md)
+# The loop pieces of BG4 / BG5 (RE on_frame_63 / 64_init qualifier tables: BGLoop1_3340 in Q7 + Q11 = solid on loop layer 1,
+# BGLoop2_3343 / BGLoop3_3344 in Q7 + Q10 = solid on loop layer 0; 14345 / 14346 / 14348 / 14349 = the shared flag rule 3031 / 3032 by
+# MV.P). Visible Actives (ctors: initialize_active, no set_visible(0)); opaque 64 x 64 / 128 x 64 images. One type per class (the
+# registry's spawn sprite is per type): OD_SOLID | OD_LAYER1 / OD_LAYER0, gimmicks.c layers_refresh / layers_update drive them.
+# The off-map templates (one of each per frame) are removed by bg_flow_spawn.
+BGF_TYPES_ID = {('bgloop1', 3340): 2304, ('bgloop2', 3343): 2305, ('bgloop3', 3344): 2306}
+BGF_ENS = [('bgloop1_3340', 0, '0', 'bgl1'), ('bgloop2_3343', 0, '0', 'bgl2'), ('bgloop3_3344', 0, '0', 'bgl3')]
+ENGINE_TYPES_ID.update(BGF_TYPES_ID); ENS += BGF_ENS   # BG_FLOW
+for _e in BGF_ENS: ROW_FRAMES[_e[3]] = {63, 64}         # BG_FLOW rows only in BG4 / BG5 (the only acts that place them)
+# no water: ML.A 1 / ML.B 2000 (BG1-BG3) / 3000 (BG4-BG6) are written by the start events but handle_frame_60..65 hold none of the
+# water events 4150-4170 (RE; RV ml_B with no air HUD): not in WATER_FRAMES
 
 # ---- BG_ENEMIES (bg_enemy.c, 2336-2399)
 
@@ -1916,6 +1927,29 @@ PAR_DEG.update({2909: (.94, .92, 0), 2910: (.93, .92, 0), 2911: (.91, .92, 0), 2
                 3024: (.8, 1, 0), 3034: (.7, .8, 0), 3040: (.6, .6, 0), 3041: (.4, .4, 0), 3070: (.8, 1, 0)})
 PAR_DEG_FRAME.update({(f, 894): (.9, .92, -.1) for f in (51, 52, 53)})
 PAR_DEG_FRAME.update({(51, 895): (.92, .88, -.3)})
+# ---- BG_FLOW parallax / layers (bg_flow.c, session 24; spec_bg_flow 5)
+# Layer::init (RE disassembly of on_frame_60..65_init): layer 1 scrolls 0.5 in BG2-BG4 / BG6, 1.0 in BG1 / BG5; it holds only
+# BrevonMechBackground_2444 (bosses module), no backdrop: nothing to export (not in SCROLL08). Pieces (RE create_levelparallaxpiece*_3223-
+# 3227 / 3307 / 3308: SystemBox image, box w x h; the image tiles in the box). D / E / G: BG1 start inline, BG2 / BG3 14173 (piece0 .9 .9
+# G -.3, piece1 .96 .96, piece2 .9 .9, piece5 .85 .85, piece6 .75 .75); BG4 14603, BG5 start inline, BG6 15151 (piece0_3307 .9 .9 G -.3,
+# piece1 .96 .96, piece2_3308 .95 .85, piece5 .98 .92). Brevon's ship (BG4 LevelBrevonShip_3310, a SystemBox on layer 0 between piece5 and
+# piece2; 14603: D .96, E .9, F = its x) and its close views (BG5 LevelBrevonShipClose_3353 / Close2_3364: D .94, E .8, F = x) are moved
+# by 14550 / 14551 (the BG copy of 3541 / 3542 without the wrap): drawn once at (D vl + F, E vt + C) (flag 8192, x in the box width; the
+# box size is the image's, RE ctor 306 x 320). The close views are not exported (PAR_FIXED_SKIP); BG6's (x -40 / 264, y -88) and the
+# lift-off jets belong to its ending scene (bosses module).
+PAR_IMG.update({'levelparallaxpiece0_3223': 1025, 'levelparallaxpiece1_3224': 1614, 'levelparallaxpiece2_3225': 1612,
+                'levelparallaxpiece5_3226': 1525, 'levelparallaxpiece6_3227': 1172, 'levelparallaxpiece0_3307': 11544,
+                'levelparallaxpiece2_3308': 7981, 'levelbrevonship_3310': 11355, 'levelbrevonshipclose_3353': 11356,
+                'levelbrevonshipclose2_3364': 11357})
+PAR_BOXW.update({'levelparallaxpiece2_3308': 320})
+PAR_BOXH.update({'levelparallaxpiece1_3224': 180})
+PAR_DEG.update({3223: (.9, .9, -.3), 3224: (.96, .96, 0), 3225: (.9, .9, 0), 3226: (.85, .85, 0), 3227: (.75, .75, 0),
+                3307: (.9, .9, -.3), 3308: (.95, .85, 0), 3310: (.96, .9, 0), 3353: (.94, .8, 0), 3364: (.94, .8, 0)})
+PAR_DEG_FRAME.update({(f, 3226): (.98, .92, 0) for f in (63, 64, 65)})
+PAR_FIXED = {(63, 3310)}                              # json frame, handle: drawn once at its world position moved by D / E (flag 8192)
+PAR_FIXED_SKIP = {3353, 3364}                         # the close views: not exported (BG5: on screen only at view left > 5300 near the top,
+                                                      # two 305 x 657 images ~400 KB of VRAM, INFERRED not worth it; BG6: its ending's)
+PAR_ALPHA.update({1614: 3})                           # piece1_3224: white mist, alpha 0..211 (ARGB4444 at half resolution, drawn x2)
 JC_WATER = {40: 1200, 41: 1600, 42: 1600, 43: 1600, 44: 1600}   # ML.B (10378 / 10566 / 10822 / 10863 / 11643)
 JC_SURF_FRAMES = [7795, 7802, 7803, 7804, 7796, 7797, 7798]      # LevelParalaxWaterSurface_14 anim 0 (both directions use the same images);
                                                                  # its 8th frame (7799) is shown as the 7th: one 512 x 512 4 bpp atlas (VRAM)
@@ -1957,6 +1991,7 @@ def export_parallax(fr, src, name, out, an=None):
         if o['cls'] == 'levelparalaxwatersurface' and o['x'] is not None: water = 2700
         if o['cls'] == 'levelparalaxwatersurface' and fr['frame'] in JC_WATER: water = JC_WATER[fr['frame']]   # mode 2 (Jade Creek)
         if key not in PAR_IMG or o['y'] is None: continue
+        if o['id'] in PAR_FIXED_SKIP and (fr['frame'], o['id']) not in PAR_FIXED: continue   # BG_FLOW: the ships only where exported
         img = PAR_IMG[key]
         if img not in imgidx:
             im, hx, hy = load_img(src, img)
@@ -1989,6 +2024,8 @@ def export_parallax(fr, src, name, out, an=None):
         if fr['frame'] in PAR_BOB_FRAMES and o['id'] not in PAR_WORLD: flags |= 2048   # SB 9198: the sky bobs with g3
         if o['id'] in PAR_WORLD: flags |= 4096; D = float(o['x'])                  # SB: Zao's airship at its world position
         iw, ih = images[imgidx[img]][0], images[imgidx[img]][1]
+        if (fr['frame'], o['id']) in PAR_FIXED:                    # BG_FLOW (14550 / 14551): once at (D vl + x, E vt + y); x in the box width
+            pieces.append((imgidx[img], D, E, G, o['y'], max(0, o['x']), ih, flags | 8192, o['id'])); continue
         pieces.append((imgidx[img], D, E, G, o['y'], PAR_BOXW.get(key, iw), PAR_BOXH.get(key, ih), flags, o['id']))
     stars = [o for o in fr['objects'] if '%s_%d' % (o['cls'], o['id']) in PAR_STARS and o['x'] is not None]
     if stars:
