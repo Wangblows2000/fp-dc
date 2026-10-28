@@ -23,7 +23,8 @@ enum {
  * releases its payload at its feet and goes. Payload: the spawner's av[BGE_SPAWNER_C] (FD's alterable C; 0 = an Elite, BG5's
  * only payload). Another module handles other codes with bg_enemy_spawner_payload(fn): fn(spawner, code) returns non-zero when
  * it created the payload. */
-#define BGE_SPAWNER_C 2
+#define BGE_SPAWNER_C 2      /* spawner av[]: [0] A landing y, [1] B (0 waiting, 1 falling, > 1 opening clock: another module may set
+                                B = 1 to drop one itself, e.g. an arena script), [2] C payload code */
 typedef int (*bge_payload_fn)(obj_t *spawner, int code);
 void bg_enemy_spawner_payload(bge_payload_fn fn);
 int  bg_enemy_spawners_open(void);        /* spawners still waiting / falling (tests, FD arenas) */

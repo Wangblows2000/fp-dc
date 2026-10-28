@@ -1669,6 +1669,9 @@ for _e in JCE_ENS:                                   # the JC Elite rows (jee_*)
     if _e[3].startswith('jee_') and _e[3] not in JCE_MIRRORED: ROW_FRAMES[_e[3]] = ROW_FRAMES.get(_e[3], set()) | BG_E_FRAMES
 for _e in TBE_ENS:                                   # TB saucer / saucer debris / lava squid rows in Battle Glacier
     if _e[3].startswith(('tba_', 'tbq_')) and _e[3] not in TBE_MIRRORED: ROW_FRAMES[_e[3]] = ROW_FRAMES.get(_e[3], set()) | BG_E_FRAMES
+# the ObjectExplosiveBlock_2738 walls the drill sats break (tb_gim.c type 1913, BG3-BG6): their TB row, else they have no image and no
+# collision in BG (RE 14306; RV drill3_wall)
+ROW_FRAMES['tbg_xblock'] = ROW_FRAMES.get('tbg_xblock', set()) | BG_E_FRAMES
 FRAME_TYPE_REMAP = globals().get('FRAME_TYPE_REMAP', {})   # (json frame, type) -> type, applied after the type lookup
 for _n in BG_E_FRAMES: FRAME_TYPE_REMAP.update({(_n, 1498): 1326, (_n, 1499): 1327})   # BG Elites: jc_enemy.c's types
 
