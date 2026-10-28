@@ -1669,10 +1669,39 @@ BGB_ENS = [(c, a, d, nm, None, w) for c, a, d, nm, w in (
     ('bosssparkytail_3335', 8, '0', 'bgs_tail8', _SPK), ('bosssparkytail_3335', 11, '0', 'bgs_tail11', _SPK),
     ('bosssparkyplasmashot_2587', 0, '0', 'bgs_plasma', _SPK),
     ('bosshatchdoor_3312', 0, '0', 'bgb_hatch', ('bosshatchdoor',)))]
-BGB_ENS_WITH = {'effectsexplosion06_435': _SPK, 'effectshade_436': _SPK, 'bosssparkyplasmashot_2587': _SPK}
+# Absolution (BG4, bg_boss_mech.c): its classes are off-map templates of json 63 only (the rows go with brevonmechtorso). Direction 0
+# only: the direction-16 images are mirrors (drawn flipped); the front and back wings share one image (14579), so one row.
+_MCH = ('brevonmechtorso',)
+# VRAM (bg4_ens spills into a second atlas): the head keeps its closed and open images (frames 0, 3), the charge orb every other
+# frame, the background mech two of its four wing frames, the plasma burst every other frame (the port steps them accordingly)
+_BGM_SL = {'bgm_head': slice(0, 4, 3), 'bgm_charge': slice(0, 8, 2), 'bgm_bg': slice(0, 4, 2), 'bgm_burst': slice(1, 13, 2)}
+_MBG = ('brevonmechbackground',)
+BGB_ENS += [(c, a, d, nm, _BGM_SL.get(nm), _MCH) for c, a, d, nm in (
+    ('brevonmechtorso_2539', 0, '0', 'bgm_torso'), ('brevonmechhead_2540', 0, '0', 'bgm_head'), ('brevonmechhead_2540', 10, '0', 'bgm_head10'),
+    ('brevonmechweakspot_2581', 0, '0', 'bgm_weak0'), ('brevonmechweakspot_2581', 0, '1', 'bgm_weak1'),
+    ('brevonmechweakspot_2581', 0, '2', 'bgm_weak2'), ('brevonmechweakspot_2581', 0, '3', 'bgm_weak3'),
+    ('brevonmechturret_2585', 0, '0', 'bgm_turret'), ('brevonmechcharge_2584', 0, '0', 'bgm_charge'),
+    ('brevonmechabdomen_2536', 0, '0', 'bgm_abd'), ('brevonmechaxle_2546', 0, '0', 'bgm_axle'),
+    ('brevonmechbackarm_2534', 0, '0', 'bgm_barm'), ('brevonmechbackclaw_2533', 0, '0', 'bgm_bclaw'),
+    ('brevonmechbackshoulder_2532', 0, '0', 'bgm_bsh'), ('brevonmechbackwing_2531', 0, '0', 'bgm_wing'),
+    ('brevonmechfrontleg_2535', 0, '0', 'bgm_fleg'), ('brevonmechfrontleg2_2537', 0, '0', 'bgm_fleg2'),
+    ('brevonmechfrontknee_2538', 0, '0', 'bgm_fknee'), ('brevonmechfrontfoot_2541', 0, '0', 'bgm_ffoot'),
+    ('brevonmechfrontshoulder_2543', 0, '0', 'bgm_fsh'), ('brevonmechfrontarm_2544', 0, '0', 'bgm_farm'),
+    ('brevonmechfrontclaw_2545', 0, '0', 'bgm_fclaw'),
+    ('effectbrevonmechwarning2_2586', 0, '0', 'bgm_warn2'))]
+# the background mech (BG2-BG4) and its lasers / warnings / burst (created at run time: tied to the background mech)
+BGB_ENS += [(c, a, d, nm, _BGM_SL.get(nm), _MBG) for c, a, d, nm in (
+    ('brevonmechbackground_2444', 0, '0', 'bgm_bg'), ('brevonmechlaser_2583', 0, '0', 'bgm_laser'),
+    ('effectbrevonmechwarning_2582', 0, '0', 'bgm_warn'), ('effectplasmaburst_3091', 4, '0', 'bgm_burst'))]
+BGB_ENS_WITH = {'effectsexplosion06_435': _SPK + _MCH, 'effectshade_436': _SPK, 'bosssparkyplasmashot_2587': _SPK + _MCH,
+                'hazardshockwave_1576': _MCH, 'effectsdebris_427': _MCH, 'brevonmechlaser_2583': _MBG,
+                'effectbrevonmechwarning_2582': _MBG, 'effectplasmaburst_3091': _MBG}
 ENS += BGB_ENS   # BG_BOSS
 for _k, _v in BGB_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # BG_BOSS
 for _e in BGB_ENS: ROW_FRAMES[_e[3]] = BGB_FRAMES   # BG_BOSS rows only in Battle Glacier
+for _e in BGB_ENS:
+    if _e[5] == _MBG: ROW_FRAMES[_e[3]] = {61, 62, 63}   # BG6 places the background mech too (it stays hidden there)
+ROW_FRAMES['bgm_burst'] = {61}                        # BG2's set piece only
 
 # ==== end Battle Glacier
 
