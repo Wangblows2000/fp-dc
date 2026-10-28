@@ -988,7 +988,30 @@ static const objdef_t DEFS[] = {
     /* ==== Pangu Lagoon (session 23): one block per module */
     /* ---- PL_FLOW (pl_flow.c) */
     /* ---- PL_ENEMIES (pl_enemy.c) */
-    /* ---- PL_GIM (pl_gim.c) */
+    /* ---- PL_GIM (pl_gim.c; qualifiers RE on_frame_51..56_init; sprites set by pl_gim_spawn) */
+    { OT_PLG_VBLOCK,    OD_SOLID|OD_BOXCOL,                    NULL         }, /* objectvanishingblock_3035 (Q7, ctor initialize_active(1); flag 0 = vanished) */
+    { OT_PLG_TGATE,     OD_HIDDEN,                             NULL         }, /* objecttimegate_2915 (ctor set_visible(0); col_9_50 box) */
+    { OT_PLG_TPIECE,    0,                                     NULL         }, /* objecttimegatepiece_2916 (Q4) */
+    { OT_PLG_STRING,    0,                                     NULL         }, /* gimmickbowstring_2997 */
+    { OT_PLG_ARROW,     0,                                     NULL         }, /* gimmickbowarrow_2998 */
+    { OT_PLG_ARROWPLAT, OD_OBSTACLE|OD_NOEDGE|OD_HIDDEN,       NULL         }, /* gimmickbowarrowplatform_2999 (Q8 Q9, ctor set_visible(0)) */
+    { OT_PLG_PINWHEEL,  0,                                     NULL         }, /* objectpinwheel_2992 */
+    { OT_PLG_CTOP,      0,                                     NULL         }, /* objectcyclonetop_2969 */
+    { OT_PLG_BWALL,     OD_HIDDEN,                             NULL         }, /* gimmickbreakoutwallleft_3053 / right_3049 (ctor set_visible(0)) */
+    { OT_PLG_BBALL,     0,                                     NULL         }, /* gimmickbreakoutball_3052 */
+    { OT_PLG_BPLAT,     OD_OBSTACLE|OD_NOEDGE,                 NULL         }, /* gimmickbreakoutplatform_3050 (Q8 Q9) */
+    { OT_PLG_BMASK,     0,                                     NULL         }, /* gimmickbreakoutplatformmask_3051 */
+    { OT_PLG_LPLAT,     OD_OBSTACLE|OD_NOEDGE,                 NULL         }, /* levellagoonplatform1_2994 (Q8 Q9 Q12 Q13) */
+    { OT_PLG_LPLAT2,    OD_OBSTACLE|OD_NOEDGE,                 NULL         }, /* levellagoonplatform2_3000 (Q8 Q9 Q12 Q13) */
+    { OT_PLG_SWORD,     OD_HIDDEN,                             NULL         }, /* hazardgiantsword_3067 (Q20, ctor set_visible(0)) */
+    { OT_PLG_SWMASK,    0,                                     NULL         }, /* hazardgiantswordmask_3068 */
+    { OT_PLG_SPINBALL,  0,                                     NULL         }, /* gimmickspinball_1173 in Pangu Lagoon */
+    { OT_PLG_CHAIN,     0,                                     NULL         }, /* gimmickspinballchain / 2 / 3 / 4 */
+    { OT_PLG_PLSWITCH,  0,                                     NULL         }, /* gimmickhangingplswitch_3023 */
+    { OT_PLG_SDOOR,     0,                                     NULL         }, /* objectstonedoor1 / 2 / 3 / 4 (drawn x-scaled by pl_gim_draw) */
+    { OT_PLG_ACTIVE,    OD_OBSTACLE|OD_BOXCOL|OD_HIDDEN,       NULL         }, /* active_2927 (Q8, ctor set_visible(0) + initialize_active(1)) */
+    { OT_PLG_REBOUND,   0,                                     NULL         }, /* - (runtime: EffectRebound / 2) */
+    { OT_PLG_BURST,     0,                                     NULL         }, /* - (runtime: EffectsWhiteBurst_31) */
     /* ---- PL_BOSS (pl_boss.c) */
     /* ==== end Pangu Lagoon */
 };

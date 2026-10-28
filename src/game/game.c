@@ -1031,7 +1031,7 @@ static void pause_draw(void) {
 }
 
 /* the player sprite is drawn this frame (session 20: one predicate for game_draw and the host transition test) */
-int game_player_visible(void) { return !fn_assist_cast_on() && !sb_boss_player_hidden() && !jc_boss_player_hidden() && !th_boss_player_hidden() && !tb_boss_player_hidden() && !pl_boss_player_hidden(); }
+int game_player_visible(void) { return !fn_assist_cast_on() && !sb_boss_player_hidden() && !jc_boss_player_hidden() && !th_boss_player_hidden() && !tb_boss_player_hidden() && !pl_boss_player_hidden() && !pl_gim_player_hidden(); }
 
 void game_draw(void) {
     if (G.mode == MODE_FRONTEND) { fe_draw(); return; }

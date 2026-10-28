@@ -346,7 +346,7 @@ void combat_frame(player_t *p) {
             collect(p, AT_CHAR, 0, NULL);
             if ((e = pick())) hit_common(p, e, 5, fmax(3.0, fabs(1.5 * B)) * Q, Gv, 1);
         }
-        if (Z && p->state == ST_BOOST) {                                                      /* 2758: boost dash bonus */
+        if (Z && p->state == ST_BOOST && p->sboost) {                                        /* 2758: the super boost's dash bonus (needs SKIN flag 8, RE spec_boost 2) */
             for (int i = 0; i < G.nobjs; i++) {
                 obj_t *o = &G.o[i];
                 if (o->alive && enemy_type(o->type) && o->an.b && o->c == 5 && !(o->fl & (F_ARMOURED | F_DEFEATED)) && sensor_hits(o, SENS_MAIN)) {

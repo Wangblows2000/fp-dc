@@ -210,6 +210,7 @@ static void hang_switches(player_t *p) {
         int held = p->state == ST_HANG && p->hang_x == o->x && p->hang_y == o->y;   /* Q > 0: a player hangs on it */
         double tx = PX(p), ty = PY(p) - 13;                                    /* Q23 grab (4065, as OT_HANG) */
         if (!held && player_can_hang(p) && tx + 6 > o->x - 25 && tx - 5 < o->x + 25 && ty + 6 > o->y && ty - 5 < o->y + 15) { player_hang(p, o->x, o->y); held = 1; }
+        if (o->fl & RMSW_EXTERNAL) continue;                                   /* Pangu Lagoon: no 5866-5868 (pl_gim.c moves it, 12987) */
         double A = o->av[0];
         if (!held) { o->y = (float)fmax(A, o->y - 2); o->fl &= ~F1; }        /* 5866 */
         else if (o->y < A + 8) { o->y = (float)fmin(A + 8, o->y + 2); p->hang_y = o->y; p->y += 2; }   /* 5867: MV.Y += 2 */

@@ -260,7 +260,7 @@ int player_orig_m(const player_t *p) {
     case ST_CART: return 90; case ST_SIT: return 39;   /* Relic Maze hand-car / chair (relic_gimb.c) */
     case ST_HPIPE: return 38;                           /* Fortune Night half-pipe (fn_gima.c) */
     case ST_DANCE: return 50;                          /* FN5 dance (fn_gimb.c) */
-    case ST_RIDE: return th_gim_ride_m() >= 0 ? th_gim_ride_m() : jc_gim_ride_m();   /* TH barrel 98 (th_gim.c); JC seed 97 / bubble 99 (jc_gim.c) */
+    case ST_RIDE: return th_gim_ride_m() >= 0 ? th_gim_ride_m() : pl_gim_ride_m() >= 0 ? pl_gim_ride_m() : jc_gim_ride_m();   /* TH barrel 98 (th_gim.c); PL bow arrow 99 (pl_gim.c); JC seed 97 / bubble 99 (jc_gim.c) */
     default: return -1;
     }
 }
@@ -540,7 +540,7 @@ static void m5_group(player_t *p, const input_t *in) {
         }
     }
     if (p->boost_n == 30) {                        /* fire: 2002-2006 */
-        snd_play_orig(53, 230, 128);
+        if (!p->sboost) snd_play_orig(53, 230, 128);   /* 2002: SKIN flag 8 off (the super boost's own sound: 2009) */
         double *b = p->ground ? &p->gsp : &p->vx;
         int L = p->ground;
         if (p->boost_q == 0) *b = p->face > 0 ? fmax(*b, PHYS_BOOST) : fmin(*b, -PHYS_BOOST);
@@ -556,9 +556,13 @@ static void m5_group(player_t *p, const input_t *in) {
     if (p->boost_n >= 30) {
         p->energy = fmax(0., p->energy - PHYS_ENERGY_DRAIN);                     /* 2007 */
         if (!p->ground && p->vy == -PHYS_BOOST_DIAG) p->vx = fmax(-PHYS_BOOST_DIAG, fmin(PHYS_BOOST_DIAG, p->vx));   /* 2008 */
+        if (p->sboost && p->boost_n == 31) {                                     /* 2009: SKIN flag 8, N == 31: B, G x1.25, CAM.Z >= 8, sound 322 */
+            if (p->ground) p->gsp *= 1.25; else { p->vx *= 1.25; p->vy *= 1.25; }
+            camera_shake(8); snd_play_orig(322, 230, 128); p->boost_n = 32;
+        }
         if (p->ground) p->gsp = p->face > 0 ? fmax(p->gsp, PHYS_BOOST_LAND) : fmin(p->gsp, -PHYS_BOOST_LAND);   /* 2010/2011 */
-        if (p->energy <= 0) {                                                    /* 2012 */
-            p->energy = 0; p->state = ST_NORMAL; p->boost_n = 0;
+        if (p->energy <= 0) {                                                    /* 2012: ENERGY.A = 100 x (SKIN flag 8), flag 8 off */
+            p->energy = p->sboost ? 100 : 0; p->sboost = 0; p->state = ST_NORMAL; p->boost_n = 0;
         }
     }
     if (p->invuln < 30) p->invuln = 30;            /* 1997: E = max(E, 30) on every M5 frame */
@@ -936,7 +940,8 @@ void player_update(player_t *p, const input_t *in) {
     }
     if ((p->state == ST_SIT || p->state == ST_DANCE) && fn_gimb_player(p, in)) return;   /* M39 restroom / M50 dance (fn_gimb.c) */
     if ((p->state == ST_CART || p->state == ST_SIT) && relic_gimb_player(p, in)) return;   /* M90 / M39: their own groups (relic_gimb.c) */
-    if (p->state == ST_RIDE && (th_gim_player(p, in) || jc_gim_player(p, in))) return;   /* M98: Trap Hideout's barrel (th_gim.c); M97 / M99: Jade Creek seed / bubble rides (jc_gim.c) */
+    if (p->state == ST_RIDE && (th_gim_player(p, in) || pl_gim_player(p, in) || jc_gim_player(p, in))) return;   /* M98: Trap Hideout's barrel (th_gim.c); M99: Pangu
+                                                   * Lagoon's bow arrow / stone-door walk (pl_gim.c); M97 / M99: Jade Creek seed / bubble rides (jc_gim.c) */
     /* RV energy meter (GUIEnergy_127 alt A): -3/frame while boosting, -0.25/frame in the cyclone, else
      * +0.4/frame up to 100 (state at the start of the frame) */
     /* the stage-start delay counts frames from the start in every state (original boost_cycle trace: the
@@ -955,6 +960,7 @@ void player_update(player_t *p, const input_t *in) {
     else if (p->state == ST_CYCLONE) p->energy = fmax(0., p->energy - PHYS_ENERGY_CYCLONE);
     else if (held) {}
     else p->energy = fmin(PHYS_ENERGY_MAX, p->energy + PHYS_ENERGY_REFILL);
+    if (p->sboost && p->energy <= 0 && p->state != ST_BOOST) p->sboost = 0;   /* 1677: SKIN flag 8 with ENERGY.A == 0 -> off */
     /* RE (event 1574, start of the movement block): B, G and N are floored to 4 decimals every frame */
     {
         #define R4(v) (floor((double)(v) * 10000.0) / 10000.0)
@@ -1186,7 +1192,7 @@ void player_update(player_t *p, const input_t *in) {
     else if (p->hitstop > 0) { p->hitstop--; p->hs_off = 1; }                       /* 1654 */
     /* the M5 group starts the frame after the entry (1686 runs before the entry events 1760-1895) */
     if ((p->state == ST_CHARGE || p->state == ST_BOOST) && (st0 == ST_CHARGE || st0 == ST_BOOST)) m5_group(p, in);
-    else if (p->m5_bounced) { p->m5_bounced = 0; p->energy = fmax(0., p->energy - PHYS_ENERGY_DRAIN); if (p->invuln < 30) p->invuln = 30; }  /* 1637/1639: the group still runs that frame */
+    else if (p->m5_bounced) { p->m5_bounced = 0; p->sboost = 0; p->energy = fmax(0., p->energy - PHYS_ENERGY_DRAIN); if (p->invuln < 30) p->invuln = 30; }  /* 1637/1639: the group still runs that frame (SKIN flag 8 off) */
     if (p->state == ST_ROLL && (!carol || st0 == ST_ROLL)) roll_group(p, in);   /* 1687: M6 group (after 1641-1651); Carol's own entries: from the next frame */
     if (carol) {                                   /* group 0x21a4a: 2104 / 2105, then M20 (0x21a2f) and M44 (0x21a2c) from their 2nd frame */
         carol_timers(p);

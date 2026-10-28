@@ -337,6 +337,11 @@ static int blasted(const obj_t *o) {             /* 7218 / 7219: a bomb blast ov
     return 0;
 }
 void fn_gima_floor_hit(obj_t *f, double X, double Y) { if (f && f->alive && f->type == OT_FN_BFLOOR) { f->fl |= F6; f->av[0] = X; f->av[1] = Y; } }
+/* Pangu Lagoon's flying bow arrow breaks a BreakablePLRock (member 1; RE col_0_51: X = C cos J, Y = -C sin J): 1 when it was intact */
+int fn_gima_wall_hit(obj_t *w, double X, double Y) {
+    if (!w || !w->alive || w->type != OT_FN_BWALL || (w->fl & F6)) return 0;
+    w->fl |= F6; w->av[0] = X; w->av[1] = Y; return 1;
+}
 static void pieces_new(const obj_t *o, int type, const char *anim, const int (*pos)[2], int n, double X, double Y, int xr, int rot) {
     for (int k = 0; k < n; k++) {
         obj_t *q = spawn(type, anim, o->x + pos[k][0], o->y + pos[k][1], o->layer);
@@ -363,7 +368,8 @@ static void breakables(player_t *p) {
     int bike_fast = p->bike && fabs(B) > 5;
     EACH(OT_FN_BWALL, o) o->fl &= ~1;                                          /* 7211 */
     EACH(OT_FN_BFLOOR, o) o->fl &= ~1;
-    if (M == 5 || M == 6 || M == 26 || bike_fast) { EACH(OT_FN_BWALL, o) o->fl |= 1; }   /* 7212: pass through (boost, roll, cyclone, fast bike) */
+    if (M == 5 || M == 6 || M == 26 || bike_fast) { EACH(OT_FN_BWALL, o) if (o->par == 0) o->fl |= 1; }   /* 7212: pass through (boost, roll, cyclone, fast bike); Pangu Lagoon's rock
+                                                                             * (member 1) has no 7212 (RE handle_frame_52..56: only 12898 = 7211) */
     EACH(OT_FN_BWALL, o) {
         if (o->fl & F6) continue;
         double sX = clampd(fmax(3, fabs(1.5 * B)) * Q, -10, 10), sY = 0.5 * Gv;
@@ -385,9 +391,12 @@ static void breakables(player_t *p) {
     EACH(OT_FN_BFLOOR, o) if (o->par == 1 && !(o->fl & F6) && blasted(o)) o->fl |= F6;   /* 7219: the bomb opens Floor2 only */
     static const int WP[8][2] = { { 10, 10 }, { 30, 10 }, { 10, 30 }, { 30, 30 }, { 10, 42 }, { 30, 42 }, { 10, 62 }, { 30, 62 } };
     static const int FP[8][2] = { { 8, 12 }, { 24, 12 }, { 40, 12 }, { 56, 12 }, { 8, 36 }, { 24, 36 }, { 40, 36 }, { 56, 36 } };
-    EACH(OT_FN_BWALL, o) if (o->fl & F6) {                                     /* 7215 */
+    /* BreakablePLRock_3012 (member 1, 48 x 128): 12903 its 8 BreakablePLRockPiece_3013 (the same A / B / C / D / E rule) */
+    static const int RP[8][2] = { { 12, 12 }, { 30, 16 }, { 21, 35 }, { 15, 52 }, { 32, 63 }, { 15, 84 }, { 34, 97 }, { 23, 117 } };
+    EACH(OT_FN_BWALL, o) if (o->fl & F6) {                                     /* 7215 / 12903 */
         obj_t v = *o; o->alive = 0; snd_play_orig(13, 220, 128);
-        pieces_new(&v, OT_FN_BWPIECE, "fnbwpiece", WP, 8, v.av[0], v.av[1], 4, 1);
+        if (v.par == 1) pieces_new(&v, OT_FN_BWPIECE, "plrockpiece", RP, 8, v.av[0], v.av[1], 4, 1);
+        else pieces_new(&v, OT_FN_BWPIECE, "fnbwpiece", WP, 8, v.av[0], v.av[1], 4, 1);
     }
     EACH(OT_FN_BFLOOR, o) if (o->fl & F6) {                                    /* 7220 / 7221 */
         obj_t v = *o; o->alive = 0; snd_play_orig(13, 220, 128); camera_shake(3);
@@ -743,7 +752,7 @@ void fn_gima_spawn(void) {
           k++;
       }
       EACH(OT_FN_BTURN, q) if (q->fl & F1) q->alive = 0; }
-    EACH(OT_FN_BWALL, o) set_s(o, "fnbwall");
+    EACH(OT_FN_BWALL, o) set_s(o, o->par == 1 ? "plrock" : "fnbwall");   /* member 1: Pangu Lagoon's BreakablePLRock_3012 */
     EACH(OT_FN_BFLOOR, o) set_sk(o, "fnbfloor%d", o->par & 1);
     /* 7. lantern bridges: link1 E = spread from 1 (newest first); 7347: E 1 -> direction 0, C 1, D 1; 7348: E 2 -> direction 1, C -1
      * (D stays -1). The links of a bridge pair by index; links 2-8 take link1's direction (INFERRED, U3) */
