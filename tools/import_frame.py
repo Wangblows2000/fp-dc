@@ -1085,12 +1085,12 @@ for _e in JCE_ENS:
 # VRAM (session 21 merge): a JC enemy's direction-16 row whose every frame is the exact mirror of the direction-0 frame
 # (pixels flipped, hotspot x = w - hx, same hy) is left out; jc_enemy.c draws the base row flipped (frame_draw: flip
 # hotspot w - hx). RE images: BullFrag 22/22, SharkTorpedo 14/14 mirrored; the Elite has 3 genuine left frames (kept).
-def _jce_mirror_rows():
+def _jce_mirror_rows(rows=None):   # rows: any ENS list (default the JC one; TH_ENEMIES passes its own)
     from PIL import ImageChops
     an_ = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'build', 'frames', 'anims.json')))
     src_ = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'extracted', 'linux', 'images')
     out_ = set()
-    for c, ai, d, nm in JCE_ENS:
+    for c, ai, d, nm in (JCE_ENS if rows is None else rows):
         if not nm.endswith('_l') or not (d.isdigit() and int(d) >= 16): continue   # (jc_enemy.c falls back from '<base>_l' to '<base>' only)
         d0 = str(int(d) - 16)
         try: ad = an_[c]['anims'][ai]; R, L = ad[d0]['frames'], ad[d]['frames']
@@ -1121,7 +1121,39 @@ THF_TYPES_ID = {('thbacklight1', 3113): 1536, ('thflame', 3176): 1537, ('thspotl
 THF_ENS = [('thbacklight1_3113', 0, '0', 'thbl'), ('thflame_3176', 0, '0', 'thfl'), ('thspotlight_3209', 0, '0', 'thsp', slice(0, 1))]   # the spotlight's 2 frames (6123 / 2740) are pixel-identical: one image
 ENGINE_TYPES_ID.update(THF_TYPES_ID); ENS += THF_ENS   # TH_FLOW
 
-# ---- TH_ENEMIES (th_enemy.c, 1560-1619)
+# ---- TH_ENEMIES (th_enemy.c, 1560-1619; build/re/spec_th_enemies.md). Placed classes 1560-1589, runtime children 1590-1619
+# (th.h OT_TH_*). Rows 'thX_name' ('_l' = direction 16; left rows that are exact mirrors are left out: _ens_mirror_rows).
+# EnemyNinja_3193 (th3) belongs to the act-3 finale (th_boss.c), not here.
+THE_TYPES_ID = {('enemytotematic', 3144): 1560, ('enemymetalpup', 3148): 1561, ('enemyshockpuppet', 3149): 1562,
+    ('enemybladeorbiter', 3165): 1563, ('enemybladeorbiterleft', 3163): 1564, ('enemybladeorbiterright', 3164): 1565,
+    ('enemyrocketpuncher', 3182): 1566, ('enemyrocketpuncherhand', 3183): 1567, ('enemyrocketpunchershield', 3184): 1568,
+    ('effectrocketpuncherwarning', 3185): 1569, ('enemybikeninja', 3203): 1570, ('enemybikeninjamask', 3204): 1571,
+    ('effectbikeninjawarning', 3206): 1572}
+THE_ENS = [(c, a, d, nm + ('' if d == '0' else '_l')) for c, a, nm in (
+    ('enemymetalpup_3148', 0, 'thp_idle'), ('enemymetalpup_3148', 1, 'thp_walk'), ('enemymetalpup_3148', 7, 'thp_bite'),
+    ('enemymetalpup_3148', 8, 'thp_dead'), ('enemymetalpup_3148', 10, 'thp_turn'),
+    ('enemyrocketpuncher_3182', 0, 'thr_idle'), ('enemyrocketpuncher_3182', 7, 'thr_wind'), ('enemyrocketpuncher_3182', 8, 'thr_back'),
+    ('enemyrocketpuncher_3182', 10, 'thr_dead'), ('enemyrocketpuncherhand_3183', 0, 'thr_hand'), ('enemyrocketpuncherhand_3183', 7, 'thr_fly'),
+    ('enemyrocketpuncherhand_3183', 8, 'thr_hand2'), ('enemyrocketpunchershield_3184', 0, 'thr_shield'),
+    ('enemybikeninja_3203', 0, 'thb_ride'), ('enemybikeninja_3203', 7, 'thb_jump'), ('enemybikeninja_3203', 9, 'thb_throw'),
+    ('enemybikeninjadefeated_3205', 0, 'thb_dead')) for d in ('0', '16')] + [
+    ('enemytotematic_3144', 0, '0', 'tht_body'), ('enemyshockpuppet_3149', 0, '0', 'ths_idle'), ('enemyshockpuppet_3149', 7, '0', 'ths_wind'),
+    ('enemyshockpuppet_3149', 8, '0', 'ths_shock'), ('enemyshockpuppet_3149', 10, '0', 'ths_dead'),
+    ('enemybladeorbiter_3165', 0, '0', 'tho_body'), ('enemybladeorbiter_3165', 7, '0', 'tho_blink'), ('enemybladeorbiter_3165', 8, '0', 'tho_dead'),
+    ('enemybladeorbiterleft_3163', 0, '0', 'tho_bl'), ('enemybladeorbiterright_3164', 0, '0', 'tho_br'),
+    ('effectrocketpuncherwarning_3185', 0, '0', 'thr_warn'), ('effectbikeninjawarning_3206', 0, '0', 'thb_warn'),
+    ('enemyninjastar_3221', 0, '0', 'thb_star'), ('enemyninjastar_3221', 0, '1', 'thb_star1')] + \
+    [('enemybikeninjamask_3204', 0, str(d), 'thb_m%d' % d) for d in range(5)]
+_THE_ALL = ('enemytotematic', 'enemymetalpup', 'enemyshockpuppet', 'enemybladeorbiter', 'enemyrocketpuncher', 'enemybikeninjamask')
+THE_ENS_WITH = {'enemyninjastar_3221': ('enemybikeninjamask',), 'enemybikeninjadefeated_3205': ('enemybikeninjamask',),
+    'objectkeystone_429': ('enemyrocketpuncher',), 'effectsdebris_427': _THE_ALL, 'effectsexplosion06_435': ('enemyrocketpuncher',)}
+ENGINE_TYPES_ID.update(THE_TYPES_ID); ENS += THE_ENS   # TH_ENEMIES
+for _k, _v in THE_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # TH_ENEMIES
+try:
+    THE_MIRRORED = _jce_mirror_rows(THE_ENS)   # (the JC helper, generalised to any row list)
+except FileNotFoundError:
+    THE_MIRRORED = set()
+for _nm in THE_MIRRORED: ROW_FRAMES[_nm] = set()   # TH_ENEMIES
 
 # ---- TH_GIM (th_gim.c, 1620-1679)
 
