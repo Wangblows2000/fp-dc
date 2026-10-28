@@ -60,6 +60,8 @@ enum {
     OT_TBB_SHOT = 2017,     /* a boss projectile (par: kind) */
     OT_TBB_END = 2047 };
 int   tb_boss_shrimp_state(void);   /* tests: 0 waiting, 1 fight, 2 segments down, 3 defeated, 4 arena open; -1 not placed */
+int   tb_boss_lift_state(void);    /* tests: TB5's CameraTriggerBoss C (0 waiting, 1 the ride, 2 the top); -1 none */
+int   tb_boss_syntax_state(void), tb_boss_syntax_rounds(void);   /* tests: the TB6 body's N (10 + G at the end), the hitbox's E */
 int   tb_boss_pusher_state(void);   /* tests: the trapdoor's C (0 idle, 1 fight, 2 switch hit, 3 open); -1 not placed */
 
 #endif

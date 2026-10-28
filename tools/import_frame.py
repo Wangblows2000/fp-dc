@@ -1249,9 +1249,19 @@ WATER_FRAMES = WATER_FRAMES + (48, 49)
 # encounter's on-map class (the off-map templates do not pull rows in a NEWPACK frame): the RoboShrimp (TB1), the wall pusher (TB2).
 TBB_TYPES_ID = {('bossroboshrimp', 2673): 1968, ('bossroboshrimpsegment', 2672): 1969, ('bossroboshrimptail', 2675): 1970,
                 ('bossroboshrimplightning', 2674): 1971, ('bossroboshrimpblocker', 2691): 1972,
-                ('minibosstrapdoor', 2747): 1973, ('enemywallpusher', 2748): 1974}
+                ('minibosstrapdoor', 2747): 1973, ('enemywallpusher', 2748): 1974,
+                ('bosssyntaxsquidback', 2887): 1990, ('bosssyntaxsquidshoulderright', 2888): 1990, ('bosssyntaxsquidshoulderleft', 2889): 1990,
+                ('bosssyntaxsquidhead', 2890): 1990, ('bosssyntaxsquidbody', 2893): 1990, ('bosssyntaxsquidclawright', 2894): 1990,
+                ('bosssyntaxsquidclawleft', 2895): 1990, ('bosssyntaxsquidarmleft', 2891): 1991, ('bosssyntaxsquidarmright', 2892): 1992,
+                ('bosssyntaxsquidhitbox', 2902): 1993, ('bosslavalaser', 2896): 1994, ('bossspikesphere', 2897): 1995, ('bossspikesphere2', 2898): 1995,
+                ('bosslavasplashleft1', 2899): 1996, ('bosslavasplashright1', 2901): 1996, ('bosslavasplashleft2', 2903): 1996,
+                ('bosslavasplashright2', 2904): 1996, ('bosstbplatform', 2886): 1997, ('bosstbplatform2', 2908): 1998, ('bosswaypoint', 2905): 1999}
 ENGINE_TYPES_ID.update(TBB_TYPES_ID)   # TB_BOSS
-TBB_SUB = {}   # class -> member index (low byte of the lvobj anim field)
+TBB_SUB = {'bosssyntaxsquidback_2887': 0, 'bosssyntaxsquidshoulderright_2888': 1, 'bosssyntaxsquidshoulderleft_2889': 2,
+           'bosssyntaxsquidhead_2890': 3, 'bosssyntaxsquidbody_2893': 4, 'bosssyntaxsquidclawright_2894': 5, 'bosssyntaxsquidclawleft_2895': 6,
+           'bossspikesphere_2897': 0, 'bossspikesphere2_2898': 1, 'bosslavasplashleft1_2899': 0, 'bosslavasplashright1_2901': 1,
+           'bosslavasplashleft2_2903': 2, 'bosslavasplashright2_2904': 3}   # class -> member index (low byte of the lvobj anim field)
+_SX = ('bosswaypoint',)   # (the rig's instances lie below the frame: tied to the on-map waypoints)
 _SH = ('bossroboshrimp',)
 _WP = ('enemywallpusher',)
 TBB_ENS = [(c, a, d, nm, None, w) for c, a, d, nm, w in (
@@ -1261,9 +1271,25 @@ TBB_ENS = [(c, a, d, nm, None, w) for c, a, d, nm, w in (
     ('bossroboshrimptail_2675', 9, '0', 'tbs_tail9', _SH), ('bossroboshrimplightning_2674', 0, '0', 'tbs_lt0', _SH),
     ('bossroboshrimplightning_2674', 0, '1', 'tbs_lt1', _SH),
     ('minibosstrapdoor_2747', 0, '0', 'tbw_trap', ('minibosstrapdoor',)), ('enemywallpusher_2748', 0, '0', 'tbw_wp', _WP),
-    ('enemywallpusher_2748', 0, '16', 'tbw_wp16', _WP))]
+    ('enemywallpusher_2748', 0, '16', 'tbw_wp16', _WP),
+    ('bosssyntaxsquidback_2887', 0, '0', 'tbx_back', _SX), ('bosssyntaxsquidshoulderright_2888', 0, '0', 'tbx_shr', _SX),
+    ('bosssyntaxsquidshoulderright_2888', 7, '0', 'tbx_shr7', _SX), ('bosssyntaxsquidshoulderleft_2889', 0, '0', 'tbx_shl', _SX),
+    ('bosssyntaxsquidshoulderleft_2889', 7, '0', 'tbx_shl7', _SX), ('bosssyntaxsquidhead_2890', 0, '0', 'tbx_head', _SX),
+    ('bosssyntaxsquidbody_2893', 0, '0', 'tbx_body', _SX), ('bosssyntaxsquidbody_2893', 0, '8', 'tbx_body8', _SX),
+    ('bosssyntaxsquidclawright_2894', 0, '0', 'tbx_clawr', _SX), ('bosssyntaxsquidclawleft_2895', 0, '0', 'tbx_clawl', _SX),
+    ('bosssyntaxsquidarmleft_2891', 0, '0', 'tbx_arml', _SX), ('bosssyntaxsquidarmright_2892', 0, '0', 'tbx_armr', _SX),
+    ('bosssyntaxsquidhitbox_2902', 0, '0', 'tbx_hit', _SX), ('bosssyntaxsquidhitbox_2902', 0, '8', 'tbx_hit8', _SX),
+    ('bosslavalaser_2896', 0, '0', 'tbx_laser', _SX), ('bossspikesphere_2897', 0, '0', 'tbx_sph', _SX),
+    ('bossspikesphere2_2898', 0, '0', 'tbx_sph2', _SX), ('bosslavasplashleft1_2899', 0, '0', 'tbx_spl1', _SX),
+    ('bosslavasplashleft2_2903', 0, '0', 'tbx_spl2', _SX), ('bosslavasplashmain_2900', 4, '0', 'tbx_splash', _SX),
+    ('bosstbplatform_2886', 0, '0', 'tbx_plat', ('bosstbplatform', 'bosstbplatform2')))]
 TBB_ENS_WITH = {'effectsexplosion06_435': _SH + _WP, 'effectshade_436': _SH, 'effectsdebris_427': _SH + _WP,
-    'bossroboshrimpsegment_2672': _SH, 'bossroboshrimptail_2675': _SH, 'bossroboshrimplightning_2674': _SH}   # (off-map templates)
+    'bossroboshrimpsegment_2672': _SH, 'bossroboshrimptail_2675': _SH, 'bossroboshrimplightning_2674': _SH,   # (off-map templates)
+    'effectswhiteburst_31': _SX, 'bosslavalaser_2896': _SX, 'bosslavasplashmain_2900': _SX, 'bosstbplatform_2886': ('bosstbplatform2',),
+    **{c: _SX for c in ('bosssyntaxsquidback_2887', 'bosssyntaxsquidshoulderright_2888', 'bosssyntaxsquidshoulderleft_2889', 'bosssyntaxsquidhead_2890',
+       'bosssyntaxsquidbody_2893', 'bosssyntaxsquidclawright_2894', 'bosssyntaxsquidclawleft_2895', 'bosssyntaxsquidarmleft_2891',
+       'bosssyntaxsquidarmright_2892', 'bosssyntaxsquidhitbox_2902', 'bossspikesphere_2897', 'bossspikesphere2_2898',
+       'bosslavasplashleft1_2899', 'bosslavasplashleft2_2903')}}
 ENS += TBB_ENS   # TB_BOSS
 for _k, _v in TBB_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # TB_BOSS
 for _e in TBB_ENS: ROW_FRAMES[_e[3]] = TB_FRAMES   # TB_BOSS rows only in Thermal Base
