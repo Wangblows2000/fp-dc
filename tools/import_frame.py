@@ -1737,7 +1737,43 @@ for _k, _v in BGG_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   #
 
 # ---- FD_ENEMIES (fd_enemy.c, 2624-2751)
 
-# ---- FD_GIM (fd_gim.c, 2752-2911)
+# ---- FD_GIM (fd_gim.c, 2752-2911; build/re/spec_fd_gimmicks.md). Families share a type; FDG_SUB gives the member index (lvobj
+# anim bits 0-7, the instance layer in bits 8-14, as BG_GIM). Types mirror src/game/fd.h OT_FDG_*. FD's ObjectTransporter / ObjectSiren /
+# HazardSpinMine / GimmickAntigravSpawner are BG_GIM's rows above (BGG_TYPES_ID is not frame-restricted); its key cards / terminals /
+# seals / switch buttons are TB_GIM's (their rows are let into the FD frames below).
+FDG_TYPES_ID = {('objecttransporterstart', 3416): 2752, ('objecttransporterstart2', 3417): 2753,
+    ('objecttransporternode0', 3418): 2754, ('objecttransporternode90', 3419): 2754, ('objecttransporternode180', 3420): 2754,
+    ('objecttransporternode270', 3421): 2754, ('hazardzapbeamcannon', 3427): 2755, ('hazardzapbeam', 3428): 2756,
+    ('hazardzapbeamhitbox', 3429): 2757, ('hazardspiralsparkmaker', 3430): 2758, ('fdspiralsparktowerlight', 3432): 2759,
+    ('gimmickdownhillplatform', 3441): 2760, ('gimmickdownhillplatformwheel', 3442): 2761, ('objectlowspring', 3448): 2762,
+    ('breakablefdhangarwall', 3407): 2763, ('airlockbase', 3459): 2764, ('airlock1', 3457): 2765, ('airlock4', 3458): 2765,
+    ('airlock2', 3455): 2766, ('airlock3', 3456): 2766, ('pressuredoor1', 3489): 2767, ('pressuredoor2', 3490): 2767,
+    ('pressuredoor3', 3492): 2768, ('scrollingfloor', 3466): 2769, ('scrollingfloor2', 3465): 2769}
+FDG_SUB = {'objecttransporternode90_3419': 1, 'objecttransporternode180_3420': 2, 'objecttransporternode270_3421': 3,
+    'airlock4_3458': 1, 'airlock3_3456': 1, 'pressuredoor2_3490': 1, 'scrollingfloor2_3465': 1}
+FDG_ENS = [(c, a, d, nm) for c, a, d, nm in (
+    ('objecttransporterstart_3416', 0, '0', 'fdg_tstart'), ('objecttransporterstart2_3417', 0, '0', 'fdg_tstart2'),
+    ('enemyelitespawnerwave_3363', 0, '0', 'fdg_wave'),                             # the pipe exit's shock ring (15201)
+    ('hazardzapbeamcannon_3427', 0, '0', 'fdg_zcannon'), ('hazardzapbeam_3428', 0, '0', 'fdg_zbeam0'), ('hazardzapbeam_3428', 0, '1', 'fdg_zbeam1'),
+    ('hazardspiralsparkmaker_3430', 0, '0', 'fdg_smaker'), ('hazardspiralsparkmaker_3430', 0, '1', 'fdg_smaker1'),
+    ('fdspiralsparktowerlight_3432', 0, '0', 'fdg_slight'), ('hazardspiralspark_3435', 0, '0', 'fdg_spark'),
+    ('gimmickdownhillplatform_3441', 0, '0', 'fdg_dh0'), ('gimmickdownhillplatform_3441', 0, '1', 'fdg_dh1'),
+    ('gimmickdownhillplatformwheel_3442', 0, '0', 'fdg_dhw0'), ('gimmickdownhillplatformwheel_3442', 0, '1', 'fdg_dhw1'),
+    ('objectlowspring_3448', 0, '0', 'fdg_lowspring'),
+    ('breakablefdhangarwall_3407', 0, '0', 'fdg_hangar'), ('breakablefdhangarwallpiece_3408', 0, '0', 'fdg_hpiece'),
+    ('airlock1_3457', 0, '0', 'fdg_air1'), ('airlock2_3455', 0, '0', 'fdg_air2'), ('airlock3_3456', 0, '0', 'fdg_air3'),
+    ('airlock4_3458', 0, '0', 'fdg_air4'), ('effectairlockwind_3460', 0, '0', 'fdg_wind'),
+    ('pressuredoor1_3489', 0, '0', 'fdg_pdoor1'), ('pressuredoor1_3489', 7, '0', 'fdg_pdoor1c'),
+    ('pressuredoor2_3490', 0, '0', 'fdg_pdoor2'), ('pressuredoor2_3490', 7, '0', 'fdg_pdoor2c'),
+    ('scrollingfloor_3466', 0, '0', 'fdg_sfloor'), ('scrollingfloor2_3465', 0, '0', 'fdg_sfloor2'))]
+FDG_ENS_WITH = {'enemyelitespawnerwave_3363': ('objecttransporterstart',), 'hazardspiralspark_3435': ('hazardspiralsparkmaker',),
+    'breakablefdhangarwallpiece_3408': ('breakablefdhangarwall',), 'effectairlockwind_3460': ('airlockbase',),
+    'pressuredoor2_3490': ('pressuredoor3',)}
+ENGINE_TYPES_ID.update(FDG_TYPES_ID); ENS += FDG_ENS   # FD_GIM
+for _e in FDG_ENS: ROW_FRAMES[_e[3]] = FD_FRAMES        # FD_GIM rows only in Final Dreadnought
+for _k, _v in FDG_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # FD_GIM
+for _nm in ('tbg_key', 'tbg_term', 'tbg_term7', 'tbg_seal', 'tbg_barrier', 'tbg_kicon', 'tbg_btn0', 'tbg_btn1'):   # FD_GIM: TB's key cards,
+    ROW_FRAMES[_nm] = ROW_FRAMES.get(_nm, set()) | FD_FRAMES                     # terminals, seals, switch buttons placed in FD
 
 # ---- FD_BOSS (fd_boss.c, 2912-3071)
 
@@ -2725,6 +2761,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         if 1888 <= o['type'] < 1968: a = TBG_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # TB_GIM (tb_gim.c): member index | instance layer << 8
         if 2144 <= o['type'] < 2224: a = PLG_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # PL_GIM (pl_gim.c): member index | instance layer << 8
         if 2400 <= o['type'] < 2480: a = BGG_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # BG_GIM (bg_gim.c): member index | instance layer << 8
+        if 2752 <= o['type'] < 2880: a = FDG_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # FD_GIM (fd_gim.c): member index | instance layer << 8
         if 1370 <= o['type'] < 1430: a = (JCG_LEAF_TILT.get((o['x'], o['y']), 0) // 30 if o['type'] == 1371 else JCG_SUB.get(o['cls'], 0)) | (o['layer'] << 8)   # JC_GIM (jc_gim.c): member index (leaf backs: tilt / 30) | instance layer << 8
         if 1536 <= o['type'] < 1560: a = (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # TH_FLOW (th_flow.c): instance layer << 8 | 0x8000 json layer 1
         if 1100 <= o['type'] < 1150: a = SBG_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # SB_GIM (sb_gim.c): member index | instance layer << 8 | 0x8000: json layer 1 of a mapped frame (session 20: behind the json-2 pieces, scrolls with layer 1)

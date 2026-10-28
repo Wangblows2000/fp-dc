@@ -1104,7 +1104,28 @@ static const objdef_t DEFS[] = {
     /* ==== Final Dreadnought (session 24): one block per module */
     /* ---- FD_FLOW (fd_flow.c) */
     /* ---- FD_ENEMIES (fd_enemy.c) */
-    /* ---- FD_GIM (fd_gim.c) */
+    /* ---- FD_GIM (fd_gim.c; qualifiers RE on_frame_66..73_init; box = initialize_active(1) in the constructor) */
+    { OT_FDG_TSTART,    OD_BOXCOL,                             NULL         }, /* objecttransporterstart_3416 (a pipe entrance) */
+    { OT_FDG_TSTART2,   OD_BOXCOL,                             NULL         }, /* objecttransporterstart2_3417 (the orbiting light) */
+    { OT_FDG_TNODE,     OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* objecttransporternode0 / 90 / 180 / 270 (sub 0-3) */
+    { OT_FDG_ZCANNON,   OD_BOXCOL,                             NULL         }, /* hazardzapbeamcannon_3427 */
+    { OT_FDG_ZBEAM,     OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* hazardzapbeam_3428 (drawn y-scaled by fd_gim_draw) */
+    { OT_FDG_ZHIT,      OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* hazardzapbeamhitbox_3429 (ctor invisible) */
+    { OT_FDG_SMAKER,    OD_BOXCOL,                             NULL         }, /* hazardspiralsparkmaker_3430 */
+    { OT_FDG_SLIGHT,    OD_BOXCOL,                             NULL         }, /* fdspiralsparktowerlight_3432 */
+    { OT_FDG_DHPLAT,    OD_OBSTACLE|OD_NOEDGE,                 NULL         }, /* gimmickdownhillplatform_3441 (Q8 Q9 Q13) */
+    { OT_FDG_DHWHEEL,   OD_BOXCOL,                             NULL         }, /* gimmickdownhillplatformwheel_3442 */
+    { OT_FDG_LOWSPRING, OD_BOXCOL,                             NULL         }, /* objectlowspring_3448 (scenery in FD) */
+    { OT_FDG_HANGAR,    OD_BOXCOL,                             NULL         }, /* breakablefdhangarwall_3407 */
+    { OT_FDG_AIRBASE,   OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* airlockbase_3459 (ctor invisible) */
+    { OT_FDG_AIRLOCK_S, OD_SOLID|OD_BOXCOL,                    NULL         }, /* airlock1_3457 / airlock4_3458 (sub 0-1, Q7) */
+    { OT_FDG_AIRLOCK,   OD_BOXCOL,                             NULL         }, /* airlock2_3455 / airlock3_3456 (sub 0-1) */
+    { OT_FDG_PDOOR,     OD_BOXCOL,                             NULL         }, /* pressuredoor1_3489 / pressuredoor2_3490 (sub 0-1) */
+    { OT_FDG_PDOOR3,    OD_SOLID|OD_BOXCOL,                    NULL         }, /* pressuredoor3_3492 (Q7) */
+    { OT_FDG_SFLOOR,    OD_SOLID|OD_BOXCOL,                    NULL         }, /* scrollingfloor_3466 / scrollingfloor2_3465 (sub 0-1; only 2 is Q7: 1 keeps flag 0) */
+    { OT_FDG_FX,        0,                                     NULL         }, /* - (runtime: one-shot moving effects) */
+    { OT_FDG_SPARK,     0,                                     NULL         }, /* - (runtime: hazardspiralspark_3435) */
+    { OT_FDG_WIND,      0,                                     NULL         }, /* - (runtime: effectairlockwind_3460) */
     /* ---- FD_BOSS (fd_boss.c) */
     /* ==== end Final Dreadnought */
 };
