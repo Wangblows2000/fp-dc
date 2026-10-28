@@ -147,6 +147,7 @@ static void ride_end(player_t *p) {
 }
 int bg_gim_player(player_t *p, const input_t *in) {
     if (!S.ride || p->state != ST_RIDE) return 0;
+    if (p->hurt_pending) { ride_end(p); return 0; }                              /* 2414 still runs: the hit ends the ride (INFERRED) */
     S.held = in->held; S.pressed = in->pressed;
     const obj_t *o = S.ride_obj >= 0 ? &G.o[S.ride_obj] : NULL;
     ride_anim(p, S.ride == 96 && o ? (int)(5 * o->av[3]) : 50);                 /* 14143: speed 5 D; 14388: 50 */
@@ -243,6 +244,8 @@ static void slides(player_t *p) {
         p->y = floorf(o->y) + o->av[1] + ORIG_REF_DY;
         o->av[1] += o->av[3];
         p->gsp = p->vx = 1.2 * o->av[3];
+        if (p->vy > PHYS_MAXFALL) p->vy = PHYS_MAXFALL;                          /* RV sp1: G keeps gaining gravity in M 96 (0.25 -> 13.25), */
+        p->vy += PHYS_GRAV;                                                      /* so she drops onto the floor right after the end */
         p->cY = 8;
         o->av[3] = fmin(o->av[3] + 0.1, 10);
         player_sync_sensors(p);
@@ -259,7 +262,8 @@ static void slides(player_t *p) {
 /* ================================================================ 3. snake drills (BG1-BG2; RE 14148-14160, 14176)
  * Eight segments per placement (one spot). start 14176: G = (instance index) mod 8 (7 = the head, direction 1: 14149), F = 540 - 20 G,
  * D, E = the spot, H = (reversed index) / 8 (14150's phase swap reads H mod 2 == 1 on the first H > 0 instance: 0.125, never true:
- * no swap, RE). Every frame: 14148 x = D + 128 cos F, y = E - 128 sin F; flag 1 off (clockwise): F -= 3 while F >= 280, else -1,
+ * no swap, RE; RV sn1: H 5 on the 8th instance, untouched). Every frame: 14148 x = D + 128 sin F, y = E - 128 cos F (F before this
+ * frame's step; RV sn1 exact); flag 1 off: F -= 3 while F >= 280, else -1,
  * angle 180 - F (14151 / 14152); F < 180 -> flag 1 on, flag 2 off (14155); flag 1 on: F += 3 while F <= 440, else +1, angle -F
  * (14156 / 14157); F > 540 -> flags 1, 2 off (14160). The head in view (grown 150) on the way down (flag 1 off, F < 280; flag 1 on,
  * F > 440): sound 149 once (flag 2; 14153 / 14158) and on even g3 frames an EnemyRock_1194 at (D -+ 128 - 32 + rand 65, E):
@@ -282,18 +286,16 @@ static void snakes(void) {
     obj_t *o; int snd149 = 0, even = (g3() & 1) == 0;
     EACH(OT_BGG_SNAKE, o) {
         double *D = &o->av[3], *E = &o->av[4], *F = &o->av[5], *Gs = &o->av[6];
-        o->x = trunc_i(*D + 128 * c_cos(*F)); o->y = trunc_i(*E - 128 * c_sin(*F));   /* 14148 */
+        o->x = trunc_i(*D + 128 * c_sin(*F)); o->y = trunc_i(*E - 128 * c_cos(*F));   /* 14148 (RV sn1: sin for x, cos for y) */
         if (*Gs == 7) set_s(o, "bgg_snakeh");                                    /* 14149 */
+        int head = *Gs == 7 && obj_near_view(o, 150);
         if (!(o->fl & F1)) { *F -= *F >= 280 ? 3 : 1; o->ang = (float)(180 - *F); }   /* 14151 / 14152 */
-        if (*Gs == 7 && obj_near_view(o, 150) && !(o->fl & F2)) {               /* 14153 / 14158 */
-            if ((!(o->fl & F1) && *F < 280) || ((o->fl & F1) && *F > 440)) { o->fl |= F2; snd149 = 1; }
-        }
-        if (*Gs == 7 && even && obj_near_view(o, 150)) {                        /* 14154 / 14159 (the head: G 7) */
-            if (!(o->fl & F1) && *F < 280) snake_rock(o, -1);
-            else if ((o->fl & F1) && *F > 440) snake_rock(o, 1);
-        }
+        if (head && !(o->fl & (F1 | F2)) && *F < 280) { o->fl |= F2; snd149 = 1; }   /* 14153 */
+        if (head && even && !(o->fl & F1) && *F < 280) snake_rock(o, -1);        /* 14154 */
         if (!(o->fl & F1) && *F < 180) { o->fl = (o->fl & ~F2) | F1; }           /* 14155 */
         if (o->fl & F1) { *F += *F <= 440 ? 3 : 1; o->ang = (float)-*F; }        /* 14156 / 14157 */
+        if (head && (o->fl & F1) && !(o->fl & F2) && *F > 440) { o->fl |= F2; snd149 = 1; }   /* 14158 */
+        if (head && even && (o->fl & F1) && *F > 440) snake_rock(o, 1);          /* 14159 */
         if ((o->fl & F1) && *F > 540) o->fl &= ~(F1 | F2);                       /* 14160 */
     }
     if (snd149) snd(149);
@@ -312,7 +314,7 @@ static void spires(player_t *p) {
         if (!(o->fl & F1) && A < X + 200 && X - 200 < A && B < Y + 200 && Y - 200 < B) o->fl |= F1;      /* 14119 */
         if ((o->fl & F1) && *D < F) {
             if (obj_near_view(o, 200)) shake(3);                                  /* 14120 */
-            if (obj_near_view(o, 300)) snd_once(110, 15);                         /* 14121 (sample 0.26 s) */
+            if (obj_near_view(o, 300)) snd_once(110, 17);                         /* 14121 (sample 0.26 s) */
             *D += 1.5;                                                           /* 14122 */
         }
     }
@@ -528,10 +530,10 @@ static void switches(player_t *p) {
         color_apply();                                                           /* 14651 / 14652 */
     }
     EACH(OT_BGG_TSCRYSTAL, o) {
-        if (o->av[1] > 0) { o->av[0] = fmod(o->av[0] + 350, 360.); o->av[1] -= 10; }   /* 14653 / 14654 */
         set_s(o, S.color ? "bgg_tsc1" : "bgg_tsc0");
-        obj_t *s = partner(o, OT_BGG_TSWITCH);
+        obj_t *s = partner(o, OT_BGG_TSWITCH);                                   /* RV sw5: placed (14647) before the turn */
         if (s) { o->x = trunc_i(floorf(s->x) + 20 * c_cos(o->av[0])); o->y = trunc_i(floorf(s->y) - 20 * c_sin(o->av[0])); }
+        if (o->av[1] > 0) { o->av[0] = fmod(o->av[0] + 350, 360.); o->av[1] -= 10; }   /* 14653 / 14654 */
     }
 }
 int bg_gim_switch_color(void) { return S.color; }
