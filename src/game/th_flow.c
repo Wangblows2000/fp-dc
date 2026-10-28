@@ -88,7 +88,6 @@ void th_flow_card(player_t *p, int left) {
 }
 
 void th_flow_frame(player_t *p) {
-    (void)p;
     if (!T.act) return;
     int g3 = G.frame;                                                               /* the port's g3: the stage frame counter */
     for (int k = 0; k < T.nbl; k++) { obj_t *o = &G.o[T.bl[k]]; if (o->alive && o->an.b) { o->an.frame = (g3 / 10) % 6; o->an.acc = 0; } }   /* 13532 */
@@ -97,6 +96,11 @@ void th_flow_frame(player_t *p) {
         obj_t *o = &G.o[T.fl[k]];
         if (o->alive && o->an.b) { int n = o->an.b->anims[o->an.anim].count; o->an.frame = n > 0 ? (g3 * 16 / 100) % n : 0; o->an.acc = 0; }
     }
+    /* handle_frame_59 inline (group 0x22dd0, before 14047): g4 >= 5 and MV.X < 11650 -> CAM.F = the frame's height (RE). The Crystal
+     * Basher's door raised CAM.F to the door (13886, th_boss_basher.c); without this the camera stayed above the slope after the fight
+     * (session 21d user report: the camera stopped following Carol / Milla). The X >= 11650 branch (the arena's F 776 / rising D) is
+     * not ported (the arena works without it) */
+    if (T.act == 3 && G.at_g4 >= 5 && p && p->x < 11650) G.cam_nF = (float)G.lvl.h;
     if (T.act == 3 && !T.spots && G.at_g4 >= 5) {                                    /* 14083 (once: the repeat guard) */
         T.spots = 1;
         par_set_hidden(TH3_PIECE0, 1); par_set_hidden(TH3_PIECE2, 0);
