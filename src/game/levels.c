@@ -251,12 +251,12 @@ static const cpzone_t CP_PL6[] = { { 2834, 3000, 2, 2834, 1550, 0, 0 } };
 static const camzone_t CAM_PL3 = { 0, 4976, -32768, 279, 4976, 8, 6247, 279, 4976 + 40, 32767 };
 /* the stage's own sounds per act (11025 Hz): the flow events play none of their own (13228's 56 is the shared wipe); 99 explosions;
  * the enemy / gimmick / boss modules add theirs */
-static const short SFX_PL1[] = { 99 };
-static const short SFX_PL2[] = { 99 };
-static const short SFX_PL3[] = { 99 };
-static const short SFX_PL4[] = { 99 };
-static const short SFX_PL5[] = { 99 };
-static const short SFX_PL6[] = { 99 };
+static const short SFX_PL1[] = { 99, 10, 50, 323, 38, 311, 319, 320, 44, 7, 174, 288, 322, 324 };
+static const short SFX_PL2[] = { 99, 10, 50, 323, 38, 311, 319, 320, 44, 147, 51, 24, 33, 325, 326, 7, 174, 288, 13, 322, 324 };
+static const short SFX_PL3[] = { 99, 10, 50, 323, 38, 311, 319, 320, 44, 33, 325, 326, 7, 174, 288, 62, 132, 13, 322, 324 };
+static const short SFX_PL4[] = { 99, 10, 50, 323, 38, 311, 319, 320, 147, 51, 327, 29, 328, 329, 33, 325, 326, 7, 174, 288, 322, 324 };
+static const short SFX_PL5[] = { 99, 10, 50, 323, 38, 311, 319, 320, 147, 51, 327, 29, 44, 328, 329, 150, 33, 325, 326, 322, 324 };
+static const short SFX_PL6[] = { 99, 147, 51, 38, 311, 319, 320, 150, 62, 132, 7, 174, 288, 322, 324 };
 #define PL(d, f, n, mus) .dir = d, .frame = f, .stage = 7, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_PL##n, .nsfx = N_(SFX_PL##n), .lilac_only = 1
 #define TB(d, f, n, mus) .dir = d, .frame = f, .stage = 6, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_TB##n, .nsfx = N_(SFX_TB##n)
 #define TH(d, f, n, mus) .dir = d, .frame = f, .stage = 8, .act = n, .nacts = 3, .music = mus, .checkpoints = 1, .sfx = SFX_TH##n, .nsfx = N_(SFX_TH##n)
@@ -398,7 +398,7 @@ static const level_def_t LEVELS[] = {
     { PL("pl4", 53, 4, "bgm/m_stage8b.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage8b.adp", .mus7 = "bgm/m_stage8b.adp",
       .card_first = 86, .cps = CP_PL4, .ncps = N_(CP_PL4) },
     { PL("pl5", 54, 5, "bgm/m_stage8b.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage8b.adp", .mus7 = "bgm/m_stage8b.adp",
-      .card_first = 88, .cps = CP_PL5, .ncps = N_(CP_PL5) },
+      .card_first = 88, .cps = CP_PL5, .ncps = N_(CP_PL5) , .max_objs = 1280 /* session 23: A5 ~812 + 152 stingers / gas (pl_gim / pl_enemy reports) */ },
     { PL("pl6", 55, 6, "bgm/m_stage8b.adp"), .mus4 = "bgm/m_boss4.adp", .mus6 = "bgm/m_stage8b.adp", .mus7 = "bgm/m_stage8b.adp",
       .cps = CP_PL6, .ncps = N_(CP_PL6), .res_wipe = 1 },
 };
