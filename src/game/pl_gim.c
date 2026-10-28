@@ -21,9 +21,9 @@
 #include "pl.h"
 #include <math.h>
 #include <string.h>
+#include <stdlib.h>                                  /* qsort */
 #ifdef FP_HOST_ENV
 #include <stdio.h>
-#include <stdlib.h>
 #endif
 
 #define RAD 57.29577951308232
