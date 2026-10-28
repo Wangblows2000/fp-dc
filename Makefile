@@ -18,6 +18,7 @@ OBJS += src/game/sb_enemy.o   # Sky Battalion enemies
 OBJS += src/game/sb_gim.o     # Sky Battalion gimmicks
 OBJS += src/game/fd_flow.o src/game/fd_enemy.o src/game/fd_gim.o src/game/fd_boss.o   # Final Dreadnought (session 24)
 OBJS += src/game/bg_flow.o src/game/bg_enemy.o src/game/bg_gim.o src/game/bg_boss.o   # Battle Glacier (session 24)
+OBJS += src/game/bg_boss_sparky.o src/game/bg_boss_mech.o src/game/bg_boss_dail.o   # Battle Glacier bosses (bg_boss.h encounters)
 OBJS += src/game/pl_flow.o src/game/pl_enemy.o src/game/pl_gim.o src/game/pl_boss.o   # Pangu Lagoon (session 23)
 OBJS += src/game/tb_flow.o src/game/tb_enemy.o src/game/tb_gim.o src/game/tb_boss.o   # Thermal Base (session 21c)
 OBJS += src/game/tb_boss_shrimp.o src/game/tb_boss_pusher.o src/game/tb_boss_syntax.o src/game/tb_boss_lift.o src/game/tb_boss_squid.o src/game/tb_boss_spider.o   # Thermal Base bosses (tb_boss.h encounters)

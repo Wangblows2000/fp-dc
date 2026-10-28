@@ -1649,7 +1649,30 @@ POSE_DIRS[56] = {**POSE_DIRS.get(56, {}), 41: ('24',)}
 
 # ---- BG_GIM (bg_gim.c, 2400-2479)
 
-# ---- BG_BOSS (bg_boss.c, 2480-2559)
+# ---- BG_BOSS (bg_boss.c, 2480-2559; build/re/spec_bg_bosses.md). Types mirror src/game/bg.h (OT_BGB_*); the lvobj anim field carries the
+# instance layer << 8. Placed: the Sparky rig (BG4 boss, BG5 Milla's ride), the hatch doors (BG4 / BG6), the background Brevon mech
+# (BG2-BG4, BG6) and BG4's claw warnings. The BG2 chopper is SB2's (sb_chopper.c): its classes are mapped in json 61 too.
+# Rows: direction 0 only (the parts are drawn turned / flipped); the runtime mech parts are tied to the background mech and kept to BG4.
+BGB_FRAMES = {60, 61, 62, 63, 64, 65}
+BGB_TYPES_ID = {('bosssparky', 3336): 2480, ('bosssparkyleftarm', 3337): 2481, ('bosssparkyrightarm', 3338): 2482,
+                ('bosssparkytail', 3335): 2483, ('bosshatchdoor', 3312): 2484, ('brevonmechbackground', 2444): 2485,
+                ('effectbrevonmechwarning2', 2586): 2486}
+ENGINE_TYPES_ID.update(BGB_TYPES_ID)
+SBBOSS_FRAMES.add(61)                                         # BG2: BossChopper_2216 + parts (sb_chopper.c, the BG2 variant)
+_SPK = ('bosssparky',)
+BGB_ENS = [(c, a, d, nm, None, w) for c, a, d, nm, w in (
+    ('bosssparky_3336', 0, '0', 'bgs_body', _SPK), ('bosssparky_3336', 7, '0', 'bgs_body7', _SPK), ('bosssparky_3336', 8, '0', 'bgs_body8', _SPK),
+    ('bosssparky_3336', 11, '0', 'bgs_body11', _SPK),
+    ('bosssparkyleftarm_3337', 0, '0', 'bgs_larm', _SPK), ('bosssparkyleftarm_3337', 7, '0', 'bgs_larm7', _SPK),
+    ('bosssparkyrightarm_3338', 0, '0', 'bgs_rarm', _SPK), ('bosssparkyrightarm_3338', 7, '0', 'bgs_rarm7', _SPK),
+    ('bosssparkytail_3335', 0, '0', 'bgs_tail', _SPK), ('bosssparkytail_3335', 7, '0', 'bgs_tail7', _SPK),
+    ('bosssparkytail_3335', 8, '0', 'bgs_tail8', _SPK), ('bosssparkytail_3335', 11, '0', 'bgs_tail11', _SPK),
+    ('bosssparkyplasmashot_2587', 0, '0', 'bgs_plasma', _SPK),
+    ('bosshatchdoor_3312', 0, '0', 'bgb_hatch', ('bosshatchdoor',)))]
+BGB_ENS_WITH = {'effectsexplosion06_435': _SPK, 'effectshade_436': _SPK, 'bosssparkyplasmashot_2587': _SPK}
+ENS += BGB_ENS   # BG_BOSS
+for _k, _v in BGB_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # BG_BOSS
+for _e in BGB_ENS: ROW_FRAMES[_e[3]] = BGB_FRAMES   # BG_BOSS rows only in Battle Glacier
 
 # ==== end Battle Glacier
 
@@ -2623,6 +2646,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         if 1100 <= o['type'] < 1150: a = SBG_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # SB_GIM (sb_gim.c): member index | instance layer << 8 | 0x8000: json layer 1 of a mapped frame (session 20: behind the json-2 pieces, scrolls with layer 1)
         if 1680 <= o['type'] < 1720: a = THB_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # TH_BOSS (th_boss.c): sub id | instance layer << 8 | 0x8000 json layer 1
         if 1968 <= o['type'] < 2016: a = TBB_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # TB_BOSS (tb_boss.c): member index | instance layer << 8
+        if 2480 <= o['type'] < 2560: a = o['layer'] << 8   # BG_BOSS (bg_boss.c): instance layer << 8
         if 2080 <= o['type'] < 2144: a = (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0) | (0x4000 if o.get('s08') else 0)   # PL_ENEMIES (pl_enemy.c): instance layer << 8 | 0x8000 json layer 1 of a mapped frame | 0x4000 its layer scrolls at 0.8
         d += struct.pack('<2H2i', o['type'], a, o['x'], o['y'])
     for t in table: d += t

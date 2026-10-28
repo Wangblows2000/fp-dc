@@ -1066,6 +1066,15 @@ static const objdef_t DEFS[] = {
     /* ---- BG_ENEMIES (bg_enemy.c) */
     /* ---- BG_GIM (bg_gim.c) */
     /* ---- BG_BOSS (bg_boss.c) */
+    { OT_BGB_SPARKY,    0,                                     NULL         }, /* bosssparky_3336 (Q20, A 100) */
+    { OT_BGB_SP_LARM,   0,                                     NULL         }, /* bosssparkyleftarm_3337 */
+    { OT_BGB_SP_RARM,   0,                                     NULL         }, /* bosssparkyrightarm_3338 */
+    { OT_BGB_SP_TAIL,   0,                                     NULL         }, /* bosssparkytail_3335 */
+    { OT_BGB_HATCH,     0,                                     NULL         }, /* bosshatchdoor_3312 (bg_boss_mech.c / bg_boss_dail.c) */
+    { OT_BGB_MECHBG,    0,                                     NULL         }, /* brevonmechbackground_2444 (bg_boss_mech.c) */
+    { OT_BGB_MWARN2,    OD_HIDDEN,                             NULL         }, /* effectbrevonmechwarning2_2586 */
+    { OT_BGB_PLASMA,    0,                                     NULL         }, /* - (runtime: bosssparkyplasmashot_2587) */
+    { OT_BGB_FX,        0,                                     NULL         }, /* - (runtime: one-shot effects) */
     /* ==== end Battle Glacier */
     /* ==== Final Dreadnought (session 24): one block per module */
     /* ---- FD_FLOW (fd_flow.c) */
