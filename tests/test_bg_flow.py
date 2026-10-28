@@ -206,7 +206,7 @@ for lv, want in (('bg4', {2304: 6, 2305: 2, 2306: 31}), ('bg5', {2304: 3, 2305: 
     check('%s_loop_pieces' % lv, cnt == want and fl == {2304: 1, 2305: 0, 2306: 0} and all(float(p[5]) > 0 for p in pcs), str((cnt, fl)))
 
 # ---- data: the parallax set (D, E, G per piece, boxes) (RE create_levelparallaxpiece* + BG1 start inline / 14173 / 14603 / BG5 inline /
-# 15151) and Brevon's ship (BG4 3310: D .96, E .9 at x 560; BG5 close views 3353 / 3364: D .94, E .8 at x 744 / 1049; flag 8192)
+# 15151) and Brevon's ship (BG4 3310: D .96, E .9 at x 560; flag 8192)
 def par(lv):
     dd = open(os.path.join(DATA, lv, lv + '_par.bin'), 'rb').read()
     ni, np_, wm, ver = struct.unpack_from('<4H', dd, 4); off = 12
@@ -224,7 +224,7 @@ A46 = [(3224, .96, .96, 0, 0, 320, 180, 0), (3226, .98, .92, 0, 224, 320, 160, 0
 check('par_bg1', par('bg1') == A13, str(par('bg1')))
 check('par_bg3', par('bg3') == A13, str(par('bg3')))
 check('par_bg4', par('bg4') == sorted(A46 + [(3310, .96, .9, 0, 16, 560, 329, 8192)]), str(par('bg4')))
-check('par_bg5', par('bg5') == sorted(A46 + [(3353, .94, .8, 0, -40, 744, 657, 8192), (3364, .94, .8, 0, -40, 1049, 657, 8192)]), str(par('bg5')))
+check('par_bg5', par('bg5') == A46, str(par('bg5')))   # the close views are not exported (VRAM, spec_bg_flow 5)
 check('par_bg6', par('bg6') == A46, str(par('bg6')))
 
 print('%d failure(s)' % fails)

@@ -1883,8 +1883,8 @@ PAR_DEG_FRAME.update({(51, 895): (.92, .88, -.3)})
 # piece1 .96 .96, piece2_3308 .95 .85, piece5 .98 .92). Brevon's ship (BG4 LevelBrevonShip_3310, a SystemBox on layer 0 between piece5 and
 # piece2; 14603: D .96, E .9, F = its x) and its close views (BG5 LevelBrevonShipClose_3353 / Close2_3364: D .94, E .8, F = x) are moved
 # by 14550 / 14551 (the BG copy of 3541 / 3542 without the wrap): drawn once at (D vl + F, E vt + C) (flag 8192, x in the box width; the
-# box size is the image's, RE ctors 306 x 320 / 305 x 657). BG6's close views (x -40 / 264, y -88) and the lift-off jets belong to its
-# ending scene (bosses module): not exported.
+# box size is the image's, RE ctor 306 x 320). The close views are not exported (PAR_FIXED_SKIP); BG6's (x -40 / 264, y -88) and the
+# lift-off jets belong to its ending scene (bosses module).
 PAR_IMG.update({'levelparallaxpiece0_3223': 1025, 'levelparallaxpiece1_3224': 1614, 'levelparallaxpiece2_3225': 1612,
                 'levelparallaxpiece5_3226': 1525, 'levelparallaxpiece6_3227': 1172, 'levelparallaxpiece0_3307': 11544,
                 'levelparallaxpiece2_3308': 7981, 'levelbrevonship_3310': 11355, 'levelbrevonshipclose_3353': 11356,
@@ -1894,8 +1894,10 @@ PAR_BOXH.update({'levelparallaxpiece1_3224': 180})
 PAR_DEG.update({3223: (.9, .9, -.3), 3224: (.96, .96, 0), 3225: (.9, .9, 0), 3226: (.85, .85, 0), 3227: (.75, .75, 0),
                 3307: (.9, .9, -.3), 3308: (.95, .85, 0), 3310: (.96, .9, 0), 3353: (.94, .8, 0), 3364: (.94, .8, 0)})
 PAR_DEG_FRAME.update({(f, 3226): (.98, .92, 0) for f in (63, 64, 65)})
-PAR_FIXED = {(63, 3310), (64, 3353), (64, 3364)}
-PAR_ALPHA.update({1614: 1})                           # piece1_3224: white mist, alpha 0..211 (ARGB4444, translucent list)     # json frame, handle: drawn once at its world position moved by D / E (flag 8192)
+PAR_FIXED = {(63, 3310)}                              # json frame, handle: drawn once at its world position moved by D / E (flag 8192)
+PAR_FIXED_SKIP = {3353, 3364}                         # the close views: not exported (BG5: on screen only at view left > 5300 near the top,
+                                                      # two 305 x 657 images ~400 KB of VRAM, INFERRED not worth it; BG6: its ending's)
+PAR_ALPHA.update({1614: 3})                           # piece1_3224: white mist, alpha 0..211 (ARGB4444 at half resolution, drawn x2)
 JC_WATER = {40: 1200, 41: 1600, 42: 1600, 43: 1600, 44: 1600}   # ML.B (10378 / 10566 / 10822 / 10863 / 11643)
 JC_SURF_FRAMES = [7795, 7802, 7803, 7804, 7796, 7797, 7798]      # LevelParalaxWaterSurface_14 anim 0 (both directions use the same images);
                                                                  # its 8th frame (7799) is shown as the 7th: one 512 x 512 4 bpp atlas (VRAM)
@@ -1937,7 +1939,7 @@ def export_parallax(fr, src, name, out, an=None):
         if o['cls'] == 'levelparalaxwatersurface' and o['x'] is not None: water = 2700
         if o['cls'] == 'levelparalaxwatersurface' and fr['frame'] in JC_WATER: water = JC_WATER[fr['frame']]   # mode 2 (Jade Creek)
         if key not in PAR_IMG or o['y'] is None: continue
-        if o['id'] in {h for _, h in PAR_FIXED} and (fr['frame'], o['id']) not in PAR_FIXED: continue   # BG_FLOW: the ships only where placed for it
+        if o['id'] in PAR_FIXED_SKIP and (fr['frame'], o['id']) not in PAR_FIXED: continue   # BG_FLOW: the ships only where exported
         img = PAR_IMG[key]
         if img not in imgidx:
             im, hx, hy = load_img(src, img)
