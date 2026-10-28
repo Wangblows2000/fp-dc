@@ -1063,7 +1063,15 @@ static const objdef_t DEFS[] = {
     /* ==== end Pangu Lagoon */
     /* ==== Battle Glacier (session 24): one block per module */
     /* ---- BG_FLOW (bg_flow.c) */
-    /* ---- BG_ENEMIES (bg_enemy.c) */
+    { OT_BGF_LOOP1,     OD_SOLID|OD_LAYER1,                    "bgl1"       }, /* bgloop1_3340 (Q7 + Q11: solid on loop layer 1; visible Active) */
+    { OT_BGF_LOOP2,     OD_SOLID|OD_LAYER0,                    "bgl2"       }, /* bgloop2_3343 (Q7 + Q10: solid on loop layer 0) */
+    { OT_BGF_LOOP3,     OD_SOLID|OD_LAYER0,                    "bgl3"       }, /* bgloop3_3344 (Q7 + Q10) */
+    /* ---- BG_ENEMIES (bg_enemy.c, spec_bg_enemies; sprites set by bg_enemy_spawn; RE on_frame_62..64_init q20: the drill) */
+    { OT_BGE_DRILL,     OD_HIDDEN,                             NULL         }, /* enemydrillsat_3291 (q20; ctor invisible) */
+    { OT_BGE_SPAWNER,   OD_HIDDEN,                             NULL         }, /* enemyelitespawner_3361 (ctor invisible) */
+    { OT_BGE_WAVE,      0,                                     NULL         }, /* - (runtime: enemyelitespawnerwave_3363) */
+    { OT_BGE_GHOST,     OD_HIDDEN,                             NULL         }, /* - (runtime: effectsspadeimage_456 dir 12, bg_enemy_draw) */
+    { OT_BGE_DEB,       0,                                     NULL         }, /* - (runtime: effectsdebris_427 anim 5) */
     /* ---- BG_GIM (bg_gim.c; qualifiers RE on_frame_60..65_init; box = initialize_active(1) in the constructor) */
     { OT_BGG_TBMASK,    OD_SOLID|OD_HIDDEN,                    NULL         }, /* objectteleblockmask_3255 (Q7, ctor invisible; rotated by its A) */
     { OT_BGG_TBLOCK,    0,                                     NULL         }, /* - (runtime: objectteleblock_3254, the flying block) */
