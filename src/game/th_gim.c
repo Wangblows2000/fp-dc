@@ -482,10 +482,7 @@ static void pillar_flames(void) {                     /* 13571: the k-th flame 6
         k++;
     }
 }
-static void backlights(void) {                        /* 13532: frame (g3 / 10) mod 6 */
-    obj_t *o; int fr = (int)((G.frame / 10) % 6);
-    EACH(OT_THG_BLIGHT, o) if (o->an.b) { o->an.frame = fr; o->an.acc = 0; }
-}
+/* THBacklight1 / THFlame are th_flow.c's (types 1536 / 1537; merge, session 21b): the enums 1624 / 1630 stay unused */
 
 /* ================================================================ spawn */
 void th_gim_spawn(void) {
@@ -518,8 +515,6 @@ void th_gim_spawn(void) {
     { int n = N(OT_THG_PILLAR), i = 0;
       EACH(OT_THG_PILLAR, o) { if (!o->an.b) set_s(o, "thg_pillar"); o->vx = (float)fmod((n - 1 - i) * 180., 360.); o->vy = 0; o->fx = o->oy; o->fl = 0; i++; } }   /* 3565: I = X, J = Y */
     EACH(OT_THG_PFLAME, o) set_s(o, "thg_pflame");
-    EACH(OT_THG_FLAME, o) set_s(o, "thg_flame");
-    EACH(OT_THG_BLIGHT, o) set_s(o, "thg_blight");
     EACH(OT_THG_SHBASE, o) { set_s(o, "thg_shbase"); o->av[1] = 4; }             /* ctor B 4 */
     EACH(OT_THG_SHTURN, o) { o->hidden = 1; o->av[0] = o->x; o->av[1] = o->y; }   /* ctor invisible; 13694: A, B = x, y */
     EACH(OT_THG_SHUR, o) { set_s(o, "thg_shur"); o->A = 99; o->hp = 99; o->fl |= 0x20; }   /* ctor A 99; 13694: flag 5 (armoured) */
@@ -538,7 +533,6 @@ void th_gim_frame(player_t *p) {
     if (!S.on) return;
     if (N(OT_THG_HEAD) || N(OT_THG_BEAM)) { heads_move(); heads_bounce(); }
     if (N(OT_THG_BEAM)) lasers(p);
-    if (N(OT_THG_BLIGHT)) backlights();
     if (N(OT_THG_SHBASE) || N(OT_THG_PFLAME)) { if (N(OT_THG_SHBASE)) shurikens(p); pillar_flames(); }
     if (N(OT_THG_BARREL) || N(OT_THG_BDEBRIS)) barrels(p);
     S.pressed = 0;
