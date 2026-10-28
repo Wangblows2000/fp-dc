@@ -157,9 +157,8 @@ static void fight(player_t *p) {
         }
         if (C.hE > 160 && !C.opened) {                                          /* 13931: the room opens */
             C.opened = 1; thb_arena_open();
-            level_release_camera(0);                                            /* CAM.M 2, U 0 */
             C.fight = 0;
-            G.at_g4 = 5; G.at_g5 = 560; G.at_g6 = 170;                          /* g4 / g5 / g6 (no restart snapshot: RE) */
+            th_flow_basher_cleared();                                           /* the flow's part: g4 5, restart (560, 170), CAM.M 2 / U 0 */
         }
     }
 }
