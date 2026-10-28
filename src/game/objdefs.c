@@ -12,6 +12,7 @@
  * objects"). A newly ported class gets a row here, an ENGINE_TYPES entry and its behaviour code. */
 #include "../fp.h"
 #include "jc.h"                                 /* Jade Creek types (session 21) */
+#include "th.h"                                 /* Trap Hideout types (session 21b) */
 
 static const objdef_t DEFS[] = {
     { OT_START,         0,                                     NULL         }, /* playerstartingpoint */
@@ -824,6 +825,12 @@ static const objdef_t DEFS[] = {
     { 1504,               0,                                   NULL         }, /* J5_HERO: - (the closing's heroes) */
     { 1505,               0,                                   NULL         }, /* J5_FADE: - (LevelCardFade, the white card) */
     /* ==== end Jade Creek */
+    /* ==== Trap Hideout (session 21b): one block per module */
+    /* ---- TH_FLOW (th_flow.c) */
+    /* ---- TH_ENEMIES (th_enemy.c) */
+    /* ---- TH_GIM (th_gim.c) */
+    /* ---- TH_BOSS (th_boss.c) */
+    /* ==== end Trap Hideout */
 };
 static objdef_t BY_TYPE[MAX_OT];
 static int built;
