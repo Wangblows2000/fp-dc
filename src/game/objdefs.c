@@ -892,6 +892,11 @@ static const objdef_t DEFS[] = {
     { OT_TBB_SH_BLOCK,  OD_HIDDEN,                             NULL         }, /* bossroboshrimpblocker_2691 (ctor set_visible(0)) */
     { OT_TBB_TRAPDOOR,  OD_SOLID,                              NULL         }, /* minibosstrapdoor_2747 (the room's ceiling door; INFERRED solid) */
     { OT_TBB_PUSHER,    0,                                     NULL         }, /* enemywallpusher_2748 (Q20, armoured) */
+    { OT_TBB_SQUID,     0,                                     NULL         }, /* bossrobosquid_2765 (Q20, A 50) */
+    { OT_TBB_SQ_GLASS,  0,                                     NULL         }, /* bossrobosquidglass_2764 */
+    { OT_TBB_SQ_JET,    0,                                     NULL         }, /* bossrobosquidjet_2766 */
+    { OT_TBB_SQ_ARML,   0,                                     NULL         }, /* bossrobosquidleftarm_2762 */
+    { OT_TBB_SQ_ARMR,   0,                                     NULL         }, /* bossrobosquidrightarm_2763 */
     { OT_TBB_SX_PART,   0,                                     NULL         }, /* bosssyntaxsquid back / shoulders / head / body / claws (TB6 rig) */
     { OT_TBB_SX_ARML,   0,                                     NULL         }, /* bosssyntaxsquidarmleft_2891 */
     { OT_TBB_SX_ARMR,   0,                                     NULL         }, /* bosssyntaxsquidarmright_2892 */

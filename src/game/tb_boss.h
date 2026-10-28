@@ -18,6 +18,7 @@ enum { TS_SH_HEAD, TS_SH_HEAD8, TS_SH_SEG, TS_SH_SEG8, TS_SH_SEG9, TS_SH_TAIL, T
        TS_EXP6, TS_SHADE,
        TS_SX_BACK, TS_SX_SHR, TS_SX_SHR7, TS_SX_SHL, TS_SX_SHL7, TS_SX_HEAD, TS_SX_BODY, TS_SX_BODY8, TS_SX_CLAWR, TS_SX_CLAWL,
        TS_SX_ARML, TS_SX_ARMR, TS_SX_HIT, TS_SX_HIT8, TS_SX_LASER, TS_SX_SPH, TS_SX_SPH2, TS_SX_SPL1, TS_SX_SPL2, TS_PLAT,
+       TS_SQ, TS_SQ8, TS_SQ10, TS_SQ11, TS_SQG, TS_SQG1, TS_SQJ, TS_SQJ7, TS_SQARM, TS_SQHB,
        TS_N };
 extern short tbb_sa[TS_N];
 
@@ -47,5 +48,6 @@ void tbs_spawn(void), tbs_frame(player_t *p); int tbs_draw(const obj_t *o, int p
 void tbw_spawn(void), tbw_frame(player_t *p); int tbw_draw(const obj_t *o, int pass);   /* TB2 wall pusher (tb_boss_pusher.c) */
 void tbx_spawn(void), tbx_frame(player_t *p); int tbx_draw(const obj_t *o, int pass);   /* TB6 arena (tb_boss_syntax.c) */
 float tbx_hud_dy(void);
+void tbq_spawn(void), tbq_frame(player_t *p); int tbq_draw(const obj_t *o, int pass);   /* TB3 RoboSquid (tb_boss_squid.c) */
 void tbl_spawn(void), tbl_frame(player_t *p);                                  /* TB5 end elevator (tb_boss_lift.c) */
 #endif
