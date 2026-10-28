@@ -18,9 +18,9 @@
  * Object fields: par = family member (importer TBG_SUB), layer = instance layer; av[] = class alterables named per family. */
 #include "tb.h"
 #include <math.h>
+#include <stdio.h>
 #include <string.h>
 #ifdef FP_HOST_ENV
-#include <stdio.h>
 #include <stdlib.h>
 #endif
 
@@ -38,7 +38,7 @@ static short LST[NRT][LMAX]; static int NLS[NRT];
 static struct {
     int on, keys, presses, pist_gnd, lever_t;
     int conv_push;                                 /* this frame's conveyor push (tests) */
-    int lever_on[2];                               /* the water levers pulled (12489 / 12497) */
+    int lever_on[2], lever_last;                   /* the water levers held down (12489 / 12497); the last one pulled (1 / 2) */
 } S;
 
 static double PX(const player_t *p) { return floor(p->x); }
@@ -90,6 +90,10 @@ static int box_ov(const obj_t *a, const obj_t *b) {
 static obj_t *nth(int T, int n) { obj_t *o; int i = 0; EACH(T, o) if (i++ == n) return o; return NULL; }
 
 int tb_gim_keycards(void) { return S.keys; }
+/* PlayerBlocker_2780 (TB3, q7 invisible boxes over the lava-cascade drop): solid from the start; the Syntax spider chase turns
+ * them off (12260: flag 0 every frame while the spider's K is 1) and back on once the player is below y 4288 (12262: K + 1).
+ * The chase is the bosses module's: it calls this. */
+void tb_gim_blockers(int solid) { obj_t *o; EACH(OT_TBG_BLOCKER, o) { if (solid) o->fl &= ~1; else o->fl |= 1; } }
 int tb_gim_button_presses(void) { return S.presses; }
 
 /* ================================================================ 2. key cards, terminals, locked doors (RE 11802-11814,
@@ -513,16 +517,18 @@ static void levers(player_t *p) {
         int held = p->state == ST_HANG && !dead(p) && fabs(PX(p) - m->x) < 32 && fabs(PY(p) - 13 - m->y) < 24;
         if (held && m->y < m->oy + 8) { m->y += 8; if (m->y > m->oy + 8) m->y = m->oy + 8; p->y += 2; }   /* 12487 */
         else if (!held && m->y > m->oy) m->y -= 1;                                                       /* 12486 */
-        if (held && m->y >= m->oy + 8 && !S.lever_on[k]) {
-            S.lever_on[k] = 1;
+        int down = held && m->y >= m->oy + 8;
+        if (down && !S.lever_on[k]) S.lever_last = k + 1;                                          /* INFERRED: the last pulled wins */
+        S.lever_on[k] = down;
+        if (0) {
         }
     }
     EACH(OT_TBG_LEVER, l) if (l->an.b) l->an.frame = S.lever_on[l->par & 1] ? 1 : 0;
     int b = level_water();                                                                       /* ML.B (levels.c; 0 = dry) */
     if (!b) return;
     int mv = 0;
-    if (S.lever_on[0] && b < 3240) { level_water_set(b + 1); mv = 1; }                          /* 12491 / 12492 */
-    else if (S.lever_on[1] && !S.lever_on[0] && b > 2920) { level_water_set(b - 1); mv = 1; }    /* 12499 / 12500 */
+    if (S.lever_last == 1 && b < 3240) { level_water_set(b + 1); mv = 1; }                       /* 12491 / 12492 */
+    else if (S.lever_last == 2 && b > 2920) { level_water_set(b - 1); mv = 1; }                  /* 12499 / 12500 */
     if (mv) { shake(2); if (S.lever_t++ % 14 == 0) snd(110); }                                  /* CAM.Z >= 2; sound 110 every 0.24 s */
 }
 
@@ -663,6 +669,10 @@ void tb_gim_frame(player_t *p) {
     if (N(OT_TBG_PRESS)) pressers(p);
     if (N(OT_TBG_TBUBSP) || N(OT_TBG_TBUB)) bubbles();
     if (N(OT_TBG_WMASK)) levers(p);
+#ifdef FP_HOST_ENV
+    { static int dbg = -1; if (dbg < 0) dbg = getenv("FP_DBG_TBG") != NULL;
+      if (dbg) printf("tbg %d keys %d water %d lever %d %d conv %d\n", G.frame, S.keys, level_water(), S.lever_on[0], S.lever_on[1], S.conv_push); }
+#endif
 }
 void tb_gim_draw(int pass) {
     if (!S.on) return;

@@ -45,6 +45,7 @@ enum { OT_TBG_FIRST_ = 1888 /* (1888 / 1889 / 1895 unused: lifts and wall lights
        OT_TBG_FX = 1952 /* runtime: one-shot effects (explosions, sparkles) */,
        OT_TBG_END = 1952 };
 obj_t *tb_gim_key_drop(float x, float y);       /* a key card dropped at (x, y): it falls to the floor (TB3 12118-12120; for the bosses) */
+void tb_gim_blockers(int solid);                /* TB3 PlayerBlockers: 0 = flag 0 (passable: the spider chase 12260), 1 = solid (12262) */
 int  tb_gim_keycards(void);                     /* GUIKeyCards K: key cards held (HUD, tests) */
 int  tb_gim_button_presses(void);               /* switch buttons pressed so far this act (the bosses' trapdoor, tests) */
 
