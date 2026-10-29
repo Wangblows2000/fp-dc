@@ -31,7 +31,7 @@ get() {  # url sha256 -> $W/<name>
 echo "== fpdc.elf (KallistiOS)"
 KOS_ENV=${KOS_BASE:-/opt/toolchains/dc/kos}/environ.sh
 rm -rf "$W/src" && mkdir "$W/src" && git -C "$REPO" archive HEAD | tar x -C "$W/src"
-(cd "$W/src" && source "$KOS_ENV" && make -j"$J" > "$W/fpdc_make.log" 2>&1 && "$KOS_CC_BASE/bin/$KOS_CC_PREFIX-strip" -o "$OUT/fpdc.elf" fpdc.elf)
+(cd "$W/src" && set +u && source "$KOS_ENV" && make -j"$J" > "$W/fpdc_make.log" 2>&1 && "$KOS_CC_BASE/bin/$KOS_CC_PREFIX-strip" -o "$OUT/fpdc.elf" fpdc.elf)
 git -C "$REPO" rev-parse --short HEAD > "$W/fpdc_commit.txt"
 git -C "$REPO" rev-parse HEAD:src > "$W/fpdc_src_tree.txt"
 chmod 755 "$OUT/fpdc.elf"
