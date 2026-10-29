@@ -1627,6 +1627,162 @@
 21,
 "to_24_08",
 "Alright. Here's the plan."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
 ]
 ],
 "3616": [
@@ -4013,6 +4169,18 @@
 "Even if you don't fight for freedom, fight for wealth! For glory! For everlasting chow mein!"
 ],
 [
+10,
+0,
+"za_04_14",
+"Even if you don't fight for freedom, fight for wealth! For glory! For everlasting chow mein!"
+],
+[
+10,
+0,
+"za_04_14",
+"Even if you don't fight for freedom, fight for wealth! For glory! For everlasting chow mein!"
+],
+[
 7,
 0,
 "go_07_01",
@@ -6039,6 +6207,126 @@
 12,
 "li_02_02",
 "I'm not gonna let you eat him!"
+],
+[
+1,
+12,
+"li_02_02",
+"I'm not gonna let you eat him!"
+],
+[
+1,
+12,
+"li_02_02",
+"I'm not gonna let you eat him!"
+],
+[
+1,
+12,
+"li_02_02",
+"I'm not gonna let you eat him!"
+],
+[
+1,
+12,
+"li_02_02",
+"I'm not gonna let you eat him!"
+],
+[
+1,
+12,
+"li_02_02",
+"I'm not gonna let you eat him!"
+],
+[
+1,
+12,
+"li_02_02",
+"I'm not gonna let you eat him!"
+],
+[
+1,
+12,
+"li_02_02",
+"I'm not gonna let you eat him!"
+],
+[
+1,
+12,
+"li_02_02",
+"I'm not gonna let you eat him!"
+],
+[
+1,
+12,
+"li_02_02",
+"I'm not gonna let you eat him!"
+],
+[
+1,
+12,
+"li_02_02",
+"I'm not gonna let you eat him!"
+],
+[
+1,
+12,
+"li_02_02",
+"I'm not gonna let you eat him!"
+],
+[
+1,
+12,
+"li_02_02",
+"I'm not gonna let you eat him!"
+],
+[
+1,
+12,
+"li_02_02",
+"I'm not gonna let you eat him!"
+],
+[
+1,
+12,
+"li_02_02",
+"I'm not gonna let you eat him!"
+],
+[
+1,
+12,
+"li_02_02",
+"I'm not gonna let you eat him!"
+],
+[
+1,
+12,
+"li_02_02",
+"I'm not gonna let you eat him!"
+],
+[
+1,
+12,
+"li_02_02",
+"I'm not gonna let you eat him!"
+],
+[
+1,
+12,
+"li_02_02",
+"I'm not gonna let you eat him!"
+],
+[
+1,
+12,
+"li_02_02",
+"I'm not gonna let you eat him!"
+],
+[
+1,
+12,
+"li_02_02",
+"I'm not gonna let you eat him!"
 ]
 ]
 },
@@ -6402,5 +6690,55 @@
 "waterfallfront_1037": {
 "shader": 32
 }
+},
+"subtitles": {
+"3450": [
+"BREVON: We have intruders on the ship! Mobilize!",
+"BREVON: GET THEM.",
+"BREVON: Run while you still can, creature!",
+"BREVON: Open the airlocks!"
+],
+"3491": [
+"BREVON: Open the airlocks!",
+"BREVON: Run while you still can, creature!"
+],
+"3592": [
+"BREVON: You're forgetting something important about our troops.",
+"BREVON: They don't...",
+"BREVON: ...need...",
+"BREVON: ...oxygen!"
+],
+"3672": [
+"BREVON: Ohhh nooo! My ship is being infiltrated! What ever shall I do?",
+"BREVON: How about THIS."
+],
+"3757": [
+"LILAC: Nobody... hurts... Milla!!!"
+],
+"4135": [
+"How did this happen?! Our walls are impenetrable!",
+"Your floor isn't.",
+"Well then... If death is what you seek, then I will gladly provide it!",
+"There is no reason to be hostile, your majesty. In fact, you should be proud.",
+"Your son is moments away from inheriting the throne.",
+"Dail!",
+"I tried, father!",
+"What do you want with us?!",
+"How shall I explain this... I'm gifting your son with my knowledge.",
+"It will make him the most powerful ruler your world has ever known... and he will answer to no one but me.",
+"MURDERER!",
+"Prepare the snatcher.",
+"An opportunity has fallen to our world.",
+"We now realize that the Kingdom Stone was never fading, but changing in ways that were transparent to us in our lust for power and prestige.",
+"The wind carries its eternal glow to the furthest reaches of our lands, and former enemies extend their hands to one another, acknowledging the error of their ways.",
+"Creatures both mutant and metal still ravage the landscape, and it will be some time before we can dispose of them once and for all.",
+"Perhaps most troubling of all is that Lord Brevon, the monster who threw our world into chaos, is nowhere to be found.",
+"There is still much work to be done. We are not completely out of danger, but my people and I will rest easy tonight,",
+"knowing that the bravery and sacrifice of a select few have given our world another chance."
+],
+"4187": [
+"ZAO: Alright. While you're driving my tank, I only have two rules...",
+"ZAO: Aim... and fire!"
+]
 }
 }

@@ -2173,7 +2173,8 @@ def story_rows(n, name, an, report):
     tools/story_rv2scn.py: per scene its json frame and the [class_handle, animation, direction] its actors show), named
     s<handle>_<anim>_<dir> (src/game/cutscene.c), plus the DialogBox's own rows (DialogBox_551 / DialogBox2_552 /
     DialogArrow_553 anim 0: dlgbox / dlgname / dlgarrow). Frames that are no story room get nothing."""
-    want = sorted({tuple(r) for sc in story_scenes(n, name) for r in sc['rows']})
+    scs = story_scenes(n, name)
+    want = sorted({tuple(r) for sc in scs for r in sc['rows']})
     if not want: return []
     # session 25b: a still anim (speed 0: a pose library like the skins' anim 40, 108 frames) keeps only the frames the room's
     # scene scripts show ('i' entries); the others reuse a shown frame's image (the indices stay, no image is added: VRAM). A row
@@ -2192,8 +2193,29 @@ def story_rows(n, name, an, report):
             elif len(t) >= 6 and t[1] == 'i' and t[2] in act:
                 k = '%s:%s:%s' % (act[t[2]], t[3], t[4])
                 if use.get(k, ()) is not None: use.setdefault(k, set()).add(int(t[5]))
+    # session 26: a direction-16+ row whose frames are the exact mirrors of its direction-0+ row (pixels flipped, hotspot
+    # x = w - 1 - hx, same hy; as _jce_mirror_rows) is written as an alias 'm<handle>_<anim>_<dir>' of the base row's images:
+    # cutscene.c draws the base images flipped (no second copy of the images in the room's atlas)
+    mir = {}
+    for c, a_, d_ in want:
+        if d_ < 16: continue
+        try: R, L = an[c]['anims'][a_][str(d_ - 16)]['frames'], an[c]['anims'][a_][str(d_)]['frames']
+        except (KeyError, IndexError, TypeError): continue
+        ok = len(R) == len(L)
+        for r, l in zip(R, L):
+            if not ok: break
+            A_, ah, av = load_img(_FP_IMAGES, r); B_, bh, bv = load_img(_FP_IMAGES, l)
+            ok = A_.size == B_.size and ImageChops.difference(A_.transpose(Image.FLIP_LEFT_RIGHT), B_).getbbox() is None and bh == A_.width - 1 - ah and bv == av
+        if ok: mir[(c, a_, d_)] = (c, a_, d_ - 16)
+    for m_, b_ in mir.items():                       # the base row shows the alias's frames too (no set: every frame)
+        km, kb = '%s:%d:%d' % m_, '%s:%d:%d' % b_
+        if b_ not in want: use[kb] = use.get(km)
+        elif use.get(kb) and use.get(km): use[kb] = use[kb] | use[km]
+        else: use[kb] = None
+    want = sorted(set(want) | set(mir.values()))
     out = []; saved = 0
-    for cls, ai, dk, nm in STORY_UI + [(c, a, str(d), 's%s_%d_%d' % (c.rsplit('_', 1)[1], a, d)) for c, a, d in want]:
+    rowsl = [(c, a_, str(d_ - 16 if (c, a_, d_) in mir else d_), ('m' if (c, a_, d_) in mir else 's') + '%s_%d_%d' % (c.rsplit('_', 1)[1], a_, d_)) for c, a_, d_ in want]
+    for cls, ai, dk, nm in STORY_UI + rowsl:         # (an alias 'm' row reads its base row: dk is the base direction)
         try: d = an[cls]['anims'][ai][dk]
         except (KeyError, IndexError, TypeError): report.append('  story: missing %s anim %d dir %s' % (cls, ai, dk)); continue
         if d is None: report.append('  story: missing %s anim %d dir %s' % (cls, ai, dk)); continue
@@ -2205,7 +2227,7 @@ def story_rows(n, name, an, report):
                 fr = [fr[k] if k in u else fr[u[0]] for k in range(len(fr))]
         out.append({'name': nm, 'frames': fr, 'speed': d['max_speed'], 'loop': d['loop'], 'back_to': d['back_to']})
     if saved: report.append('story rows: %d still-pose images left out (frames no scene shows)' % saved)
-    report.append('story rows: %d' % len(out))
+    report.append('story rows: %d (%d mirror aliases)' % (len(out), len(mir)))
     return out
 
 def quick_backdrop(src, b):

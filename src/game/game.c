@@ -1127,6 +1127,7 @@ void game_draw(void) {
     pieces_s08 = 1; draw_pieces(1, 1);
     if (!story) { objects_draw(-1); sb_flow_draw(-1); pl_enemy_draw(-1); }   /* story rooms: every object the scene shows is a script actor */   /* PL: the json-1 swarm at scroll 1 (pl_enemy.c) */
     pieces_s08 = 0; draw_pieces(1, 1); pieces_s08 = -1;
+    if (story) story_draw_layer(4);               /* session 26: story actors on json layer 1, over that layer's backdrops (as Fusion draws a layer: backdrops, then objects) */
     if (!story) objects_draw(0);
     fn_gimb_draw_back();                          /* FN: carousel rings, A5 disco light (back of the play layer) */
     draw_pieces(2, 2);
