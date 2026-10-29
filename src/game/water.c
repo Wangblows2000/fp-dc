@@ -17,8 +17,8 @@ void phys_set_water(int h) {
 #define WB water_line()
 /* MasterLevel B per level: DV2 / DV3 2700 (5109 / 5314); Aqua Tunnel 1200 / 1200 / none / 1480 (4309 / 4478 / 4530 / 4685) */
 static double water_line(void) { int b = level_water(); return b ? b : 2700.0; }   /* level data (levels.c; TB5's levers move it: level_water_set) */
-#define NB 64
-typedef struct { int alive, frame; double a, b, d; } bubble_t;
+#define NB 96   /* + the underwater geyser bubbles (DV2 12184, DV3) */
+typedef struct { int alive, frame; double a, b, d; float scale; } bubble_t;   /* scale 0 = 1 (geyser bubbles: 4966) */
 static struct { int icon_c, mus, mus_v, music_cut; int gx; bubble_t bub[NB]; int pa[4], pb[4]; } W;
 
 int water_on(void) { return level_cur()->water > 0; }
@@ -28,7 +28,12 @@ void water_reset(void) { memset(&W, 0, sizeof W); W.mus_v = 100; snap_register(&
 static unsigned wseed = 0x2468ace;
 static int wrand(int n) { wseed = wseed * 0x343fd + 0x269ec3; return (int)((((wseed >> 16) & 0x7fff) * (unsigned)n) >> 15); }
 static void bubble(double x, double y, double d, int frame) {
-    for (int i = 0; i < NB; i++) if (!W.bub[i].alive) { W.bub[i] = (bubble_t){ 1, frame, x, y, d }; return; }
+    for (int i = 0; i < NB; i++) if (!W.bub[i].alive) { W.bub[i] = (bubble_t){ 1, frame, x, y, d, 0 }; return; }
+}
+/* 4964 / 4966 (DV fixes): a MediumBubble from a geyser plate below the water line, image 0 (E = 0), scale (9 + Random(5)) / 10,
+ * D = int(-10 - Random(11)) / 10; it rises and pops at the surface like the others (4470 / 4473) */
+void water_geyser_bubble(float x, float y, double d, float scale) {
+    for (int i = 0; i < NB; i++) if (!W.bub[i].alive) { W.bub[i] = (bubble_t){ 1, 0, x, y, d, scale }; return; }
 }
 static void splash(const player_t *p) {
     obj_effect((float)(int)p->x, (float)(int)water_c(), "splash");
@@ -113,7 +118,9 @@ void water_draw_front(void) {
     int b = ens_anim("mbubble");
     if (b >= 0) for (int i = 0; i < NB; i++) if (W.bub[i].alive) {
         animator_t an; memset(&an, 0, sizeof an); anim_set(&an, &G.ens, b); an.frame = W.bub[i].frame;
-        frame_draw(an.b, anim_frame(&an), (float)(int)W.bub[i].a - G.camx, (float)(int)W.bub[i].b - G.camy, 0, 0xffffffff);
+        float bx = (float)(int)W.bub[i].a - G.camx, by = (float)(int)W.bub[i].b - G.camy;
+        if (W.bub[i].scale != 0 && W.bub[i].scale != 1.f) { r_set_scale(W.bub[i].scale); frame_draw_rot(an.b, anim_frame(&an), bx, by, 0, 0, 0xffffffff); r_set_scale(1.f); }
+        else frame_draw(an.b, anim_frame(&an), bx, by, 0, 0xffffffff);
     }
 }
 /* countdown digits over Lilac (BubbleNumbers 4272-4279) and the GUIAir counter (4168, 4170) */

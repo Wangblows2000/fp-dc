@@ -162,6 +162,100 @@ void cork_move(player_t *p) {
 
 /* ---- geyser plate (RE 4968/4969 + the platform engine with F = 2, G = 240, H = 1): see objects.c platforms */
 
+/* ---- the geysers' eruption: DV2 / DV3 events 4961-4967 (RE; RV build/orig_traces/dv_fixes gey_on / gey_off, DV fixes). The
+ * plate itself is invisible (create_levelgeyserplate_994: set_visible(0)); what the player sees is this:
+ *   4961  E == 180 (the plate at its base, about to rise): EffectsExplosion01 on every plate inside the view grown by 100,
+ *         sound 44 (RV: one 44 every 150 frames), plate flag 6.
+ *   4962 (MasterLevel A = 0) / 4963 (A = 1, plates above the water line B): while 180 < E < 270, every frame, one
+ *         EffectsDust_437 (anim 4, 7 images) per plate inside the view + 100 at (plate x, plate y + 10), on the plate's layer,
+ *         move_back; 4965: x = plate x - 20 + Random(41), force_speed 10, flag 1, scale (9 + Random(5)) / 10;
+ *         4967: every flag-1 dust y -= 1 a frame (it rises).  RV: 30 dusts while the plate rises slowly (E 182..240) when
+ *         the plate leaves the view + 100 above that (gey_off), 37 when the camera follows it (gey_on: Lilac riding);
+ *         each dust lives 66 frames (RV; the force_speed 10 animation's end: INFERRED mechanism, RV value).
+ *   4964 / 4966 (A = 1, plates at or below B): MediumBubble_805 instead, x = plate x - 20 + Random(41), scale as above,
+ *         D = int(-10 - Random(11)) / 10 (rises, pops at the surface: water.c).
+ * The plates of one act share E (all created with E = 0), so testing each plate's own E equals the original's test of the
+ * first selected plate (INFERRED equivalence). Plate and dust indices are kept in lists (no per-frame object scans). */
+#define GD_MAX 112
+#define GD_TAG 4967
+#define GD_LIFE 66
+static struct { short plate[16]; int nplate; short dust[GD_MAX]; int ndust; unsigned lat; } GD;   /* lat: launch latch per plate (4968) */
+void geyser_fx_reset(void) {
+    memset(&GD, 0, sizeof GD);
+    snap_register(&GD, sizeof GD);
+    for (int i = 0; i < G.nobjs && GD.nplate < 16; i++) if (G.o[i].alive && G.o[i].type == OT_GEYSER && G.o[i].an.b) GD.plate[GD.nplate++] = (short)i;
+}
+/* !is_near_border(-100): the whole image box (64 x 24, hotspot (32, 7): the uncropped BOX1 box) strictly inside the view grown
+ * by 100 (RV gey_off: no dust once the plate's top reaches the view top - 100 exactly, sample 119) */
+int geyser_plates(const short **list) { *list = GD.plate; return GD.nplate; }
+static int gd_near(const obj_t *o) {
+    const frame_t *f = anim_frame(&o->an);
+    int hx = f->hx, hy = f->hy, w = f->w, h = f->h;
+    if (o->an.b->fbox) { const int16_t *q = o->an.b->fbox + 4 * (f - o->an.b->frames); if (q[2] > 0) { hx = q[0]; hy = q[1]; w = q[2]; h = q[3]; } }
+    float x0 = floorf(o->x) - hx, y0 = floorf(o->y) - hy;
+    return x0 > G.camx - 100 && x0 + w < G.camx + SCREEN_W + 100 && y0 > G.camy - 100 && y0 + h < G.camy + SCREEN_H + 100;
+}
+static void geyser_fx(void) {
+    if (!level_cur()->geyser_fx) return;
+    int k = 0;                                                                     /* 4967 + the dusts' end */
+    for (int j = 0; j < GD.ndust; j++) {
+        obj_t *d = &G.o[GD.dust[j]];
+        if (!d->alive || d->type != OT_EXPLODE || d->par != GD_TAG) continue;
+        if (++d->tm >= GD_LIFE) { d->alive = 0; continue; }
+        d->y -= 1;
+        GD.dust[k++] = GD.dust[j];
+    }
+    GD.ndust = k;
+    int wl = level_water(), snd = 0, ad = ens_anim("dust");
+    for (int n = 0; n < GD.nplate; n++) {
+        obj_t *o = &G.o[GD.plate[n]];
+        if (!o->alive || o->type != OT_GEYSER || !o->an.b || !gd_near(o)) continue;
+        double E = fmod(o->vx, 360.);
+        if (E == 180) { obj_effect_l(o->x, o->y, "explosion", o->layer); o->fl |= 0x40; snd = 1; }          /* 4961 */
+        if (!(E > 180 && E < 270)) continue;
+        int under = wl > 0 && (int)floorf(o->y) >= wl;
+        float x = floorf(o->x) - 20 + cross_rand(41), sc = (float)((cross_rand(5) + 9) * 0.1);
+        if (under) { water_geyser_bubble(x, floorf(o->y) + 10, (int)(-10 - cross_rand(11)) * 0.1, sc); continue; }   /* 4964 / 4966 */
+        if (ad < 0 || GD.ndust >= GD_MAX) continue;
+        obj_t *d = obj_alloc();                                                    /* 4962 / 4963 + 4965 */
+        if (!d) continue;
+        /* move_back: the back of the plate's layer, i.e. behind that layer's backdrops too (Chowdren keeps backdrop objects in
+         * the layer's instance order; RV screenshots gey_off f150: the rising dust is hidden by the layer-2 tree, gey_on f150: it is
+         * drawn over the layer-1 bushes) -> the port's pass for the layers below (before the play layer's pieces) */
+        d->type = OT_EXPLODE; d->alive = 1; d->par = GD_TAG; d->layer = o->layer > 0 ? o->layer - 1 : 0; d->scale = sc;
+        d->x = x; d->y = floorf(o->y) + 10 - 1;                                    /* - 1: 4967 runs in the same frame */
+        anim_set(&d->an, &G.ens, ad); d->c = 10;                                   /* force_speed 10 (objects_update) */
+        GD.dust[GD.ndust++] = (short)(d - G.o);
+    }
+    if (snd) snd_play_orig(44, 220, 128);
+}
+/* every frame after the platform engine (3283: E += 2, y = J + 240 sin E) and the carry, in the original's order */
+void geyser_events(player_t *p) {
+    if (!GD.nplate) return;
+    geyser_fx();                                                                   /* 4961-4967 */
+    for (int n = 0; n < GD.nplate; n++) {
+        obj_t *o = &G.o[GD.plate[n]];
+        if (!o->alive || o->type != OT_GEYSER || !o->an.b) continue;
+        /* 4968 (RE): in the launch window (180 < E < 240) a plate overlapping Player_326 (M != 10) throws Lilac up: M = 40,
+         * L = 0, G = (E - 180) 0.1 - 14. RV gey_on: one impulse per eruption (G -13.8 at E 182, then plain gravity -13.55,
+         * -13.3 ... although her disc still touches the rising plate on the next frame; the gate is not identified in the
+         * event code): INFERRED rule, one launch per overlap (GD.lat: re-armed when she no longer overlaps that plate). The
+         * port re-applied it on every overlapping frame (-13.8, -13.6, -13.4: a 10 px higher arc and a late M 40 exit). */
+        double E = fmod(o->vx, 360.);
+        const frame_t *f = anim_frame(&o->an);
+        int over = p->state != ST_DEAD && obj_box_hits_disc27(floorf(o->x) - f->hx, floorf(o->y) - f->hy, f->w, f->h, (int)p->x, (int)(p->y - ORIG_REF_DY));
+        if (!over) GD.lat &= ~(1u << n);
+        else if (E > 180 && E < 240 && !(GD.lat & (1u << n))) {
+            GD.lat |= 1u << n;
+            if (p->ground) { p->vx = p->gsp; p->ground = 0; }
+            p->vy = (E - 180) * 0.1 - 14; p->springing = 1; p->cY = 40; p->jumping = 0; if (p->state != ST_BOOST) p->state = ST_NORMAL;
+        }
+        /* 4969: E > 240 -> E += 2 more (the fast fall back into the hole), after the events: this frame's y was computed
+         * with the engine's single step (RV gey_off: y 859 at E 244; the port's earlier order gave 855) */
+        if (fmod(o->vx, 360.) > 240) o->vx = (float)fmod(o->vx + 2, 360.);
+    }
+}
+
 /* ---- cards (ObjectCodec_430, events 2569-2578). Each act numbers its cards from its first id (level data card_first:
  * DV1 1, DV2 5, DV3 7, DV4 8; AT1 21, AT2 24, AT3 27, AT4 28), last-created placement first; o->dir = card ID, tm = E
  * (pickup timer), vy = F (sparkle timer), inv flag 1 = already in the records (drawn half transparent). The ids taken

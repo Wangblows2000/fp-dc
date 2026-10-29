@@ -294,7 +294,7 @@ static void tank_frame(obj_t *o, player_t *p) {
     if (fr != 8 && fr != 15) o->fl &= ~FL2;                                        /* 12436 */
     else if (!(o->fl & FL2)) {                                                     /* 12437 */
         double ax, ay; act_point(o, &ax, &ay);
-        snd_play_orig(28, 220, 128); obj_spawn_pellet((float)ax, (float)ay, o->dir & 31); o->fl |= FL2;
+        snd_play_orig(28, 220, 128); obj_spawn_pellet((float)ax, (float)ay, o->dir & 31, o->layer); o->fl |= FL2;
     }
     if (*D == 2 && !fire) { *D = 0; *E = 0; *Gt = 90; ek_set_ad(o, "tbt_idle"); }  /* 12438 (12439, MV.M 9: not ported) */
     if (*Gt > 0) *Gt -= 1;                                                         /* 12440 */
