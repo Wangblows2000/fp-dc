@@ -256,8 +256,12 @@ static void fuel_events(player_t *p) {
 #define PAD_E(o) ((o)->av[0])
 #define PAD_F(o) ((o)->av[1])
 static double pad_B(const obj_t *o) { return o->av[2]; }
+/* the pads' slots (per-type list: the per-frame passes and pad_by_A never scan every object) */
+#define NPADS 64
+static short pad_ix[NPADS]; static int npad;
 void pads_spawn(void) {
     const padcfg_t *t = level_cur()->pads; int n = level_cur()->npads;
+    npad = 0;
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i];
         if (!o->alive || o->type != OT_JUMPPAD) continue;
@@ -267,7 +271,11 @@ void pads_spawn(void) {
             o->dir = t[k].blk;                                                   /* DV4 block pads (anim 7) */
         }
         if (o->st < 0) o->alive = o->x >= 0 && o->y >= 0 ? 1 : 0;           /* DV1's single pad is off the map (inert) */
+#ifdef FP_HOST_ENV
+        if (o->st < 0 && o->alive) fprintf(stderr, "pads: %s pad at (%d, %d) has no level table row (inert, not drawn)\n", G.lvdir, (int)o->x, (int)o->y);
+#endif
         o->layer = 2;
+        if (o->st >= 0 && npad < NPADS) pad_ix[npad++] = (short)i;
     }
 }
 static void pad_point(const obj_t *o, float *x, float *y) {                 /* action point (32,-16) rotated by the pad angle */
@@ -276,7 +284,7 @@ static void pad_point(const obj_t *o, float *x, float *y) {                 /* a
     *x = (float)(o->x + (-16.) * s); *y = (float)(o->y + (-16.) * c);
 }
 static obj_t *pad_by_A(int A) {
-    for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == OT_JUMPPAD && PAD_A(&G.o[i]) == A) return &G.o[i];
+    for (int k = 0; k < npad; k++) { obj_t *o = &G.o[pad_ix[k]]; if (o->alive && o->type == OT_JUMPPAD && PAD_A(o) == A) return o; }
     return NULL;
 }
 static int pad_sensor(const obj_t *o, int s) {
@@ -298,14 +306,16 @@ static void pads_events(player_t *p, const input_t *in) {
     if (ens_anim("jpad_rm") >= 0) {                                                       /* RM handles 1402 / 1529: their own images (_ens bank) */
         pb = &G.ens; ajp = ens_anim("jpad_rm"); ajl = ens_anim("jpad_rm_lit"); ajb = ens_anim("jpad_rm7"); ajbl = ens_anim("jpad_rm7_lit");
     }
-    for (int i = 0; i < G.nobjs; i++) {
-        obj_t *o = &G.o[i];
+    int inert = level_cur()->pads_inert;
+    for (int k = 0; k < npad; k++) {
+        obj_t *o = &G.o[pad_ix[k]];
         if (!o->alive || o->type != OT_JUMPPAD || PAD_A(o) < 0) continue;
         double B = pad_B(o);
+        if (inert) goto show;                                                    /* JC3: none of 4943-4949 (its pad keeps its start state) */
         if (!carol && jp && B == 0 && PAD_E(o) == 1 && PAD_F(o) == 0 && pad_sensor(o, SENS_BOTTOMBIG)) {   /* 4944 */
             PAD_E(o) = 0; PAD_F(o) = 1; float x, y; pad_point(o, &x, &y); c_wburst(x, y);
         }
-        if (PAD_F(o) == 1 || PAD_F(o) == 11) { float x, y; pad_point(o, &x, &y); obj_drop_crystal(x, y, 0); }   /* 3275 */
+        if (PAD_F(o) == 1 || PAD_F(o) == 11) { float x, y; pad_point(o, &x, &y); obj_pop_crystal(x, y); }   /* 3275 */
         if (PAD_F(o) > 0 && PAD_F(o) < 12) PAD_F(o) += 1;                                                    /* 4945 */
         if (carol && jp && p->state != ST_PAD && PAD_E(o) == 1 && PAD_D(o) == 0 &&
             (B == 0 ? pad_sensor(o, SENS_BOTTOMBIG) : B == -4.5 ? (!p->bike && pad_sensor(o, SENS_BOTTOMBIG)) :
@@ -313,6 +323,7 @@ static void pads_events(player_t *p, const input_t *in) {
             pad_ride_enter(p, o);
         }
         if (PAD_E(o) == -1 && p->state != ST_PAD) PAD_E(o) = 1;                                              /* 4949 */
+    show:;
         int want = o->dir ? (PAD_E(o) == 1 && ajbl >= 0 ? ajbl : ajb) : PAD_E(o) == 1 ? ajl : ajp;          /* 4943 */
         if (want >= 0 && (o->an.b != pb || o->an.anim != want)) anim_set(&o->an, pb, want);
         o->ang = (float)B;
@@ -371,6 +382,8 @@ static void carol_pad_group(player_t *p, const input_t *in) {
         set_state(p, ST_NORMAL); p->m1 = 0; p->ground = 0; p->vx = -8.5 * s; p->vy = -8.5 * c;   /* (Y stays 23: M40 sets 40 next frame) */
         p->padfl &= ~PADF_OFF; PAD_E(pc) = 0; float x, y; pad_point(pc, &x, &y); c_wburst(x, y);
         snd_play_orig(61, 220, 128);                                                   /* RV: 61 at the launch */
+        if (!(p->padfl & PADF_VOICE)) snd_play_orig(113, 255, 128);                  /* 4934 runs sound_go<PSC flag 8> too (RV c_jumppad_tb4:
+                                                                                        * 113 at the launch; DV2's launch has the flag on) */
         p->N = p->O = 0; p->springing = 1;
         return;
     }

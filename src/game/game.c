@@ -696,6 +696,7 @@ static int pause_try_open(const input_t *in) {
     if (G.card_t < CARD_DONE || G.clear_t || G.act_in || G.exit_walk || G.p.state == 6 /* ST_DEAD */ || G.p.hp <= 0) return 0;   /* FN3 7710: pause group off */
     G.paused = 1; G.pause_a = 5;
     music_pause(); snd_stop_all();                 /* Media::pause_samples: every channel, BGM (31) included */
+    jc_boss5_rain_mute();                          /* (the looping channels too: JC5's rain 293; 11614 sets it again after the pause) */
     snd_play_orig(63, 230, 128);                   /* played after pausing, so it is heard */
     G.pause_a--;                                   /* RE 2928 runs in the same frame: 5 -> 4 */
     return 1;
