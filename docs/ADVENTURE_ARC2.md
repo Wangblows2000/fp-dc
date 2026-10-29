@@ -178,6 +178,30 @@ before in a few rows where phase 1 left the ids it loaded resident when they wer
 stage then: the bug above) or where an id was missing from phase 1's data. Every set is loaded at 11,025 Hz with trimmed tails
 (s444: 3,610 Hz).
 
+Arc 3's scenes (groups C1 / C2, merged before this) with this runtime, measured the same way after the rebase (scene set +
+voice peak, KB; Lilac / Carol / Milla where they differ). Arc 3 reported throne_apology 156 KB and jc_cave 134 KB of scene
+sound under phase 1's runtime (+ up to 63 KB of voices):
+
+| Scene | set (L / C / M) | voices | total (max) |
+|---|---|---|---|
+| st_bad_news | 19.5 | 58.8 | 78.3 |
+| sg_brevon_plan | 72.4 | 50.4 | 122.8 |
+| sm_zao_dinner | 0 | 61.5 | 61.5 |
+| sg_intruders | 25.0 | 63.1 | 88.1 |
+| sm_zao_help | 6.2 | 55.8 | 62.1 |
+| st_magister_talk | 21.7 | 60.6 | 82.3 |
+| jail_plan / jail_fail | 1.5 / 4.7 | 47.9 / 17.2 | 49.4 / 21.8 |
+| throne_apology | 27.9 / 18.1 / 27.9 | 62.2 | 90.1 |
+| sg_brevon_torque | 10.2 / 5.7 / 10.2 | 60.0 | 70.2 |
+| jc_cave (Lilac) / jc_cave_cm | 33.9 / 32.9, 31.8 | 59.8 | 93.7 |
+| th_carol_help | 1.5 / 1.0 / 1.5 | 46.7 | 48.2 |
+| tb_arrest (Lilac) / tb_outside_team | 18.3 / 31.2, 30.1 | 31.1 / 50.1 | 81.3 |
+| st_mission | 0 | 62.2 | 62.2 |
+| pl_final_message | 21.6 | 62.8 | 84.5 |
+
+The largest of all ported scenes is now sg_brevon_plan: 122.8 KB (dv_crash with Milla 120.5 KB); every scene with its voice
+slots is under 200 KB.
+
 **VRAM per room** (the host load profile's `tex` KB: every texture the room load uploads, the character's banks loaded fresh;
 the shipped SB1 with Carol is 5,763 KB, measured 515 KB free on Flycast):
 
