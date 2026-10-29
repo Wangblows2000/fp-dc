@@ -44,6 +44,7 @@ void jc_enemy_hover_start(void);   /* JC3: group 0x22a5d on (10769 after Neera /
 /* EnemyElite_2529 + EnemyEliteMask_2528 as a reusable enemy (Battle Glacier / Final Dreadnought): */
 obj_t *jc_enemy_elite_create(float x, float y);   /* a runtime Elite, feet at (x, y) (BG5 / FD elite spawners); returns the mask */
 void   jc_enemy_elite_view_alert(int on);          /* 14408 (BG4 / BG5 / FD1 / FD2): idle Elites inside the view alert (reset per level) */
+obj_t *jc_enemy_laser_create(float x, float y, double speed, double angle);   /* a TrooperLaser along angle (deg CCW), drawn turned (FD gatlings) */
 
 /* ---- jc_gim.c (types 1370-1429; build/re/spec_jc_gimmicks.md). Families share a type: par = member (importer JCG_SUB). */
 enum { OT_JCG_STREAM = 1370 /* JCWaterStream1-8 (par = 1..8) */, OT_JCG_LEAFBACK = 1371 /* GimmickLeafPlatformBack_2357 */,
