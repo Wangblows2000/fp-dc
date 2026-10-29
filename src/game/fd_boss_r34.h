@@ -14,7 +14,7 @@
 
 /* ---- per-type lists of the placed objects (built once at spawn, in placement order; o->par = the sub id) */
 #define FDB_NT (OT_FDB_LAST_USED - OT_FDB_STONE + 1)
-#define FDB_LMAX 24
+#define FDB_LMAX 28
 typedef struct { short n, i[FDB_LMAX]; } fdb_list_t;
 extern fdb_list_t fdb_l[FDB_NT];
 obj_t *fdb_slot(int i);

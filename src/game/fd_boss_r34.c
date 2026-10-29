@@ -105,7 +105,7 @@ void fdb34_frame(player_t *p) {
     f4b_frame(p);
 }
 int fdb34_obj(obj_t *o, player_t *p) { (void)o; (void)p; return 1; }          /* every rule runs in fdb34_frame */
-int fdb34_q20(int type) { return type == OT_FDB_MM_HEAD || type == OT_FDB_SUIT_HEAD || type == OT_FDB_BHIT; }   /* RE on_frame_71 / 73_init: qualifier 20 */
+int fdb34_q20(int type) { return type == OT_FDB_MM_HEAD || type == OT_FDB_SUIT_HEAD || type == OT_FDB_BHIT || type == OT_FDB_MWEAK; }   /* RE on_frame_71 / 73_init: qualifier 20 */
 int fdb34_draw_obj(const obj_t *o, int pass) {
     if (!on) return 1;
     if (f3b_draw(o, pass) || f4b_draw(o, pass)) return 1;
