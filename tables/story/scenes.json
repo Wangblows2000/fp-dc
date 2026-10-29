@@ -1,5 +1,5 @@
 {
-"about": "Adventure mode scene inventory (session 25). Read by tools/import_story.py (the scenes with a script in tables/story/scripts are 'ported'); documented in docs/ADVENTURE.md. Fields: id (stable, port), list (index in the original's developer CutsceneList_42, RE), title (its name, RE), room (json frame = set_frame index + 1), g4 (global 4 selecting the scene inside the room), triggers (new: a new Adventure; end:I: frame 8 after stage I), next / skip / stage (the steps after the scene, its SKIP SCENE target, the NEXT STAGE target of panel 2), panel (GUIPause frame of its pause menu: 1 RESUME / SKIP SCENE / QUIT, 2 RESUME / SKIP SCENE / NEXT STAGE), chr (g1 mask: 1 Lilac, 2 Carol, 4 Milla), dialog (DialogData handle) and lines (paragraph range, inclusive; also: single paragraphs outside it), evidence (RE / RV / INFERRED per field), missing (what is not known or not available).",
+"about": "Adventure mode scene inventory (session 25). Read by tools/import_story.py (the scenes with a script in tables/story/scripts are 'ported'); documented in docs/ADVENTURE.md. Fields: id (stable, port), list (index in the original's developer CutsceneList_42, RE), title (its name, RE), room (json frame = set_frame index + 1), g4 (global 4 selecting the scene inside the room), triggers (new: a new Adventure; end:I: frame 8 after stage I; ending: the Adventure epilogue after the space scene of ending.c), next / skip / stage (the steps after the scene: scene:<id>, stage:<stage>, route:<route>, menu, or credits = the ending's credits; its SKIP SCENE target, the NEXT STAGE target of panel 2), panel (GUIPause frame of its pause menu: 1 RESUME / SKIP SCENE / QUIT, 2 RESUME / SKIP SCENE / NEXT STAGE, 3 none: START is ignored as in the original), chr (g1 mask: 1 Lilac, 2 Carol, 4 Milla), dialog (DialogData handle) and lines (paragraph range, inclusive; also: single paragraphs outside it), evidence (RE / RV / INFERRED per field), missing (what is not known or not available).",
 "scenes": [
 {
 "id": "adv_opening",
@@ -867,12 +867,13 @@
 "id": "zao_airship_ambush",
 "list": 18,
 "title": "Zao's Airship (Ambushed)",
-"room": 37,
-"g4": 99,
-"triggers": [
-"end:4"
-],
-"next": "route",
+"room": 8318,
+"frame": 83,
+"g4": 7,
+"triggers": [],
+"next": "stage:sb1",
+"skip": "stage:sb1",
+"stage": "sb1",
 "panel": 2,
 "chr": 7,
 "dialog": 4026,
@@ -880,26 +881,92 @@
 95,
 96
 ],
-"evidence": "RE frame 8 (I 4 -> frame 36 (SB2) with g4 99: inside the stage); lines by content: INFERRED",
-"missing": "an in-stage scene (SB2 Adventure branch): phase 2"
+"evidence": "RE CutsceneList K 19 -> frame 82 g4 7 (handle_frame_2); RE frame 83 21534 (controller A 5, B > 100 -> frame 35 = SB1, g4 0), 22342 (pause row 3 with g4 7 -> SB1), 22362 (row 4 with g4 4-7 -> SB1); RV r82_g7 (aboard the airship: ca_09_02 / mi_12_01 outside the box, DialogBox E 95-96, m_chase, wipe 56 at 420, F 472 -> 35); entered from zao_airship2 (group B: SB1's frame 35 with g4 99, its end -> frame 82 g4 7, RV)"
 },
 {
 "id": "jiang_river",
 "list": 19,
-"title": "Jiang River (Route to Shang Tu)",
-"room": 80,
-"g4": null,
-"triggers": [],
-"next": "route",
+"title": "Jiang River (Route to Shang Tu): part 1, Zao's airship falls (SB2's frame with g4 99)",
+"room": 3719,
+"frame": 37,
+"g4": 99,
+"triggers": [
+"end:4"
+],
+"next": "scene:jiang_river2",
+"skip": "scene:jiang_river2",
+"stage": "jc1",
 "panel": 2,
 "chr": 7,
+"dialog": null,
+"lines": null,
+"evidence": "RE frame 8 (I 4 -> frame 36 = SB2, g4 99) and CutsceneList K 20 -> frame 36 g4 99 (handle_frame_2); RE SB2 9547 (the scene's controller C > 660 -> frame 79 g4 0), 9761 (pause row 3, g4 >= 99: SKIP SCENE -> frame 79 g4 0), 9762 (row 4: NEXT STAGE -> frame 39 = JC1), 9202 / 9203 (g4 < 99: the stage's own RESTART / QUIT rows); RV r36_g99 (the falling ship, the four characters' cries li_18_01 / ca_17_01 / mi_12_03 / to_12_02, F 661 -> 79)",
+"missing": "the stage's own objects drawn only on the first frame (SB platforms, the background plane) are left out (INFERRED: hidden by the g4 99 start events one frame later)"
+},
+{
+"id": "jiang_river2",
+"list": 19,
+"title": "Jiang River (Route to Shang Tu), part 2 (the river), Lilac's version",
+"room": 8019,
+"frame": 80,
+"g4": 0,
+"triggers": [],
+"next": "scene:st_magister_talk",
+"skip": "scene:st_magister_talk",
+"stage": "jc1",
+"panel": 2,
+"chr": 1,
 "dialog": 3965,
 "lines": [
 0,
 33
 ],
-"evidence": "lines by content (DialogData_3965, json 80): INFERRED",
-"missing": "phase 2"
+"evidence": "RE handle_frame_80 (19864: controller A 23, B >= 150 -> frame 82 g4 8 = Talk With Magister; the pause wipe F > 50: row 3 -> frame 82 g4 8, row 4 -> frame 39 = JC1); RV r36_g99 (g1 0: frame 79 from F 661 to F 2933, DialogBox E 0-24 then 33, m_river); the room branches on g1 (RV r36_g99c / r36_g99m)",
+"missing": ""
+},
+{
+"id": "jiang_river2c",
+"sid_of": "jiang_river2",
+"list": 19,
+"title": "Jiang River (Route to Shang Tu), part 2 (the river), Carol's version",
+"room": 8019,
+"frame": 80,
+"g4": 0,
+"triggers": [],
+"next": "scene:st_magister_talk",
+"skip": "scene:st_magister_talk",
+"stage": "jc1",
+"panel": 2,
+"chr": 2,
+"dialog": 3965,
+"lines": [
+0,
+33
+],
+"evidence": "RE handle_frame_80 (as jiang_river2); RV r36_g99c (g1 2: frame 79 from F 661 to F 2277, DialogBox E 0-10 then 25-33: Torque and Carol about the Red Scarves)",
+"missing": ""
+},
+{
+"id": "jiang_river2m",
+"sid_of": "jiang_river2",
+"list": 19,
+"title": "Jiang River (Route to Shang Tu), part 2 (the river), Milla's version",
+"room": 8019,
+"frame": 80,
+"g4": 0,
+"triggers": [],
+"next": "scene:st_magister_talk",
+"skip": "scene:st_magister_talk",
+"stage": "jc1",
+"panel": 2,
+"chr": 4,
+"dialog": 3965,
+"lines": [
+0,
+33
+],
+"evidence": "RE handle_frame_80 (as jiang_river2); RV r36_g99m (g1 4: frame 79 from F 661 to F 2237, DialogBox E 0, 11-24, 33: Lilac and Milla)",
+"missing": ""
 },
 {
 "id": "st_magister_talk",
@@ -1074,12 +1141,15 @@
 "id": "tb_torture",
 "list": 27,
 "title": "Thermal Base (Torturing Lilac)",
-"room": 81,
+"room": 8127,
+"frame": 81,
 "g4": 0,
 "triggers": [
 "end:6"
 ],
-"next": "route",
+"next": "scene:tb_brevon_l",
+"skip": "scene:tb_brevon_l",
+"stage": "pl1",
 "panel": 2,
 "chr": 1,
 "dialog": 3971,
@@ -1087,46 +1157,73 @@
 0,
 32
 ],
-"evidence": "RE frame 8 (I 6 with g1 0 -> frame 80 g4 0); lines by content: INFERRED",
-"missing": "phase 2"
+"evidence": "RE frame 8 (I 6, g1 0 -> frame 80 g4 0) and CutsceneList K 28 -> frame 80 g4 0; RE frame 81 20263 (pause row 4, g1 0 -> frame 50 = PL1); RV r80_g0 (DialogBox E 0-32, the cries lilac_gasp2 / li_28_03 / li_28_05 / li_29_03 / li_29_07-09 outside the box, m_brevon2 then m_brevon; F 5082 -> frame 80 g4 1)",
+"missing": ""
 },
 {
 "id": "tb_team_spade",
 "list": 28,
 "title": "Thermal Base (Enter Team Spade)",
-"room": 81,
-"g4": 1,
+"room": 8328,
+"frame": 83,
+"g4": 16,
 "triggers": [
-"end:6"
+"end:8"
 ],
-"next": "route",
+"next": "stage:tb1",
+"skip": "stage:tb1",
+"stage": "tb1",
 "panel": 2,
 "chr": 6,
-"dialog": 3971,
-"lines": [
-33,
-36
-],
-"evidence": "RE frame 8 (I 6 with g1 != 0 -> frame 80 g4 1); lines by content: INFERRED",
-"missing": "phase 2"
+"dialog": null,
+"lines": null,
+"evidence": "RE frame 8 (I 8, g1 != 0 -> frame 82 g4 16) and CutsceneList K 29 -> frame 82 g4 16; RE frame 83 21938 / 21975 (the scene's end -> frame 44 = TB1), 22352 (pause row 3, g4 16 -> TB1), 22367 (row 4, g4 16 -> TB1); RV r82_g16c (no DialogBox, m_night; F 540 -> 44)",
+"missing": ""
 },
 {
 "id": "tb_brevon",
 "list": 29,
 "title": "Thermal Base (Brevon Encounter)",
-"room": 81,
-"g4": null,
-"triggers": [],
-"next": "route",
+"room": 8129,
+"frame": 81,
+"g4": 1,
+"triggers": [
+"end:6"
+],
+"next": "scene:tb_outside_team",
+"skip": "scene:tb_outside_team",
+"stage": "bg1",
 "panel": 2,
-"chr": 7,
+"chr": 6,
 "dialog": 3971,
 "lines": [
-37,
+33,
 48
 ],
-"evidence": "lines by content: INFERRED",
-"missing": "phase 2"
+"evidence": "RE frame 8 (I 6, g1 != 0 -> frame 80 g4 1) and CutsceneList K 30 -> frame 80 g4 1; RE frame 81 20257 (A 12 -> frame 82 g4 17 = Outside Thermal Base, K 32 for g1 2), 20264 (pause row 4, g1 != 0 -> frame 84, the snowfield ride to Battle Glacier: the port's BG1, levels.c); RV r80_g1c (DialogBox E 33-48; F 1886 -> frame 82 g4 17, then F 3889 -> frame 81 g4 0)",
+"missing": "frame 84 (the shoot-'em-up ride before Battle Glacier) is not ported: NEXT STAGE goes to BG1 as the port's stage routing does (levels.c, INFERRED)"
+},
+{
+"id": "tb_brevon_l",
+"sid_of": "tb_brevon",
+"list": 29,
+"title": "Thermal Base (Brevon Encounter), Lilac's version (after the torture: Carol and Milla's rescue)",
+"room": 8129,
+"frame": 81,
+"g4": 1,
+"triggers": [],
+"next": "scene:tb_arrest",
+"skip": "scene:tb_arrest",
+"stage": "pl1",
+"panel": 2,
+"chr": 1,
+"dialog": 3971,
+"lines": [
+34,
+48
+],
+"evidence": "RV r80_g0 (F 5082 -> frame 80 g4 1 after the torture: DialogBox E 34-48; F 6766 -> frame 82 g4 17 = Outside Thermal Base, CutsceneList K 31 for g1 0); RE frame 81 20257 (A 12 -> frame 82 g4 17), 20263 (pause row 4, g1 0 -> PL1)",
+"missing": ""
 },
 {
 "id": "tb_arrest",
@@ -1217,57 +1314,173 @@
 "id": "sf_army",
 "list": 34,
 "title": "Snowfields (Army of Shang Tu)",
-"room": 82,
-"g4": null,
+"room": 8234,
+"frame": 82,
+"g4": 0,
 "triggers": [],
-"next": "route",
-"panel": 2,
-"chr": 7,
+"next": "scene:sf_camp",
+"skip": "stage:bg1",
+"stage": "bg1",
+"panel": 3,
+"chr": 6,
 "dialog": 3989,
 "lines": [
 0,
-24
+40
 ],
-"evidence": "lines by content: INFERRED",
-"missing": "phase 2"
+"evidence": "RE CutsceneList K 35 -> frame 81 g4 0 (g1 2); RV r80_g1c (Outside Thermal Base 82 g4 17 -> 81 g4 0, F 3889), r81_g0c / r81_g0m (DialogBox E 0-26, 29-40; F 5774 -> 81 g4 1); RE frame 82 20868 (pause rows 3 / 4 with g4 != 3 -> frame 84, the ride to Battle Glacier: the port's BG1, levels.c); the holo dragon: the PL6 rig (RE 13342-13344) on the neck's traced alterables; panel 3 (no pause): RV k81_g0_skp2 / k81_g0_ns2 / k81_g1_skp2 / k81_g1_ns2 (START at F 300 and 1500 opens no GUIPause, the scene plays on) and RE 20866 (the pause needs Player_326 flags & 0x300 clear) -- START is ignored",
+"missing": "frame 84 (the ride to Battle Glacier) is not ported: SKIP SCENE / NEXT STAGE go to BG1 (INFERRED as the port's routing)"
+},
+{
+"id": "sf_army_l",
+"sid_of": "sf_army",
+"list": 34,
+"title": "Snowfields (Army of Shang Tu), Lilac's version",
+"room": 8234,
+"frame": 82,
+"g4": 0,
+"triggers": [],
+"next": "scene:sf_camp_l",
+"skip": "stage:bg1",
+"stage": "bg1",
+"panel": 3,
+"chr": 1,
+"dialog": 3989,
+"lines": [
+2,
+40
+],
+"evidence": "RV r82_g20 (The Final Message 82 g4 20 -> 81 g4 0, F 2654), r81_g0l (DialogBox E 2-26, 29-40; F 5054 -> 81 g4 1); RE frame 82 20868 (pause rows 3 / 4 with g4 != 3 -> frame 84, the ride to Battle Glacier: the port's BG1, levels.c); panel 3 (no pause): RV k81_g0_skp2 / k81_g0_ns2 / k81_g1_skp2 / k81_g1_ns2 (START at F 300 and 1500 opens no GUIPause, the scene plays on) and RE 20866 (the pause needs Player_326 flags & 0x300 clear) -- START is ignored",
+"missing": "frame 84 (the ride to Battle Glacier) is not ported: SKIP SCENE / NEXT STAGE go to BG1 (INFERRED as the port's routing)"
 },
 {
 "id": "sf_camp",
 "list": 35,
 "title": "Snowfield Encampment (Prepare For Final Batle)",
-"room": 82,
-"g4": null,
+"room": 8235,
+"frame": 82,
+"g4": 1,
 "triggers": [],
-"next": "route",
-"panel": 2,
-"chr": 7,
+"next": "stage:bg1",
+"skip": "stage:bg1",
+"stage": "bg1",
+"panel": 3,
+"chr": 6,
 "dialog": 3989,
 "lines": [
-25,
-80
+50,
+102
 ],
-"evidence": "lines by content: INFERRED",
-"missing": "phase 2"
+"evidence": "RE CutsceneList K 36 -> frame 81 g4 1; RE frame 82 20681 (A 27 -> frame 84); RV r81_g1c (DialogBox E 50-63, then the cross-cut with Brevon's ship 98-100, 78-82, 101-102; F 2330 -> 84); RE frame 82 20868 (pause rows 3 / 4 with g4 != 3 -> frame 84, the ride to Battle Glacier: the port's BG1, levels.c); panel 3 (no pause): RV k81_g0_skp2 / k81_g0_ns2 / k81_g1_skp2 / k81_g1_ns2 (START at F 300 and 1500 opens no GUIPause, the scene plays on) and RE 20866 (the pause needs Player_326 flags & 0x300 clear) -- START is ignored",
+"missing": "frame 84 (the ride to Battle Glacier) is not ported: SKIP SCENE / NEXT STAGE go to BG1 (INFERRED as the port's routing); lines 41-49 are not shown on any RV route"
+},
+{
+"id": "sf_camp_l",
+"sid_of": "sf_camp",
+"list": 35,
+"title": "Snowfield Encampment (Prepare For Final Batle), Lilac's version",
+"room": 8235,
+"frame": 82,
+"g4": 1,
+"triggers": [],
+"next": "stage:bg1",
+"skip": "stage:bg1",
+"stage": "bg1",
+"panel": 3,
+"chr": 1,
+"dialog": 3989,
+"lines": [
+50,
+102
+],
+"evidence": "RV r81_g1 (DialogBox E 50-71 (Lilac and Torque, 64-71), then 98-100, 78-82, 101-102; F 3018 -> 84); RE as sf_camp; panel 3 (no pause): RV k81_g0_skp2 / k81_g0_ns2 / k81_g1_skp2 / k81_g1_ns2 (START at F 300 and 1500 opens no GUIPause, the scene plays on) and RE 20866 (the pause needs Player_326 flags & 0x300 clear) -- START is ignored",
+"missing": "frame 84 (the ride to Battle Glacier) is not ported: SKIP SCENE / NEXT STAGE go to BG1 (INFERRED as the port's routing); lines 41-49 are not shown on any RV route"
 },
 {
 "id": "ending",
 "list": 36,
-"title": "Ending",
-"room": 82,
-"g4": null,
+"title": "Ending: the Adventure epilogue, part 1 (the snowfields: Milla found, the Kingdom Stone), Lilac's and Carol's version",
+"room": 8236,
+"frame": 82,
+"g4": 3,
 "triggers": [
-"end:13"
+"ending"
 ],
-"next": "menu",
+"next": "scene:ending2",
+"skip": "scene:ending3",
+"stage": "credits",
 "panel": 2,
-"chr": 7,
+"chr": 3,
 "dialog": 3989,
 "lines": [
-81,
-108
+83,
+95
 ],
-"evidence": "RE frame 8 (I 13 -> frame 83, the space ending, ported: ending.c); the epilogue frames 81 / 82 (DialogData_3989 81-108, DialogData_622 97-111): INFERRED",
-"missing": "phase 2 (the session-24 ending plays the space scene and the credits in every story mode)"
+"evidence": "RE frame 8 (I 13 -> frame 83, the space scene: ending.c) and 22441 (its end -> frame 81 g4 3); RE frame 82 20796 / 20854 (A 20 -> frame 82 g4 21), 20870 (pause row 3, g4 3 -> frame 15 g4 14), 20869 (row 4, g4 3 -> frame 85, the credits); RV e81_g3 / e81_g3n / e81_g3c (Adventure, g1 0 / 2: DialogBox E 92-95 then 83-91, mi_28_01 / mi_28_03 outside the box, m_hub4 then m_ending; F 2698 -> 82 g4 21); Classic (RV c83: 83 -> 81 -> 82 -> 85) is ending.c's own hold, unchanged; RV k81_g3_row2: the panel is GUIPause frame 2 (RESUME / SKIP SCENE / NEXT STAGE), NEXT STAGE -> frame 85",
+"missing": ""
+},
+{
+"id": "ending_m",
+"sid_of": "ending",
+"list": 36,
+"title": "Ending: the Adventure epilogue, part 1 (the snowfields: Carol found, the Kingdom Stone), Milla's version",
+"room": 8236,
+"frame": 82,
+"g4": 3,
+"triggers": [
+"ending"
+],
+"next": "scene:ending2",
+"skip": "scene:ending3",
+"stage": "credits",
+"panel": 2,
+"chr": 4,
+"dialog": 3989,
+"lines": [
+83,
+110
+],
+"evidence": "RE as ending (frame 81 g4 3); RV e81_g3m (g1 4: DialogBox E 103-110 (mi_34_01 .. ca_46_03) then 83-91; F 2705 -> 82 g4 21)",
+"missing": ""
+},
+{
+"id": "ending2",
+"list": 36,
+"title": "Ending: the Adventure epilogue, part 2 (the Magister's speech over the montage)",
+"room": 8336,
+"frame": 83,
+"g4": 21,
+"triggers": [],
+"next": "scene:ending3",
+"skip": "scene:ending3",
+"stage": "scene:ending3",
+"panel": 2,
+"chr": 7,
+"dialog": null,
+"lines": null,
+"evidence": "RE frame 83 22322 / 22325 (g0 != 1: the montage's end -> frame 15 g4 14; Classic g0 1: 22323 / 22326 -> frame 85), 22358 (pause rows 3 / 4 with g4 21, g0 != 1 -> frame 15 g4 14); RV e81_g3n (F 2698 to F 7569: no DialogBox, the voices ma_en_01-05)",
+"missing": ""
+},
+{
+"id": "ending3",
+"list": 36,
+"title": "Ending: the Adventure epilogue, part 3 (Lilac's treehouse: Torque's farewell)",
+"room": 1636,
+"frame": 16,
+"g4": 14,
+"triggers": [],
+"next": "credits",
+"skip": "credits",
+"stage": "credits",
+"panel": 2,
+"chr": 7,
+"dialog": 622,
+"lines": [
+99,
+111
+],
+"evidence": "RE frame 16 3932 (controller A 11, B > 400 -> frame 85), 3986 (pause rows 3 / 4 with g4 >= 14 -> frame 85); RV e81_g3n (F 7569 to F 9174: DialogBox E 99-111, m_menu2; F 9174 -> 85 = the credits, m_credits)",
+"missing": ""
 },
 {
 "id": "game_intro",

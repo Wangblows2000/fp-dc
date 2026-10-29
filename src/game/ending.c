@@ -34,6 +34,7 @@
 #include "../fp.h"
 #include "ui.h"
 #include "cutscene.h"
+#include "story.h"
 
 enum { END_OFF, END_SPACE, END_HOLD, END_CREDITS, END_THANKS, END_LEAVE, END_CS };   /* END_CS: the host-only cutscene template run */
 #define END_HOLD_FRAMES 60            /* INFERRED stand-in for frames 81 / 82 */
@@ -155,6 +156,7 @@ int ending_arm(void) {
     return 0;
 }
 static void space_start(void);
+static void credits_start(void);
 int game_ending_begin(void) {
     if (E.st != END_OFF) return -1;                 /* no second start while it runs */
     if (!E.armed) { if (!valid_now()) return -1; save_round(); }
@@ -227,7 +229,21 @@ static void space_update(void) {
         if (E.rumble_ch >= 0) snd_loop_stop(E.rumble_ch);
         snd_stop_all();
         E.st = END_HOLD; E.hold_t = 0;
+        /* session 26: in an Adventure run the epilogue's story rooms play here (RV e81_g3: 81 g4 3 -> 82 g4 21 -> 15 g4 14 ->
+         * 85, story.c trig=ending, next "credits" -> ending_after_epilogue). Classic / Time Attack: the hold above, unchanged */
+        if (story_gate()) {
+            unload(); E.st = END_OFF;
+            if (story_epilogue() == 0) return;
+            G.mode = MODE_ENDING; E.st = END_HOLD; E.hold_t = 0;   /* no story data: the hold, as Classic */
+        }
     }
+}
+void ending_after_epilogue(void) {
+    unload();
+    int n = E.ended_once;
+    memset(&E, 0, sizeof E); E.ended_once = n;
+    G.mode = MODE_ENDING;
+    credits_start();
 }
 static void draw_at(ui_obj_t *o, float x, float y, uint32_t argb) {
     if (!o || !o->an.b) return;

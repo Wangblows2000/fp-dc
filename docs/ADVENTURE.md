@@ -58,8 +58,9 @@ format is `"SS AA voice text"`:
 - `voice` is `Data/voices/eng/<xx>/<id>.ogg`. A voice of `xx_xx_xx` marks a continuation with no clip.
 
 There are no portraits. DialogBox_551's alterable E is the paragraph index, counting every paragraph. RV confirms this:
-DialogData_3923 E 76 is go_01_04, "It's an ambush!". The extractor therefore keeps the `xx`-anim paragraphs (998 lines in
-21 objects).
+DialogData_3923 E 76 is go_01_04, "It's an ambush!". The extractor therefore keeps the `xx`-anim paragraphs, and (session
+26) writes one paragraph per `Text::add_line` call, so a repeated literal counts again (DialogData_3989 47-49): 1,026 lines
+in 21 objects.
 
 **DialogBox UI** (RE events 18606 / 18607 / 18391 / 18392 / 18414; layout RV):
 
@@ -204,7 +205,7 @@ is in use (section 5).
 
 **cutscene.c** is the scene-script player, an extension of the session-24 template, which is kept.
 
-- Up to 128 actors (rows `s<handle>_<anim>_<dir>` in the room's `_ens` bank) with their animators, plus moves, the
+- Up to 255 actors (session 26; rows `s<handle>_<anim>_<dir>` in the room's `_ens` bank) with their animators, plus moves, the
   camera, parallax visibility (`pv`) and fades (black or white).
 - Captions come from `story/captions.txt`, centred, with rows 20 px apart (RV).
 - The DialogBox uses the original rows (`dlgbox` / `dlgname` / `dlgarrow`) and the original font.
@@ -333,7 +334,7 @@ may cost a frame hitch at a line change (INFERRED, not measured on hardware).
 
 `tests/test_adventure.py` (host build, data dir argument) covers:
 
-- **Inventory:** unique ids, the 37 CutsceneList entries, 998 dialogue lines, the captions, every script line inside its
+- **Inventory:** unique ids, the 37 CutsceneList entries, 1,026 dialogue lines, the captions, every script line inside its
   scene's range, and the rows.
 - **The arc:** a new Adventure (ADVNEW and the real menus) → opening → dv_meet → character select (Lilac, Carol) → DV1.
   The DV end chain → dv_crash → dv_crash2 → rm_gong → RM1 runs each scene once, for g1 0 / 2 / 4.
@@ -595,3 +596,155 @@ condition, so the scenes are INFERRED to be the same for every character.
   | tb_outside_team | frame 81 / 0 | sf_army |
   | st_bad_news | frame 15 / 11 | th_torque_revealed |
   | sg_brevon_plan | frame 14 / 12 | th_next_morning |
+
+## 11. Phase 2, groups D and E (session 26)
+
+Traces: `build/orig_traces/adv4` (never committed); commands: `tools/story_arc4.sh`; tests: `tests/test_adventure_arc4.py`.
+
+### 11.1 The original's scene map (RE, CutsceneList_42)
+
+The developer list's selection K (= list + 1) sets frame index / g4 / g1 (RE handle_frame_2, events 263-269 and the inline
+block after them). It names where every scene really starts, and it corrects several inventory rows whose room or g4 was
+inferred from content:
+
+| K | list | frame / g4 (g1) | K | list | frame / g4 (g1) | K | list | frame / g4 (g1) |
+|---|---|---|---|---|---|---|---|---|
+| 9 | 8 th_torque_revealed | 15 / 11 | 19 | 18 zao_airship_ambush | 82 / 7 | 29 | 28 tb_team_spade | 82 / 16 |
+| 10 | 9 sg_brevon_plan | 82 / 1 | 20 | 19 jiang_river | 36 / 99 | 30 | 29 tb_brevon | 80 / 1 |
+| 11 | 10 th_next_morning | 14 / 12 | 21 | 20 st_magister_talk | 82 / 8 | 31 | 30 tb_arrest | 82 / 17 (0) |
+| 12 | 11 np_gong_help | 77 / 0 | 22 | 21 jail_plan | 82 / 9 | 32 | 31 tb_outside_team | 82 / 17 (2) |
+| 13 | 12 sm_spade | 78 / 0 | 23 | 22 jail_fail | 82 / 10 | 33 | 32 st_mission | 82 / 19 (0) |
+| 14 | 13 fn_panther_defeated | 78 / 1 | 24 | 23 throne_apology | 82 / 11 | 34 | 33 pl_final_message | 82 / 20 (0) |
+| 15 | 14 sm_zao_dinner | 82 / 4 | 25 | 24 sg_brevon_torque | 82 / 12 | 35 | 34 sf_army | 81 / 0 (2) |
+| 16 | 15 sg_intruders | 0 / 99 | 26 | 25 jc_cave | 82 / 13 | 36 | 35 sf_camp | 81 / 1 (0) |
+| 17 | 16 sm_zao_help | 82 / 6 | 27 | 26 th_carol_help | 82 / 14 | 37 | 36 ending | 83 |
+| 18 | 17 zao_airship | 35 / 99 | 28 | 27 tb_torture | 80 / 0 | | | |
+
+Frame index = json - 1. So frame 8's I 7 (Pangu Lagoon, Lilac) goes to 82 g4 20 = The Final Message, I 8 (Trap Hideout,
+Carol / Milla) to 82 g4 16 = Enter Team Spade, and I 6 (Thermal Base) to 80 g4 0 (Lilac) / g4 1 (Carol, Milla).
+
+### 11.2 The scenes
+
+All RV unless noted (tools/orig/story_rv.sh room traces, STORY_READ 30, STORY_IDLE 0; the room's F events give the next
+step). The pause is GUIPause frame 2 (RESUME / SKIP SCENE / NEXT STAGE; RV k81_g3_row2 shot), except in the snowfields:
+there START opens nothing (panel 3; RV k81_g0_skp2 / k81_g1_skp2 at F 300 and 1500, RE 20866: the pause needs
+Player_326's flags & 0x300 clear, and the scene keeps them set). Large frames are split rooms as in section 10.2
+(`--room <json><CutsceneList index>`): st3719, st8019, st8127 / 8129, st8234-8236, st8318 / 8328 / 8336, st1636.
+
+| id | room / g4 | entered by | chr | next ; SKIP SCENE ; NEXT STAGE | lines | status |
+|---|---|---|---|---|---|---|
+| zao_airship_ambush | 8318 / 7 | zao_airship2 (group B: SB1's frame 35 with g4 99, its end; RV) | LCM | SB1 ; SB1 ; SB1 (RE 21534 / 22342 / 22362) | 4026: 95-96 | ported |
+| jiang_river | 3719 / 99 | frame 8 I 4 (Sky Battalion's end) | LCM | jiang_river2 ; jiang_river2 (RE 9761) ; JC1 (RE 9762) | - (four cries) | ported |
+| jiang_river2 / 2c / 2m | 8019 / 0 | jiang_river (RE 9547) | L / C / M | st_magister_talk ; same ; JC1 (RE handle_frame_80) | 3965: L 0-24, 33; C 0-10, 25-33; M 0, 11-24, 33 | ported |
+| tb_torture | 8127 / 0 | frame 8 I 6, g1 0 | L | tb_brevon_l ; tb_brevon_l ; PL1 (RE 20263) | 3971: 0-32 | ported |
+| tb_brevon_l | 8129 / 1 | tb_torture (RV F 5082) | L | tb_arrest (82 g4 17) ; same ; PL1 | 3971: 34-48 | ported |
+| tb_brevon | 8129 / 1 | frame 8 I 6, g1 != 0 | CM | tb_outside_team (82 g4 17) ; same ; BG1 (RE 20264: frame 84) | 3971: 33-48 | ported |
+| tb_team_spade | 8328 / 16 | frame 8 I 8 (Trap Hideout's end) | CM | TB1 ; TB1 ; TB1 (RE 21938 / 22352 / 22367) | - | ported |
+| sf_army / sf_army_l | 8234 / 0 | The Final Message (L, RV r82_g20) / Outside Thermal Base (C M, RV r80_g1c) | CM / L | sf_camp(_l) ; - ; - (no pause) | 3989: 0-40 / 2-40 | ported |
+| sf_camp / sf_camp_l | 8235 / 1 | sf_army(_l) | CM / L | BG1 (RE 20681: frame 84) ; - ; - (no pause) | 3989: 50-63 (L also 64-71), 98-100, 78-82, 101-102 | ported |
+| ending / ending_m | 8236 / 3 | ending.c's space scene (RE 22441), Adventure only | LC / M | ending2 ; ending3 (RE 20870) ; credits (RE 20869) | 3989: 92-95 + 83-91 / 103-110 + 83-91 | ported |
+| ending2 | 8336 / 21 | ending | LCM | ending3 ; ending3 ; ending3 (RE 22322 / 22358) | subtitles 4135: 12-18 | ported |
+| ending3 | 1636 / 14 | ending2 | LCM | credits ; credits ; credits (RE 3932 / 3986) | 622: 99-111 | ported |
+
+Variants: a step that names a scene the character does not play goes to the scene of the same json frame and g4 whose chr
+mask has the character (story.c chr_variant, section 10.4): the river, Thermal Base, the snowfields and the epilogue's
+first part branch on g1 inside one frame / g4 (RV). Permanent scene numbers (tables/story/sids.json): the new base scenes
+jiang_river2 44, ending2 45, ending3 46; the character variants share their base scene's number (scenes.json `sid_of`:
+jiang_river2c / 2m -> jiang_river2, tb_brevon_l -> tb_brevon, sf_army_l -> sf_army, sf_camp_l -> sf_camp, ending_m ->
+ending).
+
+Frame 84 (the shoot-'em-up ride before Battle Glacier) is not ported; as for the stages (levels.c), the port goes to BG1
+where the original goes to frame 84 (INFERRED mapping, RE target).
+
+### 11.3 Runtime changes (story.c, cutscene.c, ending.c)
+
+- **story.c**: `trig=ending` and `story_epilogue()` (the scene after the space scene, gated); the step `credits`
+  (`ending_after_epilogue()`); `stage=` may be a step (`scene:<id>` / `credits`, the epilogue's rows); `panel=3` (START
+  opens no pause, the snowfields: the same rule as groups A / B's); the table holds `STORY_ROWS` 96 rows (71 with every
+  group: the character variants share their base's number, so the rows outnumber the 64 scene numbers).
+- **ending.c**: at the space scene's end (RE 22441), `story_gate()` → the ending's banks are freed and `story_epilogue()`
+  plays the rooms; its last step calls `ending_after_epilogue()` (the credits, frame 85). Classic / Time Attack: the hold
+  and the credits exactly as before.
+- **game.c**: story actors on json layer 1 are drawn after that layer's backdrops (`story_draw_layer(4)` after
+  `draw_pieces(1, 1)`).
+- **cutscene.c**: 255 actors (an entry's actor is a byte; the snowfields show 235); `sub <key> <y>` / `subx` (the
+  SubtitleText_3449 paragraphs: rows of at most 43 characters, centred, the block centred on y + 50, RV shots);
+  `mv <actor> <frames> <path>` (a path, two characters a frame: chr(79 + dx) chr(79 + dy), lossless); the holo dragon rig
+  (`rigpart` declarations, `rga` / `rgd` / `rgp` / `rgj` entries: PL6's rig RE 13338 / 13342-13344 / 13390 on the neck's
+  traced alterables, rotated parts drawn with alpha 255 - L); mirror rows (`m<handle>_<anim>_<dir>`: the base row drawn
+  flipped).
+
+### 11.4 Data and tools
+
+- Split rooms (section 10.2): json 82 (the opening, the snowfields, the epilogue) and json 83 would overflow two 1024
+  atlases as whole rooms; json 37 is SB2's frame (its stage build keeps no story rows), json 16's farewell is one set
+  of a shared frame, and whole rooms 80 / 81 keep every level object's rows in `_ens` (json 80 measured 5,623 KB for
+  Carol, as much as FN3).
+- `rows.json` per scene, from story_rv2scn: `view` (split rooms). tools/import_frame.py story_rows keeps only the frames
+  the scripts show of a still row (groups A / B), and writes a direction-16+ row that mirrors its base row (pixels flipped,
+  hotspot x = w - 1 - hx) as an alias `m<handle>_<anim>_<dir>` of the base images: cutscene.c draws them flipped.
+- `dialog.json`: one paragraph per `Text::add_line` call (DialogData_3989: E 83 = li_49_01, RV), and `subtitles`
+  (SubtitleData objects; import_story writes them into captions.txt as `sub<handle>_<k>`).
+- story_rv2scn (opt-in, the other groups' conversions are unchanged): `--rig`, `--sub`, `--mv` (lossless `mv` paths),
+  `--dialogbox dialogbox_551` (rooms 15 / 16 also hold a hidden DialogBox_525 helper).
+
+### 11.5 Budgets
+
+**VRAM**: host `load[<room>]` "tex" KB (every texture the room load uploads, the character's banks included); FN3, a
+shipped act, measures 5,125 (Lilac) / 5,653 (Carol) / 5,485 KB (Milla) the same way.
+
+| room | scenes | Lilac | Carol | Milla |
+|---|---|---|---|---|
+| st3719 | jiang_river | 1,990 | 2,134 | 2,302 |
+| st8019 | jiang_river2 / 2c / 2m | 4,071 | 4,215 | 4,383 |
+| st8127 | tb_torture | 2,542 | 2,686 | 2,854 |
+| st8129 | tb_brevon, tb_brevon_l | 2,286 | 2,430 | 2,598 |
+| st8234 | sf_army(_l) | 3,994 | 4,138 | 4,306 |
+| st8235 | sf_camp(_l) | 3,482 | 3,626 | 3,794 |
+| st8236 | ending(_m) | 2,970 | 3,114 | 3,282 |
+| st8318 | zao_airship_ambush | 1,807 | 1,951 | 2,119 |
+| st8328 | tb_team_spade | 2,192 | 2,336 | 2,504 |
+| st8336 | ending2 | 3,206 | 3,350 | 3,518 |
+| st1636 | ending3 | 3,291 | 3,435 | 3,603 |
+
+**Sound** (as docs/ADVENTURE_ARC2.md section 5: host `story sfx ... bytes`, the ids the script plays that are not resident,
+loaded from `story/sfx` at 11,025 Hz with tails trimmed; + `vopeak`, the two voice slots' peak; scene started with `SCENE`
+after a new Adventure; KB = 1024 bytes; Lilac / Carol / Milla where they differ):
+
+| scene | loaded | voices | total (max) |
+|---|---|---|---|
+| zao_airship_ambush | 9.7 | 21.5 | 31.2 |
+| jiang_river | 27.4 | 16.7 | 44.1 |
+| jiang_river2 / 2c / 2m | 44.0 | 62.1 / 61.8 / 62.1 | 106.1 |
+| tb_torture (Lilac) | 70.8 | 63.6 | 134.4 |
+| tb_brevon_l / tb_brevon | 70.6 / 69.2 / 70.6 | 56.4 | 127.1 |
+| tb_team_spade | 1.0 | 0 | 1.0 |
+| sf_army_l / sf_army | 106.8 / 125.6 / 124.8 | 62.6 | 188.2 |
+| sf_camp_l / sf_camp | 81.4 | 42.6 | 124.0 |
+| ending / ending_m | 31.1 | 47.3 | 78.4 |
+| ending2 | 44.0 | 31.5 | 75.4 |
+| ending3 | 35.0 | 45.4 | 80.4 |
+
+Every scene plus its voices is under 200 KB; the largest is Army of Shang Tu for Carol (188.2 KB).
+
+**Script RAM**: the largest scripts hold 25k entries (sf_camp_l, 12 bytes each); the holo dragon rig and `mv` paths
+took the snowfields from 362k entries to 16-25k.
+
+### 11.6 INFERRED and known differences
+
+- Frame 84 → BG1 (above). The fades: only the wipes before a room change are played (`--fadeout`, as rm_gong).
+- The rig: within one frame of the RV parts (the traced neck lags one frame when the anchor moves); the pupil keeps its
+  traced positions (it looks at the hidden player in the original).
+- The snowfields' dragon flight (RV s81_g0l shots 2700-3600): the original's sky behind the flying dragon is black; the port
+  keeps the mountain backdrop (the parallax pieces' scripted positions during the flight, LevelParallaxPiece1/2/5/6 J, are
+  not reproduced). The comparison shots are a few frames late (the X capture is asynchronous), so they only check the
+  scene's look, not its timing.
+- Story actors on json layer 1 are drawn over that layer's backdrops (Fusion draws a layer's backdrops, then its objects;
+  RV s81_g0l: the Shang Tu guards over the mountains). This also applies to the phase-1 rooms.
+- ending2's subtitles: the paragraph per phase is RE for 13 (22248) and 16 (22309), the others by order (RV shots read
+  12-18); the wrap width (43) and the block position from the RV shots.
+- The other groups' steps into this group (RV): zao_airship2 → zao_airship_ambush; tb_arrest / tb_outside_team (82 g4 17)
+  and pl_final_message (82 g4 20) → sf_army (sf_army_l for Lilac by chr_variant). This group's steps out: the river →
+  st_magister_talk, tb_brevon_l → tb_arrest, tb_brevon → tb_outside_team (C1 / C2).
+- ending2 has no music of its own: the original keeps m_ending playing from part 1; the port restarts it (`--carry`,
+  INFERRED as in section 10.3).

@@ -674,6 +674,7 @@ int  ending_arm(void);                       /* results.c: validate and save whi
 void ending_update(const input_t *in);
 void ending_draw(void);
 int  ending_state(void);                     /* 0 off, 1 space (83), 2 epilogue hold, 3 credits (85), 4 end screen, 5 leaving */
+void ending_after_epilogue(void);              /* story.c (session 26): the Adventure epilogue ended: the credits (frame 85) */
 void game_sfx_set(const short *ids, int n);  /* game.c: load a sound set in place of the stage's (the ending's own sounds) */
 void game_wipe_draw(float x);                /* game.c: the black wipe of the pause rows / a story scene ('fw') */
 void game_sfx_set_story(const short *ids, int n);   /* game.c: a story scene's set: its ids not resident, from story/sfx */
