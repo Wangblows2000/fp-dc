@@ -2770,7 +2770,8 @@ def main():
     if n in NEWPACK_FRAMES:   # Jade Creek / Trap Hideout (session 21): an off-map template of a JC module's own class does not pull its rows in (jc5 holds
         # unused off-map BullFrag / water-stream / slab templates; their rows overflowed jc5_ens past two atlases). Runtime-created
         # children still come in through ENS_WITH from their on-map creators.
-        _jct = {c for (c, h), t in ENGINE_TYPES_ID.items() if 1280 <= t < 3200}
+        _jct = {c for (c, h), t in ENGINE_TYPES_ID.items() if 1280 <= t < 3200
+                and not (n != 73 and (c, h) in _FDB_T4)}   # FD4b's mech types (_FDB_T4) are BG4's untyped off-map templates elsewhere: json 63 keeps pulling Absolution's rows
         placed = {o['cls'].rsplit('_', 1)[0] for o in fr['objects']
                   if o['cls'] not in _jct or (o['x'] is not None and 0 <= o['x'] < fr['width'] and 0 <= o['y'] < fr['height'])}
     if any(o['cls'].startswith('monitor') and o['cls'].endswith('shield') and o['x'] >= 0 for o in fr['objects']): placed.add('shieldmonitor_onmap')
