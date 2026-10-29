@@ -29,11 +29,19 @@
 #define OPEN_Y 1800
 
 static struct { int act, dbg, arrow; } F;          /* arrow: BG4's BGArrowSign_3346 slot or -1 */
+/* BG2's fly-by plane (small fixes; RE 14241 / 4874-4877, RV small fixes bg2_102 / c_jumppad_bg2: sound 102 at 120 for the teleport to
+ * x 8330 at 60). 14241 (once, MV.X > 1130, MV.A != 4: not for Milla): a LevelBackgroundPlane2_2227 on json layer 0 at (view x - 320,
+ * Y + 280), direction 4; A = its x, B = its y, C -5, F 4. 4874 (every frame): x = trunc((view x + A)(0.05 C + 0.7)), y = trunc((view y
+ * + B)(0.05 C + 0.7)), A + 4 dir + 8 - 2 C (34), B + 0.25. 4875: x >= view x - 49 (once, its flag 0): sound 102. 4876: past it, F - 0.05
+ * (to 0) and the camera's shake Z = min(3, Z + F). 4877: x > view x + 626: destroyed. Its anim 0 direction 4 loops 4 images (speed 100). */
+static struct { int on, done, snd, frame; double A, B, C, Fs; int x, y; } PL;
 
 int bg_flow_act(void) { const level_def_t *L = level_cur(); return L && L->stage == 9 ? L->act : 0; }
 
 void bg_flow_spawn(void) {
-    memset(&F, 0, sizeof F); F.arrow = -1;
+    static int reg;
+    if (!reg) { reg = 1; snap_register(&PL, sizeof PL); }
+    memset(&F, 0, sizeof F); F.arrow = -1; memset(&PL, 0, sizeof PL);
     F.act = bg_flow_act();
     if (!F.act) return;
     for (int i = 0; i < G.nobjs; i++) {                       /* the loop pieces' off-map templates (one of each class per frame) */
@@ -64,14 +72,45 @@ static void arrow_frame(void) {
     if (an >= 0 && (a->an.b != &G.ens || a->an.anim != an)) { int fr = a->an.frame, acc = a->an.acc; anim_set(&a->an, &G.ens, an); a->an.frame = fr; a->an.acc = acc; }
     a->dir = n;
 }
+static void plane_frame(const player_t *p) {
+    int vl = (int)G.camx, vt = (int)G.camy;
+    if (PL.on) {                                                              /* 4874 */
+        double k = 0.05 * PL.C + 0.7;
+        PL.x = (int)((vl + PL.A) * k); PL.y = (int)((vt + PL.B) * k);
+        PL.A += (4 << 2) + 8 - 2 * PL.C; PL.B += 0.25;
+        if (PL.x >= vl - 49) {
+            if (!PL.snd) { PL.snd = 1; snd_play_orig(102, 220, 128); }       /* 4875 */
+            PL.Fs = PL.Fs - 0.05 > 0 ? PL.Fs - 0.05 : 0;                      /* 4876 */
+            G.cam.Z = (float)(G.cam.Z + PL.Fs < 3 ? G.cam.Z + PL.Fs : 3);
+        }
+        if (PL.x > vl + 626) PL.on = 0;                                        /* 4877 */
+        PL.frame = (PL.frame + 1) & 3;                                         /* speed 100: an image a frame */
+    }
+    if (!PL.done && p->x > 1130 && !chr_is_milla(G.character)                 /* 14241 (the view holding the player: after a */
+        && p->x >= G.camx && p->x <= G.camx + SCREEN_W) {                     /* teleport the port's camera arrives a frame later) */
+        PL.done = 1; PL.on = 1; PL.frame = 0;
+        PL.x = vl - 320; PL.y = (int)(280 + (p->y - ORIG_REF_DY));
+        PL.A = PL.x; PL.B = PL.y; PL.C = -5; PL.Fs = 4;
+        BGLOG("plane at %d %d", PL.x, PL.y);
+    }
+}
 void  bg_flow_frame(player_t *p) {
-    (void)p;
+    if (F.act == 2) plane_frame(p);
     if (F.arrow >= 0) arrow_frame();
 #ifdef FP_HOST_ENV
     { const char *e = getenv("FP_DBG_BGOPEN");                 /* host stand-in for bg_boss.c's call: at this frame number */
       if (F.act == 4 && e && G.frame >= atoi(e) && !F.dbg) { F.dbg = 1; bg_flow_opening_cleared(); } }
 #endif
 }
-void  bg_flow_draw(int pass) { (void)pass; }
+void  bg_flow_draw(int pass) {
+    if (pass != 0 || !PL.on) return;                                          /* json layer 0, after its pieces */
+    int a = ens_anim("bgf_plane");
+    if (a < 0) return;
+    const anim_t *an = &G.ens.anims[a];
+    const frame_t *f = &G.ens.frames[G.ens.seq[an->first + PL.frame % (an->count ? an->count : 1)]];
+    float sx = (float)PL.x - floorf(G.camx), sy = (float)PL.y - floorf(G.camy);
+    if (sx < -260 || sx > SCREEN_W + 60 || sy < -260 || sy > SCREEN_H + 60) return;
+    frame_draw(&G.ens, f, sx, sy, 0, 0xffffffff);
+}
 int   bg_flow_obj(obj_t *o, player_t *p) { (void)p; return o->type >= OT_BGF_LOOP1 && o->type <= OT_BGF_ARROW; }   /* static pieces, the arrow sign (bg_flow_frame) */
 float bg_flow_hud_dy(void) { return 0.f; }

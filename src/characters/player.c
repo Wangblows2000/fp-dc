@@ -158,27 +158,34 @@ int player_invincible(const player_t *p) {
  *   B = 0.75 B - 2.2 Q, G = 0.75 G - 4.2 (Q = facing: the knock-back is AWAY FROM THE FACING, not from the
  *   source), state M8, sound 25 + a random hurt voice; PlayerOthers D = 2, E = 60. */
 extern int fe_difficulty;
+void player_die_sound(void) {                      /* RE loop_sound_die_8: by OTHERS.N's character flags (957-961) */
+    snd_play_orig(chr_is_milla(G.character) ? 178 : chr_is_carol(G.character) ? 128 : 91, 255, 128);
+}
 void player_damage(player_t *p, int amount) {
     if (player_invincible(p)) return;
     if (shield_absorb(p)) return;                  /* 2412 / 2413: the shield takes the hit (no hurt) */
     if (fe_difficulty >= 3) return;
     int mult = fe_difficulty == 0 ? 2 : 1;
     p->hp -= mult * amount / 5;
+    if (p->hp <= 0) {                              /* a death (2416 R 2 -> loop_check_death M 9): only the die sound, no 25 / hurt voice
+                                                    * (RV small fixes death_l / death_c / death_b: 17 (the pellet's) + 91 / 128 at the hit);
+                                                    * Carol's bike is wrecked by the death group a frame later (player_update) */
+        player_die_sound();
+        p->state = ST_DEAD; p->dead_t = 0; p->vy = -5; p->vx = 0; p->ground = 0; return;
+    }
     snd_play_orig(25, 220, 128);    /* RE: Media::play_id 25 (2414 plays only 25 + sound_hurt<n>; the 17 of a pellet hit is
                                      * col_4_20's, objects.c explode2: RV tredd / dv4_chase / snake_t1 hurts log 25 + voice only) */
     if (chr_is_milla(G.character)) {               /* Milla's voice set (0x216b7, RE loop_sound_hurt0-3 / die): 179 180 181 182, die 178 */
         static const int vm[4] = { 179, 180, 181, 182 };
-        if (p->hp > 0) snd_play_orig(vm[rand() & 3], 255, 128); else snd_play_orig(178, 255, 128);
+        snd_play_orig(vm[rand() & 3], 255, 128);
     } else if (chr_is_carol(G.character)) {               /* Carol's voice set (event 959): hurt0..3 = 114 115 118 119, die = 128 */
         static const int vc[4] = { 114, 115, 118, 119 };
-        if (p->hp > 0) snd_play_orig(vc[rand() & 3], 255, 128); else snd_play_orig(128, 255, 128);
+        snd_play_orig(vc[rand() & 3], 255, 128);
     } else { static const char *vh[4] = { "lilac_hurt0", "lilac_hurt1", "lilac_hurt2", "lilac_hurt3" }; voice_play(vh[rand() & 3]); }
     if (p->bike) {                                 /* 1285 (petal-loss loop, before 2414's BSK.C -= 1): wrecked on the 3rd hit */
         if (mult * amount / 5 >= 1 && p->bikeC <= 1) bike_wreck(p);
         p->bikeC--;
-        if (p->hp <= 0) bike_wreck(p);             /* 2111 */
     }
-    if (p->hp <= 0) { p->state = ST_DEAD; p->dead_t = 0; p->vy = -5; p->vx = 0; p->ground = 0; return; }
     double b = p->ground ? p->gsp : p->vx, g = p->ground ? 0. : p->vy;   /* ground: B = ground speed, G = 0 */
     if (p->state != ST_HURT) p->state_t = 0;     /* session 21d: the hurt timer starts at the first hit of a hurt sequence (a hit while
                                                   * already hurt keeps counting, so repeated hits cannot stretch it past PHYS_HURT_MAX_T) */
@@ -986,6 +993,13 @@ void player_update(player_t *p, const input_t *in) {
         hs_save[0] = p->x; hs_save[1] = p->y; hs_save[2] = p->gsp; hs_save[3] = p->vx; hs_save[4] = p->vy; hs_save[5] = p->N; hs_save[6] = p->O;
     }
     if (p->state == ST_DEAD) {
+        if (!p->dead_fx) {                                 /* the death group's first frame (1689: M 9 turns 0x21a38 on, a frame after */
+            p->dead_fx = 1;                                /* the death): 1959 / 4724 a bike ridden (A 3) left wrecked, 1960 / 4725 every */
+            if (chr_is_carol(G.character) && !p->drown) {  /* wrecked ObjectBike explodes once (sound 29): Carol's off-map template */
+                if (p->bike) bike_wreck(p);                /* is one, so every Carol death sounds 29 (RV death_c / death_b: 128 */
+                else snd_play_orig(29, 220, 128);          /* then 29 a frame later; fd2b_air_c 2312 / 2313; Lilac / Milla none) */
+            }
+        }
         p->vy += PHYS_GRAV; p->y += p->vy;
         set_anim(p, A_DEFEAT); anim_tick(&p->an, -1); if (hair.b) anim_tick(&hair, -1);
         if (p->dead_t <= 120) p->dead_t++;                 /* game.c restarts the act (loop_death_13) at 121 */
@@ -1214,8 +1228,7 @@ void player_update(player_t *p, const input_t *in) {
     ladder_grabs(p, in);                           /* 4057-4060 run last */
     if (p->state != ST_DEAD && p->y > G.lvl.h + 64) {
         p->hp = 0; p->state = ST_DEAD; p->dead_t = 40; p->vy = 0;
-        if (p->bike) bike_wreck(p);               /* 2111 */
-        snd_play(G.sfx.hurt, 220, 128);
+        player_die_sound();                        /* 2417: R 2 -> loop_check_death (M 9, loop_sound_die_8); the bike: the death group */
     }
 
     /* sprite angle (RV, rot_run_x and boost_x traces, original Active angle):

@@ -58,6 +58,7 @@ void chase_chunk_update(obj_t *d) {
 static void player_kill(player_t *p) {          /* 5450 / 5452: R = 1, petals = 0, LIFE.C = 1 (death path) */
     if (p->state == ST_DEAD) return;
     p->hp = 0; p->state = ST_DEAD; p->dead_t = 0; p->vy = -5; p->vx = 0; p->ground = 0;
+    player_die_sound();                        /* R 1, no petals: 2416 -> loop_check_death (loop_sound_die_8) */
 }
 
 void chase_update(player_t *p) {

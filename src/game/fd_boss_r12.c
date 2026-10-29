@@ -42,7 +42,8 @@ static float marker(int t, int x) {                                             
 /* ======================================================================== fd1b: the push-beam chase (RE 15387-15401) */
 /* MiniBossPushBeamCannon_3494 (12928, 1936) carries MiniBossPushBeam_3493 (12928, 1968; ctor invisible, A 1). The alarm (AlarmLight_3495,
  * a 10 x 10 orange pixel stretched over the view) starts once X > the first CameraLimitBossLeft x + 120 (15387: flag 2, shown, sound 310);
- * its A turns 5 degrees a frame and its opacity is sin(A) 200 + 180 clamped to 0-255 (15388); once A > 90 the beam appears and the cannon
+ * 15388 sets its alpha byte from A (255 - clamp(200 cos A + 180), 75 at A 90 / 270: FD3a's 16184 rule, fd_alarm_alpha), then A + 5 mod
+ * 360; drawn additively over the view (ctor shader 0x20) on json layer 5 (objects_draw pass 3); once A > 90 the beam appears and the cannon
  * becomes active (15389: flag 2, sound 169). Active: cannon x += 4 + A (A 0), the beam at the cannon's x (15390); Player_326 inside the
  * beam: X = max(X, beam x + 10), B = max(B, A, 5) (15391); the character sensor inside the beam: 10 damage, B + 5 (15392). Past X 14400
  * (15393 / 15394): a cannon behind the view's left edge (x + 4 <= view x + 7) jumps to view x + 8 (always in the tunnel: ML.Y 1), and
@@ -50,7 +51,7 @@ static float marker(int t, int x) {                                             
  * and move 2 px a frame to the CameraLimitBossTop / Bottom markers (1904 / 2143). 15396-15398: past X 13400 Brevon's line (subtitle
  * paragraph 1, voices br/br_pa_03, channel 28) for 250 frames. 15401: past X 16380 (once) the act's end tunnel. */
 static struct {
-    int alarm, active, sub, camlock, tunnel, voice_t;
+    int alarm, active, sub, camlock, tunnel, voice_t, alpha;
     double alA, D, F;
 } P;
 static void m_start(player_t *p);
@@ -67,7 +68,7 @@ static void pb_frame(player_t *p) {
     double X = PX(p);
     float lx = marker(OT_CAMLIM_L, 1);
     if (!P.alarm && lx > -1e8f && X > lx + 120) { P.alarm = 1; P.alA = 0; snd_play_orig(310, 220, 128); }   /* 15387 */
-    if (P.alarm) P.alA = fmod(P.alA + 5, 360);                                  /* 15388 (the opacity is drawn from it) */
+    if (P.alarm) { P.alpha = fd_alarm_alpha(P.alA); P.alA = fmod(P.alA + 5, 360); }   /* 15388: the alpha byte from A, then A + 5 */
     if (P.alarm && P.alA > 90 && !P.active) {                                   /* 15389 */
         P.active = 1;
         for (int k = 0; k < count(OT_FDB_PB); k++) { obj_t *b = get(OT_FDB_PB, k); if (b) b->hidden = 0; }
@@ -110,10 +111,8 @@ static void pb_frame(player_t *p) {
 }
 
 static void pb_draw(int pass) {
-    if (pass != 2 || !P.alarm || P.tunnel) return;
-    double v = sbb_sin(P.alA) * 200 + 180;                                      /* 15388: opacity (255 - the blend coefficient) */
-    int a = v < 0 ? 0 : v > 255 ? 255 : (int)v;
-    if (a > 0) r_rect(0, 0, SCREEN_W, SCREEN_H, ((uint32_t)a << 24) | 0x983800);   /* img 11369: (152, 56, 0) */
+    if (pass != 3 || !P.alarm || P.tunnel) return;
+    obj_draw_view_tint(0x983800, P.alpha);                                      /* img 11369: (152, 56, 0), additive (ctor shader 0x20) */
 }
 
 /* ======================================================================== fd1b: the tunnel and the morpher (RE 15327-15347, 15401-15561) */
@@ -866,7 +865,7 @@ void  fdb12_frame(player_t *p) {
 #ifdef FP_HOST_ENV
     if (getenv("FP_DBG_FDB")) {
         obj_t *c = get(OT_FDB_PBC, 0);
-        printf("fdb %d px %.0f py %.0f pb %d cx %.0f alA %.0f D %.0f F %.0f\n", G.frame, PX(p), PY(p), fd_boss_pb_state(), c ? c->x : -1, P.alA, G.cam_nD, G.cam_nF);
+        printf("fdb %d px %.0f py %.0f pb %d cx %.0f alA %.0f D %.0f F %.0f al %d\n", G.frame, PX(p), PY(p), fd_boss_pb_state(), c ? c->x : -1, P.alA, G.cam_nD, G.cam_nF, P.alpha);
         obj_t *h = M.on ? mpart(MP_HEAD) : NULL;
         if (M.on) printf("fdm %d J %d P %.0f K %.0f L %.0f w %.2f %.2f %.2f %.2f %.2f %.2f %.2f hA %d hD %d hC %d def %d hp %d\n", G.frame, M.J, M.P, M.K, M.Lr,
             M.w[0], M.w[1], M.w[2], M.w[3], M.w[4], M.w[5], M.w[6], h ? (int)h->A : -1, M.hD, M.hC, M.def, fd_boss_morpher_hp());
