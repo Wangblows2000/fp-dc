@@ -168,9 +168,23 @@ static void complete(int skipped) {
     go_step(&st);
 }
 
+/* a scene that does not play for this character: the scene of the same json frame and g4 that does. The original's room
+ * picks the content by g1 at one g4 (frame 82 g4 13: jc_cave / jc_cave_cm, g4 17: tb_arrest / tb_outside_team; RV
+ * c83_g13 / c83_g13c, c83_g17 / c83_g17c), so a step into that g4 names either. A split room (st83<list>, ADVENTURE.md 10) is
+ * numbered json * 100 + its CutsceneList index. */
+static int json_of(int room) { return room >= 1000 ? room / 100 : room; }
+static int chr_variant(int id) {
+    int cs = chr_slot(G.character); if (cs > 2) cs = 0;
+    if (SC[id].chr >> cs & 1) return id;
+    for (int i = 0; i < nsc; i++)
+        if (i != id && SC[i].g4 == SC[id].g4 && json_of(SC[i].room) == json_of(SC[id].room) && (SC[i].chr >> cs & 1)) return i;
+    return id;
+}
+
 static int start_scene(int id) {
     table_load();
     if (id < 0 || id >= nsc || !story_gate()) return -1;
+    id = chr_variant(id);
     char nm[48], room[8];
     snprintf(nm, sizeof nm, "story/%s.scn", SC[id].name);
     if (csx_load(nm) < 0) {                                 /* no script (not ported, or no story data): the scene's next step */

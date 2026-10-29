@@ -16,7 +16,8 @@ Outputs:
   story/<id>.scn             the scripts
   story/captions.txt         the scene captions ("Three days later," ...): '<str_ symbol> <text>' lines
   story/dlg_<handle>.txt     the paragraphs of each DialogData object a script uses, one per line (Latin-1, as the original)
-  st<json>/                  every story room a ported scene plays in, built like a level (tools/build_level.py)
+  st<room>/                  every story room a ported scene plays in, built like a level (tools/build_level.py): room = the
+                             json frame, or a split room of a large frame (scenes.json 'frame': frame 83 -> st83<list>)
 Voices (story/vo/<voice>.wav) are converted by tools/audio/convert_audio.py story (the builder's voice step).
 Host-only tool (FP_HOST_ENV world): nothing here runs on the Dreamcast.
 """
@@ -74,12 +75,14 @@ def main():
             for k in sorted(caps): f.write('%s %s\n' % (k, caps[k]))
         print('story: %d scenes of %d ported, %d dialogue objects' % (n, len(sc), len(dialog_handles(sc))))
     if '--no-rooms' not in a:
-        rooms = sorted({s['room'] for s in ported(sc)})
+        # a room is st<room> built from json frame <room>, or from 'frame' for a split room (one per scene of a large frame:
+        # frame 83's scenes are st83<list>, cropped to their views by tools/import_frame.py; docs/ADVENTURE.md)
+        rooms = sorted({(s['room'], s.get('frame', s['room'])) for s in ported(sc)})
         env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
-        def one(j):
-            subprocess.run([sys.executable, '-B', os.path.join(ROOT, 'tools', 'build_level.py'), str(j), 'st%d' % j, out],
+        def one(rf):
+            subprocess.run([sys.executable, '-B', os.path.join(ROOT, 'tools', 'build_level.py'), str(rf[1]), 'st%d' % rf[0], out],
                            check=True, env=env, stdout=subprocess.DEVNULL)
-            return j
+            return rf[0]
         with concurrent.futures.ThreadPoolExecutor(jobs) as ex:
             for j in ex.map(one, rooms): print('story room st%d built' % j)
         # build_level adds every built dir to levels.txt (the developer select): the story rooms are no stages

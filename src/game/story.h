@@ -30,6 +30,9 @@
  *   stage: the NEXT STAGE row's target (panel 2); panel: the pause menu (0 none: START = SKIP at once, RV k81_g2_start;
  *   1 GUIPause frame 1 RESUME / SKIP SCENE / QUIT; 2 frame 2 RESUME / SKIP SCENE / NEXT STAGE)
  *   trig: "new" (a new Adventure), "end:<I>" (frame 8 after stage I); chr: g1 mask (1 Lilac, 2 Carol, 4 Milla; default 7)
+ *   room: the story room st<room>: the json frame, or a split room of a large frame (json * 100 + CutsceneList index: frame
+ *   83's scenes, docs/ADVENTURE.md 10). A scene whose chr excludes the character plays the scene of the same json frame and
+ *   g4 that includes it (the original's room picks the content by g1: frame 83 g4 13 / 17)
  *
  * ---- Scene script (story/<id>.scn, tools/story_rv2scn.py), one entry per line:
  *     scene <id> / room st<json> / dialog <handle> / title <text>
