@@ -500,3 +500,13 @@ stale program cannot be committed unnoticed (`tools/builder/build_release.sh --p
 Also at the user's request: the results are written next to the scripts (`fpdc.cdi`; PC: `fpdc.exe` / `fpdc`, `data/`),
 not to `output/`; started without an argument the builders find an Assets.dat in the project folder, up to three folders
 above it or a usual Steam / GOG folder, else ask with a file dialog (Windows: PowerShell; Linux: zenity).
+
+## D-120 (session 25): enemy pellets on their creator's layer; the original's hit frame beats the strict comparer count
+DV1's Wretchnid pellets were invisible because obj_spawn_pellet left them on layer 0, under DV1's layer-2 back wall (RE:
+the original adds every pellet to its creator's layer, events 4773 / 4856); they hurt while hidden. The pellet hit now
+uses the 12-px disc against the sensor box at whole pixels (RE), which moves the Turretus pellet hit from frame 188 to the
+original's 189 (RV: the sound logs). cmp_all's strict exact-frame count drops 11311 -> 11259 (hurt_turretus,
+hurt_then_petal, hurt_boost_petal, snd_hurt_pickups: 144 -> 131 each) because that comparer aligns Lilac with a fixed
+2-frame input lag, which the old one-frame-early hit happened to fit. Accepted: the original runtime is the source of
+truth; cmp_all still passes 76/76, cmp_carol / cmp_milla are unchanged. DV2 / DV3 geyser plates got their eruption effects
+(events 4961-4969); DV4's own geysers (5372-5379) are not ported yet. Spec: build/re/spec_dv_fixes.md.
