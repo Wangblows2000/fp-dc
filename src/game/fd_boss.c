@@ -14,4 +14,5 @@ int   fd_boss_q20(int type)
 int   fd_boss_draw_obj(const obj_t *o, int pass) { return o->type <= OT_FDB_A_LAST ? fdb12_draw_obj(o, pass) : fdb34_draw_obj(o, pass); }
 int   fd_boss_input(uint32_t *held) { return fdb12_input(held) || fdb34_input(held); }
 int   fd_boss_player_hidden(void) { return fdb12_player_hidden() || fdb34_player_hidden(); }
+void  fd_boss_draw(int pass) { fdb12_draw(pass); fdb34_draw(pass); }
 float fd_boss_hud_dy(void) { return fdb12_hud_dy() + fdb34_hud_dy(); }

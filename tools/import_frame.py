@@ -1951,6 +1951,68 @@ for _nm in ('tbg_key', 'tbg_term', 'tbg_term7', 'tbg_seal', 'tbg_barrier', 'tbg_
     ROW_FRAMES[_nm] = ROW_FRAMES.get(_nm, set()) | FD_FRAMES                     # terminals, seals, switch buttons placed in FD
 
 # ---- FD_BOSS (fd_boss.c, 2912-3071)
+# -- bosses A (fd_boss_r12.c, 2912-2991; build/re/spec_fd_bosses_a.md)
+# FD2a's RoboSquid is TB3's class (same handles 2762-2766, the same events 12097-12128 run in handle_frame_68: RE): TB_BOSS's
+# TBB_TYPES_ID already maps it to OT_TBB_SQUID..; tb_boss.c runs it in any level that places it. Its rows also in json 68.
+for _e in TBB_ENS:
+    if _e[3].startswith('tbq_'): ROW_FRAMES[_e[3]] = ROW_FRAMES[_e[3]] | {68}
+# Types mirror src/game/fd.h (OT_FDB_*). The push beam (fd1b): rows only in json 67 (direction 0; the beam's 2 frames loop at 75).
+FDB_TYPES_ID = {('minibosspushbeam', 3493): 2912, ('minibosspushbeamcannon', 3494): 2913, ('bosssyntaxvalues', 3467): 2914,
+                ('alarmlight', 3495): 2915}   # (the tunnel's ScrollingFloor / 2: FD_GIM's OT_FDG_SFLOOR, fd_gim_scroll_floor)
+ENGINE_TYPES_ID.update(FDB_TYPES_ID)   # FD_BOSS (A)
+FDB_ENS = [('minibosspushbeam_3493', 0, '0', 'fdb_pb'), ('minibosspushbeamcannon_3494', 0, '0', 'fdb_pbc')]
+# the morpher (fd1b's tunnel): its parts are off-map templates and its shots runtime objects: rows tied to the placed controller
+_SXV = ('bosssyntaxvalues',)
+FDB_ENS += [(c, a, d, nm, None, _SXV) for c, a, d, nm in (
+    ('bossmorpherorb1_3471', 0, '0', 'fdm_orb'), ('bossmorpherwheel1_3475', 0, '0', 'fdm_wh1'), ('bossmorpherwheel2_3474', 0, '0', 'fdm_wh2'),
+    ('bossmorpherwheel3_3473', 0, '0', 'fdm_wh3'), ('bossmorpherwheel4_3472', 0, '0', 'fdm_wh4'), ('bossmorphertube1_3476', 0, '0', 'fdm_tube1'),
+    ('bossmorphertube2_3477', 0, '0', 'fdm_tube2'), ('bossmorphergrill1_3479', 0, '0', 'fdm_grill1'), ('bossmorphergrill2_3478', 0, '0', 'fdm_grill2'),
+    ('bossmorpherpelvis_3469', 0, '0', 'fdm_pelvis'), ('bossmorpherbody_3482', 0, '0', 'fdm_body'), ('bossmorpherbody_3482', 0, '1', 'fdm_body1'),
+    ('bossmorphernode1_3481', 0, '0', 'fdm_node1'), ('bossmorphernode2_3480', 0, '0', 'fdm_node2'), ('bossmorpherhead_3486', 0, '0', 'fdm_head'),
+    ('bossmorpherhead_3486', 0, '1', 'fdm_head1'), ('bosstrainbream_3485', 0, '0', 'fdm_train0'), ('bosstrainbream_3485', 0, '8', 'fdm_train8'),
+    ('bosstrainbream_3485', 0, '24', 'fdm_train24'), ('bosssyntaxelecball_3484', 0, '0', 'fdm_eball'), ('enemytrooperlaser_2530', 0, '0', 'fdm_laser'),
+    ('hazardshockwave_1576', 0, '0', 'fdm_shock'), ('hazardshockwave_1576', 0, '16', 'fdm_shock16'), ('hazardshockwave_1576', 4, '0', 'fdm_shocke'),
+    ('enemyelitechargeglow_2527', 0, '0', 'fdm_glow'), ('effectsgroundspark_2053', 4, '0', 'fdm_spark'))]
+ENS += FDB_ENS   # FD_BOSS (A)
+for _e in FDB_ENS: ROW_FRAMES[_e[3]] = {67}
+for _c in ('bossmorpherorb1_3471', 'bossmorpherwheel1_3475', 'bossmorpherwheel2_3474', 'bossmorpherwheel3_3473', 'bossmorpherwheel4_3472',
+           'bossmorphertube1_3476', 'bossmorphertube2_3477', 'bossmorphergrill1_3479', 'bossmorphergrill2_3478', 'bossmorpherpelvis_3469',
+           'bossmorpherbody_3482', 'bossmorphernode1_3481', 'bossmorphernode2_3480', 'bossmorpherhead_3486', 'bosstrainbream_3485',
+           'bosssyntaxelecball_3484', 'enemytrooperlaser_2530', 'hazardshockwave_1576', 'enemyelitechargeglow_2527',
+           'effectsexplosion06_435', 'effectsdebris_427', 'effectsgroundspark_2053'):
+    ENS_WITH[_c] = ENS_WITH.get(_c, ()) + _SXV   # FD_BOSS (A)
+
+# fd2b (json 69): the mech Serpentine. Its parts are templates beyond the map's right edge (x 8433-8615, y 4880-5071: dropped like
+# every off-map instance), created by fd_boss_r12.c; NPCSerpentine_945 (7772, 260) is FN_BOSS's type 820 elsewhere: here it is FD's
+# 2916 (the transformation). Rows only in json 69, tied to the placed NPC (the parts, shots, flare, bubble, warning).
+FDB_MS_TYPES_ID = {('bossmserptorso', 3598): 2940, ('bossmserphead', 3601): 2941, ('bossmserpneck', 3593): 2942, ('bossmserptail', 3594): 2943,
+    ('bossmserprightarm', 3595): 2944, ('bossmserprightclaw', 3596): 2945, ('bossmserpbackshoulder', 3597): 2946,
+    ('bossmserpfrontshoulder', 3599): 2947, ('bossmserpleftarm', 3600): 2948, ('bossmserpleftclaw', 3602): 2949,
+    ('bossmserplasersight', 3607): 2950, ('bossenergypunch', 3603): 2951}
+ENGINE_TYPES_ID.update(FDB_MS_TYPES_ID)   # FD_BOSS (A)
+FNBOSS_FRAMES.add(69); FRAME_TYPE_REMAP[(69, 820)] = 2916   # FD_BOSS (A): fd2b's NPCSerpentine
+_MST = ('npcserpentine',)
+FDB_MS_ENS = []
+for _c, _nm in (('bossmserptorso_3598', 'torso'), ('bossmserphead_3601', 'head'), ('bossmserpneck_3593', 'neck'), ('bossmserptail_3594', 'tail'),
+                ('bossmserprightarm_3595', 'rarm'), ('bossmserprightclaw_3596', 'rclaw'), ('bossmserpbackshoulder_3597', 'bsh'),
+                ('bossmserpfrontshoulder_3599', 'fsh'), ('bossmserpleftarm_3600', 'larm'), ('bossmserpleftclaw_3602', 'lclaw'),
+                ('bossenergypunch_3603', 'punch')):
+    FDB_MS_ENS += [(_c, 0, '0', 'fdms_' + _nm, None, _MST), (_c, 0, '16', 'fdms_' + _nm + '16', None, _MST)]
+FDB_MS_ENS += [(c, a, d, nm, None, _MST) for c, a, d, nm in (
+    ('bossmserplasersight_3607', 0, '0', 'fdms_sight'), ('bossburstshot_3604', 0, '0', 'fdms_burst'), ('effectfireball_3605', 0, '0', 'fdms_fball'),
+    ('bossmserpflare_3606', 0, '0', 'fdms_flare'), ('bossmserpflare_3606', 10, '0', 'fdms_flare10'), ('effectwarning2_1895', 0, '0', 'fdms_warn'),
+    ('npctransformbubble_669', 0, '0', 'fdms_bubble'), ('npcserpentine_945', 0, '0', 'fdms_npc'), ('npcserpentine_945', 0, '16', 'fdms_npc16'),
+    ('npcserpentine_945', 17, '0', 'fdms_npct'), ('npcserpentine_945', 17, '16', 'fdms_npct16'))]
+ENS += FDB_MS_ENS   # FD_BOSS (A)
+for _e in FDB_MS_ENS: ROW_FRAMES[_e[3]] = {69}
+for _c in ('bossburstshot_3604', 'effectfireball_3605', 'bossmserpflare_3606', 'effectwarning2_1895', 'npctransformbubble_669',
+           'effectsexplosion02_368', 'effectsexplosion01_367', 'bossmserptorso_3598', 'bossmserphead_3601', 'bossmserpneck_3593',
+           'bossmserptail_3594', 'bossmserprightarm_3595', 'bossmserprightclaw_3596', 'bossmserpbackshoulder_3597',
+           'bossmserpfrontshoulder_3599', 'bossmserpleftarm_3600', 'bossmserpleftclaw_3602', 'bossmserplasersight_3607'):
+    ENS_WITH[_c] = ENS_WITH.get(_c, ()) + _MST   # FD_BOSS (A)
+# fd2b's FDPlatforms (the shaft ledges, the arena floor) take FD_GIM's 'fdg_pushmask' image (fd_gim.c), a row of a class fd2b does not
+# place: without it they have no mask and nothing stands on them (the NPC's ledge, the fight's floor)
+ENS_WITH['levelfdpushplatformmask_3544'] = ENS_WITH.get('levelfdpushplatformmask_3544', ()) + ('fdplatform',)   # FD_BOSS (A)
 
 # ---- FD_BOSS B (fd_boss_r34.c, 2992-3071; build/re/spec_fd_bosses_b.md): rounds 3-4 (json 70-73)
 # FD3b's MinibossBulldozer (json 71) is FN1 / FN2's Fusion object (same handles 1745-1754, same events 7404-7464): its classes are
