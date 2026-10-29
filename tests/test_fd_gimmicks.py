@@ -143,6 +143,9 @@ for c in CHARS:
     on = all(abs(F(rows[f], 'x') - F(pl[f], 'x')) < 2 for f in (60, 90, 120))
     check('downhill_ride_%s' % NAME[c], F(pl[100], 'x') > 4600 and F(pl[100], 'y') > 900 and on and len(sid(s, 359)) >= 1,
           'plat %s %s player %s' % (pl[100]['x'], pl[100]['y'], rows[100]['x']))
+for c in CHARS:   # the route: ride it down, jump to the ledge at the rail's foot (Carol: off the wall), on to x > 5200
+    s, obs, rows, dbg = run('3 TP 4112 600;130 400 R;130 145 J;250 262 J', 400, env('fd1a', c))
+    check('downhill_route_%s' % NAME[c], F(rows[399], 'x') > 5200 and rows[399]['gnd'] == '1', '%s %s' % (rows[399]['x'], rows[399]['y']))
 s, obs, rows, dbg = run(INV + '3 TP 4112 600;200 230 R;201 203 J', 600, env('fd1a', 0, '2760:-1'))
 pl = {f: d for f, d in obs if d['type'] == 2760 and F(d, 'x') < 5000}
 check('downhill_returns', F(pl[599], 'x') == 4112 and F(pl[599], 'y') == 640 and F(pl[599], 'a4') == 0, '%s %s' % (pl[599]['x'], pl[599]['y']))
@@ -209,10 +212,10 @@ for c in CHARS:
     else: check('shieldgiver_%s_none' % NAME[c], F(g[159], 'a0') == 0 and not mons)
 
 # ---- fd2b: the rotating barrier (RE 15729-15736, start 15989), the big lift (15758-15777), the alarm (15802-15811)
-s, obs, rows, dbg = run(INV + '3 TP 940 4920;10 40 R', 120, env('fd2b', 0, '2781:-1,2782:-1'))
-br = {f: d for f, d in obs if d['type'] == 2781 and F(d, 'x') == 704}
-bs = sorted(set(F(d, 'a1') for f, d in obs if d['type'] == 2781 and F(d, 'x') == 704))
-check('barrier_turns', len(bs) >= 2 and any(b % 90 == 0 and b >= 90 for b in bs) and len(sid(s, 49)) >= 1, str(bs))
+for c in CHARS:   # pushing the button (a wall push) turns the barrier B + 90 (sound 49)
+    s, obs, rows, dbg = run(INV + '3 TP 940 4920;10 40 R', 120, env('fd2b', c, '2781:-1,2782:-1'))
+    bs = sorted(set(F(d, 'a1') for f, d in obs if d['type'] == 2781 and F(d, 'x') == 704))
+    check('barrier_turns_%s' % NAME[c], len(bs) >= 2 and any(b % 90 == 0 and b >= 90 for b in bs) and len(sid(s, 49)) >= 1, str(bs))
 for c in CHARS:   # standing on a switch (64 px left of the lift's centre) the lift rises with her (sound 49 on the press)
     s, obs, rows, dbg = run(INV + '3 TP 6176 5600', 200, env('fd2b', c, '2783:-1'))
     lf = {f: d for f, d in obs if d['type'] == 2783 and F(d, 'x') == 6240 and F(d, 'a1') == 5632}
