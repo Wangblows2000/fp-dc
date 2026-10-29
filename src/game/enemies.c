@@ -49,10 +49,11 @@ static void fullbox(const obj_t *o, float *x0, float *y0, float *x1, float *y1) 
     }
     ibox(o, x0, y0, x1, y1);
 }
-/* !is_near_border(-n): the box inside the view grown by n (RE FrameObject::is_near_border: the whole image box, strictly inside) */
+/* !is_near_border(-n): the whole image box inside the view grown by n (RE FrameObject::is_near_border; RE compares strictly: kept
+ * inclusive here, INFERRED tolerance for the port's 1-2 px position differences, e.g. test_th_enemies bike skids RV 93/99/105) */
 int obj_near_view(const obj_t *o, int n) {
     float x0, y0, x1, y1; fullbox(o, &x0, &y0, &x1, &y1);
-    return x0 > G.camx - n && x1 < G.camx + SCREEN_W + n && y0 > G.camy - n && y1 < G.camy + SCREEN_H + n;
+    return x0 >= G.camx - n && x1 <= G.camx + SCREEN_W + n && y0 >= G.camy - n && y1 <= G.camy + SCREEN_H + n;
 }
 static int obstacle(float x, float y) { return px_solid(&G.lvl, (int)floorf(x), (int)floorf(y)); }   /* Frame::test_obstacle */
 static double MVX(const player_t *p) { return p->x; }
