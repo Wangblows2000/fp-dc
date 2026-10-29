@@ -1,25 +1,36 @@
 # TODO (priority order)
 
+## Session 26c: small fixes (tests/test_small_fixes.py)
+- [x] RM2 pad images; death sounds (die sound only, Lilac 91 resident, Carol's 29 a frame later, the bike wrecked by the death
+      group); metal-door sounds at A 1 / A 2 (TB, FD lab doors); BG2's fly-by plane (sprite, 102, shake); JC5 white card drawn;
+      FD1a pod rain from the dialog's B 160, dialog voices br_pa_01 / 02 + subtitles; FD1b alarm cos + additive; spring beams
+      (every act with springs but FN3); FD transporter nodes drawn; SB3 eyes on their 0.8 layer, only SBBackEye2 fades
+- [ ] Not done: spring beams in FN3 (one row doubles its _ens atlas: +512 KB with Carol at 625 KB free); SB2's own
+      LevelBackgroundPlane2_2227 (9756-9759 / 9771 / 9772, its fly-by: not looked at); FD1a's death taunts br_pa_07..09 (15288)
+- [ ] Found, not fixed: the port kills on the hit that empties the petals; the original keeps the player alive at 0 petals and
+      kills on the next hit (2414 needs K > 0, 2416 K == 0; RV pl_bosses p7: 60 frames at 0 petals, then 91 alone). Many modules
+      read hp <= 0 as dead. TB3's chase: during the look-back (K 0) the original holds the player (RV p7_l: X 2860 from 1300 to
+      1445 with Left held) while the port lets her run, so the K 1 heat-sky rule (12260) cannot be compared yet. TB4 with Carol
+      starts at x 173 in the port, 71 in the original (RV tb4_door). BG2: the original shows EffectWarning triangles near the
+      player at the plane's pass (RV bg2_plane f114-f130), not in the port
+- [ ] INFERRED: the beam direction of every spring class but the up spring (RV: up only; by the spring's push direction); the
+      plane's creation waits for the view to hold the player (the port's camera arrives a frame after a teleport)
+
 ## Session 26: late-stage gimmick gaps (build/gimmick_audit.md)
 - [x] FD4a vanishing blocks drawn; PL5 / PL6 time-gate rings and TB5 conveyors complete (per-type lists sized per act); DV4 geyser
       eruption + launch - 12; yellow down-springs drawn with their press (PL1 / PL2 / SB4, FN2 / FN4); FD3a / FD3b sounds 285 / 286;
       FD3 back pillars; fd1a jumbotron + pods (+ the camera bottom 2016); TB3 / TB6 heat sky; FD3a alarm pulse; SB back-eye fade;
       BG4 arrow sign; FD4b terminals (tests/test_late_gimmicks.py)
-- [ ] Not ported: the down-springs' EffectsSpringBeam (as every other port spring), the jumbotron dialog's voices / subtitles,
-      the fd1a pod rain started by the dialog's C at B 160 (fd_enemy.c keeps its INFERRED start at x 800; the original's would need
-      Y > 1760 there, which the pod-rain test does not reach)
-- [ ] INFERRED: the FD1b alarm (fd_boss_r12.c) draws an alpha rect from sin; RE 15388 is the same 255 - (200 cos A + 180)
-      additive rule as FD3a's 16184 (not changed here)
+- [x] (session 26c) the springs' EffectsSpringBeam, the jumbotron dialog's voices / subtitles, the fd1a pod rain from the dialog's
+      C at B 160, the FD1b alarm's cos / additive rule
 
 ## Session 26b: gimmick gaps (build/gimmick_audit.md items 2, 4, 12)
 - [x] Carol's jump pads in TB4, TH3, BG2, JC2-JC4, FN4, FN5 (RV pad dumps -> levels.c PADS_*; JC3's pad lit and inert), drawn
       with each handle's images; Lilac / Milla's crystal pop as PinballMovement 36 / 25 taken on landing; 113 at the launch
 - [x] fd2b's vacuum air rule (J, dings, warnings, death 91 / 128, GUIAir, countdown digits) and its 6 oxygen patches (Easy /
       Casual only, sound 20); JC5's LevelRain (drops, splashes, loop 293, layer-0 tint, the bolt after 40 drops)
-- [ ] Found, not fixed (not in the brief): RM2's pads still draw DV's 539 images (no jpad_rm rows for frame 26); Lilac's normal
-      death lacks sound 91 and Carol's lacks 1960's 29 (RV fd2b_air / fd2b_air_c, p7); TB4's metal door 280 plays 15 frames
-      early after a teleport (RV c_jumppad_tb4); BG2's sound 102 during the wall-pad ride (RV c_jumppad_bg2, source not found);
-      the JC5 white card (OT_J5_FADE) is spawned without a sprite, so objects_draw may skip it (unverified)
+- [x] (session 26c) RM2's pad images, the death sounds 91 / 29, TB4's metal door 280 (real: A 2, not a teleport artefact), BG2's
+      102 (the fly-by plane), the JC5 white card
 - [ ] Brevon mech fly-by (BG4 wings, JC5 BrevonMechFlyby 11117 / 11118, FD4b BrevonMechBackground_2444): not done. Plan: an
       importer flag that halves an ENS row's images (2 x 2 box filter, frame size / hot spot / action point halved) and a
       draw flag that scales them x2 (as parallax PAR_ALPHA flag 2); export the fly-by rows only for 62 / 44 / 73 with that flag

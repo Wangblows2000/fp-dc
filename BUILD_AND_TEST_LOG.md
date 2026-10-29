@@ -604,3 +604,23 @@ Labels: original-trace (RV), RE, host-test, emulator (Flycast, emulated time). *
   1825 / 2057, fn5 953 / 1185 / 1417, fd2b 1454 / 1622 / 1982 KB (= the earlier sessions' numbers: no texture growth). Sound RAM
   largest free block: jc5 238 (Carol) / 261 (Milla), fd2b 225 / 206, every other act >= 194 KB. Stage groups (own ids): JC5
   143.5 -> 209.6 KB (+ 293, the 12 s rain loop), FD2B 146.1 -> 164.1 KB (+ 20, 91). **Emulator only.**
+
+## Session 26c (2026-10-29): small fixes
+- tests/test_small_fixes.py: 40 checks, 0 failures; with master's host build and data, 32 fail (the passes are static source
+  checks or vacuous: no 29 for Lilac / Milla, DV4 without beam rows, SB3's base eye opaque).
+- Regression after rebasing on 418b9e8: all 71 suites (incl. the adventure / story ones) 0 failures. Updated for the new rules:
+  test_fd_enemies pod rain (now started through the jumbotron's A 3 / B 160), test_late_gimmicks SB3 eye (the 0.8 layer, the glow),
+  test_bg_bosses BG2 chopper (Lilac's bot fight gets Carol's HP cut at 4000: the plane's shake draws on the random stream).
+- RV looks: TB3 heat sky (p7_l f1200-f1400) and TB6 (x2_l f2000-f2300) vs host renders: within 1-5 levels per channel; BG2 plane
+  (rv2 bg2_plane f114-f130), SB3 eye (rv2 sb3_eye f10-f80), fd1a subtitles (fd1a_dlg f700, late_gim f532), spring beam (rv2 every
+  frame 28-48), RM2 pad (rm2_pad f40): same sprites and places.
+- Rebuilt with the merged importer into converted2: at1-at4, dv1-dv3, rm1-rm5, fn1-fn5, sb2-sb4, jc1-jc5, tb1-tb5, pl1-pl6, th1-th3,
+  bg1-bg5, fd1a-fd4a (spring beam rows; rm2 pads; bg2 plane; FD nodes). Sounds: convert_audio sfx (VOX_PC = the user's voices):
+  only br_pa_01 / br_pa_02 / s102 are new, every other file byte-identical.
+- VRAM (host load profile, Carol, texture KB loaded; Flycast free before -> estimated after): rm2 3890 -> 4018 (2388 -> ~2260 KB
+  free), bg2 4402 -> 4914 (1876 -> ~1364), tb1 3455 -> 3711 (2823 -> ~2567), sb4 4410 -> 4538 (1868 -> ~1740), fd1a 4098 -> 4258
+  (2180 -> ~2020), pl2 +24, pl3 +8, every other act unchanged (FN3 has no beams: +512 KB with one row, 625 KB free with Carol).
+  **Not measured in Flycast.**
+- Sound: FD1A's own group 68.0 -> 112.9 KB (br_pa_01 22.7 KB, br_pa_02 22.1 KB, resident voices), BG2 99.5 -> 105.1 KB (s102),
+  Lilac's character set + 10.9 KB (s91, every act); JC5 unchanged.
+- Host and Dreamcast builds 0 warnings.
