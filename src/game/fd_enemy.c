@@ -89,12 +89,10 @@ static void pod_codes(void) {
     }
 }
 /* 15287 (FD1a): while the subtitle object's C > 0, on g3 % 10 == 5, one random drop point within 199 px of the player in x goes
- * (sound 345) and a pod appears there, shown and already landing (B 1, A = its y). The dialog script is flow's (15273-15288: C = 1
- * at its step 3, B 160, long before the drop points at x 11615-12511); a run that starts from the act start (g4 < 2) reaching x 800
- * starts the dialog: the rain is on from there (INFERRED; fd_enemy_pod_rain is the exact hook). */
-void fd_enemy_pod_rain(int on) { S.rain_hook = on; S.rain = on; }
-static void pod_rain(player_t *p) {
-    if (!S.rain && !S.rain_hook && S.stage == 10 && S.act == 1 && G.at_g4 < 2 && ek_px(p) > 800) S.rain = 1;
+ * (sound 345) and a pod appears there, shown and already landing (B 1, A = its y). C is set by the jumbotron script (fd_gim.c
+ * backdrop, RE 15284): at its step A 3 (X > 11111 and Y > 1760, 15277) when B reaches 160; it never goes back to 0. 15284 runs
+ * before 15287 in the same frame, so the frame C becomes 1 already drops a pod when g3 % 10 == 5 (fd_enemy_pod_rain(1, p)). */
+static void pod_rain_step(player_t *p) {
     if (!S.rain || G.frame % 10 != 5) return;
     obj_t *o, *c[EK_LMAX]; int n = 0; double px = ek_px(p);
     EACH(OT_FDE_PODSPOT, o) if (floorf(o->x) >= px - 199 && floorf(o->x) <= px + 199) c[n++] = o;
@@ -104,6 +102,11 @@ static void pod_rain(player_t *p) {
     obj_t *s = bg_enemy_spawner_drop(floorf(o->x), floorf(o->y), 0);
     if (s) s->layer = o->layer;
 }
+void fd_enemy_pod_rain(int on, player_t *p) {
+    S.rain_hook = on; S.rain = on;
+    if (on && p && S.stage == 10 && S.act == 1) pod_rain_step(p);   /* 15287 after 15284 (fd_enemy_pre ran before the script) */
+}
+static void pod_rain(player_t *p) { pod_rain_step(p); }
 
 /* ================================================================ EnemyPounder_3423 (RE 15255-15271, 15313, 16052, foreach_pound_65,
  * col_18_65). Ctor A 25, direction 8; start E = y (15313). av: [0] D (0 walking, 1 slamming, 2 rising, 4 beaten), [1] E home y,
@@ -275,7 +278,7 @@ int fd_enemy_gatlings_dormant(void) { int n = 0; for (int k = 0; k < S.ngun; k++
  * 1766): 16183 also gives it flag 1, x / y scale 43 / 24, flash(0) and shows it; 16184 (flag 1): alpha byte = 255 - clamp(trunc(200 cos A
  * + 180), 0, 255) (75 at A 90 / 270 exactly), A = (A + 5) mod 360, B + 1; 16185: flag 1, B > 300, A < 20: flag 1 off (the last alpha
  * stays: 0). Drawn additively over the view (ctor shader 0x20) on json layer 5: obj_draw_view_tint from objects_draw(3). */
-static int alarm_alpha(double A) {
+int fd_alarm_alpha(double A) {                                                  /* also FD1b's AlarmLight (fd_boss_r12.c, RE 15388: the same rule) */
     if (A == 90 || A == 270) return 75;
     double d = fd_cos(A / 57.29577951308232) * 200 + 180;
     if (d < 0) return 255;
@@ -289,7 +292,7 @@ static void alarm_frame(player_t *p) {
         S.alarm_b = 541; fd_enemy_gatlings_wake(); snd_play_orig(310, 220, 128);
         S.al_fl1 = 1; S.al_shown = 1;                                                       /* 16183 */
     }
-    if (S.al_fl1) { S.al_alpha = alarm_alpha(S.al_A); S.al_A = fmod(S.al_A + 5, 360); S.al_B += 1; }   /* 16184 */
+    if (S.al_fl1) { S.al_alpha = fd_alarm_alpha(S.al_A); S.al_A = fmod(S.al_A + 5, 360); S.al_B += 1; }   /* 16184 */
     if (S.al_fl1 && S.al_B > 300 && S.al_A < 20) S.al_fl1 = 0;                                         /* 16185 */
 #ifdef FP_HOST_ENV
     { static int dbg = -1; if (dbg < 0) dbg = getenv("FP_DBG_FDALARM") != NULL;

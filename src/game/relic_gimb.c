@@ -85,6 +85,7 @@ static int box_solid(int x0, int y0, int w, int h) {    /* a probe box on the ba
 static void kill_player(player_t *p) {
     if (p->state == ST_DEAD) return;
     p->hp = 0; p->state = ST_DEAD; p->dead_t = 0; p->vy = -5; p->vx = 0; p->gsp = 0; p->ground = 0; p->invinc = 0; p->invuln = 0; p->in_lock = 0;
+    player_die_sound();                            /* R 1 with no petals: 2416 R 2 -> loop_check_death (loop_sound_die_8) */
 }
 static int r_hurt(player_t *p, int n) {          /* MV.R = 1, LIFE.B += n (2414 applies it next frame) */
     if (dead(p) || p->hurt_pending || player_invincible(p)) return 0;

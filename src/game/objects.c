@@ -8,6 +8,7 @@
 #include "../fp.h"
 #include "th.h"                                   /* OT_THB_CROWD (the TH3 crowd's speed, th_boss_arena.c) */
 #include "tb.h"                                   /* OT_TBG_WMASK (obj_hang_box) */
+#include "jc.h"                                   /* OT_J5_FADE (objects_draw: JC5's white card, a sprite-less overlay) */
 /* the image box of a flipped frame: x - (w - hx); a left row drawn as the mirror of the right one (flip 2: jc_enemy.c / enemy_kit.h
  * mirror rows) has the original's left hotspot w - 1 - hx, so its box is 1 px further right (as objects_draw adds) */
 #define FLIP_HX(o, f) ((o)->flip ? (f)->w - (f)->hx - ((o)->flip == 2) : (f)->hx)
@@ -795,6 +796,13 @@ obj_t *obj_effect_l(float x, float y, const char *anim, int layer) {
     anim_set(&e->an, b, a);
     return e;
 }
+/* RE 2997-3012 (every spring's launch): create_effectsspringbeam_540 at the spring's (x, y), set_direction(the spring's direction),
+ * set_layer(the spring's); its ctor plays anim 4 once (10 images at speed 50) with no shader. Drawn after the player (RV small fixes
+ * spring_f29-f34: the up spring's beam covers Lilac: created after her skin on the same json layer), as obj_effect's layer 3 */
+void obj_spring_beam(const obj_t *s, int dir) {
+    char nm[8]; snprintf(nm, sizeof nm, "spb%d", dir);
+    obj_effect(s->x, s->y, nm);
+}
 void obj_effect(float x, float y, const char *anim) {
     int a = bank_anim(&G.objs, anim);
     if (a >= 0) { spawn_effect(x, y, a); return; }
@@ -1050,7 +1058,7 @@ void objects_update(void) {
              * box) and puts them at top + 0.25 */
             float top = by0 - 2;
             if (!dead && !p->ground && p->vy >= 0 && px1 > bx0 && px0 < bx1 && p->y >= top && p->y - 30 < by1) {
-                player_spring(p, 0, PHYS_SPRING, top + 0.25f); anim_restart(&o->an);
+                player_spring(p, 0, PHYS_SPRING, top + 0.25f); anim_restart(&o->an); obj_spring_beam(o, 8);
             }
             break;
         }
@@ -1058,7 +1066,7 @@ void objects_update(void) {
             /* RV (spring_yellow_upleft): same top-edge rule, feet put exactly on the top edge */
             if (!dead && !p->ground && p->vy >= 0 && px1 > bx0 && px0 < bx1 && p->y >= by0 - 2 && p->y - 30 < by1) {
                 player_spring(p, o->type == OT_SPRING_UL ? -PHYS_SPRING_DX : PHYS_SPRING_DX, PHYS_SPRING_DY, by0 - 2);
-                anim_restart(&o->an);
+                anim_restart(&o->an); obj_spring_beam(o, o->type == OT_SPRING_UL ? 12 : 4);
             }
             break;
         case OT_SPRING_R: case OT_SPRING_L:
@@ -1067,7 +1075,7 @@ void objects_update(void) {
              * half-width against it is 16.8..19.4 (18 used), not the +-7 body box */
             if (!dead && p->x - 18 < bx1 + 2 && p->x + 18 > bx0 - 2 && py1 > by0 && py0 < by1 && (o->type == OT_SPRING_R ? (p->ground ? p->gsp : p->vx) <= 0 : (p->ground ? p->gsp : p->vx) >= 0)) {
                 player_spring_side(p, o->type == OT_SPRING_R ? PHYS_SPRING_GSP : -PHYS_SPRING_GSP);
-                anim_restart(&o->an);
+                anim_restart(&o->an); obj_spring_beam(o, o->type == OT_SPRING_R ? 0 : 16);
             }
             break;
         case OT_HANG: obj_hang_try(o, p); break;
@@ -1098,10 +1106,10 @@ void obj_draw_view_tint(uint32_t rgb, int alpha) {
 /* pass 0: objects on layers 0-1 (before the play layer's pieces), 1: layer 2, 2: layers 3+ (after Lilac);
  * 3 (session 26): the stage modules' view overlays on json layer 5, after the layer 4-7 pieces and before the HUD */
 void objects_draw(int pass) {
-    if (pass == 3) { tb_boss_draw_overlay(); fd_enemy_draw(3); return; }
+    if (pass == 3) { tb_boss_draw_overlay(); fd_enemy_draw(3); fd_boss_draw(3); fd_gim_draw(3); return; }   /* + FD1b's alarm light, fd1a's subtitle */
     for (int i = 0; i < G.nobjs; i++) {
         const obj_t *o = &G.o[i];
-        if (!o->alive || !o->an.b || o->type == OT_HANG || o->type == OT_LADDERTOP || o->type == OT_BRIDGE) continue;   /* sensors / LadderTop are invisible */
+        if (!o->alive || (!o->an.b && o->type != OT_J5_FADE) || o->type == OT_HANG || o->type == OT_LADDERTOP || o->type == OT_BRIDGE) continue;   /* sensors / LadderTop are invisible; JC5's white card has no sprite (jc_boss5.c draws it: RV l_kill2 f3600) */
         if ((pass == -1 && o->layer >= 0) || (pass == 0 && (o->layer > 1 || o->layer < 0)) || (pass == 1 && o->layer != 2) || (pass == 2 && o->layer < 3)) continue;
         if (o->type >= OT_FNBOSS_FIRST && o->type <= OT_FNBOSS_LAST && fn_boss_draw_obj(o, pass)) continue;   /* FN bosses: UFO rig order, scaled beam / glow (fn_boss.c) */
         if (o->type >= OT_SBB_FIRST && o->type <= OT_SBB_LAST && sb_boss_draw_obj(o, pass)) continue;

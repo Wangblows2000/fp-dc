@@ -67,9 +67,9 @@ static void splash(const player_t *p) {
  * state is the one of the previous frame: the original runs 15802-15811 after these events. */
 static void vacuum_die(player_t *p) {
     p->state = ST_DEAD; p->dead_t = 0; p->ground = 0; p->vx = p->gsp = 0; p->hp = 0;   /* loop_check_death R 2: L 0, M 9 (G kept) */
-    /* loop_sound_die_8: Lilac 91 (RV fd2b_air), Carol 128 (RV fd2b_air_c; her bike's 1960 adds 29 a frame later: every Carol
-     * death does, not ported for any), Milla 178 (the alarm never starts for her) */
-    snd_play_orig(chr_is_milla(G.character) ? 178 : chr_is_carol(G.character) ? 128 : 91, 255, 128);
+    /* loop_sound_die_8: Lilac 91 (RV fd2b_air), Carol 128 (RV fd2b_air_c; the death group's 1960 adds 29 a frame later: player.c,
+     * every Carol death), Milla 178 (the alarm never starts for her) */
+    player_die_sound();
     music_stop();                                                                /* "unqueue_music" */
 }
 static void air_vacuum_events(player_t *p) {

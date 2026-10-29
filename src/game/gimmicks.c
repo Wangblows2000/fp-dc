@@ -56,6 +56,7 @@ void rspring_update(obj_t *o, player_t *p) {
     if (px1 > bx0 && px0 < bx1 && p->y >= by0 - 2 && p->y - 30 < by1) {
         player_spring(p, -14.0, 13.75, by0 - 2);
         int a = ens_anim("rspring_ul_b"); if (a >= 0) { anim_set(&o->an, &G.ens, a); anim_restart(&o->an); }
+        obj_spring_beam(o, 12);                                                   /* 3003 / 3004: the beam */
     }
 }
 
