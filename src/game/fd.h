@@ -68,6 +68,14 @@ enum { OT_FDG_TSTART = 2752,  /* ObjectTransporterStart_3416 (ctor A 90): a pipe
        OT_FDG_BUTTON = 2782,  /* SwitchButtonLeft_2707 (par 0) / Right_2705 (par 1) in fd2b (momentary: FRAME_TYPE_REMAP from TB's) */
        OT_FDG_BIGLIFT = 2783, /* ObjectBigLift_3584 (Q7 Q13: path platform with a scripted J) */
        OT_FDG_LSWITCH = 2784, /* SwitchBigLift1_3586 (par 0) / 2_3587 (par 1) */
+       OT_FDG_BOOST = 2785,   /* GimmickSpeedBooster_3640 (PLAYER on it: col_26_69) */
+       OT_FDG_BOOSTF = 2786,  /* GimmickSpeedBoosterFront_3639 (drawn at its booster) */
+       OT_FDG_OBASE = 2787,   /* HazardOrbitBeamBase_3652 (the centre; frame = its beam's I) */
+       OT_FDG_OBEAM = 2788,   /* HazardOrbitBeam_3653 (240 px around its base) */
+       OT_FDG_OSCAN = 2789,   /* HazardOrbitBeamScan_3654 (the ray to the centre: aims, then burns) */
+       OT_FDG_LTPLAT = 2790,  /* FDLaserTunnelPlatform_3743 (Q8 Q9) */
+       OT_FDG_LTUNNEL = 2791, /* HazardLaserTunnel_3742 */
+       OT_FDG_LTGLASS = 2792, /* HazardLaserTunnelGlass1 / 2 / 3 (par 0-2) */
        OT_FDG_PLACED_LAST = 2879,
        OT_FDG_FX = 2880,      /* runtime: a one-shot moving effect (the pipe exit's shock ring): av[0] age, av[1] life */
        OT_FDG_SPARK = 2881,   /* runtime: HazardSpiralSpark_3435 (foreach_st_65) */

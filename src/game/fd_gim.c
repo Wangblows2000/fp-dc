@@ -221,7 +221,7 @@ static void transporters(player_t *p) {
  * 15208: D == 60 in view (200): sound 358, CAM.Z >= 3. 15209: D == 60: C = 30. 15210: D > 80: D = 0. 15211: C > 0: C - 1.
  * 15212: the hitbox (A > 0) on PLAYERCHARACTERSENSOR and off PlayerReflect (Milla's cube), MV.R 0, OTHERS.E <= 0: hurt 10.
  * 15216-15219: beam / hitbox y scale + 1 (max 24) off the reflect, - 1 on it. Beam / hitbox image 18 x 10, hot spot (9, 0):
- * the beam reaches 10 x scale px from the cannon's centre along its angle. (15213 / 15214: the beam hits Q20 enemies too: the
+ * the beam reaches 10 x scale px from the cannon's centre along its angle (RV zap1: scale 24 from the act start). (15213 / 15214: the beam hits Q20 enemies too: the
  * enemies module's; INFERRED left out.) */
 #define ZB_W 9.0
 static void zb_axis(const obj_t *b, double *ux, double *uy) {                   /* the image's +y axis in the world (angle b->ang) */
@@ -267,7 +267,7 @@ static void zaps(player_t *p) {
         set_s(b, b->dir ? "fdg_zbeam1" : "fdg_zbeam0");
         double *sc = &b->av[0];                                                 /* the y scale */
         if (zb_cube(b, 10 * *sc)) *sc -= 1;                                     /* 15218 */
-        else if (S.act == 4 || S.act == 1 || S.act == 2) *sc = fmin(*sc + 1, 24);   /* 15216 (INFERRED in fd1a / fd1b: see the spec) */
+        else if (S.act == 4) *sc = fmin(*sc + 1, 24);                          /* 15216 (fd2b only: fd1a / fd1b's beams do not grow back) */
         if (*sc < 0) *sc = 0;
         if (C > 0 && !dead(p) && zb_hits_rect(b, 10 * *sc, X0, Y0, X1, Y1)) hurtme = 1;   /* 15212 (the hitbox follows the beam) */
     }
@@ -394,7 +394,7 @@ static void airlocks(player_t *p) {
 /* ================================================================ 6. pressure doors (fd1b; RE 15373-15382)
  * door 1 (from above, ctor B -192) / door 2 (from below, B 192): y = A + B (15373; A = the placed y: RV pd2), C state. 15374 / 15377 /
  * 15380: C 0, Lilac more than 60 px right of the door and the door's A in (Y - 240, Y): C 1 (door 3, the Q7 wall: y + B, it drops
- * into place). 15375 / 15378: C 1: B -> 0 by 16. 15376 / 15379: C 1 and B 0: C 2, the closed animation, CAM.Z >= 5, sound 361.
+ * into place). 15375 / 15378: C 1: B -> 0 by 16. 15376 / 15379: C 1 and B 0: C 2, the closed animation (7), CAM.Z >= 5, sound 132.
  * 15381 / 15382: a closed-in door (C > 0) on both TopBig and BottomBig while both touch something: Lilac is crushed (M 9). */
 static void pdoors(player_t *p) {
     obj_t *o;
@@ -404,12 +404,12 @@ static void pdoors(player_t *p) {
         o->y = trunc_i(*A + *B);                                                /* 15373 */
         if (*C == 0 && X - 60 > floorf(o->x) && *A > Y - 240 && *A < Y) *C = 1;   /* 15374 / 15377 */
         if (*C == 1) *B = o->par & 1 ? fmax(*B - 16, 0) : fmin(*B + 16, 0);     /* 15375 / 15378 */
-        if (*C == 1 && *B == 0) { *C = 2; shake(5); snd(361); }                 /* 15376 / 15379 */
+        if (*C == 1 && *B == 0) { *C = 2; shake(5); snd(132); set_s(o, o->par & 1 ? "fdg_pdoor2c" : "fdg_pdoor1c"); }                 /* 15376 / 15379 */
         if (*C > 0 && *B > -48 && *B < 48 && !dead(p) && sens_hit(SENS_TOPBIG, o) && sens_hit(SENS_BOTTOMBIG, o)) crush = 1;   /* 15381 / 15382 */
     }
     EACH(OT_FDG_PDOOR3, o) {                                                    /* 15380 */
         double *A = &o->av[0], *B = &o->av[1], *C = &o->av[2];
-        if (*C == 0 && X - 60 > floorf(o->x) && *A > Y - 240 && *A < Y) { *C = 1; o->y = trunc_i(floorf(o->y) + *B); o->hidden = 0; o->fl &= ~F0; }
+        if (*C == 0 && X - 60 > floorf(o->x) && *A > Y - 240 && *A < Y) { *C = 1; o->y = trunc_i(floorf(o->y) + *B); }
     }
     if (crush) player_damage(p, 999);                                           /* MV.M 9, R 1, rings 0: the crush kills */
 }
@@ -612,6 +612,64 @@ static void scenery(void) {
     EACH(OT_FDG_TUBESHADE, o) { o->av[1] = fmod(o->av[1] + 2, 360.); o->y = trunc_i(o->av[0] + 24 * c_sin(o->av[1])); }
 }
 
+/* ================================================================ 16. speed boosters (fd3a, fd3b; RE col_26_69, 16038 / 16039)
+ * col_26_69 (PLAYER on a booster): sound 379, MV.B = 15 (or -15 when B < 0: her own direction), OTHERS.E >= 30, the afterimage
+ * clock (A) 30, MV.Q = the direction; 16039: while A > 0 an afterimage a frame (INFERRED: left out). 16038: the front at its booster. */
+static void boosters(player_t *p) {
+    obj_t *o, *b;
+    EACH(OT_FDG_BOOSTF, o) { if ((b = partner(o, OT_FDG_BOOST))) { o->x = b->x; o->y = b->y; } }   /* 16038 */
+    if (dead(p) || hurt(p) || p->state == ST_RIDE) return;
+    EACH(OT_FDG_BOOST, b) {
+        float x0, y0, x1, y1; if (!b->an.b) continue; box_of(b, &x0, &y0, &x1, &y1);
+        if (!rect_disc(x0, y0, x1, y1, p)) continue;
+        double B = p->ground ? p->gsp : p->vx, v = B >= 0 ? 15 : -15;
+        if (p->ground) p->gsp = v; else p->vx = v;
+        if (p->ground) p->vx = v;
+        p->face = v > 0 ? 1 : -1;
+        if (p->invuln < 30) p->invuln = 30;
+        snd_cool(4, 379);
+        break;
+    }
+}
+
+/* ================================================================ 17. orbit beams (fd3a, fd3b; RE 16040-16046, start 16201)
+ * beam: D, E = its base (the centre), F its angle (start: k = the selection index, F = (k / 6) 180 + ((k mod 6) + 0.5) 24 + 18.5),
+ * H the clock (+1, -100 at 100: 16046), at (D + 240 cos F, E - 240 sin F), angle F + 180 (16040); F - 1 a frame (16041). The base's
+ * frame = (g3 0.3) mod 8. scan (the ray to the centre): at its beam, angle F + 180, A = the beam's H; A < 55: direction 1 (it aims,
+ * harmless: 16043); A >= 55: it burns (16045: PLAYERCHARACTERSENSOR, MV.R 0, OTHERS.B != 2, OTHERS.E <= 0: hurt 5); H 55 in view:
+ * sound 70, CAM.Z >= 3 (16042). INFERRED: the ray reaches the centre (x scale 240 / 64), the base is not a target. */
+static int ray_hits(const obj_t *s, double len, int x0, int y0, int x1, int y1) {
+    double a = s->ang / RAD, ux = cos(a), uy = -sin(a);
+    for (double d = 0; d < len; d += 4)
+        for (int k = -1; k <= 1; k++) {
+            double x = floorf(s->x) + ux * d - uy * k * 7, y = floorf(s->y) + uy * d + ux * k * 7;
+            if (x >= x0 && x <= x1 && y >= y0 && y <= y1) return 1;
+        }
+    return 0;
+}
+static void orbits(player_t *p) {
+    obj_t *o, *s;
+    int X0, Y0, X1, Y1, hit = 0, fire = 0; char_rect(p, &X0, &Y0, &X1, &Y1);
+    EACH(OT_FDG_OBEAM, o) {
+        double *F = &o->av[2], *H = &o->av[3];
+        o->x = trunc_i((int)o->av[0] + 240 * c_cos((int)*F)); o->y = trunc_i((int)o->av[1] - 240 * c_sin((int)*F));   /* 16040 */
+        o->ang = (float)fmod((int)*F + 180, 360.);
+        *H += 1;
+        if (*H == 55 && obj_near_view(o, 100)) fire = 1;                        /* 16042 */
+        *F = (double)(((int)*F + 359) % 360);                                   /* 16041 */
+        if (*H >= 100) *H -= 100;                                               /* 16046 */
+    }
+    if (fire) { snd_cool(5, 70); shake(3); }
+    EACH(OT_FDG_OBASE, o) set_frame(o, (int)fmod(g3() * 0.3, 8.));
+    EACH(OT_FDG_OSCAN, s) {
+        if (!(o = partner(s, OT_FDG_OBEAM))) continue;
+        s->x = o->x; s->y = o->y; s->ang = o->ang; s->av[0] = o->av[3];
+        set_s(s, s->av[0] < 55 ? "fdg_oscan1" : "fdg_oscan0");
+        if (s->av[0] >= 55 && !hit && !dead(p) && ray_hits(s, 240, X0, Y0, X1, Y1)) hit = 1;   /* 16045 */
+    }
+    if (hit && p->shield != 2 && vulnerable(p)) player_contact(p, 5);
+}
+
 /* ================================================================ 15. fd2b's alarm (RE 15802, 15803, 15807, 15808, 15811)
  * The off-map ObjectSiren's A / B: 15802: A 0, MV.Y > 5340, global 4 (the checkpoint) < 2, not Milla (global 1 != 4): A 1 (the
  * warning subtitle: the flow's). 15803: A 1: B + 1. 15807: A 1 and B > 400, or A < 2 with the checkpoint in [2, 4), not Milla and
@@ -688,7 +746,7 @@ void fd_gim_spawn(void) {
     }
     link_pairs(OT_FDG_TSTART2, OT_FDG_TSTART);
     EACH(OT_FDG_ZCANNON, o) { o->av[0] = 270; o->av[1] = 270; o->av[4] = 240; o->av[5] = 300; }   /* ctor A 270, E 240, F 300 */
-    EACH(OT_FDG_ZBEAM, o) o->av[0] = 1;                                         /* y scale 1 */
+    EACH(OT_FDG_ZBEAM, o) o->av[0] = 24;                                        /* y scale 24 (RV zap1: 0xcc = 24 from the start) */
     link_pairs(OT_FDG_ZBEAM, OT_FDG_ZCANNON); link_pairs(OT_FDG_ZHIT, OT_FDG_ZCANNON);
     EACH(OT_FDG_ZHIT, o) o->an.b = NULL;
     EACH(OT_FDG_DHPLAT, o) { o->av[0] = o->ox; o->av[1] = o->oy; o->fl = 0; }  /* Q, R = the start (I, J) */
@@ -698,7 +756,7 @@ void fd_gim_spawn(void) {
     EACH(OT_FDG_AIRLOCK, o) set_s(o, o->par & 1 ? "fdg_air3" : "fdg_air2");
     link_pairs(OT_FDG_AIRLOCK_S, OT_FDG_AIRBASE); link_pairs(OT_FDG_AIRLOCK, OT_FDG_AIRBASE);
     EACH(OT_FDG_PDOOR, o) { set_s(o, o->par & 1 ? "fdg_pdoor2" : "fdg_pdoor1"); o->av[0] = floorf(o->y); o->av[1] = o->par & 1 ? 192 : -192; o->y = trunc_i(o->av[0] + o->av[1]); }
-    EACH(OT_FDG_PDOOR3, o) { o->av[0] = floorf(o->y); o->av[1] = 192; o->y = trunc_i(o->av[0] - 192); o->hidden = 1; o->fl |= F0; }   /* (INFERRED: the wall waits above, out of the way) */
+    EACH(OT_FDG_PDOOR3, o) { o->av[0] = floorf(o->y); o->av[1] = 192; o->y = trunc_i(o->av[0] - 192); }   /* 15566: A = y, y - B (it waits 192 px up, solid) */
     EACH(OT_FDG_SFLOOR, o) { set_s(o, o->par & 1 ? "fdg_sfloor2" : "fdg_sfloor"); o->av[1] = floorf(o->x); if (!(o->par & 1)) o->fl |= F0; }   /* Q7: ScrollingFloor2 only */
     int n = N(OT_FDG_PUSH), k = 0;
     EACH(OT_FDG_PUSH, o) { set_s(o, "fdg_push"); o->av[0] = ((n - 1 - k++) % 12) * 32.; o->fl = 0; }   /* on_frame_68_start: Q = (k mod 12) 32 */
@@ -727,6 +785,21 @@ void fd_gim_spawn(void) {
     EACH(OT_FDG_BIGLIFT, o) { set_s(o, "fdg_biglift"); o->av[1] = o->oy; o->av[0] = 0; o->fl = 0; }   /* S = home J */
     EACH(OT_FDG_LSWITCH, o) set_s(o, "fdg_lswitch");
     link_pairs(OT_FDG_LSWITCH, OT_FDG_BIGLIFT);
+    EACH(OT_FDG_BOOST, o) set_s(o, "fdg_boost");
+    EACH(OT_FDG_BOOSTF, o) set_s(o, "fdg_boostf");
+    link_pairs(OT_FDG_BOOSTF, OT_FDG_BOOST);
+    EACH(OT_FDG_OBASE, o) set_s(o, "fdg_obase");
+    link_pairs(OT_FDG_OBEAM, OT_FDG_OBASE); link_pairs(OT_FDG_OSCAN, OT_FDG_OBEAM);
+    n = N(OT_FDG_OBEAM); k = 0;
+    EACH(OT_FDG_OBEAM, o) {                                                     /* 16201: D, E = the base, F from the index, G = +-1 */
+        obj_t *b = partner(o, OT_FDG_OBASE); int j = n - 1 - k++;
+        set_s(o, "fdg_obeam");
+        o->av[0] = b ? floorf(b->x) : floorf(o->x); o->av[1] = b ? floorf(b->y) : floorf(o->y);
+        o->av[2] = (j / 6) * 180 + ((j % 6) + 0.5) * 24 + 18.5; o->av[4] = ((j / 6) % 2) * 2 - 1;
+        o->av[2] = (double)((int)o->av[2] % 360);
+    }
+    EACH(OT_FDG_OSCAN, o) { set_s(o, "fdg_oscan1"); o->hidden = 1; }
+    EACH(OT_FDG_LTPLAT, o) set_s(o, "fdg_ltplat");
     if (N(OT_FDG_LSWITCH) == 2 * N(OT_FDG_BIGLIFT)) {                           /* (INFERRED: each lift takes its two switches, by class) */
         int i1 = 0, i2 = 0;
         EACH(OT_FDG_LSWITCH, o) { int j = (o->par & 1) ? i2++ : i1++; if (j < N(OT_FDG_BIGLIFT)) o->tm = LST[OT_FDG_BIGLIFT - RT0][j]; }
@@ -754,6 +827,8 @@ void fd_gim_frame(player_t *p) {
     if (N(OT_FDG_RBARRIER) || N(OT_FDG_BUTTON)) barriers(p);                     /* 15729-15739 */
     if (N(OT_FDG_LSWITCH)) lifts(p);                                             /* 15758-15768 */
     if (N(OT_FDG_TUBESHADE)) scenery();                                          /* 15667 */
+    if (N(OT_FDG_BOOST)) boosters(p);                                            /* col_26_69, 16038 / 16039 */
+    if (N(OT_FDG_OBEAM)) orbits(p);                                              /* 16040-16046 */
     if (S.act == 4) siren(p);                                                    /* 15802-15811 */
     effects();
 #ifdef FP_HOST_ENV
@@ -772,6 +847,12 @@ void fd_gim_draw(int pass) {
         int n = (int)ceil(b->av[0]);
         const frame_t *f = anim_frame(&b->an);
         for (int k = 0; k < n; k++) frame_draw_rot(b->an.b, f, sx + (float)(ux * 10 * k), sy + (float)(uy * 10 * k), b->ang, 0, 0xffffffff);
+    }
+    EACH(OT_FDG_OSCAN, b) {                                                     /* the orbit rays: x scale 240 / 64 (INFERRED) */
+        if (!b->an.b) continue;
+        float sx = floorf(b->x - G.camx), sy = floorf(b->y - G.camy);
+        if (sx < -260 || sx > SCREEN_W + 260 || sy < -260 || sy > SCREEN_H + 260) continue;
+        r_set_xscale(3.75f); frame_draw_rot(b->an.b, anim_frame(&b->an), sx, sy, b->ang, 0, 0xffffffff); r_set_xscale(1.f);
     }
 }
 int fd_gim_obj(obj_t *o, player_t *p) {
