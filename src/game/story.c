@@ -17,6 +17,8 @@ typedef struct {
     char name[24]; int room, g4, chr, panel;   /* panel: GUIPause frame (1 SKIP / QUIT, 2 SKIP / NEXT STAGE; 0: START skips at once) */
     step_t next, skip, stage;
     int trig_new, trig_end;          /* trig_end: stage I + 1 (0 none) */
+    int sid;                         /* the permanent scene number (tables/story/sids.json): seen flags and the saved story
+                                      * position use it, never the table position (which shifts as scenes are ported); -1 none */
 } scene_t;
 static scene_t SC[STORY_MAX];
 static int nsc = -1;                 /* -1: not read yet */
@@ -57,7 +59,7 @@ static void table_load(void) {
         scene_t *s = &SC[k];
         char nm[24], nx[32], tok[32]; int room, g4, off = 0;
         if (sscanf(lines[i], "%23s %d %d %31s%n", nm, &room, &g4, nx, &off) != 4) continue;
-        parse_step(nx, &s->next); s->skip = s->next; s->panel = 1; memset(&s->stage, 0, sizeof s->stage);
+        parse_step(nx, &s->next); s->skip = s->next; s->panel = 1; s->sid = -1; memset(&s->stage, 0, sizeof s->stage);
         for (const char *p = lines[i] + off; sscanf(p, "%31s%n", tok, &off) == 1; p += off) {
             if (!strncmp(tok, "skip=", 5)) parse_step(tok + 5, &s->skip);
             else if (!strncmp(tok, "stage=", 6)) { s->stage.kind = NX_STAGE; snprintf(s->stage.dir, sizeof s->stage.dir, "%.7s", tok + 6); }
@@ -65,6 +67,7 @@ static void table_load(void) {
             else if (!strcmp(tok, "trig=new")) s->trig_new = 1;
             else if (!strncmp(tok, "trig=end:", 9)) s->trig_end = atoi(tok + 9) + 1;
             else if (!strncmp(tok, "chr=", 4)) s->chr = atoi(tok + 4);
+            else if (!strncmp(tok, "sid=", 4)) s->sid = atoi(tok + 4);
         }
         k++;
     }
@@ -74,7 +77,8 @@ int story_count(void) { table_load(); return nsc; }
 int story_scene_id(const char *name) { for (int i = 0; i < (nsc > 0 ? nsc : 0); i++) if (!strcmp(SC[i].name, name)) return i; return -1; }
 const char *story_scene_name(int id) { return id >= 0 && id < nsc ? SC[id].name : "-"; }
 
-/* ---- progression state: seen flags (global) and the file's story position (save.c v5) */
+/* ---- progression state: seen flags (global) and the file's story position (save.c v5); both by the scene's sid */
+static int sid_of(int id) { return id >= 0 && id < nsc ? SC[id].sid : -1; }
 int  story_seen(int id) { return id >= 0 && id < STORY_MAX && (SV.story_seen[id >> 3] >> (id & 7) & 1); }
 void story_mark_seen(int id) { if (id >= 0 && id < STORY_MAX) SV.story_seen[id >> 3] |= (uint8_t)(1 << (id & 7)); }
 
@@ -154,8 +158,8 @@ static void complete(int skipped) {
     S.done = 1;
     int id = S.scene;
     csx_stop_audio(); music_stop();
-    story_mark_seen(id);
-    S.pos = id + 1;
+    story_mark_seen(sid_of(id));
+    S.pos = sid_of(id) + 1;                                 /* 0: none (a scene without a number) */
     if (G.file_slot >= 0 && G.file_slot < SAVE_FILES && !G.file_new && SV.file[G.file_slot].used) {   /* the file's story position (save.c v5) */
         SV.file[G.file_slot].story = (uint8_t)S.pos;
         save_store();
@@ -191,14 +195,14 @@ static int start_scene(int id) {
 #ifdef FP_HOST_ENV
         printf("story missing %s\n", SC[id].name);
 #endif
-        story_mark_seen(id);
+        story_mark_seen(sid_of(id));
         step_t st = SC[id].next; go_step(&st); return 0;
     }
     snprintf(room, sizeof room, "st%d", SC[id].room);
     G.stage_carry = 1;                                      /* lives, crystals and the shield go through the room */
     int r = game_load_level(room);
     G.stage_carry = 0;
-    if (r < 0) { csx_free(); story_mark_seen(id); step_t st = SC[id].next; go_step(&st); return 0; }
+    if (r < 0) { csx_free(); story_mark_seen(sid_of(id)); step_t st = SC[id].next; go_step(&st); return 0; }
     music_stop();
     { short ids[48]; int n = csx_sfx_ids(ids, 48); static short keep[48]; memcpy(keep, ids, sizeof ids); game_sfx_set(keep, n); }
     memset(&S.font, 0, sizeof S.font);
