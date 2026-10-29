@@ -1821,12 +1821,16 @@ FDG_TYPES_ID = {('objecttransporterstart', 3416): 2752, ('objecttransporterstart
     ('levelelectriccrusherbolt', 3542): 2776, ('levelelectriccrushermask', 3543): 2777, ('corkscrewdoor', 3537): 2778,
     ('switchcorkscrewdoor', 3536): 2779, ('playershieldgiver', 3528): 2780, ('fdrotatingbarrier', 3567): 2781,
     ('objectbiglift', 3584): 2783, ('switchbiglift1', 3586): 2784, ('switchbiglift2', 3587): 2784,
+    ('gimmickspeedbooster', 3640): 2785, ('gimmickspeedboosterfront', 3639): 2786, ('hazardorbitbeambase', 3652): 2787,
+    ('hazardorbitbeam', 3653): 2788, ('hazardorbitbeamscan', 3654): 2789, ('fdlasertunnelplatform', 3743): 2790,
+    ('hazardlasertunnel', 3742): 2791, ('hazardlasertunnelglass1', 3746): 2792, ('hazardlasertunnelglass2', 3747): 2792,
+    ('hazardlasertunnelglass3', 3748): 2792,
     # reused Thermal Base types (tb_gim.c): the lab doors are its metal doors, the locked lab doors its locked doors
     ('labdoorback', 3512): 1894, ('labdoorfront', 3513): 1894, ('lockedlabdoorback', 3522): 1892, ('lockedlabdoorfront', 3524): 1892,
     ('lockedlabdoorbarrier', 3523): 1893}
 FDG_SUB = {'objecttransporternode90_3419': 1, 'objecttransporternode180_3420': 2, 'objecttransporternode270_3421': 3,
     'airlock4_3458': 1, 'airlock3_3456': 1, 'pressuredoor2_3490': 1, 'scrollingfloor2_3465': 1, 'fdconsole2_3553': 1,
-    'switchbiglift2_3587': 1, 'switchbuttonright_2705': 1}
+    'switchbiglift2_3587': 1, 'switchbuttonright_2705': 1, 'hazardlasertunnelglass2_3747': 1, 'hazardlasertunnelglass3_3748': 2}
 TBG_SUB.update({'labdoorfront_3513': 1, 'lockedlabdoorfront_3524': 1})   # FD_GIM: TB types' member index
 FRAME_TYPE_REMAP[(69, 1914)] = 2782    # FD_GIM: fd2b's switch buttons are momentary (15733-15739: OT_FDG_BUTTON), not TB's one-shot
 FDG_ENS = [(c, a, d, nm) for c, a, d, nm in (
@@ -1851,7 +1855,12 @@ FDG_ENS = [(c, a, d, nm) for c, a, d, nm in (
     ('corkscrewdoor_3537', 0, '0', 'fdg_cdoor'), ('switchcorkscrewdoor_3536', 0, '0', 'fdg_cswitch'),
     ('playershieldgiver_3528', 0, '0', 'fdg_shg'), ('playershieldgiver_3528', 10, '0', 'fdg_shg10'), ('playershieldgiver_3528', 11, '0', 'fdg_shg11'),
     ('fdrotatingbarrier_3567', 0, '0', 'fdg_rbarrier'), ('objectbiglift_3584', 0, '0', 'fdg_biglift'),
-    ('switchbiglift2_3587', 0, '0', 'fdg_lswitch'),                                  # switch 1 shares the images (RE ctor)
+    ('switchbiglift2_3587', 0, '0', 'fdg_lswitch'),
+    ('gimmickspeedbooster_3640', 0, '0', 'fdg_boost'), ('gimmickspeedboosterfront_3639', 0, '0', 'fdg_boostf'),
+    ('hazardorbitbeambase_3652', 0, '0', 'fdg_obase'), ('hazardorbitbeam_3653', 0, '0', 'fdg_obeam'),
+    ('hazardorbitbeamscan_3654', 0, '0', 'fdg_oscan0'), ('hazardorbitbeamscan_3654', 0, '1', 'fdg_oscan1'),
+    ('fdlasertunnelplatform_3743', 0, '0', 'fdg_ltplat'), ('hazardlasertunnel_3742', 0, '0', 'fdg_ltun0'), ('hazardlasertunnel_3742', 8, '0', 'fdg_ltun8'),
+    ('hazardlasertunnelglass1_3746', 0, '0', 'fdg_ltg1'), ('hazardlasertunnelglass2_3747', 0, '0', 'fdg_ltg2'), ('hazardlasertunnelglass3_3748', 0, '0', 'fdg_ltg3'),                                  # switch 1 shares the images (RE ctor)
     ('labdoorback_3512', 0, '0', 'tbg_mdback'), ('labdoorfront_3513', 0, '0', 'tbg_mdfront'),   # TB's metal-door rows (FD frames)
     ('lockedlabdoorback_3522', 0, '0', 'tbg_ldback'), ('lockedlabdoorfront_3524', 0, '0', 'tbg_ldfront'),
     ('lockedlabdoorbarrier_3523', 0, '0', 'tbg_barrier'))]

@@ -1159,6 +1159,14 @@ static const objdef_t DEFS[] = {
     { OT_FDG_BUTTON,    OD_BOXCOL,                             NULL         }, /* switchbuttonleft_2707 / right_2705 in fd2b (sub 0-1) */
     { OT_FDG_BIGLIFT,   OD_SOLID,                              NULL         }, /* objectbiglift_3584 (Q7 Q13) */
     { OT_FDG_LSWITCH,   OD_BOXCOL,                             NULL         }, /* switchbiglift1_3586 / 2_3587 (sub 0-1) */
+    { OT_FDG_BOOST,     OD_BOXCOL,                             NULL         }, /* gimmickspeedbooster_3640 */
+    { OT_FDG_BOOSTF,    OD_BOXCOL,                             NULL         }, /* gimmickspeedboosterfront_3639 */
+    { OT_FDG_OBASE,     OD_BOXCOL,                             NULL         }, /* hazardorbitbeambase_3652 (Q20 in the original, A 99: INFERRED not a target) */
+    { OT_FDG_OBEAM,     OD_BOXCOL,                             NULL         }, /* hazardorbitbeam_3653 */
+    { OT_FDG_OSCAN,     OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* hazardorbitbeamscan_3654 (drawn x-scaled by fd_gim_draw) */
+    { OT_FDG_LTPLAT,    OD_OBSTACLE|OD_NOEDGE|OD_BOXCOL,       NULL         }, /* fdlasertunnelplatform_3743 (Q8 Q9) */
+    { OT_FDG_LTUNNEL,   OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* hazardlasertunnel_3742 (ctor invisible) */
+    { OT_FDG_LTGLASS,   OD_BOXCOL,                             NULL         }, /* hazardlasertunnelglass1 / 2 / 3 (sub 0-2) */
     { OT_FDG_FX,        0,                                     NULL         }, /* - (runtime: one-shot moving effects) */
     { OT_FDG_SPARK,     0,                                     NULL         }, /* - (runtime: hazardspiralspark_3435) */
     { OT_FDG_WIND,      0,                                     NULL         }, /* - (runtime: effectairlockwind_3460) */
