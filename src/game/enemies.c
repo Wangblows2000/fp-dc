@@ -33,9 +33,26 @@ static void ibox(const obj_t *o, float *x0, float *y0, float *x1, float *y1) {
     const frame_t *f = anim_frame(&o->an);
     *x0 = floorf(o->x) - f->hx; *y0 = floorf(o->y) - f->hy; *x1 = *x0 + f->w; *y1 = *y0 + f->h;
 }
-/* !is_near_border(-n): the box inside the view grown by n */
+/* the whole (uncropped) image box when the bank has one (BOX1), else the atlas frame's box */
+static void fullbox(const obj_t *o, float *x0, float *y0, float *x1, float *y1) {
+    if (o->an.b) {
+        const frame_t *f = anim_frame(&o->an);
+        const bank_t *b = o->an.b;
+        if (b->fbox) {   /* the uncropped image (BOX1; RE is_near_border uses the image box, RV bg3_squid) */
+            const int16_t *q = b->fbox + 4 * (f - b->frames);
+            if (q[2] > 0) {
+                int hx = o->flip ? q[2] - q[0] - (o->flip == 2) : q[0];
+                *x0 = floorf(o->x) - hx; *y0 = floorf(o->y) - q[1]; *x1 = *x0 + q[2]; *y1 = *y0 + q[3];
+                return;
+            }
+        }
+    }
+    ibox(o, x0, y0, x1, y1);
+}
+/* !is_near_border(-n): the whole image box inside the view grown by n (RE FrameObject::is_near_border; RE compares strictly: kept
+ * inclusive here, INFERRED tolerance for the port's 1-2 px position differences, e.g. test_th_enemies bike skids RV 93/99/105) */
 int obj_near_view(const obj_t *o, int n) {
-    float x0, y0, x1, y1; ibox(o, &x0, &y0, &x1, &y1);
+    float x0, y0, x1, y1; fullbox(o, &x0, &y0, &x1, &y1);
     return x0 >= G.camx - n && x1 <= G.camx + SCREEN_W + n && y0 >= G.camy - n && y1 <= G.camy + SCREEN_H + n;
 }
 static int obstacle(float x, float y) { return px_solid(&G.lvl, (int)floorf(x), (int)floorf(y)); }   /* Frame::test_obstacle */
