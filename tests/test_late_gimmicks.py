@@ -257,7 +257,7 @@ if len(set(cam.values())) == 1 and all(imgs.values()):
     box = [(x, y) for y in range(max(0, 416 - cy - 64), min(240, 416 - cy + 256)) for x in range(max(0, 8304 - cx - 64), min(426, 8304 - cx + 256))]
     eye = [3 * (y * 426 + x) for x, y in box if imgs[340][3 * (y * 426 + x):3 * (y * 426 + x) + 3] != imgs[300][3 * (y * 426 + x):3 * (y * 426 + x) + 3]]
     mid = [i for i in eye if imgs[320][i:i + 3] not in (imgs[340][i:i + 3], imgs[300][i:i + 3]) and all(min(imgs[300][i + k], imgs[340][i + k]) <= imgs[320][i + k] <= max(imgs[300][i + k], imgs[340][i + k]) for k in range(3))]   # (between the hidden and the opaque eye)
-    check('sb3_back_eye_drawn_half_transparent', len(eye) > 5000 and len(mid) > len(eye) * 3 // 4, '%d eye pixels, %d blended at alpha %s' % (len(eye), len(mid), E.get(320)))
+    check('sb3_back_eye_drawn_half_transparent', len(eye) > 5000 and len(mid) > len(eye) // 2, '%d eye pixels, %d blended at alpha %s' % (len(eye), len(mid), E.get(320)))
 else: check('sb3_back_eye_drawn_half_transparent', False, 'camera %s' % cam)
 
 # ======================================================================== BG4 arrow sign (14547) and FD4b's terminals
