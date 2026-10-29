@@ -120,6 +120,7 @@ static void level_free(void) {   /* everything of the level except Lilac's banks
     for (int i = 0; i < G.lvl.natlas && i < MAX_ATLAS; i++) tex_drop(&G.lvl.atlas[i]);
     for (int i = 0; i < G.npar; i++) tex_drop(&G.par[i]);
     par_free();
+    fd_gim_level_free();                           /* fd1a's subtitle font */
     free(G.lvl.pieces); free(G.lvl.objs); free(G.lvl.blob);
     memset(&G.lvl, 0, sizeof G.lvl);
     G.npar = 0; G.nobjs = 0;
@@ -280,7 +281,7 @@ static const int SND_IDS[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
 static int snd_handle[512];
 /* Sound RAM (2 MB, shared with the music stream) cannot hold every character's samples (RV Flycast: 1.8 MB of samples
  * at boot crashed the AICA): the shared set loads at boot, each character's own set when a stage starts with her */
-static const int SND_LILAC[] = { 9, 21, 31, 174, 176, 288, 289, 290, 314, 396, 405 };     /* + VOICES */
+static const int SND_LILAC[] = { 9, 21, 31, 174, 176, 288, 289, 290, 314, 396, 405, 91 };     /* + VOICES; 91 = her die sound (loop_sound_die_8) */
 static const int SND_CAROL[] = { 33, 61, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 126, 128, 133, 139, 140, 141, 154,
                                  159, 160, 161, 162, 232, 387, 409, 410, 411, 412, 413, 414 };
 /* Milla (session 11; RE loop_sound_* Milla branches, spec_milla_*): hurt 179-182, die 178, float 244 + flaps 170, dig
