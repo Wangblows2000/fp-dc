@@ -74,29 +74,18 @@ data: extracted/assets
 	python3 tools/convert.py extracted/assets "$(FP_GAME)/Data/BGM" converted
 
 DATA_DIR ?= converted2
-build/disc/data: $(DATA_DIR)/levels.txt
-	rm -rf build/disc && mkdir -p build/disc/data
-	cp $(DATA_DIR)/levels.txt build/disc/data/      # (the old root sfx_*.wav / stage1.pcm are unused: not on the disc)
-	for d in $$(cat $(DATA_DIR)/levels.txt); do mkdir -p build/disc/data/$$d; \
-	  cp $(DATA_DIR)/$$d/*.tex $(DATA_DIR)/$$d/*.spr $(DATA_DIR)/$$d/*.lv2 $(DATA_DIR)/$$d/*.pal build/disc/data/$$d/; \
-	  cp $(DATA_DIR)/$$d/*.bin build/disc/data/$$d/ 2>/dev/null || true; done   # *_par.bin: parallax pieces
-	# front end (ui scenes + banks + font), ADPCM music library (.adp), ADPCM sfx/voices
-	mkdir -p build/disc/data/ui build/disc/data/bgm build/disc/data/sfx
-	cp $(DATA_DIR)/ui/*.ui $(DATA_DIR)/ui/*.spr $(DATA_DIR)/ui/*.tex $(DATA_DIR)/ui/*.bin build/disc/data/ui/
-	cp $(BGM) build/disc/data/bgm/
-	cp $(DATA_DIR)/sfx/*.wav build/disc/data/sfx/
-	mkdir -p build/disc/data/end; cp $(DATA_DIR)/end/* build/disc/data/end/   # the end of the game (session 24, tools/import_ending.sh): end.pak
-	mkdir -p build/disc/data/gal; cp $(DATA_DIR)/gal/*.tex $(DATA_DIR)/gal/*.pal $(DATA_DIR)/gal/*.wav $(DATA_DIR)/gal/*.txt $(wildcard $(DATA_DIR)/gal/*.adp) build/disc/data/gal/   # gallery (session 15): loose, on demand (.adp: streamed sound cards, session 18)
-	python3 tools/twiddle_disc.py build/disc/data
-	python3 tools/pack_disc.py build/disc/data
-	if [ -n "$(DEMO)" ]; then cp "$(DEMO)" build/disc/data/demo.txt; fi   # verification builds: scripted input (plat_dc demo_load)
-	python3 tools/pad_disc.py build/disc/data
+# DISC: the disc tree (tools/builder builds it outside the checkout)
+DISC ?= build/disc
+$(DISC)/data: $(DATA_DIR)/levels.txt
+	# the disc tree (tools/make_disc.py: levels, ui, bgm = $(BGM), sfx, end, gal; pre-twiddle, pack, DEMO -> demo.txt, pad)
+	python3 tools/make_disc.py tree "$(DATA_DIR)" "$(DISC)" --bgm $(BGM) --demo "$(DEMO)"
 
 cdi: $(TARGET)
-	rm -rf build/disc
-	$(MAKE) build/disc/data
-	$(MKDCDISC) -e $(TARGET) -D build/disc -n "FREEDOM PLANET DC TEST" -a "fpdc" \
-	    -o $(CDI) --allow-overwrite --no-banner -N
+	$(MAKE) cdi-image
+
+# the disc image from an existing ELF, no compile (tools/builder: make cdi-image TARGET=prebuilt/fpdc.elf DATA_DIR=... DISC=... CDI=...)
+cdi-image:
+	python3 tools/make_disc.py cdi "$(TARGET)" "$(DATA_DIR)" "$(DISC)" "$(CDI)" --mkdcdisc "$(MKDCDISC)" --bgm $(BGM) --demo "$(DEMO)"
 
 host:
 	$(MAKE) -C host
@@ -108,4 +97,4 @@ clean:
 	rm -f $(OBJS) $(OBJS:.o=.d) $(TARGET)
 	$(MAKE) -C host clean
 
-.PHONY: all data cdi host test clean
+.PHONY: all data cdi cdi-image host test clean

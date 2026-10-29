@@ -1,0 +1,6 @@
+# the drag-and-drop builder: shell / Python scripts keep LF (the Python tools write the game's text files with LF on every
+# system), the Windows .bat / .cmd files keep CRLF (cmd.exe misreads labels in LF files)
+*.sh text eol=lf
+*.py text eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
