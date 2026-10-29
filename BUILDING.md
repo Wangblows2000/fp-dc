@@ -105,7 +105,9 @@ Options (after the Assets.dat): `-j N` (levels built in parallel, default up to 
    `import_loading.py`, `make_vmu_icons.py`, `import_font.py`); 4. the ending (`tools/build_ending.py`); 5. gallery art and
    texts (`tools/import_gallery.py`);
 6. music, 7. sounds and voices, 8. gallery sounds (`tools/audio/convert_audio.py`: ffmpeg + wav2adpcm);
-9. a completeness check; then the disc: `tools/make_disc.py` (copy, pre-twiddle, pack, pad) and mkdcdisc with the
+9. the Adventure scenes and their story rooms (`tools/import_story.py`, from the committed `tables/story/`, docs/ADVENTURE.md);
+10. one voice clip per story line (`convert_audio.py story`; a placeholder or missing clip leaves its line text-only);
+11. a completeness check; then the disc: `tools/make_disc.py` (copy, pre-twiddle, pack, pad) and mkdcdisc with the
    Dreamcast program `fpdc.elf`. The disc dates are fixed (SOURCE_DATE_EPOCH), so the same input gives the same image.
 
 Level layouts, animation tables, backdrops and the gallery / credits texts come from the original program, not from

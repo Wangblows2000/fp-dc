@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "../fp.h"
+#include "story.h"
 
 static struct {
     int on, pathB, signB, t;
@@ -144,8 +145,9 @@ static int stage_end(void) {
     /* RE frame 8 (handle_frame_9): s 13 (Final Dreadnought 4) -> frame index 83, the ending, in Classic and Adventure (G0 1 / 2);
      * Time Attack -> the stage select. The pop-up (frame 9) comes first, then frame 8 routes on (session 24) */
     int ending = ending_arm() == 0;                                            /* validated (story, stage 13, last act) while the act is loaded */
-    if (ach_pending() && fe_enter_ach_popup(ta, ending ? 2 : !ta && level_route_next(level_cur()->stage) != NULL) == 0) return 1;
+    if (ach_pending() && fe_enter_ach_popup(ta, ending ? 2 : !ta && (level_route_next(level_cur()->stage) != NULL || story_gate())) == 0) return 1;
     if (ending && game_ending_begin() == 0) return 1;
+    if (!ta && story_stage_end(level_cur()->stage)) return 1;                  /* Adventure: frame 8 -> the story room (story.c; gated) */
     if (!ta && game_next_stage()) return 1;                                    /* Classic: frame 8 routes to the next stage (DV / AT -> RM) */
     fe_enter_from_stage(ta);
     return 1;
