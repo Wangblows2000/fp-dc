@@ -8,7 +8,8 @@
 /* the loop pieces of BG4 / BG5 (RE on_frame_63 / 64_init qualifier tables: BGLoop1_3340 in Q7 + Q11 = solid on loop layer 1,
  * BGLoop2_3343 / BGLoop3_3344 in Q7 + Q10 = solid on loop layer 0; 14345 / 14346 / 14348 / 14349 = the shared flag rule by MV.P) */
 enum { OT_BGF_LOOP1 = 2304 /* BGLoop1_3340 (layer 1) */, OT_BGF_LOOP2 = 2305 /* BGLoop2_3343 (layer 0) */,
-       OT_BGF_LOOP3 = 2306 /* BGLoop3_3344 (layer 0) */ };
+       OT_BGF_LOOP3 = 2306 /* BGLoop3_3344 (layer 0) */,
+       OT_BGF_ARROW = 2307 /* BGArrowSign_3346 (BG4, the Sparky arena; 14547: its direction = the BossSparky instances; session 26) */ };
 /* BG4's opening Brevon mech beaten (the flow part of 14502): checkpoint (5, 444, 1800) + play_music(5) (m_stage9b). The boss module
  * calls it once at the end of the fight (the act starts silent while g4 < 5: levels.c .music_fade_g4) */
 void  bg_flow_opening_cleared(void);

@@ -391,10 +391,32 @@ static void hang(player_t *p) {
         if (S.L > 16) {                                                         /* 12249: the chase */
             m->hidden = 1; if (gl) gl->hidden = 1;
             S.K = 0; S.F = 0; S.ph = PH_CHASE; snd_play_orig(310, 220, 128);
+            tbb_heat_show(0);                                                   /* 12249: the heat sky shown, alpha 0, scale 43 x 24 */
             level_release_camera(0);
             S.camA = G.cam.A; S.camB = G.cam.B; S.cam = 1;
         }
     }
+}
+
+/* ---------------------------------------------------------------- the heat sky during the chase (session 26; RE 12249-12268)
+ * LevelHeatSky_2779's alpha byte (tb_boss.c tbb_heat; additive over the view): 12249 0, shown; 12252 (K 0) + 1 to 255; 12260 (K 1):
+ * d = |HazardLavaFall3.x - view x| / 2 for the list's back instance (Frame::add_object stores the newest in ObjectList +0: the last
+ * placed, the front column at 1983), 55 if d > 200, 235 if d < 20, else 255 - trunc(d); K 2 with X <= LevelLavaCascadeEnd.x + 49:
+ * 12266 (alpha > 55) - 2 down to 55, 12267 (alpha < 55) + 1; 12268 (X past it) - 1 down to 0. */
+static void heat_wall(void) {
+    obj_t *h = tbb_heat(), *w = S.nl3 ? tbb_slot(S.l3[S.nl3 - 1]) : NULL;
+    if (!h || !w) return;
+    double d = abs((int)floorf(w->x) - (int)G.camx) * 0.5;
+    h->av[0] = d > 200 ? 55 : d < 20 ? 235 : fmax(0, fmin(255, 255 - (int)d));
+}
+static void heat_end(int X) {
+    obj_t *h = tbb_heat(), *c = tbb_get(OT_TBB_CASCEND, 0);
+    if (!h || !c) return;
+    int a = (int)h->av[0], cx = (int)floorf(c->x) + 49;
+    if (255 - a < 200 && X <= cx) { int k = 257 - a; a = 255 - (k > 200 ? 200 : k); }   /* 12266 */
+    if (255 - a > 200 && X <= cx) a = 254 - a > 199 ? a + 1 : 55;                    /* 12267 */
+    if (cx < X) a = a ? a - 1 : 0;                                                     /* 12268 */
+    h->av[0] = a;
 }
 
 /* ---------------------------------------------------------------- CHASE (12250-12279) */
@@ -406,6 +428,7 @@ static void chase(player_t *p) {
         S.camA = (S.camA * 19 + 2128) * 0.05; S.camB = (S.camB * 19 + 3936) * 0.05;
         G.cam.M3 = 1; G.cam.A = (float)S.camA; G.cam.B = (float)S.camB;
         camera_shake((int)fmin(S.F * 0.05, 6));
+        obj_t *h = tbb_heat(); if (h) h->av[0] = fmin(h->av[0] + 1, 255);        /* 12252: the heat sky's alpha byte + 1 (to 255) */
     }
     if ((K == 0 && S.F > 180) || K > 0) {                                       /* 12253: the wall comes at 10 px a frame */
         for (int k = 0; k < S.nl3; k++) { obj_t *o = tbb_slot(S.l3[k]); if (o) o->x += 10; }
@@ -417,9 +440,11 @@ static void chase(player_t *p) {
         if (tb_gim_blockers) { tb_gim_blockers(0); S.blk = 1; }                /* 12260 (the gimmick module: passable) */
     }
     K = (int)S.K;
+    if (K == 1) heat_wall();                                                    /* 12260 */
     if (K == 1 && PY > 4288) {                                                  /* 12262: down in the end room */
         S.K = 2; if (tb_gim_blockers) tb_gim_blockers(1);
     }
+    if ((int)S.K == 2) heat_end((int)PX);                                       /* 12266-12268 */
     if (K == 1 && !dead(p) && p->face > 0 && (tbb_held & BTN_RIGHT)) {        /* 12261: running right with the wall close behind: B + 0.1 to 11 */
         int close = 0;
         for (int k = 0; k < S.nl3 && !close; k++) { obj_t *o = tbb_slot(S.l3[k]); if (o && o->x + 4 >= PX - 239) close = 1; }

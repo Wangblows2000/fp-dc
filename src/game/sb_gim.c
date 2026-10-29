@@ -479,7 +479,7 @@ void sb_gim_spawn(void) {
     EACH(OT_SB_FAN, o) set_s(o, "sbv_fan");
     EACH(OT_SB_FANSIDE, o) set_s(o, "sbv_fanside");
     { int ks[2] = { 0 }; EACH(OT_SB_SCHAIN, o) { set_s(o, "sbv_chain"); o->av[0] = o->y; (void)ks; } }   /* 10146: A = y */
-    EACH(OT_SB_BACKEYE, o) set_s(o, o->par ? "sbv_eye1" : "sbv_eye0");
+    EACH(OT_SB_BACKEYE, o) { set_s(o, o->par ? "sbv_eye1" : "sbv_eye0"); o->av[2] = 255; }   /* the alpha (9835; 255 until its first update) */
     /* cannons: ctor A 30 B 30 C 20; base A 15 (Q20); each cannon sits on the base placed at its position */
     EACH(OT_SB_CANBASE, o) { set_s(o, "sbc_base"); o->A = 15; o->fl |= F_NOFLY; }
     EACH(OT_SB_CANBASE2, o) set_s(o, "sbc_base2");

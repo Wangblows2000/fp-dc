@@ -1016,8 +1016,10 @@ typedef struct {
     int music_fade_g4;                               /* > 0: the act start fades the music out (fadeout_music(2000)) while g4 < this, plays slot 5
                                                         from it on (BG4 14607 / 14608: silent until its opening Brevon mech is beaten, g4 5) */
     int geyser_fx;                                   /* the frame runs the geyser eruption events 4961-4967 (DV2 / DV3: burst, sound 44,
-                                                        rising dust or bubbles; gimmicks.c geyser_fx; DV fixes) */
-    int exit_hold;                                   /* > 0: an exit stops the world this many frames before the fade (FD4a 16721 / 16723:
+                                                        rising dust or bubbles; gimmicks.c geyser_fx; DV fixes; DV4 5372-5377) */
+    int geyser_g;                                    /* the geyser launch G = 0.1 (E - 180) - this (0 = 14: DV2 / DV3 4968; DV4 5378: 12,
+                                                        which also has no M 10 test) */
+    int exit_hold;                                  /* > 0: an exit stops the world this many frames before the fade (FD4a 16721 / 16723:
                                                         group 0x21a5d off and Sign flag 8, the fade at Sign.B > 100; session 24) */
 } level_def_t;
 int  level_water(void);                              /* the act's water line ML.B now (level data .water, moved by level_water_set; 0 = dry) */
@@ -1112,6 +1114,7 @@ void   tb_gim_spawn(void), tb_gim_pre(player_t *p), tb_gim_frame(player_t *p), t
 int    tb_gim_obj(obj_t *o, player_t *p), tb_gim_q20(int type);
 void   tb_boss_spawn(void), tb_boss_pre(player_t *p), tb_boss_frame(player_t *p);
 int    tb_boss_obj(obj_t *o, player_t *p), tb_boss_q20(int type), tb_boss_draw_obj(const obj_t *o, int pass), tb_boss_input(uint32_t *held);
+void   tb_boss_draw_overlay(void);                 /* LevelHeatSky_2779 (TB3 chase, TB6 defeat; objects_draw(3)) */
 int    tb_boss_player_hidden(void);
 float  tb_boss_hud_dy(void);
 /* ---- Pangu Lagoon (session 23; stage index 7, Lilac only, json 51-56 = pl1-pl6, set_frame 50-55). Type ranges:
@@ -1173,6 +1176,8 @@ void   fn_flow_panther_view(void);                    /* FN5 8370 (the boss scri
 void   player_bike_off(player_t *p, int park);        /* Carol leaves the bike (MV.A 3 -> 2; park: an ObjectBike is left at her, FN5 8383) */
 int    par_hidden(int handle);
 void   par_set_hook(int handle, void (*fn)(void));   /* a stage script's layer-0 objects drawn just before that piece (parallax.c) */
+#define PAR_HOOK_END (-2)                            /* par_set_hook handle: after the last layer-0 piece */
+int    par_piece_y(int handle);                      /* a layer-0 piece's frame y now (trunc(E vt + C)); -32768 if absent */
 const level_def_t *level_def(const char *dir), *level_cur(void);
 const char *level_first_of_stage(int stage), *level_next(const char *dir), *level_route_start(int character), *level_route_next(int stage);
 int   act_fade_step(int a);                    /* the act-end fade's alpha step (RE 2905 / 3310; game.c): 255 = the fade is complete */
@@ -1264,7 +1269,8 @@ void player_launch(player_t *p, double vx, double vy, int sound);   /* spring st
 void player_shake(player_t *p, double B);                          /* M12 entry (4141 / 4142) */
 void objects_spawn(void);
 void objects_update(void);
-void objects_draw(int front);
+void objects_draw(int front);                        /* -1, 0-2: the object passes; 3: the json-layer-5 view overlays (session 26) */
+void obj_draw_view_tint(uint32_t rgb, int alpha);    /* an additive one-colour square scaled over the view (AlarmLight, LevelHeatSky; objects.c) */
 void camera_update(void);
 void camera_boss_bounds(float l, float t, float r, float b);   /* U = 1 (loop_camera_mode1 + 2862) */
 void camera_normal_bounds(void);

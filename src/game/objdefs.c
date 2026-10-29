@@ -984,6 +984,8 @@ static const objdef_t DEFS[] = {
     { OT_TBB_PLAT,      OD_SOLID,                              NULL         }, /* bosstbplatform_2886 (the arena floor / ledges; INFERRED solid) */
     { OT_TBB_PLAT2,     OD_SOLID,                              NULL         }, /* bosstbplatform2_2908 */
     { OT_TBB_WAYPOINT,  OD_HIDDEN,                             NULL         }, /* bosswaypoint_2905 (ctor set_visible(0)) */
+    { OT_TBB_HEATSKY,   OD_HIDDEN,                             NULL         }, /* levelheatsky_2779 (ctor invisible; a view tint: tb_boss_draw_overlay) */
+    { OT_TBB_CASCEND,   OD_HIDDEN,                             NULL         }, /* levellavacascadeend_2778 (ctor invisible; the TB3 chase marker) */
     { OT_TBB_FX,        0,                                     NULL         }, /* - (runtime: a one-shot effect) */
     { OT_TBB_SHOT,      0,                                     NULL         }, /* - (runtime: a lava blob BossLavaLaser_2896) */
     /* ==== end Thermal Base */
@@ -1066,6 +1068,7 @@ static const objdef_t DEFS[] = {
     { OT_BGF_LOOP1,     OD_SOLID|OD_LAYER1,                    "bgl1"       }, /* bgloop1_3340 (Q7 + Q11: solid on loop layer 1; visible Active) */
     { OT_BGF_LOOP2,     OD_SOLID|OD_LAYER0,                    "bgl2"       }, /* bgloop2_3343 (Q7 + Q10: solid on loop layer 0) */
     { OT_BGF_LOOP3,     OD_SOLID|OD_LAYER0,                    "bgl3"       }, /* bgloop3_3344 (Q7 + Q10) */
+    { OT_BGF_ARROW,     0,                                     "bgf_arrow1" }, /* bgarrowsign_3346 (BG4; direction = the Sparkies alive: bg_flow.c) */
     /* ---- BG_ENEMIES (bg_enemy.c, spec_bg_enemies; sprites set by bg_enemy_spawn; RE on_frame_62..64_init q20: the drill) */
     { OT_BGE_DRILL,     OD_HIDDEN,                             NULL         }, /* enemydrillsat_3291 (q20; ctor invisible) */
     { OT_BGE_SPAWNER,   OD_HIDDEN,                             NULL         }, /* enemyelitespawner_3361 (ctor invisible) */
@@ -1181,9 +1184,12 @@ static const objdef_t DEFS[] = {
     { OT_FDG_LTPLAT,    OD_OBSTACLE|OD_NOEDGE|OD_BOXCOL,       NULL         }, /* fdlasertunnelplatform_3743 (Q8 Q9) */
     { OT_FDG_LTUNNEL,   OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* hazardlasertunnel_3742 (ctor invisible) */
     { OT_FDG_LTGLASS,   OD_BOXCOL,                             NULL         }, /* hazardlasertunnelglass1 / 2 / 3 (sub 0-2) */
+    { OT_FDG_PILLAR,    OD_HIDDEN,                             NULL         }, /* fd3backpillar_3615 (drawn by fd_gim.c back_draw: 0.8-scrolled, tilted) */
+    { OT_FDG_JUMBO,     OD_HIDDEN,                             NULL         }, /* fdjumbotron_3451 / 2_3452 (sub 1; drawn by fd_gim.c back_draw) */
     { OT_FDG_FX,        0,                                     NULL         }, /* - (runtime: one-shot moving effects) */
     { OT_FDG_SPARK,     0,                                     NULL         }, /* - (runtime: hazardspiralspark_3435) */
     { OT_FDG_WIND,      0,                                     NULL         }, /* - (runtime: effectairlockwind_3460) */
+    { OT_FDG_BGSPAWN,   OD_HIDDEN,                             NULL         }, /* - (runtime: backgroundspawner_3454, drawn by fd_gim.c back_draw) */
     /* ---- FD_BOSS (fd_boss.c) */
     /* -- bosses A (fd_boss_r12.c; tools/import_frame.py FD_BOSS A) */
     { OT_FDB_PB,        OD_HIDDEN,                             NULL         }, /* minibosspushbeam_3493 (ctor invisible, A 1) */

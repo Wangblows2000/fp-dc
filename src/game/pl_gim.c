@@ -29,9 +29,12 @@
 #define RAD 57.29577951308232
 #define RT0 OT_PLG_VBLOCK
 #define NRT (OT_PLG_END - RT0 + 1)
-#define LMAX 64
-static short LST[NRT][LMAX]; static int NLS[NRT];
-#define EACH(T, OB) for (int _k = 0; _k < NLS[(T) - RT0]; _k++) if (((OB) = &G.o[LST[(T) - RT0][_k]])->alive && (OB)->type == (T))
+/* per-type instance lists, sized at the act start from the act's own placements (PL5 / PL6 place 70 / 90 time-gate pieces: the old
+ * fixed 64 left the rest without sprite and orbit): each type gets max(LMIN, placed) slots of one pool (runtime types keep LMIN) */
+#define LMIN 64
+#define LPOOL (NRT * LMIN + 128)
+static short LST[LPOOL], LOFF[NRT], LCAP[NRT]; static int NLS[NRT];
+#define EACH(T, OB) for (int _k = 0; _k < NLS[(T) - RT0]; _k++) if (((OB) = &G.o[LST[LOFF[(T) - RT0] + _k]])->alive && (OB)->type == (T))
 #define N(T) NLS[(T) - RT0]
 #define VBMAX 512                                  /* vanishing blocks (PL5 places 389): their own x-sorted list */
 #define F1 0x1000                                  /* the object's flag 1 */
@@ -60,9 +63,20 @@ static void set_s(obj_t *o, const char *nm) { int a = ens_anim(nm); if (a >= 0 &
 static void lst_add(obj_t *q) {
     int t = q->type - RT0, i = (int)(q - G.o);
     if (t < 0 || t >= NRT) return;
-    for (int k = 0; k < NLS[t]; k++) if (LST[t][k] == i) return;
-    if (NLS[t] < LMAX) { LST[t][NLS[t]++] = (short)i; return; }
-    for (int k = 0; k < LMAX; k++) { const obj_t *o = &G.o[LST[t][k]]; if (!o->alive || o->type != q->type) { LST[t][k] = (short)i; return; } }
+    short *l = &LST[LOFF[t]];
+    for (int k = 0; k < NLS[t]; k++) if (l[k] == i) return;
+    if (NLS[t] < LCAP[t]) { l[NLS[t]++] = (short)i; return; }
+    for (int k = 0; k < LCAP[t]; k++) { const obj_t *o = &G.o[l[k]]; if (!o->alive || o->type != q->type) { l[k] = (short)i; return; } }
+}
+/* the lists' layout for this act: LCAP[t] = max(LMIN, the type's instances at the start); one pass at load */
+static void lst_layout(void) {
+    int cnt[NRT] = { 0 }, off = 0;
+    for (int i = 0; i < G.nobjs; i++) { int t = G.o[i].type - RT0; if (G.o[i].alive && t >= 0 && t < NRT) cnt[t]++; }
+    for (int t = 0; t < NRT; t++) {
+        int c = RT0 + t == OT_PLG_VBLOCK ? 0 : cnt[t] > LMIN ? cnt[t] : LMIN;  /* (vanishing blocks: their own list S.vb) */
+        if (off + c > LPOOL) c = LPOOL - off;                                  /* (pool full: the extra instances are left out) */
+        LOFF[t] = (short)off; LCAP[t] = (short)c; off += c;
+    }
 }
 static obj_t *spawn(int type, const char *anim, float x, float y, int layer) {
     obj_t *o = obj_alloc();
@@ -472,8 +486,8 @@ static void doors(player_t *p) {
 /* ================================================================ passes */
 void pl_gim_spawn(void) {
     static int reg;
-    if (!reg) { reg = 1; snap_register(&S, sizeof S); snap_register(LST, sizeof LST); snap_register(NLS, sizeof NLS); }
-    memset(&S, 0, sizeof S); memset(NLS, 0, sizeof NLS); S.top_ride = -1;
+    if (!reg) { reg = 1; snap_register(&S, sizeof S); snap_register(LST, sizeof LST); snap_register(NLS, sizeof NLS); snap_register(LOFF, sizeof LOFF); snap_register(LCAP, sizeof LCAP); }
+    memset(&S, 0, sizeof S); memset(NLS, 0, sizeof NLS); lst_layout(); S.top_ride = -1;
     /* objects.c path platforms (3283-3289; RE ctors): LevelLagoonPlatform1 F 2 G 50 H 1, LevelLagoonPlatform2 E 90 F 2 G 128 H 1 (q12) */
     objects_plat_type(OT_PLG_LPLAT, 2, 50);
     objects_plat_type(OT_PLG_LPLAT2, 2, 128);
