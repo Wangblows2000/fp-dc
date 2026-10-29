@@ -1681,9 +1681,28 @@ for _e in TBB_ENS:
 FDB_TYPES_ID = {('minibosspushbeam', 3493): 2912, ('minibosspushbeamcannon', 3494): 2913, ('bosssyntaxvalues', 3467): 2914,
                 ('alarmlight', 3495): 2915, ('scrollingfloor', 3466): 2916, ('scrollingfloor2', 3465): 2917}
 ENGINE_TYPES_ID.update(FDB_TYPES_ID)   # FD_BOSS (A)
-FDB_ENS = [('minibosspushbeam_3493', 0, '0', 'fdb_pb'), ('minibosspushbeamcannon_3494', 0, '0', 'fdb_pbc')]
+FDB_ENS = [('minibosspushbeam_3493', 0, '0', 'fdb_pb'), ('minibosspushbeamcannon_3494', 0, '0', 'fdb_pbc'),
+           ('scrollingfloor_3466', 0, '0', 'fdb_sfloor'), ('scrollingfloor2_3465', 0, '0', 'fdb_sfloor2')]
+# the morpher (fd1b's tunnel): its parts are off-map templates and its shots runtime objects: rows tied to the placed controller
+_SXV = ('bosssyntaxvalues',)
+FDB_ENS += [(c, a, d, nm, None, _SXV) for c, a, d, nm in (
+    ('bossmorpherorb1_3471', 0, '0', 'fdm_orb'), ('bossmorpherwheel1_3475', 0, '0', 'fdm_wh1'), ('bossmorpherwheel2_3474', 0, '0', 'fdm_wh2'),
+    ('bossmorpherwheel3_3473', 0, '0', 'fdm_wh3'), ('bossmorpherwheel4_3472', 0, '0', 'fdm_wh4'), ('bossmorphertube1_3476', 0, '0', 'fdm_tube1'),
+    ('bossmorphertube2_3477', 0, '0', 'fdm_tube2'), ('bossmorphergrill1_3479', 0, '0', 'fdm_grill1'), ('bossmorphergrill2_3478', 0, '0', 'fdm_grill2'),
+    ('bossmorpherpelvis_3469', 0, '0', 'fdm_pelvis'), ('bossmorpherbody_3482', 0, '0', 'fdm_body'), ('bossmorpherbody_3482', 0, '1', 'fdm_body1'),
+    ('bossmorphernode1_3481', 0, '0', 'fdm_node1'), ('bossmorphernode2_3480', 0, '0', 'fdm_node2'), ('bossmorpherhead_3486', 0, '0', 'fdm_head'),
+    ('bossmorpherhead_3486', 0, '1', 'fdm_head1'), ('bosstrainbream_3485', 0, '0', 'fdm_train0'), ('bosstrainbream_3485', 0, '8', 'fdm_train8'),
+    ('bosstrainbream_3485', 0, '24', 'fdm_train24'), ('bosssyntaxelecball_3484', 0, '0', 'fdm_eball'), ('enemytrooperlaser_2530', 0, '0', 'fdm_laser'),
+    ('hazardshockwave_1576', 0, '0', 'fdm_shock'), ('hazardshockwave_1576', 0, '16', 'fdm_shock16'), ('hazardshockwave_1576', 4, '0', 'fdm_shocke'),
+    ('enemyelitechargeglow_2527', 0, '0', 'fdm_glow'))]
 ENS += FDB_ENS   # FD_BOSS (A)
 for _e in FDB_ENS: ROW_FRAMES[_e[3]] = {67}
+for _c in ('bossmorpherorb1_3471', 'bossmorpherwheel1_3475', 'bossmorpherwheel2_3474', 'bossmorpherwheel3_3473', 'bossmorpherwheel4_3472',
+           'bossmorphertube1_3476', 'bossmorphertube2_3477', 'bossmorphergrill1_3479', 'bossmorphergrill2_3478', 'bossmorpherpelvis_3469',
+           'bossmorpherbody_3482', 'bossmorphernode1_3481', 'bossmorphernode2_3480', 'bossmorpherhead_3486', 'bosstrainbream_3485',
+           'bosssyntaxelecball_3484', 'enemytrooperlaser_2530', 'hazardshockwave_1576', 'enemyelitechargeglow_2527',
+           'effectsexplosion06_435', 'effectsdebris_427'):
+    ENS_WITH[_c] = ENS_WITH.get(_c, ()) + _SXV   # FD_BOSS (A)
 
 # ==== end Final Dreadnought
 SHL_CLASSES = {'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
