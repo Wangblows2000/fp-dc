@@ -473,7 +473,7 @@ D-072, BUILD_AND_TEST_LOG "Session 15". Spec: build/re/fe/spec_gallery.md (not c
   Aqua Tunnel: session 12.)
 
 ## Latest verified
-- session 25: full regression SUITES_N suites 0 failures (incl. test_adventure*, test_story_sids, test_dv_fixes,
+- session 25: full regression 71 suites 0 failures (incl. test_adventure*, test_story_sids, test_dv_fixes,
   test_late_gimmicks, test_gimmicks_m, test_small_fixes, test_import_font). Flycast (build/fpdc_s25story.cdi,
   tests/play/s25_story_verify.txt): all 36 story rooms x Lilac / Carol / Milla start; VRAM free >= 727 KB (st79 Milla),
   sound RAM largest free block >= 127 KB (st8235 Milla, voices playing); RM5 with Spade's rows 1548 / 1020 / 1188 KB.
