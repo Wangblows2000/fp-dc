@@ -2049,14 +2049,14 @@ FDB_ENS = [(c, a, d, nm, sl, _F3) for c, a, d, nm, sl in (
     ('computerterminal_3682', 0, '0', 'fdb_term0', None), ('computerterminal2_3684', 0, '0', 'fdb_term1', None),
     ('computerterminal3_3703', 0, '0', 'fdb_term2', None), ('npcmillabody_3704', 0, '0', 'fdb_mbody', None),
     ('brevonknifearm_3702', 0, '0', 'fdb_knife', None), ('bosshatchdoor_3312', 0, '0', 'fdb_hatch', None),
-    ('bossmmillahead_3694', 0, '0', 'fdm_head', None), ('bossmmillahead_3694', 7, '0', 'fdm_head7', None),
-    ('bossmmillatail_3689', 0, '0', 'fdm_tail', None), ('bossmmillatailend_3696', 0, '0', 'fdm_tailend', None),
-    ('bossbounceshot_3699', 0, '0', 'fdm_shot', None), ('effectbounceshotdebris_3700', 0, '0', 'fdm_shotdeb', None),
-    ('npctransformbubble_669', 0, '0', 'fdm_bubble', None),
+    ('bossmmillahead_3694', 0, '0', 'fmm_head', None), ('bossmmillahead_3694', 7, '0', 'fmm_head7', None),
+    ('bossmmillatail_3689', 0, '0', 'fmm_tail', None), ('bossmmillatailend_3696', 0, '0', 'fmm_tailend', None),
+    ('bossbounceshot_3699', 0, '0', 'fmm_shot', None), ('effectbounceshotdebris_3700', 0, '0', 'fmm_shotdeb', None),
+    ('npctransformbubble_669', 0, '0', 'fmm_bubble', None),
     ('brevon_3701', 0, '0', 'fdb_brv0', None), ('brevon_3701', 5, '0', 'fdb_brv5', slice(36, 37)),
     ('brevon_3701', 7, '0', 'fdb_brv7', None), ('brevon_3701', 10, '0', 'fdb_brv10', None),
     ('brevon_3701', 11, '26', 'fdb_brv11h', None))] + \
-    [('bossmmilla%s_%d' % (p, h), 0, '0', 'fdm_' + p, None, _F3) for p, h in FDB_MM if p not in ('tailend',)]
+    [('bossmmilla%s_%d' % (p, h), 0, '0', 'fmm_' + p, None, _F3) for p, h in FDB_MM if p not in ('tailend',)]
 ENS += FDB_ENS   # FD_BOSS B
 for _e in FDB_ENS: ROW_FRAMES[_e[3]] = {71}
 FDB_ENS_WITH = {'bossbounceshot_3699': _F3, 'computerterminal3_3703': _F3, 'npcmillabody_3704': _F3, 'brevonknifearm_3702': _F3, 'effectbounceshotdebris_3700': _F3, 'npctransformbubble_669': _F3,
