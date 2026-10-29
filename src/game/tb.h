@@ -33,6 +33,8 @@ enum {
     OT_TBE_DEBRIS = 1862,   /* runtime: q20 flying debris: EnemyLavaSquidDebris_2742 (av[7] 0), EnemySaucerDebris_2831 (1) */
     OT_TBE_TDEB = 1863      /* runtime: EnemyTankbotDebris_2839 (the tracks) */
 };   /* the saucer's GimmickFireball_1192 / EffectEmber_1025 are Relic Maze's OT_FBALL / OT_EMBER (relic_gima.c fireball_fly / _rules) */
+obj_t *tb_enemy_create(int type, float x, float y);        /* a runtime instance of a placed class with its constructor values (FD pods) */
+obj_t *tb_enemy_bullet_create(float x, float y, int dir);  /* EnemyHomingBullet_2648 in direction dir (0-31) (FD spider beamers) */
 
 /* ---- tb_gim.c (types 1888-1967; build/re/spec_tb_gimmicks.md). Families share a type: par = member (importer TBG_SUB,
  * lvobj anim bits 0-7), layer = instance layer (bits 8-14). Placed classes 1888-1949, runtime objects 1950-1967. */

@@ -368,6 +368,40 @@ static void pair(int child, int owner) {                                        
     obj_t *o, *q;
     EACH(child, o) { float best = 1e9f; EACH(owner, q) { float d = fabsf(q->x - o->x) + fabsf(q->y - o->y); if (d < best) { best = d; o->par = (int)(q - G.o); } } }
 }
+static void ctor(obj_t *o) {                                                       /* the constructors' values (create_* / ctor RE) */
+    memset(o->av, 0, sizeof o->av); o->st = o->tm = 0; o->fl = 0; o->dir = 0; o->an.b = NULL; o->par = -1; o->layer = 2; o->hidden = 0;
+    o->A = 0; o->c = 0; o->bd = 0; o->absorbed = 0; o->fx = o->fy = 0; o->ang = 0;
+    ek_list_add(&LST[o->type - RT0], o, o->type);
+    switch (o->type) {
+    case OT_TBE_SEEKER: o->A = 5; o->av[4] = 5; o->av[1] = floorf(o->y); ek_set_ad(o, "tbs_idle"); break;
+    case OT_TBE_PUSHUP: o->av[0] = 55; o->dir = 1; ek_set_ad(o, "tbp_up"); break;
+    case OT_TBE_PUHIT: o->A = 16; o->hidden = 1; ek_set_ad(o, "tbp_head"); break;
+    case OT_TBE_SQUID: o->A = 15; o->av[2] = 1; o->av[3] = -1; o->fl = FL2; ek_set_ad(o, "tbq_idle"); break;   /* RV squid2: flag 2 on from the start (the first aim turns it round) */
+    case OT_TBE_TANK: o->A = 15; o->av[2] = -1; o->dir = 16; ek_set_ad(o, "tbt_idle"); break;
+    case OT_TBE_SAUCER: o->A = 22; o->av[4] = 1; o->av[5] = 180; o->av[1] = floorf(o->x); o->av[2] = floorf(o->y); ek_set_ad(o, "tba_body"); break;
+    case OT_TBE_LEG1: case OT_TBE_LEG1 + 3: ek_set_ad(o, "tba_leg1"); break;
+    case OT_TBE_LEG1 + 1: case OT_TBE_LEG1 + 2: ek_set_ad(o, "tba_leg2"); break;
+    case OT_TBE_SLIM: o->hidden = 1; break;
+    default: o->alive = 0; break;
+    }
+}
+/* a runtime instance of a placed TB class (Final Dreadnought's spawner pods drop tank bots, RE 15246): the constructor's values; the
+ * module starts if the level placed none (S.on, limiters) */
+obj_t *tb_enemy_create(int type, float x, float y) {
+    if (type < OT_TBE_FIRST || type > OT_TBE_SLIM) return NULL;
+    if (!S.on) { S.on = 1; S.shot_frame = -1; ek_limiters_collect(&S.lim); }
+    obj_t *o = spawn(type, x, y, 0);
+    if (o) ctor(o);
+    return o;
+}
+/* EnemyHomingBullet_2648 (the seeker's shot, 11781 / 11782 / col_5_44: BallMovement 30 in direction dir, hurts 10): also Final
+ * Dreadnought's spider beamers' (RE 16694) */
+obj_t *tb_enemy_bullet_create(float x, float y, int dir) {
+    if (!S.on) { S.on = 1; S.shot_frame = -1; ek_limiters_collect(&S.lim); }
+    obj_t *b = spawn(OT_TBE_BULLET, x, y, dir & 31);
+    if (b) { ek_set_ad(b, "tbs_bul"); b->av[0] = dir & 31; }
+    return b;
+}
 void tb_enemy_spawn(void) {
     static int reg;
     if (!reg) { reg = 1; snap_register(&S, sizeof S); snap_register(LST, sizeof LST); snap_register(&LFB, sizeof LFB); snap_register(&LEMB, sizeof LEMB); }
@@ -379,21 +413,7 @@ void tb_enemy_spawn(void) {
         obj_t *o = &G.o[i];
         if (!o->alive || o->type < OT_TBE_FIRST || o->type > OT_TBE_LAST) continue;
         if (o->x < 0 || o->y < 0) { o->alive = 0; continue; }                      /* off-map templates */
-        memset(o->av, 0, sizeof o->av); o->st = o->tm = 0; o->fl = 0; o->dir = 0; o->an.b = NULL; o->par = -1; o->layer = 2; o->hidden = 0;
-        o->A = 0; o->c = 0; o->bd = 0; o->absorbed = 0; o->fx = o->fy = 0; o->ang = 0;
-        ek_list_add(&LST[o->type - RT0], o, o->type);
-        switch (o->type) {
-        case OT_TBE_SEEKER: o->A = 5; o->av[4] = 5; o->av[1] = floorf(o->y); ek_set_ad(o, "tbs_idle"); break;
-        case OT_TBE_PUSHUP: o->av[0] = 55; o->dir = 1; ek_set_ad(o, "tbp_up"); break;
-        case OT_TBE_PUHIT: o->A = 16; o->hidden = 1; ek_set_ad(o, "tbp_head"); break;
-        case OT_TBE_SQUID: o->A = 15; o->av[2] = 1; o->av[3] = -1; o->fl = FL2; ek_set_ad(o, "tbq_idle"); break;   /* RV squid2: flag 2 on from the start (the first aim turns it round) */
-        case OT_TBE_TANK: o->A = 15; o->av[2] = -1; o->dir = 16; ek_set_ad(o, "tbt_idle"); break;
-        case OT_TBE_SAUCER: o->A = 22; o->av[4] = 1; o->av[5] = 180; o->av[1] = floorf(o->x); o->av[2] = floorf(o->y); ek_set_ad(o, "tba_body"); break;
-        case OT_TBE_LEG1: case OT_TBE_LEG1 + 3: ek_set_ad(o, "tba_leg1"); break;
-        case OT_TBE_LEG1 + 1: case OT_TBE_LEG1 + 2: ek_set_ad(o, "tba_leg2"); break;
-        case OT_TBE_SLIM: o->hidden = 1; break;
-        default: o->alive = 0; break;
-        }
+        ctor(o);
     }
     /* Fusion pairs a part with its owner by instance order; the placements put each part on its owner (RE tb_inventory) */
     pair(OT_TBE_PUHIT, OT_TBE_PUSHUP);
