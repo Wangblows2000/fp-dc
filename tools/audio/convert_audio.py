@@ -247,7 +247,7 @@ def story(src, voices, tables, out):
     """Adventure scenes (session 25, src/game/story.c): the voice of every line the ported scripts show, one mono ADPCM clip
     per line at 11025 Hz (story/vo/<voice>.wav, loaded per line), lower when a clip is longer than one sample may be
     (snd_sfx_load: <= 65534 samples); placeholder stubs and missing clips are left out (the line is shown text-only). And
-    the scripts' sound ids that the sfx step does not convert (sfx/s<id>.wav, 11025 Hz, tails trimmed)."""
+    the scripts' sound ids that the sfx step does not convert (sfx/s<id>.wav, 11025 Hz, tails trimmed for the TRIM ids)."""
     os.makedirs(os.path.join(out, 'story', 'vo'), exist_ok=True); os.makedirs(os.path.join(out, 'sfx'), exist_ok=True)
     tmp = tempfile.mkdtemp()
     m = manifest(os.path.join(out, 'story', 'vo_manifest.csv'), 'name,source,duration_s,rate,bytes')
@@ -273,12 +273,15 @@ def story(src, voices, tables, out):
         tot += os.path.getsize(d); n += 1
         m.write('%s,%s,%s,%d,%d\n' % (v, os.path.basename(src_v), oggdur.duration_text(src_v), rate, os.path.getsize(d))); m.flush()
     have = set(f for f in os.listdir(os.path.join(out, 'sfx')) if f.endswith('.wav'))
-    k = 0
+    k = 0; bad = []
     for i in ids:
         if 's%d.wav' % i in have: continue
         wav = os.path.join(tmp, 'x.wav')
-        to_wav(os.path.join(src, 'audio_%d.ogg' % i), wav, 1, 11025, TRIM_AF)
-        run([wav2adpcm(), '-t', wav, os.path.join(out, 'sfx', 's%d.wav' % i)]); k += 1
+        try:                                             # tails trimmed as the sfx step does (TRIM); a clip that cannot be
+            to_wav(os.path.join(src, 'audio_%d.ogg' % i), wav, 1, 11025, TRIM_AF if str(i) in TRIM else None)   # converted
+            run([wav2adpcm(), '-t', wav, os.path.join(out, 'sfx', 's%d.wav' % i)]); k += 1      # stays silent
+        except (subprocess.CalledProcessError, OSError): bad.append(i)
+    if bad: print('story sounds not converted (silent): %s' % ' '.join(map(str, bad)))
     m.close(); shutil.rmtree(tmp)
     print('story voices: %d of %d converted (%.1f KB), %d placeholder stubs and %d missing left text-only; %d story sound ids added'
           % (n, len(need), tot / 1024, stub, miss, k))
