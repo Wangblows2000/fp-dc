@@ -414,8 +414,8 @@ static void pelletizer_frame(obj_t *o, player_t *p) {
         *D += 1;
     }
     if (*D == 10) {                                                              /* 10067 / 10068 */
-        obj_spawn_pellet(o->x - 17, o->y + 13, 20); effect(o->x - 17, o->y + 13, "sbp_dust", 1.f);
-        obj_spawn_pellet(o->x + 17, o->y + 13, 28); effect(o->x + 17, o->y + 13, "sbp_dust", 1.f);
+        obj_spawn_pellet(o->x - 17, o->y + 13, 20, o->layer); effect(o->x - 17, o->y + 13, "sbp_dust", 1.f);
+        obj_spawn_pellet(o->x + 17, o->y + 13, 28, o->layer); effect(o->x + 17, o->y + 13, "sbp_dust", 1.f);
         snd_play_orig(438, 220, 128); set_a(o, "sbp_1");
     }
     if (*D == 60) set_a(o, "sbp_2");                                             /* 10069 */

@@ -279,7 +279,7 @@ static void plant_frame(obj_t *o, player_t *p) {
     if (*E == 1 && *H <= 0) { restart_a(o, "jep_shoot"); *E = 2; }                 /* 10267 */
     if (*E == 2 && a_is(o, "jep_shoot") && o->an.frame == 6) {                     /* 10268 */
         double ax, ay; relic_act_point(o, &ax, &ay);
-        snd_play_orig(28, 220, 128); obj_spawn_pellet((float)ax, (float)ay, o->dir & 31);
+        snd_play_orig(28, 220, 128); obj_spawn_pellet((float)ax, (float)ay, o->dir & 31, o->layer);
         *E = 3; *Gx = *D * -4;
     }
     if (*Gx > 0) *Gx -= 1; else if (*Gx < 0) *Gx += 1;                            /* 10269 / 10270 */
