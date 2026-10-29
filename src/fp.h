@@ -195,6 +195,7 @@ typedef struct {
     uint16_t *seq;
     int16_t *act;                      /* optional action points (ax, ay per frame, relative to the image) */
     uint8_t *mbits; uint32_t *moff;   /* collision masks (alpha != 0), rows of (w + 7) / 8 bytes; NULL if absent */
+    int16_t *fbox;                     /* optional uncropped image boxes (HX, HY, W, H per frame: the original image's hotspot and size); NULL if absent */
 } bank_t;
 int frame_mask_px(const bank_t *b, const frame_t *f, int x, int y);   /* 1 = solid pixel of the frame image */
 
@@ -1142,6 +1143,7 @@ void   fd_enemy_spawn(void), fd_enemy_pre(player_t *p), fd_enemy_draw(int pass);
 int    fd_enemy_obj(obj_t *o, player_t *p), fd_enemy_q20(int type);
 void   fd_gim_spawn(void), fd_gim_pre(player_t *p), fd_gim_frame(player_t *p), fd_gim_draw(int pass);
 int    fd_gim_obj(obj_t *o, player_t *p), fd_gim_q20(int type);
+int    fd_gim_player(player_t *p, const input_t *in), fd_gim_ride_m(void);   /* ST_RIDE: the transporter pipe M 95 (fd_gim.c) */
 void   fd_boss_spawn(void), fd_boss_pre(player_t *p), fd_boss_frame(player_t *p);
 int    fd_boss_obj(obj_t *o, player_t *p), fd_boss_q20(int type), fd_boss_draw_obj(const obj_t *o, int pass), fd_boss_input(uint32_t *held);
 int    fd_boss_player_hidden(void);
