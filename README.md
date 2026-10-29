@@ -1,4 +1,4 @@
-# A partial Freedom Planet Decompilation, targetting Dreamcast.
+# A Freedom Planet Decompilation, targetting Dreamcast.
 Fan project, not affiliated with GalaxyTrail. Freedom Planet assets belong to their owners.
 
 
