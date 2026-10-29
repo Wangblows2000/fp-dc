@@ -12,6 +12,8 @@
 #include <dc/vmufs.h>
 #include <dc/maple/vmu.h>
 #include "../fp.h"
+#include "../game/story.h"
+int snd_mem_free_kb(void);
 
 #ifndef FP_DATA_ROOT
 #define FP_DATA_ROOT "/cd/data"
@@ -29,7 +31,8 @@ static struct { int f; float x, y; } demo_tp[16]; static int ndemo_tp;   /* veri
 static struct { int f, v; } demo_fl[8]; static int ndemo_fl;            /* verification: "<f> FLAGS v" (G.stage_flags, as the host tests) */
 /* verification (session 20, as the host scripts): "<f> SETV others E v" (invulnerability), "<f> BOSSHP v" (boss / Q20 HP),
  * "<f> LOAD dir" (start another level, as the menus would) */
-static struct { int f; char k; float v; char dir[8]; } demo_cmd[96]; static int ndemo_cmd;   /* (session 21c: 96, the TB verification script) */
+static struct { int f; char k; float v; char dir[8]; } demo_cmd[96]; static int ndemo_cmd;
+static struct { int f, chr; char name[24]; } demo_scn[128]; static int ndemo_scn;   /* (session 25) "<f> SCENE <id> <g1>": a story scene */   /* (session 21c: 96, the TB verification script) */
 const char *plat_start_level(void) { return demo_level[0] ? demo_level : NULL; }
 static void demo_load(void) {
     size_t sz; char *t = plat_read_raw("demo.txt", &sz);
@@ -46,6 +49,8 @@ static void demo_load(void) {
           if (ndemo_cmd < 96 && sscanf(line, "%d BOSSHP %f", &tf, &tv) == 2) { demo_cmd[ndemo_cmd].f = tf; demo_cmd[ndemo_cmd].k = 'B'; demo_cmd[ndemo_cmd].v = tv; ndemo_cmd++; continue; }
           if (ndemo_cmd < 96 && sscanf(line, "%d CHARSET %f", &tf, &tv) == 2) { demo_cmd[ndemo_cmd].f = tf; demo_cmd[ndemo_cmd].k = 'C'; demo_cmd[ndemo_cmd].v = tv; ndemo_cmd++; continue; }   /* (session 21) the character of the next LOAD */
           if (ndemo_cmd < 96 && sscanf(line, "%d LOAD %7s", &tf, d) == 2) { demo_cmd[ndemo_cmd].f = tf; demo_cmd[ndemo_cmd].k = 'L'; memcpy(demo_cmd[ndemo_cmd].dir, d, 8); ndemo_cmd++; continue; } }
+        { int tf, tc = 0; char sn[24];
+          if (ndemo_scn < 128 && sscanf(line, "%d SCENE %23s %d", &tf, sn, &tc) >= 2) { demo_scn[ndemo_scn].f = tf; demo_scn[ndemo_scn].chr = tc; memcpy(demo_scn[ndemo_scn].name, sn, 24); ndemo_scn++; continue; } }
         if (!strncmp(line, "LETTERBOX ", 10)) { demo_letterbox = line[10] - '0'; continue; }   /* verification: presentation mode */
         if (!strncmp(line, "CHAR ", 5)) { demo_char = line[5] - '0'; continue; }
         if (!strncmp(line, "LEVEL ", 6)) { size_t L = strlen(line + 6); if (L > 0 && L < sizeof demo_level) memcpy(demo_level, line + 6, L + 1); continue; }
@@ -121,6 +126,13 @@ void plat_poll_input(input_t *in) {
             if (demo_cmd[i].k == 'L' && game_load_level(demo_cmd[i].dir) == 0) G.mode = MODE_PLAY;
             printf("demo f %d cmd %c lv %s pvis %d\n", demo_frame, demo_cmd[i].k, G.lvdir, game_player_visible());
         }
+        for (int i = 0; i < ndemo_scn; i++) if (demo_frame == demo_scn[i].f) {
+            int r = story_verify_play(demo_scn[i].name, demo_scn[i].chr);
+            printf("demo f %d scene %s chr %d start %d lv %s vram %u snd %d\n", demo_frame, demo_scn[i].name, demo_scn[i].chr, r,
+                   G.lvdir, (unsigned)(pvr_mem_available() / 1024), snd_mem_free_kb());
+        }
+        if (demo_frame % 30 == 0 && G.mode == MODE_STORY)   /* the voice slots fill per line: sample the sound RAM through the scene */
+            printf("demo f %d story lv %s vram %u snd %d\n", demo_frame, G.lvdir, (unsigned)(pvr_mem_available() / 1024), snd_mem_free_kb());
         if (demo_frame % 120 == 0 && G.mode == MODE_PLAY) printf("demo f %d pvis %d lv %s\n", demo_frame, game_player_visible(), G.lvdir);   /* session 20: the player drawn */
         if (demo_frame % 600 == 0)   /* console output is slow (serial): rare, and the perf log skips the print time */
             printf("demo f %d mode %d lv %s x %.2f y %.2f hp %d lives %d\n", demo_frame, G.mode, G.lvdir, G.p.x, G.p.y, G.p.hp, G.p.lives);

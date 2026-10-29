@@ -94,6 +94,8 @@ const char *story_scene_name(int id);
 int  story_seen(int id);
 void story_mark_seen(int id);
 int  story_count(void);              /* scenes in story/story.txt */
+int  story_verify_play(const char *name, int character);   /* verification discs (plat_dc demo "<f> SCENE <id> <g1>"):
+                                         * arm an Adventure run without a file and play a scene (the gate still applies) */
 #ifdef FP_HOST_ENV
 void story_host_dump(void);          /* host "<f> STORY": state line */
 int  story_host_play(const char *name);   /* host "<f> SCENE <id>": play a scene as if triggered (gate still applies) */
