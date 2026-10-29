@@ -2,7 +2,7 @@
 Fan project, not affiliated with GalaxyTrail. Freedom Planet assets belong to their owners.
 
 
-Through a mixture of decompilation and guesswork - followed by compression and some other optimization bulldada - I present what is effectively a FOSS approximation of Freedom Planet. This project was entirely built with Claude's Opus 5.5, with myself merely play-testing and prompting the majority. Huge credits to the https://github.com/snickerbockers/fp-assets tools for making this possible, as well as for making it known to myself that the debug symbols for this game were actually out there.
+Through a mixture of decompilation and guesswork - followed by compression and some other optimization bulldada - I present what is effectively a FOSS approximation of Freedom Planet. This project was entirely built with Claude's Opus 5.5, with myself merely play-testing and prompting the majority. Huge credits to the https://github.com/snickerbockers/fp-assets tools for making this possible, as well as making it known to myself that the debug symbols for this game were actually out there.
 
 ## "Compression, optimization?"
 Graphics were shrunk by converting every texture to 8-bit (and small overlays to 4-bit) indexed colour, sharing palettes across each level, packing sprites into compact texture sheets, and storing them on disc pre-formatted for the graphics chip and LZ4-compressed. Audio was compressed to 4-bit ADPCM with streamed music, and sound effects were split into shared, per-character and per-act sets, the act sets at half rate with silent tails trimmed, so only what the current act needs sits in the 2 MB of sound memory. Anything rarely used, like shield sprites, gallery artwork and results voices, is loaded only when it’s actually needed.
