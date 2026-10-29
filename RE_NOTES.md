@@ -1363,3 +1363,45 @@ Evidence: RE build/re (event numbers below); RV build/orig_traces/late_gim (rv1-
   (additive). RV fd3a alarm: + (152, 56, 0) over the view at the pulse's peak; sound 310 759 frames after a teleport at 220.
 - SBBackEye (9835): alpha = 2 (128 - (64 sin A + 64)), A + 4, only for eyes within the view + 100.
 - BGArrowSign (14547): set_direction(the BossSparky instances): 1 while the Sparky lives, 0 after.
+
+## Session 26b: gimmick gaps (jump pads, fd2b's vacuum, JC5's rain)
+Audit: build/gimmick_audit.md items 2, 4, 12. Traces (gitignored): build/orig_traces/carol/c_jumppad_tb4 / c_jumppad_bg2 (scripts in
+tests/orig_carol); the pad-list dumps, lpop_*, fd2b_air(_c), fd2b_patch2, rain_l / rain_tp / j5tp / j5tint were scratch traces.
+- **Jump pads (RV + RE):** every act's pad configuration was dumped from the original (XLIST of the pad list Frames+0x6db0 with
+  alterables, 20 frames after the restart): TB4, TH3, BG2, JC2-JC4, FN4, FN5 -> levels.c PADS_*. A = 3564's spread (newest first =
+  reverse frame-JSON order) in every act; B / D / E come from each frame's own once-events (e.g. TB4 4950 / 5357 / 5173 / 7652 /
+  12380-12382) and from qualifier events (TB4 12375: A 2 D 1 B 180), so the table is taken from the dump, not from the events.
+  JC3's single pad (8600, 2104) is lit at angle 90 (3273 shows the first pad: direction E, angle B) but its frame runs none of
+  4943-4949: not rideable, no crystals (levels.c pads_inert). TH3's pads (handle 1284) use the RM images (4925 / 4935..), JC /
+  FN4 / FN5 (1529) their own: the importer now exports jpad_rm for those frames. RM2 (handle 1284) still draws DV's 539 images
+  (the rows were never exported for frame 26: not fixed).
+- **Ride (RV c_jumppad_tb4 / bg2):** X / Y / L / M frame-exact with the original over the whole chain (floor -> ceiling -> launch
+  down; wall chain launched right). 4934 (the launch) runs the sound_go<PSC flag 8> voice loop too: 113 at the launch when the
+  flag is off (TB4 136); DV2's launch has it on, so the old RV missed it.
+- **Crystal pop (RE create_objectcrystal_317 + 3275, RV lpop_l / lpop_m / lpop_run):** ObjectCrystal_317's movement 1 is a
+  PinballMovement (speed 36, deceleration 0, gravity 25); 3275 selects it with flag 0 and direction 8: up from the action point
+  (4192, 2776) to 2752 at +11..+14, down onto the floor (2784 over 2792) at +31, where it stops (flag 0 off, 0x4000) and stays.
+  It is not taken in flight (Lilac overlaps it at the pop); she takes the two at +33 / +40 after the jump. Same for Milla.
+- **fd2b's vacuum (RE 15790-15796, 15801, 4155, 4157-4164, 4170, 4272-4280, 4397, 4467, col_5_17; RV fd2b_air / fd2b_air_c /
+  fd2b_patch2):** OTHERS.J counts +1 at GT % 60 == 6 while the off-map siren is at A 2 and OTHERS.B != 4, never below 0 (15790),
+  0 while the siren is below 2 (15801); the water events that read only J run as in water: dings 18 at 5 / 10 / 15 (once each
+  time J becomes the value: also on the way down in a patch), the 6 s music fade from 20, 41 / 42 every 120 frames (20-30),
+  death at 32 (15792: OTHERS.D 0, MV.R 2 -> loop_check_death M 9 = the normal death, loop_sound_die_8: Lilac 91, Carol 128; DV's
+  4163 uses R 3 / M 10). GUIAir slides in while the siren is at 2 (15794) and shows max(1, 12 - J / 2) for every character
+  (15796). RV: the alarm (372) at 403, J 1 at 427, death at 2287 (Lilac); Carol's ticks fall 24 frames later because GT is not
+  reset at fd2b's start (it carries the previous frame's count: the J phase and 41 / 42's order depend on the history; the port
+  counts from the level load). Milla never gets the alarm (15802). **Patches (BubblePatch_804):** fd2b's start destroys them while
+  global 12 (the difficulty) < 2: only Easy / Casual have them (RV: none on Normal). Touching one (PCS) opens it (col_5_17: anim 7,
+  sound 20; 4467: anim 8 when left, then back to 0 by its flag-8 / loop end), 15793 takes J down by 1 a frame and 4397 cuts J >= 20
+  to 18 (RV fd2b_patch2 on Easy: J 22 -> 18 -> 0 in 18 frames, 20 once, 18 at J 15 / 10 / 5 on the way down). No bubbles rise
+  from them in fd2b (no 4464-4466).
+- **JC5's rain (RE 11611-11618, RV rain_l / rain_tp / j5tp):** LevelRain_2526 (one 1 x 28 image 7301, hot spot (0, 27)) on json
+  layer 5. 11611 makes one drop a frame while count < min(50, (MV.X - 200 + GT) / 120) (GT reset at JC5's start: RV gv3 = frame
+  + 1), at x = view + (31 n mod G16), A = view top - rand(200), B = 12 + rand(80) / 10; 11612 / 11613 wrap them into view +-10;
+  11614 y = int(A), A += B, the layer-0 tint (LayerObject set_rgb on layer 0: R = G = 255 - d, B 255, d = clamp((MV.X - 400 +
+  GT) / 25)) and the volume of the rain loop 293 (played by the start events on channel 29, looping) = clamp(2 n - 2, 0, 100);
+  11615 restarts a drop below the view + 40 at view + rand(426), A = view top - rand(50); 11617: crossing ML.C it stops at the
+  water line, makes an EffectsWaterHit_756 (alpha 0xc0, anim 4 once, then destroyed by its flag 8: Active::update) and 11616
+  hides it. 11618: LevelDarkSky C + 1 while count > 40, so the lightning waits for the rain: standing at the start there is
+  none for ~5000 frames (RV rain_l: 1-2 drops after 270 frames); after a TP to x 9000 50 drops one a frame (RV rain_tp), and the
+  first bolt of the old RV traces (TP 5500 at 60) at 108 follows from it (the port's old -98 start of C is gone).
