@@ -542,7 +542,7 @@ static const signed char MSTAIL[7][2][6] = {
 enum { MSS_BURST = 1, MSS_FBALL, MSS_FLARE, MSS_BUBBLE, MSS_FX };
 #define MS_NSHOT 48
 static struct {
-    int on, npcA, F, D, def, results, variant, nspec, dashes, mlast, landed, fallx, gone, cam, par;
+    int on, npcA, F, D, def, results, variant, nspec, dashes, mlast, landed, gone, cam, par, hud;
     double G, E, H, I, Dang, w[6], tx, ty;
     short shot[MS_NSHOT];
 } S;
@@ -823,6 +823,8 @@ static void ms_frame(player_t *p) {
         for (unsigned k = 0; k < sizeof HID / sizeof *HID; k++) par_set_hidden(HID[k], 1);
         for (unsigned k = 0; k < sizeof SHOW / sizeof *SHOW; k++) par_set_hidden(SHOW[k], 0);
     }
+    if (S.npcA >= 1 && !S.landed) S.hud = S.hud < 80 ? S.hud + 1 : 80;         /* 15814: loop_gui_shiftup_44 (1 px a frame, cap INFERRED) */
+    else if (S.hud > 0) S.hud = S.hud > 2 ? S.hud - 2 : 0;                     /* (INFERRED: back down once in the arena) */
     if (S.npcA < 7) ms_intro(p);
     else if (!S.def) ms_fight(p);
     else ms_defeat(p);
@@ -887,4 +889,4 @@ int   fdb12_q20(int type) { return type == OT_FDB_MPART + MP_HEAD || type == OT_
 int   fdb12_input(uint32_t *held) { return on && ms_input(held); }
 int   fdb12_player_hidden(void) { return 0; }
 void  fdb12_draw(int pass) { if (on) { pb_draw(pass); m_draw(pass); } }
-float fdb12_hud_dy(void) { return 0.f; }
+float fdb12_hud_dy(void) { return on && S.on ? -(float)S.hud : 0.f; }
