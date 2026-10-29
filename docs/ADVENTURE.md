@@ -1,5 +1,12 @@
 # Adventure mode: the story scenes
 
+> **Status at the end of session 25:** every inventoried scene with a recoverable script is ported (groups A-E, 70 rows in
+> story/story.txt with the character variants; RV-traced, voiced, pause SKIP SCENE / NEXT STAGE as the original). Not
+> ported: sg_intruders' 408-frame starfield opening and the frame-84 ride before Battle Glacier. Saves use permanent scene
+> numbers (tables/story/sids.json, D-122). Flycast: every story room x Lilac / Carol / Milla, VRAM free >= 727 KB, sound
+> RAM >= 127 KB free (BUILD_AND_TEST_LOG "Session 25"). Visual polish is ongoing (TODO top). Groups A / B are documented in
+> docs/ADVENTURE_ARC2.md, C1 / C2 in section 10 below, D / E in tools/story_arc4.sh and tests/test_adventure_arc4.py.
+
 This page covers session 25's Adventure work (phase 1). It has the scene inventory, the runtime, the data format, the
 first story arc (ported), and how the remaining arcs can be split. Evidence labels:
 

@@ -742,3 +742,16 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
 - RV harness: GT (global 3) is not reset at fd2b's start (it carries the previous frame's count), so trace phases of GT % 60 /
   % 120 events there depend on what ran before; JC5 resets it. Global 12 can be set before a restart (scratch rt2.sh: set
   {double}(*(long*)0x285ec68 + 96)); set it back to 1 afterwards, the running game keeps it for the next trace.
+
+## Session 25 (the story runtime, pellets, verification)
+- src/game/story.c / story.h: `story_gate()` (S.run && fe_mode == 2 && !G.time_attack && G.file_mode == 0) is the only gate;
+  `story_new_game` (hub NEW ADVENTURE / character select), `story_stage_end(stage)` (results / achievement pop-up only),
+  `story_continue`, `story_epilogue()` (ending.c, Adventure only), `story_reset()` at every entry point that leaves a run.
+  G.mode MODE_STORY while a scene plays; `chr_variant()` picks the variant of the same json frame and g4. story/story.txt rows:
+  `<id> <room> <g4> <next> sid= [skip=] [stage=] [panel=] [trig=new|end:I|ending] [chr=]` (STORY_ROWS 96, STORY_MAX 64 sids).
+- src/game/cutscene.c: the script player (actors with ink, camera, parallax visibility, fades, captions / subtitles, dialog
+  box, two voice slots, rigs); per scene `game_sfx_set()` loads only the script's sound ids that are not resident.
+- Save v5 (save.c): per file `story` (last completed sid + 1), global 8 bytes of seen flags (by sid); v3 / v4 load.
+- obj_spawn_pellet(x, y, dir, layer): the creator's layer (D-120); obj_effect_l(): an effect on a given layer.
+- Verification discs: demo.txt `<f> SCENE <id> <g1>` -> story_verify_play(); logs `scene ... vram ... snd` and, every 30
+  frames in a scene, `story lv ... vram ... snd` (plat_dc.c).

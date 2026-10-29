@@ -1449,3 +1449,15 @@ each sound's caller (a tail-called event shows as its caller + the return offset
   SB3's eyes stand on json layer 1, which scrolls at 0.8 there: RV sb3_eye (TP 7893 495) shows the eye at screen x ~130 and its
   glow cycling (A + 4 from the teleport), while at the eye's own x the base eye's A stayed 0 (rv1).
 - **Heat sky (RV look):** TB3 p7_l f1200-f1400 and TB6 x2_l f2000-f2300 equal the port's renders within 1-5 levels per channel.
+
+## Session 25: Dragon Valley fixes, Adventure mode (index)
+- DV1 / Wretchnid pellets (RE 4773 / 4856: add_object(pellet, creator's layer); 4844-4871 the Wretchnid; the pellet hit as a
+  12-px disc vs the sensor box at whole pixels, RV hit frame 189) and the DV2 / DV3 / DV4 geyser plates (RE 4961-4969,
+  5372-5379; one -13.8 launch per eruption, DV4 -12): build/re/spec_dv_fixes.md, D-120, tests/test_dv_fixes.py.
+- Adventure mode: docs/ADVENTURE.md (frame 8's g0 = 2 routing by MenuSequence.I and g1, the CutsceneList K -> frame / g4
+  table, events 262-298, the pause rows per g4, GUIPause frames 1 / 2, DialogData / Text::add_line, captions / subtitles,
+  the ending's epilogue at 22441), docs/ADVENTURE_ARC2.md (groups A / B), ADVENTURE.md section 10 (frame 83, groups C1 / C2)
+  and the group D / E notes there. Dialogue: tables/story/dialog.json (tools/re/dump_dialog.py; 1,026 lines).
+- Windows Data/font.bmp (observed): 256x2280, the same three 8x20 ASCII rows first (adds '%' and '~'), then accented Latin,
+  kana and kanji; the port keeps the top 256x60.
+- The late-stage gimmick findings of this session are in "Session 26", "Session 26b" and "Session 26c" below / above.
