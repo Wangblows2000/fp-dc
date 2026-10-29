@@ -1103,7 +1103,28 @@ static const objdef_t DEFS[] = {
     /* ==== end Battle Glacier */
     /* ==== Final Dreadnought (session 24): one block per module */
     /* ---- FD_FLOW (fd_flow.c) */
-    /* ---- FD_ENEMIES (fd_enemy.c) */
+    { OT_FDF_LOOP01, OD_SOLID|OD_LAYER0, "fdl01"        }, /* fdlooplayer01_3643 (Q10: solid on loop layer 0; visible Active) */
+    { OT_FDF_LOOP02, OD_SOLID|OD_LAYER0, "fdl02"        }, /* fdlooplayer02_3644 (Q10: solid on loop layer 0; visible Active) */
+    { OT_FDF_LOOP03, OD_SOLID|OD_LAYER0, "fdl03"        }, /* fdlooplayer03_3646 (Q10: solid on loop layer 0; visible Active) */
+    { OT_FDF_LOOP04, OD_SOLID|OD_LAYER0, "fdl04"        }, /* fdlooplayer04_3663 (Q10: solid on loop layer 0; visible Active) */
+    { OT_FDF_LOOP05, OD_SOLID|OD_LAYER0, "fdl05"        }, /* fdlooplayer05_3664 (Q10: solid on loop layer 0; visible Active) */
+    { OT_FDF_LOOP11, OD_SOLID|OD_LAYER1, "fdl11"        }, /* fdlooplayer11_3647 (Q11: solid on loop layer 1; visible Active) */
+    { OT_FDF_LOOP12, OD_SOLID|OD_LAYER1, "fdl12"        }, /* fdlooplayer12_3648 (Q11: solid on loop layer 1; visible Active) */
+    { OT_FDF_LOOP13, OD_SOLID|OD_LAYER1, "fdl13"        }, /* fdlooplayer13_3649 (Q11: solid on loop layer 1; visible Active) */
+    { OT_FDF_LOOP14, OD_SOLID|OD_LAYER1, "fdl14"        }, /* fdlooplayer14_3662 (Q11: solid on loop layer 1; visible Active) */
+    { OT_FDF_LOOP15, OD_SOLID|OD_LAYER1, "fdl15"        }, /* fdlooplayer15_3665 (Q11: solid on loop layer 1; visible Active) */
+    /* ---- FD_ENEMIES (fd_enemy.c, spec_fd_enemies; sprites set by fd_enemy_spawn; RE on_frame_66..73_init q20: pounder, gun, iris, spider) */
+    { OT_FDE_POUNDER,   0,                                     NULL         }, /* enemypounder_3423 (q20) */
+    { OT_FDE_GTABLE,    0,                                     NULL         }, /* enemygatlingguntable_3666 */
+    { OT_FDE_GRIGHT,    0,                                     NULL         }, /* enemygatlinggunright_3667 */
+    { OT_FDE_GLEFT,     0,                                     NULL         }, /* enemygatlinggunleft_3668 */
+    { OT_FDE_GUN,       0,                                     NULL         }, /* enemygatlinggun_3669 (q20) */
+    { OT_FDE_GBARREL,   0,                                     NULL         }, /* enemygatlinggunbarrel_3670 */
+    { OT_FDE_GUN2,      0,                                     NULL         }, /* enemygatlinggun2_3671 */
+    { OT_FDE_IRIS,      0,                                     NULL         }, /* enemybeastiris_3735 (q20) */
+    { OT_FDE_SPIDER,    OD_HIDDEN,                             NULL         }, /* enemyspiderbeamer_3755 (q20; ctor invisible) */
+    { OT_FDE_PODSPOT,   OD_HIDDEN,                             NULL         }, /* enemyelitespawnerspawner_3453 (ctor invisible) */
+    { OT_FDE_GDEB,      0,                                     NULL         }, /* - (runtime: enemygatlinggundebris_3673) */
     /* ---- FD_GIM (fd_gim.c; qualifiers RE on_frame_66..73_init; box = initialize_active(1) in the constructor) */
     { OT_FDG_TSTART,    OD_BOXCOL,                             NULL         }, /* objecttransporterstart_3416 (a pipe entrance) */
     { OT_FDG_TSTART2,   OD_BOXCOL,                             NULL         }, /* objecttransporterstart2_3417 (the orbiting light) */
