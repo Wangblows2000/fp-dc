@@ -1,6 +1,7 @@
 # A Freedom Planet Decompilation targetting Dreamcast.
 Fan project, not affiliated with GalaxyTrail. Freedom Planet assets belong to their owners.
-
+##Win32 build screenshot.
+<img width="1497" height="681" alt="PC RAM" src="https://github.com/user-attachments/assets/c01e3311-cd91-4a72-9ca4-3bc71cb5f1a4" />
 
 Through a mixture of decompilation and guesswork - followed by compression and some other optimization bulldada - I present what is effectively a FOSS approximation of Freedom Planet. This project was entirely built with Claude's Opus 5.5, with myself merely play-testing and prompting the majority. Huge credits to the https://github.com/snickerbockers/fp-assets tools for making this possible, as well as making it known to myself that the debug symbols for this game were actually out there.
 
