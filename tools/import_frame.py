@@ -1797,7 +1797,7 @@ BGB_ENS6 = [(c, a, d, nm, None, _SB6) for c, a, d, nm in (
     ('bossshadebeasteye_3365', 7, '0', 'bgd_eye7'), ('bossvortex1_3374', 0, '0', 'bgd_vortex1'),
     ('bossvortex2_3378', 0, '0', 'bgd_vortex2'), ('bossvortexstar_3379', 0, '0', 'bgd_star'),
     ('bossdailcard_3371', 0, '0', 'bgd_card'), ('bossdailcardtrail_3372', 0, '0', 'bgd_trail'),
-    ('bossdailcardeffect_3367', 7, '0', 'bgd_cardfx'), ('bosslightning2_2132', 0, '0', 'bgd_bolt'),
+    ('bossdailcardeffect_3367', 0, '0', 'bgd_cardx'), ('bosslightning2_2132', 0, '0', 'bgd_bolt'),
     ('effectbossshade_3377', 0, '0', 'bgd_shade'), ('effectvortexburst_3380', 4, '0', 'bgd_burst'))]
 ENS += BGB_ENS6   # BG_BOSS
 for _e in BGB_ENS6: ROW_FRAMES[_e[3]] = {65}
