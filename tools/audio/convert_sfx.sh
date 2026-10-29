@@ -69,5 +69,7 @@ R0=$RATE; RATE=11025; TRIM_ALL=1; for i in 44 147 150 322 323 324 325 326 327 32
 R0=$RATE; RATE=11025; for i in 425 294; do conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; done; TRIM_ALL=1; for i in 435 354; do conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; done; RATE=$R0; TRIM_ALL=
 # Battle Glacier (session 24, SFX_BG1..6): 344 magnet launcher, 345 / 346 Elite spawner drop / land; half rate, tails trimmed
 R0=$RATE; RATE=11025; TRIM_ALL=1; for i in 344 345 346; do conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; done; RATE=$R0; TRIM_ALL=
+# Final Dreadnought (session 24, SFX_FD1A..FD4B): 376 gatling-gun burst (the other FD ids are converted above); half rate, tails trimmed
+R0=$RATE; RATE=11025; TRIM_ALL=1; for i in 376; do conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; done; RATE=$R0; TRIM_ALL=
 rm -rf "$TMP"
 awk -F, 'NR>1{s+=$4} END {printf "%d sounds, %.1f KB\n", NR-1, s/1024}' "$OUT/sfx_manifest.csv"

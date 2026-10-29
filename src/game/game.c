@@ -54,7 +54,7 @@ static void level_start(void) {
     tb_flow_spawn();                                                /* Thermal Base stage script (src/game/tb_flow.c; stage index 6 only) */
     th_flow_spawn();                                                /* Trap Hideout stage script (src/game/th_flow.c; stage index 8 only) */
     results_reset();
-    G.exit_walk = 0; G.timer_stop = 0;
+    G.exit_walk = 0; G.timer_stop = 0; G.exit_hold_t = 0;
     G.clear_t = 0; G.act_in = 0; G.act_fade = 0; G.frame = 0; G.card_t = 0; G.paused = 0;
     G.pause_a = 0; G.pause_wipe_f = 0;
     G.act_lives = G.p.lives; G.act_crystals = G.p.crystals; G.act_keystones = G.keystones; G.act_stage_crystals = G.stage_crystals;   /* RE 4311/4312 (act-carry values are applied after this; see next_act) */
@@ -737,10 +737,14 @@ void game_update(const input_t *in) {
         jc_flow_card(&G.p, CARD_DONE - G.card_t);   /* JC1 10365-10367: held at x -40, thrown in at the card's end (jc_flow.c) */
         th_flow_card(&G.p, CARD_DONE - G.card_t);   /* TH1 13533: held at the top of the shaft until the card fade's B reaches 96 (th_flow.c) */
         tb_flow_card(&G.p);                         /* TB1 11881: the start lift rises from the card's frame 161 (tb_flow.c) */
+        fd_flow_card(&G.p, CARD_DONE - G.card_t);   /* FD1 (handle_frame_66 card group): held at x -40 / Milla at (128, -60) (fd_flow.c) */
         camera_update();
         return;
     }
     G.frame_draw_t++;
+    if (G.exit_hold_t) {                          /* a level's exit_hold (FD4a 16721: group 0x21a5d off, the world stands; 16723: the fade) */
+        if (++G.exit_hold_t > level_cur()->exit_hold) { G.exit_hold_t = 0; G.clear_t = 1; } else { camera_update(); return; }
+    }
     if (G.paused) { pause_update(in); return; }
     if (G.pause_a > 0) G.pause_a--;                  /* RE 2928: closing lockout 1 -> 0 */
     if (pause_try_open(in)) return;                  /* (the original pauses after this frame's gameplay events) */
@@ -837,8 +841,8 @@ void game_update(const input_t *in) {
      * results instead (5381 / 5576, src/game/results.c) */
     { int rr; PROF(PS_RES, rr = results_update(&G.p)); if (rr) return; }
     { const level_def_t *ld = level_cur();                    /* AT3 4521: also MV.Y < 380 (exit_max_y) */
-      const exit_t *ex = (!G.clear_t && !G.act_in && (!ld->exit_max_y || G.p.y - ORIG_REF_DY < ld->exit_max_y)) ? level_exit_check(&G.p) : NULL;
-      if (ex) { G.clear_t = 1; G.exit_to = ex->to; G.exit_b = ex->fade_b; }
+      const exit_t *ex = (!G.clear_t && !G.exit_hold_t && !G.act_in && (!ld->exit_max_y || G.p.y - ORIG_REF_DY < ld->exit_max_y)) ? level_exit_check(&G.p) : NULL;
+      if (ex) { G.clear_t = ld->exit_hold ? 0 : 1; G.exit_hold_t = ld->exit_hold ? 1 : 0; G.exit_to = ex->to; G.exit_b = ex->fade_b; }
       if (ld->script_exit && !G.exit_walk && !G.clear_t && !G.act_in && G.p.x > G.lvl.w - 50) {   /* FN3 7710 (no B test): CTRL.M 1, Sign 0x2 -> 6195 */
           G.exit_walk = 1; G.exit_b = 2; G.input_lock = 1; G.timer_stop = G.frame + 1;              /* timer group 0x2205a and pause group off */
           if (G.p.state == ST_BOOST || G.p.state == ST_CHARGE) G.p.state = ST_NORMAL;               /* MV.M = 0 (INFERRED: only the boost states are left) */

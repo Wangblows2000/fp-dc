@@ -1809,9 +1809,76 @@ for _k in ('bossshadebeastmouth_3373', 'bossshadebeasttoptooth_3375', 'bossshade
 # ==== end Battle Glacier
 
 # ==== Final Dreadnought (session 24; json 66-73 = fd1a..fd4b; types 2560-3071)
-# ---- FD_FLOW (fd_flow.c, 2560-2623)
+# ---- FD_FLOW (fd_flow.c, 2560-2623; build/re/spec_fd_flow.md)
+# The loop-layer pieces of FD3 (fd3a / fd3b, json 70 / 71; RE on_frame_70_init qualifier tables: Q10 (+0x21908, solid on loop layer 0)
+# = FDLoopLayer01 / 02 / 03 / 04 / 05, Q11 (+0x21920, layer 1) = FDLoopLayer11 / 12 / 13 / 14 / 15; the shared flag rule 3031 / 3032 by
+# MV.P). Visible Actives (ctors: no set_visible(0)), opaque 64 x 64 / 128 x 128 images (02 / 12: a 4-frame conveyor animation). Each
+# piece is placed on json layer 3 (the play layer) and most again on layer 4 (in front of the player): the lvobj anim holds the instance
+# layer << 8 (fd_flow_spawn sets obj.layer; the off-map templates are removed there). One type per class (the spawn sprite is per type).
+FDF_LOOPS = [('fdlooplayer01', 3643, 0), ('fdlooplayer02', 3644, 0), ('fdlooplayer03', 3646, 0), ('fdlooplayer04', 3663, 0), ('fdlooplayer05', 3664, 0),
+             ('fdlooplayer11', 3647, 1), ('fdlooplayer12', 3648, 1), ('fdlooplayer13', 3649, 1), ('fdlooplayer14', 3662, 1), ('fdlooplayer15', 3665, 1)]
+FDF_TYPES_ID = {(c, h): 2560 + k for k, (c, h, _) in enumerate(FDF_LOOPS)}
+FDF_ENS = [('%s_%d' % (c, h), 0, '0', 'fdl%s' % c[11:]) for c, h, _ in FDF_LOOPS]
+ENGINE_TYPES_ID.update(FDF_TYPES_ID); ENS += FDF_ENS   # FD_FLOW
+for _e in FDF_ENS: ROW_FRAMES[_e[3]] = {70, 71}         # FD_FLOW rows only in fd3a / fd3b (the only acts that place them)
+# no water: ML.A 1 / ML.B 2000 (4800 in fd2a / fd2b) are written by the start events, but only handle_frame_69 (fd2b) holds air events,
+# its own vacuum rule (15790-15796: the air counter rises while the siren alarm is on, not ML.B): not in WATER_FRAMES
 
-# ---- FD_ENEMIES (fd_enemy.c, 2624-2751)
+# ---- FD_ENEMIES (fd_enemy.c, 2624-2751; build/re/spec_fd_enemies.md). Reused classes (RE: the FD frames run the same events as
+# their home stages, build/re/fde/f66..f73_calls): the EliteSpawner pods (bg_enemy.c 2337, BG5's 14657-14662 everywhere; payload by
+# alterable C in FD1 15245-15249), the Elites (jc_enemy.c 1326 / 1327, the JC5 events 10949-11038; not the JC5 gunship module's
+# 1498 / 1499), Thermal Base's tank bots (12425-12444, FD1-FD3) and seekers (11761-11782, FD3), Jade Creek's bubble orbiters
+# (their GolemShot rows, FD3), Sky Battalion's DNA cannon warnings (9854-9858: EffectWarning_1528 = OT_SB_WARN in FD3 / FD4a).
+FDE_FRAMES = FD_FRAMES
+for _n in FDE_FRAMES: FRAME_TYPE_REMAP.update({(_n, 1498): 1326, (_n, 1499): 1327})   # FD Elites: jc_enemy.c's types
+for _e in JCE_ENS:                                   # the Elite rows (exact-mirror left rows stay out)
+    if _e[3].startswith('jee_') and _e[3] not in JCE_MIRRORED: ROW_FRAMES[_e[3]] = ROW_FRAMES.get(_e[3], set()) | FDE_FRAMES
+for _e in BGE_ENS:                                   # the pod rows
+    if _e[3].startswith('bgs_'): ROW_FRAMES[_e[3]] = ROW_FRAMES[_e[3]] | FDE_FRAMES
+for _e in TBE_ENS:                                   # tank bots (fd1a..fd3b), seekers + their homing bullets (fd3a / fd3b)
+    if _e[3].startswith(('tbt_', 'tbs_')) and _e[3] not in TBE_MIRRORED: ROW_FRAMES[_e[3]] = ROW_FRAMES.get(_e[3], set()) | {66, 67, 68, 69, 70, 71}
+for _nm in ('jeo_shot', 'jeo_pop'): ROW_FRAMES[_nm] = ROW_FRAMES[_nm] | {70, 71}   # the bubble orbiters' shots (fd3a / fd3b)
+ROW_FRAMES['sbwarn'] = ROW_FRAMES['sbwarn'] | {70, 71, 72}
+SBE_WARN_FRAMES |= {70, 71, 72}                      # EffectWarning_1528 -> OT_SB_WARN (the DNA cannons' off-view warnings)
+# New classes (src/game/fd.h OT_FDE_*): EnemyPounder_3423 (FD1 / FD3, Q20; its HazardShockwave_1576 is Relic Maze's 'shock' rows),
+# the gatling gun EnemyGatlingGun_3669 (Q20) + Table_3666 / Right_3667 / Left_3668 / Barrel_3670 / Gun2_3671 (+ the runtime
+# Debris_3673; its shots are the Elite's TrooperLaser_2530 'jee_laser'), EnemyBeastIris_3735 (FD4a, Q20), EnemySpiderBeamer_3755
+# (FD4a / FD4b, Q20; its shots are the seeker's EnemyHomingBullet_2648 'tbs_bul'), EnemyEliteSpawnerSpawner_3453 (FD1a's 24 hidden
+# drop points of the pod rain, 15287). Inert (no event references them, RE): EnemyCrane_3422, HazardBeamCannonHorizontal_3436,
+# FDLaserCannonLeftLight_3434 (off-map / unused templates): not exported. Right and left share the image ('fdg_arm').
+FDE_TYPES_ID = {('enemypounder', 3423): 2624, ('enemygatlingguntable', 3666): 2625, ('enemygatlinggunright', 3667): 2626,
+    ('enemygatlinggunleft', 3668): 2627, ('enemygatlinggun', 3669): 2628, ('enemygatlinggunbarrel', 3670): 2629,
+    ('enemygatlinggun2', 3671): 2630, ('enemybeastiris', 3735): 2631, ('enemyspiderbeamer', 3755): 2632,
+    ('enemyelitespawnerspawner', 3453): 2633}
+_FDE_SFX = {'0': '', '16': '_l'}
+_FDE_ROWS = [   # (class, anim, directions, row)
+    ('enemypounder_3423', 0, ('0', '16', '24'), 'fdp'), ('enemypounder_3423', 8, ('0', '16', '24'), 'fdp_dead'),
+    ('enemygatlinggun_3669', 0, ('0',), 'fdg_gun'), ('enemygatlinggun2_3671', 0, ('0',), 'fdg_gun2'),
+    ('enemygatlinggunbarrel_3670', 0, ('0',), 'fdg_bar'), ('enemygatlinggunleft_3668', 0, ('0',), 'fdg_arm'),
+    ('enemygatlingguntable_3666', 0, ('0',), 'fdg_table'), ('enemygatlinggundebris_3673', 0, ('0',), 'fdg_deb'),
+    ('enemybeastiris_3735', 0, ('0', '16'), 'fdi'), ('enemybeastiris_3735', 7, ('0', '16'), 'fdi_fall'),
+    ('enemybeastiris_3735', 8, ('0',), 'fdi_dead'), ('enemybeastiris_3735', 10, ('0', '16'), 'fdi_bite'),
+    ('enemyspiderbeamer_3755', 0, ('0', '8', '16', '24'), 'fds'), ('enemyspiderbeamer_3755', 10, ('0', '8', '16', '24'), 'fds_dead'),
+    ('enemyspiderbeamer_3755', 11, ('0', '8', '16', '24'), 'fds_open')]
+_FDE_WITH = {'enemygatlinggundebris_3673': ('enemygatlinggun',), 'enemygatlinggunleft_3668': ('enemygatlinggunleft', 'enemygatlinggunright')}
+FDE_ENS = [(c, a, d, nm + _FDE_SFX.get(d, '_' + d), None, _FDE_WITH.get(c, (c.rsplit('_', 1)[0],))) for c, a, ds, nm in _FDE_ROWS for d in ds]
+FDE_ENS += [('enemyhomingbullet_2648', 0, '0', 'tbs_bul', None, ('enemyspiderbeamer',))]   # the spider beamers' shots (16694)
+ROW_FRAMES['tbs_bul'] = ROW_FRAMES['tbs_bul'] | {72, 73}
+FDE_ENS_WITH = {'hazardshockwave_1576': ('enemypounder',), 'enemytrooperlaser_2530': ('enemygatlinggun',),
+    'enemyhomingbullet_2648': ('enemyspiderbeamer',), 'enemygatlinggundebris_3673': ('enemygatlinggun',),
+    'objectkeystone_429': ('enemypounder', 'enemygatlinggun'), 'effectsdebris_427': ('enemypounder', 'enemyspiderbeamer'),
+    'effectsexplosion06_435': ('enemypounder', 'enemygatlinggun')}
+ENGINE_TYPES_ID.update(FDE_TYPES_ID); ENS += FDE_ENS   # FD_ENEMIES
+for _k, _v in FDE_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # FD_ENEMIES
+for _e in FDE_ENS: ROW_FRAMES[_e[3]] = ROW_FRAMES.get(_e[3], set()) | FDE_FRAMES
+try:
+    FDE_MIRRORED = _tbe_mirror_rows(FDE_ENS)
+except FileNotFoundError:
+    FDE_MIRRORED = set()
+for _nm in FDE_MIRRORED: ROW_FRAMES[_nm] = set()   # FD_ENEMIES (exact-mirror left rows: drawn flipped)
+# the spider beamers' directions per act (VRAM): FD4a faces 0 / 16 (16698), FD4b 16 / 24 (16807); direction 8 is never used
+for _b in ('fds', 'fds_dead', 'fds_open'):
+    ROW_FRAMES[_b] = {72}; ROW_FRAMES[_b + '_24'] = {73}; ROW_FRAMES[_b + '_8'] = set()
 
 # ---- FD_GIM (fd_gim.c, 2752-2911)
 
@@ -2042,6 +2109,35 @@ PAR_FIXED = {(63, 3310)}                              # json frame, handle: draw
 PAR_FIXED_SKIP = {3353, 3364}                         # the close views: not exported (BG5: on screen only at view left > 5300 near the top,
                                                       # two 305 x 657 images ~400 KB of VRAM, INFERRED not worth it; BG6: its ending's)
 PAR_ALPHA.update({1614: 3})                           # piece1_3224: white mist, alpha 0..211 (ARGB4444 at half resolution, drawn x2)
+# ---- FD_FLOW parallax (session 24, build/re/spec_fd_flow.md 5): SystemBox pieces (RE create_levelparallaxpiece*_33xx-37xx /
+# create_levelparallaxtunnel1_3464 / 2_3463: image, box w x h; the image tiles in the box). D / E / G: fd1a 15309, fd1b its start inline (the
+# same values + the tunnel strips: tunnel2 D .5, tunnel1 D .25, E 0), fd2a / fd2b their start inline, fd3a / fd3b 16200, fd4a 16728 (piece0 D 1
+# E .98); fd4b's piece0 is moved by the final boss's phases (bosses module; its first write D 1 E .98 is exported). Not exported (INFERRED):
+# fd2b's piece5 / 7 / 9 (3589 / 3588 / 3591) and fd4a's piece1_3726 (no event writes their D / E: values unknown), fd4b's
+# ParallaxSpaceBack 1-3 (the final boss's backdrops), FDJumbotron (fd1a), FD3BackPillar / FlashbackBG (fd3a / fd3b scenery Actives).
+PAR_IMG.update({'levelparallaxpiece0_3390': 3752, 'levelparallaxpiece1_3395': 2959, 'levelparallaxpiece10_3393': 1397,
+                'levelparallaxpiece11_3394': 8566, 'levelparallaxpiece2_3413': 2960, 'levelparallaxpiece7_3391': 1628,
+                'levelparallaxtunnel1_3464': 15075, 'levelparallaxtunnel2_3463': 3827,
+                'levelparallaxpiece1_3497': 368, 'levelparallaxpiece10_3496': 1021, 'levelparallaxpiece2_3559': 1016,
+                'levelparallaxpiece3_3560': 1036, 'levelparallaxpiece8_3558': 994,
+                'levelparallaxpiece0_3590': 5872, 'levelparallaxpiece1_3566': 368, 'levelparallaxpiece10_3565': 1021,
+                'levelparallaxpiece2_3570': 1016, 'levelparallaxpiece3_3571': 1036, 'levelparallaxpiece8_3569': 994,
+                'levelparallaxpiece0_3608': 1281, 'levelparallaxpiece1_3609': 11371, 'levelparallaxpiece7_3611': 245,
+                'levelparallaxpiece8_3612': 206, 'levelparallaxpiece9_3613': 1215, 'levelparallaxpiece0_3725': 14804})
+PAR_BOXW.update({'levelparallaxpiece10_3393': 400, 'levelparallaxpiece11_3394': 400, 'levelparallaxpiece2_3413': 400,
+                 'levelparallaxpiece7_3391': 400, 'levelparallaxtunnel2_3463': 64})
+PAR_BOXH.update({'levelparallaxpiece1_3395': 238, 'levelparallaxpiece2_3413': 238, 'levelparallaxpiece1_3497': 1440,
+                 'levelparallaxpiece10_3496': 1920, 'levelparallaxpiece2_3559': 1440, 'levelparallaxpiece3_3560': 1440,
+                 'levelparallaxpiece8_3558': 1600, 'levelparallaxpiece1_3566': 3200, 'levelparallaxpiece10_3565': 4800,
+                 'levelparallaxpiece2_3570': 3200, 'levelparallaxpiece3_3571': 3200, 'levelparallaxpiece8_3569': 4000,
+                 'levelparallaxpiece0_3725': 380})
+PAR_DEG.update({3390: (.9, .9, 0), 3391: (.8, .88, 0), 3393: (.7, .9, 0), 3394: (.7, .86, 0), 3395: (.95, .95, 0), 3413: (1, 1, -.3),
+                3463: (.5, 0, 0), 3464: (.25, 0, 0),
+                3496: (.3, .3, 0), 3497: (.6, .6, 0), 3558: (.45, .45, 0), 3559: (.6, .6, 0), 3560: (.6, .6, 0),
+                3565: (.3, .3, 0), 3566: (.6, .6, 0), 3569: (.45, .45, 0), 3570: (.6, .6, 0), 3571: (.6, .6, 0), 3590: (1, 1, -1),
+                3608: (.99, .94, 0), 3609: (.8, .8, 0), 3611: (.8, .8, 0), 3612: (.7, .7, 0), 3613: (.6, .65, 0), 3725: (1, .98, 0)})
+PAR_DEG_FRAME.update({(69, 3224): (1, 1, 0)})          # fd2b's mist (BG's piece1_3224 with D 1 E 1, on_frame_69 start inline)
+PAR_ALPHA.update({1281: 2})                           # fd3a / fd3b sky piece0_3608 (2048 x 320, D .99): half resolution, drawn x2 (VRAM, INFERRED)
 JC_WATER = {40: 1200, 41: 1600, 42: 1600, 43: 1600, 44: 1600}   # ML.B (10378 / 10566 / 10822 / 10863 / 11643)
 JC_SURF_FRAMES = [7795, 7802, 7803, 7804, 7796, 7797, 7798]      # LevelParalaxWaterSurface_14 anim 0 (both directions use the same images);
                                                                  # its 8th frame (7799) is shown as the 7th: one 512 x 512 4 bpp atlas (VRAM)
@@ -2801,6 +2897,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         if 1888 <= o['type'] < 1968: a = TBG_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # TB_GIM (tb_gim.c): member index | instance layer << 8
         if 2144 <= o['type'] < 2224: a = PLG_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # PL_GIM (pl_gim.c): member index | instance layer << 8
         if 2400 <= o['type'] < 2480: a = BGG_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # BG_GIM (bg_gim.c): member index | instance layer << 8
+        if 2560 <= o['type'] < 2570: a = o['layer'] << 8   # FD_FLOW (fd_flow.c): the loop pieces' instance layer << 8
         if 1370 <= o['type'] < 1430: a = (JCG_LEAF_TILT.get((o['x'], o['y']), 0) // 30 if o['type'] == 1371 else JCG_SUB.get(o['cls'], 0)) | (o['layer'] << 8)   # JC_GIM (jc_gim.c): member index (leaf backs: tilt / 30) | instance layer << 8
         if 1536 <= o['type'] < 1560: a = (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # TH_FLOW (th_flow.c): instance layer << 8 | 0x8000 json layer 1
         if 1100 <= o['type'] < 1150: a = SBG_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # SB_GIM (sb_gim.c): member index | instance layer << 8 | 0x8000: json layer 1 of a mapped frame (session 20: behind the json-2 pieces, scrolls with layer 1)
