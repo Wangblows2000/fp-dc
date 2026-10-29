@@ -69,6 +69,7 @@ enum { OT_TBG_FIRST_ = 1888 /* (1888 / 1889 / 1895 unused: lifts and wall lights
        OT_TBG_END = 1952 };
 obj_t *tb_gim_key_drop(float x, float y);       /* a key card dropped at (x, y): it falls to the floor (TB3 12118-12120; for the bosses) */
 void tb_gim_blockers(int solid);                /* TB3 PlayerBlockers: 0 = flag 0 (passable: the spider chase 12260), 1 = solid (12262) */
+void tb_gim_mdoor_ywin(int y);                  /* the metal doors' vertical reach (59; Final Dreadnought's lab doors 79: RE 15641 / 15646) */
 int  tb_gim_keycards(void);                     /* GUIKeyCards K: key cards held (HUD, tests) */
 int  tb_gim_button_presses(void);               /* switch buttons pressed so far this act (the bosses' trapdoor, tests) */
 int  tb_gim_xblock_ignite(float x0, float y0, float x1, float y1);   /* sets off the unlit ObjectExplosiveBlocks touching the box (BG drill sats 14306); returns the count */
