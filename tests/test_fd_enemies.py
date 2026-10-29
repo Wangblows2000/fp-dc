@@ -87,13 +87,14 @@ if want('pods'):
     hm = [(f, d) for f, d in obs if d['type'] == 1024 and abs(F(d, 'x') - 3871) < 40 and abs(F(d, 'y') - 480) < 20]
     check('fd1b_pod_hoppermkii', hm and min(f for f, d in hm) > 60, str([(f, d['x'], d['y']) for f, d in hm[:2]]))
 
-# ---- FD1a pod rain (RE 15287): from the drop points near the player, every 10 frames on g3 % 10 == 5
+# ---- FD1a pod rain (RE 15287): from the drop points near the player, every 10 frames on g3 % 10 == 5, once the jumbotron script
+# reached A 3 (X > 11111, Y > 1760: 15277) and B 160 (15284: C 1; session 26c, before: from X > 800)
 if want('rain'):
     for c in CHARS:
         n = NAME[c]
-        s, obs, rows = run(INV + '60 TP 900 1000;100 TP 11800 1340;' + hold(11800, 1340, 102, 300, 4), 300,
+        s, obs, rows = run(INV + '60 TP 11300 1850;240 TP 11800 1340;' + hold(11800, 1340, 242, 440, 4), 440,
                            {'FP_LEVEL': 'fd1a', 'FP_CHAR': str(c), 'FP_TRACK': '2337:-1,1327:-1'})
-        r345 = [f for f in sid(s, 345) if f > 100]
+        r345 = [f for f in sid(s, 345) if f > 240]
         pods = {(int(F(d, 'x')), int(F(d, 'a0'))) for f, d in obs if d['type'] == 2337 and f > 100 and int(F(d, 'x')) in
                 (11615, 11743, 11871, 11999, 12127, 12255, 12383, 12511, 11615)}
         els = [f for f, d in obs if d['type'] == 1327 and 11400 < F(d, 'x') < 12700]

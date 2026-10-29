@@ -160,6 +160,11 @@ SFX = (
     # by the JC5 start events, SFX_JC5; looped: tail kept)
     + ids('20 91', trim=True)
     + ids('293')
+    # small fixes: fd1a's jumbotron dialog (15273 / 15279, channel 28; level_def_t.vox of fd1a); not in the Linux copy (placeholder
+    # stubs): the PC install's VOX_PC
+    + vox('br/br_pa_01 br/br_pa_02', trim=True, kind='voxpc')
+    # small fixes: BG2's background fly-by plane (4875, SFX_BG2)
+    + ids('102', trim=True)
 )
 
 TRIM_AF = 'areverse,silenceremove=start_periods=1:start_threshold=-48dB,areverse'

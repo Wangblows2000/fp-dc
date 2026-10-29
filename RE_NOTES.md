@@ -1405,3 +1405,47 @@ tests/orig_carol); the pad-list dumps, lpop_*, fd2b_air(_c), fd2b_patch2, rain_l
   hides it. 11618: LevelDarkSky C + 1 while count > 40, so the lightning waits for the rain: standing at the start there is
   none for ~5000 frames (RV rain_l: 1-2 drops after 270 frames); after a TP to x 9000 50 drops one a frame (RV rain_tp), and the
   first bolt of the old RV traces (TP 5500 at 60) at 108 follows from it (the port's old -98 start of C is gone).
+
+## Session 26c: small fixes (tests/test_small_fixes.py)
+Traces (scratch, gitignored; rv1 / rv2 under the orig lock): death_l / death_c / death_b / pit_l / pit_c, spring (every frame),
+rm2_pad, tb4_door, bg2_102 / bg2_plane, fd1a_dlg / fd1a_node, fd1b_alarm, sb3_eye. `TRACE_CREATE=0xa4e650` (Media::play_id) logs
+each sound's caller (a tail-called event shows as its caller + the return offset: look at the call before that address).
+- **Deaths (RE + RV):** loop_sound_die_8 plays by OTHERS.N's character flags (957-961): Lilac 91, Spade 156, Carol 128, Milla 178.
+  It runs from loop_check_death_13 (R 2 -> M 9), reached by 2416 (a hit with petals K == 0: R 2, G -4.2, B -2.2 Q; no 25, no hurt
+  voice), 2417 (Y > frame height + 32) and the kill blocks (Counter 0 + R 1 + M 9 -> 2416). 2414 (the hurt: 25 + sound_hurt<n>)
+  needs K > 0, so the original survives at 0 petals until the next hit (RV pl_bosses p7: 0 petals from 2380, 91 alone at 2439).
+  1689 turns the death group 0x21a38 on once M is 9 (a frame after the death); there 1959 / 4724 (A 3: g1 2, A 2, a wrecked
+  ObjectBike (flag 6) at PLAYER, the engine channel stopped) and 1960 / 4725 / 15581 (every flag-6 ObjectBike explodes: explosion01,
+  sound 29 once, B -5, debris). Every frame holds an off-map ObjectBike template (-216, 320); with Carol it is flagged, so every
+  Carol death sounds 29 a frame later (RV death_c 189 / 190, pit_c 5 / 6, fd2b_air_c 2312 / 2313; on the bike death_b 190 / 191
+  with A 3 -> 2 then); Lilac / Milla none. Loop_check_death also turns 0x21a4a off, so 2111 / 2112 (the in-play wreck) do not run.
+- **Metal doors (RE 11827-11838, FD's lab doors 15641-15651 / 16100-16101):** fronts take flag 1 while opening (11835); 11837:
+  flag 1 and A == 1 -> 279; 11838: flag 1 off and A == 2 -> 280 (each with the 2-frame "once" guard). RV tb4_door: the front at
+  x 24 closes from 10 at the teleport (61), 280 at 75 (A 2). The old 15-frame lead (sound at A 10) was the port's rule, not the
+  teleport.
+- **BG2's 102 (RE + RV):** event 4875 (tail-called from handle_frame_61_events + 7911): LevelBackgroundPlane2_2227 facing 4 at
+  x >= view x - 49, flag 0 off -> flag 0, sound 102 (media + 102 * 8). The plane comes from 14241 (once, MV.X > 1130, MV.A != 4):
+  at (view x - 320, Y + 280) on layer 0, direction 4, A = x, B = y, C -5, D / E the view + camera, F 4; 4874: x = trunc((view x +
+  A)(0.05 C + 0.7)), y likewise with view y + B, A + 4 dir + 8 - 2 C, B + 0.25 (vtable + 0x48 = the direction: the 59-frame
+  crossing matches); 4876: past view x - 49, F - 0.05 (to 0), camera Z = min(3, Z + F); 4877: x > view x + 626: destroyed. RV
+  bg2_plane: the green plane flies left to right over the mountains, 102 at 120 for a teleport at 60.
+- **JC5 white card:** the port's OT_J5_FADE had no sprite and objects_draw skips sprite-less objects (RV l_kill2 f3600 white).
+- **FD1a dialog (RE 15273-15288):** 15273 (A 0, X > 800, g4 < 2): voice br_pa_01 on channel 28 (Media::play of data/voices/<lang>/
+  br/br_pa_01.ogg), the TextBlitter 0x1aff0 shows SubtitleData_3450's paragraph 0, A 1; 15275 (A 1, B > 250): hidden, A 2; 15277
+  (A < 3, X > 11111, Y > 1760): A 3, the screen shown, B 0; 15279 (A 3, B 20): anim 7, br_pa_02 on channel 28; 15282 (B 110):
+  frame 3, paragraph 1 shown; 15284 (B 160): C 1; 15286 (B > 270): screen and subtitle hidden, A 4. 15287 drops pods while C > 0
+  (g3 % 10 == 5, a drop point within 199 px). 15288 (PLAYER E == 90, once): br_pa_07..09 at random (not ported). RV fd1a_dlg:
+  A 0 -> 3 at the teleport 650 (both rules the same frame), voices 650 / 669, C 1 at 810; the TextBlitter at (53, 176), 320 px wide:
+  paragraph 0 wraps to two rows (f700), paragraph 1 one row (late_gim f532); font.bmp's glyphs, black transparent.
+- **FD1b alarm (RE 15388):** the same rule as FD3a's 16184 (func 0x7fd2f0 = cos): alpha 255 - clamp(200 cos A + 180), 75 at 90 /
+  270, then A + 5. RV fd1b_alarm: 310 at 300, 169 at 318 (A > 90), the brightest shot at A ~190.
+- **Spring beams (RE 2997-3012 + ctor):** every spring launch creates EffectsSpringBeam_540 at the spring's (x, y),
+  set_direction(the spring's), set_layer(the spring's); its ctor plays anim 4 (10 images at speed 50, 2 frames each, the even ones
+  near-empty: the beam flickers and thins), no shader. RV spring (every frame): full beam 28-31, gap, 34-35, gap, thinner 38-39 ...
+  over Lilac (the effect is created after her skin on the layer).
+- **Transporter nodes:** anim 0 = [an arrow image, 8550] at speed 100 played once (loop 1): they rest on the plain junction circle
+  8550 (RV fd1a_node f440: circles at (1152, 224) / (1408, 224)).
+- **SB3 back eyes (RE 9835 + RV):** 9835 fades only SBBackEye2 (list Frames + 0x125b0); SBBackEye (0x12570) keeps alpha 255.
+  SB3's eyes stand on json layer 1, which scrolls at 0.8 there: RV sb3_eye (TP 7893 495) shows the eye at screen x ~130 and its
+  glow cycling (A + 4 from the teleport), while at the eye's own x the base eye's A stayed 0 (rv1).
+- **Heat sky (RV look):** TB3 p7_l f1200-f1400 and TB6 x2_l f2000-f2300 equal the port's renders within 1-5 levels per channel.

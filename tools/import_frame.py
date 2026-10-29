@@ -535,7 +535,7 @@ ENGINE_TYPES_ID.update(FNA_TYPES_ID); ENS += FNA_ENS; ENS_FRAMES.update(FNA_ENS_
 # pad images 4925 / 4935..). Their rows were limited to FN1-FN3 / RM3-RM5, so those acts' pads had no sprite (levels.c PADS_*)
 ENS_FRAMES['objectjumppad_1529'] = ENS_FRAMES['objectjumppad_1529'] | {33, 34, 41, 42, 43}
 ENS += [('objectjumppad_1284', 0, '0', 'jpad_rm'), ('objectjumppad_1284', 0, '1', 'jpad_rm_lit')]
-ENS_FRAMES['objectjumppad_1284'] = {59}
+ENS_FRAMES['objectjumppad_1284'] = {59, 26}   # small fixes: RM2 (json 26) places handle 1284 too (its 6 pads drew DV's 539 images)
 for _k, _v in FNA_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v
 # ---- FN_GIMB: Fortune Night gimmicks, acts 4-5 (build/re/spec_fn_gimmicks_b.md; src/game/fn_gimb.c). Types 680-707 mirror
 # src/fp.h (OT_FNB_FIRST..OT_FNB_LAST). Families share a type; the lvobj anim field carries the member index (FNB_SUB, bits
@@ -1670,6 +1670,9 @@ BGF_TYPES_ID = {('bgloop1', 3340): 2304, ('bgloop2', 3343): 2305, ('bgloop3', 33
 BGF_ENS = [('bgloop1_3340', 0, '0', 'bgl1'), ('bgloop2_3343', 0, '0', 'bgl2'), ('bgloop3_3344', 0, '0', 'bgl3')]
 ENGINE_TYPES_ID.update(BGF_TYPES_ID); ENS += BGF_ENS   # BG_FLOW
 for _e in BGF_ENS: ROW_FRAMES[_e[3]] = {63, 64}         # BG_FLOW rows only in BG4 / BG5 (the only acts that place them)
+# small fixes: BG2's background fly-by plane (LevelBackgroundPlane2_2227 created by 14241, flying in direction 4: 4874-4877, the sound
+# 102 of RV c_jumppad_bg2; bg_flow.c). Only its direction-4 images (4 x 180 x 180, cropped) and only in BG2
+ENS.append(('levelbackgroundplane2_2227', 0, '4', 'bgf_plane')); ROW_FRAMES['bgf_plane'] = {61}
 # no water: ML.A 1 / ML.B 2000 (BG1-BG3) / 3000 (BG4-BG6) are written by the start events but handle_frame_60..65 hold none of the
 # water events 4150-4170 (RE; RV ml_B with no air HUD): not in WATER_FRAMES
 
@@ -1741,6 +1744,19 @@ BGG_ENS_WITH = {'objectteleblock_3254': ('objectteleblockmask',), 'gimmicksnowsp
     'gimmickantigrav_3322': ('gimmickantigravspawner',), 'effectsspringbeam_540': ('gimmickmagnetlauncher',),
     'gimmickteleswitchcrystal1_3357': ('gimmickteleswitchcrystal2',), 'enemyrock_1194': ('gimmicksnakedrill',)}
 ROW_FRAMES['bgg_sbeam'] = {63, 64}                    # the magnet release beam (14390): BG4 / BG5 (the class's other rows stay as they were)
+# small fixes: the springs' EffectsSpringBeam_540 (RE 2997-3012: every spring launch creates one at the spring, set_direction(the
+# spring's direction), the spring's layer; ctor anim 4, no shader; RV small fixes spring_f29-f36: the up spring's beam over the player).
+# One row per beam direction, exported only where a spring of that direction stands on the map (every frame holds an off-map
+# template of each spring class: placed '<class>_onmap', below). Beam direction by the spring's push (INFERRED for all but up).
+SPRING_BEAM_DIRS = {0: ('yellowspringright', 'redspringright'), 4: ('yellowspringupright', 'redspringupright'),
+                    8: ('yellowspringup', 'redspringup'), 12: ('yellowspringupleft', 'redspringupleft'),
+                    16: ('yellowspringleft', 'redspringleft'), 24: ('yellowspringdown', 'redspringdown')}
+ROW_BY_CREATORS = set()    # rows exported by their creators alone (e[5]), not by the class-level ENS_WITH test
+# VRAM: FN3 (json 32; Carol 625 KB free in Flycast) has no room: even one direction's row doubles its _ens atlas (+512 KB)
+SPRING_BEAM_SKIP = {d: {32} for d in SPRING_BEAM_DIRS}
+for _d, _cs in SPRING_BEAM_DIRS.items():
+    ENS.append(('effectsspringbeam_540', 4, str(_d), 'spb%d' % _d, None, tuple(_c + '_onmap' for _c in _cs)))
+    ROW_FRAMES['spb%d' % _d] = set(range(0, 128)) - SPRING_BEAM_SKIP.get(_d, set()); ROW_BY_CREATORS.add('spb%d' % _d)
 ENS_FRAMES['enemyrock_1194'] = ENS_FRAMES['enemyrock_1194'] | {60, 61}   # 14154 / 14159: the snake drills throw EnemyRock_1194 (BG1 / BG2)
 ENGINE_TYPES_ID.update(BGG_TYPES_ID); ENS += BGG_ENS   # BG_GIM
 for _k, _v in BGG_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # BG_GIM
@@ -1969,6 +1985,11 @@ FDG_ENS_WITH = {'enemyelitespawnerwave_3363': ('objecttransporterstart',), 'haza
 ENGINE_TYPES_ID.update(FDG_TYPES_ID); ENS += FDG_ENS   # FD_GIM
 for _e in FDG_ENS: ROW_FRAMES[_e[3]] = ROW_FRAMES.get(_e[3], set()) | FD_FRAMES if _e[3].startswith('tbg_') else FD_FRAMES   # FD_GIM rows only in Final Dreadnought (TB's names keep theirs)
 for _k, _v in FDG_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # FD_GIM
+# small fixes: the transporter nodes are visible (RE ctors: no set_visible(0); RV small fixes fd1a_node f440: the plain junction circles
+# at (1152, 224) / (1408, 224)). Their anim 0 plays [the arrow image, 8550] once (speed 100, loop 1) and rests on 8550, the plain circle
+# every node class shares: that image only (the arrow shows for the act's first frame, under the stage card)
+ENS.append(('objecttransporternode0_3418', 0, '0', 'fdg_tnode', slice(1, 2))); ROW_FRAMES['fdg_tnode'] = FD_FRAMES
+ENS_WITH['objecttransporternode0_3418'] = ENS_WITH.get('objecttransporternode0_3418', ()) + ('objecttransporternode90', 'objecttransporternode180', 'objecttransporternode270')
 for _nm in ('tbg_key', 'tbg_term', 'tbg_term7', 'tbg_seal', 'tbg_barrier', 'tbg_kicon', 'tbg_btn0', 'tbg_btn1'):   # FD_GIM: TB's key cards,
     ROW_FRAMES[_nm] = ROW_FRAMES.get(_nm, set()) | FD_FRAMES                     # terminals, seals, switch buttons placed in FD
 
@@ -2937,6 +2958,8 @@ def main():
                   if o['cls'] not in _jct or o['cls'] in ONMAP_ABOVE or (o['x'] is not None and 0 <= o['x'] < fr['width'] and 0 <= o['y'] < fr['height'])}
     if any(o['cls'].startswith('monitor') and o['cls'].endswith('shield') and o['x'] >= 0 for o in fr['objects']): placed.add('shieldmonitor_onmap')
     if any(o['cls'] == 'yellowspringdown' and o['x'] is not None and 0 <= o['x'] < fr['width'] and 0 <= o['y'] < fr['height'] for o in fr['objects']): placed.add('yellowspringdown_onmap')
+    placed |= {o['cls'] + '_onmap' for o in fr['objects'] if o['cls'].endswith(('springup', 'springdown', 'springleft', 'springright', 'springupleft', 'springupright'))
+               and o['x'] is not None and 0 <= o['x'] < fr['width'] and 0 <= o['y'] < fr['height']}   # the spring beams' rows (SPRING_BEAM_DIRS)
     if n in JCB_AMBUSH_FRAMES and 'npcneera' in placed: placed |= JCB_AMBUSH_WITH   # JC_BOSS: the ice ambush's off-map rig / ice block (above)
     # Lilac's own shields (spec_shields 0): every stage frame places the six off-map q21 instances and runs 2673-2705 (RE,
     # build/re/f17..f29_calls), and OTHERS.B is global, so a shield carried into an act without an on-map shield monitor is
@@ -2961,7 +2984,7 @@ def main():
         if cls in ENS_ONLY_WITH:                     # off-map templates do not count (shields: only with an on-map shield monitor)
             if shl is not None and cls in SHL_CLASSES: dst = shl   # ... else in the act's separate shield bank (session 18)
             elif not any(w in placed for w in ENS_WITH.get(cls, ())): continue
-        elif base not in placed and not any(w in placed for w in ENS_WITH.get(cls, ())): continue
+        elif nm not in ROW_BY_CREATORS and base not in placed and not any(w in placed for w in ENS_WITH.get(cls, ())): continue
         # the frame's own object (class + handle): when the row names a handle this frame does not place but the frame
         # places the class under another handle (another stage's object: its own images), the sprite comes from the
         # placed handle (session 14; e.g. AT4's spikes 671, DV3's wall plate 1029 and door 1066, RM's spikes 1106-1109)

@@ -68,6 +68,7 @@ static int r_hurt(player_t *p, int n) { if (!vulnerable(p)) return 0; player_con
 static void kill_player(player_t *p) {                                          /* the shared kill block: M 9 */
     if (p->state == ST_DEAD) return;
     p->hp = 0; p->state = ST_DEAD; p->dead_t = 0; p->vy = -5; p->vx = 0; p->gsp = 0; p->ground = 0; p->invinc = 0; p->invuln = 0;
+    player_die_sound();                                                          /* R 1, no petals: 2416 -> loop_check_death (loop_sound_die_8) */
 }
 static void act_pt(const obj_t *o, float *x, float *y) { double ax, ay; relic_act_point(o, &ax, &ay); *x = (float)ax; *y = (float)ay; }
 static void img_box(const obj_t *o, float *x0, float *y0, float *x1, float *y1) {
@@ -427,7 +428,15 @@ static void cups(player_t *p) {
         }
     }
     EACH(OT_SB_BACKEYE, o) {                                                        /* 9835: alpha (128 - (64 sin A + 64)) 2, A + 4 */
-        if (!in_view(o, 100)) continue;
+        if (o->par != 1) continue;                                                  /* only SBBackEye2 (the glow; list Frames + 0x125b0): the
+                                                                                     * eye itself stays opaque (RV small fixes sb3_eye: its A 0) */
+        if (o->layer < 0) {                                                         /* !is_near_border(-100) in its 0.8 layer's view */
+            if (!o->an.b) continue;
+            const frame_t *f = anim_frame(&o->an);
+            float x0 = floorf(o->x) - f->hx, y0 = floorf(o->y) - f->hy, x1 = x0 + f->w, y1 = y0 + f->h;
+            float vl = (float)trunc(0.800000011920929 * G.camx), vt = (float)trunc(0.800000011920929 * G.camy);
+            if (!(x0 >= vl - 100 && x1 <= vl + SCREEN_W + 100 && y0 >= vt - 100 && y1 <= vt + SCREEN_H + 100)) continue;
+        } else if (!in_view(o, 100)) continue;
         int a = (128 - (int)(c_sin(o->av[0]) * 64 + 64)) * 2;
         o->av[2] = a < 0 ? 0 : a > 255 ? 255 : a; o->av[0] = nrm(o->av[0] + 4);
         o->hidden = o->av[2] <= 0;
@@ -480,6 +489,9 @@ void sb_gim_spawn(void) {
     EACH(OT_SB_FANSIDE, o) set_s(o, "sbv_fanside");
     { int ks[2] = { 0 }; EACH(OT_SB_SCHAIN, o) { set_s(o, "sbv_chain"); o->av[0] = o->y; (void)ks; } }   /* 10146: A = y */
     EACH(OT_SB_BACKEYE, o) { set_s(o, o->par ? "sbv_eye1" : "sbv_eye0"); o->av[2] = 255; }   /* the alpha (9835; 255 until its first update) */
+    { const level_def_t *L = level_cur();                                        /* SB3's eyes stand on json layer 1, which scrolls at 0.8 there */
+      if (L && L->stage == 4 && L->act == 3) EACH(OT_SB_BACKEYE, o) o->layer = -1; }   /* (Layer::init; RV small fixes sb3_eye: A stays 0 with the
+                                                                                 * player at the eye's own x) -> objects_draw(-1); TB4 / TB5's on json 3 */
     /* cannons: ctor A 30 B 30 C 20; base A 15 (Q20); each cannon sits on the base placed at its position */
     EACH(OT_SB_CANBASE, o) { set_s(o, "sbc_base"); o->A = 15; o->fl |= F_NOFLY; }
     EACH(OT_SB_CANBASE2, o) set_s(o, "sbc_base2");

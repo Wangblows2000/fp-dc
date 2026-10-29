@@ -540,6 +540,7 @@ typedef struct {
     int hurt_pending;             /* RE movement R = 1 + GUILifeBaseMeter.B: contact damage applied by 2414 the next frame */   /* RE ladder: OTHERS.Y selector (27 climb, 29 down, 28 climb-over, 47 catch), SKIN.O counter, LadderTop, first frame after a grab */         /* RE: OTHERS.N charge/boost timer (fires at 30), OTHERS.Q latched vertical direction (-1 up, 0, +1 down) */
     float spawn_x, spawn_y;
     int dead_t;
+    int dead_fx;                  /* the death group (RE 1689: M 9 -> 0x21a38) has run its first frame (Carol's 29, the bike wreck) */
     int scripted;                 /* DV4 exit (loop_stop_player_13): player block off, moved by the boss script */
     int tun_lock;                 /* RE PAV_A.Y: inside a roll tunnel (no roll jump / boost) */
     int in_lock;                  /* RE CTRL.M: pad not read (spiral helix) */
@@ -786,6 +787,7 @@ int  mv_sensor_on(double X, double Y, double N, int sensor, const obj_t *o);   /
 obj_t *obj_alloc(void);
 void   obj_effect(float x, float y, const char *anim);
 obj_t *obj_effect_l(float x, float y, const char *anim, int layer);   /* the same on a given layer (objects bank, then _ens) */
+void   obj_spring_beam(const obj_t *spring, int dir);   /* EffectsSpringBeam_540 at a launching spring (RE 2997-3012; row spb<dir>) */
 void   obj_explode(float x, float y);
 void   obj_drop_crystal(float x, float y, int S);
 void   obj_pop_crystal(float x, float y);       /* 3275: a jump pad's crystal (PinballMovement 36 / 25, direction 8; objects.c) */
@@ -1168,6 +1170,7 @@ void   fd_flow_card(player_t *p, int left);           /* the round's entry durin
 void   fd_enemy_spawn(void), fd_enemy_pre(player_t *p), fd_enemy_draw(int pass);
 int    fd_enemy_obj(obj_t *o, player_t *p), fd_enemy_q20(int type);
 void   fd_gim_spawn(void), fd_gim_pre(player_t *p), fd_gim_frame(player_t *p), fd_gim_draw(int pass);
+void   fd_gim_level_free(void);                   /* game.c level_free: fd1a's subtitle font (ui/font) */
 int    fd_gim_obj(obj_t *o, player_t *p), fd_gim_q20(int type);
 int    fd_gim_player(player_t *p, const input_t *in), fd_gim_ride_m(void);   /* ST_RIDE: the transporter pipe M 95 (fd_gim.c) */
 void   fd_boss_spawn(void), fd_boss_pre(player_t *p), fd_boss_frame(player_t *p);
@@ -1266,6 +1269,7 @@ void objects_platforms(player_t *p);
 void objects_plat_pretick(int n);         /* RE 3270-3307, 4061, 4737/4738: platforms and bridges, before Lilac's movement */
 void player_hurt(player_t *p, double from_x);
 void player_damage(player_t *p, int amount);
+void player_die_sound(void);       /* loop_sound_die_8 (loop_check_death M 9): Lilac 91, Carol 128, Milla 178 */
 void player_sync_sensors(player_t *p);
 void player_hang(player_t *p, double hx, double hy);
 int  player_can_hang(const player_t *p);   /* RE event 2414: amount in GUILifeBaseMeter units (5 = 1 half-petal on Normal) */
