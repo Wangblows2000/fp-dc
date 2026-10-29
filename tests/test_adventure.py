@@ -57,7 +57,7 @@ ids = [s['id'] for s in sc]
 check('inventory_unique_ids', len(ids) == len(set(ids)), len(ids))
 check('inventory_cutscene_list', sorted(set(s['list'] for s in sc if s.get('list') is not None)) == list(range(37)),
       'the original CutsceneList_42 has 37 entries (RE)')
-check('inventory_dialog_objects', len(dlg['dialog']) == 21 and sum(len(v) for v in dlg["dialog"].values()) == 998,
+check('inventory_dialog_objects', len(dlg['dialog']) == 21 and sum(len(v) for v in dlg["dialog"].values()) == 1026,
       '%d objects' % len(dlg['dialog']))
 check('inventory_captions', 'str_three_days_later_330' in dlg.get('captions', {}))
 ported = [s for s in sc if os.path.isfile(os.path.join(TAB, 'scripts', s['id'] + '.scn'))]
