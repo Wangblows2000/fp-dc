@@ -27,8 +27,8 @@
 #include <stdlib.h>
 
 enum { MM_FOOTBACK, MM_ARMBACK, MM_PAWBACK, MM_EARBACK, MM_BODY, MM_LEG, MM_ARMFRONT, MM_FOOT, MM_PAWFRONT, MM_TAILEND, MM_EARFRONT, MM_NSUB };
-static const char *const MM_ROW[MM_NSUB] = { "fdm_footback", "fdm_armback", "fdm_pawback", "fdm_earback", "fdm_body", "fdm_leg",
-                                             "fdm_armfront", "fdm_foot", "fdm_pawfront", "fdm_tailend", "fdm_earfront" };
+static const char *const MM_ROW[MM_NSUB] = { "fmm_footback", "fmm_armback", "fmm_pawback", "fmm_earback", "fmm_body", "fmm_leg",
+                                             "fmm_armfront", "fmm_foot", "fmm_pawfront", "fmm_tailend", "fmm_earfront" };
 #define MAXP 24
 #define NSHOT 8
 static struct {
@@ -70,7 +70,7 @@ void f3b_spawn(void) {
     for (int i = 0; i < fdb_count(OT_FDB_HATCH); i++) { obj_t *t = fdb_get(OT_FDB_HATCH, i); if (t) fdb_set(t, "fdb_hatch"); }
     /* the rig: every part keeps its placement offset from the head (RE placements 13008-13120, 1198-1292) */
     S.head_x0 = (int)h->x; S.head_y0 = (int)h->y; S.hx = h->x; S.hy = h->y; S.base_y = h->y;
-    fdb_set(h, "fdm_head"); h->A = 60; h->fl |= F_NOFLY; h->hidden = 1; h->bd = 0; S.lives = 5;
+    fdb_set(h, "fmm_head"); h->A = 60; h->fl |= F_NOFLY; h->hidden = 1; h->bd = 0; S.lives = 5;
 #ifdef FP_HOST_ENV
     if (getenv("FP_F3B_LIVES")) S.lives = atoi(getenv("FP_F3B_LIVES"));          /* host tests: a shorter fight */
 #endif
@@ -79,7 +79,7 @@ void f3b_spawn(void) {
     for (int t = OT_FDB_MM_PART; t <= OT_FDB_MM_TAIL; t++)
         for (int i = 0; i < fdb_count(t) && S.npart < MAXP; i++) {
             obj_t *o = fdb_get(t, i); if (!o) continue;
-            if (t == OT_FDB_MM_PART && o->par < MM_NSUB) fdb_set(o, MM_ROW[o->par]); else if (t == OT_FDB_MM_TAIL) fdb_set(o, "fdm_tail");
+            if (t == OT_FDB_MM_PART && o->par < MM_NSUB) fdb_set(o, MM_ROW[o->par]); else if (t == OT_FDB_MM_TAIL) fdb_set(o, "fmm_tail");
             o->hidden = 1;
             S.part[S.npart] = (short)(o - G.o); S.px0[S.npart] = o->x - h->x; S.py0[S.npart] = o->y - h->y; S.npart++;
         }
@@ -160,7 +160,7 @@ static void scene_frame(player_t *p) {
         if (S.E == 60) snd_play_orig(373, 220, 128);                            /* 16373: sound 0x175 */
         if (S.E >= 70 && S.E < 80) { p->x += 10; player_sync_sensors(p); }      /* 16375 */
         if (S.E < 170 && S.E % 10 == 0 && h) {                                  /* 16381: npctransformbubble */
-            obj_t *u = fdb_spawn(FDB_K_FX, "fdm_bubble", h->x - 20 + cross_rand(41), h->y - cross_rand(30), 3);
+            obj_t *u = fdb_spawn(FDB_K_FX, "fmm_bubble", h->x - 20 + cross_rand(41), h->y - cross_rand(30), 3);
             if (u) { u->vy = -1.5f; u->tm = 30; }
         }
         if (S.E >= 170 && S.E % 20 == 10) snd_play_orig(374, 220, 128);         /* 16380: media 2992 */
@@ -188,7 +188,7 @@ static void scene_frame(player_t *p) {
 static void shot_new(obj_t *h, int k, player_t *p) {
     int n; for (n = 0; n < NSHOT && fdb_slot(S.shot[n]); n++) ;
     if (n == NSHOT) return;
-    obj_t *s = fdb_spawn(FDB_K_BOUNCE, "fdm_shot", h->x + 20 * S.dirm, h->y - 10, 3);
+    obj_t *s = fdb_spawn(FDB_K_BOUNCE, "fmm_shot", h->x + 20 * S.dirm, h->y - 10, 3);
     if (!s) return;
     double dx = p->x - s->x, dist = fabs(dx) < 40 ? 40 : fabs(dx);
     s->fx = s->x; s->fy = s->y; s->vx = (float)((dx > 0 ? 1 : -1) * dist / 60.0) + (k ? 0.6f : -0.6f) * S.dirm; s->vy = -6.f;   /* INFERRED arc */
@@ -212,7 +212,7 @@ static void shots(player_t *p, obj_t *h) {
         }
         if (s->vy > 0 && obj_overlaps_bg(s)) {                                  /* 16557 / 16558: the floor */
             s->c++; s->vy = -fabsf(s->vy) * 0.75f; s->fy -= 2;
-            if (s->c >= 3) { for (int k = 0; k < 2; k++) obj_effect(s->x, s->y, "fdm_shotdeb"); snd_play_orig(380, 220, 128); s->alive = 0; continue; }   /* media 3040 */
+            if (s->c >= 3) { for (int k = 0; k < 2; k++) obj_effect(s->x, s->y, "fmm_shotdeb"); snd_play_orig(380, 220, 128); s->alive = 0; continue; }   /* media 3040 */
         }
         if (!obj_near_view(s, 64)) s->alive = 0;
     }
@@ -239,7 +239,7 @@ static void fight_frame(player_t *p) {
         if (S.lives > 1) for (int k = 0; k < 2; k++) obj_throw_petal(h->x, h->y - 20);   /* 16576: petals while O > 1 */
         h->fl &= ~FDB_DEF; h->A = 60; S.inv = 90; S.lives--;
         snd_play_orig(25, 220, 128); snd_play_orig(392, 220, 128);              /* 16577: sound 25, media 3136 */
-        if (S.lives <= 1) fdb_set(h, "fdm_head7");                              /* 16579: O <= 1 -> anim 7 */
+        if (S.lives <= 1) fdb_set(h, "fmm_head7");                              /* 16579: O <= 1 -> anim 7 */
         if (S.lives <= 0) h->fl |= FDB_DEF;                                     /* 16580: O <= 0 -> the defeat (D 60) */
     }
     if (S.inv > 0) { S.inv--; h->inv = 1; if (S.inv >= 6) h->c = 3; if (!S.inv) { h->inv = 0; h->c = 0; } }   /* C 90 (16577 / 16578) */
@@ -308,7 +308,7 @@ void f3b_frame(player_t *p) {
     if (S.fight) fight_frame(p);
     for (int k = 0; k < fdb_rt_n(); k++) {                                      /* transform bubbles */
         obj_t *u = fdb_rt(k);
-        if (u && u->st == FDB_K_FX && fdb_is(u, "fdm_bubble")) { u->y += u->vy; if (--u->tm <= 0) u->alive = 0; }
+        if (u && u->st == FDB_K_FX && fdb_is(u, "fmm_bubble")) { u->y += u->vy; if (--u->tm <= 0) u->alive = 0; }
     }
 #ifdef FP_HOST_ENV
     if (getenv("FP_DBG_F3B")) { obj_t *h = head(); printf("f3b %d sc %d D %d E %d fi %d st %d t %d runs %d hx %.0f vx %.2f A %.0f def %d defF %d res %d px %.0f py %.0f fade %d lv %d inv %d\n",
