@@ -53,10 +53,10 @@ def build_pc(a, tools, fb, which):
     exe = os.path.join(dest, 'fpdc.exe' if which == 'win32' else 'fpdc')
     if a.local_tools:
         script = os.path.join(fb.REPO, 'pc', 'compile_win32.sh' if which == 'win32' else 'compile_linux.sh')
-        fb.LOG.say('[10] compile the PC version here: %s %s' % (os.path.relpath(script, fb.REPO), dest))
+        fb.LOG.say('[%d] compile the PC version here: %s %s' % (fb.DATA_STEPS + 1, os.path.relpath(script, fb.REPO), dest))
         fb.run(['sh', script, dest])
     else:
-        fb.LOG.say('[10] the PC program (the published build, SHA-256 checked) ...')
+        fb.LOG.say('[%d] the PC program (prebuilt/, SHA-256 checked) ...' % (fb.DATA_STEPS + 1))
         if which == 'win32':
             _install(fb, 'fpdc-win32.exe', exe)
             _install(fb, 'SDL2.dll', os.path.join(dest, 'SDL2.dll'))
@@ -64,7 +64,7 @@ def build_pc(a, tools, fb, which):
         else:
             _install(fb, 'fpdc-linux-x86_64', exe, 0o755)
         shutil.copyfile(os.path.join(fb.REPO, 'pc', 'README.txt'), os.path.join(dest, 'README-PC.txt'))
-    fb.LOG.say('[11] the game data -> %s' % os.path.join(dest, 'data'))
+    fb.LOG.say('[%d] the game data -> %s' % (fb.DATA_STEPS + 2, os.path.join(dest, 'data')))
     n = _copy_data(fb, a.out, os.path.join(dest, 'data'))
     fb.LOG.say('DONE: %s (%d data files). Start %s; README-PC.txt lists the keys.' % (exe, n, os.path.basename(exe)))
 
