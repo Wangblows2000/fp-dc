@@ -98,6 +98,25 @@ for ch, nm in CHARS:
         hit = [f for f in sorted(m) if f < fd and num(m[f], 'hp') < hp0]
         check('fd1b %s: the head loses HP before the defeat (attacks land)' % nm, len(hit) > 0)
 
+# ======================================================================== fd2a: the RoboSquid (spec 3; TB3's class, tb_boss_squid.c)
+# RV q2_l (Lilac at 5504 946): the squid leaves its spot 5504 for 5821 and bobs there (y 778-787). Fight: next to it every 24 frames
+# (TPO) with two attacks (Milla B): first defeat -> the key card (134), alive again fleeing (O 2), second defeat -> 18 explosions, 38.
+def squid_script(atk):
+    s = '200 TP 5504 946\n'
+    for f in range(230, 2000, 24): s += '%d TPO 1975 -30 0\n%d %d %s\n%d %d %s\n' % (f, f + 1, f + 4, atk, f + 12, f + 15, atk)
+    return s + INV
+rows, ev, d = run('fd2a', 0, 1000, '200 TP 5504 946\n' + INV)
+q = d.get('tbq', {})
+late = [q[f] for f in q if f > 500]
+check('fd2a: the squid moves from 5504 to 5821 and bobs there (RV q2_l)', late and all(num(r, 'x') == 5821 and 776 <= num(r, 'y') <= 789 for r in late),
+      str(late and (late[0].get('x'), late[0].get('y'))))
+for ch, nm in CHARS:
+    rows, ev, d = run('fd2a', ch, 2000, squid_script('B' if ch == 4 else 'X'))
+    q = d.get('tbq', {})
+    check('fd2a %s: real attacks: first defeat drops the card (134), it flees (O 2)' % nm, len(sids(ev, 134)) == 1 and first(q, lambda r: r['O'] == '2') is not None,
+          '%s' % sids(ev, 134))
+    check('fd2a %s: second defeat destroys it (38, R 1)' % nm, len(sids(ev, 38)) == 1 and q and q[max(q)]['R'] == '1', '%s' % sids(ev, 38))
+
 if fails: print('%d FAILED' % fails)
 else: print('ALL PASS')
 sys.exit(1 if fails else 0)
