@@ -14,6 +14,7 @@ Inputs (all committed, read from the Linux 1.21.5 program once: tables/README.md
 Outputs:
   story/story.txt            the scene table the game reads (only the ported scenes; src/game/story.c)
   story/<id>.scn             the scripts
+  story/captions.txt         the scene captions ("Three days later," ...): '<str_ symbol> <text>' lines
   story/dlg_<handle>.txt     the paragraphs of each DialogData object a script uses, one per line (Latin-1, as the original)
   st<json>/                  every story room a ported scene plays in, built like a level (tools/build_level.py)
 Voices (story/vo/<voice>.wav) are converted by tools/audio/convert_audio.py story (the builder's voice step).
@@ -68,6 +69,9 @@ def main():
             with open(os.path.join(out, 'story', 'dlg_%s.txt' % h), 'w', encoding='latin-1', newline='\n') as f:
                 for spk, anim, vo, text in D[h]:
                     f.write('%02d %02d %s %s\n' % (spk, anim, vo, text.replace('\n', ' ')))
+        caps = json.load(open(os.path.join(TABLES, 'dialog.json'), encoding='utf-8')).get('captions', {})
+        with open(os.path.join(out, 'story', 'captions.txt'), 'w', encoding='latin-1', newline='\n') as f:
+            for k in sorted(caps): f.write('%s %s\n' % (k, caps[k]))
         print('story: %d scenes of %d ported, %d dialogue objects' % (n, len(sc), len(dialog_handles(sc))))
     if '--no-rooms' not in a:
         rooms = sorted({s['room'] for s in ported(sc)})

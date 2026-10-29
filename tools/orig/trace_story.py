@@ -28,9 +28,15 @@ KEYS = {'L': 0x40000050, 'R': 0x4000004f, 'U': 0x40000052, 'D': 0x40000051, 'J':
 ORDER = 'LRUDJXBS'
 ACTORS = re.compile(r'^(npc|placeholder|playerskin(sash|carol|milla|torque|spade)?_|player_|the|brevon|torque|dialog|zao|gong|neera|'
                     r'syntax|kingdom|serpent|boss|comet|space|parallaxcrash|caravan|soldier|jeep|enemy|minibossufo|ship|pigeon|'
-                    r'character|charname|levelcard|locationname|fade|mrstumpy|crystalcursor|whitefade|beam|sparkle|thruster)')
+                    r'character|charname|levelcard|locationname|fade|mrstumpy|crystalcursor|whitefade|beam|sparkle|thruster|'
+                    r'effect|explo|bullet|missile|projectile|chaser|debris|smoke|fire|dust|laser|shot|ufo|kujacker|chopper|hovercop)')
+# placed classes: every one except the helpers (a story room's props, furniture and backdrops are scene state too)
+PLACED_SKIP = re.compile(r'^(tile|levellayer|layer\d|solid|general|playersensor|gui|separator|obj\d|camera|master|input|globalinput|'
+                         r'mouse|windowcontrol|savedata|mapdata|recorddata|sarassteam|stringparser|bubblenumbers|link|enemylimiter|'
+                         r'addtimebonus|scorevalues|timebonustotal|playerstartingpoint|playeraction|playerothers|playercharactersensor|'
+                         r'playermovementvalues|objectcodec|laddertop|function|queue|controllermusic|marker|scorevalue)')
 SKIP = re.compile(r'^(tile|levelparallax|levellayer|layer|solid|general|playersensor|gui|separator|monitor|shield|'
-                  r'obj\d|effects|spring|yellowspring|redspring|camera|master|input|globalinput|mouse|windowcontrol|savedata|'
+                  r'obj\d|spring|yellowspring|redspring|camera|master|input|globalinput|mouse|windowcontrol|savedata|'
                   r'mapdata|recorddata|sarassteam|stringparser|bubblenumbers|link|sign|enemylimiter|addtimebonus|scorevalues|'
                   r'timebonustotal|objectcrystal|objectpetal|playerstartingpoint|ringsparkle|thunderspark|'
                   r'playeraction|playerothers|playergimmick|playercharactersensor|hazard|breakable|bg|objectcodec|laddertop|'
@@ -45,14 +51,19 @@ for l in open('build/re/nm.txt'):
     m = re.match(r'([0-9a-f]+) [bBdD] (?:_ZL\d+)?images_([a-z0-9]+)_(\d+)_(\d+)_(\d+)$', l.strip())
     if m: IMGSYM.setdefault(m.group(2) + '_' + m.group(3), []).append((int(m.group(1), 16), int(m.group(4)), int(m.group(5))))
 
+ALLVT = {}
+for (c_, h_), v_ in nm.items(): ALLVT[v_] = (c_, h_)
 def frame_classes(idx):
     try: f = json.load(open(os.path.join(FRAMESDIR, 'frame_%d.json' % (idx + 1))))
     except Exception: return {}
     want = os.environ.get('STORY_CLASSES')
     out = {}
+    if os.environ.get('STORY_ALLCLASSES', '1') == '1':   # objects created at run time from classes the frame does not place
+        for v_, (c_, h_) in ALLVT.items():
+            if (want and re.search(want, c_)) or (not want and ACTORS.match(c_ + '_') and not SKIP.match(c_)): out[v_] = '%s_%d' % (c_, h_)
     for o in f['objects']:
         c = o['cls']
-        if (want and re.search(want, c)) or (not want and ACTORS.match(c + '_') and not SKIP.match(c)):
+        if (want and re.search(want, c)) or (not want and not PLACED_SKIP.match(c)):
             vt = nm.get((c, o['id']))
             if vt: out[vt] = '%s_%d' % (c, o['id'])
     return out

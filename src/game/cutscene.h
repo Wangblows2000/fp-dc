@@ -66,6 +66,7 @@ int  csx_segment(void);
 int  csx_sfx_ids(short *ids, int max);                /* the script's sound ids (loaded with the room) */
 const char *csx_name(void);
 int  csx_dialog(void);
+void csx_set_captions(const char *table);             /* "<key> <text>" lines (story/captions.txt) for 'cap' entries */
 int  csx_skip_to_chsel(void);                         /* SKIP SCENE inside the script: to its character select (-1 none) */
 int  csx_actor_find(int handle, int nth);             /* the nth actor of an object handle (-1 none) */
 int  csx_actor_x(int a);

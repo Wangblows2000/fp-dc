@@ -30,7 +30,7 @@
  *
  * ---- Scene script (story/<id>.scn, tools/story_rv2scn.py), one entry per line:
  *     scene <id> / room st<json> / dialog <handle> / title <text>
- *     actor <n> <class>_<handle> <json layer>       actor n (0..31), drawn with the rows s<handle>_<anim>_<dir>
+ *     actor <n> <class>_<handle> <json layer>       actor n (0..127), drawn with the rows s<handle>_<anim>_<dir>
  *     seg <k>                                        segment k: starts at the scene start (0) or when the line of the
  *                                                    previous segment is dismissed (A with the arrow shown)
  *     <t> p <n> <x> <y>                              actor position (frame coordinates) at segment time t
@@ -71,5 +71,7 @@ int  story_count(void);              /* scenes in story/story.txt */
 #ifdef FP_HOST_ENV
 void story_host_dump(void);          /* host "<f> STORY": state line */
 int  story_host_play(const char *name);   /* host "<f> SCENE <id>": play a scene as if triggered (gate still applies) */
+int  story_host_new(int character);      /* host "<f> ADVNEW <g1>": a new Adventure as the hub starts it */
+int  story_host_stage_end(void);         /* host "<f> STAGEEND": frame 8 after the current stage (1 scene, 2 next stage) */
 #endif
 #endif

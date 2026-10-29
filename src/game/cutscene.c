@@ -125,9 +125,9 @@ void cs_draw(void) {
  * Entries of a segment cut short by an early press are applied at once (the original's state at the reader's press,
  * sounds left out). While a segment waits with its entries exhausted the actors' animations run on by themselves (port:
  * the script was recorded with a reader pressing 30 frames after the arrow; a slower player must not freeze them). */
-enum { E_P, E_M, E_I, E_V, E_C, E_SAY, E_CLOSE, E_S, E_O, E_U, E_F, E_CHSEL };
+enum { E_P, E_M, E_I, E_V, E_C, E_SAY, E_CLOSE, E_S, E_O, E_U, E_F, E_CHSEL, E_CAP, E_CAPX, E_PV };
 typedef struct { uint16_t t; uint8_t op, a; int16_t v[3]; } csx_ent_t;
-#define CSX_ACTORS 32
+#define CSX_ACTORS 128
 #define CSX_SEGS 256
 #define CSX_POOL 1024
 #define DLG_COLS 32
@@ -143,6 +143,8 @@ static struct {
     int line, box, typed, len, arrow_t, shown;            /* DialogBox state (RE 18606 / 18607: C, B) */
     int row_box, row_name, row_arrow; animator_t arrow;
     int fade, fade_d;                                     /* 0..255 black, per-frame step */
+    const char *cap[4];                                   /* captions shown (rows 0-3), from the caption table */
+    const char *captions;                                 /* "key text" lines (story/captions.txt), owned by the caller */
     int vo_h[2], vo_line[2];                              /* voice slots: the current line's clip and the next one's */
     uint32_t prev;
 } X = { .vo_h = { -1, -1 }, .vo_line = { -1, -1 } };
@@ -200,6 +202,13 @@ int csx_load(const char *path) {
             }
             else if (!strcmp(op, "f")) { x->op = E_F; x->v[0] = (int16_t)v0; }
             else if (!strcmp(op, "chsel")) x->op = E_CHSEL;
+            else if (!strcmp(op, "capx")) x->op = E_CAPX;
+            else if (!strcmp(op, "pv")) { x->op = E_PV; x->v[0] = (int16_t)v0; x->v[1] = (int16_t)v1; }   /* <t> pv <handle> <0|1> */
+            else if (!strcmp(op, "cap")) {                     /* <t> cap <row> <caption key> */
+                if (sscanf(p, "%*d %*s %d %63s", &v0, s1) != 2 || v0 < 0 || v0 > 3) { bad = 1; break; }
+                x->op = E_CAP; x->v[0] = (int16_t)v0; x->v[1] = (int16_t)pool_add(s1);
+                if (x->v[1] < 0) { bad = 1; break; }
+            }
             else if (!strcmp(op, "o") || !strcmp(op, "u")) {
                 if (sscanf(p, "%*d %*s %63s", s1) != 1) { bad = 1; break; }
                 x->op = op[0] == 'o' ? E_O : E_U; x->v[0] = (int16_t)pool_add(s1);
@@ -280,6 +289,15 @@ static void say(int line, int box) {
     printf("csx say %d seg %d\n", line, X.seg);
 #endif
 }
+void csx_set_captions(const char *table) { X.captions = table; }
+static const char *caption(const char *key) {           /* the text after "<key> " in the caption table (NULL: unknown) */
+    size_t n = strlen(key);
+    for (const char *p = X.captions; p && *p;) {
+        if (!strncmp(p, key, n) && p[n] == ' ') return p + n + 1;
+        p = strchr(p, '\n'); if (p) p++;
+    }
+    return NULL;
+}
 static void xfire(const csx_ent_t *x) {
     switch (x->op) {
     case E_P: X.a[x->a].x = x->v[0]; X.a[x->a].y = x->v[1]; X.a[x->a].mn = 0; break;
@@ -299,6 +317,9 @@ static void xfire(const csx_ent_t *x) {
     case E_U: if (!strcmp(X.pool + x->v[0], "-")) music_stop(); else music_play(X.pool + x->v[0]); break;
     case E_F: X.fade_d = x->v[0] > 0 ? -(255 / x->v[0] + 1) : x->v[0] < 0 ? 255 / -x->v[0] + 1 : 0; if (x->v[0] > 0) X.fade = 255; break;
     case E_CHSEL: X.chsel_wait = 1; break;
+    case E_CAP: X.cap[x->v[0]] = caption(X.pool + x->v[1]); break;
+    case E_CAPX: memset(X.cap, 0, sizeof X.cap); break;
+    case E_PV: par_set_hidden(x->v[0], !x->v[1]); break;   /* the room's backdrop sets */
     }
 }
 static void seg_start(int k) { X.seg = k; X.clock = 0; X.exhausted = 0; X.cur = X.seg_first[k]; }

@@ -20,6 +20,7 @@ typedef struct {
 } scene_t;
 static scene_t SC[STORY_MAX];
 static int nsc = -1;                 /* -1: not read yet */
+static char *captions;               /* story/captions.txt (the original's caption strings, tables/story/dialog.json) */
 
 static void parse_step(const char *s, step_t *st) {
     memset(st, 0, sizeof *st); st->scene = -1;
@@ -32,6 +33,8 @@ static void parse_step(const char *s, step_t *st) {
 static void table_load(void) {
     if (nsc >= 0) return;
     nsc = 0;
+    { size_t cz; captions = plat_load_file("story/captions.txt", &cz);
+      if (captions) { char *z = realloc(captions, cz + 1); if (z) { captions = z; captions[cz] = 0; } else { free(captions); captions = NULL; } } }
     size_t sz; char *d = plat_load_file("story/story.txt", &sz);
     if (!d) return;
     /* two passes: names first (a step may name a later scene) */
@@ -189,6 +192,7 @@ static int start_scene(int id) {
     if (csx_dialog() > 0) dlg_load(csx_dialog()); else dlg_free();
     G.mode = MODE_STORY; G.paused = 0; G.card_t = 192;
     S.scene = id; S.done = 0; S.paused = 0; S.pause_a = 0; S.wipe_f = 0; S.chsel = 0;
+    csx_set_captions(captions);
     csx_begin(&G.ens, S.font.n ? &S.font.bank[0] : NULL, S.dlg, S.ndlg);
 #ifdef FP_HOST_ENV
     printf("story start %s room %s g4 %d\n", SC[id].name, room, SC[id].g4);
@@ -325,9 +329,24 @@ void story_draw_overlay(void) {
 
 #ifdef FP_HOST_ENV
 void story_host_dump(void) {
-    printf("story run %d gate %d scene %s seg %d line %d paused %d sel %d chsel %d mode %d fe_mode %d chr %d file %d pos %d\n",
+    unsigned long long seen = 0; for (int i = 0; i < 64; i++) if (story_seen(i)) seen |= 1ull << i;
+    printf("story run %d gate %d scene %s seg %d line %d paused %d sel %d chsel %d mode %d fe_mode %d chr %d file %d pos %d lv %s seen %llx\n",
            S.run, story_gate(), story_scene_name(S.scene), csx_segment(), csx_line(), S.paused, S.sel, S.chsel, G.mode, fe_mode,
-           G.character, G.file_slot, G.file_slot >= 0 && G.file_slot < SAVE_FILES ? SV.file[G.file_slot].story : -1);
+           G.character, G.file_slot, G.file_slot >= 0 && G.file_slot < SAVE_FILES ? SV.file[G.file_slot].story : -1, G.lvdir, seen);
 }
-int story_host_play(const char *name) { table_load(); return start_scene(story_scene_id(name)); }
+int story_host_play(const char *name) {
+    table_load();
+    if (fe_mode == 2 && !S.run) { S.run = 1; G.time_attack = 0; }   /* an Adventure run as the triggers arm it (gate: fe_mode) */
+    return start_scene(story_scene_id(name));
+}
+int story_host_new(int character) {                     /* as the hub's NEW ADVENTURE (frontend.c) */
+    fe_mode = 2; G.file_mode = 0;
+    G.file_slot = getenv("FP_FILE") ? atoi(getenv("FP_FILE")) : -1; G.file_new = getenv("FP_FILE_NEW") != NULL || G.file_slot < 0;
+    return story_new_game(character);
+}
+int story_host_stage_end(void) {                        /* as results.c's stage end in a story run */
+    if (story_stage_end(level_cur()->stage)) return 1;
+    if (!G.time_attack && game_next_stage()) return 2;
+    return 0;
+}
 #endif
