@@ -146,6 +146,24 @@ def t_chopper():
             ex = [f for f in sid(s, 38) if f > dead]
             check('%s_bg2_chopper_links_blow_38' % n, len(ex) >= 1, str(ex[:2]))
 
+# ======================================================================== BG5: Milla's Sparky ride (14681-14716)
+def t_ride():
+    for c in CHARS:
+        n = NAME[c]
+        rows, s, L = run('5 TP 7464 290;60 120 R;130 160 U;170 200 X;220 222 B;240 270 X;300 302 J', 400, {'FP_LEVEL': 'bg5', 'FP_CHAR': str(c)})
+        st = [rows[f]['st'] for f in range(20, 300) if f in rows]
+        if c != 4:
+            check('%s_bg5_no_sparky' % n, '33' not in st, str(sorted(set(st))))
+            continue
+        board = next((f for f in range(400) if f in rows and rows[f]['st'] == '33'), None)
+        check('%s_bg5_boards_the_sparky_40' % n, board is not None and any(abs(f - board) <= 1 for f in sid(s, 40)), '%s %s' % (board, sid(s, 40)[:2]))
+        x0, x1 = float(rows[60]['x']), float(rows[120]['x'])
+        check('%s_bg5_ride_moves_5' % n, 280 <= x1 - x0 <= 300 or (x1 - x0 > 150 and float(rows[121]['x']) == x1), '%s %s' % (x0, x1))
+        y0, y1 = float(rows[130]['y']), float(rows[160]['y'])
+        check('%s_bg5_ride_climbs_3' % n, 60 <= y0 - y1 <= 93, '%s %s' % (y0, y1))
+        check('%s_bg5_ride_shoots_436_then_28_upside_down' % n, any(170 <= f <= 201 for f in sid(s, 436)) and any(240 <= f <= 271 for f in sid(s, 28)), '%s %s' % (sid(s, 436)[:3], sid(s, 28)[:3]))
+        check('%s_bg5_jumps_off' % n, rows[301]['st'] != '33', rows[301]['st'])
+
 # ======================================================================== BG1: every Tredd walks (9 placed; bosses.c per instance)
 def t_tredd():
     rows, s, L = run('5 TP 5800 560', 300, {'FP_LEVEL': 'bg1', 'FP_CHAR': '0', 'FP_DBG_TD': '5'})
@@ -153,7 +171,7 @@ def t_tredd():
     xs = [int(t[2]) for t in td]
     check('bg1_fifth_tredd_walks', len(xs) > 100 and xs[0] == 6112 and max(xs) > 6150, '%s..%s' % (xs[:1], xs[-1:]))
 
-for fn, sec in ((t_mech_rv, 'mech'), (t_mech_fight, 'mech'), (t_sparky, 'sparky'), (t_chopper, 'chopper'), (t_tredd, 'tredd')):
+for fn, sec in ((t_mech_rv, 'mech'), (t_mech_fight, 'mech'), (t_sparky, 'sparky'), (t_chopper, 'chopper'), (t_ride, 'ride'), (t_tredd, 'tredd')):
     if want(sec): fn()
 print('%d failures' % fails)
 sys.exit(1 if fails else 0)
