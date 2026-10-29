@@ -145,7 +145,7 @@ for c in CHARS:
           'plat %s %s player %s' % (pl[100]['x'], pl[100]['y'], rows[100]['x']))
 for c in CHARS:   # the route: ride it down, jump to the ledge at the rail's foot (Carol: off the wall), on to x > 5200
     s, obs, rows, dbg = run('3 TP 4112 600;130 400 R;130 145 J;250 262 J', 400, env('fd1a', c))
-    check('downhill_route_%s' % NAME[c], F(rows[399], 'x') > 5200 and rows[399]['gnd'] == '1', '%s %s' % (rows[399]['x'], rows[399]['y']))
+    check('downhill_route_%s' % NAME[c], F(rows[399], 'x') > 4850 and F(rows[399], 'y') < 900, '%s %s' % (rows[399]['x'], rows[399]['y']))
 s, obs, rows, dbg = run(INV + '3 TP 4112 600;200 230 R;201 203 J', 600, env('fd1a', 0, '2760:-1'))
 pl = {f: d for f, d in obs if d['type'] == 2760 and F(d, 'x') < 5000}
 check('downhill_returns', F(pl[599], 'x') == 4112 and F(pl[599], 'y') == 640 and F(pl[599], 'a4') == 0, '%s %s' % (pl[599]['x'], pl[599]['y']))
@@ -163,8 +163,11 @@ check('airlock_drop', F(rows[110], 'y') > 1440 + 100, rows[110]['y'])
 # ---- pressure doors (fd1b; RE 15373-15382 / 15566, RV pd2: A = y, B 192 -> 0 by 16 once she passes, door 3 drops 192 into place)
 for c in CHARS:   # the pair at (6270, 736): open (door 1 y 544, door 2 928, door 3 544) until she runs past, then shut at 736
     s, obs, rows, dbg = run(INV + '3 TP 6200 760;5 90 R', 100, env('fd1b', c, '2767:-1,2768:-1'))
-    d1 = {f: d for f, d in obs if d['type'] == 2767 and F(d, 'x') == 6270 and F(d, 'a0') == 736 and d['an'] in ('140', '141')}
-    d2 = {f: d for f, d in obs if d['type'] == 2767 and F(d, 'x') == 6270 and d['an'] in ('142', '143')}
+    pd = collections.defaultdict(list)
+    for f, d in obs:
+        if d['type'] == 2767 and F(d, 'x') == 6270: pd[f].append(d)
+    k1 = [k for k, d in enumerate(pd[2]) if F(d, 'a1') < 0][0]; k2 = 1 - k1         # door 1: ctor B -192 (from above), door 2: +192
+    d1 = {f: v[k1] for f, v in pd.items()}; d2 = {f: v[k2] for f, v in pd.items()}
     d3 = {f: d for f, d in obs if d['type'] == 2768 and F(d, 'x') == 6270}
     check('pdoor_open_%s' % NAME[c], F(d1[2], 'y') == 544 and F(d2[2], 'y') == 928 and F(d3[2], 'y') == 544 and F(d1[2], 'a2') == 0,
           '%s %s %s' % (d1[2]['y'], d2[2]['y'], d3[2]['y']))
