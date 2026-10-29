@@ -10,6 +10,9 @@ Graphics were shrunk by converting every texture to 8-bit (and small overlays to
 ## How much is decompiled?
 Roughly 90% decompiled, 10% inferred. The repo has about 45.7k lines of C. About 42k of those are gameplay (game/, characters/, physics/), and in that code about 7,000 comment lines cite the original’s events or collision handlers. Those are recovered from the decompile (RE) or checked against recordings of the original game (RV). Only about 550 lines are marked INFERRED, and about half of those still cite an original event: they fill a gap inside logic that was otherwise recovered. Another 18 are marked UNKNOWN. This is a rough heuristic based on how the code is labelled, not a line-by-line audit.
 
+## Current issues?
+To keep it brief, many adventure-mode cutscenes are extremely rough visually, and some late-stage gimmicks are either missing or visually-lacking.
+
 ## Building for Dreamcast
 
 > **Easy builder:** no tools to install. Drag your Freedom Planet **1.21.5** `Assets.dat` (the GOG Windows one or the
