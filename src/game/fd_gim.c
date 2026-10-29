@@ -326,6 +326,12 @@ static void downhill_pre(player_t *p) {
         double *Q = &o->av[0], *R = &o->av[1], *Sp = &o->av[2], *T = &o->av[3], *U = &o->av[4];
         double t = *T;
         o->ox = (float)(*Q + t); o->oy = (float)(*R + 0.5 * t); *T = t + *Sp;   /* 15231 */
+        {   /* the q13 path rule with C = G = 0 (X = floor(I), Y = floor(J)) and its carry (4061), done here: the port's 1-px BottomBig
+             * probe of the shared pass loses a rider dropping 7.5 px a frame (INFERRED: the original's BottomBig spans the drop) */
+            float nx = floorf(o->ox), ny = floorf(o->oy), dx = nx - o->x, dy = ny - o->y;
+            o->x = nx; o->y = ny;
+            if ((o->fl & F1) && (dx != 0 || dy != 0)) { p->x += dx; p->y += dy; p->vy = 0; player_sync_sensors(p); }
+        }
         if (*U == 0 && (o->fl & F1)) { *U = 1; o->fl &= ~(F2 | F3); set_s(o, "fdg_dh1"); snd(359); }   /* 15232 */
         if (*U == 1 && !(o->fl & F3)) *Sp = fmin(*Sp + 0.2, 15);                /* 15233 */
         if (*U == 1 && *Sp > 2 && on_bg(o)) { o->fl |= F2; *Sp *= -0.5; snd(360); }   /* 15234 */
@@ -335,8 +341,9 @@ static void downhill_pre(player_t *p) {
         if (*U == 2 && *T <= 0) { *U = *T = *Sp = 0; o->fl &= ~(F2 | F3); set_s(o, "fdg_dh0"); }   /* 15238 */
     }
 }
-static void downhill(void) {
+static void downhill(player_t *p) {
     obj_t *w;
+    (void)p;
     EACH(OT_FDG_DHWHEEL, w) {                                                   /* 15231: the wheel under its platform */
         obj_t *o = partner(w, OT_FDG_DHPLAT);
         if (!o) continue;
@@ -741,7 +748,6 @@ void fd_gim_spawn(void) {
     if (!reg) { reg = 1; snap_register(&S, sizeof S); }
     memset(&S, 0, sizeof S); S.wind_ch = -1;
     tb_gim_mdoor_ywin(fd_flow_act() ? 79 : 59);                                /* the lab doors (TB's metal doors): 15641 / 15646 */
-    objects_plat_path(OT_FDG_DHPLAT, 0, 0, 1, 0, 0, 1, 0);                      /* C = G = 0: X = floor(I), Y = floor(J) (15231 sets them) */
     objects_plat_path(OT_FDG_PUSH, 0, 0, 1, 0, 0, 1, 0);                        /* (15623-15628 set I / J) */
     objects_plat_path(OT_FDG_BIGLIFT, 0, 0, 1, 0, 0, 1, 0);                     /* (15758 sets J) */
     objects_plat_path(OT_FDG_ECRUSH, 0, 0, 1, 2, 64, 0, 0);                     /* ctor F 2, G 64, H 0: N = J + 64 cos E */
@@ -779,7 +785,7 @@ void fd_gim_spawn(void) {
     EACH(OT_FDG_ZBEAM, o) o->av[0] = 24;                                        /* y scale 24 (RV zap1: 0xcc = 24 from the start) */
     link_pairs(OT_FDG_ZBEAM, OT_FDG_ZCANNON); link_pairs(OT_FDG_ZHIT, OT_FDG_ZCANNON);
     EACH(OT_FDG_ZHIT, o) o->an.b = NULL;
-    EACH(OT_FDG_DHPLAT, o) { o->av[0] = o->ox; o->av[1] = o->oy; o->fl = 0; }  /* Q, R = the start (I, J) */
+    EACH(OT_FDG_DHPLAT, o) { o->av[0] = o->x; o->av[1] = o->y; o->fl = 0; }    /* Q, R = the start (I, J) */
     link_pairs(OT_FDG_DHWHEEL, OT_FDG_DHPLAT);
     EACH(OT_FDG_AIRBASE, o) o->an.b = NULL;
     EACH(OT_FDG_AIRLOCK_S, o) set_s(o, o->par & 1 ? "fdg_air4" : "fdg_air1");
@@ -848,7 +854,7 @@ void fd_gim_frame(player_t *p) {
     if (N(OT_FDG_TSTART) || S.ride || S.wave) transporters(p);                   /* 15188-15201 */
     if (N(OT_FDG_ZCANNON)) zaps(p);                                              /* 15203-15220 */
     if (N(OT_FDG_SMAKER) || N(OT_FDG_SPARK)) sparks(p);                          /* 15221-15228 */
-    if (N(OT_FDG_DHWHEEL)) downhill();
+    if (N(OT_FDG_DHPLAT)) downhill(p);
     if (N(OT_FDG_AIRBASE)) airlocks(p);                                          /* 15357-15372 */
     if (N(OT_FDG_PDOOR) || N(OT_FDG_PDOOR3)) pdoors(p);                          /* 15373-15382 */
     if (N(OT_FDG_SFLOOR)) floors();                                              /* 15341-15344 */
