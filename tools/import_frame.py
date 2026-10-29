@@ -1931,7 +1931,7 @@ FDB_MP = ('backshoulder', 2532), ('backclaw', 2533), ('backarm', 2534), ('backwi
          ('frontleg2', 2537), ('frontknee', 2538), ('torso', 2539), ('head', 2540), ('frontwing', 2542), ('frontfoot', 2541), \
          ('frontshoulder', 2543), ('frontarm', 2544), ('frontclaw', 2545), ('axle', 2546), ('charge', 2584), ('turret', 2585)
 _FDB_T4 = {('brevonmech' + p, h): 3010 for p, h in FDB_MP}
-_FDB_T4.update({('brevonmechweakspot', 2581): 3011, ('effectbrevonmechwarning2', 2586): 3012})
+_FDB_T4.update({('brevonmechweakspot', 2581): 3011, ('effectbrevonmechwarning2', 2586): 3012, ('brevonhitbox', 3809): 3008})
 FDB_SUB.update({'brevonmech%s_%d' % (p, h): k for k, (p, h) in enumerate(FDB_MP)})
 for _k, _t in _FDB_T4.items(): ENGINE_TYPES_ID.setdefault(_k, _t)
 FRAME_TYPE_REMAP.update({(73, ENGINE_TYPES_ID[_k]): _t for _k, _t in _FDB_T4.items() if ENGINE_TYPES_ID[_k] != _t})
@@ -1959,14 +1959,17 @@ FDB_ENS4 += [(c, a, d, nm, _FDB_SL4.get(nm), _F4S) for c, a, d, nm in (
     ('brevonsuithead_3777', 0, '0', 'fdu_head'), ('brevonsuitlaser_3765', 0, '0', 'fdu_laser'), ('brevonsuitlaser_3765', 7, '0', 'fdu_lashit'),
     ('brevonsuitspin_3766', 0, '0', 'fdu_spin'), ('brevonslash1_3804', 4, '0', 'fdu_slash'), ('effectbrevonsuitwarning_3799', 4, '0', 'fdu_warn'),
     ('effectstinyexplosion_3803', 4, '0', 'fdu_tiny'), ('bosshealthbar1_3800', 0, '0', 'fdu_hb1'), ('bosshealthbar2_3801', 0, '0', 'fdu_hb2'),
-    ('brevon_3701', 5, '0', 'fdb_brv5s'))]
+    ('brevon_3701', 5, '0', 'fdb_brv5s'), ('brevon_3701', 1, '0', 'fdb_brv1'), ('brevon_3701', 8, '0', 'fdb_brv8'),
+    ('brevon_3701', 9, '0', 'fdb_brv9'), ('brevon_3701', 13, '0', 'fdb_brv13'), ('brevonproxymine_3808', 0, '0', 'fdb_mine'),
+    ('brevonproxymine_3808', 0, '1', 'fdb_mine1'), ('brevonwingbeam2_3807', 0, '0', 'fdb_wbeam'),
+    ('brevoncrosshair6_3790', 0, '0', 'fdu_xh6'), ('brevoncrosshair7_3791', 0, '0', 'fdu_xh7'))]
 FDB_ENS4 += [('brevonsuit%s_%d' % (p, h), 0, '0', 'fdu_' + p, None, _F4S) for p, h in FDB_SP]
 ENS += FDB_ENS4
 for _e in FDB_ENS4: ROW_FRAMES[_e[3]] = {73}; ENS_WITH[_e[0]] = ENS_WITH.get(_e[0], ()) + _e[5]
 # rows shared with FD3b: the stone, Brevon's anims 7 / 10 (FD4b: out of the mech, rising into it)
 for _i, _e in enumerate(ENS):
-    if _e[3] in ('fdb_stone', 'fdb_brv7', 'fdb_brv10'): ENS[_i] = _e[:5] + (_F3 + _F4S,); ROW_FRAMES[_e[3]] = {71, 73}
-for _k, _v in {'hazardshockwave_1576': _F4M, 'effectsdebris_427': _F4M, 'effectsexplosion06_435': _F4M + _F4S, 'effectsexplosion02_368': _F4S,
+    if _e[3] in ('fdb_stone', 'fdb_brv0', 'fdb_brv7', 'fdb_brv10'): ENS[_i] = _e[:5] + (_F3 + _F4S,); ROW_FRAMES[_e[3]] = {71, 73}
+for _k, _v in {'brevonproxymine_3808': _F4S, 'brevonwingbeam2_3807': _F4S, 'hazardshockwave_1576': _F4M, 'effectsdebris_427': _F4M, 'effectsexplosion06_435': _F4M + _F4S, 'effectsexplosion02_368': _F4S,
                'effectsexplosion01_367': _F4M, 'bosssparkyplasmashot_2587': _F4M, 'brevonmechlaser_2583': _F4M,
                'effectbrevonmechwarning_2582': _F4M, 'brevonsuitlaser_3765': _F4S, 'brevonslash1_3804': _F4S,
                'effectstinyexplosion_3803': _F4S, 'effectbrevonsuitwarning_3799': _F4S}.items():

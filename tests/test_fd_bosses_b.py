@@ -101,14 +101,16 @@ for nm, ch in CHARS[:2]:
     hit = first(b3, lambda d: d['fi'] == 1 and d['A'] < 60)
     check('fd3b_head_takes_hits_%s' % nm, hit is not None, '')
     res = first(b3, lambda d: d['res'] == 1)
-    check('fd3b_defeat_results_%s' % nm, res and first(b3, lambda d: d['def'] == 1) and res['f'] - first(b3, lambda d: d['def'] == 1)['f'] >= 600,
+    check('fd3b_defeat_results_%s' % nm, res and first(b3, lambda d: d['defF'] > 0) and res['f'] - first(b3, lambda d: d['defF'] > 0)['f'] >= 600,
           str(res and res['f']))
     check('fd3b_results_to_fd4a_%s' % nm, r['loads'] == ['fd3b', 'fd4a'], str(r['loads']))
 # five lives of A 60 (ctor O 5; 16577: A 60 again, O - 1; RV b2_0 f 3100 -> 3200)
 r = run('fd3b', 0, SC3, 4400)
 a = [d['A'] for d in r['b3'] if d['fi'] == 1]
 check('fd3b_head_refills_a_life', any(x < 20 for x in a) and any(a[i] == 60 and a[i - 1] < 60 for i in range(1, len(a))), str(a[-3:]))
-check('fd3b_head_not_beaten_in_one_life', all(d['def'] == 0 for d in r['b3']), '')
+d0 = first(r['b3'], lambda d: d['defF'] > 0)
+refills = sum(1 for i in range(1, len(a)) if a[i] == 60 and a[i - 1] < 60)
+check('fd3b_head_five_lives', d0 is None or refills >= 4, 'refills %d' % refills)
 
 # ---- Milla (16237 returns for her; 16395 Classic: past the stone, CTRL.D 90 frames, Sign.B 179 -> the results; RV b2_4)
 r = run('fd3b', 4, INV + '50 TP 12900 1290\n100 900 R\n' + CONFIRM(900, 2400), 2400)
@@ -118,10 +120,15 @@ check('fd3b_milla_results_after_90', res and res['px'] > 13312, str(res and (res
 check('fd3b_milla_to_fd4a', r['loads'] == ['fd3b', 'fd4a'], str(r['loads']))
 
 # ======================================================================== FD4b
-# the arena (camera limits 1856..3263); the player is put on its floor left of the lift shaft (the act's route up is the gimmicks')
+# the arena (camera limits 1856..3263); the player is put on its floor left of the lift shaft (the act's route up is the gimmicks').
+# The whole sequence runs with the module's host knob FP_F4B_AUTOHIT (a 4-point hit on the suit's head / Brevon every n frames); the
+# shared combat rules' hits on them are checked separately below with teleports next to them (TPO; RV b4_0: a player standing still
+# lands one hit on the suit every ~800 frames).
 SC4 = INV + '20 TP 2300 290\n' + attacks(300, 12000) + ''.join('%d %d J\n' % (f, f + 6) for f in range(345, 12000, 90))
 for nm, ch in CHARS:
-    r = run('fd4b', ch, SC4, 12000, {'FP_F4B_HITS': '2', 'FP_F4B_LIVES': '2'})
+    milla = ch == 4
+    env = {'FP_F4B_HITS': '0' if milla else '2', 'FP_F4B_LIVES': '2', 'FP_F4B_BA': '24', 'FP_F4B_AUTOHIT': '20'}
+    r = run('fd4b', ch, SC4, 12000, env)
     b4 = r['b4']
     i2 = first(b4, lambda d: d['ph'] == 2)
     check('fd4b_intro_trigger_%s' % nm, i2 and i2['py'] - REF <= 336 + 1, str(i2 and (i2['f'], i2['py'] - REF)))
@@ -131,32 +138,60 @@ for nm, ch in CHARS:
     check('fd4b_mech_rises_at_e60_%s' % nm, e60 and e60['iE'] == 60, str(e60 and e60['iE']))
     m = first(b4, lambda d: d['ph'] == 3)
     check('fd4b_mech_fight_%s' % nm, m and d2 and m['f'] - d2['f'] >= 91, str(m and m['f']))
-    fl = changes([d for d in b4 if d['ph'] == 3], 'F')
-    check('fd4b_mech_flies_lands_jumps_%s' % nm, fl[:4] == [1, 2, 0, 3], str(fl[:8]))
-    hit = first(b4, lambda d: d['ph'] == 3 and d['wE'] < 2)
-    check('fd4b_weak_spot_takes_hits_%s' % nm, hit is not None, '')
+    if not milla:   # (RV b3_4: Milla's attacks with this input never reach the weak spot in the original either)
+        fl = changes([d for d in b4 if d['ph'] == 3], 'F')
+        check('fd4b_mech_flies_lands_jumps_%s' % nm, fl[:4] == [1, 2, 0, 3], str(fl[:8]))
+        hit = first(b4, lambda d: d['ph'] == 3 and d['wE'] < 2)
+        check('fd4b_weak_spot_takes_hits_%s' % nm, hit is not None, '')
     md = first(b4, lambda d: d['ph'] == 4)
     g4 = [x['g4'] for x in r['rows'] if md and x.get('f', 0) > md['f']][:1]
     check('fd4b_mech_defeat_checkpoint_g4_2_%s' % nm, md and md['dead'] == 1 and g4 == [2], str((md and md['f'], g4)))
     su = first(b4, lambda d: d['ph'] == 5)
     check('fd4b_cut_scene_then_suit_%s' % nm, su and md and 590 <= su['f'] - md['f'] <= 640, str(su and md and su['f'] - md['f']))
-    sp = first(b4, lambda d: d['ph'] == 5 and d['sP'] < 2)
-    check('fd4b_suit_head_takes_hits_%s' % nm, sp is not None, '')
     sd = first(b4, lambda d: d['ph'] == 6)
     g4 = [x['g4'] for x in r['rows'] if sd and x.get('f', 0) > sd['f']][:1]
     check('fd4b_suit_defeat_checkpoint_g4_3_%s' % nm, sd and g4 == [3], str((sd and sd['f'], g4)))
-    sl = changes([d for d in b4 if d['ph'] == 6], 'sL')
-    check('fd4b_suit_end_L10_11_12_%s' % nm, sl[:3] == [10, 11, 12], str(sl))
+    sl = changes([d for d in b4 if d['ph'] in (6, 7)], 'sL')
     res = first(b4, lambda d: d['res'] == 1)
-    check('fd4b_results_after_L12_%s' % nm, res and sd and res['f'] - sd['f'] >= 360 + 120 + 120, str(res and sd and res['f'] - sd['f']))
+    if milla:   # RV b5_4: Milla's suit end goes L 11 -> 12 -> the results (no Brevon fight)
+        check('fd4b_suit_end_L10_11_12_milla', sl[:3] == [10, 11, 12], str(sl))
+        check('fd4b_milla_results_after_L12', res and sd and 360 + 120 + 120 <= res['f'] - sd['f'] <= 360 + 120 + 140 and
+              first(b4, lambda d: d['ph'] == 8) is None, str(res and sd and res['f'] - sd['f']))
+    else:       # RV b4_0 / b4_2 / b5_0: L 11 runs to M 280 -> Brevon (scene ~110 frames, the fight, the finish, the results)
+        check('fd4b_suit_end_L10_11_brevon_%s' % nm, sl[:2] == [10, 11] and 12 not in sl, str(sl))
+        bs = first(b4, lambda d: d['ph'] == 7); bf = first(b4, lambda d: d['ph'] == 8)
+        check('fd4b_brevon_scene_%s' % nm, bs and sd and bf and 360 + 280 - 5 <= bs['f'] - sd['f'] <= 360 + 280 + 5 and 105 <= bf['f'] - bs['f'] <= 115,
+              str(bs and bf and sd and (bs['f'] - sd['f'], bf['f'] - bs['f'])))
+        bd = changes([d for d in b4 if d['ph'] == 8], 'bD')
+        check('fd4b_brevon_attacks_%s' % nm, len(set(bd) & {1, 2, 3, 5, 6, 7, 8}) >= 3, str(bd[:12]))
+        d60 = first(b4, lambda d: d['bD'] == 60); d62 = first(b4, lambda d: d['bD'] == 62)
+        check('fd4b_brevon_defeat_finish_%s' % nm, d60 and d62 and 105 <= d62['f'] - d60['f'] <= 115, str(d60 and d62 and d62['f'] - d60['f']))
+        e_res = 520 if ch == 2 else 620                                        # 17394 (Lilac's 0x230fe) / 17408 (Carol's 0x230f0)
+        check('fd4b_results_at_stone_e_%s' % nm, res and d60 and abs(res['f'] - d60['f'] - e_res) <= 3, str(res and d60 and res['f'] - d60['f']))
     check('fd4b_ending_%s' % nm, 'ending begin chr %d' % ch in r['out'], '')
 
-# restarts (start events 17474 / 17475): g4 2 -> the beaten mech's exit and the suit; g4 3 -> L 11 -> the results
+# the act's own way in (the lift under the arena: FD_GIM / FD_FLOW), RV b1_0: the intro at f ~634, the walk left to x 2491
+r = run('fd4b', 0, INV + '60 560 R\n', 900)
+i2 = first(r['b4'], lambda d: d['ph'] == 2); d2 = first(r['b4'], lambda d: d['ph'] == 2 and d['iD'] == 2)
+check('fd4b_intro_from_the_lift_lilac', i2 and 600 <= i2['f'] <= 700 and d2 and abs(d2['px'] - 2491) <= 6, str(i2 and d2 and (i2['f'], d2['px'])))
+
+# the shared combat rules on the suit's head (Q20) and Brevon's hitbox (Q20, A 160): restarts + teleports next to them (Lilac / Carol:
+# Milla's tapped attacks reach neither the weak spot nor the head, in the original either: RV b3_4)
+for nm, ch in CHARS[:2]:
+    r = run('fd4b', ch, INV + '20 TP 2300 290\n' + ''.join('%d TPO 3002 -10 10\n' % f for f in range(700, 1500, 7)) + attacks(700, 1500), 1500, {'FP_G4': '2'})
+    check('fd4b_suit_head_takes_hits_%s' % nm, first(r['b4'], lambda d: d['ph'] == 5 and (d['hA'] < 10 or d['sP'] < 7)) is not None, '')
+    if True:
+        r = run('fd4b', ch, INV + '20 TP 2300 290\n' + ''.join('%d TPO 2993 -20 0\n' % f for f in range(320, 1300, 9)) + attacks(320, 1300), 1300, {'FP_G4': '3'})
+        check('fd4b_brevon_takes_hits_%s' % nm, first(r['b4'], lambda d: d['ph'] == 8 and d['bA'] < 160) is not None, '')
+
+# restarts (start events 17474 / 17475): g4 2 -> the beaten mech's exit and the suit; g4 3 -> L 11 -> Brevon (Lilac) / the results (Milla)
 r = run('fd4b', 0, INV + '20 TP 2300 290\n', 1200, {'FP_G4': '2'})
 b4 = r['b4']
 check('fd4b_restart_g4_2_suit', b4 and b4[0]['ph'] == 3 and b4[0]['dead'] == 1 and first(b4, lambda d: d['ph'] == 5) is not None, str(b4[:1] and b4[0]['ph']))
-r = run('fd4b', 0, INV + '20 TP 2300 290\n', 400, {'FP_G4': '3'})
-check('fd4b_restart_g4_3_results', first(r['b4'], lambda d: d['res'] == 1) is not None, '')
+r = run('fd4b', 0, INV + '20 TP 2300 290\n', 600, {'FP_G4': '3'})
+check('fd4b_restart_g4_3_brevon', first(r['b4'], lambda d: d['ph'] == 8) is not None, '')
+r = run('fd4b', 4, INV + '20 TP 2300 290\n', 400, {'FP_G4': '3'})
+check('fd4b_restart_g4_3_milla_results', first(r['b4'], lambda d: d['res'] == 1) is not None, '')
 
 print('%d failures' % fails)
 sys.exit(1 if fails else 0)

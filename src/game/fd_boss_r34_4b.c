@@ -48,9 +48,12 @@ static const char *const SP_ROW[SP_N] = { "fdu_backgun", "fdu_backarm", "fdu_bac
 #define CP_Y        304
 #define LASER_DMG   20                               /* 14226 (BG4 = FD's 17xxx counterpart) */
 #define WEAK_HITS   10                               /* RV b1_0: E 10; BossHealthBar1 x 10 */
+#define FD4B_MECH_MUSIC "bgm/m_boss5.adp"         /* RV b1_0 f 631 / b4_0: m_boss5 from the intro to the suit (levels.c's slot 4 says m_boss7 at g4 < 3) */
 #define SUIT_LIVES  7                                /* RE BrevonSuitHead ctor P 7 (RV b1_0) */
 
-enum { PH_OFF, PH_WAIT, PH_INTRO, PH_MECH, PH_MECHDEF, PH_SUIT, PH_SUITDEF, PH_END, PH_DONE };
+enum { PH_OFF, PH_WAIT, PH_INTRO, PH_MECH, PH_MECHDEF, PH_SUIT, PH_SUITDEF, PH_BSCENE, PH_BREVON, PH_END, PH_DONE };
+#define BREVON_FLOOR 320                             /* RV b4_0: Brevon's H (the floor) 320 */
+#define BREVON_A    160                              /* RE BrevonHitbox_3809 ctor A 160 (RV) */
 
 static struct {
     int on, ph, iD, iE, flashE, flash, results, ended, music;
@@ -69,7 +72,9 @@ static struct {
     /* suit */
     short sp[SP_N]; float spx[SP_N], spy[SP_N]; float hx0, hy0;
     double sx, sy, svx, svy; int sface, sL, sM, sN, sO, sQ, sP, sInv, sground;
-    double sfloor;
+    double sfloor, s7x; float px0[SP_N], py0[SP_N];
+    /* Brevon: D state, E timer, I facing, J / K speed, M attack counter; the scene / finish timer (the stone's E), the fade, the bar */
+    int bD, bE, bI, bM, bfin, sE, fadeW, barY; double bJ, bK;
 } S;
 
 static obj_t *stone(void) { return fdb_get(OT_FDB_STONE, 0); }
@@ -78,6 +83,7 @@ static obj_t *mp(int k) { return fdb_slot(S.mp[k]); }
 static obj_t *weak(void) { return fdb_get(OT_FDB_MWEAK, 0); }
 static obj_t *shead(void) { return fdb_get(OT_FDB_SUIT_HEAD, 0); }
 static obj_t *spart(int k) { return fdb_slot(S.sp[k]); }
+static obj_t *bhit(void) { return fdb_get(OT_FDB_BHIT, 0); }
 int fd4b_boss_state(void) { return S.on ? S.ph : -1; }
 
 static int hurt(player_t *p, int n) { return sbb_hurt(p, n); }
@@ -135,9 +141,11 @@ void f4b_spawn(void) {
     for (int i = 0; i < fdb_count(OT_FDB_SUIT_PART); i++) {
         obj_t *o = fdb_get(OT_FDB_SUIT_PART, i); if (!o || o->par >= SP_N) continue;
         fdb_set(o, SP_ROW[o->par]); S.sp[o->par] = (short)(o - G.o); S.spx[o->par] = o->x - (float)S.sx; S.spy[o->par] = o->y - (float)S.sy;
+        S.px0[o->par] = o->x; S.py0[o->par] = o->y;
     }
-    S.hx0 = 24; S.hy0 = -62;                                                    /* INFERRED: the head over the torso (placed 2157,211) */
-    fdb_set(h, "fdu_head"); h->A = 30; h->fl |= F_NOFLY; h->x = (float)S.sx + S.hx0; h->y = (float)S.sy + S.hy0;
+    fdb_set(h, "fdu_head"); h->A = 30; h->fl |= F_NOFLY; h->hidden = 1;        /* ctor A 30, P 7, Q 4 (RV b1_0); an off-map template until the suit */
+    obj_t *hb = bhit(); if (hb) { hb->A = BREVON_A; hb->fl |= F_NOFLY; hb->x = -9999; }
+    for (int k = 0; k < fdb_count(OT_FDB_XHAIR); k++) { obj_t *o = fdb_get(OT_FDB_XHAIR, k); if (o) { fdb_set(o, o->par ? "fdu_xh7" : "fdu_xh6"); o->hidden = 1; } }
     S.sP = SUIT_LIVES; S.sQ = 4; S.sface = 1;
 #ifdef FP_HOST_ENV
     if (getenv("FP_F4B_HITS")) S.wE = atoi(getenv("FP_F4B_HITS"));             /* host tests: fewer weak-spot hits / suit lives */
@@ -157,7 +165,7 @@ void f4b_spawn(void) {
         S.ph = PH_MECH; S.dead = 1; S.wE = 0; S.wF = 21; S.wG = 40; S.F = 0; S.C = s->x; S.aB = -1; S.aC = 1;
         obj_t *hd = mp(MP_HEAD); if (hd) fdb_set(hd, "fdk_head10");
         if (b) b->hidden = 1;
-        S.music = 1; { const char *m = level_music_slot(4); if (m) music_play(m); }
+        S.music = 1; music_play(FD4B_MECH_MUSIC);
         fdb_cam_lock(S.J, S.K, fdb_marker(OT_CAMLIM_T, 0), fdb_marker(OT_CAMLIM_B, 0));
     }
 }
@@ -409,52 +417,79 @@ static void mech_fight(player_t *p) {
     }
 }
 
-/* ======================================================================== the suit (RE choice, INFERRED moves) */
+/* ======================================================================== the suit (RE choice and lives, RV moves: b4_0) */
+/* RV b4_0 (Classic, Lilac): L -1 the assembly, L 0 a short stand (M > 30: the choice), L 5 a hop (about 100 frames, apex 126 px at
+ * M 30, landing 90-170 px on the far side of the player), L 4 a crouch (about 28 frames) then N: L 6 a dash (about 20 frames at
+ * 13 px), L 7 a spinning flight across the arena (about 180 frames), L 4 again (N 0) and L 0; L 8 the guns aimed (about 90 frames,
+ * crouched), L 9 their volley (about 95 frames). The head sits 22 / 67 px off the pelvis standing, 55 / 45 crouched (L 4, L 8: then
+ * the player reaches it). */
+static void suit_head_xy(double *hx, double *hy) {                              /* RV b4_0: the head from the pelvis's B / C by L */
+    double ox = 22, oy = -67;                                                   /* L 0 / 5 */
+    switch (S.sL) {
+    case 4: ox = 55; oy = -23; break;
+    case 6: ox = 63; oy = -27; break;
+    case 8: ox = 50; oy = -39; break;
+    case 9: ox = -39; oy = -39; break;
+    case 7: ox = 0; oy = -50; break;
+    }
+    *hx = S.sx + ox * S.sface; *hy = S.sy + oy;
+}
 static void suit_pose(void) {
+    int crouch = S.sL == 4 || S.sL == 8 || S.sL == 9;
     double bob = S.sL == 0 && S.sground ? sbb_sin(S.sM * 12.0) * 1.5 : 0;
+    double asm_t = S.sL == -1 ? fmin(1.0, fmax(0.0, (S.mdE - 180) / 195.0)) : 1.0;   /* the assembly (0x230f4 E 180-375, INFERRED) */
     for (int k = 0; k < SP_N; k++) {
         obj_t *o = spart(k); if (!o) continue;
         float ox = S.spx[k], oy = S.spy[k];
-        double leg = 0;
-        if (S.sL == 0 && S.sground && (k == SP_FFOOT || k == SP_BFOOT || k == SP_FKNEE || k == SP_BKNEE))
-            leg = sbb_sin(S.sM * 12.0 + (k == SP_FFOOT || k == SP_FKNEE ? 0 : 180)) * 4;
-        o->x = (float)S.sx + (S.sface > 0 ? ox : -ox) + (float)leg; o->y = (float)(S.sy + oy - (k == SP_TORSO || k == SP_FARM || k == SP_BARM || k == SP_FGUN || k == SP_BGUN ? bob : 0));
-        o->flip = S.sface < 0; o->ang = 0;
+        int leg = k == SP_FFOOT || k == SP_BFOOT || k == SP_FKNEE || k == SP_BKNEE || k == SP_FLEG || k == SP_BLEG;
+        double lift = crouch && !leg ? 19 : 0, step = 0;
+        if (S.sL == 0 && S.sground && (k == SP_FFOOT || k == SP_BFOOT)) step = sbb_sin(S.sM * 12.0 + (k == SP_FFOOT ? 0 : 180)) * 3;
+        double tx = S.sx + (S.sface > 0 ? ox : -ox) + step, ty = S.sy + oy + lift - (leg ? 0 : bob);
+        if (asm_t < 1) { double fx = S.px0[k], fy = S.py0[k]; tx = fx + (tx - fx) * asm_t; ty = fy + (ty - fy) * asm_t; }
+        o->x = (float)tx; o->y = (float)ty;
+        o->flip = S.sface < 0; o->ang = S.sL == 7 && !leg ? (float)sbb_fmod360(S.sM * -20.0 * S.sface) : 0;
     }
     obj_t *h = shead();
-    if (h) { h->x = (float)S.sx + (S.sface > 0 ? S.hx0 : -S.hx0); h->y = (float)(S.sy + S.hy0 - bob); h->flip = S.sface < 0; }
+    if (h && S.sL >= 0) { double hx, hy; suit_head_xy(&hx, &hy); h->x = (float)hx; h->y = (float)(hy - bob); h->flip = S.sface < 0; }
 }
-static void suit_laser(obj_t *gun, player_t *p) {                              /* BrevonSuitLaser_3765 (17200 / 17201: speed 96 / 8) */
-    float x = gun ? gun->x + S.sface * 24 : (float)S.sx, y = gun ? gun->y : (float)S.sy - 20;
+static void suit_laser(player_t *p, double speed) {                            /* BrevonSuitLaser_3765 (17200 / 17201: speed 96 / 64, / 8) */
+    obj_t *g = spart(S.sM & 16 ? SP_BGUN : SP_FGUN);
+    float x = g ? g->x + S.sface * 24 : (float)S.sx, y = g ? g->y : (float)S.sy - 20;
     obj_t *l = fdb_spawn(FDB_K_BEAM, "fdu_laser", x, y, 3);
     if (!l) return;
     double a = atan2(-(sbb_py(p) - y), sbb_px(p) - x) * SB_RAD;
-    l->ang = (float)a; l->vx = (float)(12 * sbb_cos(a)); l->vy = (float)(-12 * sbb_sin(a)); l->fx = x; l->fy = y;
+    l->ang = (float)a; l->vx = (float)(speed * sbb_cos(a)); l->vy = (float)(-speed * sbb_sin(a)); l->fx = x; l->fy = y;
     snd_play_orig(341, 220, 128);                                               /* media 0x155 */
 }
 static void suit_projectiles(player_t *p) {
     for (int k = 0; k < fdb_rt_n(); k++) {
         obj_t *l = fdb_rt(k);
         if (!l) continue;
-        if (l->st == FDB_K_BEAM) {
+        if (l->st == FDB_K_BEAM) {                                              /* suit lasers (INFERRED 10 damage) */
             l->fx += l->vx; l->fy += l->vy; l->x = floorf(l->fx); l->y = floorf(l->fy);
             if (!obj_near_view(l, 64) || obj_overlaps_bg(l)) { obj_effect(l->x, l->y, "fdu_lashit"); l->alive = 0; continue; }
             if (sbb_csens_hit(p, l) && hurt(p, 10)) { obj_effect(l->x, l->y, "fdu_lashit"); l->alive = 0; }
-        } else if (l->st == FDB_K_SLASH || l->st == FDB_K_SPIN) {
-            l->x = (float)S.sx + S.sface * (l->st == FDB_K_SLASH ? 36 : 0); l->y = (float)S.sy - (l->st == FDB_K_SLASH ? 20 : 30); l->flip = S.sface < 0;
-            if (l->st == FDB_K_SPIN) l->ang = (float)sbb_fmod360(l->ang - 30 * S.sface);
+        } else if (l->st == FDB_K_SPIN) {                                       /* the spin's aura (follows the suit) */
+            l->x = (float)S.sx; l->y = (float)S.sy - 40; l->ang = (float)sbb_fmod360(l->ang - 30 * S.sface);
+            if (S.sL != 7 || S.ph != PH_SUIT) { l->alive = 0; continue; }
+            if (sbb_csens_hit(p, l)) hurt(p, 20);
+        } else if (l->st == FDB_K_SLASH) {
             if (--l->tm <= 0) { l->alive = 0; continue; }
-            if (sbb_csens_hit(p, l)) hurt(p, l->st == FDB_K_SLASH ? 15 : 20);
+            if (sbb_csens_hit(p, l)) hurt(p, 15);
         }
     }
 }
-static void suit_choose(void) {                                                 /* 17129-17137 (RE) */
+static void suit_choose(player_t *p) {                                         /* 17129-17137 (RE) */
     if (S.sQ > 0) { static const int OQ[5] = { 0, 12, 10, 6, 3 }; S.sO = OQ[S.sQ]; S.sQ--; }
     else S.sO += 1 + cross_rand(4);
-    if (S.sO >= 12) { S.sL = 8; S.sM = 0; S.sO = 0; return; }                  /* 17137 */
-    if (S.sO >= 5 && S.sO % 3 == 1) { S.sL = 4; S.sN = 6; S.sM = 0; snd_play_orig(347, 220, 128); return; }   /* 17135 (voice strike2) */
-    if (S.sO >= 5 && S.sO % 3 == 2) { S.sL = 4; S.sN = 7; S.sM = 0; snd_play_orig(347, 220, 128); return; }   /* 17136 (voice strike1) */
-    S.sL = 9; S.sM = 0;                                                         /* INFERRED: the gun volley (17200-17202: L 9 M > 100 -> L 0) */
+    S.sM = 0; S.sface = sbb_px(p) < S.sx ? -1 : 1;
+    if (S.sO >= 12) { S.sL = 8; S.sO = 0; return; }                            /* 17137 */
+    if (S.sO >= 5 && S.sO % 3 == 1) { S.sL = 4; S.sN = 6; snd_play_orig(347, 220, 128); return; }   /* 17135 (voice br_brevon_strike2) */
+    if (S.sO >= 5 && S.sO % 3 == 2) { S.sL = 4; S.sN = 7; snd_play_orig(347, 220, 128); return; }   /* 17136 (voice strike1) */
+    S.sL = 5;                                                                   /* the hop (RV: O 3, 6, 9) */
+    double X = sbb_px(p), tx = X + (S.sx < X ? 150 : -150);
+    tx = fmin(fmax(tx, S.J + 80), S.K - 80);
+    S.svx = (tx - S.sx) / 30.0; S.svy = -8.4; S.sground = 0; snd_play_orig(55, 220, 128);
 }
 static void suit_fight(player_t *p) {
     obj_t *h = shead();
@@ -463,68 +498,281 @@ static void suit_fight(player_t *p) {
     float wl = S.J + 40, wr = S.K - 40;
     S.sM++;
     switch (S.sL) {
-    case 0:                                                                     /* walk toward the player (INFERRED speed) */
-        S.sface = X < S.sx ? -1 : 1;
-        if (fabs(X - S.sx) > 90) S.svx = S.sface * 1.5; else S.svx = 0;
-        if (S.sM > 30) suit_choose();                                           /* 17129-17137: L 0, M > 30 */
-        break;
-    case 4:                                                                     /* N 6 / 7: a dash with a slash (INFERRED) */
-        if (S.sM == 1) { S.sface = X < S.sx ? -1 : 1; obj_t *w = fdb_spawn(FDB_K_WARN, "fdu_warn", (float)S.sx, (float)S.sy - 90, 3); if (w) w->tm = 30; }
-        if (S.sM < 24) S.svx = 0;
-        else if (S.sM < 56) {
-            S.svx = S.sface * (S.sN == 6 ? 8 : 6);
-            if (S.sN == 7 && S.sM == 24 && S.sground) { S.svy = -8; S.sground = 0; }
-            if (S.sM == 26) { obj_t *s = fdb_spawn(FDB_K_SLASH, "fdu_slash", (float)S.sx, (float)S.sy, 3); if (s) s->tm = 30; snd_play_orig(348, 220, 128); }
-        } else S.svx *= 0.8;
-        if (S.sM > 90) { S.sL = 0; S.sM = 0; }
-        break;
-    case 8:                                                                     /* the spin across the arena (INFERRED) */
-        if (S.sM == 1) { obj_t *s = fdb_spawn(FDB_K_SPIN, "fdu_spin", (float)S.sx, (float)S.sy, 3); if (s) s->tm = 200; snd_play_orig(55, 220, 128); S.svy = -6; S.sground = 0; }
-        if (S.sM > 20 && S.sM < 200) S.svx = S.sface * 7; else S.svx *= 0.8;
-        if ((S.sx <= wl && S.sface < 0) || (S.sx >= wr && S.sface > 0)) S.sface = -S.sface;
-        if (S.sM > 230) { S.sL = 0; S.sM = 0; }
-        break;
-    case 9:                                                                     /* the guns (INFERRED: three aimed lasers) */
+    case 0:                                                                     /* stand, facing the player */
         S.svx = 0; S.sface = X < S.sx ? -1 : 1;
-        if (S.sM == 30 || S.sM == 50 || S.sM == 70) suit_laser(spart(S.sM == 50 ? SP_BGUN : SP_FGUN), p);
-        if (S.sM > 100) { S.sL = 0; S.sM = 0; }                                 /* 17202 */
+        if (S.sM > 30) suit_choose(p);
+        break;
+    case 5:                                                                     /* the hop: up fast, down slowly (RV) */
+        if (S.sM > 30) S.svx = 0;
+        if (S.sground && S.sM > 30) { S.sL = 0; S.sM = 0; }
+        break;
+    case 4:                                                                     /* the crouch, then N */
+        S.svx = 0;
+        if (S.sM == 1 && S.sN) { obj_t *w = fdb_spawn(FDB_K_FX, "fdu_warn", (float)S.sx, (float)S.sy - 110, 3); if (w) w->tm = 28; }
+        if (S.sM > 28) {
+            if (S.sN == 6) { S.sL = 6; S.sM = 0; S.sface = X < S.sx ? -1 : 1; snd_play_orig(348, 220, 128);
+                             obj_t *sl = fdb_spawn(FDB_K_SLASH, "fdu_slash", (float)S.sx + 40 * S.sface, (float)S.sy - 30, 3); if (sl) { sl->tm = 20; sl->flip = S.sface < 0; } }
+            else if (S.sN == 7) { S.sL = 7; S.sM = 0; obj_t *sp = fdb_spawn(FDB_K_SPIN, "fdu_spin", (float)S.sx, (float)S.sy - 40, 3); if (sp) sp->tm = 999;
+                                  S.s7x = S.sx; S.sground = 0; snd_play_orig(55, 220, 128); }
+            else { S.sL = 0; S.sM = 0; }
+        }
+        break;
+    case 6:                                                                     /* the dash (RV: ~300 px in ~20 frames) */
+        S.svx = S.sface * 13;
+        for (int k = 0; k < fdb_rt_n(); k++) { obj_t *l = fdb_rt(k); if (l && l->st == FDB_K_SLASH) { l->x = (float)S.sx + 40 * S.sface; l->y = (float)S.sy - 30; } }
+        if (S.sM > 22 || (S.sface < 0 && S.sx <= wl) || (S.sface > 0 && S.sx >= wr)) { S.sL = 4; S.sN = 0; S.sM = 0; }
+        break;
+    case 7: {                                                                   /* the spinning flight (RV: x 1900-2830, y 60-240, 180 frames) */
+        double t = S.sM, mid = (S.J + S.K) / 2 - 150, R = 460;
+        double ph0 = asin(fmax(-1.0, fmin(1.0, (S.s7x - mid) / R))) * SB_RAD;
+        double nx = mid + R * sbb_sin(ph0 - t * 2.0), ny = S.sfloor - 90 + 90 * sbb_cos(t * 6.0);
+        S.svx = nx - S.sx; S.sy = ny; S.svy = 0;
+        if (t > 180) { S.sL = 4; S.sN = 6; S.sM = 0; S.sy = S.sfloor; S.sground = 1; S.svx = 0; }
+        break; }
+    case 8:                                                                     /* the guns aimed (crouched) */
+        S.svx = 0; S.sface = X < S.sx ? -1 : 1;
+        if (S.sM > 90) { S.sL = 9; S.sM = 0; }
+        break;
+    case 9:                                                                     /* the volley (INFERRED: every 10 frames) */
+        S.svx = 0;
+        if (S.sM % 10 == 5 && S.sM < 90) suit_laser(p, S.sM % 20 == 5 ? 12 : 8);
+        if (S.sM > 95) { S.sL = 0; S.sM = 0; }
         break;
     }
-    /* body motion: gravity, the floor (the pelvis's placed y), the walls (BrevonSuitWall L / R) */
+    /* body motion: the hop's gravity (0.28 up, at most 2.2 down: RV), the floor (the pelvis's placed y), the walls */
     S.sx += S.svx; if (S.sx < wl) S.sx = wl; if (S.sx > wr) S.sx = wr;
-    if (!S.sground) { S.svy += 0.4; S.sy += S.svy; if (S.sy >= S.sfloor) { S.sy = S.sfloor; S.svy = 0; S.sground = 1; } }
+    if (!S.sground && S.sL != 7) {
+        S.svy += 0.28; if (S.svy > 2.2) S.svy = 2.2; S.sy += S.svy;
+        if (S.sy >= S.sfloor) { S.sy = S.sfloor; S.svy = 0; S.sground = 1; snd_play_orig(38, 220, 128); if (G.cam.Z < 3) G.cam.Z = 3; }
+    }
     suit_pose();
+#ifdef FP_HOST_ENV
+    { static int ah = -1; if (ah < 0) ah = getenv("FP_F4B_AUTOHIT") ? atoi(getenv("FP_F4B_AUTOHIT")) : 0;   /* host tests: a hit every n frames */
+      if (ah > 0 && S.sInv <= 0 && G.frame % ah == 0) { h->A -= 4; if (h->A <= 0) h->fl |= FDB_DEF; } }
+#endif
     /* the head (Q20): 17244 every defeat: A 10, C 60 frames of invulnerability, P - 1 */
     if (S.sInv > 0) { S.sInv--; h->inv = 1; h->c = 3; if (!S.sInv) { h->inv = 0; h->c = 0; } }
-    if ((h->fl & FDB_DEF) && S.sP > 0) {
-        h->fl &= ~FDB_DEF; h->A = 10; S.sInv = 60; S.sP--; snd_play_orig(24, 220, 128);
-    }
-    for (int k = 0; k < SP_N; k++) { obj_t *o = spart(k); if (o && o->type == OT_FDB_SUIT_PART) o->bd = S.sL == 8 ? 20 : 10; }   /* INFERRED contact */
-    if (S.sP <= 0) {                                                            /* 17248 */
+    if ((h->fl & FDB_DEF) && S.sP > 0) { h->fl &= ~FDB_DEF; h->A = 10; S.sInv = 60; S.sP--; snd_play_orig(24, 220, 128); }
+    for (int k = 0; k < SP_N; k++) { obj_t *o = spart(k); if (o) o->bd = S.sL == 7 ? 20 : S.sL == 6 ? 15 : 0; }   /* INFERRED contact */
+    if (S.sP <= 0) {                                                            /* 17248: L 10, g4 3, the music stops */
         S.ph = PH_SUITDEF; S.sL = 10; S.sM = 0; music_stop(); level_checkpoint(SUIT_G4, CP_X, CP_Y);
         for (int k = 0; k < fdb_rt_n(); k++) { obj_t *l = fdb_rt(k); if (l && l->st != FDB_K_FX) l->alive = 0; }
         for (int k = 0; k < SP_N; k++) { obj_t *o = spart(k); if (o) o->bd = 0; }
+        S.svx = 0; S.sground = 1; S.sy = S.sfloor;
     }
 }
-static void suit_defeat(player_t *p) {                                          /* L 10 (17203-17214), L 11 (17215-17218), L 12 (17240-17243) */
-    obj_t *h = shead();
+/* L 10 (17203-17214): explosions (M <= 40), white bursts (M 40-240, sound 38), small explosions, M > 360 the fade card (sound 76) ->
+ * L 11; L 11 (17215-17239): M 120 the player stands (MV.M 50, RV x 2624), the suit falls apart, M 280 Brevon steps out (anim 5) -> the
+ * scene 0x230fc. (17218's Classic L 12 -> results is never reached: 17217 moves M past 120 the same frame: RV b4_0 f 4201.) */
+static void suit_defeat(player_t *p) {
+    obj_t *b = brevon();
     S.sM++;
     if (S.sL == 10) {
-        S.svx = 0;
+        if (S.sM < 20) S.sy -= 1;                                               /* RV: the suit lifts 20 px */
+        suit_pose();
         if (S.sM <= 40 && S.sM % 4 == 0) { obj_effect((float)S.sx - 40 + cross_rand(81), (float)S.sy - 60 + cross_rand(81), "explosion06"); fdb_explode_snd(); }
         if (S.sM >= 40 && S.sM < 240 && S.sM % 8 == 0) { obj_effect((float)S.sx - 40 + cross_rand(81), (float)S.sy - 60 + cross_rand(81), "wburst"); snd_play_orig(38, 220, 128); }
         if (S.sM >= 40 && S.sM % 4 == 0) obj_effect((float)S.sx - 30 + cross_rand(61), (float)S.sy - 50 + cross_rand(61), "fdu_tiny");
         if (S.sM >= 240 && S.sM % 6 == 0) obj_effect((float)S.sx - 30 + cross_rand(61), (float)S.sy - 50 + cross_rand(61), "explosion02");
-        if (S.sM > 360) { snd_play_orig(76, 220, 128); S.sL = 11; S.sM = 0; suit_show(0); }
+        if (S.sM > 360) { snd_play_orig(76, 220, 128); S.sL = 11; S.sM = 0; }
+    } else if (S.sL == 11 && G.character == CHR_MILLA) {                       /* RV b5_4: Milla -> L 12 at M 120 (17218) */
+        if (S.sM == 120) { S.sL = 12; S.sM = 0; }
+    } else if (S.sL == 12) {                                                    /* 17240-17243: M 40 the fade card, M > 120 Sign.B 179 */
+        if (S.sM >= 40) S.fadeW = (int)fmin(255, (S.sM - 40) * 255.0 / 60);
+        if (S.sM > 120 && !S.results) { S.results = 1; fdb_ctrl = 0; results_begin_boss(game_timer()); S.ph = PH_END; }
     } else if (S.sL == 11) {
-        if (S.sM == 120) { S.sL = 12; S.sM = 0; }                               /* 17218: Classic (g0 != 2) */
-    } else if (S.sL == 12) {
-        if (S.sM > 120 && !S.results) {                                         /* 17243: Sign.B 179 */
-            S.results = 1; fdb_ctrl = 0; results_begin_boss(game_timer());
-            S.ph = PH_END;
+        if (S.sM == 120) {                                                      /* 17217 / 17219 */
+            fdb_ctrl = 1; fdb_keys = 0;
+            if (p->ground) { p->x = (float)(S.sx + (p->x < S.sx ? -42 : 42)); p->gsp = p->vx = 0; player_sync_sensors(p); }   /* RV b4_0: MV.X 2624 (pelvis + 42), MV.M 50 */
+            p->face = S.sx < p->x ? -1 : 1;
+            for (int k = 0; k < SP_N; k++) { obj_t *o = spart(k); if (o) { o->vx = (float)(cross_rand(9) - 4); o->vy = -(float)(2 + cross_rand(4)); } }
+            obj_t *h = shead(); if (h) { h->vx = -3; h->vy = -5; }
+            snd_play_orig(38, 220, 128);
+        }
+        if (S.sM > 120) {                                                       /* the suit's pieces fall away (INFERRED) */
+            for (int k = 0; k < SP_N; k++) { obj_t *o = spart(k); if (o && !o->hidden) { o->vy += 0.3f; o->x += o->vx; o->y += o->vy; if (o->y > S.sfloor + 200) o->hidden = 1; } }
+            obj_t *h = shead(); if (h && !h->hidden) { h->vy += 0.3f; h->x += h->vx; h->y += h->vy; if (h->y > S.sfloor + 200) h->hidden = 1; }
+        }
+        if (S.sM == 280 && b) {                                                 /* 17239: Brevon (anim 5) at the pelvis */
+            b->hidden = 0; fdb_set(b, "fdb_brv0"); b->x = (float)S.sx; b->y = BREVON_FLOOR; b->flip = p->x < b->x;
+            S.ph = PH_BSCENE; S.bE = 0; suit_show(0);
         }
     }
-    (void)h; (void)p;
+}
+
+/* ======================================================================== Brevon (0x230fc scene, 0x230f7 fight: 17267-17437) */
+/* RE states (Brevon_3701 D, E its timer, I the facing, F / G the position, H the floor 320, J / K the speed, M the attack counter):
+ * D 0 the choice (17269-17280: M + 1 (+ rand 0-2 on the easy setting); M % 4 = 2 -> D 7, 3 -> D 3; M >= 16 -> D 11, M 0); D 6 the
+ * walk (anim 5) -> D 1 the dash (anim 9, F + 15 I) -> D 2 the slash (J x 0.8, E > 15 -> D 0); D 3 the jump (anim 7, E 12: J 10 I, then
+ * K + 0.6) -> D 4 landed (E > 25 -> D 0); D 5 the proxy mines (anim 14, E 7-9, BrevonProxyMine_3808) -> D 3; D 7 (anim 10) -> D 8 the
+ * dive at the player (anim 9) -> D 9 its slide; D 11 / 12 / 13 the flight up (anim 13, K -6, sound 390), the wing beams
+ * (BrevonWingBeam2_3807 every 2 frames), the drop (E 915 -> D 0). The hitbox (BrevonHitbox_3809, Q20, A 160) follows him; its A
+ * is the bar (BrevonCrosshair7 x scale A / 160 in the frame BrevonCrosshair6: 17353 / 17354). A 0 -> D 60 (knocked up, K + 0.4) -> D 61
+ * (anim 8, the slide) -> D 62 the character's finish (0x230fe Lilac / 0x230f0 Carol) -> D 63, Sign.B 179 at the stone's E 620 / 520.
+ * Port: the states and numbers above (RE) with RV b4_0 / b5_* timings; the walk uses anim 1 (anim 5's 64 forced frames: VRAM), the
+ * mines anim 10, the finishes are a timed kneel (INFERRED: the finishers' player moves, the energy meter and the grab D 10 are not
+ * ported). */
+static void brv_anim(obj_t *b, const char *row) { fdb_set(b, row); }
+static void brv_mines(obj_t *b) {
+    for (int k = 0; k < 2; k++) {
+        obj_t *m = fdb_spawn(FDB_K_MINE, "fdb_mine", b->x + (k ? 20 : -20), b->y - 40, 3);
+        if (m) { m->vx = (float)((k ? 3 : -3) + (b->flip ? -1 : 1)); m->vy = -5; m->tm = 0; m->av[7] = 1; }
+    }
+}
+static void brv_projectiles(player_t *p) {
+    for (int k = 0; k < fdb_rt_n(); k++) {
+        obj_t *l = fdb_rt(k);
+        if (!l) continue;
+        if (l->st == FDB_K_MINE && l->av[7] == 1) {                            /* proxy mines: land, arm, burst near the player (INFERRED) */
+            if (l->vy != 0 || l->y < BREVON_FLOOR - 8) { l->vy += 0.3f; l->x += l->vx; l->y += l->vy; if (l->y >= BREVON_FLOOR - 8) { l->y = BREVON_FLOOR - 8; l->vy = 0; l->vx = 0; fdb_set(l, "fdb_mine1"); } }
+            else if (++l->tm > 300 || fabs(l->x - p->x) < 40) {
+                obj_effect(l->x, l->y, "explosion02"); fdb_explode_snd();
+                if (fabs(l->x - p->x) < 48 && fabs(l->y - (p->y - ORIG_REF_DY)) < 48) hurt(p, 15);
+                l->alive = 0;
+            }
+        } else if (l->st == FDB_K_WAVE && l->av[7] == 2) {                     /* wing beams from above (INFERRED 15) */
+            l->y += 12; if (l->y > BREVON_FLOOR + 40) { l->alive = 0; continue; }
+            if (sbb_csens_hit(p, l)) hurt(p, 15);
+        } else if (l->st == FDB_K_SLASH) {
+            if (--l->tm <= 0) { l->alive = 0; continue; }
+            if (sbb_csens_hit(p, l)) hurt(p, 15);
+        }
+    }
+}
+static void brevon_fight(player_t *p) {
+    obj_t *b = brevon(), *hb = bhit();
+    if (!b) return;
+    double X = p->x, wl = S.J + 89, wr = S.K - 89;                              /* 17300 / 17301: the walls -/+ 0x59 */
+#ifdef FP_HOST_ENV
+    { static int ah = -1; if (ah < 0) ah = getenv("FP_F4B_AUTOHIT") ? atoi(getenv("FP_F4B_AUTOHIT")) : 0;
+      if (ah > 0 && hb && S.bD < 60 && G.frame % ah == 0) { hb->A -= 4; if (hb->A <= 0) hb->fl |= FDB_DEF; } }
+#endif
+    int def = hb && (hb->fl & FDB_DEF);
+    if (S.bD > 0 && S.bD < 60) S.bE++;                                          /* 17281 */
+    if (def && S.bD < 60) {                                                     /* the defeat (A 0) */
+        S.bD = 60; S.bE = 0; S.sE = 0; S.bJ = (b->x < X ? -2 : 2); S.bK = -4; brv_anim(b, "fdb_brv8");   /* RV b5_0: away from the player */
+        music_fade(120, 0); snd_play_orig(38, 220, 128); fdb_explode_snd(); S.bfin = 0;
+        for (int k = 0; k < fdb_rt_n(); k++) { obj_t *l = fdb_rt(k); if (l && l->st != FDB_K_FX) l->alive = 0; }
+    }
+    switch (S.bD) {
+    case 0:                                                                     /* 17269-17280 */
+        brv_anim(b, "fdb_brv0"); S.bI = X < b->x ? -1 : 1; S.bJ = S.bK = 0;
+        if (++S.bE < 20) break;
+        S.bE = 0; S.bM += 1;
+        if (S.bM >= 16) { S.bM = 0; S.bD = 11; break; }                         /* 17280 */
+        if (S.bM % 4 == 2) S.bD = 7;                                            /* 17278 */
+        else if (S.bM % 4 == 3) S.bD = 3;                                       /* 17279 */
+        else if (S.bM % 4 == 1) S.bD = 5;
+        else S.bD = 6;
+        break;
+    case 6:                                                                     /* the walk (17282 / 17283: E <= 20 -> D 1) */
+        brv_anim(b, "fdb_brv1"); S.bI = X < b->x ? -1 : 1; b->x += 2 * S.bI;
+        if (S.bE > 20 || fabs(X - b->x) < 70) { S.bD = 1; S.bE = 0; }
+        break;
+    case 1:                                                                     /* 17284: the dash (anim 9, F + 15 I) */
+        brv_anim(b, "fdb_brv9"); b->x += 15 * S.bI;
+        if (S.bE > 6) { S.bD = 2; S.bE = 0; S.bJ = 8 * S.bI; obj_t *sl = fdb_spawn(FDB_K_SLASH, "fdu_slash", b->x + 36 * S.bI, b->y - 50, 3); if (sl) { sl->tm = 12; sl->flip = S.bI < 0; } snd_play_orig(347, 220, 128); }
+        break;
+    case 2:                                                                     /* 17295 / 17296 */
+        b->x += (float)S.bJ; S.bJ *= 0.8;
+        if (S.bE > 15) { S.bD = 0; S.bE = 0; }
+        break;
+    case 3:                                                                     /* 17297-17303: the jump */
+        if (S.bE == 1) { S.bI = X < b->x ? -1 : 1; brv_anim(b, "fdb_brv0"); }
+        if (S.bE == 12) { brv_anim(b, "fdb_brv7"); S.bJ = 10 * S.bI; S.bK = -11.7; snd_play_orig(21, 220, 128); }   /* RV: apex 114 px */
+        if (S.bE > 12) {
+            S.bK += 0.6; b->x += (float)S.bJ; b->y += (float)S.bK;
+            if ((b->x >= wr && S.bJ > 0) || (b->x <= wl && S.bJ < 0)) { S.bJ = -S.bJ; S.bI = -S.bI; }
+            if (S.bE > 15 && b->y >= BREVON_FLOOR) { b->y = BREVON_FLOOR; S.bJ = S.bK = 0; S.bD = 4; S.bE = 0; brv_anim(b, "fdb_brv0"); }
+        }
+        break;
+    case 4: if (S.bE > 25) { S.bD = 0; S.bE = 0; } break;                       /* 17305 */
+    case 5:                                                                     /* 17308-17311: the mines */
+        brv_anim(b, "fdb_brv10");
+        if (S.bE == 8) { brv_mines(b); snd_play_orig(28, 220, 128); }
+        if (S.bE > 25) { S.bD = 3; S.bE = 0; }
+        break;
+    case 7:                                                                     /* 17312 / 17313 */
+        brv_anim(b, "fdb_brv10"); S.bI = X < b->x ? -1 : 1;
+        if (S.bE > 10) {
+            S.bD = 8; S.bE = 0;
+            double dx = X - b->x, dy = (p->y - ORIG_REF_DY + 32) - b->y, l = sqrt(dx * dx + dy * dy) + 1e-6;
+            S.bJ = dx / l * 10; S.bK = dy / l * 10 - 4; snd_play_orig(347, 220, 128);
+        }
+        break;
+    case 8:                                                                     /* 17314: the dive */
+        brv_anim(b, "fdb_brv9"); S.bK += 0.4; b->x += (float)S.bJ; b->y += (float)S.bK;
+        if (b->x < wl) b->x = (float)wl;
+        if (b->x > wr) b->x = (float)wr;
+        if (b->y >= BREVON_FLOOR) { b->y = BREVON_FLOOR; S.bD = 9; S.bE = 0; S.bK = 0; }
+        break;
+    case 9:                                                                     /* 17316 / 17317 */
+        b->x += (float)S.bJ; S.bJ *= 0.8;
+        if (S.bE > 15) { S.bD = 0; S.bE = 0; }
+        break;
+    case 11:                                                                    /* 17330-17333: up (K -6, sound 390) */
+        brv_anim(b, "fdb_brv13");
+        if (S.bE == 15) { S.bK = -6; snd_play_orig(390, 220, 128); }
+        if (S.bE > 15) { b->y += (float)S.bK; S.bK = fmin(S.bK + 0.2, 0); if (S.bK >= 0) { S.bD = 12; S.bK = -15; S.bE = 0; } }
+        break;
+    case 12:                                                                    /* 17334-17338: off the top, the wing beams */
+        b->y += (float)S.bK;
+        if (S.bE % 2 == 0 && b->y > G.camy - 64) { obj_t *w = fdb_spawn(FDB_K_FX, "fdb_wbeam", b->x, b->y + 30, 3); if (w) w->tm = 8; }
+        if (b->y < BREVON_FLOOR - 500) { S.bD = 13; S.bE = 0; S.bK = 0; b->hidden = 1; }
+        break;
+    case 13:                                                                    /* 17339-17342: the beams rain, then the drop */
+        if (S.bE % 40 == 1 && S.bE < 240) {
+            obj_t *w = fdb_spawn(FDB_K_WAVE, "fdb_wbeam", (float)X, G.camy - 32, 3);
+            if (w) { w->av[7] = 2; w->ang = 270; }
+            snd_play_orig(341, 220, 128);
+        }
+        if (S.bE == 260) { b->hidden = 0; b->x = (float)fmin(fmax(X, wl), wr); b->y = G.camy - 80; S.bK = 0; brv_anim(b, "fdb_brv7"); }
+        if (S.bE > 260) { S.bK += 0.8; b->y += (float)S.bK; if (b->y >= BREVON_FLOOR) { b->y = BREVON_FLOOR; S.bD = 4; S.bE = 0; if (G.cam.Z < 5) G.cam.Z = 5; snd_play_orig(38, 220, 128); } }
+        break;
+    case 60:                                                                    /* 17360-17364 */
+        S.bK += 0.4; b->x += (float)S.bJ; b->y += (float)S.bK;
+        if (b->x < wl) b->x = (float)wl;
+        if (b->x > wr) b->x = (float)wr;
+        S.sE++;
+        if (S.bK > 0 && b->y >= BREVON_FLOOR) { b->y = BREVON_FLOOR; S.bD = 61; fdb_ctrl = 1; fdb_keys = 0; }
+        break;
+    case 61: case 62: case 63: {                                                /* 17365-17408: the finish (stone E) */
+        b->x += (float)S.bJ; S.bJ *= 0.9; brv_anim(b, "fdb_brv8");
+        S.sE++;
+        int carol = fdb_char() == CHR_CAROL;                                    /* 0x230f0 (MV.A 2 / 3) else 0x230fe */
+        int e_snd = carol ? 350 : 450, e_card = carol ? 440 : 540, e_res = carol ? 520 : 620;
+        if (S.sE == 110) { S.bD = 62; S.bfin = b->x < X ? -1 : 1; }              /* RV b5_0: D 62 at the stone's E 110 */
+        if (S.bD == 62 && S.sE > 110 && S.sE < 260) {                           /* RV: the player drives him to the wall (x 2196 -> 1847) */
+            double wall = S.bfin < 0 ? wl : wr;
+            if (fabs(b->x - wall) > 2) b->x += (float)(S.bfin * 3.5);
+            p->x = b->x - S.bfin * 8; p->face = S.bfin < 0 ? -1 : 1; player_sync_sensors(p);
+            if ((S.bfin < 0 && b->x <= wl) || (S.bfin > 0 && b->x >= wr)) b->x = (float)wall;
+        }
+        if (S.sE == e_snd) { snd_play_orig(76, 220, 128); S.bD = 63; }
+        if (S.sE >= e_snd) S.fadeW = (int)fmin(255, (S.sE - e_snd) * 255.0 / (e_card - e_snd));
+        if (S.sE > e_res && !S.results) {                                       /* 17394 / 17408: Sign.B 179 */
+            S.results = 1; fdb_ctrl = 0; results_begin_boss(game_timer()); S.ph = PH_END;
+        }
+        break; }
+    }
+    if (b->x < wl && S.bD < 60) b->x = (float)wl;
+    if (b->x > wr && S.bD < 60) b->x = (float)wr;
+    b->flip = S.bI < 0;
+    if (hb) {                                                                   /* the hitbox follows Brevon (17268) */
+        hb->x = b->x; hb->y = b->y; hb->hidden = 1;
+        if (b->an.b) { hb->an = b->an; }
+        hb->bd = S.bD >= 60 || b->hidden ? 0 : (S.bD == 1 || S.bD == 8 ? 15 : 10);   /* INFERRED contact */
+        if (b->hidden) hb->x = -9999;
+    }
+    brv_projectiles(p);
+}
+/* the health bar: BrevonCrosshair6 (the frame) / 7 (the bar, x scale A / 160) slide up into the view's bottom (17353 / 17354) */
+static void brevon_bar(void) {
+    obj_t *fr = fdb_get_sub(OT_FDB_XHAIR, 0), *bar = fdb_get_sub(OT_FDB_XHAIR, 1), *hb = bhit();
+    int on = S.ph == PH_BREVON;
+    if (on && S.barY < 40) S.barY++;
+    if (fr) { fr->hidden = !on; fr->x = G.camx + 32; fr->y = G.camy + SCREEN_H + 40 - S.barY; fr->layer = 4; }
+    if (bar) { bar->hidden = !on; bar->x = G.camx + 3 + 32 - 29; bar->y = G.camy + SCREEN_H + 21 - S.barY; bar->layer = 4; bar->scale = hb ? (float)fmax(0.0, hb->A / 160.0) : 0; }
 }
 
 /* ======================================================================== the hit-point tubes (BossHealthBar1 / 2, 16824-16826) */
@@ -554,7 +802,7 @@ void f4b_frame(player_t *p) {
             S.ph = PH_INTRO; S.iD = 0; S.iE = 0; fdb_ctrl = 1; fdb_keys = 0;
             G.cam.M3 = 1; S.camA = G.cam.A; S.camB = G.cam.B;
             fdb_cam_lock(S.J, S.K, fdb_marker(OT_CAMLIM_T, 0), fdb_marker(OT_CAMLIM_B, 0));
-            if (!S.music) { S.music = 1; const char *m = level_music_slot(4); if (m) music_play(m); }   /* ML.Y 1 */
+            if (!S.music) { S.music = 1; music_play(FD4B_MECH_MUSIC); }       /* ML.Y 1 (RV: m_boss5) */
         }
         break;
     case PH_INTRO:
@@ -583,23 +831,32 @@ void f4b_frame(player_t *p) {
     case PH_MECH:
         mech_fight(p);
         break;
-    case PH_MECHDEF:                                                            /* 0x230f4 (16876-16905) */
+    case PH_MECHDEF:                                                            /* 0x230f4 (16876-16905; RV b4_0 f 1261-1870) */
         mech_fight(p);
         S.mdE++;
-        if (S.mdE == 60 && b) {                                                 /* 16879: Brevon out of the mech (anim 7) */
+        if (S.mdE == 60 && b) {                                                 /* 16879: Brevon out of the mech (anim 7; RV at 2634,155) */
             obj_t *hd = mp(MP_HEAD); b->hidden = 0; fdb_set(b, "fdb_brv7"); b->x = hd ? hd->x : (float)S.C; b->y = hd ? hd->y : (float)S.D;
-            b->vx = (float)((S.sx - b->x) / 120.0); b->vy = -6;
+            b->vx = 0; b->vy = -2; b->flip = p->x < b->x;
         }
-        if (S.mdE > 60 && S.mdE < 180 && b && !b->hidden) {                     /* 16880: his arc to the suit (INFERRED) */
-            b->x += b->vx; b->vy += 0.1f; b->y += b->vy; b->flip = b->vx < 0;
+        if (S.mdE > 60 && S.mdE < 375 && b && !b->hidden) {                     /* RV: he drops to y 245 and stands */
+            if (b->y < 245) { b->vy += 0.3f; b->y += b->vy; if (b->y >= 245) { b->y = 245; fdb_set(b, "fdb_brv0"); } }
         }
-        if (S.mdE == 180) { snd_play_orig(395, 220, 128); if (b) b->hidden = 1; S.sL = -1; }   /* 16881: the suit group on (sound 0x18b) */
+        if (S.mdE == 180) {                                                     /* 16881: the suit group on (sound 0x18b): it gathers at him */
+            snd_play_orig(395, 220, 128); S.sL = -1; S.sM = 0; S.sx = b ? b->x : S.sx; S.sy = S.sfloor; S.sface = p->x < S.sx ? -1 : 1;
+        }
+        if (S.mdE >= 180) suit_pose();
         {   static const short WB[] = { 200, 220, 239, 257, 274, 290, 305, 319, 332, 344, 355, 365, 375 };   /* 16882-16894 */
-            for (unsigned k = 0; k < sizeof WB / sizeof WB[0]; k++) if (S.mdE == WB[k]) { obj_t *t = mp(MP_TORSO); obj_effect(t ? t->x - 60 + cross_rand(121) : (float)S.C, t ? t->y - 40 + cross_rand(81) : (float)S.D, "wburst"); snd_play_orig(38, 220, 128); }
+            for (unsigned k = 0; k < sizeof WB / sizeof WB[0]; k++) if (S.mdE == WB[k]) { obj_effect((float)S.sx - 50 + cross_rand(101), (float)S.sy - 80 + cross_rand(81), "wburst"); snd_play_orig(38, 220, 128); }
         }
-        if (S.mdE == 375) { mech_hide(1); for (int k = 0; k < MP_N; k++) { obj_t *o = mp(k); if (o) o->alive = 0; } for (int k = 0; k < 4; k++) { obj_t *o = fdb_slot(S.bw[k]); if (o) o->alive = 0; o = fdb_slot(S.fw[k]); if (o) o->alive = 0; } obj_t *w = weak(); if (w) w->alive = 0; }
-        if (S.mdE == 500 + 100) { S.music = 2; const char *m = level_music_slot(4); if (m) music_play(m); }   /* 16904: D 2 E 100 */
-        if (S.mdE > 500 + 100) { S.ph = PH_SUIT; S.sL = 0; S.sM = 0; flash_start(); }   /* 16905 */
+        if (S.mdE == 375) {                                                     /* 16894: Brevon inside; the mech gone (16905: its groups off) */
+            if (b) b->hidden = 1;
+            mech_hide(1); for (int k = 0; k < MP_N; k++) { obj_t *o = mp(k); if (o) o->alive = 0; }
+            for (int k = 0; k < 4; k++) { obj_t *o = fdb_slot(S.bw[k]); if (o) o->alive = 0; o = fdb_slot(S.fw[k]); if (o) o->alive = 0; }
+            obj_t *w = weak(); if (w) w->alive = 0;
+            obj_t *h = shead(); if (h) { h->hidden = 0; h->A = 10; }
+        }
+        if (S.mdE == 600) { S.music = 2; music_play(FD4B_MECH_MUSIC); }        /* 16904: D 2 E 100 (play_music) */
+        if (S.mdE > 600) { S.ph = PH_SUIT; S.sL = 0; S.sM = 0; flash_start(); }   /* 16905 */
         break;
     case PH_SUIT:
         suit_fight(p);
@@ -607,19 +864,34 @@ void f4b_frame(player_t *p) {
     case PH_SUITDEF:
         suit_defeat(p);
         break;
+    case PH_BSCENE:                                                             /* 0x230fc (16906-16918; RV b4_0: the stone's E 0-112) */
+        S.bE++;
+        if (b) b->flip = p->x < b->x;
+        if (S.bE == 40) { const char *m = level_music_slot(6); if (m) music_play(m); }   /* RV f 4439: m_boss7 */
+        if (S.bE > 110) {                                                       /* 16917 / 16918: the fight (0x230f7) */
+            S.ph = PH_BREVON; S.bD = 6; S.bE = 0; S.bM = 0; S.bI = b && p->x < b->x ? -1 : 1; fdb_ctrl = 0;
+            obj_t *hb = bhit(); if (hb) { hb->A = BREVON_A; hb->fl &= ~FDB_DEF; }
+#ifdef FP_HOST_ENV
+            if (hb && getenv("FP_F4B_BA")) hb->A = atoi(getenv("FP_F4B_BA"));         /* host tests: a shorter fight */
+#endif
+        }
+        break;
+    case PH_BREVON:
+        brevon_fight(p);
+        break;
     case PH_END:
         if (!S.ended && results_tally_done()) { S.ended = 1; results_request_end(); S.ph = PH_DONE; }   /* 16812-16814 -> 16811 */
         break;
     }
-    if (S.ph >= PH_MECH || (S.ph == PH_INTRO && S.iE >= 60)) projectiles(p);
+    if ((S.ph >= PH_MECH && S.ph <= PH_SUIT) || (S.ph == PH_INTRO && S.iE >= 60)) projectiles(p);
     if (S.ph == PH_SUIT || S.ph == PH_SUITDEF) suit_projectiles(p);
-    if (S.ph == PH_SUIT || S.ph == PH_SUITDEF) suit_pose();
+    brevon_bar();
     bars();
     cam_script(p);
     (void)s;
 #ifdef FP_HOST_ENV
-    if (getenv("FP_DBG_F4B")) { obj_t *w = weak(), *h = shead(); printf("f4b %d ph %d iD %d iE %d F %.0f G %.0f C %.0f Dm %.0f aH %d uB %.0f wE %d dead %d wG %d mdE %d sL %d sM %d sO %d sP %d hA %.0f sx %.0f px %.0f py %.0f hp %d res %d wc %d\n",
-        G.frame, S.ph, S.iD, S.iE, S.F, S.Gm, S.C, S.D, S.aH, S.uB, S.wE, S.dead, S.wG, S.mdE, S.sL, S.sM, S.sO, S.sP, h ? h->A : -1, S.sx, p->x, p->y, p->hp, S.results, w ? w->c : -1); }
+    if (getenv("FP_DBG_F4B")) { obj_t *w = weak(), *h = shead(); printf("f4b %d ph %d iD %d iE %d F %.0f G %.0f C %.0f Dm %.0f aH %d uB %.0f wE %d dead %d wG %d mdE %d sL %d sM %d sO %d sP %d hA %.0f sx %.0f px %.0f py %.0f hp %d res %d wc %d bD %d bE %d bA %.0f bx %.0f sE %d\n",
+        G.frame, S.ph, S.iD, S.iE, S.F, S.Gm, S.C, S.D, S.aH, S.uB, S.wE, S.dead, S.wG, S.mdE, S.sL, S.sM, S.sO, S.sP, h ? h->A : -1, S.sx, p->x, p->y, p->hp, S.results, w ? w->c : -1, S.bD, S.bE, bhit() ? bhit()->A : -1, b ? b->x : -1, S.sE); }
 #endif
 }
 
@@ -631,10 +903,19 @@ int f4b_draw(const obj_t *o, int pass) {
         if (!o->hidden) sbb_draw(o, 0xffffffff);
         int a = flash_alpha();                                                  /* the flash over the back layers (layer 2: 16871) */
         if (a > 0) r_rect(0, 0, SCREEN_W, SCREEN_H, ((uint32_t)a << 24) | 0xffffff);
+        if (S.fadeW > 0) r_fade(S.fadeW / 255.f);                               /* the end's fade card (17214 / 17241 / 17392 / 17406) */
         return 1;
     }
     if (o->type == OT_FDB_RT && o->st == FDB_K_WAVE) { sbb_draw_yscaled(o, o->av[0]); return 1; }
     if (o->type == OT_FDB_SUIT_HEAD && S.sInv > 0 && (G.frame & 2)) return 1;   /* hit flicker (INFERRED) */
+    if (o->type == OT_FDB_XHAIR) {                                              /* the bar: the frame, the bar scaled by A / 160 (17354) */
+        if (o->hidden || !o->an.b) return 1;
+        const frame_t *f = anim_frame(&o->an);
+        float sx = floorf(SCREEN_W / 2.f) - (o->par ? 100.f : 128.f), sy = (float)(SCREEN_H + 40 - S.barY) - (o->par ? 21.f : 32.f) + (o->par ? 10.f : 0.f);
+        float w = o->par ? (float)f->w * o->scale : (float)f->w;
+        if (w > 0) frame_draw_scaled(o->an.b, f, sx, sy, w, (float)f->h, 0xffffffff);
+        return 1;
+    }
     return 0;
 }
 float f4b_hud_dy(void) { return 0.f; }

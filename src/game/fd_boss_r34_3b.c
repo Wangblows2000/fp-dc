@@ -311,8 +311,8 @@ void f3b_frame(player_t *p) {
         if (u && u->st == FDB_K_FX && fdb_is(u, "fdm_bubble")) { u->y += u->vy; if (--u->tm <= 0) u->alive = 0; }
     }
 #ifdef FP_HOST_ENV
-    if (getenv("FP_DBG_F3B")) { obj_t *h = head(); printf("f3b %d sc %d D %d E %d fi %d st %d t %d runs %d hx %.0f vx %.2f A %.0f def %d defF %d res %d px %.0f py %.0f fade %d\n",
-        G.frame, S.scene, S.D, S.E, S.fight, S.st, S.t, S.runs, S.hx, S.vx, h ? h->A : -1, h ? (h->fl & FDB_DEF) != 0 : -1, S.defF, S.results, p->x, p->y, S.fade); }
+    if (getenv("FP_DBG_F3B")) { obj_t *h = head(); printf("f3b %d sc %d D %d E %d fi %d st %d t %d runs %d hx %.0f vx %.2f A %.0f def %d defF %d res %d px %.0f py %.0f fade %d lv %d inv %d\n",
+        G.frame, S.scene, S.D, S.E, S.fight, S.st, S.t, S.runs, S.hx, S.vx, h ? h->A : -1, h ? (h->fl & FDB_DEF) != 0 : -1, S.defF, S.results, p->x, p->y, S.fade, S.lives, S.inv); }
 #endif
 }
 
