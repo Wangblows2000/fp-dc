@@ -1,13 +1,13 @@
 Freedom Planet DC - PC version (Linux x86_64 / Windows 32-bit)
 =================================================================
 
-This is the Dreamcast port's game code running on a PC through SDL2. It needs the converted game data
-(the "converted2" folder made from your own copy of Freedom Planet; see ASSET_PIPELINE.md in the
-source tree). No game data is included.
+This is the Dreamcast port's game code running on a PC through SDL2. No game data is included: the "data"
+folder next to the program is made from your own copy of Freedom Planet by build_win32.bat / build_linux.sh
+(drag your Freedom Planet Assets.dat onto it; see BUILDING.md in the source tree).
 
 Data
-  Put the converted data in a folder named "data" next to the program, or pass its path:
-      fpdc /path/to/converted2            (Windows: fpdc.exe C:\path\to\converted2)
+  The program reads the folder "data" next to it, or the folder given as the first argument:
+      fpdc /path/to/data                  (Windows: fpdc.exe C:\path\to\data)
 
 Controls (keyboard)
   Arrow keys         move
