@@ -1,7 +1,6 @@
 #!/bin/bash
 # The Linux side of the build_*.sh scripts: the portable Python (downloaded once into build/cache/, SHA-256 checked), then
 # tools/builder/fpbuild.py <target>. usage: tools/builder/bootstrap.sh <target> <script name> <what> [fpbuild arguments]
-# Without an Assets.dat argument (e.g. started from a file manager) it asks for it with a file dialog when zenity is there.
 # FPB_LOCAL=1 (or --local-tools): use python3, ffmpeg, cc, mkdcdisc and KallistiOS of this computer instead.
 set -u
 HERE=$(cd "$(dirname "$0")/../.." && pwd)
@@ -14,16 +13,7 @@ CACHE=$HERE/build/cache
 PYDIR=$CACHE/python-3.13.14
 die() { echo "ERROR: $*" >&2; [ -t 0 ] || { command -v zenity >/dev/null && zenity --error --text="$*" 2>/dev/null; }; exit 1; }
 
-if [ $# -lt 1 ]; then
-  if [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ] && command -v zenity >/dev/null; then
-    F=$(zenity --file-selection --title="Select Freedom Planet's Assets.dat" 2>/dev/null) || exit 2
-    set -- "$F"
-  else
-    echo "usage: $SCRIPT \"/path/to/Freedom Planet/Assets.dat\" [-j N] [--force] [--local-tools] [fpbuild.py options]"
-    echo "       builds $WHAT from your copy of Freedom Planet; see BUILDING.md"
-    exit 2
-  fi
-fi
+# (no Assets.dat argument, e.g. started from a file manager: fpbuild.py finds it next to the project or asks with zenity)
 LOCAL=${FPB_LOCAL:-0}
 for a in "$@"; do [ "$a" = --local-tools ] && LOCAL=1; done
 if [ "$LOCAL" = 1 ]; then

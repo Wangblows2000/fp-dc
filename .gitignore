@@ -33,4 +33,8 @@ pc/dist/
 # drag-and-drop builder (BUILDING.md): the result, local copies of the pinned downloads (build/cache, build/builder are
 # under build/ above)
 output/
-prebuilt/
+# the builders' results, written next to the build_*.bat / .sh scripts (fpdc.cdi; on the PC branch fpdc.exe, SDL2.dll, data/ ...)
+/fpdc.cdi
+# the project's prebuilt programs and tools are committed (D-119): never ignored
+!/prebuilt/
+!/prebuilt/**

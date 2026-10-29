@@ -487,3 +487,16 @@ animation tables from. The user chose to commit those derived tables (JSON: obje
 lists, backdrops; no images, sounds or code) to the public repository github.com/Wangblows2000/fp-dc. Game assets (images,
 audio, Assets.dat contents), decompiled output and traces stay uncommitted. Voices missing from the Linux copy (placeholder
 stubs) come from the user's Windows install (convert_sfx.sh VOX_PC).
+
+## D-119 (session 25, user decision): the builders' programs and tools are committed in prebuilt/; results next to the scripts
+The drag-and-drop builders downloaded fpdc.elf, mkdcdisc, wav2adpcm, the Linux ffmpeg (and on pc-port the PC programs) from
+a GitHub release (builder-v1) that was never published, so every build stopped with HTTP 404 (reported by the user on
+Windows). The user chose to commit these files in `prebuilt/` (with the source archives of the GPL / LGPL tools and their
+licences), so a ZIP download of the repository builds with no compiler and no project download; only Python, its two
+wheels and the Windows ffmpeg still come from their publishers. fetch.py looks in `prebuilt/` first (a different
+`fpdc.elf` in the top folder, e.g. a developer's `make` output, is skipped, not an error). downloads.json records the git
+tree of `src/` each program was built from (`src_tree`); `fpbuild.py selftest` fails when `src/` has changed since, so a
+stale program cannot be committed unnoticed (`tools/builder/build_release.sh --program-only` rebuilds it).
+Also at the user's request: the results are written next to the scripts (`fpdc.cdi`; PC: `fpdc.exe` / `fpdc`, `data/`),
+not to `output/`; started without an argument the builders find an Assets.dat in the project folder, up to three folders
+above it or a usual Steam / GOG folder, else ask with a file dialog (Windows: PowerShell; Linux: zenity).
