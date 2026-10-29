@@ -451,3 +451,39 @@ crystals collected toward the next life instead of the countdown (display only).
 ## D-112 (session 23): Pangu Lagoon types and the Lilac-only rule
 MAX_OT grows to 2304 (types 2048-2303 for PL). The Lilac-only restriction uses the original's own data (the TA slot table and
 g1 = 0 at act start, `level_def_t.lilac_only`) instead of a separate check in the stage code.
+
+## D-113 (session 24): enemy view test on the whole image box
+RE FrameObject::is_near_border tests the object's collision box, which for an Active is its whole image (transparent margins
+included), not the opaque pixels the atlas keeps. The _ens / _shl banks now carry a 'BOX1' section (per frame the uncropped
+hotspot and size; tools/import_frame.py, src/resources/assets.c) and obj_near_view uses it (flip-aware). RV bg3_squid: the BG3
+squid at x 490 stays idle at the start (its dir-0 image reaches x 528) and wakes at frame 106 with the player at x 220; the
+port is identical. The bounds stay inclusive (RE compares strictly): INFERRED tolerance for the port's 1-2 px position
+differences (test_th_enemies' bike-ninja skid burst). Only obj_near_view changed; collisions keep the cropped masks.
+
+## D-114 (session 24): Battle Glacier and Final Dreadnought layout
+MAX_OT 3200: BG 2304-2559, FD 2560-3071 (flow / enemies / gimmicks / bosses A / bosses B blocks), 3072-3199 spare. BG = stage 9
+(bg1-bg6), FD rounds 1-4 = stages 10-13, two acts each, every round its own results (RE handle_frame_9 Classic block: I 10 ->
+frame 67, 11 -> 69, 12 -> 71, 13 -> the ending). The shoot-'em-up lead-in to BG (frame 84) is not ported: routes that reach it
+load BG1 directly (its end does the same in the original).
+
+## D-115 (session 24): the Classic ending per character (RV over RE)
+The original's Classic game (game mode 1, traced: build/orig_traces/fd_bosses_b b4_2 / b5_0 / b5_4): Lilac and Carol fight
+Brevon after the suit; Milla goes from the suit straight to the results. The capture and the switch to Lilac are Adventure
+only. RE 17218 reads as if Classic skipped Brevon for everyone; the trace contradicts it and the port follows the trace.
+
+## D-116 (session 24): the end of the game
+FD4b's results end (results_request_end) starts game_ending_begin(): the final cutscene (frame index 83), FINAL SCORE (deaths,
+crystals, time from the save's per-stage records, computed in one place and saved: save_final_score), the credits (frame
+index 85), "Thanks for Playing", then the title. A death on RESTART counts as a death. Adventure-cutscene template:
+src/game/cutscene.h/.c (+ cutscene_example.c). The epilogue frames (81 / 82) are not ported.
+
+## D-117 (session 24, user request): master is Dreamcast-only; the PC port lives on branch pc-port
+The SDL2 PC port (Linux x86_64, Windows i686; src/platform/plat_sdl.c, pc/) was merged and then reverted on master; branch
+`pc-port` keeps it (and its build wrappers). Shared-code changes there are under FP_PC only.
+
+## D-118 (session 24, user decision): layout tables committed for the easy builder; public repository
+The drag-and-drop builder must work from a Windows Assets.dat alone, which has no Linux binary to recover level layouts and
+animation tables from. The user chose to commit those derived tables (JSON: object positions per frame, animation frame
+lists, backdrops; no images, sounds or code) to the public repository github.com/Wangblows2000/fp-dc. Game assets (images,
+audio, Assets.dat contents), decompiled output and traces stay uncommitted. Voices missing from the Linux copy (placeholder
+stubs) come from the user's Windows install (convert_sfx.sh VOX_PC).

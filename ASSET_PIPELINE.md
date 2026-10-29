@@ -338,3 +338,47 @@ tools/audio/convert_gallery.sh extracted/linux/audio "$G/Data/voices" /home/clau
 - Time Attack previews: `python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui tasel 6 -x '^bg(1[0-9]|[78])layer'`
   (keeps bg6 Jade Creek and bg9 Trap Hideout; a second 64 KB atlas tasel_ui1, loaded by frontend.c).
 - Sounds: convert_sfx.sh adds 335 336 363; SFX_TH1-3 44 / 76 / 171 KB.
+
+## Session 24: Battle Glacier, Final Dreadnought, the ending
+```sh
+for i in 1 2 3 4 5 6; do tools/build_level.sh $((59+i)) bg$i converted2; done                      # BG1-BG6 = json 60-65
+n=66; for d in fd1a fd1b fd2a fd2b fd3a fd3b fd4a fd4b; do tools/build_level.sh $n $d converted2; n=$((n+1)); done   # json 66-73
+python3 tools/import_ui.py build/frames extracted/linux/images converted2/ui tasel 6   # stage select: every stage's previews
+                                                       # (strips wider than one atlas are cropped to their left 1024 px)
+tools/import_ending.sh converted2                      # end/ (final cutscene, credits, credits.txt) -> its own end.pak
+VOX_PC="/mnt/user-data/uploads/Freedom Planet/Data/voices" \
+  tools/audio/convert_sfx.sh extracted/linux/audio /home/claude/fprun/Data/voices converted2/sfx
+```
+- convert_sfx.sh gained the PL / BG / BG-bosses / FD / ending lines (11025 Hz, tails trimmed; 381 and the ending's 425 / 294
+  are loops, tails kept). Voices: lilac_awesome (BG2), da_05_02 / da_05_03 / dail_no (Prince Dail), br_pa_03 (FD1b push-beam
+  chase). The Linux copy's voices folder has 3.5 KB placeholder stubs for some clips; VOX_PC points at the complete voices of
+  the user's Windows install (staged read-only).
+- Stage sound groups (non-resident KB): BG1-6 44 / 99 / 99 / 176 / 139 / 86; FD1A..FD4B 68 / 176 (+22 voice) / 64 / 146 /
+  79 / 164 / 90 / 188.
+- 'BOX1' (D-113): every _ens / _shl bank ends with the uncropped image box per frame (u16 x4: HX, HY, W, H).
+- build/rebuild_cmp.sh now rebuilds and compares every level incl. TB, PL, BG and FD.
+- Easy builder (drag-and-drop Assets.dat -> CDI): BUILDING.md.
+
+## Session 25: one-step builder (BUILDING.md)
+`build_dreamcast.bat` / `.sh` (drag Assets.dat onto it) start a pinned portable Python (tools/builder/bootstrap.cmd /
+bootstrap.sh) that runs `tools/builder/fpbuild.py`: every step above in order from a dropped Assets.dat (Windows GOG or
+Linux 1.21.5) into one data dir, then the disc. Nothing else is needed on the user's computer: the tools are pinned
+downloads (tools/builder/downloads.json, fetch.py; the project's release builder-v1 has fpdc.elf, mkdcdisc, wav2adpcm and
+a Linux ffmpeg, made by tools/builder/build_release.sh).
+- **The shell steps are Python now** (they run on Windows): `tools/build_level.py`, `tools/build_ending.py`,
+  `tools/audio/convert_audio.py` (bgm / sfx / gallery; durations by tools/audio/oggdur.py, the same text as ffprobe on all
+  1,928 .ogg), `tools/make_disc.py` (disc tree + mkdcdisc). `tools/build_level.sh`, `import_ending.sh`,
+  `audio/convert_*.sh` and `make cdi` / `cdi-image` call them, so the commands above work unchanged. **A session that adds
+  a sound edits the SFX list in convert_audio.py; a level: LEVELS in fpbuild.py; a UI scene: fpbuild's s_ui.**
+- **tables/** holds what the pipeline read from bin64/Chowdren: frames/ (dump_frames / anims / backdrops output, the same
+  bytes as build/frames), strings.json (gallery / credits texts; import_gallery.elf_strings reads it when given the .json),
+  winmap_4085c983.json (Windows image ids -> Linux ids, plus 'labels' recipes that redraw the console button labels of
+  Milla's HUD and the dig hint on the PC images). Regenerate with tools/builder/make_tables.py (layout / winmap / labels).
+- tools/import_frame.py's mirror-row checks read FP_FRAMES / FP_IMAGES (they read build/frames and extracted/linux/images
+  under the checkout before, and silently kept the mirrored enemy rows when those were missing).
+- twiddle_disc.py has no NumPy any more (one byte permutation per texture size; the same bytes on all 1,846 textures).
+- Checked (session 25): a build from the Windows Assets.dat alone (no Linux program, no build/, extracted/, converted2/
+  reachable) gives a data dir equal to converted2 except files that converted2 has from older importer runs (dv1, bg4,
+  bg6, jc1, jc5, two lilac voice wavs: identical to a fresh run of the original shell scripts on the Linux inputs), the
+  gallery manifest's source paths and the title atlas (the PC PRESS (X) art, which the port does not draw).
+

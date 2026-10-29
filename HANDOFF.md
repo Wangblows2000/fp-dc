@@ -39,6 +39,40 @@ Done (details in RE_NOTES "Session 8 additions" and "Shields and water", RUNTIME
 - Brief items from earlier in the session: 16:9 letterbox option (save v2), title credit, momentum change, card totals.
 - Death restarts the act with one life less; game over returns to the menu.
 
+## Session 24 (2026-10-28/29): Battle Glacier, Final Dreadnought, the ending, PC port branch, easy builder
+Brief: "Final Dreadnought rounds 1-4, complete game integration, ending, credits and release regression" + the user's
+"also port Battle Glacier". Details: RE_NOTES "Session 24", RUNTIME_MAP "Session 24", ASSET_PIPELINE "Session 24",
+DECISIONS D-113 to D-118, BUILD_AND_TEST_LOG "Session 24". Module specs (RE / RV / INFERRED, per class, with event numbers)
+were written to build/re/spec_bg_*.md and spec_fd_*.md (gitignored with the rest of build/re).
+- **Types:** TB 1792-2047, PL 2048-2303, BG 2304-2559 (flow 2304-, enemies 2336-, gimmicks 2400-, bosses 2432-), FD 2560-3071
+  (flow 2560-2623, enemies 2624-2751, gimmicks 2752-2911, bosses A 2912-2991 / B 2992-3071), MAX_OT 3200 (3072-3199 spare).
+- **Stages:** BG = stage 9 (bg1-bg6, json 60-65), FD rounds 1-4 = stages 10-13 (fd1a..fd4b, json 66-73), each round with its
+  own results. Classic route (RE frame 8, levels.c ROUTE): Lilac DV-RM-FN-SB-JC-TB-PL-BG-FD, Carol / Milla (AT-)RM-FN-SB-JC-TH-
+  TB-BG-FD; FD4's end -> the ending (game_ending_begin). The shoot-'em-up lead-in to BG (frame 84) is not ported.
+- **Battle Glacier:** flow (loop pieces, routes, parallax, BG4 opening music fade, checkpoints), enemies (drill satellites,
+  Elite spawners, reuse of JC Elites / TB squids / saucers), gimmicks (26 types), bosses: Absolution (BG4 mech, RV within
+  1-2 frames), Sparky (BG4), Milla's Sparky ride (BG5), Prince Dail / Shade Beast (BG6, RV cycle exact), BG2 chopper (SB
+  reuse), Tredds (bosses.c now per instance), Wretchnid.
+- **Final Dreadnought:** flow (rows, music, cards, checkpoints, exits, fd1a entry per character, Milla's own fd1a drop,
+  fd3 loop layers, parallax, stage-select previews), enemies (pounder, gatling gun + parts, beast iris, spider beamer,
+  pod drops and pod rain), gimmicks (~40 types: transporter pipes, zap beams, airlocks, pressure doors, crushers, lifts,
+  boosters, orbit beams, laser tunnels; reuse of BG / TB doors, key cards, sirens), bosses A (fd1b push-beam chase +
+  7-form morpher, fd2a RoboSquid (TB3), fd2b mech Serpentine), bosses B (fd3b bulldozer (FN), Kingdom Stone scene,
+  mutated Milla; fd4b mech, suit, Brevon). **RV finding:** in Classic, Lilac / Carol fight Brevon after the suit; Milla goes
+  from the suit to the results (no Brevon fight); the capture / Lilac swap is Adventure only.
+- **Ending:** final cutscene (frame index 83) -> FINAL SCORE (deaths, crystals, time; computed centrally, saved) -> credits
+  (frame 85) -> "Thanks for Playing" -> title. Reusable adventure-cutscene template: src/game/cutscene.h/.c with
+  cutscene_example.c. Epilogue frames 81/82 not ported.
+- **Enemy view test (D-113):** RE is_near_border tests the whole (uncropped) image box: the _ens / _shl banks carry a BOX1
+  section; fixes the BG3 start squid (RV bg3_squid: wakes at frame 106, x 220, port identical).
+- **Transitions:** tests/test_route_matrix.py (every stage's last act through the results to the next stage, per character).
+- **PC port (branch `pc-port`, user request: master stays Dreamcast-only):** SDL2 platform layer src/platform/plat_sdl.c on
+  the host software renderer; `pc/build_linux.sh`, `pc/build_win32.sh` (mingw-w64 i686 + SDL 2.30.11); tested on Linux
+  (Xvfb) and Wine 9.0: frames identical to the host harness (5 title frames off by a few px under Wine: Windows sinf/cosf).
+- **Easy builder (master):** drag-and-drop Assets.dat onto build_dreamcast.bat / .sh -> a CDI (BUILDING.md). The layout /
+  animation tables derived from the Linux binary are committed for it (D-118, user decision).
+- **Repo:** public GitHub github.com/Wangblows2000/fp-dc (origin); the old session-19b bundle remote is `bundle19b`.
+
 ## Session 9 (2026-10-24): rendering order, DV4 boss exit, audio, performance
 Brief order: transparency, DV4 boss sequence, audio, textures/performance. Details: BUILD_AND_TEST_LOG "Session 9",
 RE_NOTES "Session 9", DECISIONS D-033 to D-035.
@@ -401,6 +435,11 @@ D-072, BUILD_AND_TEST_LOG "Session 15". Spec: build/re/fe/spec_gallery.md (not c
   Aqua Tunnel: session 12.)
 
 ## Latest verified
+- session 24 (BG + FD + ending merged): full regression 61 suites 0 failures (incl. test_bg_* / test_fd_* / test_ending /
+  test_route_matrix); every level rebuilt (only the _ens / _shl .spr files changed: the BOX1 section). Flycast
+  (build/fpdc_s24demo.cdi, tests/play/s24_verify.txt, Carol / Milla / Lilac through BG1-6 and FD1a-4b): VRAM free >= 768 KB
+  (fd3b Carol; fd1b 1265, fd2b 1454, BG2-4 1876-1880 with Carol), sound RAM largest free block >= 205 KB (BG3), ~12-15 slow
+  frames per 600 in steady play (BG5 heaviest, update ~9.4 ms). **Nothing on real hardware.**
 - session 23 (Pangu Lagoon merged): full regression 50 suites 0 failures (test_pl_flow / enemies / gimmicks / bosses included);
   every level incl. TB / PL rebuilds byte-identical to converted2; renders unchanged except FN4 Lilac (session 22 grip fix);
   comparers unchanged. Flycast (build/fpdc_pldemo.cdi, s23_pl_verify.txt, Lilac): PL1-PL6 VRAM free 2815-3170 KB, sound RAM
@@ -422,6 +461,9 @@ D-072, BUILD_AND_TEST_LOG "Session 15". Spec: build/re/fe/spec_gallery.md (not c
   RAM >= 113 KB (Milla JC5, before the JC5 group trim); SB1 HUD back during the Kujacker fight. **Nothing on real hardware.**
 
 ## Next actions
+0. Session 24 leftovers (TODO "Battle Glacier" / "Final Dreadnought" / "Ending"): real-hardware VRAM on fd3b with Carol
+   (768 KB free in Flycast) and BG4 with Milla; FD4b space backdrops; Brevon's grab / weapon throws; BG6 closing scene;
+   the shoot-'em-up lead-in to BG; fd2b's vacuum air rule.
 1. Pangu Lagoon: an end-to-end playthrough of each act (TODO "Pangu Lagoon").
 1b. TB leftovers (TODO "Thermal Base"): no full-act play-through; which locked doors gate progression is not verified.
 2. TH leftovers (TODO "Trap Hideout").
@@ -451,4 +493,5 @@ D-072, BUILD_AND_TEST_LOG "Session 15". Spec: build/re/fe/spec_gallery.md (not c
   achievement pop-up (an overlay instead), idle card twinkles, the console button-icon hints, real voices for 15 sound cards.
 
 ## Safety
-Never write to the user's game folders. extracted/, converted*/, build/, docs/reference/, tools/audio/wav2adpcm are gitignored. Never commit game data or decompiled output (`git ls-files` check before commits).
+Never write to the user's game folders. extracted/, converted*/, build/, docs/reference/, tools/audio/wav2adpcm are gitignored. Never commit game data or decompiled output (`git ls-files` check before commits). Exception (D-118, user decision,
+session 24): the layout / animation tables the easy builder needs (derived JSON, no images / sounds / code) are committed.

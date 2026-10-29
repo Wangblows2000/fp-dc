@@ -1108,10 +1108,16 @@ for _e in JCE_ENS:
 # VRAM (session 21 merge): a JC enemy's direction-16 row whose every frame is the exact mirror of the direction-0 frame
 # (pixels flipped, hotspot x = w - hx, same hy) is left out; jc_enemy.c draws the base row flipped (frame_draw: flip
 # hotspot w - hx). RE images: BullFrag 22/22, SharkTorpedo 14/14 mirrored; the Elite has 3 genuine left frames (kept).
+# the frames / images dirs the mirror-row checks below read at import time (before main() has its arguments): FP_FRAMES /
+# FP_IMAGES as tools/build_level.sh / build_level.py pass them (tools/builder sets them to tables/frames and its own
+# extraction); default the lead's tree
+_FP_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+_FP_FRAMES = os.environ.get('FP_FRAMES') or os.path.join(_FP_ROOT, 'build', 'frames')
+_FP_IMAGES = os.environ.get('FP_IMAGES') or os.path.join(_FP_ROOT, 'extracted', 'linux', 'images')
 def _jce_mirror_rows(rows=None):   # rows: any ENS list (default the JC one; TH_ENEMIES passes its own)
     from PIL import ImageChops
-    an_ = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'build', 'frames', 'anims.json')))
-    src_ = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'extracted', 'linux', 'images')
+    an_ = json.load(open(os.path.join(_FP_FRAMES, 'anims.json')))
+    src_ = _FP_IMAGES
     out_ = set()
     for c, ai, d, nm in (JCE_ENS if rows is None else rows):
         if not nm.endswith('_l') or not (d.isdigit() and int(d) >= 16): continue   # (jc_enemy.c falls back from '<base>_l' to '<base>' only)
@@ -1295,8 +1301,8 @@ TBE_ENS_WITH = {'gimmickfireball_1192': ('enemysaucer',), 'effectember_1025': ('
     'effectsdebris_427': _TBE_ALL, **_TBE_WITH}
 def _tbe_mirror_rows(rows):   # rows of direction d that are the exact mirror of direction (16 - d) & 31 (generalised _jce_mirror_rows)
     from PIL import ImageChops
-    an_ = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'build', 'frames', 'anims.json')))
-    src_ = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'extracted', 'linux', 'images')
+    an_ = json.load(open(os.path.join(_FP_FRAMES, 'anims.json')))
+    src_ = _FP_IMAGES
     out_ = set()
     for e in rows:
         c, ai, d, nm = e[:4]
@@ -2913,7 +2919,7 @@ def main():
     write_lv2(os.path.join(out, name + '.lv2'), W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, len(atlases), bank, bool(LMAP))
     report.append('objects exported: %d (types %s)' % (len(objs), sorted({o['type'] for o in objs})))
     report.append('skipped classes (not implemented / helpers): %s' % sorted(skipped.items(), key=lambda kv: -kv[1])[:40])
-    open(os.path.join(out, name + '_report.txt'), 'w').write('\n'.join(report) + '\n')
+    open(os.path.join(out, name + '_report.txt'), 'w', encoding='utf-8', newline='\n').write('\n'.join(report) + '\n')
     print('\n'.join(report))
 
 def write_bank2(src, bank, out, report):

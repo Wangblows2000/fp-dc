@@ -29,3 +29,8 @@ pc/build/
 pc/dist/
 *.exe
 *.dll
+
+# drag-and-drop builder (BUILDING.md): the result, local copies of the pinned downloads (build/cache, build/builder are
+# under build/ above)
+output/
+prebuilt/

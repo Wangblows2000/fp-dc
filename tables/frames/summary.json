@@ -1,0 +1,2761 @@
+{
+ "1": {
+  "w": 640,
+  "h": 480,
+  "n": 76,
+  "unresolved": 0,
+  "top": [
+   [
+    "bgstar",
+    45
+   ],
+   [
+    "introsky",
+    2
+   ],
+   [
+    "levelparallaxpiece1",
+    2
+   ],
+   [
+    "quickbackdrop",
+    1
+   ],
+   [
+    "scrolldot",
+    1
+   ],
+   [
+    "levelparalaxwatersurface",
+    1
+   ]
+  ]
+ },
+ "2": {
+  "w": 426,
+  "h": 240,
+  "n": 22,
+  "unresolved": 0,
+  "top": [
+   [
+    "fplogo",
+    1
+   ],
+   [
+    "separatormasterobjects2",
+    1
+   ],
+   [
+    "highlighter",
+    1
+   ],
+   [
+    "playerinput",
+    1
+   ],
+   [
+    "masterinput",
+    1
+   ],
+   [
+    "inputsp1",
+    1
+   ]
+  ]
+ },
+ "3": {
+  "w": 640,
+  "h": 240,
+  "n": 21,
+  "unresolved": 0,
+  "top": [
+   [
+    "backdrop",
+    1
+   ],
+   [
+    "speed",
+    1
+   ],
+   [
+    "moon",
+    1
+   ],
+   [
+    "planetavalice",
+    1
+   ],
+   [
+    "stars",
+    1
+   ],
+   [
+    "separatormasterobjects2",
+    1
+   ]
+  ]
+ },
+ "4": {
+  "w": 1440,
+  "h": 480,
+  "n": 133,
+  "unresolved": 0,
+  "top": [
+   [
+    "star",
+    8
+   ],
+   [
+    "controlboxname",
+    8
+   ],
+   [
+    "controlbox",
+    8
+   ],
+   [
+    "buttonname",
+    8
+   ],
+   [
+    "filesaveslot",
+    8
+   ],
+   [
+    "filesaveslotcharacter",
+    8
+   ]
+  ]
+ },
+ "5": {
+  "w": 640,
+  "h": 240,
+  "n": 0,
+  "unresolved": 0,
+  "top": []
+ },
+ "6": {
+  "w": 644,
+  "h": 800,
+  "n": 227,
+  "unresolved": 1,
+  "top": [
+   [
+    "fadein",
+    104
+   ],
+   [
+    "stageicon1",
+    13
+   ],
+   [
+    "quickbackdrop",
+    11
+   ],
+   [
+    "backdrop",
+    4
+   ],
+   [
+    "recordcolon2",
+    2
+   ],
+   [
+    "lockedback",
+    1
+   ]
+  ]
+ },
+ "7": {
+  "w": 644,
+  "h": 320,
+  "n": 145,
+  "unresolved": 0,
+  "top": [
+   [
+    "fadein",
+    104
+   ],
+   [
+    "characterslot",
+    5
+   ],
+   [
+    "backdrop",
+    4
+   ],
+   [
+    "separatormasterobjects2",
+    1
+   ],
+   [
+    "checkerpattern",
+    1
+   ],
+   [
+    "playerinput",
+    1
+   ]
+  ]
+ },
+ "8": {
+  "w": 426,
+  "h": 240,
+  "n": 13,
+  "unresolved": 0,
+  "top": [
+   [
+    "separatormasterobjects2",
+    1
+   ],
+   [
+    "playerinput",
+    1
+   ],
+   [
+    "masterinput",
+    1
+   ],
+   [
+    "inputsp1",
+    1
+   ],
+   [
+    "globalinputdata",
+    1
+   ],
+   [
+    "mouseobject",
+    1
+   ]
+  ]
+ },
+ "9": {
+  "w": 640,
+  "h": 480,
+  "n": 56,
+  "unresolved": 1,
+  "top": [
+   [
+    "card",
+    10
+   ],
+   [
+    "active5",
+    3
+   ],
+   [
+    "recordcolon",
+    2
+   ],
+   [
+    "newrecord",
+    2
+   ],
+   [
+    "quickbackdrop3",
+    1
+   ],
+   [
+    "quickbackdrop",
+    1
+   ]
+  ]
+ },
+ "10": {
+  "w": 640,
+  "h": 480,
+  "n": 30,
+  "unresolved": 1,
+  "top": [
+   [
+    "achievement",
+    3
+   ],
+   [
+    "sweep",
+    3
+   ],
+   [
+    "achievementname",
+    3
+   ],
+   [
+    "separatormasterobjects2",
+    1
+   ],
+   [
+    "unlocked",
+    1
+   ],
+   [
+    "masterlevel",
+    1
+   ]
+  ]
+ },
+ "11": {
+  "w": 644,
+  "h": 1600,
+  "n": 329,
+  "unresolved": 0,
+  "top": [
+   [
+    "fadein",
+    112
+   ],
+   [
+    "mapicon",
+    100
+   ],
+   [
+    "achievement",
+    56
+   ],
+   [
+    "stageicon1",
+    10
+   ],
+   [
+    "backdrop",
+    3
+   ],
+   [
+    "checkerpattern",
+    2
+   ]
+  ]
+ },
+ "12": {
+  "w": 644,
+  "h": 244,
+  "n": 141,
+  "unresolved": 0,
+  "top": [
+   [
+    "fadein",
+    104
+   ],
+   [
+    "backdrop",
+    4
+   ],
+   [
+    "checkerpattern",
+    2
+   ],
+   [
+    "separatormasterobjects2",
+    1
+   ],
+   [
+    "quickbackdrop",
+    1
+   ],
+   [
+    "stageselect",
+    1
+   ]
+  ]
+ },
+ "13": {
+  "w": 640,
+  "h": 240,
+  "n": 82,
+  "unresolved": 0,
+  "top": [
+   [
+    "tile",
+    48
+   ],
+   [
+    "quickbackdrop",
+    2
+   ],
+   [
+    "backdrop",
+    1
+   ],
+   [
+    "backgroundsystembox",
+    1
+   ],
+   [
+    "layerobject",
+    1
+   ],
+   [
+    "mahjongboard",
+    1
+   ]
+  ]
+ },
+ "14": {
+  "w": 1280,
+  "h": 640,
+  "n": 234,
+  "unresolved": 0,
+  "top": [
+   [
+    "bonusstagebackdrop5",
+    12
+   ],
+   [
+    "bonusstagebackdrop3",
+    11
+   ],
+   [
+    "bonusstagebackdrop",
+    10
+   ],
+   [
+    "guiweaponslot",
+    8
+   ],
+   [
+    "bonusstagebackdrop2",
+    6
+   ],
+   [
+    "bonusstagebackdrop4",
+    5
+   ]
+  ]
+ },
+ "15": {
+  "w": 1600,
+  "h": 1600,
+  "n": 375,
+  "unresolved": 0,
+  "top": [
+   [
+    "treehousesolidblack",
+    17
+   ],
+   [
+    "trunk11",
+    13
+   ],
+   [
+    "levelbackdrop7",
+    8
+   ],
+   [
+    "ladder",
+    8
+   ],
+   [
+    "guiweaponslot",
+    8
+   ],
+   [
+    "dvwall1",
+    7
+   ]
+  ]
+ },
+ "16": {
+  "w": 1600,
+  "h": 1600,
+  "n": 413,
+  "unresolved": 0,
+  "top": [
+   [
+    "treehousesolidblack",
+    16
+   ],
+   [
+    "trunk11",
+    13
+   ],
+   [
+    "ltnightground3",
+    12
+   ],
+   [
+    "jcdirt1",
+    9
+   ],
+   [
+    "backdrop6",
+    8
+   ],
+   [
+    "levelbackdrop7",
+    8
+   ]
+  ]
+ },
+ "17": {
+  "w": 12512,
+  "h": 1864,
+  "n": 4516,
+  "unresolved": 0,
+  "top": [
+   [
+    "aquabrick3",
+    1227
+   ],
+   [
+    "aquabrick1",
+    544
+   ],
+   [
+    "aquabrickback1",
+    352
+   ],
+   [
+    "aquabrick2",
+    224
+   ],
+   [
+    "aquabrick14",
+    172
+   ],
+   [
+    "aquabrick4",
+    162
+   ]
+  ]
+ },
+ "18": {
+  "w": 11584,
+  "h": 1864,
+  "n": 4071,
+  "unresolved": 0,
+  "top": [
+   [
+    "aquabrick3",
+    1090
+   ],
+   [
+    "aquabrick1",
+    584
+   ],
+   [
+    "aquabrickback1",
+    345
+   ],
+   [
+    "aquabrick2",
+    238
+   ],
+   [
+    "objectcrystal",
+    138
+   ],
+   [
+    "aquabrick14",
+    110
+   ]
+  ]
+ },
+ "19": {
+  "w": 426,
+  "h": 3200,
+  "n": 617,
+  "unresolved": 0,
+  "top": [
+   [
+    "aquabrick1",
+    51
+   ],
+   [
+    "aquabrick14",
+    42
+   ],
+   [
+    "aquabrick4",
+    41
+   ],
+   [
+    "objectcrystal",
+    33
+   ],
+   [
+    "atwaterfaucet3",
+    33
+   ],
+   [
+    "aquabrick2",
+    32
+   ]
+  ]
+ },
+ "20": {
+  "w": 7168,
+  "h": 2400,
+  "n": 2075,
+  "unresolved": 0,
+  "top": [
+   [
+    "aquabrick3",
+    542
+   ],
+   [
+    "aquabrick1",
+    384
+   ],
+   [
+    "aquabrick2",
+    139
+   ],
+   [
+    "aquabrickback2",
+    79
+   ],
+   [
+    "aquabrick4",
+    74
+   ],
+   [
+    "slimefloor",
+    66
+   ]
+  ]
+ },
+ "21": {
+  "w": 14816,
+  "h": 1864,
+  "n": 2395,
+  "unresolved": 0,
+  "top": [
+   [
+    "levelbackdrop02",
+    218
+   ],
+   [
+    "dvwall1",
+    214
+   ],
+   [
+    "objectcrystal",
+    134
+   ],
+   [
+    "dvwalledge1",
+    128
+   ],
+   [
+    "dvrockceiling",
+    111
+   ],
+   [
+    "dvwalledge2",
+    109
+   ]
+  ]
+ },
+ "22": {
+  "w": 12800,
+  "h": 3200,
+  "n": 2215,
+  "unresolved": 0,
+  "top": [
+   [
+    "dvwall1",
+    275
+   ],
+   [
+    "dvwalledge1",
+    197
+   ],
+   [
+    "dvwalledge2",
+    173
+   ],
+   [
+    "levelbackdrop02",
+    159
+   ],
+   [
+    "objectcrystal",
+    87
+   ],
+   [
+    "dvwall4",
+    78
+   ]
+  ]
+ },
+ "23": {
+  "w": 9320,
+  "h": 3200,
+  "n": 2847,
+  "unresolved": 0,
+  "top": [
+   [
+    "dvwall1",
+    266
+   ],
+   [
+    "dvwalledge1",
+    209
+   ],
+   [
+    "dvwalledge2",
+    189
+   ],
+   [
+    "dvrockceiling",
+    138
+   ],
+   [
+    "waterfallfront",
+    123
+   ],
+   [
+    "waterfallback",
+    109
+   ]
+  ]
+ },
+ "24": {
+  "w": 16232,
+  "h": 2576,
+  "n": 1576,
+  "unresolved": 0,
+  "top": [
+   [
+    "dvwall1",
+    232
+   ],
+   [
+    "dvrockslope4",
+    122
+   ],
+   [
+    "dvwall4",
+    79
+   ],
+   [
+    "dvwall6",
+    78
+   ],
+   [
+    "dvrockceiling",
+    59
+   ],
+   [
+    "dvtree5",
+    58
+   ]
+  ]
+ },
+ "25": {
+  "w": 7432,
+  "h": 1280,
+  "n": 1776,
+  "unresolved": 0,
+  "top": [
+   [
+    "soil1",
+    207
+   ],
+   [
+    "rmbrick4",
+    136
+   ],
+   [
+    "rmbrick3",
+    121
+   ],
+   [
+    "rmbrick2",
+    87
+   ],
+   [
+    "rmbrick13",
+    75
+   ],
+   [
+    "objectcrystal",
+    75
+   ]
+  ]
+ },
+ "26": {
+  "w": 3544,
+  "h": 3200,
+  "n": 2657,
+  "unresolved": 0,
+  "top": [
+   [
+    "rmbrick2",
+    297
+   ],
+   [
+    "rmbrick1",
+    283
+   ],
+   [
+    "rmbrick13",
+    175
+   ],
+   [
+    "rmbrick3",
+    173
+   ],
+   [
+    "rmbrick4",
+    169
+   ],
+   [
+    "rmbrick20",
+    135
+   ]
+  ]
+ },
+ "27": {
+  "w": 12288,
+  "h": 3744,
+  "n": 3365,
+  "unresolved": 0,
+  "top": [
+   [
+    "soil1",
+    318
+   ],
+   [
+    "cavesoil1",
+    260
+   ],
+   [
+    "objectcrystal",
+    185
+   ],
+   [
+    "rmsoiledgeright",
+    161
+   ],
+   [
+    "rmbrick20",
+    154
+   ],
+   [
+    "cavesoil12",
+    121
+   ]
+  ]
+ },
+ "28": {
+  "w": 8776,
+  "h": 3400,
+  "n": 3591,
+  "unresolved": 0,
+  "top": [
+   [
+    "cavesoil1",
+    648
+   ],
+   [
+    "cavesoil12",
+    265
+   ],
+   [
+    "rmcavebrick4",
+    258
+   ],
+   [
+    "cavesoil13",
+    222
+   ],
+   [
+    "cavesoil11",
+    170
+   ],
+   [
+    "objectcrystal",
+    125
+   ]
+  ]
+ },
+ "29": {
+  "w": 9600,
+  "h": 3744,
+  "n": 3033,
+  "unresolved": 0,
+  "top": [
+   [
+    "cavesoil1",
+    339
+   ],
+   [
+    "rmscaleypillar",
+    272
+   ],
+   [
+    "rmcavebrick6",
+    245
+   ],
+   [
+    "rmcavebrick7",
+    220
+   ],
+   [
+    "rmcavebrick13",
+    213
+   ],
+   [
+    "rmcavebrick8",
+    145
+   ]
+  ]
+ },
+ "30": {
+  "w": 11624,
+  "h": 1864,
+  "n": 2990,
+  "unresolved": 0,
+  "top": [
+   [
+    "fnfloor8",
+    541
+   ],
+   [
+    "objectcrystal",
+    161
+   ],
+   [
+    "fnfloor12",
+    139
+   ],
+   [
+    "fnfloor9",
+    132
+   ],
+   [
+    "fnfloor10",
+    113
+   ],
+   [
+    "fnsoil",
+    105
+   ]
+  ]
+ },
+ "31": {
+  "w": 11624,
+  "h": 1864,
+  "n": 2483,
+  "unresolved": 0,
+  "top": [
+   [
+    "fnfloor8",
+    380
+   ],
+   [
+    "fnfloor12",
+    126
+   ],
+   [
+    "objectcrystal",
+    126
+   ],
+   [
+    "fnbackwall6",
+    93
+   ],
+   [
+    "fnsoil",
+    92
+   ],
+   [
+    "fnfloor10",
+    70
+   ]
+  ]
+ },
+ "32": {
+  "w": 15104,
+  "h": 1864,
+  "n": 3632,
+  "unresolved": 0,
+  "top": [
+   [
+    "fnfloor8",
+    537
+   ],
+   [
+    "fnsoil",
+    431
+   ],
+   [
+    "fnfloor12",
+    170
+   ],
+   [
+    "objectcrystal",
+    169
+   ],
+   [
+    "fnbustedwall",
+    120
+   ],
+   [
+    "fnbackwall6",
+    104
+   ]
+  ]
+ },
+ "33": {
+  "w": 11624,
+  "h": 1280,
+  "n": 2561,
+  "unresolved": 0,
+  "top": [
+   [
+    "objectcrystal",
+    371
+   ],
+   [
+    "mallscalecolumn1",
+    317
+   ],
+   [
+    "mallfloor1",
+    272
+   ],
+   [
+    "mallfloor6",
+    214
+   ],
+   [
+    "mallfloor3",
+    169
+   ],
+   [
+    "mallfloor8",
+    46
+   ]
+  ]
+ },
+ "34": {
+  "w": 15200,
+  "h": 1280,
+  "n": 2811,
+  "unresolved": 0,
+  "top": [
+   [
+    "mallfloor1",
+    354
+   ],
+   [
+    "mallscalecolumn1",
+    281
+   ],
+   [
+    "mallfloor6",
+    267
+   ],
+   [
+    "mallfloor3",
+    255
+   ],
+   [
+    "carousel",
+    228
+   ],
+   [
+    "mallfloor8",
+    91
+   ]
+  ]
+ },
+ "35": {
+  "w": 640,
+  "h": 504,
+  "n": 292,
+  "unresolved": 0,
+  "top": [
+   [
+    "bgstar",
+    16
+   ],
+   [
+    "fnsoil",
+    14
+   ],
+   [
+    "fnfloor8",
+    14
+   ],
+   [
+    "fnfloor12",
+    14
+   ],
+   [
+    "guiweaponslot",
+    8
+   ],
+   [
+    "bosspantherribs",
+    7
+   ]
+  ]
+ },
+ "36": {
+  "w": 3200,
+  "h": 2400,
+  "n": 421,
+  "unresolved": 0,
+  "top": [
+   [
+    "blimpcable1",
+    53
+   ],
+   [
+    "shipplatform2",
+    11
+   ],
+   [
+    "ship16",
+    9
+   ],
+   [
+    "bosskujackertail",
+    9
+   ],
+   [
+    "bosskujackertailtarget",
+    9
+   ],
+   [
+    "ship26",
+    8
+   ]
+  ]
+ },
+ "37": {
+  "w": 12800,
+  "h": 2400,
+  "n": 2373,
+  "unresolved": 0,
+  "top": [
+   [
+    "sbwall",
+    296
+   ],
+   [
+    "objectcrystal",
+    146
+   ],
+   [
+    "sbwallleft",
+    130
+   ],
+   [
+    "sbwallright",
+    123
+   ],
+   [
+    "sbdeck1",
+    120
+   ],
+   [
+    "blimpcable1",
+    116
+   ]
+  ]
+ },
+ "38": {
+  "w": 14400,
+  "h": 2400,
+  "n": 2258,
+  "unresolved": 0,
+  "top": [
+   [
+    "sbwall",
+    312
+   ],
+   [
+    "sbwallleft",
+    136
+   ],
+   [
+    "sbwallright",
+    136
+   ],
+   [
+    "sbbigwall",
+    132
+   ],
+   [
+    "objectcrystal",
+    108
+   ],
+   [
+    "sbdeck1",
+    101
+   ]
+  ]
+ },
+ "39": {
+  "w": 15624,
+  "h": 2400,
+  "n": 2907,
+  "unresolved": 0,
+  "top": [
+   [
+    "sbwall",
+    265
+   ],
+   [
+    "sbwallleft",
+    186
+   ],
+   [
+    "sbmetaltube2",
+    169
+   ],
+   [
+    "sbwallright",
+    168
+   ],
+   [
+    "sbmetaltube1",
+    141
+   ],
+   [
+    "blimpcable1",
+    126
+   ]
+  ]
+ },
+ "40": {
+  "w": 13472,
+  "h": 2200,
+  "n": 2674,
+  "unresolved": 0,
+  "top": [
+   [
+    "jcbamboo4",
+    292
+   ],
+   [
+    "jcbamboo3",
+    263
+   ],
+   [
+    "objectcrystal",
+    228
+   ],
+   [
+    "jcbamboo2",
+    172
+   ],
+   [
+    "jcdirt1",
+    144
+   ],
+   [
+    "jcdirt3",
+    70
+   ]
+  ]
+ },
+ "41": {
+  "w": 14784,
+  "h": 2600,
+  "n": 4072,
+  "unresolved": 0,
+  "top": [
+   [
+    "jcbamboo4",
+    630
+   ],
+   [
+    "jcbamboo2",
+    376
+   ],
+   [
+    "jcbamboo3",
+    286
+   ],
+   [
+    "jcdirt1",
+    276
+   ],
+   [
+    "objectcrystal",
+    184
+   ],
+   [
+    "jcdirt7",
+    153
+   ]
+  ]
+ },
+ "42": {
+  "w": 15000,
+  "h": 2600,
+  "n": 2887,
+  "unresolved": 0,
+  "top": [
+   [
+    "jcbamboo4",
+    532
+   ],
+   [
+    "jcbamboo3",
+    373
+   ],
+   [
+    "jcdirt1",
+    264
+   ],
+   [
+    "jcbamboo2",
+    141
+   ],
+   [
+    "jcsub9",
+    95
+   ],
+   [
+    "jcvinewall2",
+    91
+   ]
+  ]
+ },
+ "43": {
+  "w": 10240,
+  "h": 2600,
+  "n": 1908,
+  "unresolved": 0,
+  "top": [
+   [
+    "jcsub9",
+    203
+   ],
+   [
+    "jcsubtanker5",
+    105
+   ],
+   [
+    "objectcrystal",
+    94
+   ],
+   [
+    "jcsubtanker6",
+    92
+   ],
+   [
+    "jcsub1",
+    89
+   ],
+   [
+    "jcsub2",
+    89
+   ]
+  ]
+ },
+ "44": {
+  "w": 13860,
+  "h": 2600,
+  "n": 1303,
+  "unresolved": 0,
+  "top": [
+   [
+    "jcdirt1",
+    235
+   ],
+   [
+    "jcdirt2",
+    84
+   ],
+   [
+    "jcflatground5",
+    35
+   ],
+   [
+    "jcdirt3",
+    34
+   ],
+   [
+    "jcflatground1",
+    33
+   ],
+   [
+    "jcdirt6",
+    29
+   ]
+  ]
+ },
+ "45": {
+  "w": 10496,
+  "h": 2400,
+  "n": 1836,
+  "unresolved": 0,
+  "top": [
+   [
+    "tbwall6",
+    275
+   ],
+   [
+    "tbwall1",
+    268
+   ],
+   [
+    "tbfloor19",
+    123
+   ],
+   [
+    "tbwallshadow",
+    63
+   ],
+   [
+    "objectcrystal",
+    62
+   ],
+   [
+    "tbladder",
+    49
+   ]
+  ]
+ },
+ "46": {
+  "w": 7360,
+  "h": 4800,
+  "n": 2157,
+  "unresolved": 0,
+  "top": [
+   [
+    "tbsolidblack",
+    217
+   ],
+   [
+    "tbwall11",
+    162
+   ],
+   [
+    "tbwall1",
+    136
+   ],
+   [
+    "tbwall15",
+    104
+   ],
+   [
+    "tbwall10",
+    83
+   ],
+   [
+    "tbwall6",
+    64
+   ]
+  ]
+ },
+ "47": {
+  "w": 8000,
+  "h": 4480,
+  "n": 1801,
+  "unresolved": 0,
+  "top": [
+   [
+    "tbsolidblack",
+    320
+   ],
+   [
+    "tbwall11",
+    136
+   ],
+   [
+    "tbwall15",
+    115
+   ],
+   [
+    "tbwall1",
+    64
+   ],
+   [
+    "tbtunnelwall",
+    58
+   ],
+   [
+    "tbwall9",
+    54
+   ]
+  ]
+ },
+ "48": {
+  "w": 8000,
+  "h": 4480,
+  "n": 2038,
+  "unresolved": 0,
+  "top": [
+   [
+    "tbsolidblack",
+    381
+   ],
+   [
+    "tbbluewall6",
+    140
+   ],
+   [
+    "tbbluewall2",
+    131
+   ],
+   [
+    "tbtunnelwall",
+    108
+   ],
+   [
+    "objectcrystal",
+    78
+   ],
+   [
+    "tbtunneltop2",
+    66
+   ]
+  ]
+ },
+ "49": {
+  "w": 16064,
+  "h": 4480,
+  "n": 3686,
+  "unresolved": 0,
+  "top": [
+   [
+    "tbsolidblack",
+    785
+   ],
+   [
+    "tbbluewall2",
+    295
+   ],
+   [
+    "tbbluewall6",
+    293
+   ],
+   [
+    "tbbluewall1",
+    165
+   ],
+   [
+    "tbbluewall4",
+    142
+   ],
+   [
+    "tbbluewall8",
+    129
+   ]
+  ]
+ },
+ "50": {
+  "w": 1728,
+  "h": 2000,
+  "n": 591,
+  "unresolved": 0,
+  "top": [
+   [
+    "tbsolidblack",
+    96
+   ],
+   [
+    "tbwall15",
+    42
+   ],
+   [
+    "tbladder",
+    27
+   ],
+   [
+    "hazardlavapit",
+    27
+   ],
+   [
+    "bosstbplatform",
+    26
+   ],
+   [
+    "tbwall10",
+    18
+   ]
+  ]
+ },
+ "51": {
+  "w": 13840,
+  "h": 1864,
+  "n": 2359,
+  "unresolved": 0,
+  "top": [
+   [
+    "plstonewall1",
+    270
+   ],
+   [
+    "objectcrystal",
+    154
+   ],
+   [
+    "plstonewall7",
+    149
+   ],
+   [
+    "plbackwall7",
+    96
+   ],
+   [
+    "plbrickwall1",
+    93
+   ],
+   [
+    "plruins5",
+    92
+   ]
+  ]
+ },
+ "52": {
+  "w": 12816,
+  "h": 1864,
+  "n": 2357,
+  "unresolved": 0,
+  "top": [
+   [
+    "plstonewall1",
+    174
+   ],
+   [
+    "plbackwall7",
+    164
+   ],
+   [
+    "plbackwall9",
+    128
+   ],
+   [
+    "plstonewall7",
+    125
+   ],
+   [
+    "plbrickwall5",
+    115
+   ],
+   [
+    "plbrickwall1",
+    105
+   ]
+  ]
+ },
+ "53": {
+  "w": 8000,
+  "h": 1864,
+  "n": 1333,
+  "unresolved": 0,
+  "top": [
+   [
+    "plbrickwall5",
+    143
+   ],
+   [
+    "plbackwall7",
+    84
+   ],
+   [
+    "plstonewall1",
+    78
+   ],
+   [
+    "plstonewall7",
+    66
+   ],
+   [
+    "plbrickwall4",
+    59
+   ],
+   [
+    "plruins5",
+    51
+   ]
+  ]
+ },
+ "54": {
+  "w": 11040,
+  "h": 2144,
+  "n": 1982,
+  "unresolved": 0,
+  "top": [
+   [
+    "plcavebrick1",
+    487
+   ],
+   [
+    "plcavebrick5",
+    230
+   ],
+   [
+    "objectcrystal",
+    117
+   ],
+   [
+    "enemywallstingerback",
+    102
+   ],
+   [
+    "plindoorruins1",
+    96
+   ],
+   [
+    "objectvanishingblock",
+    82
+   ]
+  ]
+ },
+ "55": {
+  "w": 11376,
+  "h": 2144,
+  "n": 2376,
+  "unresolved": 0,
+  "top": [
+   [
+    "plcavebrick1",
+    616
+   ],
+   [
+    "objectvanishingblock",
+    392
+   ],
+   [
+    "plcavebrick5",
+    198
+   ],
+   [
+    "plcavebrick4",
+    104
+   ],
+   [
+    "enemywallstingerback",
+    102
+   ],
+   [
+    "plindoorruins1",
+    90
+   ]
+  ]
+ },
+ "56": {
+  "w": 11520,
+  "h": 2144,
+  "n": 1850,
+  "unresolved": 0,
+  "top": [
+   [
+    "plfadebrick5",
+    320
+   ],
+   [
+    "plcavebrick5",
+    203
+   ],
+   [
+    "plindoorruins1",
+    128
+   ],
+   [
+    "objecttimegatepiece",
+    91
+   ],
+   [
+    "plcavebrick3",
+    70
+   ],
+   [
+    "plcavebrick2",
+    70
+   ]
+  ]
+ },
+ "57": {
+  "w": 6000,
+  "h": 2400,
+  "n": 1298,
+  "unresolved": 0,
+  "top": [
+   [
+    "thstone2",
+    115
+   ],
+   [
+    "thstone1",
+    104
+   ],
+   [
+    "thstone3",
+    83
+   ],
+   [
+    "thstone4",
+    81
+   ],
+   [
+    "thdirtypipe",
+    71
+   ],
+   [
+    "thstone11",
+    68
+   ]
+  ]
+ },
+ "58": {
+  "w": 12816,
+  "h": 1800,
+  "n": 3670,
+  "unresolved": 0,
+  "top": [
+   [
+    "thstone11",
+    500
+   ],
+   [
+    "thwood2",
+    484
+   ],
+   [
+    "thtorchmid",
+    364
+   ],
+   [
+    "thstone3",
+    202
+   ],
+   [
+    "thstone1",
+    199
+   ],
+   [
+    "thstone4",
+    180
+   ]
+  ]
+ },
+ "59": {
+  "w": 12816,
+  "h": 2400,
+  "n": 5172,
+  "unresolved": 0,
+  "top": [
+   [
+    "thtorchmid",
+    802
+   ],
+   [
+    "thstone11",
+    508
+   ],
+   [
+    "thstone4",
+    321
+   ],
+   [
+    "thstone3",
+    299
+   ],
+   [
+    "thstone2",
+    252
+   ],
+   [
+    "objectcrystal",
+    241
+   ]
+  ]
+ },
+ "60": {
+  "w": 12816,
+  "h": 1600,
+  "n": 1763,
+  "unresolved": 0,
+  "top": [
+   [
+    "objectcrystal",
+    207
+   ],
+   [
+    "bgrocks1",
+    189
+   ],
+   [
+    "bgsnow1",
+    121
+   ],
+   [
+    "bgrocks8",
+    76
+   ],
+   [
+    "objectteleblockmask",
+    60
+   ],
+   [
+    "bgrocks10",
+    59
+   ]
+  ]
+ },
+ "61": {
+  "w": 13600,
+  "h": 1600,
+  "n": 1836,
+  "unresolved": 0,
+  "top": [
+   [
+    "bgrocks1",
+    268
+   ],
+   [
+    "objectcrystal",
+    103
+   ],
+   [
+    "bgsnow1",
+    94
+   ],
+   [
+    "bgrocks13",
+    90
+   ],
+   [
+    "objectteleblockmask",
+    85
+   ],
+   [
+    "bgrocks8",
+    76
+   ]
+  ]
+ },
+ "62": {
+  "w": 11136,
+  "h": 1600,
+  "n": 1624,
+  "unresolved": 0,
+  "top": [
+   [
+    "bgrocks1",
+    240
+   ],
+   [
+    "bgfacility11",
+    101
+   ],
+   [
+    "objectcrystal",
+    84
+   ],
+   [
+    "bgfacility9",
+    67
+   ],
+   [
+    "bgrocks8",
+    65
+   ],
+   [
+    "bgsnow1",
+    60
+   ]
+  ]
+ },
+ "63": {
+  "w": 12816,
+  "h": 2400,
+  "n": 3592,
+  "unresolved": 0,
+  "top": [
+   [
+    "bgfacility5",
+    393
+   ],
+   [
+    "bgfacility7",
+    385
+   ],
+   [
+    "bgrocks1",
+    279
+   ],
+   [
+    "bgfacility4",
+    268
+   ],
+   [
+    "bgfacility6",
+    261
+   ],
+   [
+    "bgfacility9",
+    151
+   ]
+  ]
+ },
+ "64": {
+  "w": 14784,
+  "h": 2400,
+  "n": 4516,
+  "unresolved": 0,
+  "top": [
+   [
+    "bgfacility7",
+    382
+   ],
+   [
+    "bgfacility5",
+    375
+   ],
+   [
+    "bgfacility6",
+    314
+   ],
+   [
+    "bgfacility4",
+    310
+   ],
+   [
+    "bgfacility11",
+    301
+   ],
+   [
+    "bgfacility3",
+    214
+   ]
+  ]
+ },
+ "65": {
+  "w": 3200,
+  "h": 2016,
+  "n": 512,
+  "unresolved": 0,
+  "top": [
+   [
+    "bgfacility1",
+    52
+   ],
+   [
+    "bgfacility12",
+    31
+   ],
+   [
+    "bgfacility9",
+    26
+   ],
+   [
+    "bgfacility3",
+    21
+   ],
+   [
+    "bgfacility2",
+    21
+   ],
+   [
+    "bgfacility13",
+    15
+   ]
+  ]
+ },
+ "66": {
+  "w": 16992,
+  "h": 2400,
+  "n": 4260,
+  "unresolved": 0,
+  "top": [
+   [
+    "fdhangarwall1",
+    825
+   ],
+   [
+    "fdhangarfloor6",
+    393
+   ],
+   [
+    "fdhangarsilo",
+    321
+   ],
+   [
+    "fdhangarfloor8",
+    297
+   ],
+   [
+    "fdhangarfloor4",
+    285
+   ],
+   [
+    "fdback1",
+    283
+   ]
+  ]
+ },
+ "67": {
+  "w": 16800,
+  "h": 2400,
+  "n": 3573,
+  "unresolved": 0,
+  "top": [
+   [
+    "fdhangarwall1",
+    651
+   ],
+   [
+    "fdhangarfloor4",
+    399
+   ],
+   [
+    "fdhangarfloor8",
+    377
+   ],
+   [
+    "fdhangarfloor6",
+    264
+   ],
+   [
+    "fdback1",
+    150
+   ],
+   [
+    "fdhangarfloor1",
+    122
+   ]
+  ]
+ },
+ "68": {
+  "w": 6144,
+  "h": 2496,
+  "n": 2912,
+  "unresolved": 0,
+  "top": [
+   [
+    "fdlabfloor6",
+    279
+   ],
+   [
+    "fdlabwall1",
+    221
+   ],
+   [
+    "fdlabwall2",
+    208
+   ],
+   [
+    "fdlabback2",
+    201
+   ],
+   [
+    "fdlabfloor4",
+    165
+   ],
+   [
+    "fdlabfloor8",
+    165
+   ]
+  ]
+ },
+ "69": {
+  "w": 8384,
+  "h": 5888,
+  "n": 3394,
+  "unresolved": 0,
+  "top": [
+   [
+    "fdlabwall2",
+    379
+   ],
+   [
+    "fdlabwall1",
+    361
+   ],
+   [
+    "fdlabfloor8",
+    258
+   ],
+   [
+    "fdlabfloor4",
+    256
+   ],
+   [
+    "fdlabback3",
+    239
+   ],
+   [
+    "fdlabfloor6",
+    239
+   ]
+  ]
+ },
+ "70": {
+  "w": 14400,
+  "h": 2016,
+  "n": 3823,
+  "unresolved": 0,
+  "top": [
+   [
+    "fdcorefloor1",
+    374
+   ],
+   [
+    "fdcorefloor3",
+    298
+   ],
+   [
+    "fdcore2",
+    280
+   ],
+   [
+    "fdcore1",
+    277
+   ],
+   [
+    "fdsilo1",
+    257
+   ],
+   [
+    "fdcorefloor4",
+    214
+   ]
+  ]
+ },
+ "71": {
+  "w": 14208,
+  "h": 1334,
+  "n": 3190,
+  "unresolved": 0,
+  "top": [
+   [
+    "fdcorefloor3",
+    498
+   ],
+   [
+    "fdcorefloor1",
+    347
+   ],
+   [
+    "fdcore2",
+    314
+   ],
+   [
+    "fdcore1",
+    307
+   ],
+   [
+    "fdcoreback1",
+    230
+   ],
+   [
+    "fdsilo1",
+    168
+   ]
+  ]
+ },
+ "72": {
+  "w": 5584,
+  "h": 6400,
+  "n": 2903,
+  "unresolved": 0,
+  "top": [
+   [
+    "fddeepcore11",
+    171
+   ],
+   [
+    "objectcrystal",
+    167
+   ],
+   [
+    "fddeepcore4",
+    157
+   ],
+   [
+    "fddeepcore12",
+    141
+   ],
+   [
+    "objectvanishingblock",
+    124
+   ],
+   [
+    "fddeepcore9",
+    118
+   ]
+  ]
+ },
+ "73": {
+  "w": 3296,
+  "h": 664,
+  "n": 718,
+  "unresolved": 0,
+  "top": [
+   [
+    "fddeepcore7",
+    49
+   ],
+   [
+    "fddeepcore4",
+    46
+   ],
+   [
+    "fddeepcore8",
+    41
+   ],
+   [
+    "fddeepcore6",
+    28
+   ],
+   [
+    "fdpowercore2",
+    24
+   ],
+   [
+    "fdpowercore5",
+    21
+   ]
+  ]
+ },
+ "74": {
+  "w": 1280,
+  "h": 640,
+  "n": 232,
+  "unresolved": 0,
+  "top": [
+   [
+    "inventory",
+    15
+   ],
+   [
+    "housefloor2",
+    8
+   ],
+   [
+    "guiweaponslot",
+    8
+   ],
+   [
+    "housefloor3",
+    6
+   ],
+   [
+    "mapicon",
+    6
+   ],
+   [
+    "guipowercard",
+    5
+   ]
+  ]
+ },
+ "75": {
+  "w": 640,
+  "h": 1280,
+  "n": 127,
+  "unresolved": 0,
+  "top": [
+   [
+    "countdowncrystal",
+    90
+   ],
+   [
+    "separatormasterobjects2",
+    1
+   ],
+   [
+    "backdrop",
+    1
+   ],
+   [
+    "playerskinmillatail",
+    1
+   ],
+   [
+    "playerskincaroltail",
+    1
+   ],
+   [
+    "fallencharacter",
+    1
+   ]
+  ]
+ },
+ "76": {
+  "w": 6112,
+  "h": 1864,
+  "n": 479,
+  "unresolved": 0,
+  "top": [
+   [
+    "dvrockslope4",
+    63
+   ],
+   [
+    "dvwall1",
+    49
+   ],
+   [
+    "dvtree6",
+    14
+   ],
+   [
+    "dvtree5",
+    14
+   ],
+   [
+    "dvrockslope2",
+    13
+   ],
+   [
+    "levelbackdrop02",
+    11
+   ]
+  ]
+ },
+ "77": {
+  "w": 3200,
+  "h": 2560,
+  "n": 971,
+  "unresolved": 0,
+  "top": [
+   [
+    "soil1",
+    102
+   ],
+   [
+    "cavesoil1",
+    85
+   ],
+   [
+    "rmgrass1",
+    70
+   ],
+   [
+    "cavesoil2",
+    45
+   ],
+   [
+    "rmbrick2",
+    24
+   ],
+   [
+    "rmbrick5",
+    20
+   ]
+  ]
+ },
+ "78": {
+  "w": 6400,
+  "h": 1200,
+  "n": 651,
+  "unresolved": 0,
+  "top": [
+   [
+    "rysoil1",
+    145
+   ],
+   [
+    "rygrass",
+    61
+   ],
+   [
+    "backdrop3",
+    42
+   ],
+   [
+    "enemytotematic",
+    42
+   ],
+   [
+    "ryblossomtree3",
+    23
+   ],
+   [
+    "ryblossomtree4",
+    23
+   ]
+  ]
+ },
+ "79": {
+  "w": 9600,
+  "h": 1200,
+  "n": 919,
+  "unresolved": 0,
+  "top": [
+   [
+    "fnfloor8",
+    197
+   ],
+   [
+    "fnfloor12",
+    75
+   ],
+   [
+    "blimpcable1",
+    53
+   ],
+   [
+    "fnfloor20",
+    43
+   ],
+   [
+    "lamppostback",
+    35
+   ],
+   [
+    "lamppostfront",
+    35
+   ]
+  ]
+ },
+ "80": {
+  "w": 3200,
+  "h": 500,
+  "n": 344,
+  "unresolved": 0,
+  "top": [
+   [
+    "blimpcable1",
+    53
+   ],
+   [
+    "shipplatform2",
+    11
+   ],
+   [
+    "ship16",
+    9
+   ],
+   [
+    "ship26",
+    8
+   ],
+   [
+    "shipplatform1",
+    8
+   ],
+   [
+    "ship30",
+    7
+   ]
+  ]
+ },
+ "81": {
+  "w": 2400,
+  "h": 1600,
+  "n": 396,
+  "unresolved": 0,
+  "top": [
+   [
+    "tbsolidblack",
+    46
+   ],
+   [
+    "tbwall15",
+    36
+   ],
+   [
+    "tbwall11",
+    21
+   ],
+   [
+    "npcsyntaxleftarm",
+    9
+   ],
+   [
+    "npcsyntaxrightarm",
+    9
+   ],
+   [
+    "tbwall8",
+    7
+   ]
+  ]
+ },
+ "82": {
+  "w": 4800,
+  "h": 1600,
+  "n": 803,
+  "unresolved": 0,
+  "top": [
+   [
+    "bgsnow1",
+    49
+   ],
+   [
+    "bossholodragonscale2",
+    32
+   ],
+   [
+    "bossholodragonhitspot1",
+    32
+   ],
+   [
+    "bossholodragonscale3",
+    31
+   ],
+   [
+    "bgrocks1",
+    31
+   ],
+   [
+    "bossholodragonhitspot2",
+    31
+   ]
+  ]
+ },
+ "83": {
+  "w": 7168,
+  "h": 8000,
+  "n": 2666,
+  "unresolved": 0,
+  "top": [
+   [
+    "aquabrick1",
+    325
+   ],
+   [
+    "aquabrick2",
+    149
+   ],
+   [
+    "aquabrick3",
+    141
+   ],
+   [
+    "shuigangback2",
+    104
+   ],
+   [
+    "aquabrick11",
+    78
+   ],
+   [
+    "tbsolidblack",
+    70
+   ]
+  ]
+ },
+ "84": {
+  "w": 426,
+  "h": 240,
+  "n": 72,
+  "unresolved": 0,
+  "top": [
+   [
+    "titlestar",
+    51
+   ],
+   [
+    "liftoffjet",
+    2
+   ],
+   [
+    "quickbackdrop3",
+    1
+   ],
+   [
+    "effectsdust01",
+    1
+   ],
+   [
+    "separatormasterobjects2",
+    1
+   ],
+   [
+    "space",
+    1
+   ]
+  ]
+ },
+ "85": {
+  "w": 426,
+  "h": 260,
+  "n": 64,
+  "unresolved": 0,
+  "top": [
+   [
+    "playerdragontail",
+    10
+   ],
+   [
+    "schmupfloor",
+    8
+   ],
+   [
+    "levelparallaxpiece0",
+    1
+   ],
+   [
+    "levelparallaxpiece1",
+    1
+   ],
+   [
+    "levelparallaxpiece2",
+    1
+   ],
+   [
+    "levelparallaxpiece5",
+    1
+   ]
+  ]
+ },
+ "86": {
+  "w": 640,
+  "h": 6400,
+  "n": 301,
+  "unresolved": 0,
+  "top": [
+   [
+    "titlestar",
+    110
+   ],
+   [
+    "star",
+    100
+   ],
+   [
+    "npcsyntaxrightarm",
+    9
+   ],
+   [
+    "npcpanguleftarm",
+    9
+   ],
+   [
+    "npcpangurightarm",
+    9
+   ],
+   [
+    "npcsyntaxleftarm",
+    9
+   ]
+  ]
+ },
+ "87": {
+  "w": 640,
+  "h": 248,
+  "n": 164,
+  "unresolved": 0,
+  "top": [
+   [
+    "fadein",
+    104
+   ],
+   [
+    "weaponelement",
+    8
+   ],
+   [
+    "guiweaponslot",
+    8
+   ],
+   [
+    "weapontype",
+    6
+   ],
+   [
+    "parallaxgrid1",
+    1
+   ],
+   [
+    "parallaxgrid2",
+    1
+   ]
+  ]
+ }
+}

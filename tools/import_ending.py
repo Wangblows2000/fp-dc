@@ -4,7 +4,7 @@ The credits text of the original (frame index 85, src/game/ending.c), read from 
 (tools/import_gallery.py elf_strings): the string literals of the text objects' constructors.
 
 usage: import_ending.py <chowdren_binary> <decompiled_dir> <out_dir>
-  chowdren_binary  the original Linux executable (bin64/Chowdren)
+  chowdren_binary  the original Linux executable (bin64/Chowdren), or the committed table tables/strings.json
   decompiled_dir   build/re: create_creditslist_4189_int__int.c (CreditsList_4189: paragraph 0 = the cast and the staff,
                    shown by Message_4188 at y 240; paragraph 1 = the testers and the thanks, Message2_4196 at y 2752; RE
                    event 22790) and CreditsStageNames_4202__CreditsStageNames_4202_int__int.c (the 14 stage names of the

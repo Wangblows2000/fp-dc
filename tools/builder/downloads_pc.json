@@ -1,0 +1,46 @@
+{
+ "_comment": "The PC versions' files (tools/builder/fpbuild_targets_pc.py), merged into downloads.json by fetch.py. Maintainers: tools/builder/build_release_pc.sh rebuilds them and rewrites these entries.",
+ "release_url": "https://github.com/Wangblows2000/fp-dc/releases/download/builder-v1/",
+ "files": [
+  {
+   "name": "fpdc-win32.exe",
+   "os": "any",
+   "kind": "program",
+   "sha256": "b3cadf583a5ef9e45943539bc2deddd72cd0fe62ef4ccfcf9bc57d1b8fb88a5d",
+   "size": 2222606,
+   "what": "the PC version for Windows (32-bit, SDL2)",
+   "licence": "this repository",
+   "source": "branch pc-port f5e6c93 (src/, pc/): pc/build_win32.sh, stripped"
+  },
+  {
+   "name": "SDL2.dll",
+   "os": "any",
+   "kind": "program",
+   "sha256": "96f87b2eb9ef84a44e30eda893ac93179cc06c25f2f699681493cf2f613de8b3",
+   "size": 1885184,
+   "what": "SDL 2.30.11 for Windows (i686), from the official SDL2-devel-2.30.11-mingw package",
+   "licence": "zlib (SDL2-LICENSE.txt)",
+   "source": "github.com/libsdl-org/SDL release-2.30.11"
+  },
+  {
+   "name": "SDL2-LICENSE.txt",
+   "os": "any",
+   "kind": "text",
+   "sha256": "97f35b302b361680ec1e891e95d2d52097bb95abff361434916d99dc1305f127",
+   "size": 884,
+   "what": "the SDL licence text",
+   "licence": "zlib",
+   "source": "SDL2-devel-2.30.11-mingw"
+  },
+  {
+   "name": "fpdc-linux-x86_64",
+   "os": "any",
+   "kind": "program",
+   "sha256": "f35e1e541fe969304c2b899cdefcedfe7e729f4901f5cd1a4143d07c7af68646",
+   "size": 3523888,
+   "what": "the PC version for Linux (x86_64; SDL 2.30.11 linked in; glibc 2.27+)",
+   "licence": "this repository; SDL2 zlib",
+   "source": "branch pc-port f5e6c93 (src/, pc/) + SDL2-2.30.11, zig cc 0.13 (glibc 2.28 target): tools/builder/build_release_pc.sh, stripped"
+  }
+ ]
+}
