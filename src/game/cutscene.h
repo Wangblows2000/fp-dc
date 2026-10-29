@@ -43,4 +43,32 @@ int  cs_active(void);
 int  cs_cue_index(void);                /* tests: the cue being played */
 
 extern const cs_scene_t CS_EXAMPLE;     /* cutscene_example.c: the documented template (host test only, not in the game flow) */
+
+/* ---- Scene scripts (session 25, Adventure mode): the same player for file-backed scripts (story/<id>.scn, the format is
+ * in src/game/story.h "Scene script"). Actors are drawn from a level bank (the story room's _ens: rows
+ * s<handle>_<anim>_<dir>, dlgbox / dlgname / dlgarrow for the DialogBox). One script at a time, entries in one block.
+ * The DialogBox (RE 18606 / 18607 / 18391, RV r75_g1): DialogBox_551 frame <box> centred at (213, 8), DialogBox2_552 (the
+ * speaker's name, frame = speaker) at (57, 71), DialogText_556 at (65, 8): 32 columns x 3 rows of the 8x20 font, typed one
+ * character a frame from 3; DialogArrow_553 at (345, 40) shown 9 frames after the line starts; A with the arrow shown
+ * dismisses the line. Voices: one clip per line (story/vo/<voice>.wav), the next line's clip loaded while this one plays. */
+enum { CSX_OK = 0, CSX_DONE = 1, CSX_CHSEL = 2 };
+int  csx_load(const char *path);                      /* parse a script (0 ok); frees the previous one */
+void csx_free(void);                                  /* script, voices */
+void csx_begin(const bank_t *ens, const bank_t *font, const char *const *dialog, int nlines);
+int  csx_update(const input_t *in);                   /* CSX_DONE at the end, CSX_CHSEL while the script waits for a character choice */
+void csx_chsel_done(void);                            /* the character select of the scene finished: the script goes on */
+void csx_draw_actors(int pass);                       /* 0: json layers 0-1 (behind the play layer), 1: layers 2-3, 2: layers 4+ */
+void csx_draw_ui(void);
+void csx_stop_audio(void);                            /* skip / quit: the voice stops and is freed */
+int  csx_active(void);
+int  csx_line(void);                                  /* tests: the paragraph shown (-1 none) */
+int  csx_segment(void);
+int  csx_sfx_ids(short *ids, int max);                /* the script's sound ids (loaded with the room) */
+const char *csx_name(void);
+int  csx_dialog(void);
+int  csx_skip_to_chsel(void);                         /* SKIP SCENE inside the script: to its character select (-1 none) */
+int  csx_actor_find(int handle, int nth);             /* the nth actor of an object handle (-1 none) */
+int  csx_actor_x(int a);
+void csx_actor_lock(int a, int on);                   /* the script's image entries leave a locked actor alone */
+void csx_actor_image(int a, int anim, int dir, int frame);   /* frame -1: keep it running if already shown */                                /* the script's DialogData handle (0 none) */
 #endif

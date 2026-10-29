@@ -54,6 +54,17 @@ def main(path, out):
                     m = LINE.match(sb) if sb else None
                     if m: lines.append([int(m.group(1)), int(m.group(2)), m.group(3).decode(), m.group(4).decode('latin1')])
         if lines: res['dialog' if kind == 'dialogdata' else 'lipsync'][h] = lines
+    # scene captions ("Three days later," ...): global std::string constants str_<slug>_<n> set from a literal at start-up;
+    # the literal is the .rodata string whose slug is <slug> (RE: TextBlitter::set_text(str_three_days_later_330) in events)
+    caps = {}
+    for s in e.get_section_by_name('.symtab').iter_symbols():
+        m = re.match(r'^str_(.*(?:later|meanwhile|valley).*)_(\d+)$', s.name)
+        if m: caps[m.group(1)] = s.name
+    ro = e.get_section_by_name('.rodata').data()
+    res['captions'] = {}
+    for lit in set(re.findall(rb'[\x20-\x7e]{6,60}', ro)):
+        slug = re.sub(r'[^a-z0-9]+', '_', lit.decode().lower()).strip('_')
+        if slug in caps: res['captions'][caps[slug]] = lit.decode()
     with open(out, 'w', encoding='utf-8', newline='\n') as o:
         json.dump(res, o, indent=0, ensure_ascii=False); o.write('\n')
     print('dialog: %d objects, %d lines; lipsync: %d objects' % (len(res['dialog']), sum(len(v) for v in res['dialog'].values()), len(res['lipsync'])))

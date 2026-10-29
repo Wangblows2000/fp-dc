@@ -509,7 +509,7 @@ static void achpop_update(const input_t *now) {
     if (!pop_step(p & (BTN_JUMP | BTN_START))) return;
     gal_release();
     if (ap_next == 3) { fe_unload(); if (game_ending_begin() != 0) fe_enter_from_stage(0); return; }   /* frame 9 -> 8 -> 83 (RE) */
-    if (ap_next == 2) { fe_unload(); if (!game_next_stage()) fe_enter_from_stage(0); return; }
+    if (ap_next == 2) { fe_unload(); if (!story_stage_end(level_cur()->stage) && !game_next_stage()) fe_enter_from_stage(0); return; }   /* Adventure: the story room first (story.c) */
     if (ap_next == 1 && scr_load(1) == 0) { fe_mode = 0; set_state(FE_STSEL); stsel_enter(); return; }
     set_state(FE_HUB); hub_enter();
 }

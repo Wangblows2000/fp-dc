@@ -27,11 +27,12 @@ FRAMESDIR = os.environ.get('STORY_FRAMES', 'tables/frames')
 KEYS = {'L': 0x40000050, 'R': 0x4000004f, 'U': 0x40000052, 'D': 0x40000051, 'J': 0x7a, 'X': 0x78, 'B': 0x63, 'S': 0x0d}
 ORDER = 'LRUDJXBS'
 ACTORS = re.compile(r'^(npc|placeholder|playerskin(sash|carol|milla|torque|spade)?_|player_|the|brevon|torque|dialog|zao|gong|neera|'
-                    r'syntax|kingdom|serpent|boss|comet|space|parallaxcrash|caravan|soldier|jeep|enemy|minibossufo|ship|pigeon)')
-SKIP = re.compile(r'^(tile|levelparallax|levellayer|layer|solid|general|playersensor|gui|separator|sparkle|monitor|shield|'
+                    r'syntax|kingdom|serpent|boss|comet|space|parallaxcrash|caravan|soldier|jeep|enemy|minibossufo|ship|pigeon|'
+                    r'character|charname|levelcard|locationname|fade|mrstumpy|crystalcursor|whitefade|beam|sparkle|thruster)')
+SKIP = re.compile(r'^(tile|levelparallax|levellayer|layer|solid|general|playersensor|gui|separator|monitor|shield|'
                   r'obj\d|effects|spring|yellowspring|redspring|camera|master|input|globalinput|mouse|windowcontrol|savedata|'
                   r'mapdata|recorddata|sarassteam|stringparser|bubblenumbers|link|sign|enemylimiter|addtimebonus|scorevalues|'
-                  r'timebonustotal|objectcrystal|objectpetal|playerstartingpoint|ringsparkle|thunderspark|levelcard|'
+                  r'timebonustotal|objectcrystal|objectpetal|playerstartingpoint|ringsparkle|thunderspark|'
                   r'playeraction|playerothers|playergimmick|playercharactersensor|hazard|breakable|bg|objectcodec|laddertop|'
                   r'objectjumppad|objectfuel|platform|function|queue|controllermusic|levelfloating|gimmick)')
 
@@ -94,7 +95,7 @@ class Story(gdb.Breakpoint):
     def __init__(self):
         super().__init__('*0x9fcb7a', internal=True)
         self.o = open(OUT, 'w'); self.f = 0; self.cur = int(os.environ.get('STORY_START_FRAME', '-1')); self.rescan = 1
-        self.objs = {}; self.lists = {}; self.last = {}; self.g = None; self.prev = set(); self.imgmap = {}
+        self.objs = {}; self.lists = {}; self.vt_of = {}; self.last = {}; self.g = None; self.prev = set(); self.imgmap = {}
         self.tap = int(os.environ.get('STORY_TAP', '0')); self.holds = []; self.tap_from = int(os.environ.get('STORY_TAP_FROM', '0'))
         for kv in filter(None, os.environ.get('STORY_KEYS', '').split(',')):
             r, k = kv.split(':'); a, b = r.split('-'); self.holds.append((int(a), int(b), k))
@@ -111,7 +112,7 @@ class Story(gdb.Breakpoint):
         """the actor classes' instance lists: the Frames members (ObjectList {back, items, count}, items of 16 bytes from
         index 1, as tools/orig/trace_orig.py XLIST) whose back object has one of the classes' vtables"""
         cls = frame_classes(self.cur) if self.cur >= 0 else {}
-        self.cls = cls
+        self.cls = cls; self.vt_of = {c: v for v, c in cls.items()}
         if not cls or not self.fr: return
         try: mem = rq(self.fr, 0x22800)
         except Exception: return
@@ -150,6 +151,7 @@ class Story(gdb.Breakpoint):
         for ob, c in self.objs.items():
             try:
                 m = rq(ob, 0x118)
+                if self.vt_of.get(c) != struct.unpack_from('<Q', m, 0)[0]: continue   # not an instance of the class (a non-list member)
                 x, y = struct.unpack_from('<ii', m, 8); fl = struct.unpack_from('<I', m, 0x18)[0]
                 alt = struct.unpack_from('<Q', m, 0x20)[0]
                 aid = struct.unpack_from('<b', m, 0xb1)[0]; afr = struct.unpack_from('<h', m, 0xb4)[0]
