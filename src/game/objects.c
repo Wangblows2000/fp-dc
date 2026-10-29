@@ -52,11 +52,11 @@ static int A_LOG = -1;
  * flags (3270-3272, 3303-3307, 4737 / 4738) apply only to q12 members (dip 1). Thermal Base: fire, piston, spin and scrolling
  * platforms (tb_gim.c). Fields of a registered object: ox / oy = I / J, vx = E, vy = S (dip), fx = N, dir = P, kx = A, ky = M,
  * fy = O; the owner may set E / A / I / J itself (phase at the start, scripted I / J). */
-static struct { int type; float F, G, B, C; signed char D, H, dip, ow, own; } plat_x[12]; static int nplat_x;
+static struct { int type; float F, G, B, C; signed char D, H, dip, ow, own; } plat_x[24]; static int nplat_x;   /* session 24: 12 -> 24 (Final Dreadnought registers four more) */
 void objects_plat_path(int type, float B, float C, int D, float F, float Gm, int H, int dip) {
     int k = 0;
     while (k < nplat_x && plat_x[k].type != type) k++;
-    if (k == nplat_x) { if (nplat_x >= 12) return; nplat_x++; }
+    if (k == nplat_x) { if (nplat_x >= 24) return; nplat_x++; }
     plat_x[k].type = type; plat_x[k].F = F; plat_x[k].G = Gm; plat_x[k].B = B; plat_x[k].C = C;
     plat_x[k].D = (signed char)D; plat_x[k].H = (signed char)H; plat_x[k].dip = (signed char)dip; plat_x[k].ow = (signed char)dip; plat_x[k].own = 0;
 }
