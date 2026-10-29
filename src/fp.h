@@ -788,6 +788,7 @@ void   obj_effect(float x, float y, const char *anim);
 obj_t *obj_effect_l(float x, float y, const char *anim, int layer);   /* the same on a given layer (objects bank, then _ens) */
 void   obj_explode(float x, float y);
 void   obj_drop_crystal(float x, float y, int S);
+void   obj_pop_crystal(float x, float y);       /* 3275: a jump pad's crystal (PinballMovement 36 / 25, direction 8; objects.c) */
 void   obj_launch_crystal(float x, float y, int dir);
 void   keystone_spawn(float x, float y, double B, double I);
 void   keystone_update(obj_t *k, player_t *p);
@@ -863,6 +864,9 @@ int    rm_claw_input(uint32_t *held);             /* CTRL.M = 1 (6202-6257): the
 float  rm_claw_hud_dy(void);                      /* 6206 / 6258: HUD slid up during the shrine scene */
 void   rm_claw_draw_front(void);                  /* the white fade of the wreck (6281-6293) */
 void   par_set_drift(int handle, float g), par_set_hidden(int handle, int hidden), par_destroy(int handle), par_draw_front(void);
+void   par_set_tint(uint32_t rgb);                 /* layer-0 colour (LayerObject set_rgb, 0xRRGGBB; JC5 11614): white at every level load */
+void   jc_boss5_rain_mute(void);                  /* JC5: the rain loop silent while paused (Media::pause_samples) */
+int    jc_boss5_rain_count(void);                 /* JC5: LevelRain drops (11611) */
 void   music_fade(int frames, int fade_in);       /* fadeout_music / fadein_music over n frames (0: cancel) */
 void   pad_ride_enter(player_t *p, obj_t *pad);   /* Carol's jump-pad ride entry (4946's actions; carol_bike.inc) */
 obj_t *relic_shock_new(double x, double y, int dir, double speed);   /* HazardShockwave_1576 (relic_boss.c); speed px / frame (0: the golem's 6.25) */
@@ -1021,6 +1025,9 @@ typedef struct {
                                                         which also has no M 10 test) */
     int exit_hold;                                  /* > 0: an exit stops the world this many frames before the fade (FD4a 16721 / 16723:
                                                         group 0x21a5d off and Sign flag 8, the fade at Sign.B > 100; session 24) */
+    int pads_inert;                                  /* the frame runs none of the pad events 4943-4949: its pads keep their start state (JC3) */
+    int air_vacuum;                                  /* fd2b's vacuum air rule (15790-15796 / 15801 / 15793 + the shared 4157-4164 / 4170 /
+                                                        4272-4280 / 4397 / 4467 / col_5_17; water.c air_vacuum_events) */
 } level_def_t;
 int  level_water(void);                              /* the act's water line ML.B now (level data .water, moved by level_water_set; 0 = dry) */
 void level_water_set(int b);                         /* a script moves ML.B (TB5's water levers 12491-12501) */

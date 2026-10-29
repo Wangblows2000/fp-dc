@@ -2,7 +2,9 @@
 """Host tests for Jade Creek act 5, the finale (session 21; src/game/jc_boss5.c + the JC5 variant of fn_boss.c's Serpentine;
 build/re/spec_jc_boss5.md). Per character (Lilac, Carol, Milla) against the original's traces (RV numbers,
 build/orig_traces/jc_boss5: l_kill / l_kill2 Lilac, c_serp / c_gun Carol, l_tp / c_tp / m_tp the act from its start):
- - the storm: the first bolt (sound 292) at frame 108 of every trace, then every 115-415 frames (11618-11620);
+ - the storm: the first bolt (sound 292) at frame 108 of every trace that teleports to x 5500 at 60 (the rain, 11611, fills up
+   to 50 drops one a frame once (MV.X - 200 + GT) / 120 allows it; LevelDarkSky C counts while it has > 40: session 26), then
+   every 115-415 frames (11618-11620);
  - Serpentine 2: voice serp_gotyounow and m_boss at his trigger, his fall (0x22af5) and the gunship 105 frames later
    (sound 427, voice serp_kungfu; RV l_kill2 1414 -> 1519, c_gun 1518 -> 1623);
  - the gunship's first state (troopers): the cable 165 / 166 at +90 / +136, the Elites. drops (233) at +176 / +275 (l_kill2, c_gun, m_gun2);
@@ -55,16 +57,18 @@ def fight(ch, end_attacks, extra=''):
         for k, f in enumerate(range(300, end_attacks, 100)): L.append('%d %d %s' % (f, f + 100, 'LR'[k & 1]))
     return INV + '\n'.join(L) + '\n' + extra
 
-# ---- the storm (11618-11620): the first bolt at 108 (RV: every trace), then 115-415 frames apart
+# ---- the storm (11611-11620): the first bolt at 108 (RV: every trace, all of them teleported to x 5500 at 60), then 115-415
+# frames apart (session 26: the bolt waits for the rain, which a player standing at the start never gets: test_gimmicks_m.py)
 for ch, cn in CHARS:
-    ev, d = run(ch, 1500, INV)
+    ev, d = run(ch, 1500, INV + '60 TP 5500 840\n')
     t = sids(ev, 292)
     gaps = [b - a for a, b in zip(t, t[1:])]
     check('storm_%s' % cn, t and near(t[0], 108, 2) and len(t) >= 3 and all(110 <= g <= 420 for g in gaps), str(t))
 
 for ch, cn in CHARS:
     # ---- Serpentine 2 and the gunship's first state (no hits on the gunship: attacks stop at 1000)
-    ev, d = run(ch, 1900, fight(ch, 1000))
+    ev, d = run(ch, 1900 if ch != 4 else 2400, fight(ch, 1000 if ch != 4 else 1350))   # (Milla: the rain's draws on the shared
+                                                                                         # random stream (session 26) move his fall to ~1310)
     trig = first(d, lambda r: r['s'] >= 2)
     mb = [f for f, l in ev if l.startswith('music ') and f >= trig] if trig else []   # m_boss = the level row's slot 4 (levels.c, the flow's)
     check('serp_%s_trigger' % cn, trig and voices(ev, 'serp_gotyounow')[:1] == [trig] and (mb[:1] == [trig] or not mb) and

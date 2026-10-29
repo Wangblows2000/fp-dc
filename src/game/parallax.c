@@ -42,8 +42,11 @@ static float rdf(const uint8_t *p) { uint32_t u = (uint32_t)rd32(p); float f; me
  * the json-layer-1 piece2): fn runs just before the piece with this handle is considered (shown or hidden) in the back pass */
 static int hook_handle = -1; static void (*hook_fn)(void);
 void par_set_hook(int handle, void (*fn)(void)) { hook_handle = fn ? handle : -1; hook_fn = fn; }
+/* layer 0's colour (LayerObject set_rgb on layer 0: JC5's storm 11614 darkens the sky; session 26): multiplies the back pass */
+static uint32_t par_tint = 0xffffff; static int tint_now;
+void par_set_tint(uint32_t rgb) { par_tint = rgb & 0xffffff; }
 void par_free(void) {
-    hook_handle = -1; hook_fn = NULL;
+    hook_handle = -1; hook_fn = NULL; par_tint = 0xffffff;
     for (int i = 0; i < nimg; i++) for (int k = 0; k < IMG[i].n; k++) if (IMG[i].ch[k].t.w > 0) r_tex_free(&IMG[i].ch[k].t);
     for (int k = 0; k < 2; k++) if (WT[k].w > 0) r_tex_free(&WT[k]);
     memset(IMG, 0, sizeof IMG); memset(WT, 0, sizeof WT); nimg = npc = has_water = 0;
@@ -104,7 +107,7 @@ void par_update(void) {
 
 static void draw_image(int ii, int x, int y, int clipy0, int clipy1) {
     int s = (IMG[ii].fl & 2) ? 2 : 1;                     /* half-resolution chunks (SB mist): texel coordinates x 2 on screen */
-    uint32_t col = (IMG[ii].fl & 1) ? 0xfeffffff : 0xffffffff;   /* ARGB4444: drawn through the translucent list */
+    uint32_t col = ((IMG[ii].fl & 1) ? 0xfe000000 : 0xff000000) | (tint_now ? par_tint : 0xffffff);   /* ARGB4444: drawn through the translucent list */
     for (int k = 0; k < IMG[ii].n; k++) {
         const pchunk_t *c = &IMG[ii].ch[k];
         if (c->t.id < 0) continue;
@@ -155,13 +158,14 @@ static void jw_draw(int gframe, int vt) {
     int h = (int)(JW.fh * sc), y = (int)JW.anchor - vt;
     if (h <= 0) return;
     int k = (gframe / 4) % 8; if (k >= JW.nfr) k = JW.nfr - 1;       /* anim speed 25: a frame every 4 (RV jc3_start ws_afr; the 8th shown as the 7th, VRAM) */
-    r_sprite(&WT[0], 0, k * JW.fh, JW.fw, JW.fh, 0, (float)(jw_C < 0 ? y - h : y), (float)JW.fw, (float)h, 0, jw_C < 0 ? 0xffffffff : 0x80ffffff);
+    r_sprite(&WT[0], 0, k * JW.fh, JW.fw, JW.fh, 0, (float)(jw_C < 0 ? y - h : y), (float)JW.fw, (float)h, 0, (jw_C < 0 ? 0xff000000 : 0x80000000) | par_tint);
 }
 void par_draw(int gframe) { draw_pieces_pass(gframe, 0); }
 void par_draw_front(void) { draw_pieces_pass(G.frame, 1); }   /* flag-256 pieces (frame layer 3, in front of the player) */
 static void draw_pieces_pass(int gframe, int front) {
     int vl = (int)G.camx, vt = (int)G.camy;
     if (!front) jw_update(vt);
+    tint_now = !front;
     for (int i = 0; i < npc; i++) {
         const ppiece_t *p = &PC[i];
         if (!front && hook_fn && p->handle == hook_handle) hook_fn();
