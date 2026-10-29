@@ -127,6 +127,11 @@ void par_set_hidden(int handle, int hidden) { for (int i = 0; i < npc; i++) if (
 void par_destroy(int handle) { for (int i = 0; i < npc; i++) if (PC[i].handle == handle) PC[i].flags |= 128; }
 
 int par_hidden(int handle) { for (int i = 0; i < npc; i++) if (PC[i].handle == handle) return (PC[i].flags & 512) != 0; return 0; }
+/* a piece's y in the frame (3542: trunc(E vt + C)), for the layer-0 objects placed on it (FD1a 15302); -32768: no such piece */
+int par_piece_y(int handle) {
+    for (int i = 0; i < npc; i++) if (PC[i].handle == handle) return (int)trunc(PC[i].E * (int)G.camy + PC[i].y0);
+    return -32768;
+}
 
 static void draw_pieces_pass(int gframe, int front);
 /* 10368: C = (horizon box bottom - ML.B) / 70.0001 (world y). C < 0: the strip hangs above its anchor, scale |C| up to 1, the anchor
@@ -196,6 +201,7 @@ static void draw_pieces_pass(int gframe, int front) {
                 for (int tx = bx; tx < bx + A && tx < SCREEN_W; tx += iw)   /* the image tiles inside each box period */
                     draw_image(p->img, tx, ty, sy, y1);
     }
+    if (!front && hook_fn && hook_handle == PAR_HOOK_END) hook_fn();   /* layer-0 objects after every piece (FD1a jumbotron, FD3 pillars) */
     if (front) return;
     if (has_water == 2) { jw_draw(gframe, vt); return; }
     if (has_water) {                                      /* 5103-5105 */

@@ -113,6 +113,9 @@ enum {
     OT_TBB_PLAT2 = 1998,    /* BossTBPlatform2_2908 (the centre floor) */
     OT_TBB_WAYPOINT = 1999, /* BossWaypoint_2905 (invisible) */
     OT_TBB_EYE = 2000,      /* NPCSyntaxEye_2682 (Syntax's eye: shows near the player, follows; 11843 / 12014 / 12019) */
+    OT_TBB_HEATSKY = 2001,  /* LevelHeatSky_2779 (TB3 / TB6 at (0, 0) on json layer 5; ctor invisible, additive: a view tint; st shown,
+                               av[0] its alpha byte; session 26) */
+    OT_TBB_CASCEND = 2002,  /* LevelLavaCascadeEnd_2778 (TB3 (7424, 4304); never shown: the chase's x marker, 12263-12268) */
     OT_TBB_PLACED_LAST = 2015,
     OT_TBB_RT = 2016,       /* runtime objects from here */
     OT_TBB_FX = 2016,       /* a one-shot effect played by the boss rules (explosions, splashes) */

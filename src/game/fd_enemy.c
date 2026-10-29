@@ -16,6 +16,9 @@
 #include "jc.h"
 #include "tb.h"
 #include "enemy_kit.h"
+#ifdef FP_HOST_ENV
+#include <stdlib.h>
+#endif
 
 #define DEFEATED(o) ((o)->fl & 0x40)
 #define FL1 0x1000                                   /* the class's flag 1 */
@@ -37,6 +40,7 @@ static struct {
     int on, stage, act, pick_frame;
     int rain, rain_hook;                             /* FD1a pod rain (the subtitle object's C, 15284) */
     int alarm_a, alarm_b;                            /* FD3a: ObjectSiren_3362's A / B (16181 / 15803 / 16183) */
+    int al_shown, al_fl1, al_alpha; double al_A, al_B;   /* FD3a: AlarmLight_3495 shown, its flag 1, alpha byte, A / B (16183-16185) */
     int ngun; gat_t gun[NGUN];
     short shk[32]; int nshk;                         /* the pounders' shockwaves (B + 1 a frame, 15271) */
     ek_limiters_t lim;
@@ -267,11 +271,32 @@ void fd_enemy_gatlings_wake(void) { for (int k = 0; k < S.ngun; k++) S.gun[k].do
 int fd_enemy_gatlings_dormant(void) { int n = 0; for (int k = 0; k < S.ngun; k++) n += S.gun[k].dormant != 0; return n; }
 /* FD3a's alarm (ObjectSiren_3362 as the script object, RE 16181 / 15803 / 16183): A 0, the player past x 5000 and below y 800, g4 < 3:
  * A 1 (Brevon's voice br_br_pa_05 + subtitles: flow); A 1: B + 1 a frame; B 540: B 541, the gatling guns wake (flag 4 off), sound 310 */
+/* The alarm light (session 26; RE 16183-16185, the list at Frames + 0x1b9b0 is AlarmLight_3495's: its create_ function's object id
+ * 1766): 16183 also gives it flag 1, x / y scale 43 / 24, flash(0) and shows it; 16184 (flag 1): alpha byte = 255 - clamp(trunc(200 cos A
+ * + 180), 0, 255) (75 at A 90 / 270 exactly), A = (A + 5) mod 360, B + 1; 16185: flag 1, B > 300, A < 20: flag 1 off (the last alpha
+ * stays: 0). Drawn additively over the view (ctor shader 0x20) on json layer 5: obj_draw_view_tint from objects_draw(3). */
+static int alarm_alpha(double A) {
+    if (A == 90 || A == 270) return 75;
+    double d = fd_cos(A / 57.29577951308232) * 200 + 180;
+    if (d < 0) return 255;
+    int v = 255 - (int)d;
+    return v < 0 ? 0 : v > 255 ? 255 : v;
+}
 static void alarm_frame(player_t *p) {
     if (S.alarm_a == 0 && ek_px(p) > 5000 && ek_py(p) > 800 && G.at_g4 < 3) S.alarm_a = 1;
     else if (S.alarm_a == 1) S.alarm_b += 1;
-    if (S.alarm_a == 1 && S.alarm_b == 540) { S.alarm_b = 541; fd_enemy_gatlings_wake(); snd_play_orig(310, 220, 128); }
+    if (S.alarm_a == 1 && S.alarm_b == 540) {
+        S.alarm_b = 541; fd_enemy_gatlings_wake(); snd_play_orig(310, 220, 128);
+        S.al_fl1 = 1; S.al_shown = 1;                                                       /* 16183 */
+    }
+    if (S.al_fl1) { S.al_alpha = alarm_alpha(S.al_A); S.al_A = fmod(S.al_A + 5, 360); S.al_B += 1; }   /* 16184 */
+    if (S.al_fl1 && S.al_B > 300 && S.al_A < 20) S.al_fl1 = 0;                                         /* 16185 */
+#ifdef FP_HOST_ENV
+    { static int dbg = -1; if (dbg < 0) dbg = getenv("FP_DBG_FDALARM") != NULL;
+      if (dbg) printf("fdal %d shown %d fl %d alpha %d A %.0f B %.0f ab %d\n", G.frame, S.al_shown, S.al_fl1, S.al_alpha, S.al_A, S.al_B, S.alarm_b); }
+#endif
 }
+int fd_enemy_alarm_alpha(void) { return S.al_shown ? S.al_alpha : -1; }
 
 /* ================================================================ EnemyBeastIris_3735 (RE 14761-14780). Ctor A 10, D 1925, F -6, G 1.
  * av: [0] D landing y, [1] E speed, [2] F fall speed, [3] G state (0 dropping, 1 running, 2 biting, 6 beaten), [4] H bite clock,
@@ -412,7 +437,9 @@ void fd_enemy_pre(player_t *p) {
     if (S.stage == 12 && S.act == 1 && S.ngun) alarm_frame(p);
     if (S.nshk) shocks_frame();
 }
-void fd_enemy_draw(int pass) { (void)pass; }
+void fd_enemy_draw(int pass) {
+    if (pass == 3 && S.al_shown) obj_draw_view_tint(0x983800, S.al_alpha);   /* FD3a's alarm light (16183-16185): image 11369 (152, 56, 0) */
+}
 int fd_enemy_obj(obj_t *o, player_t *p) {
     if (!S.on) return 0;
     switch (o->type) {
