@@ -41,7 +41,7 @@
  *     <t> say <line> <box frame>                     DialogBox shows paragraph <line> (DialogBox frame); voice played
  *     <t> close                                      DialogBox hidden
  *     <t> s <id> / <t> o <voice> / <t> u <bgm file|->   sound id / a voice clip outside the dialogue / music
- *     <t> f <frames>                                 fade: > 0 from black, < 0 to black
+ *     <t> f <frames> [1]                             fade: > 0 from black, < 0 to black (1: white instead of black)
  *     <t> chsel                                      the in-scene character select (frame 75: Lilac / Carol, sets g1)
  *     end <t>                                        the scene ends at time t of the last segment
  *     next <step>                                    (informative: the table's next wins) */
