@@ -48,6 +48,8 @@ def main():
     ap.add_argument('--caption', action='append', default=[], help='F0,F1,key|key: caption rows shown from F0 to F1 (RV screenshots)')
     ap.add_argument('--flash', default='', help='F,HOLD,N: white from frame F, HOLD frames, then a fade from white of N frames (RV screenshots; timing INFERRED)')
     ap.add_argument('--fadeout', default='', help='F,N: a fade to black of N frames from frame F (INFERRED: the wipe)')
+    ap.add_argument('--by-class', action='store_true', help='an object address freed and reused by another class is another actor '
+                    '(without it the later objects\' states are merged into the first class, as arc 1 was converted)')
     ap.add_argument('--carry', action='store_true', help='a scene chained inside the trace that starts no music: the track the '
                     'original still plays (the last one before the window) starts with it (the port stops the music between scenes)')
     ap.add_argument('--room', type=int, default=0, help='a split story room (one room per scene of a large frame: st<room>, built '
@@ -71,6 +73,7 @@ def main():
     bgm_before = None  # the last music track started before the window (--carry)
     fade_a = {}        # LevelCardFade2 address -> {frame: alpha} (traces with the blend byte 'a=', tools/orig/trace_story.py)
     fade_d = {}        # address -> the frames it was destroyed (an address is reused by later instances)
+    live, gone_key = {}, {}   # address -> the actor key (address/class) living there; actor key -> destroyed at
     for l in open(a.log, encoding='latin1'):
         t = l.split()
         if not t or len(t) < 2 or not t[1].lstrip('-').isdigit(): continue
@@ -95,9 +98,12 @@ def main():
                 pp = par.setdefault(cls, {'st': {}, 'alt': alt}); par_addr[addr] = cls
                 pp['st'][max(f, a.first)] = fl & 1
                 continue
-            o = obj.setdefault(addr, {'cls': cls, 'st': {}})
-            o['st'][max(f, a.first)] = (x, y, ia, ib, ic, fl & 1)
-        elif t[0] == 'D' and a.first <= f < a.end: gone[t[2]] = f; fade_d.setdefault(t[2], []).append(f)
+            key = addr + '/' + cls if a.by_class else addr; live[addr] = key   # --by-class: an address reused by another class is another actor
+            o = obj.setdefault(key, {'cls': cls, 'st': {}})
+            o['st'][max(f, a.first)] = (x, y, ia, ib, ic, fl & 1, int((fl & 3) == 1))   # [6]: drawable (0x2: being destroyed)
+        elif t[0] == 'D' and a.first <= f < a.end:
+            gone[t[2]] = f; fade_d.setdefault(t[2], []).append(f)
+            if t[2] in live: gone_key[live[t[2]]] = f
         elif t[0] == 'S': snd.append((f, t[2], ' '.join(t[3:])))
         elif t[0] == 'C': cams.append((f, int(t[2]), int(t[3])))
         elif t[0] == 'A': presses.append(f)
@@ -126,13 +132,14 @@ def main():
     for addr, o in obj.items():
         c = o['cls']
         if drop_re.search(c) or DROP.match(c) or not act_re.match(c.rsplit('_', 1)[0] + '_'): continue
+        if addr in gone_key and gone_key[addr] <= a.first + 2 and max(o['st']) <= a.first + 2: continue   # destroyed by the room's start events
         if re.match(r'^(levelcardfade|fadeedge|fade_)', c): continue          # fades: 'f' entries below
         fixed = layer_of.get(c, 2) >= 6
         seen = []
         fs_ = sorted(o['st'])
         for k_, f in enumerate(fs_):
             st_ = o['st'][f]
-            if not st_[5] or st_[2] < 0: continue
+            if not st_[6] or st_[2] < 0: continue        # (a state flagged 0x2 is not a sighting)
             f2 = fs_[k_ + 1] if k_ + 1 < len(fs_) else a.end
             vs = [(0, 0)] if fixed else [view(f)] + [(x, y) for cf, x, y in camf if f < cf < f2]
             if any(vx - 48 < st_[0] < vx + 426 + 48 and vy - 48 < st_[1] < vy + 240 + 48 for vx, vy in vs): seen.append(f)
@@ -156,7 +163,7 @@ def main():
         def flush_run():
             if run and run[3]: put(run[0], 1, 'm %d %d %d %d' % (n, run[1], run[2], run[3]))
         for f in sorted(o['st']):
-            x, y, ia, ib, ic, vis = o['st'][f]
+            x, y, ia, ib, ic, vis = o['st'][f][:6]
             if prev is None:
                 put(f, 0, 'p %d %d %d' % (n, x, y)); put(f, 2, 'v %d %d' % (n, vis))
                 if ia >= 0: put(f, 2, 'i %d %d %d %d' % (n, ia, ib, ic)); rows.add((c, ia, ib))
@@ -175,7 +182,7 @@ def main():
             if vis != pvis: put(f, 2, 'v %d %d' % (n, vis))
             prev = (f, x, y, ia, ib, ic, vis)
         flush_run()
-        if addr in gone: put(gone[addr], 2, 'v %d 0' % n)
+        if addr in gone_key and (not a.by_class or gone_key[addr] >= max(o['st'])): put(gone_key[addr], 2, 'v %d 0' % n)
     # ---- fades: LevelCardFade2 (the black cover). Traces with its alpha: every fade (RV). Older traces: visible at the window's
     # start = a fade from black until it hides (RV visibility; the original's alpha ramp is not traced: linear, INFERRED)
     if fade_a:         # RV: the cover's alpha per frame (the black LevelCardFade2 instances, the most opaque one) -> linear

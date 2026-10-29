@@ -664,22 +664,22 @@
 "id": "tb_outside_team",
 "list": 31,
 "title": "Outside Thermal Base (Carol, Milla and Torque)",
-"room": 83,
-"g4": 16,
-"triggers": [
-"end:7",
-"end:8"
-],
-"next": "route",
+"room": 8331,
+"frame": 83,
+"g4": 17,
+"triggers": [],
+"next": "scene:sf_army",
+"skip": "scene:sf_army",
+"stage": "bg1",
 "panel": 2,
 "chr": 6,
 "dialog": 4026,
 "lines": [
 256,
-274
+273
 ],
-"evidence": "RE frame 8 (I 7 g1 != 0 -> 82 g4 13, I 8 g1 != 0 -> 82 g4 16); lines by content: INFERRED",
-"missing": "phase 2"
+"evidence": "RE CutsceneList K 32 -> frame 82 g4 17 with g1 2 (293); RV c83_g17c (g1 2: outside Thermal Base, lines 260-273; the end sets frame 81 g4 0 = room 82, sf_army); RE frame 83 pause rows (SKIP SCENE: GUIPause A 3, NEXT STAGE: A 4, after the 50-frame wipe; events 22337-22370): SKIP g4 17 with g1 != 0 -> frame 81 g4 0 (22354), NEXT STAGE g4 17-19 with g1 != 0 -> frame 84, the lead-in to Battle Glacier = BG1 in the port (22369); Milla: INFERRED as Carol (g1 != 0). Lilac at g4 17: tb_arrest",
+"missing": "lines 256-259 (Syntax / Brevon / Dail) are not shown on the RV route; line 274 plays in sg_brevon_torque (RV)"
 },
 {
 "id": "st_mission",
