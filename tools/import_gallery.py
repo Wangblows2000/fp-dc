@@ -7,9 +7,10 @@ The scene itself (cards, icons, header, DATA rows, cursor ...) comes from tools/
 usage: import_gallery.py <frames_dir> <images_dir> <chowdren_binary> <decompiled_dir> <out_dir>
   frames_dir      build/frames (anims.json: Artwork_287's 16 frames)
   images_dir      extracted/linux/images (img_N.png)
-  chowdren_binary the original Linux executable (bin64/Chowdren): the List* text constructors' string literals
+  chowdren_binary the original Linux executable (bin64/Chowdren): the List* text constructors' string literals;
+                  or the committed table tables/strings.json (the same strings, no binary needed)
   decompiled_dir  build/re (ListSongFilenames_285 / ListSongs_283 / ListNames_272 / ListDescriptions_273 /
-                  ListWarnings_281 constructors)
+                  ListWarnings_281 constructors); with tables/strings.json any path (only the file names are used)
   out_dir         converted2/gal (game data, gitignored; loaded on demand, kept loose on the disc)
 
 Output:
@@ -28,6 +29,14 @@ from PIL import Image
 SAMPLE_FOR_CARD = {35: 188, 68: 362, 75: 0, 76: 57, 77: 3, 78: 2, 79: 1}   # RV t_gal6 (spec_gallery 3.2)
 
 def elf_strings(binary, src):
+    """the string literals a decompiled constructor <src> passes, read from the Linux program <binary>; or, when <binary>
+    is the committed table tables/strings.json (tools/builder/make_tables.py layout), looked up there by <src>'s file name
+    (<src> itself is then not read)"""
+    return elf_strings_all(binary, src)[1:]          # [0] is the font name ('Arial')
+
+def elf_strings_all(binary, src):
+    if binary.endswith('.json'):
+        return json.load(open(binary, encoding='utf-8'))['files'][os.path.basename(src)]
     d = open(binary, 'rb').read()
     shoff, = struct.unpack_from('<Q', d, 0x28); shentsize, shnum = struct.unpack_from('<HH', d, 0x3a)
     secs = []
@@ -41,8 +50,7 @@ def elf_strings(binary, src):
                 e = d.index(b'\0', o + va - a); return d[o + va - a:e].decode('latin1')
         raise SystemExit('string at %x not found' % va)
     txt = open(src).read()
-    out = [cstr(int(m.group(1), 16)) for m in re.finditer(r'&(?:UNK|DAT|s_\w+?)_?([0-9a-f]{6,})', txt)]
-    return out[1:]          # [0] is the font name ('Arial')
+    return [cstr(int(m.group(1), 16)) for m in re.finditer(r'&(?:UNK|DAT|s_\w+?)_?([0-9a-f]{6,})', txt)]
 
 # Dreamcast button labels (D-110, session 22): the original's buttons are A / B / C (jump / attack / special); the port maps
 # them to the pad's A / B / X, so a player-facing "C" hint becomes "X" (ListWarnings 5 / 6 / 8: "C - Close Card"; the
@@ -100,7 +108,7 @@ def main():
         cf.append(f)
     lines = ['FPGT1 100 56 9'] + cf + songs + names + descs + [dc_labels(w) for w in warns[:9]]
     for s in lines: assert '\n' not in s and '\r' not in s and all(32 <= ord(c) < 127 for c in s), repr(s)
-    open(os.path.join(out, 'gal_text.txt'), 'w').write('\n'.join(lines) + '\n')
+    open(os.path.join(out, 'gal_text.txt'), 'w', encoding='utf-8', newline='\n').write('\n'.join(lines) + '\n')
     print('gal_text.txt: %d lines' % len(lines))
 
 if __name__ == '__main__':

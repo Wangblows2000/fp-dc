@@ -1,0 +1,152 @@
+{
+ "_comment": "Pinned downloads of the drag-and-drop builder (tools/builder/fetch.py). Entries without a url come from release_url. build_dreamcast.bat / .sh repeat the Python archive pins (fpbuild.py selftest checks they agree). Maintainers: tools/builder/build_release.sh rebuilds the release files and rewrites their entries.",
+ "release_url": "https://github.com/Wangblows2000/fp-dc/releases/download/builder-v1/",
+ "files": [
+  {
+   "name": "python-3.13.14-embed-amd64.zip",
+   "os": "windows",
+   "kind": "python",
+   "url": "https://www.python.org/ftp/python/3.13.14/python-3.13.14-embed-amd64.zip",
+   "sha256": "90b4e5b9898b72d744650524bff92377c367f44bd5fbd09e3148656c080ad907",
+   "size": 10964839,
+   "what": "Python 3.13.14 (Windows x64, embeddable)",
+   "licence": "PSF-2.0",
+   "source": "python.org"
+  },
+  {
+   "name": "cpython-3.13.14+20260610-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+   "os": "linux",
+   "kind": "python",
+   "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260610/cpython-3.13.14%2B20260610-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+   "sha256": "d607e18e83227a0527cf3f54a48be973a75358a6885e4be67d4b0359b6f1c880",
+   "size": 34931836,
+   "what": "Python 3.13.14 (Linux x86_64, python-build-standalone)",
+   "licence": "PSF-2.0",
+   "source": "astral-sh/python-build-standalone"
+  },
+  {
+   "name": "pillow-12.3.0-cp313-cp313-win_amd64.whl",
+   "os": "windows",
+   "kind": "wheel",
+   "url": "https://files.pythonhosted.org/packages/a6/9b/7a58e61d62be561da3a356fe2384d4059a6345fc130e23ef1c36a5b81d24/pillow-12.3.0-cp313-cp313-win_amd64.whl",
+   "sha256": "1cca606cd25738df4ed873d5ad46bbdb3d83b5cbca291f6b4ff13a4df6b0bbe8",
+   "size": 7239691,
+   "what": "Pillow 12.3.0",
+   "licence": "MIT-CMU (HPND)",
+   "source": "pypi.org"
+  },
+  {
+   "name": "lz4-4.4.5-cp313-cp313-win_amd64.whl",
+   "os": "windows",
+   "kind": "wheel",
+   "url": "https://files.pythonhosted.org/packages/18/e0/f06028aea741bbecb2a7e9648f4643235279a770c7ffaf70bd4860c73661/lz4-4.4.5-cp313-cp313-win_amd64.whl",
+   "sha256": "da68497f78953017deb20edff0dba95641cc86e7423dfadf7c0264e1ac60dc22",
+   "size": 99502,
+   "what": "python-lz4 4.4.5",
+   "licence": "BSD-3-Clause",
+   "source": "pypi.org"
+  },
+  {
+   "name": "pillow-12.3.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+   "os": "linux",
+   "kind": "wheel",
+   "url": "https://files.pythonhosted.org/packages/f7/62/de5bdd77d935331f4f802edc11e4d82950f642caad6cb2f949837b8560e2/pillow-12.3.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+   "sha256": "0847a763afefb695bc912d7c131e7e0632d4edc1d8698f58ddabec8e46b8b6d3",
+   "size": 6937129,
+   "what": "Pillow 12.3.0",
+   "licence": "MIT-CMU (HPND)",
+   "source": "pypi.org"
+  },
+  {
+   "name": "lz4-4.4.5-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+   "os": "linux",
+   "kind": "wheel",
+   "url": "https://files.pythonhosted.org/packages/d2/fb/ba9256c48266a09012ed1d9b0253b9aa4fe9cdff094f8febf5b26a4aa2a2/lz4-4.4.5-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+   "sha256": "451039b609b9a88a934800b5fc6ee401c89ad9c175abf2f4d9f8b2e4ef1afc64",
+   "size": 1368257,
+   "what": "python-lz4 4.4.5",
+   "licence": "BSD-3-Clause",
+   "source": "pypi.org"
+  },
+  {
+   "name": "ffmpeg-6.1.1-essentials_build.zip",
+   "os": "windows",
+   "kind": "zip-member",
+   "url": "https://github.com/GyanD/codexffmpeg/releases/download/6.1.1/ffmpeg-6.1.1-essentials_build.zip",
+   "sha256": "742e32fc9f92681f9f254b925e1b613fdd8074ba40749d4879aefdb009b94cc5",
+   "size": 87520045,
+   "member": "ffmpeg-6.1.1-essentials_build/bin/ffmpeg.exe",
+   "also": [
+    "ffmpeg-6.1.1-essentials_build/LICENSE"
+   ],
+   "what": "ffmpeg 6.1.1 (Windows x64, gyan.dev essentials build)",
+   "licence": "GPL-3.0",
+   "source": "gyan.dev (GyanD/codexffmpeg)"
+  },
+  {
+   "name": "ffmpeg-6.1.1-linux-x86_64",
+   "os": "linux",
+   "kind": "tool",
+   "sha256": "aa7fa485194b27f8afcfe27a4016d4a226f161b3f25710741df702a23cd62196",
+   "size": 3096232,
+   "what": "ffmpeg 6.1.1 (Linux x86_64, static, minimal: Ogg Vorbis / WAV to WAV)",
+   "licence": "LGPL-2.1-or-later",
+   "source": "ffmpeg-6.1.1.tar.xz, tools/builder/build_release.sh",
+   "exe_name": "ffmpeg"
+  },
+  {
+   "name": "wav2adpcm.exe",
+   "os": "windows",
+   "kind": "tool",
+   "sha256": "7dc3f2e6255447c2ea5d5ff05081f57742906a5feb6da2340a37792c9586682b",
+   "size": 46592,
+   "what": "wav2adpcm (KallistiOS utils, Windows x64)",
+   "licence": "KOS licence (BSD-style), third_party/wav2adpcm/LICENSE.KOS",
+   "source": "third_party/wav2adpcm/wav2adpcm.c",
+   "exe_name": "wav2adpcm.exe"
+  },
+  {
+   "name": "wav2adpcm-linux-x86_64",
+   "os": "linux",
+   "kind": "tool",
+   "sha256": "e5209376f59bce370b3ed2e8c71aa70a982351cac73f177341b575a16620159b",
+   "size": 718864,
+   "what": "wav2adpcm (KallistiOS utils, Linux x86_64 static)",
+   "licence": "KOS licence (BSD-style), third_party/wav2adpcm/LICENSE.KOS",
+   "source": "third_party/wav2adpcm/wav2adpcm.c",
+   "exe_name": "wav2adpcm"
+  },
+  {
+   "name": "mkdcdisc.exe",
+   "os": "windows",
+   "kind": "tool",
+   "sha256": "b5826306899e8dab8490fed4440351844ec024ed8873d8cbe39383197d003894",
+   "size": 2296320,
+   "what": "mkdcdisc 0.0.4 (CDI writer, Windows x64)",
+   "licence": "MIT; contains libisofs (GPL-2.0-or-later) and libedc (CDDL-1.0)",
+   "source": "mkdcdisc-2b98b0d9-src.tar.gz",
+   "exe_name": "mkdcdisc.exe"
+  },
+  {
+   "name": "mkdcdisc-linux-x86_64",
+   "os": "linux",
+   "kind": "tool",
+   "sha256": "effd3e4ce08dd5e8bf35e679f3a3773777cb0a721e0f22a7e1a89e0c170233b2",
+   "size": 3377488,
+   "what": "mkdcdisc 0.0.4 (CDI writer, Linux x86_64 static)",
+   "licence": "MIT; contains libisofs 1.5.6 (GPL-2.0-or-later) and libedc (CDDL-1.0)",
+   "source": "mkdcdisc-2b98b0d9-src.tar.gz, libisofs-1.5.6.pl01.tar.gz",
+   "exe_name": "mkdcdisc"
+  },
+  {
+   "name": "fpdc.elf",
+   "os": "any",
+   "kind": "program",
+   "sha256": "969bc001cc3f5cccedeae97d7b03609bcdcf4db41c91d622db839c99ab83c506",
+   "size": 2000064,
+   "what": "the Dreamcast program (fpdc.elf, stripped)",
+   "licence": "this repository",
+   "source": "commit a8551c8 (master)"
+  }
+ ]
+}
