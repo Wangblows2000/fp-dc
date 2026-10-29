@@ -90,6 +90,7 @@ typedef struct {
     uint8_t used, character, mode, last_stage;   /* y6 > 0, y8 G1, y12 (0 Adventure, 1 Classic), y5 last completed s (0xff none) */
     uint8_t lives, shield; uint16_t counter;     /* y1, y3, y9: carried into the next stage */
     save_stage_t stage[SAVE_STAGES];             /* totals (y4 crystals, y6 time, y7 deaths) are sums of these (RE 954) */
+    uint8_t story;                               /* v5 (session 25, Adventure): story position = the last story scene id + 1 (0 none) */
 } save_file_t;
 typedef struct { uint32_t time; uint16_t crystals; } save_rec_t;   /* records.dat x(3+J) y(2s+1) best time ms (0 none), y(2s+2) best crystals */
 typedef struct {
@@ -101,6 +102,7 @@ typedef struct {
     uint8_t cards[(SAVE_CARDS + 7) / 8];   /* records x20: card id n taken = bit n - 1 */
     uint8_t cards_open[(SAVE_CARDS + 7) / 8];   /* v4 (session 15, gallery): records x20 == 2, card turned face up (opened) */
     uint8_t ach[SAVE_ACH];             /* v4: records x2 y(k), k = 1..56 at ach[k - 1]: 0 locked, 1 earned (not announced), 2 announced */
+    uint8_t story_seen[8];             /* v5 (session 25): story scene id n seen = bit n (src/game/story.c, story/story.txt order) */
 } save_t;
 int    save_card_total(void), save_card_has(int id);
 void   save_card_set(int id);
@@ -657,7 +659,7 @@ typedef struct {
 
 extern game_t G;
 
-enum { MODE_FRONTEND, MODE_PLAY, MODE_RESULTS, MODE_SELECT, MODE_ENDING };
+enum { MODE_FRONTEND, MODE_PLAY, MODE_RESULTS, MODE_SELECT, MODE_ENDING, MODE_STORY };   /* MODE_STORY: an Adventure story scene (src/game/story.c) */
 /* the end of the game (session 24, src/game/ending.c; RE frame 8 routing: s 13 (Final Dreadnought 4) -> frame index 83 in
  * Classic and Adventure; Time Attack -> its stage select). results.c's stage end calls it after Final Dreadnought round 4's
  * results (and the achievement pop-up); a stage script without results may call it at the round's end: it saves the stage
@@ -683,6 +685,8 @@ int  fe_enter(void);
 int  fe_enter_from_stage(int time_attack);
 int  fe_enter_ach_popup(int time_attack, int next_stage);   /* session 16: frame index 9 after a stage (achievement pop-up), then on (next_stage 1: the route's next stage, 2: the ending) */
 int  game_next_stage(void);   /* Classic: load the route's next stage after the results (1: done) */
+int  game_start_stage(const char *dir);   /* session 25: load stage dir as the run's next stage (carries lives, crystals, shield; -1 failed) */
+void game_pause_panel(int frame, int sel, int wipe, float wipe_x);   /* the pause panel (GUIPause frame, cursor row, the quit wipe): story.c */
 /* hub (frame index 3: title menu / file select / mode select / options), src/game/fe_hub.c */
 enum { HUB_EXIT_TIME_ATTACK = 1, HUB_EXIT_QUIT, HUB_EXIT_NEW_ADVENTURE, HUB_EXIT_NEW_CLASSIC, HUB_EXIT_CONTINUE, HUB_EXIT_GALLERY };
 struct ui_scene_s;
