@@ -535,9 +535,9 @@ def selftest():
         except (OSError, subprocess.CalledProcessError): tree = None
         for e in t['files']:
             if tree and e.get('src_tree') and e['src_tree'] != tree:
-                print('FAIL prebuilt/%s was built from an older src/ (tree %s, now %s): run tools/builder/build_release.sh '
-                      '--program-only%s' % (e['name'], e['src_tree'][:10], tree[:10],
-                                            ' and build_release_pc.sh' if e['name'] != 'fpdc.elf' else '')); ok = False
+                print('FAIL prebuilt/%s was built from an older src/ (tree %s, now %s): run tools/builder/%s'
+                      % (e['name'], e['src_tree'][:10], tree[:10], 'build_release.sh --program-only' if e['name'] ==
+                         'fpdc.elf' else 'build_release_pc.sh')); ok = False
     import convert_audio as ca
     if len(needed_voices()) < 30 or not ca.SFX: print('FAIL sfx list'); ok = False
     print('selftest %s' % ('ok' if ok else 'FAILED'))
