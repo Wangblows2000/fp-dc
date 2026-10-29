@@ -35,10 +35,16 @@ def ported(sc):
 def step(s):
     return s if s else 'menu'
 
+def sids():
+    """tables/story/sids.json: the permanent scene numbers (seen flags, saved story position; append-only)"""
+    return json.load(open(os.path.join(TABLES, 'sids.json'), encoding='utf-8'))['sid']
+
 def write_table(out, sc):
-    rows = ['# Adventure story scenes (tools/import_story.py from tables/story/scenes.json): id room g4 next [skip=] [stage=] [panel=] [trig=] [chr=]']
+    rows = ['# Adventure story scenes (tools/import_story.py from tables/story/scenes.json): id room g4 next sid= [skip=] [stage=] [panel=] [trig=] [chr=]']
+    sid = sids()
     for s in ported(sc):
-        r = '%s %d %d %s' % (s['id'], s['room'], s['g4'], step(s.get('next')))
+        if s['id'] not in sid: sys.exit('import_story: scene %s has no number in tables/story/sids.json (append the next free one)' % s['id'])
+        r = '%s %d %d %s sid=%d' % (s['id'], s['room'], s['g4'], step(s.get('next')), sid[s['id']])
         if s.get('skip') and s['skip'] != s.get('next'): r += ' skip=%s' % s['skip']
         if s.get('stage'): r += ' stage=%s' % s['stage']
         r += ' panel=%d' % s.get('panel', 1)
