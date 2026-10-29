@@ -18,6 +18,7 @@
  *   original font, one voice clip per line (story/vo/<voice>.wav, loaded per line, text-only when missing).
  * - Data (tools/import_story.py from tables/story/, committed; the builder runs it):
  *     story/story.txt       the scene table (below)
+ *     story/inline.txt      the in-stage scenes (same columns; next "back"): RM5's Adventure dialogue (session 25b)
  *     story/<id>.scn        one scene script per scene (tables/story/scripts/<id>.scn)
  *     story/dlg_<h>.txt     the DialogData paragraphs of object <h> (tables/story/dialog.json)
  *     story/vo/<voice>.wav  voice clips (tools/audio/convert_audio.py story), absent when the install has stubs
@@ -25,10 +26,12 @@
  *
  * ---- Scene table (story/story.txt), one scene per line, '#' comments:
  *     <id> <json room> <g4> <next> [skip=<next>] [stage=<level dir>] [panel=<0|1|2>] [trig=<trigger>...] [chr=<mask>]
- *   next / skip: "scene:<id>", "stage:<level dir>", "route" (frame 8: the stage after the last one), "menu";
+ *   next / skip: "scene:<id>", "stage:<level dir>", "route" (frame 8: the stage after the last one), "menu", "back" (an
+ *   in-stage scene, story_inline_begin: the stage that started it goes on);
  *   skip "mark:chsel": SKIP SCENE jumps to the scene's own character select (no completion, RV k75_g0_skip700)
  *   stage: the NEXT STAGE row's target (panel 2); panel: the pause menu (0 none: START = SKIP at once, RV k81_g2_start;
- *   1 GUIPause frame 1 RESUME / SKIP SCENE / QUIT; 2 frame 2 RESUME / SKIP SCENE / NEXT STAGE)
+ *   1 GUIPause frame 1 RESUME / SKIP SCENE / QUIT; 2 frame 2 RESUME / SKIP SCENE / NEXT STAGE; 3 no pause at all: START does
+ *   nothing, RV k69_g99_skip in the flashback room 70)
  *   trig: "new" (a new Adventure), "end:<I>" (frame 8 after stage I); chr: g1 mask (1 Lilac, 2 Carol, 4 Milla; default 7)
  *   room: the story room st<room>: the json frame, or a split room of a large frame (json * 100 + CutsceneList index: frame
  *   83's scenes, docs/ADVENTURE.md 10). A scene whose chr excludes the character plays the scene of the same json frame and
@@ -36,19 +39,23 @@
  *
  * ---- Scene script (story/<id>.scn, tools/story_rv2scn.py), one entry per line:
  *     scene <id> / room st<json> / dialog <handle> / title <text>
- *     actor <n> <class>_<handle> <json layer> [ink] actor n (0..127), drawn with the rows s<handle>_<anim>_<dir>;
+ *     actor <n> <class>_<handle> <json layer> [ink] actor n (0..255), drawn with the rows s<handle>_<anim>_<dir>;
  *                                                    ink "add" (set_shader 0x20) or "a<alpha>" (blend colour, RE)
  *     seg <k>                                        segment k: starts at the scene start (0) or when the line of the
  *                                                    previous segment is dismissed (A with the arrow shown)
  *     <t> p <n> <x> <y>                              actor position (frame coordinates) at segment time t
  *     <t> m <n> <dx> <dy> <count>                    moves by (dx, dy) every frame for count frames from t
+ *     <t> l <n> <x> <y> <k>                          moves linearly to (x, y) in k frames from t (rounded to the pixel)
  *     <t> i <n> <anim> <dir> <frame>                 actor image (the original's animation, direction, frame index)
  *     <t> v <n> <0|1>                                visibility
+ *     <t> a <n> <alpha>                              actor blend alpha 0-255 (RV FrameObject blend colour, STORY_BLEND)
  *     <t> c <x> <y>                                  view top-left
  *     <t> say <line> <box frame>                     DialogBox shows paragraph <line> (DialogBox frame); voice played
  *     <t> close                                      DialogBox hidden
  *     <t> s <id> / <t> o <voice> / <t> u <bgm file|->   sound id / a voice clip outside the dialogue / music
  *     <t> f <frames> [1]                             fade: > 0 from black, < 0 to black (1: white instead of black)
+ *     <t> fa <alpha> [1]                             the cover's alpha now (RV: the LevelCardFade objects' blend alpha)
+ *     <t> fw <x>                                     the black wipe at x (as the pause rows' wipe: game_wipe_draw; -999 off)
  *     <t> chsel                                      the in-scene character select (frame 75: Lilac / Carol, sets g1)
  *     <t> cap <row> <key> / <t> capx                 caption row 0-3 from story/captions.txt / all captions off
  *     <t> pv <handle> <0|1>                          the room's parallax piece <handle> hidden / shown (par_set_hidden)
@@ -67,6 +74,8 @@ void story_reset(void);              /* no run (menu, Time Attack, Classic, deve
 int  story_new_game(int character);  /* a new Adventure: the opening scene (frame 81 g4 2); 0 = started, -1 = no story data */
 int  story_stage_end(int stage);     /* frame 8 after stage I in Adventure: a scene (1 = started) or 0 (the caller routes on) */
 int  story_continue(int last_stage); /* continue an Adventure file: frame 8 with the file's stage (1 = a scene started) */
+int  story_inline_begin(const char *name);   /* an in-stage scene over the loaded stage (next "back"); 0 = started */
+int  story_inline_done(void);        /* 1 once after the in-stage scene ended (the stage goes on) */
 void story_update(const input_t *in);
 void story_draw_layer(int pass);     /* game_draw: actors behind (0) / with the play layer (1) / in front (2) */
 void story_draw_overlay(void);       /* DialogBox, pause menu, fades */
@@ -83,5 +92,6 @@ void story_host_dump(void);          /* host "<f> STORY": state line */
 int  story_host_play(const char *name);   /* host "<f> SCENE <id>": play a scene as if triggered (gate still applies) */
 int  story_host_new(int character);      /* host "<f> ADVNEW <g1>": a new Adventure as the hub starts it */
 int  story_host_stage_end(void);         /* host "<f> STAGEEND": frame 8 after the current stage (1 scene, 2 next stage) */
+void story_host_drop(void);              /* host "<f> LOAD": a scene playing is left without its completion (the run stays) */
 #endif
 #endif

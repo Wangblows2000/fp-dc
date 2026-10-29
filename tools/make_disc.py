@@ -41,6 +41,7 @@ def tree(data, disc, bgm=None, demo=None):
     if os.path.isfile(os.path.join(sd, 'story.txt')):
         copy(sd, ['*.txt', '*.scn'], os.path.join(d, 'story'))
         copy(os.path.join(sd, 'vo'), ['*.wav'], os.path.join(d, 'story', 'vo'), required=False)
+        copy(os.path.join(sd, 'sfx'), ['*.wav'], os.path.join(d, 'story', 'sfx'), required=False)   # the scenes' sound copies
         rooms = sorted({'st' + l.split()[1] for l in open(os.path.join(sd, 'story.txt'), encoding='utf-8')
                         if l.strip() and not l.startswith('#')})
         for rm in rooms:

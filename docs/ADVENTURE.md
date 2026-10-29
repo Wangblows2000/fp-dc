@@ -363,6 +363,10 @@ RV traces of each group. Several `next` values are `route` placeholders today.
 | D: Jiang River and Thermal Base | jiang_river, tb_torture, tb_team_spade, tb_brevon, zao_airship_ambush | 80, 81, (SB2 g4 99) | the ambush is an in-stage scene of SB2 (stage module); end:6 variants |
 | E: Final battle and epilogue | sf_army, sf_camp, ending | 82 (+ 81 / 82 epilogue) | room 82 is shared with adv_opening; the epilogue goes before / around `ending.c` (end:13) |
 
+**Groups A and B (session 25b):** ported; see `docs/ADVENTURE_ARC2.md` (chains, pause rows with RV, variants, the RM5
+in-stage dialogue, sound per scene, VRAM per room). Correction for group D: the ambush is frame 82 g4 7 (room 83, RE K 19),
+not SB2 g4 99 (that is Jiang River, RE K 20).
+
 ## 10. Arc 3: json frame 83 (groups C1 / C2)
 
 Groups C1 and C2 are ported: 16 of their scenes plus `jc_cave_cm`, a character variant of `jc_cave`. One scene is partial
