@@ -259,7 +259,10 @@ are `results.c` (the results popup's next stage; never in Time Attack) and `fe_g
 Restarts and act changes inside a stage never call it, so a Classic or TA run cannot start a scene, and no Adventure
 state survives a return to the menu.
 
-**Story state** is the run's story position (the next scene id) plus 64 seen flags.
+**Story state** is the run's story position plus 64 seen flags. Both use each scene's **permanent number** (`sid`,
+`tables/story/sids.json`, written into `story.txt` as `sid=`), not its row in `story.txt`, which shifts as scenes are
+ported: a save keeps meaning the same scenes across versions. The numbers are append-only (a new scene takes the next free
+one; `tests/test_story_sids.py` freezes the existing ones). The position is sid + 1 of the last completed scene (0: none).
 
 **Save.** The save is now v5 (`save.c`): one story byte per file and 8 bytes of seen flags, 1,377 bytes in total, still
 6 VMU blocks. v3 and v4 saves load with story = 0 / no flags (tests/test_saves.py). The position is written:
