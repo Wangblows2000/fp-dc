@@ -27,7 +27,8 @@ enum {
     OT_FDE_PODSPOT = 2633, /* EnemyEliteSpawnerSpawner_3453 (ctor invisible): FD1a's pod-rain drop points (15287) */
     OT_FDE_GDEB = 2700     /* runtime: EnemyGatlingGunDebris_3673 */
 };
-void fd_enemy_pod_rain(int on);       /* FD1a: the dialog's step (15284, the subtitle object's C = 1) starts the pod rain (15287) */
+int  fd_alarm_alpha(double A);              /* AlarmLight_3495's alpha byte from its A (RE 16184 FD3a / 15388 FD1b): 255 - clamp(200 cos A + 180) */
+void fd_enemy_pod_rain(int on, player_t *p);   /* FD1a: the dialog's step (15284, the subtitle object's C = 1) starts the pod rain (15287) */
 void fd_enemy_gatlings_wake(void);    /* FD3a: 16183 (the alarm's B 540): dormant gatling guns (flag 4) wake */
 int  fd_enemy_gatlings_dormant(void); /* gatling guns still dormant (tests) */
 

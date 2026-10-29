@@ -177,7 +177,7 @@ static void doors(player_t *p) {
 
 /* ================================================================ 3. metal doors (RE 11826-11838)
  * MetalDoorBack / Front: frame = A (0..10, 0.5 a frame): A + 0.5 (max 10) while the PLAYER is within 59 px (x) of it and
- * on screen (80), else A - 0.5 (min 0); sound 279 when it starts opening, 280 when it starts closing. Scenery (no q7).
+ * on screen (80), else A - 0.5 (min 0); sound 279 when an opening front reaches A 1, 280 when a closing one reaches A 2. Scenery (no q7).
  * (TBWallLightAnim, 11826, is tb_flow.c's.) */
 static int mdoor_ywin = 59;
 void tb_gim_mdoor_ywin(int y) { mdoor_ywin = y; }   /* Final Dreadnought's lab doors (fd_gim.c): 79 */
@@ -187,8 +187,10 @@ static void scenery(player_t *p) {
     EACH(OT_TBG_MDOOR, o) {
         int nearp = !dead(p) && in_view(o, 80) && fabs(PX(p) - o->x) <= 59 && fabs(PY(p) - o->y) <= mdoor_ywin;   /* 11828 / 11829 (FD's lab doors 15641 / 15646: 79) */
         double A = o->av[0];
-        if (nearp) { if (A == 0 && o->par == 1) snd(279); A = fmin(A + 0.5, 10); }   /* 11830 / 11835 / 11837 */
-        else { if (A == 10 && o->par == 1) snd(280); A = fmax(A - 0.5, 0); }         /* 11827 / 11832 / 11838 */
+        if (nearp) { A = fmin(A + 0.5, 10); if (A == 1 && o->par == 1) snd(279); }   /* 11830 / 11835; 11837: the front opening (flag 1) at A 1 */
+        else { A = fmax(A - 0.5, 0); if (A == 2 && o->par == 1) snd(280); }          /* 11827 / 11832; 11838: closing (flag 1 off) at A 2 (RV small fixes
+                                                                                      * tb4_door: the front at x 24 closing from 10 at 61, 280 at 75; FD's
+                                                                                      * lab doors 15650 / 15651 the same) */
         o->av[0] = A;
         if (o->an.b) { int c = o->an.b->anims[o->an.anim].count; int f = (int)A; o->an.frame = f >= c ? c - 1 : f; o->an.acc = 0; }
     }

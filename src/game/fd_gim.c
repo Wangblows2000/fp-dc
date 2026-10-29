@@ -21,6 +21,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "ui.h"
 
 #define RAD 57.29577951308232
 #define RT0 OT_FDG_TSTART
@@ -44,6 +45,7 @@ static struct {
     int wind_ch;                                   /* sound 381's loop channel or -1 */
     int siren_a, siren_b;                          /* fd2b's script state: the off-map ObjectSiren's A / B (15802-15811) */
     int jA, jB;                                    /* fd1a's screen script: the subtitle object's A / B (15273-15303) */
+    int sub;                                       /* fd1a's subtitle (TextBlitter 0x1aff0) shown: its paragraph (0 / 1) or -1 */
 } S;
 #define LST S.lst
 #define NLS S.nls
@@ -736,15 +738,16 @@ int fd_gim_siren_state(void) { return S.siren_a; }
  * (par 1, its screen; ctor invisible; anim 0 = 6 frames looping, anim 7 = 4 frames at speed 0). Every frame (15302): the jumbotron at
  * x = trunc(view x 0.9 + 960), y = LevelParallaxPiece0_3390's y; the screen at the jumbotron's action point (get_action_x / _y, vtable
  * +0x18 / +0x20: x + 430, y + 128; the placements (0, 96) / (430, 224) agree); each BackgroundSpawner_3454 at the screen + (A, B), then
- * B - 10; B < -100 destroys it (15303). The script is the subtitle object's A / B (TextBlitter 0x1aff0; its voices and subtitles are not
- * ported): 15273 A 0 -> 1 (X > 800, g4 < 2); A 1: B + 1, B > 250: A 2; A < 3, X > 11111, Y > 1760: A 3, the screen shown, B 0; A 3: B + 1;
- * 15279 (B 20): the screen's anim 7; B 90 / 100 / 110: its frames 1 / 2 / 3; 15283: 140 < B < 240 and B even: a BackgroundSpawner at
- * (screen x, screen y + 140) with A = Random(200) - 50; (B 160: C 1, the pod rain: fd_enemy.c keeps its own start); B 250: restore_frame,
+ * B - 10; B < -100 destroys it (15303). The script is the subtitle object's A / B (TextBlitter 0x1aff0): 15273 A 0 -> 1 (X > 800,
+ * g4 < 2; voice br_pa_01 on channel 28, paragraph 0 shown); A 1: B + 1, B > 250: A 2, hidden; A < 3, X > 11111, Y > 1760: A 3, the screen
+ * shown, B 0; A 3: B + 1; 15279 (B 20): the screen's anim 7, voice br_pa_02; B 90 / 100 / 110: its frames 1 / 2 / 3 (110: paragraph 1
+ * shown, 15282); 15283: 140 < B < 240 and B even: a BackgroundSpawner at (screen x, screen y + 140) with A = Random(200) - 50; B 160: C 1,
+ * the pod rain (15284 -> fd_enemy.c 15287; RV small fixes fd1a_dlg: voices at the teleport frame 650 and 669, C 1 at 810); B 250: restore_frame,
  * anim 0; B > 270: the screen hidden, A 4. RV (build/orig_traces/late_gim, rv3 / rv4): the jumbotron at (10938, 1694) under the view top
  * 1776, its screen at + (430, 128) with anim 7 from B 20, the frames, pods and the hide as above; the pillar placed at x 3248 at (3248, 187),
  * angle 320.599 in fd3a's start view (camera 0, 274), as the port computes it. */
 #define FD1A_PIECE0 3390                           /* LevelParallaxPiece0_3390: the jumbotron's y (15302) */
-static void backdrop(const player_t *p) {
+static void backdrop(player_t *p) {
     obj_t *o, *j = NULL, *s = NULL;
     int vl = (int)G.camx, vt = (int)G.camy;
     EACH(OT_FDG_PILLAR, o) {                                                    /* 16192 */
@@ -754,11 +757,17 @@ static void backdrop(const player_t *p) {
     if (!N(OT_FDG_JUMBO)) return;
     EACH(OT_FDG_JUMBO, o) { if (o->par == 1) s = o; else j = o; }
     double X = p->x, Y = MY(p);
-    if (S.jA == 0 && X > 800 && G.at_g4 < 2) S.jA = 1;                          /* 15273 */
-    if (S.jA == 1 && ++S.jB > 250) S.jA = 2;
+    if (S.jA == 0 && X > 800 && G.at_g4 < 2) { S.jA = 1; voice_play("br_pa_01"); S.sub = 0; }   /* 15273: voice br_pa_01 (channel 28), paragraph 0 shown */
+    if (S.jA == 1 && ++S.jB > 250) { S.jA = 2; S.sub = -1; }                    /* 15274 / 15275: hidden */
     if (X > 10680) G.cam_nF = 2016;                 /* (the same block: the camera's bottom F 2016 past x 10680; RV: view top 1776 there) */
     if (S.jA < 3 && X > 11111 && Y > 1760) { S.jA = 3; S.jB = 0; if (s) s->st = 1; }
     if (S.jA == 3) S.jB += 1;
+    if (S.jA == 3) {
+        if (S.jB == 20) voice_play("br_pa_02");                                 /* 15279: voice br_pa_02 (channel 28) */
+        if (S.jB == 110) S.sub = 1;                                             /* 15282: paragraph 1 shown */
+        if (S.jB == 160) fd_enemy_pod_rain(1, p);                               /* 15284: C 1 (the pod rain, 15287) */
+        if (S.jB > 270) S.sub = -1;                                             /* 15286: hidden */
+    }
     if (S.jA == 3 && s) {
         if (S.jB == 20) { set_s(s, "fdg_jumbo2_7"); set_frame(s, 0); }         /* 15279 */
         if (S.jB == 90 || S.jB == 100 || S.jB == 110) set_frame(s, (S.jB - 80) / 10);
@@ -778,6 +787,43 @@ static void backdrop(const player_t *p) {
         if (s) { o->x = trunc_i(s->x + o->av[0]); o->y = trunc_i(s->y + o->av[1]); }
         o->av[1] -= 10;
         if (o->av[1] < -100) o->alive = 0;                                      /* 15303 */
+    }
+}
+/* fd1a's subtitles (RE 15273 / 15275 / 15282 / 15286): SubtitleText_3449 (a TextBlitter on json layer 6, font.bmp's 8 x 20 cells)
+ * shows SubtitleData_3450's paragraph 0 at 15273 and paragraph 1 at B 110 (15282), hidden at 15275 / 15286 (S.sub). The paragraphs
+ * are story/captions.txt's sub3450_0 / _1 (tables/story/dialog.json via tools/import_story.py). RV (late_gim fd1a_jumbo f532,
+ * "BREVON: GET THEM."; small fixes fd1a_dlg f700: paragraph 0 in two rows): the TextBlitter at (53, 176), 320 px wide; rows wrapped at
+ * a word within 40 glyphs, centred on x 213 (8 px a glyph), 20 px apart; one row's glyph tops at y 200 (the cells at 196), two rows'
+ * at 190 / 210; black transparent. */
+static ui_banks_t subfont;
+static char subtxt[2][96];
+static void sub_load(void) {
+    size_t sz; char *t = plat_load_file("story/captions.txt", &sz);
+    subtxt[0][0] = subtxt[1][0] = 0;
+    for (char *q = t; q && q < t + sz;) {
+        char *e = q; while (e < t + sz && *e != '\n' && *e != '\r') e++;
+        for (int k = 0; k < 2; k++) {
+            char key[16]; int n = snprintf(key, sizeof key, "sub3450_%d ", k);
+            if (e - q > n && !memcmp(q, key, (size_t)n)) { int m = (int)(e - q) - n; if (m > 95) m = 95; memcpy(subtxt[k], q + n, (size_t)m); subtxt[k][m] = 0; }
+        }
+        q = e; while (q < t + sz && (*q == '\n' || *q == '\r')) q++;
+    }
+    free(t);
+    if (!subfont.n && (subtxt[0][0] || subtxt[1][0]) && bank_load(&subfont.bank[0], "ui/font") == 0) subfont.n = 1;
+}
+void fd_gim_level_free(void) { if (subfont.n) ui_banks_free(&subfont); memset(&subfont, 0, sizeof subfont); }   /* game.c level_free */
+static void sub_draw(void) {
+    if (S.sub < 0 || S.sub > 1 || !subfont.n || !subfont.bank[0].nframes) return;
+    const bank_t *f = &subfont.bank[0]; const char *t = subtxt[S.sub], *rs[4]; int rn[4], nr = 0;
+    while (*t && nr < 4) {                                                       /* word wrap at the box's 320 px (40 cells) */
+        int n = 0, cut = 0;
+        while (t[n] && n < 40) { if (t[n] == ' ') cut = n; n++; }
+        if (t[n] && t[n] != ' ' && cut > 0) n = cut;
+        rs[nr] = t; rn[nr++] = n; t += n; while (*t == ' ') t++;
+    }
+    for (int r = 0; r < nr; r++) {                                               /* rows 20 px apart, centred on x 213 */
+        float x = (float)(SCREEN_W / 2 - rn[r] * 4), y = (float)(196 - 10 * (nr - 1) + 20 * r);
+        for (int i = 0; i < rn[r]; i++, x += 8) { int ch = (unsigned char)rs[r][i] - 32; if (ch > 0 && ch < f->nframes) frame_draw(f, &f->frames[ch], x, y, 0, 0xffffffff); }
     }
 }
 static void back_draw(void) {
@@ -820,7 +866,7 @@ static const char *const AN0[] = {                                              
 void fd_gim_spawn(void) {
     static int reg;
     if (!reg) { reg = 1; snap_register(&S, sizeof S); }
-    memset(&S, 0, sizeof S); S.wind_ch = -1;
+    memset(&S, 0, sizeof S); S.wind_ch = -1; S.sub = -1;
     tb_gim_mdoor_ywin(fd_flow_act() ? 79 : 59);                                /* the lab doors (TB's metal doors): 15641 / 15646 */
     objects_plat_path(OT_FDG_PUSH, 0, 0, 1, 0, 0, 1, 0);                        /* (15623-15628 set I / J) */
     objects_plat_path(OT_FDG_BIGLIFT, 0, 0, 1, 0, 0, 1, 0);                     /* (15758 sets J) */
@@ -850,7 +896,7 @@ void fd_gim_spawn(void) {
     obj_t *o, *q;
     EACH(OT_FDG_TSTART, o) o->av[0] = 90;                                       /* ctor A 90 */
     EACH(OT_FDG_TNODE, o) {                                                     /* 15189-15191: a node on a start turns it and goes */
-        o->an.b = NULL;
+        set_s(o, "fdg_tnode"); o->hidden = 0;                                    /* visible: the plain junction circle (RV small fixes fd1a_node) */
         if ((o->par & 3) == 1) continue;
         EACH(OT_FDG_TSTART, q) if (fabsf(q->x - o->x) < 64 && fabsf(q->y - o->y) < 64) { q->av[0] = 90. * (o->par & 3); o->alive = 0; }
     }
@@ -915,6 +961,7 @@ void fd_gim_spawn(void) {
     EACH(OT_FDG_PILLAR, o) { set_s(o, "fdg_pillar"); o->av[0] = floorf(o->x); o->av[1] = floorf(o->y); o->hidden = 1; }   /* 16206: A, B; drawn by back_draw */
     EACH(OT_FDG_JUMBO, o) { set_s(o, o->par == 1 ? "fdg_jumbo2" : "fdg_jumbo"); o->hidden = 1; o->st = o->par != 1; }    /* st: shown (the screen: ctor invisible) */
     S.jA = S.jB = 0;
+    if (N(OT_FDG_JUMBO)) sub_load();                                            /* fd1a's subtitle paragraphs and font */
     if (N(OT_FDG_PILLAR) || N(OT_FDG_JUMBO)) par_set_hook(PAR_HOOK_END, back_draw);    /* json layer 0, after every parallax piece */
     if (N(OT_FDG_LSWITCH) == 2 * N(OT_FDG_BIGLIFT)) {                           /* (INFERRED: each lift takes its two switches, by class) */
         int i1 = 0, i2 = 0;
@@ -955,6 +1002,7 @@ void fd_gim_frame(player_t *p) {
 #endif
 }
 void fd_gim_draw(int pass) {
+    if (pass == 3) { sub_draw(); return; }                                      /* objects_draw(3): fd1a's subtitle (json layer 6) */
     if (!S.on || pass != 1) return;
     obj_t *b;
     EACH(OT_FDG_ZBEAM, b) {                                                     /* the beam: 10-px tiles along its y-scaled length */
