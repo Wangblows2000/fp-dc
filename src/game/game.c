@@ -1093,12 +1093,12 @@ void game_draw(void) {
     draw_pieces(0, 0);
     if (story) story_draw_layer(0);
     pieces_s08 = 1; draw_pieces(1, 1);
-    objects_draw(-1); sb_flow_draw(-1); pl_enemy_draw(-1);   /* PL: the json-1 swarm at scroll 1 (pl_enemy.c) */
+    if (!story) { objects_draw(-1); sb_flow_draw(-1); pl_enemy_draw(-1); }   /* story rooms: every object the scene shows is a script actor */   /* PL: the json-1 swarm at scroll 1 (pl_enemy.c) */
     pieces_s08 = 0; draw_pieces(1, 1); pieces_s08 = -1;
-    objects_draw(0);
+    if (!story) objects_draw(0);
     fn_gimb_draw_back();                          /* FN: carousel rings, A5 disco light (back of the play layer) */
     draw_pieces(2, 2);
-    objects_draw(1);
+    if (!story) objects_draw(1);
     water_draw_front();
     int pfront = jc_boss_player_front();          /* JC3: the player on the subtanker's layer, in front of its pieces (jc_boss.c) */
     if (story) story_draw_layer(1);
@@ -1114,7 +1114,7 @@ void game_draw(void) {
     if (pfront && !story && game_player_visible()) player_draw(&G.p);
     if (pfront && !story) shields_draw(&G.p);
     par_draw_front();                             /* layer-3 parallax pieces (RM3 piece5, the caravan chase) */
-    objects_draw(2);
+    if (!story) objects_draw(2);
     draw_pieces(4, 7);
     relic_gima_draw_overlay();                    /* RM2 basement darkness (5997, BasementLight on layer 5) */
     rm_mantalith_draw(0);                         /* RM5 end: light rays, hook line, ground cuts (rm_mantalith.c) */

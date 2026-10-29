@@ -2140,6 +2140,14 @@ ALPHA_MIN = int(os.environ.get('FP_ALPHA_MIN', '1'))
 # as one TILED piece (pad bit 2 + a size record, write_lv2; game.c draws only the visible tiles); a solid fill tiles a
 # shared 64 x 64 colour block (synthetic image ids >= QB_BASE). Collision is rasterised from the expanded tiles.
 QB_BASE, QB_SYNTH = 10000000, {}
+def story_par(n):
+    """session 25: a story room's parallax pieces the scenes show, {handle: [D, E, F]} (RV alterables, tables/story/rows.json 'par')"""
+    rp = os.path.join(_FP_ROOT, 'tables', 'story', 'rows.json')
+    if not os.path.isfile(rp): return {}
+    out = {}
+    for sc in json.load(open(rp, encoding='utf-8')).values():
+        if sc.get('json') == n: out.update(sc.get('par', {}))
+    return out
 STORY_UI = [('dialogbox_551', 0, '0', 'dlgbox'), ('dialogbox2_552', 0, '0', 'dlgname'), ('dialogarrow_553', 0, '0', 'dlgarrow')]
 def story_rows(n, an, report):
     """Session 25 (Adventure mode): the rows a story room's scene scripts draw, from tables/story/rows.json (written by
@@ -2436,9 +2444,10 @@ def export_parallax(fr, src, name, out, an=None):
         key = '%s_%d' % (o['cls'], o['id'])
         if o['cls'] == 'levelparalaxwatersurface' and o['x'] is not None: water = 2700
         if o['cls'] == 'levelparalaxwatersurface' and fr['frame'] in JC_WATER: water = JC_WATER[fr['frame']]   # mode 2 (Jade Creek)
-        if key not in PAR_IMG or o['y'] is None: continue
+        spar = story_par(fr['frame']).get(str(o['id'])) if o['cls'].startswith('levelparallax') else None   # session 25: story rooms
+        if (key not in PAR_IMG and not (spar and an and an.get(key, {}).get('images'))) or o['y'] is None: continue
         if o['id'] in PAR_FIXED_SKIP and (fr['frame'], o['id']) not in PAR_FIXED: continue   # BG_FLOW: the ships only where exported
-        img = PAR_IMG[key]
+        img = PAR_IMG[key] if key in PAR_IMG else an[key]['images'][0]
         if img not in imgidx:
             im, hx, hy = load_img(src, img)
             fw, fh = im.width, im.height
@@ -2457,7 +2466,7 @@ def export_parallax(fr, src, name, out, an=None):
                     x += cw
                 y += ch
             imgidx[img] = len(images); images.append((fw, fh, chunks, iflags))
-        D, E, G = PAR_DEG_FRAME.get((fr['frame'], o['id']), PAR_DEG.get(o['id'], (.5, .5, 0)))
+        D, E, G = PAR_DEG_FRAME.get((fr['frame'], o['id']), PAR_DEG.get(o['id'], tuple(spar) if spar else (.5, .5, 0)))
         flags = 0
         if has_switch and o['id'] in (491, 891): flags |= 1        # shown while view top < 1360 (5101/5102)
         if has_switch and o['id'] in (1006, 1005): flags |= 2      # shown while view top >= 1360

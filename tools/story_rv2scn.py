@@ -22,6 +22,15 @@ import json, os, re, sys, argparse
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 
+# never actors: the DialogBox (its own entries), backdrops ('pv'), stage cards (the stage's own), fades ('f'), the player's
+# hidden skins and helpers
+DROP = re.compile(r'^(dialog|lipsync|levelparallax|levelcard|levelcardfade|fade|fadeedge|player_|playerskin(spade|torque)|'
+                  r'playerreflect|playerdig|playerskintorquearm|whitefade|mouseobject|globalinputdata|ini_|highlighter|'
+                  r'controlbox|savedata|mapdata|recorddata|guipause|crystal_447|sarassteam|windowcontrol|stagelist|'
+                  r'masterlevel|playerassist|enemylimiter|sign_|link_|separator|objectcrystal_317|monitor|yellowspring|redspring|'
+                  r'gimmickbridge|objectbike|thunderspark|effectswatersplash|ringsparkle|playerskincarolbike|playerskinmilla|'
+                  r'effectfallingleaf)')   # ambient falling leaves (random sine paths: 36k entries a scene) are left out (INFERRED)
+
 def load_dialog(handle):
     d = json.load(open(os.path.join(ROOT, 'tables', 'story', 'dialog.json'), encoding='utf-8'))
     return d['dialog'].get(str(handle), [])
@@ -30,15 +39,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('log'); ap.add_argument('sid'); ap.add_argument('json', type=int); ap.add_argument('dialog')
     ap.add_argument('first', type=int); ap.add_argument('end', type=int); ap.add_argument('out')
-    ap.add_argument('--actors', default=r'^(npc|placeholder|playerskin(sash|carol|milla|torque|spade)?_|the|brevon|torque|zao|gong|'
-                                        r'neera|syntax|kingdom|serpent|boss|comet|space|parallaxcrash|caravan|soldier|jeep|enemy|'
-                                        r'minibossufo|ship|pigeon|charactersel|character\d|charname|levelcard|locationname|mrstumpy|'
-                                        r'breakable|collapsing|monitorcrate|creditstorque|gongshield|chips|tentlight|objecttent)')
-    ap.add_argument('--drop', default=r'^$')
+    ap.add_argument('--actors', default=r'.', help='classes that may be actors (default: every traced class but the --drop ones)')
+    ap.add_argument('--drop', default=r'^$', help='more classes left out (besides DROP: the DialogBox, backdrops, cards, fades, helpers)')
     ap.add_argument('--next', default='route')
     ap.add_argument('--title', default='')
     ap.add_argument('--chsel', default='', help='OPEN,PRESS: the in-scene character select opens at frame OPEN, the choice at PRESS')
     ap.add_argument('--rows', default='', help='extra rows class_handle:anim:dir,... (rows the trace did not show)')
+    ap.add_argument('--caption', action='append', default=[], help='F0,F1,key|key: caption rows shown from F0 to F1 (RV screenshots)')
     ap.add_argument('--fadeout', default='', help='F,N: a fade to black of N frames from frame F (INFERRED: the wipe)')
     a = ap.parse_args()
     lines = load_dialog(a.dialog) if a.dialog != '-' else []
@@ -49,6 +56,7 @@ def main():
 
     # ---- parse the window
     obj = {}           # addr -> {'cls', 'st': {f: state}}
+    par = {}           # parallax class -> {'st': {f: vis}, 'alt'}
     box = []           # (f, vis, E, F, C, img frame)
     snd, cams, presses, gone = [], [], [], {}
     for l in open(a.log, encoding='latin1'):
@@ -56,8 +64,8 @@ def main():
         if not t or len(t) < 2 or not t[1].lstrip('-').isdigit(): continue
         f = int(t[1])
         if f < a.first or f >= a.end:
-            if t[0] == 'O' and f < a.first:          # state before the window: the initial state
-                pass
+            if t[0] == 'O' and f < a.first and a.first == 0: pass   # (a trace that starts in the room: its first states)
+            elif t[0] == 'C' and f < a.first: pass                  # the view before the window
             else: continue
         if t[0] == 'O':
             addr, cls = t[2], t[3]
@@ -68,6 +76,10 @@ def main():
                 box.append((f, fl & 1, int(float(alt.get('E', 0))), int(float(alt.get('F', 0))), int(float(alt.get('C', 0))), ic))
                 continue
             if fl >= 0x10000: continue                  # not an object (old traces: a non-list member)
+            if cls.startswith('levelparallax'):          # backdrop pieces: visibility per scene ('pv'), scroll from D / E / F (RV)
+                pp = par.setdefault(cls, {'st': {}, 'alt': alt})
+                pp['st'][max(f, a.first)] = fl & 1
+                continue
             o = obj.setdefault(addr, {'cls': cls, 'st': {}})
             o['st'][max(f, a.first)] = (x, y, ia, ib, ic, fl & 1)
         elif t[0] == 'D' and a.first <= f < a.end: gone[t[2]] = f
@@ -87,13 +99,32 @@ def main():
         k = seg_of(f); ev[k].append((f - segs[k], order, txt))
 
     # ---- actors: visible at least once in the window with a known image
+    # the view per frame (an actor must be seen: a story room holds the props of all its scenes)
+    camf = sorted((f, x, y) for f, x, y in cams)
+    def view(f):
+        v = (0, 0)
+        for cf, x, y in camf:
+            if cf > f: break
+            v = (x, y)
+        return v
     actors = []
     for addr, o in obj.items():
         c = o['cls']
-        if drop_re.search(c) or not act_re.match(c.rsplit('_', 1)[0] + '_'): continue
+        if drop_re.search(c) or DROP.match(c) or not act_re.match(c.rsplit('_', 1)[0] + '_'): continue
         if re.match(r'^(levelcardfade|fadeedge|fade_)', c): continue          # fades: 'f' entries below
-        if not any(s[5] and s[2] >= 0 for s in o['st'].values()): continue
-        actors.append((min(f for f, s in o['st'].items() if s[5]), addr))
+        fixed = layer_of.get(c, 2) >= 6
+        seen = []
+        fs_ = sorted(o['st'])
+        for k_, f in enumerate(fs_):
+            st_ = o['st'][f]
+            if not st_[5] or st_[2] < 0: continue
+            f2 = fs_[k_ + 1] if k_ + 1 < len(fs_) else a.end
+            vs = [(0, 0)] if fixed else [view(f)] + [(x, y) for cf, x, y in camf if f < cf < f2]
+            if any(vx - 48 < st_[0] < vx + 426 + 48 and vy - 48 < st_[1] < vy + 240 + 48 for vx, vy in vs): seen.append(f)
+        if seen: actors.append((min(seen), addr))
+    if len(actors) > 128:
+        from collections import Counter
+        sys.exit('%d actors (the player holds 128): narrow --actors / --drop: %s' % (len(actors), Counter(obj[a_]['cls'] for _, a_ in actors)))
     actors.sort()
     rows = set()
     for r in filter(None, a.rows.split(',')):
@@ -135,12 +166,24 @@ def main():
         if st and st[0][1][5]:
             off = next((f for f, s_ in st if not s_[5]), None)
             if off is not None and off - a.first < 120: put(a.first, 3, 'f %d' % (off - a.first))
+    for c in a.caption:
+        f0, f1, keys = c.split(',', 2)
+        for r, k in enumerate(keys.split('|')): put(int(f0), 3, 'cap %d %s' % (r, k))
+        if int(f1) < a.end: put(int(f1), 3, 'capx')
     if a.fadeout:
         ff, nn = [int(v) for v in a.fadeout.split(',')]; put(ff, 3, 'f %d' % -nn)
     if chsel:
         put(chsel[0], 6, 'chsel')
         k0 = seg_of(chsel[0])                                 # the idle wait inside the select: nothing of it is kept
         ev[k0] = [e for e in ev[k0] if e[0] <= chsel[0] - segs[k0]]
+    # ---- parallax pieces: shown / hidden per scene (the room's other scenes use other sets)
+    pinfo = {}
+    for c, pp in par.items():
+        h = int(c.rsplit('_', 1)[1]); prev = None
+        for f in sorted(pp['st']):
+            if pp['st'][f] != prev: put(f, 3, 'pv %d %d' % (h, pp['st'][f])); prev = pp['st'][f]
+        al = pp['alt']
+        pinfo[str(h)] = [float(al.get('D', 0)), float(al.get('E', 0)), float(al.get('F', 0))]
     # ---- camera
     cam0 = None
     for f, x, y in cams:
@@ -183,7 +226,7 @@ def main():
     with open(a.out, 'w', encoding='utf-8', newline='\n') as f: f.write('\n'.join(out) + '\n')
     rp = os.path.join(ROOT, 'tables', 'story', 'rows.json')
     R = json.load(open(rp)) if os.path.exists(rp) else {}
-    R[a.sid] = {'json': a.json, 'rows': sorted([c, ia, ib] for c, ia, ib in rows)}
+    R[a.sid] = {'json': a.json, 'rows': sorted([c, ia, ib] for c, ia, ib in rows), 'par': pinfo}
     with open(rp, 'w', encoding='utf-8', newline='\n') as f: json.dump(R, f, indent=0, sort_keys=True); f.write('\n')
     print('%s: %d actors, %d segments, %d lines said, %d rows, %d entries' % (a.sid, len(actors), len(segs), len(said), len(rows), sum(len(e) for e in ev)))
 
