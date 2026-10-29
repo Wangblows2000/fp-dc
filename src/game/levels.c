@@ -276,12 +276,12 @@ static const zone_t DIGZ_BG_ALL[] = { { -32768, 32767, -32768, 32767 } };
 static const signed char DIGR_BG[] = { DIG_EARTH_MON, DIG_CRYSTALS, DIG_CRYSTALS, DIG_KEYSTONE_MON };
 /* the stage's own sounds per act (11025 Hz): the flow events play none of their own (RE: the Media calls of the BG flow events are the shared
  * pause / weapon / debris ones); 62 jump pads, 99 explosions; the enemy / gimmick / boss modules add theirs */
-static const short SFX_BG1[] = { 62, 99, 55, 67, 127, 77, 110, 149 };
-static const short SFX_BG2[] = { 62, 99, 55, 438, 127, 77, 110, 149 };
-static const short SFX_BG3[] = { 62, 99, 55, 73, 127, 172, 173, 195, 306, 77 };
-static const short SFX_BG4[] = { 62, 99, 54, 127, 192, 195, 231, 233, 264, 275, 306, 438, 165, 344 };
-static const short SFX_BG5[] = { 62, 99, 54, 73, 127, 192, 195, 231, 233, 264, 306, 308, 316, 345, 346, 438, 165, 285, 344 };
-static const short SFX_BG6[] = { 62, 99 };
+static const short SFX_BG1[] = { 62, 99, 55, 67, 127, 77, 110, 149, 13, 51, 38, 311, 319, 320 };
+static const short SFX_BG2[] = { 62, 99, 55, 438, 127, 77, 110, 149, 294, 295, 342, 408, 195, 38, 311, 319, 320 };
+static const short SFX_BG3[] = { 62, 99, 55, 73, 127, 172, 173, 195, 306, 77, 13, 51, 38, 311, 319, 320, 294, 342, 408 };
+static const short SFX_BG4[] = { 62, 99, 54, 127, 192, 195, 231, 233, 264, 275, 306, 438, 165, 344, 47, 294, 295, 342, 343, 406, 407, 408, 38, 311, 319, 320, 28, 40, 436 };
+static const short SFX_BG5[] = { 62, 99, 54, 73, 127, 192, 195, 231, 233, 264, 306, 308, 316, 345, 346, 438, 165, 285, 344, 40, 436, 28, 24, 74, 38, 311, 319, 320 };
+static const short SFX_BG6[] = { 62, 99, 1, 11, 25, 47, 71, 76, 315, 349, 351, 355, 356, 357, 311, 319, 320 };
 #define BG(d, f, n, mus) .dir = d, .frame = f, .stage = 9, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_BG##n, .nsfx = N_(SFX_BG##n)
 /* Final Dreadnought (session 24, stages 10-13 = rounds 1-4, two levels each; spec_fd_flow, fd_flow.c). Checkpoints (RE, g4 / g5 / g6 +
  * loop_cp_16, all inline in handle_frame_66 / 68 / 70 / 72; the b frames have none): fd1a (g4 < 2, 4856 < X < 4956 -> (2, 4856, 880);
@@ -299,10 +299,10 @@ static const cpzone_t CP_FD4A[] = { { 2300, 32767, 2, 48, 2960, -2960, 0 }, { 23
 static const exit_t EX_FD2A[] = { { 1, 0, -50, 1100, 32767, NULL } };   /* 15652: X > W - 50, B > 0 and MV.Y > 1100 */
 /* the stage's own sounds per act (11025 Hz): the flow plays fd1a's entry (98 / 99 / 311 / 354, fd_flow.c); 62 jump pads,
  * 99 explosions; the enemy / gimmick / boss modules add theirs */
-static const short SFX_FD1A[] = { 62, 99, 98, 311, 354, 54, 70, 132, 38, 319, 320, 192, 233, 29, 345, 346, 28 };   /* + fd1a's entry: 98 / 99 / 311 (15298), 354 (15300) */ static const short SFX_FD1B[] = { 62, 99, 70, 172, 173, 237, 312, 132, 38, 311, 319, 320, 192, 233, 29, 345, 346, 28 };
-static const short SFX_FD2A[] = { 62, 99, 192, 233, 29, 345, 346, 28, 311 }; static const short SFX_FD2B[] = { 62, 99, 192, 233, 29, 345, 346, 28, 311 };
-static const short SFX_FD3A[] = { 62, 99, 254, 310, 376, 38, 132, 311, 319, 320, 192, 233, 29, 345, 346 }; static const short SFX_FD3B[] = { 62, 99, 254, 376, 38, 310, 132, 311, 319, 320, 192, 233, 29, 345, 346 };
-static const short SFX_FD4A[] = { 62, 99, 171, 328, 329, 254, 376, 38, 310, 192, 233, 29, 345, 346, 17 }; static const short SFX_FD4B[] = { 62, 99, 171, 29, 17 };
+static const short SFX_FD1A[] = { 62, 99, 98, 311, 354, 54, 70, 132, 38, 319, 320, 192, 233, 29, 345, 346, 28, 358, 274, 359, 360 };   /* + fd1a's entry: 98 / 99 / 311 (15298), 354 (15300) */ static const short SFX_FD1B[] = { 62, 99, 70, 172, 173, 237, 312, 132, 38, 311, 319, 320, 192, 233, 29, 345, 346, 28, 358, 274, 359, 360, 279, 381 };
+static const short SFX_FD2A[] = { 62, 99, 192, 233, 29, 345, 346, 28, 311, 274, 371, 49, 368, 369, 241, 279, 280, 285, 286, 37 }; static const short SFX_FD2B[] = { 62, 99, 192, 233, 29, 345, 346, 28, 311, 358, 371, 49, 368, 369, 370, 241, 51, 262, 372, 279, 280, 285, 286, 37 };
+static const short SFX_FD3A[] = { 62, 99, 254, 310, 376, 38, 132, 311, 319, 320, 192, 233, 29, 345, 346, 379, 70, 279, 280 }; static const short SFX_FD3B[] = { 62, 99, 254, 376, 38, 310, 132, 311, 319, 320, 192, 233, 29, 345, 346, 379, 70, 279, 280 };
+static const short SFX_FD4A[] = { 62, 99, 171, 328, 329, 254, 376, 38, 310, 192, 233, 29, 345, 346, 17, 388, 270, 344 }; static const short SFX_FD4B[] = { 62, 99, 171, 29, 17, 344 };
 #define FD(d, f, st, n, sx, mus) .dir = d, .frame = f, .stage = st, .act = n, .nacts = 2, .music = mus, .checkpoints = 1, .sfx = sx, .nsfx = N_(sx)
 #define PL(d, f, n, mus) .dir = d, .frame = f, .stage = 7, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_PL##n, .nsfx = N_(SFX_PL##n), .lilac_only = 1
 #define TB(d, f, n, mus) .dir = d, .frame = f, .stage = 6, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_TB##n, .nsfx = N_(SFX_TB##n)
@@ -459,7 +459,8 @@ static const level_def_t LEVELS[] = {
      * frame 8 -> I 9 -> frame 65, Final Dreadnought round 1). Camera E (RV bg*_start): beyond the frame width in BG1-BG4 (13197 / 13973 /
      * 11453 / 13197) and BG5 (the Sign at its right edge + 213): no cam_right; BG6 2661 = its Sign (2448) + 213. */
     { BG("bg1", 59, 1, "bgm/m_stage9.adp"), .mus4 = "bgm/m_midboss.adp", .card_first = 91, .start_card = 1, .cps = CP_BG1, .ncps = N_(CP_BG1),
-      .dig_zones = DIGZ_BG_ALL, .ndig_zones = N_(DIGZ_BG_ALL), .dig_rewards = DIGR_BG, .ndig_rewards = N_(DIGR_BG) },
+      .dig_zones = DIGZ_BG_ALL, .ndig_zones = N_(DIGZ_BG_ALL), .dig_rewards = DIGR_BG, .ndig_rewards = N_(DIGR_BG),
+      .vox = (const char *const[]){ "lilac_awesome" }, .nvox = 1 /* the BG2 chopper end (14238) */ },
     { BG("bg2", 60, 2, "bgm/m_stage9.adp"), .mus4 = "bgm/m_midboss.adp", .card_first = 93, .cps = CP_BG2, .ncps = N_(CP_BG2),
       .dig_zones = DIGZ_BG_ALL, .ndig_zones = N_(DIGZ_BG_ALL), .dig_rewards = DIGR_BG, .ndig_rewards = N_(DIGR_BG) },
     { BG("bg3", 61, 3, "bgm/m_stage9.adp"), .mus4 = "bgm/m_midboss.adp", .card_first = 95, .cps = CP_BG3, .ncps = N_(CP_BG3) },
@@ -467,6 +468,7 @@ static const level_def_t LEVELS[] = {
     { BG("bg5", 63, 5, "bgm/m_stage9b.adp"), .mus4 = "bgm/m_boss6.adp", .card_first = 99, .cps = CP_BG5, .ncps = N_(CP_BG5),
       .max_objs = 1280 /* 747 on-map placements (118 + 102 switch blocks, 55 platforms) + elite / anti-grav spawns, crystals, shots */ },
     { BG("bg6", 64, 6, "bgm/m_stage9b.adp"), .mus4 = "bgm/m_boss3.adp", .mus6 = "bgm/m_hub4.adp", .mus7 = "bgm/m_rescue.adp", .res_wipe = 1,
+      .vox = (const char *const[]){ "da_05_02", "da_05_03", "dail_no" }, .nvox = 3 /* Prince Dail (14924, 15060, 15049) */,
       .cam_right = 2448 + 213 /* RV bg6_start_lilac: CAM.E 2661 = the Sign (2448) + 213 */ },
     /* Final Dreadnought: frame index 65-72 (session 24, spec_fd_flow; fd_flow.c). Stages 10-13 = rounds 1-4, two frames each; every
      * character. Music (RE loop wrappers 4-7 of frames 65-72, bgm_refs): slot 5 m_stage10 (5_65) in fd1a / fd1b, m_stage10b (5_67 / 5_68)

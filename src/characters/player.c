@@ -260,7 +260,7 @@ int player_orig_m(const player_t *p) {
     case ST_CART: return 90; case ST_SIT: return 39;   /* Relic Maze hand-car / chair (relic_gimb.c) */
     case ST_HPIPE: return 38;                           /* Fortune Night half-pipe (fn_gima.c) */
     case ST_DANCE: return 50;                          /* FN5 dance (fn_gimb.c) */
-    case ST_RIDE: return th_gim_ride_m() >= 0 ? th_gim_ride_m() : pl_gim_ride_m() >= 0 ? pl_gim_ride_m() : bg_gim_ride_m() >= 0 ? bg_gim_ride_m() : fd_gim_ride_m() >= 0 ? fd_gim_ride_m() : jc_gim_ride_m();   /* FD transporter pipe 95 (fd_gim.c) */   /* BG magnet 95 / spiral slide 96 (bg_gim.c) */   /* TH barrel 98 (th_gim.c); PL bow arrow 99 (pl_gim.c); JC seed 97 / bubble 99 (jc_gim.c) */
+    case ST_RIDE: return th_gim_ride_m() >= 0 ? th_gim_ride_m() : pl_gim_ride_m() >= 0 ? pl_gim_ride_m() : bg_gim_ride_m() >= 0 ? bg_gim_ride_m() : bg_boss_ride_m() >= 0 ? bg_boss_ride_m() : fd_gim_ride_m() >= 0 ? fd_gim_ride_m() : jc_gim_ride_m();   /* BG5 Milla's Sparky ride 93 (bg_boss_sparky.c) */   /* FD transporter pipe 95 (fd_gim.c) */   /* BG magnet 95 / spiral slide 96 (bg_gim.c) */   /* TH barrel 98 (th_gim.c); PL bow arrow 99 (pl_gim.c); JC seed 97 / bubble 99 (jc_gim.c) */
     default: return -1;
     }
 }
@@ -940,7 +940,7 @@ void player_update(player_t *p, const input_t *in) {
     }
     if ((p->state == ST_SIT || p->state == ST_DANCE) && fn_gimb_player(p, in)) return;   /* M39 restroom / M50 dance (fn_gimb.c) */
     if ((p->state == ST_CART || p->state == ST_SIT) && relic_gimb_player(p, in)) return;   /* M90 / M39: their own groups (relic_gimb.c) */
-    if (p->state == ST_RIDE && (th_gim_player(p, in) || pl_gim_player(p, in) || bg_gim_player(p, in) || fd_gim_player(p, in) || jc_gim_player(p, in))) return;   /* M98: Trap Hideout's barrel (th_gim.c); M99: Pangu
+    if (p->state == ST_RIDE && (th_gim_player(p, in) || pl_gim_player(p, in) || bg_gim_player(p, in) || bg_boss_player(p, in) || fd_gim_player(p, in) || jc_gim_player(p, in))) return;   /* M98: Trap Hideout's barrel (th_gim.c); M99: Pangu
                                                    * Lagoon's bow arrow / stone-door walk (pl_gim.c); M97 / M99: Jade Creek seed / bubble rides (jc_gim.c) */
     /* RV energy meter (GUIEnergy_127 alt A): -3/frame while boosting, -0.25/frame in the cyclone, else
      * +0.4/frame up to 100 (state at the start of the frame) */

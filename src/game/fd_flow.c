@@ -99,7 +99,7 @@ void fd_flow_frame(player_t *p) {
             obj_explode((float)cross_rand(41), (float)(F.y0 - ORIG_REF_DY - 20 + cross_rand(41)));
             camera_shake(3);                                    /* INFERRED amplitude (RV cam_y swings 865..872) */
         }
-        if (F.D == WALL_D) { snd_play_orig(354, 230, 128); obj_explode(16, F.y0 - ORIG_REF_DY); FDLOG("wall"); }   /* 15300 */
+        if (F.D == WALL_D) { snd_play_orig(354, 230, 128); obj_explode(16, F.y0 - ORIG_REF_DY); fd_gim_hangar_break(); FDLOG("wall"); }   /* 15300 (+ the walls break: fd_gim) */
         if (F.D > LAUNCH_D) {                                   /* 15301: the HUD, pause and timer groups on; thrown in */
             F.thrown = 1; p->vx = 10; p->ground = 0; G.timer_stop = 0; G.frame = 0; G.input_lock = 0;
             FDLOG("thrown");
