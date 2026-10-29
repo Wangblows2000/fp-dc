@@ -872,7 +872,7 @@ void fd_gim_frame(player_t *p) {
     effects();
 #ifdef FP_HOST_ENV
     { static int dbg = -1; if (dbg < 0) dbg = getenv("FP_DBG_FDG") != NULL;
-      if (dbg) printf("fdg %d ride %d X %.1f Y %.1f A %.0f p %.1f %.1f st %d\n", G.frame, S.ride, S.rx, S.ry, S.ra, p->x, MY(p), p->state); }
+      if (dbg) printf("fdg %d ride %d X %.1f Y %.1f A %.0f p %.1f %.1f st %d siren %d %d\n", G.frame, S.ride, S.rx, S.ry, S.ra, p->x, MY(p), p->state, S.siren_a, S.siren_b); }
 #endif
 }
 void fd_gim_draw(int pass) {
