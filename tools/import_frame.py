@@ -2713,6 +2713,7 @@ def write_bank2(src, bank, out, report):
                 for x in range(im.width): px[x, y] = (0, 0, 0, 0)
             imgs[i] = (im, hx, hy)
     crop_off = {}
+    full_box = {i: (imgs[i][1], imgs[i][2], imgs[i][0].width, imgs[i][0].height) for i in ids if i in imgs}   # before cropping (BOX1)
     for i in crop_ids:
         im, hx, hy = imgs[i]; bb = im.getbbox()
         if bb and (bb[2] - bb[0], bb[3] - bb[1]) != im.size:
@@ -2850,6 +2851,12 @@ def write_bank2(src, bank, out, report):
             for x in range(w):
                 if a.getpixel((x, y)): row[x >> 3] |= 0x80 >> (x & 7)
             data += row
+    if bank['name'].endswith(('_ens', '_shl')):
+        # 'BOX1' (session 24): per frame the uncropped image's hotspot and size (HX, HY, W, H): FrameObject::is_near_border tests the
+        # whole image box (RE; RV bg3_squid: the BG3 squid at x 490 stays idle at the start because its dir-0 image, 64 px wide with
+        # hotspot 26, reaches x 528 > 426 + 100), not the opaque pixels the atlas keeps
+        data += b'BOX1'
+        for i in ids: data += struct.pack('<4h', *full_box.get(i, (0, 0, 0, 0)))
     open(os.path.join(out, bank['name'] + '.spr'), 'wb').write(data)
     report.append('bank %s: %d frames, %d anims, atlas %d' % (bank['name'], len(ids), len(bank['anims']), size))
 
