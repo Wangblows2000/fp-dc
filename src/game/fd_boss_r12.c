@@ -130,15 +130,15 @@ static void pb_draw(int pass) {
 enum { MP_ORB2, MP_ORB1, MP_WH4, MP_WH3, MP_WH2, MP_WH1, MP_TUBE1, MP_TUBE2, MP_GRILL2, MP_GRILL1, MP_PELVIS, MP_BODY, MP_NODE2, MP_NODE1, MP_HEAD, MP_N };
 static const char *const MPROW[MP_N] = { "fdm_orb", "fdm_orb", "fdm_wh4", "fdm_wh3", "fdm_wh2", "fdm_wh1", "fdm_tube1", "fdm_tube2",
     "fdm_grill2", "fdm_grill1", "fdm_pelvis", "fdm_body", "fdm_node2", "fdm_node1", "fdm_head" };
-enum { MR_TRAIN0 = MP_N, MR_TRAIN8, MR_TRAIN24, MR_EBALL, MR_LASER, MR_SHOCK, MR_SHOCK16, MR_SHOCKE, MR_GLOW, MR_HEAD1, MR_BODY1, MR_N };
+enum { MR_TRAIN0 = MP_N, MR_TRAIN8, MR_TRAIN24, MR_EBALL, MR_LASER, MR_SHOCK, MR_SHOCK16, MR_SHOCKE, MR_GLOW, MR_HEAD1, MR_BODY1, MR_SPARK, MR_N };
 static const char *const MRROW[MR_N - MP_N] = { "fdm_train0", "fdm_train8", "fdm_train24", "fdm_eball", "fdm_laser", "fdm_shock",
-    "fdm_shock16", "fdm_shocke", "fdm_glow", "fdm_head1", "fdm_body1" };
+    "fdm_shock16", "fdm_shocke", "fdm_glow", "fdm_head1", "fdm_body1", "fdm_spark" };
 static short mra[MR_N];
 #define NSHOT 24
 enum { SH_TRAIN = 1, SH_EBALL, SH_LASER, SH_SHOCK, SH_GLOW };
 static struct {
-    int on, J, R, hD, hC, def, endt, results, slen;
-    double w[7], K, Lr, M, Q, P, bA, bB, bC, floorO, vx;
+    int on, J, R, hD, hC, def, endt, results, slen, gE, dsub;
+    double w[7], K, Lr, M, Q, P, bA, bB, bC, floorO, vx, gF;
     char str[8];
     short part[MP_N], shot[NSHOT];
 } M;
@@ -164,24 +164,63 @@ static obj_t *shot_new(int kind, int row, float x, float y) {
     return o;
 }
 
-/* Part offsets from (K, L) per form weight (A B C D E F G), x then y: least-squares fit of the RV traces m1_l (A, B, C) and m2_l (D, E,
- * G) (residuals <= 5 px: the small sin(20 M) 1.1 bobs of 15412-15421 are left out, INFERRED); every weight 0: every part on (K, L)
- * (15409 / 15410: the ball between two forms). B is A turned upside down (the ceiling walker). Order: MP_* (ORB2 ORB1 WH4 WH3 WH2 WH1
- * TUBE1 TUBE2 GRILL2 GRILL1 PELVIS BODY NODE2 NODE1 HEAD). */
-static const signed char MOFF[7][MP_N][2] = {
+/* Part offsets from (K, L), each form's offset times its weight (15412-15423 add them one form an event; every weight 0: every part on
+ * (K, L), 15409 / 15410: the ball between two forms). A, B, C are constant (least-squares fit of the RV trace m1_l, residual <= 5 px;
+ * the small sin(20 M) 1.1 bobs are left out, INFERRED); B is A upside down (the ceiling walker). D (the bouncer), E (the cannon) and
+ * G (the rolling ball) move with M: see m_shape (RE constants of 15417 / 15419 / 15421, terms fitted on m2_l, residual <= 4 px).
+ * Order: MP_* (ORB2 ORB1 WH4 WH3 WH2 WH1 TUBE1 TUBE2 GRILL2 GRILL1 PELVIS BODY NODE2 NODE1 HEAD). */
+static const signed char MOFF[3][MP_N][2] = {
     { { 32, 8 }, { -32, 8 }, { 36, 44 }, { 12, 44 }, { -12, 44 }, { -36, 44 }, { -16, -16 }, { 16, -16 }, { 24, 32 }, { -24, 32 }, { 0, 0 }, { 0, 0 }, { 52, 0 }, { -52, 0 }, { 0, 0 } },   /* A */
     { { -32, -8 }, { 32, -8 }, { -36, -44 }, { -12, -44 }, { 12, -44 }, { 36, -44 }, { 16, 16 }, { -16, 16 }, { -24, -32 }, { 24, -32 }, { 0, 0 }, { 0, 0 }, { -52, 0 }, { 52, 0 }, { 0, 0 } },   /* B */
-    { { 32, 64 }, { -24, 64 }, { 100, 84 }, { 68, 84 }, { 31, 63 }, { -25, 63 }, { 64, 32 }, { 80, 56 }, { 96, 72 }, { 72, 72 }, { -16, 32 }, { 0, 0 }, { 28, 24 }, { 3, 57 }, { 0, 0 } },   /* C */
-    { { 0 } }, { { 0 } }, { { 0 } }, { { 0 } } };
+    { { 32, 64 }, { -24, 64 }, { 100, 84 }, { 68, 84 }, { 31, 63 }, { -25, 63 }, { 64, 32 }, { 80, 56 }, { 96, 72 }, { 72, 72 }, { -16, 32 }, { 0, 0 }, { 28, 24 }, { 3, 57 }, { 0, 0 } } };   /* C */
+/* D, E, G offsets of part k at the turn M (degrees) */
+static void m_shape(int k, double m, double *d, double *e, double *g) {
+    double s2 = sbb_sin(2 * m), s = sbb_sin(m), c = sbb_cos(m), s4 = sbb_sin(4 * m), c4 = sbb_cos(4 * m);
+    d[0] = d[1] = e[0] = e[1] = g[0] = g[1] = 0;
+    switch (k) {                                                                /* D: the legs spring with sin 2M (15417) */
+    case MP_WH4: d[1] = 64 + 12 * s2; break;
+    case MP_WH3: d[1] = 44; break;
+    case MP_GRILL2: case MP_GRILL1: d[0] = k == MP_GRILL2 ? 8 : -8; d[1] = 56 + 8 * s2; break;
+    case MP_PELVIS: d[1] = 16; break;
+    case MP_NODE2: case MP_NODE1: d[0] = k == MP_NODE2 ? 4 : -4; d[1] = 80 + 16 * s2; break;
+    }
+    switch (k) {                                                                /* E: the cannon pointing left, recoiling with sin M (15419) */
+    case MP_ORB2: case MP_ORB1: e[0] = -64 - 10 * c; e[1] = k == MP_ORB2 ? 56 : -56; break;
+    case MP_WH4: case MP_WH3: e[0] = -48 + 10 * sbb_sin(m - 60); e[1] = k == MP_WH4 ? 52 : -52; break;
+    case MP_WH2: case MP_WH1: e[0] = -32 + 10 * sbb_sin(m - 30); e[1] = k == MP_WH2 ? 40 : -40; break;
+    case MP_TUBE1: case MP_TUBE2: e[0] = 14 * s; e[1] = k == MP_TUBE1 ? 40 : -32; break;
+    case MP_GRILL2: case MP_GRILL1: e[0] = -32 + 10 * s; e[1] = k == MP_GRILL2 ? 7 : -7; break;
+    case MP_PELVIS: e[0] = 24 + 10 * s; break;
+    case MP_BODY: case MP_HEAD: e[0] = 10 * s; break;
+    case MP_NODE2: case MP_NODE1: e[0] = -32 + 10 * s; e[1] = k == MP_NODE2 ? 20 : -20; break;
+    }
+    switch (k) {                                                                /* G: the shell turning 4M (15421) */
+    case MP_ORB2: g[0] = -16 * c4; g[1] = -16 * s4; break;
+    case MP_ORB1: g[0] = 16 * c4; g[1] = 16 * s4; break;
+    case MP_TUBE1: g[0] = -32 * s4; g[1] = 32 * c4; break;
+    case MP_TUBE2: g[0] = 32 * s4; g[1] = -32 * c4; break;
+    case MP_GRILL2: g[0] = 32 * c4; g[1] = 32 * s4; break;
+    case MP_GRILL1: g[0] = -32 * c4; g[1] = -32 * s4; break;
+    }
+}
 
 static void m_layout(void) {
-    double Ls = M.Lr;
     for (int k = 0; k < MP_N; k++) {
         obj_t *o = mpart(k);
         if (!o) continue;
-        double x = M.K, y = Ls;
-        for (int f = 0; f < 7; f++) { x += MOFF[f][k][0] * M.w[f]; y += MOFF[f][k][1] * M.w[f]; }
+        double x = M.K, y = M.Lr, d[2], e[2], g[2];
+        for (int f = 0; f < 3; f++) { x += MOFF[f][k][0] * M.w[f]; y += MOFF[f][k][1] * M.w[f]; }
+        m_shape(k, M.M, d, e, g);
+        x += d[0] * M.w[3] + e[0] * M.w[4] + g[0] * M.w[6]; y += d[1] * M.w[3] + e[1] * M.w[4] + g[1] * M.w[6];
         o->x = (float)(int)x; o->y = (float)(int)y;
+        /* 15422: the shell's pieces turn with it (angle -(4 M + a) G; the per-piece a INFERRED) */
+        static const short GA[MP_N] = { 0, 0, -1, -1, -1, -1, 135, 315, 225, 45, -1, -1, -1, -1, -1 };
+        if (GA[k] >= 0) o->ang = (float)fmod(360.0 - fmod((4 * M.M + GA[k]) * M.w[6], 360.0), 360.0);
+        /* 15416 / 15418 / 15420 / 15426: the orbs show image 1 in the C, E and G forms */
+        if ((k == MP_ORB1 || k == MP_ORB2) && o->an.b) {
+            int want = (M.w[2] >= 1 || M.w[4] >= 1 || M.w[6] >= 1) ? 1 : 0, n = o->an.b->anims[o->an.anim].count;
+            o->an.frame = want < n ? want : n - 1; o->an.acc = 0;
+        }
     }
 }
 
@@ -302,9 +341,9 @@ static void m_attacks(player_t *p) {
     if (w[2] < 1) M.bA = 0;
     else { M.bA += 1; if (M.bA == 30 && h) { shot_new(SH_TRAIN, MR_TRAIN24, h->x + 16, h->y); snd_play_orig(384, 220, 128); } if (M.bA > 80) M.bA = 0; }
     /* D form: bounce toward the player 6 px a frame (15436 / 15437 / 15449 / 15450), shockwaves on landing (15445-15447) */
-    if (w[3] >= 1) {
+    if (w[3] >= 1) {                                                            /* (RV m2_l: turns past view x + 395 / under + 30) */
         if (M.Q == 0) M.Q = 1;
-        if (M.K > G.camx + 360) M.Q = -1; else if (M.K < G.camx + 60) M.Q = 1;
+        if (M.K > G.camx + 395) M.Q = -1; else if (M.K < G.camx + 30) M.Q = 1;
         M.K += M.Q * 6;
         double s = sbb_sin(M.M), s2 = sbb_sin(M.M - 5);
         if (fabs(s) < fabs(s2) && fabs(sbb_sin(M.M + 5)) > fabs(s) && h) {    /* the bounce's lowest point (|sin M| minimum) */
@@ -312,9 +351,10 @@ static void m_attacks(player_t *p) {
             snd_play_orig(132, 220, 128); snd_play_orig(385, 220, 128); obj_effect((float)M.K, (float)sxv_y() - 16, "explosion");
         }
     } else M.Q = 0;
-    /* E form: eases toward view x + 440 / 20 (15453); the body C counts: 40 and 100 elec balls from the orbs (15454-15457), past 120 0 */
+    /* E form: eases to view x + 440 (15453; RV m2_l: K 440, the cannon on the right edge pointing left); the body C counts: 40 and
+     * 100 elec balls from the orbs (15454-15457, sound 60 every 60 frames in m2_l), past 120 0 */
     if (w[4] >= 1) {
-        M.K = (19 * M.K + G.camx + 440 - 160) * 0.05;                          /* (the RE eases to (19 K + x + 440) / 20; INFERRED: 160 left of it) */
+        M.K = (19 * M.K + G.camx + 440) * 0.05;
         M.bC += 1;
         if (M.bC == 40 || M.bC == 100) {
             for (int s = 0; s < 2; s++) {
@@ -326,6 +366,22 @@ static void m_attacks(player_t *p) {
         }
         if (M.bC > 120) M.bC = 0;
     } else M.bC = 0;
+    /* G form (15460-15464; RV m2_l 2465-2700): the ball rolls round the room's corners, the body's E the corner (0 bottom right, 1 top
+     * right, 2 top left, 3 bottom left), its F counting: past 50 the next corner (sound 383); K eases 1/20 to view x + 396 / 376 / 40 /
+     * 60, L 1/10 to the values' y - 54 (floor) / - 120 (ceiling); every 4 frames on the floor a ground spark (15424 / 15425). */
+    if (w[6] >= 1) {
+        static const short GX[4] = { 396, 376, 40, 60 }, GY[4] = { -54, -120, -120, -54 };
+        M.gF += 1;
+        if (M.gF > 50) { M.gE = (M.gE + 1) & 3; M.gF = 0; snd_play_orig(383, 220, 128); }
+        M.K = (19 * M.K + G.camx + GX[M.gE]) * 0.05;
+        M.Lr = (9 * M.Lr + sxv_y() + GY[M.gE]) * 0.1;
+        if ((G.frame & 3) == 0 && M.Lr >= sxv_y() - 57) {
+            obj_t *sp = shot_new(SH_GLOW, MR_SPARK, (float)(int)M.K, (float)sxv_y());
+            if (sp) sp->ang = (float)(170 - cross_rand(11));
+        }
+    } else { M.gE = 0; M.gF = 0; }
+    /* 15517 / 15518: the rolling ball's orbs (G 1, J < 12) hurt on contact (10) */
+    if (w[6] >= 1 && M.J < 12) { m_hurt_on(p, o1, 10, 0); m_hurt_on(p, o2, 10, 0); }
 }
 
 static void m_frame(player_t *p) {
@@ -340,7 +396,7 @@ static void m_frame(player_t *p) {
     } else if (p->x > G.camx + 426) { p->x = G.camx + 426; player_sync_sensors(p); }
     M.floorO = fmod(M.floorO + 15, 128);                                        /* 15341 */
     M.M = fmod(M.M + 5, 360);                                                   /* 15407 */
-    M.P += 1;                                                                   /* 15468 */
+    if (!M.def) M.P += 1;                                                       /* 15468 (the defeat counts its own: 15519 / 15522) */
     double *w = M.w;
     if (!M.def) {
         if (M.J == 0) { if (M.P > 60) M.K = (9 * M.K + G.camx + 80) * 0.1; if (M.P > 90) { M.P = 0; M.J = 1; } }   /* 15469 / 15470 */
@@ -366,8 +422,8 @@ static void m_frame(player_t *p) {
             if (h->fl & F_DEFEATED) {
                 M.hD -= 1;
                 if (M.hD <= 0) {                                                /* 15491 */
-                    M.def = 1; M.J = 12; M.P = 0; h->fl |= F_ARMOURED;
-                    music_stop();
+                    M.def = 1; M.J = 12; M.P = 0; M.dsub = 0; h->fl |= F_ARMOURED;
+                    music_stop(); snd_play_orig(47, 220, 128);                  /* (RV m2_l 4400: 47 here too) */
                 } else {                                                        /* 15488 */
                     h->fl &= ~F_DEFEATED; h->A = 50; M.hC = 100; M.J = 1; M.P = 0; M.R = 0; snd_play_orig(47, 220, 128);
                     strcpy(M.str, M.hD == 3 ? "5234" : M.hD == 2 ? "752" : "62754"); M.slen = (int)strlen(M.str);   /* 15465-15467 */
@@ -375,19 +431,36 @@ static void m_frame(player_t *p) {
             }
         }
     } else {                                                                    /* the defeat (group 0x22f51, 15519-15541) */
-        for (int f = 0; f < 7; f++) w[f] = f == 2 ? fmin(w[f] + 0.05, 1) : fmax(w[f] - 0.05, 0);   /* 15520 */
-        M.Lr = sxv_y() - 56 - 40 * w[2];
-        if (h && M.P < 60) { obj_effect(h->x - 40 + cross_rand(81), h->y - 40 + cross_rand(81), "explosion02"); }   /* 15521 / 15522 */
-        if (h && M.P >= 60 && M.P < 180 && g3 % 4 == 0) { obj_effect(h->x - 40 + cross_rand(81), h->y - 40 + cross_rand(81), "explosion06"); tbb_explode_snd(); }   /* 15524-15526 */
-        if (M.P < 60 && M.K < G.camx + 120) M.K += 2;                           /* 15523 */
-        if (M.P == 180) {                                                       /* 15527-15529: the parts fly apart, sound 38 */
-            snd_play_orig(38, 220, 128);
-            for (int k = 0; k < MP_N; k++) { obj_t *o = mpart(k); if (o) { o->av[5] = (k % 4) + 1; o->av[6] = -4 - (k % 3); } }
+        /* RV m2_l 4400-4900: P counts every 3 frames to 60 (15519's 2-frame step + 15522), then every frame. Every 6 frames under 60
+         * the weights step 0.05 (A B E F down, C D G up to 1: 15520) and an explosion06 with its sound (98 / 99 / 311) at the head,
+         * explosion02 at every step; 60-180 an explosion every 4 frames (15524-15526). 180: sound 38 and every part slides left,
+         * 0.2 px a frame faster each frame, into the beam at the left edge (RV; INFERRED: the parts stop on the cannon x + 16).
+         * 300: sound 76 and the white fade (15535); 340: the cannon, beam and shots removed (15538); past 500 the results (15541). */
+        int step = 1;
+        if (M.P < 60) { step = (++M.dsub % 3) == 0; }
+        if (M.P < 60 && (M.dsub % 6) == 0) {
+            for (int f = 0; f < 7; f++) w[f] = (f == 2 || f == 3 || f == 6) ? fmin(w[f] + 0.05, 1) : fmax(w[f] - 0.05, 0);
+            if (h) { obj_effect(h->x - 40 + cross_rand(81), h->y - 40 + cross_rand(81), "explosion06"); tbb_explode_snd(); }
         }
-        if (M.P > 180)
-            for (int k = 0; k < MP_N; k++) { obj_t *o = mpart(k); if (o) { o->x += (float)o->av[5]; o->av[6] += 0.3; o->y += (float)o->av[6]; if (o->y > G.camy + SCREEN_H + 80) o->hidden = 1; } }   /* 15530 */
-        if (M.P == 300) snd_play_orig(76, 220, 128);                            /* 15535 (+ the white fade) */
-        if (M.P == 340) {                                                       /* 15538: the arena items removed */
+        if (step) M.P += 1;
+        if (h && M.P < 60 && step) obj_effect(h->x - 40 + cross_rand(81), h->y - 40 + cross_rand(81), "explosion02");   /* 15521 / 15522 */
+        if (h && M.P >= 60 && M.P < 180 && g3 % 4 == 0) { obj_effect(h->x - 40 + cross_rand(81), h->y - 40 + cross_rand(81), "explosion06"); tbb_explode_snd(); }
+        if (M.P < 60 && M.K < G.camx + 120) M.K += 2;                           /* 15523 */
+        if (w[5] < 1 && w[6] < 1) M.Lr = sxv_y() - 56 - 64 * w[1] - 40 * w[2] - (fabs(sbb_sin(M.M)) * 64 + 32) * w[3] - 32 * w[4];
+        if (M.P == 180 && step) {                                               /* 15527-15529 */
+            snd_play_orig(38, 220, 128);
+            for (int k = 0; k < MP_N; k++) { obj_t *o = mpart(k); if (o) o->av[5] = 0; }
+        }
+        if (M.P > 180) {
+            float cx = c ? c->x + 16 : (float)G.camx + 16;
+            for (int k = 0; k < MP_N; k++) {
+                obj_t *o = mpart(k); if (!o) continue;
+                o->av[5] += 0.2; o->x -= (float)o->av[5];
+                if (o->x < cx) { o->x = cx; o->av[5] = 0; }
+            }
+        }
+        if (M.P == 300 && step) snd_play_orig(76, 220, 128);                    /* 15535 (+ the white fade) */
+        if (M.P == 340 && step) {                                               /* 15538: the arena items removed */
             if (c) c->alive = 0;
             if (b) b->alive = 0;
             for (int k = 0; k < NSHOT; k++) { obj_t *o = slot(M.shot[k]); if (o) o->alive = 0; }

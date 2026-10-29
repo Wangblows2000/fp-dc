@@ -1829,14 +1829,14 @@ FDB_ENS += [(c, a, d, nm, None, _SXV) for c, a, d, nm in (
     ('bossmorpherhead_3486', 0, '1', 'fdm_head1'), ('bosstrainbream_3485', 0, '0', 'fdm_train0'), ('bosstrainbream_3485', 0, '8', 'fdm_train8'),
     ('bosstrainbream_3485', 0, '24', 'fdm_train24'), ('bosssyntaxelecball_3484', 0, '0', 'fdm_eball'), ('enemytrooperlaser_2530', 0, '0', 'fdm_laser'),
     ('hazardshockwave_1576', 0, '0', 'fdm_shock'), ('hazardshockwave_1576', 0, '16', 'fdm_shock16'), ('hazardshockwave_1576', 4, '0', 'fdm_shocke'),
-    ('enemyelitechargeglow_2527', 0, '0', 'fdm_glow'))]
+    ('enemyelitechargeglow_2527', 0, '0', 'fdm_glow'), ('effectsgroundspark_2053', 4, '0', 'fdm_spark'))]
 ENS += FDB_ENS   # FD_BOSS (A)
 for _e in FDB_ENS: ROW_FRAMES[_e[3]] = {67}
 for _c in ('bossmorpherorb1_3471', 'bossmorpherwheel1_3475', 'bossmorpherwheel2_3474', 'bossmorpherwheel3_3473', 'bossmorpherwheel4_3472',
            'bossmorphertube1_3476', 'bossmorphertube2_3477', 'bossmorphergrill1_3479', 'bossmorphergrill2_3478', 'bossmorpherpelvis_3469',
            'bossmorpherbody_3482', 'bossmorphernode1_3481', 'bossmorphernode2_3480', 'bossmorpherhead_3486', 'bosstrainbream_3485',
            'bosssyntaxelecball_3484', 'enemytrooperlaser_2530', 'hazardshockwave_1576', 'enemyelitechargeglow_2527',
-           'effectsexplosion06_435', 'effectsdebris_427'):
+           'effectsexplosion06_435', 'effectsdebris_427', 'effectsgroundspark_2053'):
     ENS_WITH[_c] = ENS_WITH.get(_c, ()) + _SXV   # FD_BOSS (A)
 
 # ==== end Final Dreadnought
