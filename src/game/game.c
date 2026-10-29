@@ -70,7 +70,7 @@ const char *level_music(const char *dir) {   /* level data (levels.c): loop_play
 }
 int act_of(const char *dir) { return level_def(dir)->act; }
 
-static void bank_free(bank_t *b) { free(b->act); free(b->frames); free(b->anims); free(b->seq); free(b->mbits); free(b->moff); memset(b, 0, sizeof *b); }
+static void bank_free(bank_t *b) { free(b->act); free(b->frames); free(b->anims); free(b->seq); free(b->mbits); free(b->moff); free(b->fbox); memset(b, 0, sizeof *b); }
 
 /* Lilac's banks stay resident across a level change when the next level's pack holds byte-identical
  * files (CRC-32 in the pack index): all four Dragon Valley acts share them (1.5 MB of textures). They
