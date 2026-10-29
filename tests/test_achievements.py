@@ -34,7 +34,7 @@ def make_save(cards=(), ach=None, ver=4, difficulty=1):
     return b + struct.pack('<H', crc16(b))
 
 def parse_ach(d):
-    assert d[:4] == b'FPS\x04' and crc16(d[:-2]) == struct.unpack('<H', d[-2:])[0] and len(d) == 1361, 'bad v4 save'
+    assert (d[:4], len(d)) in ((b'FPS\x04', 1361), (b'FPS\x05', 1377)) and crc16(d[:-2]) == struct.unpack('<H', d[-2:])[0], 'bad v4 / v5 save'   # v5: + the story tail
     p = 4 + 5 + FILES * (8 + STAGES * 7) + 6 * STAGES * CHARS + 4
     cb = d[p:p + 13]
     return [0] + list(d[p + 26:p + 26 + ACH]), {n for n in range(1, 101) if cb[(n - 1) >> 3] >> ((n - 1) & 7) & 1}

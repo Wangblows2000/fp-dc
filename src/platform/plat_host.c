@@ -9,6 +9,7 @@
 #include <stdarg.h>
 #include <time.h>
 #include "../fp.h"
+#include "../game/story.h"
 
 static const char *data_dir = ".";
 static struct { int a, b; uint32_t m; } script[8192];
@@ -178,6 +179,7 @@ void plat_quit(void) { printf("quit @%d\n", cur_frame); exit(0); }
 typedef struct { int f; char k; float a, b; } dbg_t;
 static struct { int f; float t, dx, dy, ymax; } tpo[512]; static int ntpo;   /* TPO lines */
 static dbg_t dbg[256]; static int ndbg;
+static char host_scene[8][24]; static int nhost_scene;   /* SCENE names (session 25) */
 static struct { int f; char dir[8]; } loads[8]; static int nload;
 static void apply_loads(int f) {   /* "<f> LOAD <dir>": a fresh stage start (card included) of another level, as the menus would */
     for (int i = 0; i < nload; i++) if (loads[i].f == f && game_load_level(loads[i].dir) == 0) G.mode = MODE_PLAY;
@@ -212,6 +214,11 @@ static void apply_dbg(int f, int tp) {
         if (dbg[i].k == 'n') printf("ending try %d\n", game_ending_begin());
         if (dbg[i].k == 'y') ending_host_dump();
         if (dbg[i].k == 'Y') printf("cutscene start %d\n", cutscene_host_example());
+        if (dbg[i].k == 'g') story_host_dump();                                            /* session 25: STORY */
+        if (dbg[i].k == 'A') printf("story new %d\n", story_host_new((int)dbg[i].a));     /* ADVNEW <chr> */
+        if (dbg[i].k == 'V') printf("story scene %d\n", story_host_play(host_scene[(int)dbg[i].a]));   /* SCENE <id> */
+        if (dbg[i].k == 'W') printf("story stageend %d\n", story_host_stage_end());       /* STAGEEND */
+        if (dbg[i].k == 'O') { extern int fe_mode; fe_mode = (int)dbg[i].a; G.time_attack = fe_mode == 0; }   /* MODE <g0> (0: a Time Attack run) */
         if (dbg[i].k == 'S') results_begin_boss(G.frame);   /* test: a boss starts the results (path 3; FN6 8785 before the boss module) */
         if (dbg[i].k == 'F') G.stage_flags = (int)dbg[i].a;   /* test: ML stage flags (Relic Maze gates) */
         if (dbg[i].k == 'I') p->invuln = (int)dbg[i].a;      /* test: Milla inside a dig zone (MILLA.D, set by other stages' zone events) */
@@ -273,6 +280,14 @@ int main(int argc, char **argv) {
             if (sscanf(line, "%d ENDTRY%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'n', 0, 0 }; continue; }   /* game_ending_begin as a stage script would call it */
             if (sscanf(line, "%d ENDSTATS%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'y', 0, 0 }; continue; }   /* print the credits' statistics */
             if (sscanf(line, "%d CUTSCENE%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'Y', 0, 0 }; continue; }   /* the example cutscene template */
+            /* session 25 (Adventure story, src/game/story.c): STORY (state line), ADVNEW <g1> (a new Adventure as the hub
+             * starts it), SCENE <id> (play a scene in an Adventure run), STAGEEND (frame 8 after the current stage), MODE <g0> */
+            if (sscanf(line, "%d STORY%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'g', 0, 0 }; continue; }
+            if (sscanf(line, "%d ADVNEW %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'A', fx, 0 }; continue; }
+            if (sscanf(line, "%d STAGEEND%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'W', 0, 0 }; continue; }
+            if (sscanf(line, "%d MODE %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'O', fx, 0 }; continue; }
+            { char sn[24]; if (sscanf(line, "%d SCENE %23s", &ff, sn) == 2 && ndbg < 256 && nhost_scene < 8) {
+                snprintf(host_scene[nhost_scene], sizeof host_scene[0], "%s", sn); dbg[ndbg++] = (dbg_t){ ff, 'V', (float)nhost_scene++, 0 }; continue; } }
             { char lv[8]; if (sscanf(line, "%d LOAD %7s", &ff, lv) == 2 && nload < 8) { loads[nload].f = ff; snprintf(loads[nload].dir, sizeof loads[nload].dir, "%s", lv); nload++; continue; } }   /* load a level (host tests: load order) */
             if (sscanf(line, "%d PB3 %f %f", &ff, &fx, &fy) == 3 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'Q', fx, fy }; continue; }   /* RM3 PushableBlock3 to (x, y) */
             if (sscanf(line, "%d PB %f %f", &ff, &fx, &fy) == 3 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'P', fx, fy }; continue; }   /* first pushable block to original (x, y) */

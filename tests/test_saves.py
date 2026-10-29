@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Host tests for the save (v3, session 13; build/re/spec_records_saves.md; v4, session 15: the gallery's opened cards and
 achievements): stage-indexed records, files, progress and cards for every stage, the original's record rules, conversion
-of v1 / v2 / v3 saves, CRC rejection, size bound (1361 bytes = 6 VMU blocks with the header and icon).
+of v1 / v2 / v3 / v4 saves, CRC rejection, size bound (v5, session 25 Adventure story: 1377 bytes = 6 VMU blocks with the
+header and icon).
 usage: test_saves.py [data_dir]   (default: converted2)"""
 import subprocess, sys, os, tempfile, struct
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -26,7 +27,7 @@ def crc16(b):
 
 def parse(path):
     d = open(path, 'rb').read()
-    assert d[:3] == b'FPS' and d[3] == 4 and crc16(d[:-2]) == struct.unpack('<H', d[-2:])[0], 'bad v4 save'
+    assert d[:3] == b'FPS' and d[3] in (4, 5) and crc16(d[:-2]) == struct.unpack('<H', d[-2:])[0], 'bad v4 / v5 save'
     p = 4; sv = {}
     sv['opts'] = list(d[p:p + 5]); p += 5
     sv['files'] = []
@@ -42,6 +43,11 @@ def parse(path):
     ob = d[p:p + CARDBYTES]; p += CARDBYTES
     sv['opened'] = {n for n in range(1, 101) if ob[(n - 1) >> 3] >> ((n - 1) & 7) & 1}
     sv['ach'] = list(d[p:p + ACH]); p += ACH
+    sv['ver'] = d[3]
+    if d[3] >= 5:                                   # v5 (session 25): the files' story positions, the seen flags
+        for i in range(FILES): sv['files'][i]['story'] = d[p + i]
+        p += FILES
+        sv['seen'] = {n for n in range(64) if d[p + (n >> 3)] >> (n & 7) & 1}; p += 8
     assert p == len(d) - 2, 'size %d vs %d' % (p, len(d) - 2)
     sv['size'] = len(d)
     return sv
@@ -63,7 +69,7 @@ with tempfile.TemporaryDirectory() as d:
     check('ta_record_stage1_lilac_ms', 10000 < t < 30000 and all(s['rec'][x][c][0] == 0 for x in range(STAGES) for c in range(CHARS) if (x, c) != (1, 0)), 'time %d ms' % t)
     check('ta_leaves_files', not any(f['used'] for f in s['files']) and s['progress'] == [0, 0, 0, 0])
     check('save_size_bound', s['size'] <= 1536, '%d bytes' % s['size'])
-    check('save_size_v4_1361', s['size'] == 1361 and 128 + 3 * 512 + s['size'] <= 6 * 512, '%d bytes' % s['size'])   # VMU header + 3 icon frames: 6 blocks
+    check('save_size_v5_1377', s['ver'] == 5 and s['size'] == 1377 and 128 + 3 * 512 + s['size'] <= 6 * 512, '%d bytes' % s['size'])   # VMU header + 3 icon frames: 6 blocks
     # a slower run keeps the time
     out = run('900 TP 16000 2280\n920 1600 R\n', 1400, {'FP_LEVEL': 'dv4', 'FP_TA': '1', 'FP_SAVE': sv, 'FP_TRACE_SND': '1'})
     s2 = parse(sv)
@@ -122,18 +128,30 @@ with tempfile.TemporaryDirectory() as d:
           '%s last %d progress %s' % (f['stage'][0], f['last'], s['progress']))
     check('v2_options_kept', s['opts'][:2] == [2, 80] and s['opts'][4] == 0, str(s['opts']))
 
-    # ---- v3 save (session 13 layout) converted: cards stay taken and face down, no achievement; written back as v4
+    # ---- v3 save (session 13 layout) converted: cards stay taken and face down, no achievement; written back as v5
     v3 = b'FPS\x03' + bytes([1, 60, 100, 70, 1]) + bytes(FILES * (8 + STAGES * 7)) + bytes(6 * STAGES * CHARS) + bytes([2, 0, 0, 0]) + bytes([0b101] + [0] * 12)
     v3 += struct.pack('<H', crc16(v3))
     sv3 = os.path.join(d, 'v3.bin'); open(sv3, 'wb').write(v3)
     out = run('40 42 S\n200 201 U\n230 231 J\n280 281 U\n300 301 J\n', 380, {'FP_SAVE': sv3})   # options OKAY: written as v4
     s = parse(sv3)
-    check('v3_converted_to_v4', s['cards'] == {1, 3} and not s['opened'] and s['ach'] == [0] * ACH and s['opts'][1] == 60 and s['progress'] == [2, 0, 0, 0],
+    check('v3_converted_to_v5', s['ver'] == 5 and all(f['story'] == 0 for f in s['files']) and not s['seen'] and s['cards'] == {1, 3} and not s['opened'] and s['ach'] == [0] * ACH and s['opts'][1] == 60 and s['progress'] == [2, 0, 0, 0],
           '%s %s' % (sorted(s['cards']), s['opts']))
     # ---- a truncated file (valid CRC over its own bytes) is ignored like a damaged one
     t = v3[:-40]; t += struct.pack('<H', crc16(t)); open(sv3, 'wb').write(t)
     out = run('', 2, {'FP_LEVEL': 'dv1', 'FP_SAVE': sv3})
     check('truncated_save_ignored', 'save cards 0' in out and open(sv3, 'rb').read() == t)
+
+    # ---- v4 save (session 15 layout, no story): loads, written back as v5 with no story position and nothing seen
+    v4 = os.path.join(d, 'v4.bin')
+    run(DV4_END, 1100, {'FP_LEVEL': 'dv4', 'FP_FILE': '2', 'FP_FILE_NEW': '1', 'FP_SAVE': v4})
+    d5 = open(v4, 'rb').read()
+    body = d5[4:-2 - 16]                            # the v5 payload without its story bytes = the v4 payload
+    raw = b'FPS\x04' + body
+    open(v4, 'wb').write(raw + struct.pack('<H', crc16(raw)))
+    out = run('40 42 S\n200 201 U\n230 231 J\n280 281 U\n300 301 J\n', 380, {'FP_SAVE': v4})   # options OKAY: written as v5
+    s = parse(v4)
+    check('v4_converted_to_v5', s['ver'] == 5 and s['files'][2]['used'] == 1 and s['files'][2]['story'] == 0 and not s['seen'],
+          'ver %d used %d' % (s['ver'], s['files'][2]['used']))
 
 print('%d failure(s)' % fails)
 sys.exit(1 if fails else 0)

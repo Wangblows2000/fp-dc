@@ -19,12 +19,17 @@ Developer tool: (re)generate the builder's committed tables. End users never run
       so no colour value is stored either) and checked to give the Linux pixels exactly. Images whose differing pixels
       need a colour the PC image does not have, or more than LABEL_MAX pixels, get no recipe.
 
+  make_tables.py story <bin64/Chowdren> <tables_dir>
+      Only tables/story/dialog.json (below; session 25, Adventure mode).
+
   make_tables.py layout <bin64/Chowdren> <decompiled_dir> <tables_dir>
       The tables the pipeline reads from the Linux program (md5 65f22f98...), committed in tables/ so that a Windows
       Assets.dat alone is enough to build (tables/README.md):
         frames/frame_<N>.json, classes.json  tools/re/dump_frames.py (objdump)   level / screen layouts
         frames/anims.json                    tools/re/dump_anims.py (pyelftools) animation tables
         frames/backdrops.json                tools/re/dump_backdrops.py          backdrop (tiled) layers
+        story/dialog.json                    the Adventure dialogue (DialogData paragraphs) and scene captions
+                                             (tools/re/dump_dialog.py; session 25)
         strings.json                         the gallery / credits text: the string literals that the List* / credits
                                              constructors (<decompiled_dir>, Ghidra output, build/re) pass, read from
                                              the binary (import_gallery.elf_strings, which reads this file instead of
@@ -167,13 +172,24 @@ def layout(binary, re_dir, out):
     subprocess.run(py + [os.path.join(tools, 're', 'dump_frames.py'), binary, fr], check=True)
     subprocess.run(py + [os.path.join(tools, 're', 'dump_anims.py'), binary, os.path.join(fr, 'anims.json')], check=True)
     subprocess.run(py + [os.path.join(tools, 're', 'dump_backdrops.py'), binary, os.path.join(fr, 'backdrops.json')], check=True)
+    story(binary, out)
     res = {'binary_md5': BIN_MD5, 'files': {f: elf_strings_all(binary, os.path.join(re_dir, f)) for f in STRING_FILES}}
     with open(os.path.join(out, 'strings.json'), 'w', encoding='utf-8', newline='\n') as o:
         json.dump(res, o, indent=1, ensure_ascii=False); o.write('\n')
     print('%d frame files; strings: %s' % (len(os.listdir(fr)), ', '.join('%s %d' % (f.split('_')[0], len(v)) for f, v in res['files'].items())))
 
+def story(binary, out):
+    """tables/story/dialog.json: every DialogData object's paragraphs and the scene captions (tools/re/dump_dialog.py).
+    tables/story/scenes.json, scripts/ and rows.json are made by hand / tools/story_rv2scn.py from RV traces."""
+    import subprocess
+    tools = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+    if hashlib.md5(open(binary, 'rb').read()).hexdigest() != BIN_MD5: sys.exit('%s is not the Linux 1.21.5 program' % binary)
+    os.makedirs(os.path.join(out, 'story'), exist_ok=True)
+    subprocess.run([sys.executable, '-B', os.path.join(tools, 're', 'dump_dialog.py'), binary, os.path.join(out, 'story', 'dialog.json')], check=True)
+
 if __name__ == '__main__':
     if len(sys.argv) == 5 and sys.argv[1] == 'winmap': winmap(*sys.argv[2:])
     elif len(sys.argv) == 5 and sys.argv[1] == 'layout': layout(*sys.argv[2:])
     elif len(sys.argv) == 5 and sys.argv[1] == 'labels': labels(*sys.argv[2:])
+    elif len(sys.argv) == 4 and sys.argv[1] == 'story': story(*sys.argv[2:])
     else: sys.exit(__doc__)
