@@ -43,6 +43,7 @@ static struct {
     int floor_on; float floor_sx, floor_sy; double floor_o;   /* the Syntax treadmill (fd_gim_scroll_floor) */
     int wind_ch;                                   /* sound 381's loop channel or -1 */
     int siren_a, siren_b;                          /* fd2b's script state: the off-map ObjectSiren's A / B (15802-15811) */
+    int jA, jB;                                    /* fd1a's screen script: the subtitle object's A / B (15273-15303) */
 } S;
 #define LST S.lst
 #define NLS S.nls
@@ -725,6 +726,79 @@ static void siren(player_t *p) {
 int fd_gim_siren_alarm(void) { return S.siren_a == 2; }
 int fd_gim_siren_state(void) { return S.siren_a; }
 
+/* ================================================================ 19. layer-0 scenery: fd3's back pillars, fd1a's jumbotron (session 26)
+ * Both are json layer 0 Actives after every parallax piece (instance order), drawn by the parallax hook (back_draw, PAR_HOOK_END).
+ * FD3BackPillar_3615 (fd3a / fd3b, 14 each at y -32; RE create_: visible, image 1396 128 x 120, hotspot (64, 0)). The start (16206):
+ * A = x, B = y (+ the layer's offsets: 0 on the 1:1 layer 0; RV below), y scale 4. Every frame (16192):
+ * x = trunc(view x 0.8 + A), y = trunc(view y 0.8 + B), set_angle((x - view x) / g16 45 - 22.5) with g16 the view width (426: RV, see
+ * sb_enemy.c; -22.5 when g16 is 0): the pillars scroll at 0.2 and lean out from the view's centre.
+ * FDJumbotron_3451 (par 0; visible, image 3756 128 x 128 with its hotspot at (-416, -120), action point (14, 8)) and FDJumbotron2_3452
+ * (par 1, its screen; ctor invisible; anim 0 = 6 frames looping, anim 7 = 4 frames at speed 0). Every frame (15302): the jumbotron at
+ * x = trunc(view x 0.9 + 960), y = LevelParallaxPiece0_3390's y; the screen at the jumbotron's action point (get_action_x / _y, vtable
+ * +0x18 / +0x20: x + 430, y + 128; the placements (0, 96) / (430, 224) agree); each BackgroundSpawner_3454 at the screen + (A, B), then
+ * B - 10; B < -100 destroys it (15303). The script is the subtitle object's A / B (TextBlitter 0x1aff0; its voices and subtitles are not
+ * ported): 15273 A 0 -> 1 (X > 800, g4 < 2); A 1: B + 1, B > 250: A 2; A < 3, X > 11111, Y > 1760: A 3, the screen shown, B 0; A 3: B + 1;
+ * 15279 (B 20): the screen's anim 7; B 90 / 100 / 110: its frames 1 / 2 / 3; 15283: 140 < B < 240 and B even: a BackgroundSpawner at
+ * (screen x, screen y + 140) with A = Random(200) - 50; (B 160: C 1, the pod rain: fd_enemy.c keeps its own start); B 250: restore_frame,
+ * anim 0; B > 270: the screen hidden, A 4. RV (build/orig_traces/late_gim, rv3 / rv4): the jumbotron at (10938, 1694) under the view top
+ * 1776, its screen at + (430, 128) with anim 7 from B 20, the frames, pods and the hide as above; the pillar placed at x 3248 at (3248, 187),
+ * angle 320.599 in fd3a's start view (camera 0, 274), as the port computes it. */
+#define FD1A_PIECE0 3390                           /* LevelParallaxPiece0_3390: the jumbotron's y (15302) */
+static void backdrop(const player_t *p) {
+    obj_t *o, *j = NULL, *s = NULL;
+    int vl = (int)G.camx, vt = (int)G.camy;
+    EACH(OT_FDG_PILLAR, o) {                                                    /* 16192 */
+        o->x = trunc_i(vl * 0.8 + o->av[0]); o->y = trunc_i(vt * 0.8 + o->av[1]);
+        o->ang = (float)(((int)o->x - vl) / (double)SCREEN_W * 45 - 22.5);
+    }
+    if (!N(OT_FDG_JUMBO)) return;
+    EACH(OT_FDG_JUMBO, o) { if (o->par == 1) s = o; else j = o; }
+    double X = p->x, Y = MY(p);
+    if (S.jA == 0 && X > 800 && G.at_g4 < 2) S.jA = 1;                          /* 15273 */
+    if (S.jA == 1 && ++S.jB > 250) S.jA = 2;
+    if (X > 10680) G.cam_nF = 2016;                 /* (the same block: the camera's bottom F 2016 past x 10680; RV: view top 1776 there) */
+    if (S.jA < 3 && X > 11111 && Y > 1760) { S.jA = 3; S.jB = 0; if (s) s->st = 1; }
+    if (S.jA == 3) S.jB += 1;
+    if (S.jA == 3 && s) {
+        if (S.jB == 20) { set_s(s, "fdg_jumbo2_7"); set_frame(s, 0); }         /* 15279 */
+        if (S.jB == 90 || S.jB == 100 || S.jB == 110) set_frame(s, (S.jB - 80) / 10);
+        if (S.jB > 140 && S.jB < 240 && S.jB % 2 == 0) {                       /* 15283 */
+            obj_t *b = spawn(OT_FDG_BGSPAWN, "fdg_bgspawn", s->x, s->y + 140, s->layer);
+            if (b) { b->av[0] = cross_rand(200) - 50; b->av[1] = 0; b->hidden = 1; }
+        }
+        if (S.jB == 250) { set_s(s, "fdg_jumbo2"); anim_restart(&s->an); }
+        if (S.jB > 270) { s->st = 0; S.jA += 1; }
+    }
+    if (j) {                                                                    /* 15302 */
+        int py = par_piece_y(FD1A_PIECE0);
+        j->x = trunc_i(vl * 0.9 + 960); if (py > -32768) j->y = (float)py;
+        if (s) { s->x = j->x + 430; s->y = j->y + 128; }
+    }
+    EACH(OT_FDG_BGSPAWN, o) {
+        if (s) { o->x = trunc_i(s->x + o->av[0]); o->y = trunc_i(s->y + o->av[1]); }
+        o->av[1] -= 10;
+        if (o->av[1] < -100) o->alive = 0;                                      /* 15303 */
+    }
+}
+static void back_draw(void) {
+    obj_t *o;
+    EACH(OT_FDG_PILLAR, o) {
+        if (!o->an.b) continue;
+        float sx = floorf(o->x - G.camx), sy = floorf(o->y - G.camy);
+        if (sx < -400 || sx > SCREEN_W + 400 || sy > SCREEN_H) continue;
+        r_set_scale(4.f); r_set_xscale(0.25f);                                  /* y scale 4 (16206) */
+        frame_draw_rot(o->an.b, anim_frame(&o->an), sx, sy, o->ang, 0, 0xffffffff);
+        r_set_xscale(1.f); r_set_scale(1.f);
+    }
+    for (int pass = 0; pass < 2; pass++)                                        /* the jumbotron, its screen, then the pods (creation order) */
+        EACH(pass ? OT_FDG_BGSPAWN : OT_FDG_JUMBO, o) {
+            if (!o->an.b || (pass == 0 && !o->st)) continue;
+            float sx = floorf(o->x - G.camx), sy = floorf(o->y - G.camy);
+            if (sx < -600 || sx > SCREEN_W + 100 || sy < -300 || sy > SCREEN_H + 100) continue;
+            frame_draw(o->an.b, anim_frame(&o->an), sx, sy, 0, 0xffffffff);
+        }
+}
+
 /* ================================================================ effects */
 static void effects(void) {
     obj_t *o;
@@ -767,7 +841,7 @@ void fd_gim_spawn(void) {
         o->an.b = NULL; o->fl = 0; o->st = 0; o->tm = -1; o->c = 0; o->dir = 0; o->ang = 0; memset(o->av, 0, sizeof o->av);
         o->vx = E;
         o->hidden = (objdef(o->type)->flags & OD_HIDDEN) != 0;
-        if (o->x < 0 || o->y < 0 || o->x > G.lvl.w || o->y > G.lvl.h) { o->alive = 0; continue; }   /* off-map templates */
+        if ((o->x < 0 || o->y < 0 || o->x > G.lvl.w || o->y > G.lvl.h) && o->type != OT_FDG_PILLAR) { o->alive = 0; continue; }   /* off-map templates (the pillars stand at y -32) */
         if ((unsigned)t < sizeof AN0 / sizeof AN0[0] && AN0[t]) set_s(o, AN0[t]);
         lst_add(o); S.on = 1;
     }
@@ -838,6 +912,10 @@ void fd_gim_spawn(void) {
     EACH(OT_FDG_LTPLAT, o) set_s(o, "fdg_ltplat");
     EACH(OT_FDG_LTUNNEL, o) { set_s(o, "fdg_ltun0"); o->av[1] = 160; o->hidden = 1; }   /* on_frame_72_start: B 160 */
     EACH(OT_FDG_LTGLASS, o) set_s(o, (o->par == 2) ? "fdg_ltg3" : (o->par == 1) ? "fdg_ltg2" : "fdg_ltg1");
+    EACH(OT_FDG_PILLAR, o) { set_s(o, "fdg_pillar"); o->av[0] = floorf(o->x); o->av[1] = floorf(o->y); o->hidden = 1; }   /* 16206: A, B; drawn by back_draw */
+    EACH(OT_FDG_JUMBO, o) { set_s(o, o->par == 1 ? "fdg_jumbo2" : "fdg_jumbo"); o->hidden = 1; o->st = o->par != 1; }    /* st: shown (the screen: ctor invisible) */
+    S.jA = S.jB = 0;
+    if (N(OT_FDG_PILLAR) || N(OT_FDG_JUMBO)) par_set_hook(PAR_HOOK_END, back_draw);    /* json layer 0, after every parallax piece */
     if (N(OT_FDG_LSWITCH) == 2 * N(OT_FDG_BIGLIFT)) {                           /* (INFERRED: each lift takes its two switches, by class) */
         int i1 = 0, i2 = 0;
         EACH(OT_FDG_LSWITCH, o) { int j = (o->par & 1) ? i2++ : i1++; if (j < N(OT_FDG_BIGLIFT)) o->tm = LST[OT_FDG_BIGLIFT - RT0][j]; }
@@ -869,6 +947,7 @@ void fd_gim_frame(player_t *p) {
     if (N(OT_FDG_LTUNNEL)) tunnel(p);                                            /* 16674-16681 */
     if (N(OT_FDG_OBEAM)) orbits(p);                                              /* 16040-16046 */
     if (S.act == 4) siren(p);                                                    /* 15802-15811 */
+    if (N(OT_FDG_PILLAR) || N(OT_FDG_JUMBO)) backdrop(p);                        /* 16192 / 15273-15303 */
     effects();
 #ifdef FP_HOST_ENV
     { static int dbg = -1; if (dbg < 0) dbg = getenv("FP_DBG_FDG") != NULL;

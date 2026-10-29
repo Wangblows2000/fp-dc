@@ -1,12 +1,23 @@
 # TODO (priority order)
 
+## Session 26: late-stage gimmick gaps (build/gimmick_audit.md)
+- [x] FD4a vanishing blocks drawn; PL5 / PL6 time-gate rings and TB5 conveyors complete (per-type lists sized per act); DV4 geyser
+      eruption + launch - 12; yellow down-springs drawn with their press (PL1 / PL2 / SB4, FN2 / FN4); FD3a / FD3b sounds 285 / 286;
+      FD3 back pillars; fd1a jumbotron + pods (+ the camera bottom 2016); TB3 / TB6 heat sky; FD3a alarm pulse; SB back-eye fade;
+      BG4 arrow sign; FD4b terminals (tests/test_late_gimmicks.py)
+- [ ] Not ported: the down-springs' EffectsSpringBeam (as every other port spring), the jumbotron dialog's voices / subtitles,
+      the fd1a pod rain started by the dialog's C at B 160 (fd_enemy.c keeps its INFERRED start at x 800; the original's would need
+      Y > 1760 there, which the pod-rain test does not reach)
+- [ ] INFERRED: the FD1b alarm (fd_boss_r12.c) draws an alpha rect from sin; RE 15388 is the same 255 - (200 cos A + 180)
+      additive rule as FD3a's 16184 (not changed here)
+
 ## Session 24: Battle Glacier, Final Dreadnought, ending, builder, PC port
 - [x] BG1-BG6 (flow, enemies, gimmicks, bosses) and FD rounds 1-4 (fd1a-fd4b) for Lilac / Carol / Milla; Classic route into
       BG and FD; each FD round's results; FD4 -> final cutscene -> FINAL SCORE -> credits -> Thanks for Playing -> title
 - [x] Whole-game transition matrix (test_route_matrix), enemy view box (BOX1), FD boss sprite-name collision fixed
 - [x] PC port (branch pc-port): Linux x86_64 + Windows i686 (Wine-tested); drag-and-drop Dreamcast builder (master)
 - [ ] Real hardware: VRAM on fd3b with Carol (768 KB free in Flycast), BG4 / fd1b; sound RAM BG3 (205 KB) and FD1B (198 KB group)
-- [ ] Not ported: the shoot-'em-up lead-in to BG (frame 84), BG6 closing scene, BGArrowSign, Absolution's lasers killing
+- [ ] Not ported: the shoot-'em-up lead-in to BG (frame 84), BG6 closing scene, Absolution's lasers killing
       enemies, BG6 iris enemies / shield bubbles / card trails; FD4b space backdrops + background mech (VRAM), the turret's
       aimed / acid volleys, Brevon's grab (state 10) and weapon-arm throws (14-15), finisher moves, voices, intro Elites;
       fd2b vacuum air rule (fd_gim_siren_alarm is ready); fd1a pod rain at the dialog step (INFERRED self-start at x 800);

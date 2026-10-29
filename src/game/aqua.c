@@ -493,8 +493,9 @@ void aqua_spring(obj_t *o, player_t *p) {
     case OT_RSPRING_D:                                                                            /* 3000: G = 18 (+ gravity) */
         if (Gv <= 0 && box_sensor(SENS_TOPBIG, x0, y0, x1, y1)) { player_launch(p, 0, -18.25, 5); spring_press(o, "rs_down", "rs_down_b"); }
         break;
-    case OT_SPRING_D:                                                                             /* 3008 (RE): as 3000 with G = 11 (+ gravity); the yellow image's own animation */
-        if (Gv <= 0 && box_sensor(SENS_TOPBIG, x0, y0, x1, y1)) { player_launch(p, 0, -11.25, 5); anim_restart(&o->an); }
+    case OT_SPRING_D:                                                                             /* 3008 (RE): as 3000 with G = 11 (+ gravity); */
+        if (Gv <= 0 && box_sensor(SENS_TOPBIG, x0, y0, x1, y1)) { player_launch(p, 0, -11.25, 5); spring_press(o, "ys_down", "ys_down_b"); }   /* force_animation(0), (5) */
+        if (o->an.done) { int a = ens_anim("ys_down"); if (a >= 0) anim_set(&o->an, &G.ens, a); }   /* anim 5 (2 frames, loop 1) back to 0 */
         return;
     case OT_RSPRING_R:                                                                            /* 2998: pushes right, B = 14, O = 5 */
         if (B <= 0 && box_sensor(SENS_LEFTBIG, x0, y0, x1, y1)) { player_spring_side(p, 14); spring_press(o, "rs_right", "rs_right_b"); }
@@ -638,6 +639,7 @@ void aqua_spawn(void) {
         case OT_RSPRING_L: set_ens(o, "rs_left"); if (off) o->alive = 0; break;
         case OT_RSPRING_R: set_ens(o, "rs_right"); if (off) o->alive = 0; break;
         case OT_RSPRING_UR: set_ens(o, "rs_ur"); if (off) o->alive = 0; break;
+        case OT_SPRING_D: set_ens(o, "ys_down"); if (off) o->alive = 0; break;           /* YellowSpringDown_416 (ctor visible, anim 0) */
         case OT_MON_BOMB: set_ens(o, "mon_bomb"); o->fl = 0; o->tm = 0; if (off) o->alive = 0; break;
         case OT_MON_CRATE: set_ens(o, "mon_crate"); if (off) o->alive = 0; break;
         }

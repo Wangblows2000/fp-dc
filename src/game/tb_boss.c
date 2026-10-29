@@ -131,6 +131,12 @@ int  tb_boss_draw_obj(const obj_t *o, int pass) {
     sbb_draw(o, 0xffffffff);
     return 1;
 }
+/* LevelHeatSky_2779 (TB3 / TB6, session 26; RE create_levelheatsky_2779: invisible, image 6229 = a 10 x 10 (248, 196, 16) square,
+ * shader 0x20 = additive; 12249 / 12704 set its alpha byte 0, x / y scale 43 / 24 and show it): the encounters set st (shown) and av[0]
+ * (the alpha byte); drawn over the view on json layer 5 (objects_draw(3)). */
+obj_t *tbb_heat(void) { return on ? tbb_get(OT_TBB_HEATSKY, 0) : NULL; }
+void tbb_heat_show(int alpha) { obj_t *h = tbb_heat(); if (h) { h->st = 1; h->av[0] = alpha; } }
+void tb_boss_draw_overlay(void) { obj_t *h = tbb_heat(); if (h && h->st) obj_draw_view_tint(0xf8c410, (int)h->av[0]); }   /* image 6229: (248, 196, 16) */
 uint32_t tbb_held;
 int   tb_boss_input(uint32_t *held) { tbb_held = *held; return 0; }   /* (the TB3 chase reads the held buttons: 12261) */
 int   tb_boss_player_hidden(void) { return 0; }

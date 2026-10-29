@@ -10,7 +10,7 @@
  * original's (RE); see RE_NOTES "Level table". */
 /* Carol's jump pads (spec_carol_bike C2): x, y, index A, angle B, chain end D, lit E, block pad (DV4 anim 7) */
 /* DV2 / DV3 stage sounds (DV fixes): 44, the geyser eruption (event 4961; RV gey_on / gey_off: once every 150 frames) */
-static const short SFX_DVG[] = { 44 };
+static const short SFX_DVG[] = { 44 };   /* (DV4 too: its plate 5372, session 26) */
 static const padcfg_t PADS_DV2[] = { {2736,1144,0,0,0,1,0}, {2936,992,1,90,0,0,0}, {2912,688,2,180,0,0,0}, {3176,688,3,180,1,0,0},
     {3400,1416,4,0,0,1,0}, {3400,1224,5,180,0,0,0}, {3728,1224,6,180,0,0,0}, {4032,1224,7,180,1,0,0} };
 static const padcfg_t PADS_DV3[] = { {7408,2200,0,90,0,1,0}, {7072,1952,1,270,0,0,0}, {7344,1952,2,90,1,0,0}, {680,1776,3,0,0,1,0},
@@ -303,7 +303,7 @@ static const exit_t EX_FD2A[] = { { 1, 0, -50, 1100, 32767, NULL } };   /* 15652
  * 99 explosions; the enemy / gimmick / boss modules add theirs */
 static const short SFX_FD1A[] = { 62, 99, 98, 311, 354, 54, 70, 132, 38, 319, 320, 192, 233, 29, 345, 346, 28, 358, 274, 359, 360 };   /* + fd1a's entry: 98 / 99 / 311 (15298), 354 (15300) */ static const short SFX_FD1B[] = { 62, 99, 70, 172, 173, 237, 312, 132, 38, 311, 319, 320, 192, 233, 29, 345, 346, 28, 358, 274, 359, 360, 279, 381, 310, 169, 382, 191, 384, 386, 47, 24, 60, 385, 371, 219, 383, 76, 98, 23 };
 static const short SFX_FD2A[] = { 62, 99, 192, 233, 29, 345, 346, 28, 311, 274, 371, 49, 368, 369, 241, 279, 280, 285, 286, 37, 134, 38, 17, 319, 320, 23, 24 }; static const short SFX_FD2B[] = { 62, 99, 192, 233, 29, 345, 346, 28, 311, 358, 371, 49, 368, 369, 370, 241, 51, 262, 372, 279, 280, 285, 286, 37, 373, 374, 67, 354, 375, 376, 377, 147, 47, 378, 309, 219, 24, 319, 320 };
-static const short SFX_FD3A[] = { 62, 99, 254, 310, 376, 38, 132, 311, 319, 320, 192, 233, 29, 345, 346, 379, 70, 279, 280 }; static const short SFX_FD3B[] = { 62, 99, 254, 376, 38, 310, 132, 311, 319, 320, 192, 233, 29, 345, 346, 379, 70, 279, 280, 17, 21, 23, 24, 25, 28, 30, 41, 51, 76, 165, 166, 286, 373, 374, 380, 389, 390, 392, 425 };
+static const short SFX_FD3A[] = { 62, 99, 254, 310, 376, 38, 132, 311, 319, 320, 192, 233, 29, 345, 346, 379, 70, 279, 280, 285, 286 }; static const short SFX_FD3B[] = { 62, 99, 254, 376, 38, 310, 132, 311, 319, 320, 192, 233, 29, 345, 346, 379, 70, 279, 280, 285, 17, 21, 23, 24, 25, 28, 30, 41, 51, 76, 165, 166, 286, 373, 374, 380, 389, 390, 392, 425 };
 static const short SFX_FD4A[] = { 62, 99, 171, 328, 329, 254, 376, 38, 310, 192, 233, 29, 345, 346, 17, 388, 270, 344 }; static const short SFX_FD4B[] = { 62, 99, 171, 29, 17, 344, 21, 24, 28, 38, 47, 55, 76, 165, 192, 295, 311, 319, 320, 341, 342, 343, 347, 348, 390, 393, 395, 406, 407, 408 };
 #define FD(d, f, st, n, sx, mus) .dir = d, .frame = f, .stage = st, .act = n, .nacts = 2, .music = mus, .checkpoints = 1, .sfx = sx, .nsfx = N_(sx)
 #define PL(d, f, n, mus) .dir = d, .frame = f, .stage = 7, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_PL##n, .nsfx = N_(SFX_PL##n), .lilac_only = 1
@@ -317,7 +317,8 @@ static const level_def_t LEVELS[] = {
     { DV("dv1", 20, 1, "bgm/m_stage1.adp"), .card_first = 1 },
     { DV("dv2", 21, 2, "bgm/m_stage1b.adp"), .card_first = 5, .door_skip_ach = 18, .water = 2700, .pads = PADS_DV2, .npads = N_(PADS_DV2), .geyser_fx = 1, .sfx = SFX_DVG, .nsfx = N_(SFX_DVG) },
     { DV("dv3", 22, 3, "bgm/m_stage1b.adp"), .card_first = 7, .water = 2700, .pads = PADS_DV3, .npads = N_(PADS_DV3), .geyser_fx = 1, .sfx = SFX_DVG, .nsfx = N_(SFX_DVG) },
-    { DV("dv4", 23, 4, "bgm/m_stage1b.adp"), .card_first = 8, .edge_results = 1, .pads = PADS_DV4, .npads = N_(PADS_DV4) },
+    { DV("dv4", 23, 4, "bgm/m_stage1b.adp"), .card_first = 8, .edge_results = 1, .pads = PADS_DV4, .npads = N_(PADS_DV4),
+      .geyser_fx = 1, .geyser_g = 12, .sfx = SFX_DVG, .nsfx = N_(SFX_DVG) },   /* the plate at (11600, 687): 5372-5377, launch 5378 (G - 12) */
     /* Aqua Tunnel: frame index 16-19 (tools/re/bgm_refs.py: 16 m_stage0, 17/18 m_stage0b; AT2 after the Chomper (g4 >=
      * 10, 4330) m_stage0b), water 1200 / 1200 / none / 1480 (4309 / 4478 / 4530 / 4685), AT2 walk-in B = 0 (4403), AT3
      * ends at the top (4521: MV.Y < 380), AT4 results through the boss only (4652) */

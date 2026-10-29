@@ -106,6 +106,8 @@ void f4b_spawn(void) {
     for (int k = 0; k < 4; k++) S.bw[k] = S.fw[k] = -1;
     for (int k = 0; k < SP_N; k++) S.sp[k] = -1;
     obj_t *s = stone(), *h = shead();
+    /* the boss room's ComputerTerminal / 2 (5 placed; no FD4b event moves them: their anim 0 loops, session 26) */
+    for (int i = 0; i < fdb_count(OT_FDB_TERM); i++) { obj_t *t = fdb_get(OT_FDB_TERM, i); if (t && t->par < 2) fdb_set(t, t->par == 1 ? "fdb_term1" : "fdb_term0"); }
     if (!s || !h || !fdb_count(OT_FDB_MECH)) return;
     S.on = 1; S.ph = PH_WAIT;
     fdb_set(s, "fdb_stone");
