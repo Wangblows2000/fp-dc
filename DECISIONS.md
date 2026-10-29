@@ -500,3 +500,10 @@ stale program cannot be committed unnoticed (`tools/builder/build_release.sh --p
 Also at the user's request: the results are written next to the scripts (`fpdc.cdi`; PC: `fpdc.exe` / `fpdc`, `data/`),
 not to `output/`; started without an argument the builders find an Assets.dat in the project folder, up to three folders
 above it or a usual Steam / GOG folder, else ask with a file dialog (Windows: PowerShell; Linux: zenity).
+On the pc-port branch (same decision): `prebuilt/` also holds fpdc-win32.exe, SDL2.dll, fpdc-linux-x86_64; the PC builders
+write `fpdc.exe` / `fpdc`, `SDL2.dll`, `README-PC.txt` and `data/` next to the scripts (only the files a previous build put
+in `data/`, listed in `data/.fpdc_files`, are replaced: the repository's `data/test1.txt` stays). The developers' compile
+scripts were renamed `pc/compile_win32.bat` / `.sh`, `pc/compile_linux.sh` (the user had run `pc\build_win32.bat`, which
+shared the drag-and-drop builder's name, failed on a quoting error and only looked for i686-w64-mingw32-gcc): they now pass
+the output folder through the environment, keep the Windows PATH in MSYS2, find any i686 or x86_64 mingw-w64 gcc and write
+to the folder they are started from.

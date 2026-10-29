@@ -1,8 +1,8 @@
 # PC build (SDL2): the unchanged game code + src/platform/plat_sdl.c + the software renderer (render_soft.c).
 #   make -C pc                      -> pc/build/linux/fpdc        (gcc, system SDL2: sdl2-config)
-#   make -C pc PLATFORM=win32 SDL2_DIR=<SDL2-x.y.z/i686-w64-mingw32>
-#                                   -> pc/build/win32/fpdc.exe    (mingw-w64 i686; pc/build_win32.sh fetches SDL2)
-#   OUT=<dir> puts the objects and the binary elsewhere. The wrappers pc/build_linux.sh / pc/build_win32.sh call this.
+#   make -C pc PLATFORM=win32 SDL2_DIR=<SDL2-x.y.z/i686-w64-mingw32> [WIN_CC=<mingw-w64 gcc>]
+#                                   -> pc/build/win32/fpdc.exe    (mingw-w64 i686; pc/compile_win32.sh fetches SDL2)
+#   OUT=<dir> puts the objects and the binary elsewhere. The wrappers pc/compile_linux.sh / pc/compile_win32.sh call this.
 PLATFORM ?= linux
 ROOT := ..
 OUT ?= build/$(PLATFORM)
@@ -19,10 +19,11 @@ CFLAGS ?= -O2
 FP_CFLAGS := -std=c99 -DFP_PC -Wall -Wextra -Wno-unused-parameter -ffp-contract=off -MMD -MP
 
 ifeq ($(PLATFORM),win32)
-CC := i686-w64-mingw32-gcc
+WIN_CC ?= i686-w64-mingw32-gcc
+CC := $(WIN_CC)
 EXE := fpdc.exe
 ifndef SDL2_DIR
-$(error PLATFORM=win32 needs SDL2_DIR=<SDL2-devel-mingw>/i686-w64-mingw32 (pc/build_win32.sh downloads it))
+$(error PLATFORM=win32 needs SDL2_DIR=<SDL2-devel-mingw>/i686-w64-mingw32 (pc/compile_win32.sh downloads it))
 endif
 # SSE2 maths (no x87 excess precision: the physics matches the x86_64 / host results); __USE_MINGW_ANSI_STDIO: C99 printf
 FP_CFLAGS += -msse2 -mfpmath=sse -D__USE_MINGW_ANSI_STDIO=1 -I$(SDL2_DIR)/include/SDL2 -Dmain=SDL_main
