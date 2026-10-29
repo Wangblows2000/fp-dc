@@ -1328,3 +1328,19 @@ Full facts in build/re/spec_pl_*.md (RE / RV / INFERRED). Stage index 7, json 51
 PL1/PL2/PL4/PL5 right edge; PL3 and PL6 the stone doors (13009 / 13330: between StoneDoor1 / 2, door >= 60 % open, grounded),
 PL6 -> the Holo-Dragon arena (6080, 24), boss start 13336, win = 86 of 93 hit spots then Eye2 (HP 20), results 421 frames into
 state 7. Super boost (time gates, SKIN flag 8): 2009 / 2012 / 1637 / 1639 / 1677; the boost-dash bonus 2758 needs it.
+
+## Session 24: Battle Glacier, Final Dreadnought, the ending
+Full per-class evidence (RE event numbers, RV traces, INFERRED items): build/re/spec_bg_flow / enemies / gimmicks / bosses.md,
+spec_fd_flow / enemies / gimmicks / bosses_a / bosses_b.md; traces under build/orig_traces/bg_* / fd_* (both gitignored).
+- Classic route (RE handle_frame_9, MenuSequence.I): 6 -> 50 (PL, g1 0) / 84 (BG lead-in, else), 7 -> 84, 8 -> 84 (g1 0) / 44,
+  9 -> 65 (FD round 1); FD: 10 -> 67, 11 -> 69, 12 -> 71, 13 -> 83 (the ending). Frame 84's end (22695) loads BG1 with g4 0.
+- FrameObject::is_near_border(border): the object's collision box (an Active's whole image) strictly inside the view
+  grown by -border (0x1aa x 0xf0). RV bg3_squid: the BG3 squid at (490, 1000) stays idle (E 0) for 260 frames at the start;
+  walking right it wakes at frame 106 (player x 220); after a teleport to x 250 it counts from the next frame.
+- FD4b Classic (RV b4_2 / b5_0 / b5_4): Lilac / Carol: mech -> suit -> Brevon -> results; Milla: mech -> suit -> results.
+  Music: m_boss5 from the intro through the suit (b1_0 f 631), m_boss7 for Brevon (b4_0 f 4439).
+- FD3b (RE 16395-16399 + RV): Milla walks past the Kingdom Stone for 90 frames, then the results (no scene, no fight).
+- fd1a (RE 15298 / 15300 + RV): Lilac / Carol held at x -40 behind the hangar wall (explosions, 98 / 99 / 311 every 7 frames,
+  354 at D 160, thrown in with B 10 after D 180); Milla dropped from (128, -60) when the card ends.
+- Prince Dail (BG6, RV d1 / d2): the 7-hit cycle and the fall timeline match exactly; Absolution (BG4, RV m2-m5) within
+  1-2 frames; the FD1b morpher's defeat timeline (RV m2_l: 47, 38 at P 180, 76 + fade at P 300).
