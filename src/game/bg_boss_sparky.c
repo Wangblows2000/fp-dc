@@ -85,7 +85,7 @@ static void shoot(int r, double recoil, int spin) {
         snd_play_orig(spin ? 192 : 436, 220, 128);
         if (spin) { bgb_set(b, "bgs_body7"); for (int k = 0; k < bgb_count(OT_BGB_SP_TAIL); k++) bgb_set(tail(k), "bgs_tail7"); }
     } else {                                                                 /* 14519 / 14520: G <= 0: EnemyPellet_934, direction 8, speed 80 */
-        obj_spawn_pellet(x, y, 8);
+        obj_spawn_pellet(x, y, 8, a->layer);
         snd_play_orig(28, 220, 128);
     }
 }
