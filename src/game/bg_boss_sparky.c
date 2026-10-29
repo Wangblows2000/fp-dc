@@ -20,6 +20,7 @@ static struct {
     double D, E, F, G, H, I, J, K, L, M;
     double tA[NTAIL], tB[NTAIL];
     double aA[2];                                    /* the arms' A */
+    int ride, rode, cool, arm, exitk; uint32_t held, pressed;   /* BG5: Milla aboard (M 93), boarded once (flag 7), shot cooldown, next arm, re-board delay */
 } S;
 static obj_t *body(void) { return bgb_get(OT_BGB_SPARKY, 0); }
 static obj_t *arm(int r) { return bgb_get(r ? OT_BGB_SP_RARM : OT_BGB_SP_LARM, 0); }
@@ -45,6 +46,7 @@ void bgs_spawn(void) {
         return;
     }
     if (S.act == 5 && !bgb_milla()) { kill_all(); return; }                  /* 14726: MV.A != 4 */
+    if (S.act == 5) b->fl |= FL_HOLD;                                        /* the ride's shots are Milla's (flag 2: not the player's bane) */
     S.on = 1;
     b->A = 100; S.G = 30; S.J = 5; S.K = 60;                                 /* RE create_bosssparky_3336: A 100, G 30, J 5, K 60 */
     S.D = b->x; S.E = b->y; S.I = b->x; b->fl |= FL_HOLD | F_NOFLY;          /* 14611 / 14727 */
@@ -199,9 +201,82 @@ static void shots(player_t *p) {
     }
 }
 
+/* ---- BG5: Milla's ride (RE 14681-14716; 14726 / 14727). Milla falling or standing (MV.G >= 0) on the Sparky boards it (14683:
+ * M 93, X = its x, Y = its y - 32, sound 40, flag 7); aboard: right / left move X 5, up / down Y 3 (14695-14699), the Sparky follows
+ * (14690: D = X, E = Y + 32, CAM.H = 2 G), special turns it upside down (14700 / 14701), attack shoots from the arms in turn
+ * (14705-14708: plasma down, or upwards upside down; her shots hurt enemies 10, 14715), jump leaves it (14709: M 1).
+ * INFERRED: the shot cooldown (8 frames), the hit ending the ride, upside-down shots as plasma (the original's pellets are hers). */
+static void ride_shot_hits(void) {
+    for (int k = 0; k < bgb_runtime_n(); k++) {
+        obj_t *s = bgb_runtime(k);
+        if (!s || s->type != OT_BGB_PLASMA || !(s->fl & FL_HOLD)) continue;
+        for (int i = 0; i < G.nobjs; i++) {                                  /* only while a ride shot flies (Milla, BG5) */
+            obj_t *e = &G.o[i];
+            if (!e->alive || !enemy_type(e->type) || !e->an.b || e->c > 0 || (e->fl & (BGB_DEF | BGB_ARM)) || !obj_obj_hit(s, e)) continue;
+            e->A -= 10; e->c = 5; e->inv = 1; snd_play_orig(24, 220, 128);
+            obj_effect(s->x, s->y, "explosion02"); s->alive = 0; break;
+        }
+    }
+}
+static void ride_frame(player_t *p) {
+    obj_t *b = body(); if (!b) return;
+    if (S.exitk > 0) S.exitk--;
+    if (!S.ride) {
+        if (bgb_milla() && S.exitk == 0 && p->vy >= 0 && p->state != ST_RIDE && p->state != ST_DEAD && !p->hurt_pending && sbb_csens_hit(p, b)) {
+            S.ride = 1; S.rode = 1; S.held = S.pressed = 0;
+            p->state = ST_RIDE; p->state_t = 0; p->ground = 0; p->vx = p->vy = 0; p->gsp = 0;
+            p->x = b->x; p->y = (float)(b->y - 32 + ORIG_REF_DY);
+            snd_play_orig(40, 220, 128);
+            bgb_set(b, "bgs_body11"); for (int k = 0; k < bgb_count(OT_BGB_SP_TAIL); k++) bgb_set(tail(k), "bgs_tail11");
+        }
+    } else {
+        int leave = p->state != ST_RIDE || p->hurt_pending || p->hp <= 0;
+        if (!leave) {
+            uint32_t h = S.held, pr = S.pressed; S.pressed = 0;
+            /* 14695-14699 move MV.X / Y; INFERRED: the walls stop it (a point 16 px ahead of the rider's centre must be free) */
+            float cy = p->y - (float)ORIG_REF_DY;
+            if ((h & BTN_RIGHT) && !px_solid(&G.lvl, (int)p->x + 21, (int)cy)) p->x += 5;
+            if ((h & BTN_LEFT) && !px_solid(&G.lvl, (int)p->x - 21, (int)cy)) p->x -= 5;
+            if ((h & BTN_UP) && !px_solid(&G.lvl, (int)p->x, (int)cy - 19)) p->y -= 3;
+            if ((h & BTN_DOWN) && !px_solid(&G.lvl, (int)p->x, (int)cy + 51)) p->y += 3;   /* the Sparky hangs 32 below */
+            if (p->x < 16) p->x = 16;
+            if (p->x > G.lvl.w - 16) p->x = (float)(G.lvl.w - 16);
+            if (p->y < 32) p->y = 32;
+            if (h & BTN_RIGHT) p->face = 1; else if (h & BTN_LEFT) p->face = -1;
+            if (pr & BTN_SPECIAL) b->fl ^= FL_FLIP;                           /* 14700 / 14701 */
+            if (S.cool > 0) S.cool--;                                         /* 14703 */
+            if ((h & BTN_ATTACK) && S.cool <= 0) {                            /* 14705-14708 */
+                obj_t *a = arm(S.arm); S.arm ^= 1; S.cool = 8;
+                if (a) {
+                    float x, y; bgb_act_point(a, &x, &y);
+                    obj_t *s = bgb_spawn(OT_BGB_PLASMA, "bgs_plasma", x, y, a->layer);
+                    if (s) { s->vy = S.G > 0 ? 10.f : -10.f; s->dir = S.G > 0 ? 24 : 8; s->fl |= FL_HOLD; }
+                    S.aA[S.arm ^ 1] = S.arm ? -20 : 20;
+                    snd_play_orig(S.G > 0 ? 436 : 28, 220, 128);
+                }
+            }
+            if (pr & BTN_JUMP) leave = 2;                                     /* 14709: M 1, a jump off */
+        }
+        if (leave) {
+            S.ride = 0; S.exitk = 30;
+            if (p->state == ST_RIDE) { p->state = ST_NORMAL; p->state_t = 0; }
+            if (leave == 2) { p->vy = -6.f; p->ground = 0; }
+            bgb_set(b, "bgs_body"); for (int k = 0; k < bgb_count(OT_BGB_SP_TAIL); k++) bgb_set(tail(k), "bgs_tail");
+        } else {
+            S.D = p->x; S.E = sbb_py(p) + 32;                                 /* 14690 */
+            G.cam.H = (float)(2 * S.G);
+        }
+    }
+    if ((b->fl & FL_FLIP) && S.G > -30) { S.G = fmax(S.G - 2, -30); S.E += 2; }   /* 14711 / 14712 */
+    if (!(b->fl & FL_FLIP) && S.G < 30) { S.G = fmin(S.G + 2, 30); S.E -= 2; }
+    for (int r = 0; r < 2; r++) { if (S.aA[r] < 0) S.aA[r] += 2; else if (S.aA[r] > 0) S.aA[r] -= 2; }
+    rig();                                                                   /* 14710 / 14713 */
+    ride_shot_hits();
+}
 void bgs_frame(player_t *p) {
     if (!S.on) { shots(p); return; }
     if (S.act == 4) { boss_frame(p); dbg(p); }
+    if (S.act == 5) ride_frame(p);
     shots(p);
 }
 int bgs_draw(const obj_t *o, int pass) {
@@ -213,4 +288,12 @@ int bgs_draw(const obj_t *o, int pass) {
     return 0;
 }
 int bgs_input(uint32_t *held) { (void)held; return 0; }
-int bgs_player_hidden(void) { return 0; }
+int bgs_player_hidden(void) { return S.on && S.ride; }                         /* 14690: the skins invisible (anim 11 shows Milla aboard) */
+/* ST_RIDE hook (player.c): while aboard, the player's own physics stop; the ride reads the input here (14695-14709 read CTRL) */
+int bg_boss_player(player_t *p, const input_t *in) {
+    if (!S.on || !S.ride || p->state != ST_RIDE) return 0;
+    S.held = in->held; S.pressed |= in->pressed;
+    p->vx = p->vy = 0; p->gsp = 0;                                           /* 14690: MV.B = MV.G = 0, L = 0 */
+    return 1;
+}
+int bg_boss_ride_m(void) { return S.on && S.ride ? 93 : -1; }

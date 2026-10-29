@@ -1781,6 +1781,7 @@ for _e in BGB_ENS: ROW_FRAMES[_e[3]] = BGB_FRAMES   # BG_BOSS rows only in Battl
 for _e in BGB_ENS:
     if _e[5] == _MBG: ROW_FRAMES[_e[3]] = {61, 62, 63}   # BG6 places the background mech too (it stays hidden there)
 ROW_FRAMES['bgm_burst'] = {61}                        # BG2's set piece only
+ROW_FRAMES['bgs_body11'] = ROW_FRAMES['bgs_tail11'] = {64}   # Milla aboard (BG5's ride) only
 
 # ==== end Battle Glacier
 
