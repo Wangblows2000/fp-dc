@@ -1798,12 +1798,12 @@ BGB_ENS6 = [(c, a, d, nm, None, _SB6) for c, a, d, nm in (
     ('bossvortex2_3378', 0, '0', 'bgd_vortex2'), ('bossvortexstar_3379', 0, '0', 'bgd_star'),
     ('bossdailcard_3371', 0, '0', 'bgd_card'), ('bossdailcardtrail_3372', 0, '0', 'bgd_trail'),
     ('bossdailcardeffect_3367', 0, '0', 'bgd_cardx'), ('bosslightning2_2132', 0, '0', 'bgd_bolt'),
-    ('effectbossshade_3377', 0, '0', 'bgd_shade'), ('effectvortexburst_3380', 4, '0', 'bgd_burst'))]
+    ('effectbossshade_3377', 0, '0', 'bgd_shade'))]
 ENS += BGB_ENS6   # BG_BOSS
 for _e in BGB_ENS6: ROW_FRAMES[_e[3]] = {65}
 for _k in ('bossshadebeastmouth_3373', 'bossshadebeasttoptooth_3375', 'bossshadebeastbottomtooth_3376', 'bossshadebeasteye_3365',
            'bossvortex1_3374', 'bossvortex2_3378', 'bossvortexstar_3379', 'bossdailcard_3371', 'bossdailcardtrail_3372',
-           'bossdailcardeffect_3367', 'bosslightning2_2132', 'effectbossshade_3377', 'effectvortexburst_3380'):
+           'bossdailcardeffect_3367', 'bosslightning2_2132', 'effectbossshade_3377'):
     ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _SB6   # BG_BOSS (created at run time by the BG6 fight)
 
 # ==== end Battle Glacier
