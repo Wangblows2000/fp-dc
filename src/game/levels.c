@@ -299,8 +299,8 @@ static const cpzone_t CP_FD4A[] = { { 2300, 32767, 2, 48, 2960, -2960, 0 }, { 23
 static const exit_t EX_FD2A[] = { { 1, 0, -50, 1100, 32767, NULL } };   /* 15652: X > W - 50, B > 0 and MV.Y > 1100 */
 /* the stage's own sounds per act (11025 Hz): the flow plays fd1a's entry (98 / 99 / 311 / 354, fd_flow.c); 62 jump pads,
  * 99 explosions; the enemy / gimmick / boss modules add theirs */
-static const short SFX_FD1A[] = { 62, 99, 98, 311, 354, 54, 70, 132, 38, 319, 320, 192, 233, 29, 345, 346, 28, 358, 274, 359, 360 };   /* + fd1a's entry: 98 / 99 / 311 (15298), 354 (15300) */ static const short SFX_FD1B[] = { 62, 99, 70, 172, 173, 237, 312, 132, 38, 311, 319, 320, 192, 233, 29, 345, 346, 28, 358, 274, 359, 360, 279, 381 };
-static const short SFX_FD2A[] = { 62, 99, 192, 233, 29, 345, 346, 28, 311, 274, 371, 49, 368, 369, 241, 279, 280, 285, 286, 37 }; static const short SFX_FD2B[] = { 62, 99, 192, 233, 29, 345, 346, 28, 311, 358, 371, 49, 368, 369, 370, 241, 51, 262, 372, 279, 280, 285, 286, 37 };
+static const short SFX_FD1A[] = { 62, 99, 98, 311, 354, 54, 70, 132, 38, 319, 320, 192, 233, 29, 345, 346, 28, 358, 274, 359, 360 };   /* + fd1a's entry: 98 / 99 / 311 (15298), 354 (15300) */ static const short SFX_FD1B[] = { 62, 99, 70, 172, 173, 237, 312, 132, 38, 311, 319, 320, 192, 233, 29, 345, 346, 28, 358, 274, 359, 360, 279, 381, 310, 169, 382, 191, 384, 386, 47, 24, 60, 385, 371, 219, 383, 76, 98, 23 };
+static const short SFX_FD2A[] = { 62, 99, 192, 233, 29, 345, 346, 28, 311, 274, 371, 49, 368, 369, 241, 279, 280, 285, 286, 37, 134, 38, 17, 319, 320, 23, 24 }; static const short SFX_FD2B[] = { 62, 99, 192, 233, 29, 345, 346, 28, 311, 358, 371, 49, 368, 369, 370, 241, 51, 262, 372, 279, 280, 285, 286, 37, 373, 374, 67, 354, 375, 376, 377, 147, 47, 378, 309, 219, 24, 319, 320 };
 static const short SFX_FD3A[] = { 62, 99, 254, 310, 376, 38, 132, 311, 319, 320, 192, 233, 29, 345, 346, 379, 70, 279, 280 }; static const short SFX_FD3B[] = { 62, 99, 254, 376, 38, 310, 132, 311, 319, 320, 192, 233, 29, 345, 346, 379, 70, 279, 280, 17, 21, 23, 24, 25, 28, 30, 41, 51, 76, 165, 166, 286, 373, 374, 380, 389, 390, 392, 425 };
 static const short SFX_FD4A[] = { 62, 99, 171, 328, 329, 254, 376, 38, 310, 192, 233, 29, 345, 346, 17, 388, 270, 344 }; static const short SFX_FD4B[] = { 62, 99, 171, 29, 17, 344, 21, 24, 28, 38, 47, 55, 76, 165, 192, 295, 311, 319, 320, 341, 342, 343, 347, 348, 390, 393, 395, 406, 407, 408 };
 #define FD(d, f, st, n, sx, mus) .dir = d, .frame = f, .stage = st, .act = n, .nacts = 2, .music = mus, .checkpoints = 1, .sfx = sx, .nsfx = N_(sx)
@@ -485,7 +485,7 @@ static const level_def_t LEVELS[] = {
      * air events, its own (15790-15796: the siren alarm's vacuum, not ML.B; spec_fd_flow 3): dry. ML.Q 48-55. */
     { FD("fd1a", 65, 10, 1, SFX_FD1A, "bgm/m_stage10.adp"), .mus4 = "bgm/m_midboss.adp", .start_card = 1, .cps = CP_FD1A, .ncps = N_(CP_FD1A),
       .max_objs = 1280 },
-    { FD("fd1b", 66, 10, 2, SFX_FD1B, "bgm/m_stage10.adp"), .mus4 = "bgm/m_boss.adp", .res_wipe = 1, .max_objs = 1280 },
+    { FD("fd1b", 66, 10, 2, SFX_FD1B, "bgm/m_stage10.adp"), .mus4 = "bgm/m_boss.adp", .res_wipe = 1, .max_objs = 1280 , .vox = (const char *const[]){ "br_pa_03" }, .nvox = 1 /* the push-beam chase (15396) */ },
     { FD("fd2a", 67, 11, 1, SFX_FD2A, "bgm/m_stage10b.adp"), .mus4 = "bgm/m_midboss.adp", .start_card = 1, .cps = CP_FD2A, .ncps = N_(CP_FD2A),
       .exits = EX_FD2A, .nexits = N_(EX_FD2A), .max_objs = 1280 },
     { FD("fd2b", 68, 11, 2, SFX_FD2B, "bgm/m_stage10b.adp"), .mus4 = "bgm/m_boss6.adp", .res_wipe = 1, .max_objs = 1280 },
