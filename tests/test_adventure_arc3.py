@@ -185,7 +185,8 @@ if 'jail_plan' in ported:
         env = {'FP_SAVE': sv, 'FP_FILE': '1'}
         run('600 TP 16000 2280\n620 1300 R\n', 1100, dict(env, FP_LEVEL='dv4', FP_FILE_NEW='1'))   # DV4's results make slot 1 used
         ev, out = run('5 MODE 2\n6 ADVNEW 0\n10 SCENE jail_plan\n300 301 S\n330 331 D\n360 361 J\n440 STORY\n', 460, env)
-        pos = [t[0] for t in table].index('jail_plan') + 1
+        # the saved position and the seen flag use the scene's permanent number (tables/story/sids.json), not its table row
+        pos = json.load(open(os.path.join(HERE, '..', 'tables', 'story', 'sids.json'), encoding='utf-8'))['sid']['jail_plan'] + 1
         d = dumps(ev)
         check('save_story_position', d and d[-1]['pos'] == str(pos), d[-1] if d else '')
         ev, out = run('5 STORY\n', 10, env)

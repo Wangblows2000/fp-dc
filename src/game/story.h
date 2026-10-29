@@ -58,7 +58,8 @@
 #define FP_STORY_H
 #include "../fp.h"
 
-#define STORY_MAX 64                 /* scene ids 0..63 (seen flags: 8 bytes in the save) */
+#define STORY_MAX 64                 /* scenes 0..63; seen flags (8 bytes in the save) and the saved story position use the
+                                      * scene's permanent number sid= (tables/story/sids.json, append-only), not its row */
 enum { STORY_TRIG_NEW, STORY_TRIG_END, STORY_TRIG_CONTINUE };
 
 int  story_gate(void);               /* THE gate: 1 only in an Adventure run (fe_mode 2, not Time Attack, story run armed) */
