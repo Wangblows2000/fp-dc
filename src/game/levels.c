@@ -299,10 +299,10 @@ static const cpzone_t CP_FD4A[] = { { 2300, 32767, 2, 48, 2960, -2960, 0 }, { 23
 static const exit_t EX_FD2A[] = { { 1, 0, -50, 1100, 32767, NULL } };   /* 15652: X > W - 50, B > 0 and MV.Y > 1100 */
 /* the stage's own sounds per act (11025 Hz): the flow plays fd1a's entry (98 / 99 / 311 / 354, fd_flow.c); 62 jump pads,
  * 99 explosions; the enemy / gimmick / boss modules add theirs */
-static const short SFX_FD1A[] = { 62, 99, 98, 311, 354 };   /* + fd1a's entry: 98 / 99 / 311 (15298), 354 (15300) */ static const short SFX_FD1B[] = { 62, 99 };
-static const short SFX_FD2A[] = { 62, 99 }; static const short SFX_FD2B[] = { 62, 99 };
-static const short SFX_FD3A[] = { 62, 99 }; static const short SFX_FD3B[] = { 62, 99 };
-static const short SFX_FD4A[] = { 62, 99 }; static const short SFX_FD4B[] = { 62, 99 };
+static const short SFX_FD1A[] = { 62, 99, 98, 311, 354, 54, 70, 132, 38, 319, 320, 192, 233, 29, 345, 346, 28 };   /* + fd1a's entry: 98 / 99 / 311 (15298), 354 (15300) */ static const short SFX_FD1B[] = { 62, 99, 70, 172, 173, 237, 312, 132, 38, 311, 319, 320, 192, 233, 29, 345, 346, 28 };
+static const short SFX_FD2A[] = { 62, 99, 192, 233, 29, 345, 346, 28, 311 }; static const short SFX_FD2B[] = { 62, 99, 192, 233, 29, 345, 346, 28, 311 };
+static const short SFX_FD3A[] = { 62, 99, 254, 310, 376, 38, 132, 311, 319, 320, 192, 233, 29, 345, 346 }; static const short SFX_FD3B[] = { 62, 99, 254, 376, 38, 310, 132, 311, 319, 320, 192, 233, 29, 345, 346 };
+static const short SFX_FD4A[] = { 62, 99, 171, 328, 329, 254, 376, 38, 310, 192, 233, 29, 345, 346, 17 }; static const short SFX_FD4B[] = { 62, 99, 171, 29, 17 };
 #define FD(d, f, st, n, sx, mus) .dir = d, .frame = f, .stage = st, .act = n, .nacts = 2, .music = mus, .checkpoints = 1, .sfx = sx, .nsfx = N_(sx)
 #define PL(d, f, n, mus) .dir = d, .frame = f, .stage = 7, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_PL##n, .nsfx = N_(SFX_PL##n), .lilac_only = 1
 #define TB(d, f, n, mus) .dir = d, .frame = f, .stage = 6, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_TB##n, .nsfx = N_(SFX_TB##n)
