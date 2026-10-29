@@ -48,6 +48,12 @@ def main():
     ap.add_argument('--caption', action='append', default=[], help='F0,F1,key|key: caption rows shown from F0 to F1 (RV screenshots)')
     ap.add_argument('--flash', default='', help='F,HOLD,N: white from frame F, HOLD frames, then a fade from white of N frames (RV screenshots; timing INFERRED)')
     ap.add_argument('--fadeout', default='', help='F,N: a fade to black of N frames from frame F (INFERRED: the wipe)')
+    ap.add_argument('--by-class', action='store_true', help='an object address freed and reused by another class is another actor '
+                    '(without it the later objects\' states are merged into the first class, as arc 1 was converted)')
+    ap.add_argument('--carry', action='store_true', help='a scene chained inside the trace that starts no music: the track the '
+                    'original still plays (the last one before the window) starts with it (the port stops the music between scenes)')
+    ap.add_argument('--room', type=int, default=0, help='a split story room (one room per scene of a large frame: st<room>, built '
+                    'from <json frame> cropped to the scene\'s camera views; docs/ADVENTURE.md): rows.json gets json <room>, frame <json>, view')
     a = ap.parse_args()
     lines = load_dialog(a.dialog) if a.dialog != '-' else []
     INK = json.load(open(os.path.join(ROOT, 'tables', 'story', 'dialog.json'), encoding='utf-8')).get('ink', {})
@@ -64,6 +70,10 @@ def main():
     box = []           # (f, vis, E, F, C, img frame)
     snd, cams, presses, gone = [], [], [], {}
     par_addr = {}      # a parallax piece's address -> its class (a destroyed piece is hidden: 'pv h 0')
+    bgm_before = None  # the last music track started before the window (--carry)
+    fade_a = {}        # LevelCardFade2 address -> {frame: alpha} (traces with the blend byte 'a=', tools/orig/trace_story.py)
+    fade_d = {}        # address -> the frames it was destroyed (an address is reused by later instances)
+    live, gone_key = {}, {}   # address -> the actor key (address/class) living there; actor key -> destroyed at
     for l in open(a.log, encoding='latin1'):
         t = l.split()
         if not t or len(t) < 2 or not t[1].lstrip('-').isdigit(): continue
@@ -71,6 +81,7 @@ def main():
         if f < a.first or f >= a.end:
             if t[0] == 'O' and f < a.first and a.first == 0: pass   # (a trace that starts in the room: its first states)
             elif t[0] == 'C' and f < a.first: pass                  # the view before the window
+            elif t[0] == 'S' and f < a.first and '/BGM/' in l.replace('\\', '/'): bgm_before = t[3]; continue   # (--carry)
             else: continue
         if t[0] == 'O':
             addr, cls = t[2], t[3]
@@ -81,13 +92,18 @@ def main():
                 box.append((f, fl & 1, int(float(alt.get('E', 0))), int(float(alt.get('F', 0))), int(float(alt.get('C', 0))), ic))
                 continue
             if fl >= 0x10000: continue                  # not an object (old traces: a non-list member)
+            if cls.startswith(('levelcardfade2', 'levelcardfade_')) and 'a' in alt:   # the black covers (0x2: being destroyed)
+                fade_a.setdefault(addr, {})[max(f, a.first)] = int(alt['a']) if (fl & 3) == 1 else 0
             if cls.startswith(('levelparallax', 'parallax')):   # backdrop pieces: visibility per scene ('pv'), scroll from D / E / F (RV)
                 pp = par.setdefault(cls, {'st': {}, 'alt': alt}); par_addr[addr] = cls
                 pp['st'][max(f, a.first)] = fl & 1
                 continue
-            o = obj.setdefault(addr, {'cls': cls, 'st': {}})
-            o['st'][max(f, a.first)] = (x, y, ia, ib, ic, fl & 1)
-        elif t[0] == 'D' and a.first <= f < a.end: gone[t[2]] = f
+            key = addr + '/' + cls if a.by_class else addr; live[addr] = key   # --by-class: an address reused by another class is another actor
+            o = obj.setdefault(key, {'cls': cls, 'st': {}})
+            o['st'][max(f, a.first)] = (x, y, ia, ib, ic, fl & 1, int((fl & 3) == 1))   # [6]: drawable (0x2: being destroyed)
+        elif t[0] == 'D' and a.first <= f < a.end:
+            gone[t[2]] = f; fade_d.setdefault(t[2], []).append(f)
+            if t[2] in live: gone_key[live[t[2]]] = f
         elif t[0] == 'S': snd.append((f, t[2], ' '.join(t[3:])))
         elif t[0] == 'C': cams.append((f, int(t[2]), int(t[3])))
         elif t[0] == 'A': presses.append(f)
@@ -116,13 +132,14 @@ def main():
     for addr, o in obj.items():
         c = o['cls']
         if drop_re.search(c) or DROP.match(c) or not act_re.match(c.rsplit('_', 1)[0] + '_'): continue
+        if addr in gone_key and gone_key[addr] <= a.first + 2 and max(o['st']) <= a.first + 2: continue   # destroyed by the room's start events
         if re.match(r'^(levelcardfade|fadeedge|fade_)', c): continue          # fades: 'f' entries below
         fixed = layer_of.get(c, 2) >= 6
         seen = []
         fs_ = sorted(o['st'])
         for k_, f in enumerate(fs_):
             st_ = o['st'][f]
-            if not st_[5] or st_[2] < 0: continue
+            if not st_[6] or st_[2] < 0: continue        # (a state flagged 0x2 is not a sighting)
             f2 = fs_[k_ + 1] if k_ + 1 < len(fs_) else a.end
             vs = [(0, 0)] if fixed else [view(f)] + [(x, y) for cf, x, y in camf if f < cf < f2]
             if any(vx - 48 < st_[0] < vx + 426 + 48 and vy - 48 < st_[1] < vy + 240 + 48 for vx, vy in vs): seen.append(f)
@@ -146,7 +163,7 @@ def main():
         def flush_run():
             if run and run[3]: put(run[0], 1, 'm %d %d %d %d' % (n, run[1], run[2], run[3]))
         for f in sorted(o['st']):
-            x, y, ia, ib, ic, vis = o['st'][f]
+            x, y, ia, ib, ic, vis = o['st'][f][:6]
             if prev is None:
                 put(f, 0, 'p %d %d %d' % (n, x, y)); put(f, 2, 'v %d %d' % (n, vis))
                 if ia >= 0: put(f, 2, 'i %d %d %d %d' % (n, ia, ib, ic)); rows.add((c, ia, ib))
@@ -165,11 +182,34 @@ def main():
             if vis != pvis: put(f, 2, 'v %d %d' % (n, vis))
             prev = (f, x, y, ia, ib, ic, vis)
         flush_run()
-        if addr in gone: put(gone[addr], 2, 'v %d 0' % n)
-    # ---- fades: LevelCardFade2 (the black cover) visible at the window's start = a fade from black until it hides (RV
-    # visibility; the original's alpha ramp is not traced: linear, INFERRED)
+        if addr in gone_key and (not a.by_class or gone_key[addr] >= max(o['st'])): put(gone_key[addr], 2, 'v %d 0' % n)
+    # ---- fades: LevelCardFade2 (the black cover). Traces with its alpha: every fade (RV). Older traces: visible at the window's
+    # start = a fade from black until it hides (RV visibility; the original's alpha ramp is not traced: linear, INFERRED)
+    if fade_a:         # RV: the cover's alpha per frame (the black LevelCardFade2 instances, the most opaque one) -> linear
+        cover = []     # fades over the same frames ('f -n' to black, 'f n' from black: ramps between <= 55 and >= 200; partial dims left out)
+        for addr, ser in fade_a.items():
+            for f in fade_d.get(addr, []): ser.setdefault(f, 0)      # destroyed: no cover until the address shows again
+        for f in range(a.first, a.end):
+            v = 0
+            for addr, ser in fade_a.items():
+                ks = [k for k in ser if k <= f]
+                if ks: v = max(v, ser[max(ks)])
+            cover.append(v)
+        if cover and cover[0] >= 200: put(a.first, 3, 'f -1')
+        k = 0
+        while k < len(cover) - 1:
+            if cover[k + 1] == cover[k]: k += 1; continue
+            up = cover[k + 1] > cover[k]; j = k
+            while True:                        # (a ramp may hold one value for up to 2 frames: B 64 -> 65 in c83_g4)
+                while j < len(cover) - 1 and cover[j + 1] != cover[j] and (cover[j + 1] > cover[j]) == up: j += 1
+                h = next((d for d in (2, 3) if j + d < len(cover) and cover[j + d] != cover[j]), 0)
+                if h and all(cover[j + e] == cover[j] for e in range(1, h)) and (cover[j + h] > cover[j]) == up: j += h - 1; continue
+                break
+            if up and cover[k] <= 55 and cover[j] >= 200: put(a.first + k, 3, 'f %d' % -(j - k))
+            elif not up and cover[k] >= 200 and cover[j] <= 55: put(a.first + k, 3, 'f %d' % (j - k))
+            k = j
     for addr, o in obj.items():
-        if not o['cls'].startswith('levelcardfade2'): continue
+        if fade_a or not o['cls'].startswith('levelcardfade2'): continue
         st = sorted(o['st'].items())
         if st and st[0][1][5]:
             off = next((f for f, s_ in st if not s_[5]), None)
@@ -201,7 +241,7 @@ def main():
     for f, x, y in cams:
         if f < a.first: cam0 = (x, y); continue
         put(f, 3, 'c %d %d' % (x, y))
-    if cam0: put(a.first, 3, 'c %d %d' % cam0)
+    if cam0 and not any(f == a.first for f, x, y in cams): put(a.first, 3, 'c %d %d' % cam0)   # (not over a view set at the start)
     # ---- dialogue: a line starts when the box shows with C 1 (18606 / 18607: F 1 -> 2, three characters)
     voiced = set(); said = []
     pv, pe = 0, -1
@@ -214,6 +254,9 @@ def main():
         if pv and not vis: put(f, 4, 'close')
         pv, pe = vis, E
     vids = {v for v, _ in voiced}
+    if a.carry:                                # the music the original still plays at the window's start (a chained scene that
+        own = [f for f, k, v in snd if f == a.first and k == 'str' and '/BGM/' in v.replace('\\', '/')]   # starts no track)
+        if bgm_before and not own: put(a.first, 5, 'u bgm/%s.adp' % bgm_before.replace('\\', '/').split('/')[-1][:-4])
     for f, kind, val in snd:
         if f < a.first: continue
         m = re.match(r'(\S+) ch(-?\d+) loop(\d+)$', val)
@@ -227,7 +270,7 @@ def main():
             elif b[:-4] in vids: continue                       # the line's own voice (the player plays it with 'say')
             else: put(f, 5, 'o %s' % b[:-4])                    # a voice outside the dialogue
     out = ['# scene %s: RV, tools/story_rv2scn.py %s frames %d-%d (json frame %d)' % (a.sid, os.path.basename(a.log), a.first, a.end, a.json),
-           'scene %s' % a.sid, 'room st%d' % a.json, 'dialog %s' % a.dialog]
+           'scene %s' % a.sid, 'room st%d' % (a.room or a.json), 'dialog %s' % a.dialog]
     if a.title: out.append('title %s' % a.title)
     out += decl
     for k, e in enumerate(ev):
@@ -239,6 +282,15 @@ def main():
     rp = os.path.join(ROOT, 'tables', 'story', 'rows.json')
     R = json.load(open(rp)) if os.path.exists(rp) else {}
     R[a.sid] = {'json': a.json, 'rows': sorted([c, ia, ib] for c, ia, ib in rows), 'par': pinfo}
+    if a.room:                                 # the views the scene shows (RV camera, 426 x 240 each): the split room's crop
+        vs = [(x, y) for f, x, y in cams if a.first <= f < a.end]
+        if cam0 and not any(f == a.first for f, x, y in cams): vs.insert(0, cam0)   # the view at the start (unless set right there)
+        boxes = []                             # one box per camera run (a cut: a jump of more than 300 px starts another)
+        for k, (x, y) in enumerate(vs):
+            if k and abs(x - vs[k - 1][0]) <= 300 and abs(y - vs[k - 1][1]) <= 300:
+                b = boxes[-1]; b[0], b[1], b[2], b[3] = min(b[0], x), min(b[1], y), max(b[2], x + 426), max(b[3], y + 240)
+            else: boxes.append([x, y, x + 426, y + 240])
+        R[a.sid].update({'json': a.room, 'frame': a.json, 'view': boxes})
     with open(rp, 'w', encoding='utf-8', newline='\n') as f: json.dump(R, f, indent=0, sort_keys=True); f.write('\n')
     print('%s: %d actors, %d segments, %d lines said, %d rows, %d entries' % (a.sid, len(actors), len(segs), len(said), len(rows), sum(len(e) for e in ev)))
 
