@@ -766,7 +766,6 @@ void combat_draw_shields(int behind);
 void combat_shield_create(const player_t *p, int dir, int A, int speed);   /* ShieldInstaShield_407 at Player_326 (Carol's creators) */
 obj_t *combat_shield_at(float x, float y, int dir, int A, int force, int vis);   /* a flag-4 ShieldInstaShield at (x, y) (FN6 partner, fn_assist.c) */
 int  combat_shield_overlaps(const obj_t *s, const obj_t *e);
-int  combat_attack_overlaps(const player_t *p, const obj_t *o);   /* a slash shield / attacking body (Z) / Milla's cube on o */
 int  enemy_type(int type);
 int  obj_rect_hit(const obj_t *o, int rx0, int ry0, int rx1, int ry1);
 int  obj_obj_hit(const obj_t *a, const obj_t *b);
