@@ -1149,7 +1149,8 @@ void game_draw(void) {
     par_draw_front();                             /* layer-3 parallax pieces (RM3 piece5, the caravan chase) */
     if (!story) objects_draw(2);
     draw_pieces(4, 7);
-    relic_gima_draw_overlay();                    /* RM2 basement darkness (5997, BasementLight on layer 5) */
+    if (!story) objects_draw(3);                  /* json-layer-5 view overlays: TB heat sky, FD3a alarm light (session 26) */
+    relic_gima_draw_overlay();                  /* RM2 basement darkness (5997, BasementLight on layer 5) */
     rm_mantalith_draw(0);                         /* RM5 end: light rays, hook line, ground cuts (rm_mantalith.c) */
     if (story) { story_draw_overlay(); r_end(); return; }
     hud_draw();

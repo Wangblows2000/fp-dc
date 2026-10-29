@@ -243,12 +243,13 @@ void geyser_events(player_t *p) {
          * port re-applied it on every overlapping frame (-13.8, -13.6, -13.4: a 10 px higher arc and a late M 40 exit). */
         double E = fmod(o->vx, 360.);
         const frame_t *f = anim_frame(&o->an);
+        int g = level_cur()->geyser_g ? level_cur()->geyser_g : 14;               /* DV4 5378 (RE): - 12.0 (0x20c5728) */
         int over = p->state != ST_DEAD && obj_box_hits_disc27(floorf(o->x) - f->hx, floorf(o->y) - f->hy, f->w, f->h, (int)p->x, (int)(p->y - ORIG_REF_DY));
         if (!over) GD.lat &= ~(1u << n);
         else if (E > 180 && E < 240 && !(GD.lat & (1u << n))) {
             GD.lat |= 1u << n;
             if (p->ground) { p->vx = p->gsp; p->ground = 0; }
-            p->vy = (E - 180) * 0.1 - 14; p->springing = 1; p->cY = 40; p->jumping = 0; if (p->state != ST_BOOST) p->state = ST_NORMAL;
+            p->vy = (E - 180) * 0.1 - g; p->springing = 1; p->cY = 40; p->jumping = 0; if (p->state != ST_BOOST) p->state = ST_NORMAL;
         }
         /* 4969: E > 240 -> E += 2 more (the fast fall back into the hole), after the events: this frame's y was computed
          * with the engine's single step (RV gey_off: y 859 at E 244; the port's earlier order gave 855) */

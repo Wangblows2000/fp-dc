@@ -1344,3 +1344,22 @@ spec_fd_flow / enemies / gimmicks / bosses_a / bosses_b.md; traces under build/o
   354 at D 160, thrown in with B 10 after D 180); Milla dropped from (128, -60) when the card ends.
 - Prince Dail (BG6, RV d1 / d2): the 7-hit cycle and the fall timeline match exactly; Absolution (BG4, RV m2-m5) within
   1-2 frames; the FD1b morpher's defeat timeline (RV m2_l: 47, 38 at P 180, 76 + fade at P 300).
+
+## Session 26: late-stage gimmick gaps (build/gimmick_audit.md items 1, 3, 5-11, 14, 15)
+Evidence: RE build/re (event numbers below); RV build/orig_traces/late_gim (rv1-rv4.sh, shots and extra-object logs).
+- Chowdren facts used: `Frame::add_object` stores the newest instance in `ObjectList +0` (`back`); a list's size field is
+  instances + 1; the alpha byte is `FrameObject +0x5f` (255 opaque; "set blend coefficient c" compiles to alpha 255 - c);
+  Active vtable +0x18 / +0x20 = get_action_x / _y, +0x30 = set_angle, +0x40 = set_direction, +0x58 = flash.
+- FD4a (16658-16673): the vanishing blocks run PL's list (0x17e38) and are shown (set_visible 1): PL's row in json 72.
+- DV4 plate (5372-5378): DV2's eruption (explosion01 + sound 44 at E 180, dust while 180 < E < 270), launch
+  G = 0.1 (E - 180) - 12 (DV2: - 14). RV: sound 44 at sample 87 near the plate.
+- YellowSpringDown (3008): G 11, force_animation(0) then (5) (anim 5 = 2 images, loop 1).
+- FD3BackPillar (16206 / 16192): A = x, B = y at the start, y scale 4; x = trunc(0.8 vl + A), y = trunc(0.8 vt + B),
+  set_angle((x - vl) / g16 45 - 22.5). RV: the pillar placed at 3248 at (3248, 187), angle 320.599 in fd3a's start view.
+- fd1a jumbotron (15273-15303, inline in handle_frame_66): the subtitle object's A / B script; jumbotron x = trunc(0.9 vl + 960),
+  y = LevelParallaxPiece0_3390's y; screen = its action point (+430, +128); X > 10680 sets the camera bottom F 2016. RV: (10938,
+  1694) / (11368, 1822) under view top 1776, anim 7 at B 20, frames 1-3 at B 90 / 100 / 110, pods 140 < B < 240, hidden B > 270.
+- Heat sky (12249-12268, 12704-12713) and alarm light (16183-16185): one-colour 10 x 10 squares scaled 43 x 24, shader 0x20
+  (additive). RV fd3a alarm: + (152, 56, 0) over the view at the pulse's peak; sound 310 759 frames after a teleport at 220.
+- SBBackEye (9835): alpha = 2 (128 - (64 sin A + 64)), A + 4, only for eyes within the view + 100.
+- BGArrowSign (14547): set_direction(the BossSparky instances): 1 while the Sparky lives, 0 after.

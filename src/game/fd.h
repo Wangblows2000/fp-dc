@@ -76,11 +76,14 @@ enum { OT_FDG_TSTART = 2752,  /* ObjectTransporterStart_3416 (ctor A 90): a pipe
        OT_FDG_LTPLAT = 2790,  /* FDLaserTunnelPlatform_3743 (Q8 Q9) */
        OT_FDG_LTUNNEL = 2791, /* HazardLaserTunnel_3742 */
        OT_FDG_LTGLASS = 2792, /* HazardLaserTunnelGlass1 / 2 / 3 (par 0-2) */
+       OT_FDG_PILLAR = 2793,  /* FD3BackPillar_3615 (fd3a / fd3b, json layer 0 at y -32: 0.8-scrolled, y-scaled 4, tilted; session 26) */
+       OT_FDG_JUMBO = 2794,   /* FDJumbotron_3451 (par 0) / FDJumbotron2_3452 (par 1, its screen) (fd1a, json layer 0; session 26) */
        OT_FDG_PLACED_LAST = 2879,
        OT_FDG_FX = 2880,      /* runtime: a one-shot moving effect (the pipe exit's shock ring): av[0] age, av[1] life */
        OT_FDG_SPARK = 2881,   /* runtime: HazardSpiralSpark_3435 (foreach_st_65) */
        OT_FDG_WIND = 2882,    /* runtime: EffectAirlockWind_3460 */
-       OT_FDG_END = 2882 };
+       OT_FDG_BGSPAWN = 2883, /* runtime: BackgroundSpawner_3454 (the pods rising on fd1a's jumbotron screen, 15283) */
+       OT_FDG_END = 2883 };
 /* fd1a's opening (RE 15300; the flow's intro counter reaching 160): the hangar walls burst into pieces, sound 354 */
 void fd_gim_hangar_break(void);
 /* the Syntax arena's treadmill (RE fd1b 15341-15344, while its group is on): the boss module calls it every frame with
