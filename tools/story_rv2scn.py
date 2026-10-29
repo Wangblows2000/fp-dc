@@ -89,7 +89,8 @@ def main():
                 box.append((f, fl & 1, int(float(alt.get('E', 0))), int(float(alt.get('F', 0))), int(float(alt.get('C', 0))), ic))
                 continue
             if fl >= 0x10000: continue                  # not an object (old traces: a non-list member)
-            if cls.startswith('levelcardfade2') and 'a' in alt: fade_a.setdefault(addr, {})[max(f, a.first)] = int(alt['a']) if fl & 1 else 0
+            if cls.startswith(('levelcardfade2', 'levelcardfade_')) and 'a' in alt:   # the black covers (0x2: being destroyed)
+                fade_a.setdefault(addr, {})[max(f, a.first)] = int(alt['a']) if (fl & 3) == 1 else 0
             if cls.startswith(('levelparallax', 'parallax')):   # backdrop pieces: visibility per scene ('pv'), scroll from D / E / F (RV)
                 pp = par.setdefault(cls, {'st': {}, 'alt': alt}); par_addr[addr] = cls
                 pp['st'][max(f, a.first)] = fl & 1
@@ -178,7 +179,7 @@ def main():
     # ---- fades: LevelCardFade2 (the black cover). Traces with its alpha: every fade (RV). Older traces: visible at the window's
     # start = a fade from black until it hides (RV visibility; the original's alpha ramp is not traced: linear, INFERRED)
     if fade_a:         # RV: the cover's alpha per frame (the black LevelCardFade2 instances, the most opaque one) -> linear
-        cover = []     # fades over the same frames ('f -n' to black, 'f n' from black); partial dims are left out
+        cover = []     # fades over the same frames ('f -n' to black, 'f n' from black: ramps between <= 55 and >= 200; partial dims left out)
         for addr, ser in fade_a.items():
             for f in fade_d.get(addr, []): ser.setdefault(f, 0)      # destroyed: no cover until the address shows again
         for f in range(a.first, a.end):
@@ -187,7 +188,7 @@ def main():
                 ks = [k for k in ser if k <= f]
                 if ks: v = max(v, ser[max(ks)])
             cover.append(v)
-        if cover and cover[0] >= 240: put(a.first, 3, 'f -1')
+        if cover and cover[0] >= 200: put(a.first, 3, 'f -1')
         k = 0
         while k < len(cover) - 1:
             if cover[k + 1] == cover[k]: k += 1; continue
@@ -197,8 +198,8 @@ def main():
                 h = next((d for d in (2, 3) if j + d < len(cover) and cover[j + d] != cover[j]), 0)
                 if h and all(cover[j + e] == cover[j] for e in range(1, h)) and (cover[j + h] > cover[j]) == up: j += h - 1; continue
                 break
-            if up and cover[k] <= 15 and cover[j] >= 240: put(a.first + k, 3, 'f %d' % -(j - k))
-            elif not up and cover[k] >= 240 and cover[j] <= 15: put(a.first + k, 3, 'f %d' % (j - k))
+            if up and cover[k] <= 55 and cover[j] >= 200: put(a.first + k, 3, 'f %d' % -(j - k))
+            elif not up and cover[k] >= 200 and cover[j] <= 55: put(a.first + k, 3, 'f %d' % (j - k))
             k = j
     for addr, o in obj.items():
         if fade_a or not o['cls'].startswith('levelcardfade2'): continue

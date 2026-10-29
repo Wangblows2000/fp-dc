@@ -36,6 +36,7 @@ EXPECT = {
     'th_carol_help':    dict(g4=14, next='stage:th1', skip='stage:th1', stage='th1', trig=[], chr=6),
     'tb_arrest':        dict(g4=17, next='scene:st_mission', skip='scene:st_mission', stage='pl1', trig=[], chr=1),
     'st_mission':       dict(g4=19, next='stage:pl1', skip='stage:pl1', stage='pl1', trig=[], chr=1),
+    'pl_final_message': dict(g4=20, next='scene:sf_army', skip='stage:bg1', stage='bg1', trig=['end:7'], chr=1),
 }
 
 fails = 0
@@ -144,6 +145,12 @@ for ch, order, lv in ((0, ['jc_cave'], 'tb1'), (2, ['jc_cave_cm', 'th_carol_help
         d = dumps(ev)
         check('jc_end_chain_chr%d' % ch, st == order and [x for x in completes(ev) if x[0] in order] == [(x, 0) for x in order], (st, completes(ev)))
         check('jc_end_next_stage_chr%d' % ch, d and d[-1]['lv'] == lv and d[-1]['mode'] == '1' and d[-1]['chr'] == str(ch), d[-1] if d else '')
+# the end of Pangu Lagoon (frame 8, I 7 with g1 0 -> frame 82 g4 20)
+if 'pl_final_message' in ported:
+    ev, out = run('3 MODE 2\n4 ADVNEW 0\n10 LOAD pl6\n20 STORY\n30 STAGEEND\n' + taps(60, 3200) + '3300 STORY\n', 3320)
+    st = [x for x in starts(ev) if x not in ('adv_opening', 'dv_meet')]
+    check('pl_end_scene', st[:1] == ['pl_final_message'] and [x for x in completes(ev) if x[0] == 'pl_final_message'] == [('pl_final_message', 0)], (st, completes(ev)))
+    check('pl_end_next', expect_after(ev, 'pl_final_message', EXPECT['pl_final_message']['next']), st)
 # a step into a g4 whose content depends on g1 names one variant: the character's own plays (story.c chr_variant)
 for named, ch, want in (('jc_cave', 2, 'jc_cave_cm'), ('jc_cave_cm', 0, 'jc_cave'), ('tb_arrest', 2, 'tb_outside_team'),
                         ('tb_outside_team', 0, 'tb_arrest'), ('tb_arrest', 4, 'tb_outside_team')):
