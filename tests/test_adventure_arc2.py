@@ -44,7 +44,7 @@ def run(script, frames, env=None):
     return ev, out
 
 def taps(a, b, step=15, btn='J'): return ''.join('%d %d %s\n' % (f, f + 1, btn) for f in range(a, b, step))
-def base(n): return n[:-2] if n[-2:] in ('_c', '_m') else n   # a character's variant of a scene (story.c variant())
+def base(n): return n[:-2] if n[-2:] in ('_c', '_m') else n   # a character's variant of a scene (story.c chr_variant())
 def starts(ev, raw=False): return [(n if raw else base(n)) for n in (l.split()[2] for f, l in ev if l.startswith('story start ')) if n not in ('adv_opening', 'dv_meet')]
 def completes(ev, raw=False): return [((l.split()[2] if raw else base(l.split()[2])), int(l.split()[4])) for f, l in ev
                                       if l.startswith('story complete ') and l.split()[2] not in ('adv_opening', 'dv_meet')]
@@ -58,6 +58,7 @@ table = [l.split() for l in open(os.path.join(DATA, 'story', 'story.txt'), encod
 inl = os.path.join(DATA, 'story', 'inline.txt')
 table += [l.split() for l in open(inl, encoding='utf-8') if l.strip() and l[0] != '#'] if os.path.isfile(inl) else []
 intable = {t[0]: t for t in table}
+def sid(i): return int(next(x[4:] for x in intable[i] if x.startswith('sid=')))   # the permanent number (a variant: its base's)
 ALL = [t[0] for t in table if t[0][:-2] in MINE or t[0] in MINE]       # my scenes and their character variants
 def chr_of(i): m = sc[i].get('chr', 7); return 0 if m & 1 else 2 if m & 2 else 4
 def after(cur, nxt):
@@ -150,7 +151,7 @@ for i, sk, stg in PAUSE:
     if sk.startswith('scene:') and sk[6:] in intable:
         check('skip_%s_starts_next' % i, base(starts(ev, True)[-1]) == sk[6:], starts(ev, True))
     d = dumps(ev)
-    check('skip_%s_seen' % i, d and int(d[-1]['seen'], 16) >> [t[0] for t in table].index(i) & 1 == 1, d[-1]['seen'] if d else '')
+    check('skip_%s_seen' % i, d and int(d[-1]['seen'], 16) >> sid(i) & 1 == 1, d[-1]['seen'] if d else '')
     if stg:
         ev, out = run(pre + '200 201 S\n230 231 D\n245 246 D\n260 261 J\n400 STORY\n', 420)
         d = dumps(ev)
@@ -165,7 +166,7 @@ with tempfile.TemporaryDirectory() as td:
     env = {'FP_SAVE': sv, 'FP_FILE': '1'}
     run('600 TP 16000 2280\n620 1300 R\n', 1100, dict(env, FP_LEVEL='dv4', FP_FILE_NEW='1'))   # DV4's results make slot 1 used
     ev, out = run('5 MODE 2\n6 ADVNEW 0\n10 SCENE sm_spade\n200 201 S\n230 231 D\n260 261 J\n400 STORY\n', 420, env)
-    k = [t[0] for t in table].index('sm_spade')
+    k = sid('sm_spade')
     d = dumps(ev)
     check('save_position_after_sm_spade', d and d[-1]['pos'] == str(k + 1), d[-1] if d else '')
     ev, out = run('5 STORY\n', 10, env)
