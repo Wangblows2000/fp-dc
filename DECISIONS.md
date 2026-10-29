@@ -517,3 +517,8 @@ hurt_then_petal, hurt_boost_petal, snd_hurt_pickups: 144 -> 131 each) because th
 2-frame input lag, which the old one-frame-early hit happened to fit. Accepted: the original runtime is the source of
 truth; cmp_all still passes 76/76, cmp_carol / cmp_milla are unchanged. DV2 / DV3 geyser plates got their eruption effects
 (events 4961-4969); DV4's own geysers (5372-5379) are not ported yet. Spec: build/re/spec_dv_fixes.md.
+
+## D-121 (session 25): JC5's stage sound group may be ~210 KB (the storm rain loop)
+The JC5 rain (RE 11611-11618) adds the 12 s looping rain sound 293, which cannot have its tail trimmed without cutting the
+loop the original plays. The group goes 143.5 -> 209.6 KB, ~10 KB over the ~200 KB target. Accepted: Flycast shows the
+largest free sound RAM block during JC5 at 238 KB (Carol) / 261 KB (Milla). Nothing else may be added to JC5's group.
