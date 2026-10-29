@@ -529,7 +529,7 @@ def selftest():
     for e in t['files']:
         try: fetch.local(e['name'])
         except fetch.FetchError as ex: print('FAIL', ex); ok = False
-    if os.path.isdir(os.path.join(REPO, '.git')):          # (a ZIP download has no history: nothing to compare)
+    if os.path.exists(os.path.join(REPO, '.git')):         # (a ZIP download has no history: nothing to compare; .git is a file in a worktree)
         try: tree = subprocess.check_output(['git', '-C', REPO, 'rev-parse', 'HEAD:src'], text=True,
                                             stderr=subprocess.DEVNULL).strip()
         except (OSError, subprocess.CalledProcessError): tree = None
