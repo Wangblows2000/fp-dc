@@ -2123,6 +2123,36 @@ for _e in ENS:
     if _e[3].startswith('bgm_'): ROW_FRAMES[_e[3]] = ROW_FRAMES.get(_e[3], set(range(73))) - {73}
 
 # ==== end Final Dreadnought
+# ---- late-stage gimmick gaps (session 26, build/gimmick_audit.md): rows and types the stage modules left out. Labels in the modules.
+# FD4a's vanishing blocks (RE 16658-16673 run PL's list 0x17e38, set_visible 1): PL_GIM's row in json 72 too
+ROW_FRAMES['plg_vblock'] = ROW_FRAMES['plg_vblock'] | {72}
+# YellowSpringDown_416 (PL1 / PL2 / SB4 / FN2 / FN4 ceilings; RE 3008: force_animation(0) then (5)): its rows wherever it is placed
+# (type 29 is not in the objects bank: aqua.c binds 'ys_down' and plays 'ys_down_b' on the launch)
+ENS += [('yellowspringdown_416', 0, '0', 'ys_down', None, ('yellowspringdown_onmap',)), ('yellowspringdown_416', 5, '0', 'ys_down_b', None, ('yellowspringdown_onmap',))]   # (every stage frame keeps an off-map template)
+# FD: the fd3a / fd3b background pillars (RE 16206 / 16192) and fd1a's jumbotron + its screen (RE 15273-15303) + the pods it shows
+# launching (BackgroundSpawner_3454, 15283 / 15302 / 15303): fd_gim.c (OT_FDG_PILLAR / OT_FDG_JUMBO / OT_FDG_BGSPAWN)
+ENGINE_TYPES_ID.update({('fd3backpillar', 3615): 2793, ('fdjumbotron', 3451): 2794, ('fdjumbotron2', 3452): 2794})
+FDG_SUB['fdjumbotron2_3452'] = 1
+_LG_FD = [('fd3backpillar_3615', 0, '0', 'fdg_pillar'), ('fdjumbotron_3451', 0, '0', 'fdg_jumbo'),
+          ('fdjumbotron2_3452', 0, '0', 'fdg_jumbo2'), ('fdjumbotron2_3452', 7, '0', 'fdg_jumbo2_7'),
+          ('backgroundspawner_3454', 0, '0', 'fdg_bgspawn')]
+ENS += _LG_FD
+ONMAP_ABOVE = {'fd3backpillar'}   # placed above the frame's top edge (y -32) but not off-map templates: their rows count as placed
+for _e in _LG_FD: ROW_FRAMES[_e[3]] = {66} if 'jumbo' in _e[3] or 'bgspawn' in _e[3] else {70, 71}
+ENS_WITH['backgroundspawner_3454'] = ENS_WITH.get('backgroundspawner_3454', ()) + ('fdjumbotron2',)
+# (FD3a's AlarmLight_3495 and TB3 / TB6's LevelHeatSky_2779 are one-colour 10 x 10 squares scaled over the view: drawn as additive
+# rects of their colour, no rows: objects.c obj_draw_view_tint)
+# FD4b's ComputerTerminal / 2 (5 placed, looping anim 0; no event drives them there): FD_BOSS B's rows, now in json 73 too
+for _i, _e in enumerate(ENS):
+    if _e[3] in ('fdb_term0', 'fdb_term1'):
+        ENS[_i] = _e[:5] + (_e[5] + (_e[0].rsplit('_', 1)[0],),); ROW_FRAMES[_e[3]] = ROW_FRAMES[_e[3]] | {73}
+# TB3 / TB6: LevelHeatSky_2779 (additive, scaled 43 x 24, alpha by the chase / the defeat: RE 12249-12268, 12704-12713) and TB3's
+# LevelLavaCascadeEnd_2778 (never shown: the chase's x marker, 12263-12268): TB_BOSS types (tb_boss_spider.c / tb_boss_syntax.c)
+ENGINE_TYPES_ID.update({('levelheatsky', 2779): 2001, ('levellavacascadeend', 2778): 2002})
+# BG4's BGArrowSign_3346 (the Sparky arena; RE 14547: direction = the BossSparky instances, 1 while it lives): bg_flow.c OT_BGF_ARROW
+ENGINE_TYPES_ID.update({('bgarrowsign', 3346): 2307})
+ENS += [('bgarrowsign_3346', 0, '0', 'bgf_arrow0'), ('bgarrowsign_3346', 0, '1', 'bgf_arrow1')]
+ROW_FRAMES['bgf_arrow0'] = ROW_FRAMES['bgf_arrow1'] = {63}
 SHL_CLASSES = {'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 ENS_ONLY_WITH = {'guiweaponslot_426', 'effectswatersplash_379', 'bubblepatch_804', 'mediumbubble_805', 'generalwaterhorizon_377', 'bubblenumbers_405', 'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
 # classes whose untrimmed image box matters (spring top edges RV, box-collision platforms/logs, invisible
@@ -2888,8 +2918,9 @@ def main():
         _jct = {c for (c, h), t in ENGINE_TYPES_ID.items() if 1280 <= t < 3200
                 and not (n != 73 and (c, h) in _FDB_T4)}   # FD4b's mech types (_FDB_T4) are BG4's untyped off-map templates elsewhere: json 63 keeps pulling Absolution's rows
         placed = {o['cls'].rsplit('_', 1)[0] for o in fr['objects']
-                  if o['cls'] not in _jct or (o['x'] is not None and 0 <= o['x'] < fr['width'] and 0 <= o['y'] < fr['height'])}
+                  if o['cls'] not in _jct or o['cls'] in ONMAP_ABOVE or (o['x'] is not None and 0 <= o['x'] < fr['width'] and 0 <= o['y'] < fr['height'])}
     if any(o['cls'].startswith('monitor') and o['cls'].endswith('shield') and o['x'] >= 0 for o in fr['objects']): placed.add('shieldmonitor_onmap')
+    if any(o['cls'] == 'yellowspringdown' and o['x'] is not None and 0 <= o['x'] < fr['width'] and 0 <= o['y'] < fr['height'] for o in fr['objects']): placed.add('yellowspringdown_onmap')
     if n in JCB_AMBUSH_FRAMES and 'npcneera' in placed: placed |= JCB_AMBUSH_WITH   # JC_BOSS: the ice ambush's off-map rig / ice block (above)
     # Lilac's own shields (spec_shields 0): every stage frame places the six off-map q21 instances and runs 2673-2705 (RE,
     # build/re/f17..f29_calls), and OTHERS.B is global, so a shield carried into an act without an on-map shield monitor is

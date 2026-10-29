@@ -14,6 +14,7 @@
  * Not flow (other modules): the Brevon mech background of BG2 / BG3 (BrevonMechBackground_2444 and its shots, 14210-14216 /
  * 14308-14315), BG4's opening mech fight (14496 / 14502), Sparky, the Chopper, BG6's boss and its ending; the Adventure-only dialogs. */
 #include "bg.h"
+#include "bg_boss.h"                         /* bgb_get: the BossSparky instances (the arrow sign) */
 #include <string.h>
 #ifdef FP_HOST_ENV
 #include <stdio.h>
@@ -27,17 +28,18 @@
 #define OPEN_X 444
 #define OPEN_Y 1800
 
-static struct { int act, dbg; } F;
+static struct { int act, dbg, arrow; } F;          /* arrow: BG4's BGArrowSign_3346 slot or -1 */
 
 int bg_flow_act(void) { const level_def_t *L = level_cur(); return L && L->stage == 9 ? L->act : 0; }
 
 void bg_flow_spawn(void) {
-    memset(&F, 0, sizeof F);
+    memset(&F, 0, sizeof F); F.arrow = -1;
     F.act = bg_flow_act();
     if (!F.act) return;
     for (int i = 0; i < G.nobjs; i++) {                       /* the loop pieces' off-map templates (one of each class per frame) */
         obj_t *o = &G.o[i];
-        if (o->alive && o->type >= OT_BGF_LOOP1 && o->type <= OT_BGF_LOOP3 && (o->x < 0 || o->y < 0 || o->x >= G.lvl.w || o->y >= G.lvl.h)) o->alive = 0;
+        if (o->alive && o->type >= OT_BGF_LOOP1 && o->type <= OT_BGF_ARROW && (o->x < 0 || o->y < 0 || o->x >= G.lvl.w || o->y >= G.lvl.h)) o->alive = 0;
+        if (o->alive && o->type == OT_BGF_ARROW && F.arrow < 0) { F.arrow = i; o->layer = 1; }   /* (json layer 2 of the mapped frame: layer 1) */
     }
     layers_refresh(&G.p);                                     /* the Q10 / Q11 pieces take MV.P now */
     BGLOG("act %d g4 %d", F.act, G.at_g4);
@@ -51,13 +53,25 @@ void bg_flow_opening_cleared(void) {
     BGLOG("opening cleared");
 }
 
+/* BG4's arrow sign (session 26; RE 14547, every frame of BG4's group): set_direction(the BossSparky list's size - 1, i.e. the Sparky
+ * instances: 1 while it lives, 0 once it is destroyed); its anim 0 loops 12 frames in both directions (the frame is kept) */
+static void arrow_frame(void) {
+    obj_t *a = &G.o[F.arrow];
+    if (!a->alive || a->type != OT_BGF_ARROW) { F.arrow = -1; return; }
+    int n = 0;
+    for (int k = 0; k < bgb_count(OT_BGB_SPARKY); k++) n += bgb_get(OT_BGB_SPARKY, k) != NULL;
+    int an = ens_anim(n > 0 ? "bgf_arrow1" : "bgf_arrow0");
+    if (an >= 0 && (a->an.b != &G.ens || a->an.anim != an)) { int fr = a->an.frame, acc = a->an.acc; anim_set(&a->an, &G.ens, an); a->an.frame = fr; a->an.acc = acc; }
+    a->dir = n;
+}
 void  bg_flow_frame(player_t *p) {
     (void)p;
+    if (F.arrow >= 0) arrow_frame();
 #ifdef FP_HOST_ENV
     { const char *e = getenv("FP_DBG_BGOPEN");                 /* host stand-in for bg_boss.c's call: at this frame number */
       if (F.act == 4 && e && G.frame >= atoi(e) && !F.dbg) { F.dbg = 1; bg_flow_opening_cleared(); } }
 #endif
 }
 void  bg_flow_draw(int pass) { (void)pass; }
-int   bg_flow_obj(obj_t *o, player_t *p) { (void)p; return o->type >= OT_BGF_LOOP1 && o->type <= OT_BGF_LOOP3; }   /* static pieces */
+int   bg_flow_obj(obj_t *o, player_t *p) { (void)p; return o->type >= OT_BGF_LOOP1 && o->type <= OT_BGF_ARROW; }   /* static pieces, the arrow sign (bg_flow_frame) */
 float bg_flow_hud_dy(void) { return 0.f; }

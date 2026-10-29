@@ -38,6 +38,8 @@ int    tbb_g3(void);                                                            
 void   tbb_explode_snd(void);                                                   /* loop sound_explode<3..5>: 311 / 319 / 320 */
 void   tbb_act_point(const obj_t *o, float *ax, float *ay);                     /* an Active's action point, turned by its angle */
 float  tbb_marker(int t, int x);                                                /* CameraLimitBoss L / R / T / B (x: 1 -> x, 0 -> y; -1e9 none) */
+obj_t *tbb_heat(void);                                                          /* LevelHeatSky_2779 (TB3 / TB6) or NULL: st shown, av[0] alpha byte */
+void   tbb_heat_show(int alpha);                                                /* show it with this alpha byte (12249 / 12704) */
 /* the gates' arena end (TB1 11878, TB2 12009; the rule of DV1 4871, SB 9925, TH1 13531): two ObjectCrystal at every railing of
  * the given type (y + 12, y + 36, sent behind: move_back), sound 40, the railings and the MinibossBarriers destroyed */
 void   tbb_gates_open(int rail_type);

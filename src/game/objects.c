@@ -1059,8 +1059,24 @@ void objects_update(void) {
     }
 }
 
-/* pass 0: objects on layers 0-1 (before the play layer's pieces), 1: layer 2, 2: layers 3+ (after Lilac) */
+/* a colour square scaled over the view (session 26): AlarmLight_3495 (FD3a) and LevelHeatSky_2779 (TB3 / TB6) are one-colour 10 x 10
+ * images on json layer 5 at (0, 0), set_x_scale 43 / set_y_scale 24 (430 x 240: the whole view) and shader 0x20 (additive), faded by
+ * their alpha byte (RE ctors, 12249 / 16183): an additive rect of the image's colour (RV fd3a alarm: + (152, 56, 0) at alpha 255) */
+void obj_draw_view_tint(uint32_t rgb, int alpha) {
+    int a = alpha > 255 ? 255 : alpha;
+    if (a <= 0) return;
+#ifdef FP_HOST_ENV
+    if (getenv("FP_NO_VIEW_TINT")) return;                                      /* host tests: the same frame without the tint */
+#endif
+    r_set_additive(1);
+    r_rect(0, 0, SCREEN_W, SCREEN_H, ((uint32_t)a << 24) | (rgb & 0xffffff));
+    r_set_additive(0);
+}
+
+/* pass 0: objects on layers 0-1 (before the play layer's pieces), 1: layer 2, 2: layers 3+ (after Lilac);
+ * 3 (session 26): the stage modules' view overlays on json layer 5, after the layer 4-7 pieces and before the HUD */
 void objects_draw(int pass) {
+    if (pass == 3) { tb_boss_draw_overlay(); fd_enemy_draw(3); return; }
     for (int i = 0; i < G.nobjs; i++) {
         const obj_t *o = &G.o[i];
         if (!o->alive || !o->an.b || o->type == OT_HANG || o->type == OT_LADDERTOP || o->type == OT_BRIDGE) continue;   /* sensors / LadderTop are invisible */
@@ -1083,6 +1099,7 @@ void objects_draw(int pass) {
         uint32_t col = (o->type == OT_CARD && (o->fl & 2)) ? 0x80ffffff : 0xffffffff;     /* 2573: already collected */
         if (o->type == OT_WHISP) { int a = aqua_obj_alpha(o); if (a <= 0) continue; col = ((uint32_t)a << 24) | 0xffffff; }   /* 4147 / 4148 fade */
         if (o->type == OT_WF_BACK) col = 0x9cffffff;                                        /* RE create_waterfallback: blend alpha 0x9c */
+        if (o->type == OT_SB_BACKEYE) { int a = (int)o->av[2]; if (a <= 0) continue; if (a < 255) col = ((uint32_t)a << 24) | 0xffffff; }   /* SB 9835: the eyes' alpha fade (sb_gim.c) */
         int addv = o->type == OT_WF_FRONT;                                                  /* RE create_waterfallfront_1037: set_shader(0x20) = additive (spec_water §6) */
         int inv = boss_flash(o);
         if (inv) r_set_invert(1);
