@@ -6,12 +6,12 @@
    "name": "fpdc-win32.exe",
    "os": "any",
    "kind": "program",
-   "sha256": "9e935f2e2d3d3500768fcb74ba7738f7fac07a04cf816c34e28bba80d3b19e9a",
-   "size": 2278414,
+   "sha256": "eca30e9ccf2291b0f93cc28f243029000fd19d49bc10b2677c7ed59de2a003ee",
+   "size": 2291214,
    "what": "the PC version for Windows (32-bit, SDL2)",
    "licence": "this repository",
    "source": "branch pc-port f5e6c93 (src/, pc/): pc/build_win32.sh, stripped",
-   "src_tree": "e9ea5de494aa5b8e68bdbbbe70956b90f7b27896"
+   "src_tree": "af5a9216774d2ab242499fdf46327a72ae881cc1"
   },
   {
    "name": "SDL2.dll",
@@ -37,12 +37,12 @@
    "name": "fpdc-linux-x86_64",
    "os": "any",
    "kind": "program",
-   "sha256": "8aae86d04b805daa4de6127aa20c1d2617e5f4aa5e59b7a2cbd4856e7d19bf40",
-   "size": 3584464,
+   "sha256": "c1b58904e377dbaf5305b42512df4da67a6c572e9ab035ef0f9af4b406bf5206",
+   "size": 3596384,
    "what": "the PC version for Linux (x86_64; SDL 2.30.11 linked in; glibc 2.27+)",
    "licence": "this repository; SDL2 zlib",
    "source": "branch pc-port f5e6c93 (src/, pc/) + SDL2-2.30.11, zig cc 0.13 (glibc 2.28 target): tools/builder/build_release_pc.sh, stripped",
-   "src_tree": "e9ea5de494aa5b8e68bdbbbe70956b90f7b27896"
+   "src_tree": "af5a9216774d2ab242499fdf46327a72ae881cc1"
   }
  ]
 }
