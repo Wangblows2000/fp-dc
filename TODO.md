@@ -1,5 +1,18 @@
 # TODO (priority order)
 
+## Session 25 status (end of session): what is left
+- [ ] Adventure cutscenes look rough in places (the user's README note). A polish agent (ranked difference list per scene vs
+      the original's screenshots: blends, fades, layers, music carry-over, the snowfields' black sky, the DV crash smoke)
+      was running at the end of session 25; merge its branch or redo from build/cutscene_polish.md.
+- [ ] Not ported: sg_intruders' 408-frame starfield opening (frame index 0, g4 99: a non-scrolling layer 0 and no pause
+      panel); the frame-84 ride before Battle Glacier (the port goes to BG1); FD1a's death taunts br_pa_07..09; SB2's
+      LevelBackgroundPlane2; the Brevon mech fly-by (BG4 / JC5 / FD4b, plan in "Session 26b"); spring beams in FN3 (VRAM).
+- [ ] Rules found, not changed: death on the hit that empties the petals (original: next hit); TB3's look-back freeze; TB4
+      Carol's start x (173 vs 71); BG2's EffectWarning triangles. Details in "Session 26c".
+- [ ] Flycast-measure the acts the small fixes grew (BG2 +512 KB, TB1 +256, FD1a +160, RM2 / SB4 +128) and keep >= 500 KB.
+- [ ] JC5's sound group is ~210 KB (D-121): nothing more may be added there.
+- [ ] Real hardware: nothing has been run on a Dreamcast.
+
 ## Session 26c: small fixes (tests/test_small_fixes.py)
 - [x] RM2 pad images; death sounds (die sound only, Lilac 91 resident, Carol's 29 a frame later, the bike wrecked by the death
       group); metal-door sounds at A 1 / A 2 (TB, FD lab doors); BG2's fly-by plane (sprite, 102, shake); JC5 white card drawn;

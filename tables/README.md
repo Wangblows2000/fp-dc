@@ -15,6 +15,7 @@ alone: no Linux program and no decompiler are needed.
 | `strings.json` | gallery names / descriptions / song lists / hints and the credits text: the string literals the program's List* / credits constructors pass | `tools/import_gallery.py elf_strings_all` over the decompiled constructors (Ghidra output, `build/re`) |
 | `story/dialog.json` | Adventure: every DialogData object's paragraphs ("speaker anim voice text"), the scene captions, and the story actors' ink (create_<class>: set_shader / blend alpha) | `tools/re/dump_dialog.py` (`make_tables.py story`) |
 | `story/scenes.json`, `story/scripts/*.scn`, `story/rows.json` | Adventure: the scene inventory (RE / RV / INFERRED per field) and the ported scenes' scripts and sprite rows, from RV traces of the original (positions, timings, sound ids: numbers only) | by hand / `tools/story_arc1.sh` (`tools/story_rv2scn.py`); docs/ADVENTURE.md |
+| `story/sids.json` | Adventure: each scene's permanent number (save v5 seen flags / story position; append-only, D-122) | by hand (tests/test_story_sids.py freezes them) |
 | `winmap_4085c983.json` | Windows GOG `Assets.dat` (md5 `4085c983...`) image ids -> the Linux image ids the pipeline uses; numbers only (sizes, hot spots, id offsets) | `tools/builder/make_tables.py winmap` |
 
 To regenerate (developers, with the Linux program and the decompiled tree):

@@ -39,6 +39,44 @@ Done (details in RE_NOTES "Session 8 additions" and "Shields and water", RUNTIME
 - Brief items from earlier in the session: 16:9 letterbox option (save v2), title credit, momentum change, card totals.
 - Death restarts the act with one life less; game over returns to the menu.
 
+## Session 25 (2026-10-29): easy-builder fixes, Dragon Valley fixes, Adventure mode, late-stage gimmicks
+Brief: "FPDC: Fix Dragon Valley Effects and Implement Adventure-Only Cutscenes" + the user's builder reports (Windows) +
+"late-stage gimmicks missing or visually lacking" (README). Agents' notes say "session 26 / 26b / 26c" for the gimmick work
+of this same session. Details: docs/ADVENTURE.md (+ docs/ADVENTURE_ARC2.md, ADVENTURE.md section 10), RE_NOTES "Session 25"
+and "Session 26*", RUNTIME_MAP "Session 25", ASSET_PIPELINE "Session 25", DECISIONS D-119 to D-122, BUILD_AND_TEST_LOG
+"Session 25", TODO (top). Specs with evidence: build/re/spec_dv_fixes.md, build/gimmick_audit.md (gitignored).
+- **Builder (user reports, D-119):** the release builder-v1 was never published, so every build stopped with HTTP 404: the
+  programs and tools are committed in `prebuilt/` (fetch.py looks there first; downloads*.json record each program's
+  `src_tree`, `fpbuild.py selftest` fails when src/ changed since: **after a src/ change run
+  `tools/builder/build_release.sh --program-only` (and `build_release_pc.sh` on pc-port) and commit prebuilt/ with it**).
+  Results next to the scripts (fpdc.cdi; PC fpdc.exe / fpdc, SDL2.dll, README-PC.txt, data/); no argument = Assets.dat
+  found next to / up to 3 folders above the project or in Steam / GOG folders, else a file dialog; the game's Data folder
+  is searched up to 3 folders above the Assets.dat. The Windows `Data/font.bmp` is a 256x2280 multi-language sheet:
+  import_font.py keeps the top 256x60. Voices are copied (not hard-linked) from the game folder (Windows refused to delete
+  read-only links on a rebuild). pc-port: the developers' compile scripts are `pc/compile_*` (the old `pc\build_win32.bat`
+  had a quoting error and only looked for i686-w64-mingw32-gcc). Verified: fresh clone -> fpdc.cdi from the Windows
+  Assets.dat (Linux), and the Windows builder end to end under Wine with the user's font and voices.
+- **DV1 (D-120):** the Wretchnid's pellets were drawn on layer 0 under DV1's layer-2 back wall: every pellet now takes its
+  creator's layer (RE 4773 / 4856); the hit is the 12-px disc against the sensor box (Turretus hit frame 189 as the original;
+  the cmp_all strict count drops 11311 -> 11259 by the comparer's fixed lag, accepted). **DV2 / DV3 / DV4:** geyser plates
+  erupt (explosion, sound 44, dust / bubbles, one launch per eruption; DV4's launch constant 12).
+- **Adventure mode (docs/ADVENTURE.md):** 40 inventoried scenes, all with a recoverable script are ported from RV traces
+  (70 rows in story/story.txt incl. character variants; sg_intruders' 408-frame starfield opening and the frame-84 ride
+  before BG are not). Runtime: src/game/story.c (the ONE gate `story_gate()`: Adventure run, fe_mode 2, not Time Attack;
+  triggers new-game / stage-end / chain / ending epilogue; pause SKIP SCENE / NEXT STAGE per the original's per-g4 table;
+  completes once; `story_reset()` at every exit), src/game/cutscene.c (the script player). Story rooms are built as levels
+  (st<json>, big frames split per scene: st83xx, st80xx, st81xx, st82xx). Save v5: one story byte per file + 64 seen flags,
+  both by the **permanent scene number** (tables/story/sids.json, append-only; variants share their base's number, D-122).
+  Each scene loads only the sound ids its script plays (every scene + voice slots < 200 KB). Voices: one clip per line,
+  converted from the install's Data/voices (the user's Windows clips: all 773 real); a stub or missing clip = text only.
+- **Late-stage gimmicks (build/gimmick_audit.md):** FD4a vanishing blocks, PL / TB per-type pools sized per act, down-springs,
+  FD3 pillars and sounds, FD1a jumbotrons + dialogue, TB3 / TB6 heat sky, FD3a / FD1b alarms, SB3 eyes, BG4 sign, FD4b
+  terminals, Carol's jump pads in TB4 / TH3 / BG2 / JC2-4 / FN4-5, fd2b's vacuum air rule + oxygen patches, JC5 storm rain
+  (D-121: JC5's sound group ~210 KB), RM2 pads, death sounds, TB4 / FD door sounds, BG2's fly-by plane, spring beams (not
+  FN3: VRAM), FD transporter nodes, JC5 white flash.
+- **Verification discs:** `<f> SCENE <id> <g1>` in demo.txt plays any story scene (story_verify_play);
+  tests/play/s25_story_verify.txt walks every story room for Lilac / Carol / Milla (BUILD_AND_TEST_LOG has the table).
+
 ## Session 24 (2026-10-28/29): Battle Glacier, Final Dreadnought, the ending, PC port branch, easy builder
 Brief: "Final Dreadnought rounds 1-4, complete game integration, ending, credits and release regression" + the user's
 "also port Battle Glacier". Details: RE_NOTES "Session 24", RUNTIME_MAP "Session 24", ASSET_PIPELINE "Session 24",
@@ -435,6 +473,13 @@ D-072, BUILD_AND_TEST_LOG "Session 15". Spec: build/re/fe/spec_gallery.md (not c
   Aqua Tunnel: session 12.)
 
 ## Latest verified
+- session 25: full regression SUITES_N suites 0 failures (incl. test_adventure*, test_story_sids, test_dv_fixes,
+  test_late_gimmicks, test_gimmicks_m, test_small_fixes, test_import_font). Flycast (build/fpdc_s25story.cdi,
+  tests/play/s25_story_verify.txt): all 36 story rooms x Lilac / Carol / Milla start; VRAM free >= 727 KB (st79 Milla),
+  sound RAM largest free block >= 127 KB (st8235 Milla, voices playing); RM5 with Spade's rows 1548 / 1020 / 1188 KB.
+  Builder: a fresh clone builds fpdc.cdi from the Windows Assets.dat (data = converted2 but the font / two voices); the
+  Windows builder under Wine (the user's font and voices) gives fpdc.exe + data, 60/65 frames identical + 5 title frames
+  within 1 %. The user's personal CDI (sha256 a4d7c7f4...) boots in Flycast. **Nothing on real hardware.**
 - session 24 (BG + FD + ending merged): full regression 61 suites 0 failures (incl. test_bg_* / test_fd_* / test_ending /
   test_route_matrix); every level rebuilt (only the _ens / _shl .spr files changed: the BOX1 section). Flycast
   (build/fpdc_s24demo.cdi, tests/play/s24_verify.txt, Carol / Milla / Lilac through BG1-6 and FD1a-4b): VRAM free >= 768 KB
@@ -461,6 +506,10 @@ D-072, BUILD_AND_TEST_LOG "Session 15". Spec: build/re/fe/spec_gallery.md (not c
   RAM >= 113 KB (Milla JC5, before the JC5 group trim); SB1 HUD back during the Kujacker fight. **Nothing on real hardware.**
 
 ## Next actions
+00. Session 25 leftovers (TODO top): cutscene visual polish (agent run in progress at the end of the session; the README's
+    "extremely rough" note), sg_intruders' opening, the frame-84 ride before BG, the Brevon mech fly-by (half-resolution rows),
+    FN3 spring beams (VRAM), the petals death rule, TB3's look-back freeze, TB4 Carol start x, BG2 warning triangles, SB2's
+    plane, FD1a death taunts. Flycast-measure the small-fix acts (BG2 Carol est. ~1364 KB free, FD1a, TB1, RM2, SB4).
 0. Session 24 leftovers (TODO "Battle Glacier" / "Final Dreadnought" / "Ending"): real-hardware VRAM on fd3b with Carol
    (768 KB free in Flycast) and BG4 with Milla; FD4b space backdrops; Brevon's grab / weapon throws; BG6 closing scene;
    the shoot-'em-up lead-in to BG; fd2b's vacuum air rule.
