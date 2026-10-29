@@ -706,10 +706,15 @@
 "id": "pl_final_message",
 "list": 33,
 "title": "Pangu Lagoon (The Final Message)",
-"room": 83,
-"g4": null,
-"triggers": [],
-"next": "route",
+"room": 8333,
+"frame": 83,
+"g4": 20,
+"triggers": [
+"end:7"
+],
+"next": "scene:sf_army",
+"skip": "stage:bg1",
+"stage": "bg1",
 "panel": 2,
 "chr": 1,
 "dialog": 4026,
@@ -717,8 +722,7 @@
 233,
 255
 ],
-"evidence": "lines by content: INFERRED",
-"missing": "phase 2"
+"evidence": "RE frame 8 (I 7 = Pangu Lagoon with g1 0 -> frame 82 g4 20) and CutsceneList K 34 -> frame 82 g4 20 (295); RV c83_g20 (the lagoon's final message, lines 233-242, then Shang Tu 243-255; the end sets frame 81 g4 0 = room 82, sf_army); RE frame 83 pause rows (SKIP SCENE: GUIPause A 3, NEXT STAGE: A 4, after the 50-frame wipe; events 22337-22370): SKIP and NEXT STAGE g4 20 -> frame 84 (22357: A >= 3), the shoot-'em-up lead-in to Battle Glacier, which the port routes to BG1 (levels.c ROUTE)"
 },
 {
 "id": "sf_army",
