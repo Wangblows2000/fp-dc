@@ -11,7 +11,7 @@
 extern int fe_mode;                  /* frontend.c: the original's global 0 (0 Time Attack, 1 Classic, 2 Adventure) */
 
 /* ---- the scene table (story/story.txt) */
-enum { NX_NONE, NX_SCENE, NX_STAGE, NX_ROUTE, NX_MENU, NX_MARK, NX_BACK };
+enum { NX_NONE, NX_SCENE, NX_STAGE, NX_ROUTE, NX_MENU, NX_MARK, NX_BACK, NX_CREDITS };
 typedef struct { uint8_t kind; int16_t scene; char dir[8]; char txt[28]; } step_t;   /* txt: the table's text (host log) */
 typedef struct {
     char name[24]; int room, g4, chr, panel;   /* panel: GUIPause frame (1 SKIP / QUIT, 2 SKIP / NEXT STAGE; 0: START skips at once) */
@@ -19,8 +19,9 @@ typedef struct {
     int trig_new, trig_end;          /* trig_end: stage I + 1 (0 none) */
     int sid;                         /* the permanent scene number (tables/story/sids.json): seen flags and the saved story
                                       * position use it, never the table position (which shifts as scenes are ported); -1 none */
+    int trig_ending;                 /* session 26: after the space scene (ending.c; RE 22441: frame 81 g4 3) */
 } scene_t;
-static scene_t SC[STORY_MAX];
+static scene_t SC[STORY_ROWS];
 static int nsc = -1;                 /* -1: not read yet */
 static char *captions;               /* story/captions.txt (the original's caption strings, tables/story/dialog.json) */
 
@@ -32,6 +33,7 @@ static void parse_step(const char *s, step_t *st) {
     else if (!strcmp(s, "menu")) st->kind = NX_MENU;
     else if (!strncmp(s, "mark:", 5)) st->kind = NX_MARK;     /* SKIP SCENE inside the script (frame 75 g4 0: to the character select) */
     else if (!strcmp(s, "back")) st->kind = NX_BACK;          /* an in-stage scene (story_inline_begin): back to the stage it plays in */
+    else if (!strcmp(s, "credits")) st->kind = NX_CREDITS;   /* session 26: the epilogue's end: ending.c's credits (frame 85) */
 }
 static void table_load(void) {
     if (nsc >= 0) return;
@@ -46,8 +48,8 @@ static void table_load(void) {
         free(d2);
     }
     /* two passes: names first (a step may name a later scene) */
-    char *lines[STORY_MAX]; int nl = 0;
-    for (char *p = d, *e = d + sz; p < e && nl < STORY_MAX;) {
+    char *lines[STORY_ROWS]; int nl = 0;
+    for (char *p = d, *e = d + sz; p < e && nl < STORY_ROWS;) {
         char *q = p; while (q < e && *q != '\n') q++;
         if (q >= e) break;
         *q = 0; if (q > p && q[-1] == '\r') q[-1] = 0;
@@ -68,10 +70,14 @@ static void table_load(void) {
         parse_step(nx, &s->next); s->skip = s->next; s->panel = 1; s->sid = -1; memset(&s->stage, 0, sizeof s->stage);
         for (const char *p = lines[i] + off; sscanf(p, "%31s%n", tok, &off) == 1; p += off) {
             if (!strncmp(tok, "skip=", 5)) parse_step(tok + 5, &s->skip);
-            else if (!strncmp(tok, "stage=", 6)) { s->stage.kind = NX_STAGE; snprintf(s->stage.dir, sizeof s->stage.dir, "%.7s", tok + 6);
-                                                   snprintf(s->stage.txt, sizeof s->stage.txt, "stage:%.20s", tok + 6); }
+            else if (!strncmp(tok, "stage=", 6)) {          /* a level dir, or (session 26) a step: the epilogue's NEXT STAGE row */
+                if (strchr(tok + 6, ':') || !strcmp(tok + 6, "credits")) parse_step(tok + 6, &s->stage);
+                else { s->stage.kind = NX_STAGE; snprintf(s->stage.dir, sizeof s->stage.dir, "%.7s", tok + 6);
+                       snprintf(s->stage.txt, sizeof s->stage.txt, "stage:%.20s", tok + 6); }
+            }
             else if (!strncmp(tok, "panel=", 6)) s->panel = atoi(tok + 6);
             else if (!strcmp(tok, "trig=new")) s->trig_new = 1;
+            else if (!strcmp(tok, "trig=ending")) s->trig_ending = 1;
             else if (!strncmp(tok, "trig=end:", 9)) s->trig_end = atoi(tok + 9) + 1;
             else if (!strncmp(tok, "chr=", 4)) s->chr = atoi(tok + 4);
             else if (!strncmp(tok, "sid=", 4)) s->sid = atoi(tok + 4);
@@ -153,6 +159,7 @@ static void go_step(const step_t *st) {
     switch (st->kind) {
     case NX_SCENE: if (start_scene(st->scene) == 0) return; break;
     case NX_STAGE: go_stage(st->dir); return;
+    case NX_CREDITS: ending_after_epilogue(); return;     /* session 26: frame 85 (ending.c), the run goes on into the credits */
     case NX_ROUTE: { const char *lv = S.last_stage >= 0 ? level_route_next(S.last_stage) : level_route_start(G.character);
                      if (lv) { go_stage(lv); return; } } break;
     default: break;
@@ -290,6 +297,16 @@ int story_stage_end(int stage) {
     if (!story_gate()) return 0;
     return route_from(stage);
 }
+/* session 26: the Adventure epilogue (RV e81_g3: frame 83's end -> 81 g4 3 -> 82 g4 21 -> 15 g4 14 -> 85); ending.c calls it
+ * when its space scene ends (RE 22441). Classic / Time Attack never pass the gate: their ending keeps its own hold. */
+int story_epilogue(void) {
+    table_load();
+    if (!story_gate()) return -1;
+    int cs = chr_slot(G.character); if (cs > 2) cs = 0;
+    for (int i = 0; i < nsc; i++)
+        if (SC[i].trig_ending && (SC[i].chr >> cs & 1)) return start_scene(i);
+    return -1;
+}
 int story_continue(int last_stage) {
     table_load();
     story_reset();
@@ -369,7 +386,7 @@ void story_update(const input_t *in) {
     if (S.paused) { pause_update(in); return; }
     if (S.pause_a > 0) S.pause_a--;
     if ((in->pressed & BTN_START) && !S.pause_a && !S.chsel && !S.done && SC[S.scene].panel == 0) { complete(DONE_SKIP); return; }   /* RV k81_g2_start */
-    input_t nostart;                                        /* panel 3: no pause (RV k69_g99_skip: the flashback in FD3A's frame) */
+    input_t nostart;                                        /* panel 3: no pause (RV k69_g99_skip: the flashback in FD3A's frame; RV k81_g0 / k81_g1: the snowfields) */
     if (SC[S.scene].panel == 3) { nostart = *in; nostart.held &= ~BTN_START; nostart.pressed &= ~BTN_START; in = &nostart; }
     if ((in->pressed & BTN_START) && !S.pause_a && !S.chsel && !S.done) {   /* RE 18656 */
         S.paused = 1; S.pause_a = 5; S.sel = 0;
