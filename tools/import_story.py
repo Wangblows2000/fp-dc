@@ -92,6 +92,9 @@ def main():
         caps = json.load(open(os.path.join(TABLES, 'dialog.json'), encoding='utf-8')).get('captions', {})
         with open(os.path.join(out, 'story', 'captions.txt'), 'w', encoding='latin-1', newline='\n') as f:
             for k in sorted(caps): f.write('%s %s\n' % (k, caps[k]))
+            subs = json.load(open(os.path.join(TABLES, 'dialog.json'), encoding='utf-8')).get('subtitles', {})
+            for h in sorted(subs, key=int):                   # session 26: SubtitleData paragraphs, keys sub<handle>_<k> ('sub' entries)
+                for k, t in enumerate(subs[h]): f.write('sub%s_%d %s\n' % (h, k, t.replace('\n', ' ')))
         print('story: %d scenes of %d ported, %d dialogue objects' % (n, len(sc), len(dialog_handles(sc))))
     if '--no-rooms' not in a:
         # a room is st<room> built from json frame <room>, or from 'frame' for a split room (one per scene of a large frame:

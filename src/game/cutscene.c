@@ -125,9 +125,10 @@ void cs_draw(void) {
  * Entries of a segment cut short by an early press are applied at once (the original's state at the reader's press,
  * sounds left out). While a segment waits with its entries exhausted the actors' animations run on by themselves (port:
  * the script was recorded with a reader pressing 30 frames after the arrow; a slower player must not freeze them). */
-enum { E_P, E_M, E_L, E_I, E_V, E_A, E_C, E_SAY, E_CLOSE, E_S, E_O, E_U, E_F, E_CHSEL, E_CAP, E_CAPX, E_PV, E_FA, E_FW };
+enum { E_P, E_M, E_L, E_I, E_V, E_A, E_C, E_SAY, E_CLOSE, E_S, E_O, E_U, E_F, E_CHSEL, E_CAP, E_CAPX, E_PV, E_FA, E_FW,
+       E_SUB, E_SUBX, E_RGA, E_RGD, E_RGP, E_RGJ, E_MV };   /* (session 26: E_SUB .. E_MV) */
 typedef struct { uint16_t t; uint8_t op, a; int16_t v[3]; } csx_ent_t;
-#define CSX_ACTORS 256                                    /* actor numbers fit the entries' uint8_t (session 25b: Gong's totems, 146) */
+#define CSX_ACTORS 256                                    /* actor numbers fit the entries' uint8_t (session 25b: Gong's totems, 146; session 26: the snowfields, 235) */
 #define CSX_SEGS 256
 #define CSX_POOL 1024
 #define DLG_COLS 32
@@ -138,13 +139,17 @@ static struct {
     csx_ent_t *e; int seg_first[CSX_SEGS + 1];
     char name[24], pool[CSX_POOL]; int pool_n;
     short sfx[48];
-    struct { int handle, layer, x, y, vis, row, mdx, mdy, mn, locked, add, alpha; int16_t lx0, ly0, lx1, ly1, lt, ln; animator_t an; } a[CSX_ACTORS];
+    struct { int handle, layer, x, y, vis, row, mdx, mdy, mn, locked, add, alpha; int16_t lx0, ly0, lx1, ly1, lt, ln;
+             int16_t rk, rb, rc, ra; float ang; uint8_t flip; int mvo, mvl; animator_t an; } a[CSX_ACTORS];
+    char *mv; int mv_n, mv_cap;                           /* session 26: the 'mv' paths (one character a frame) */
+    struct { int on; double A, dA, D, dD, E, F, H, J, L; } rig;   /* session 26: the holo dragon rig (the neck's values, PL6 13342-13344) */
     const bank_t *ens, *font; const char *const *dlg; int ndlg;
     int line, box, typed, len, arrow_t, shown;            /* DialogBox state (RE 18606 / 18607: C, B) */
     int row_box, row_name, row_arrow; animator_t arrow;
     int fade, fade_d; uint32_t fade_rgb;                  /* 0..255 cover (black, or white: 'f n 1'), per-frame step */
     int wipe, wipe_x;                                     /* the black wipe ('fw', RV: levelcardfade2 sliding in at 32 px a frame) */
     const char *cap[4];                                   /* captions shown (rows 0-3), from the caption table */
+    const char *sub; int sub_y;                           /* session 26: a subtitle paragraph (SubtitleText_3449) and its box top */
     const char *captions;                                 /* "key text" lines (story/captions.txt), owned by the caller */
     int vo_h[2], vo_line[2];                              /* voice slots: the current line's clip and the next one's */
     uint32_t prev;
@@ -173,7 +178,7 @@ long csx_voice_peak(void) { long p = vo_peak; vo_peak = 0; return p; }
 void csx_stop_audio(void) { snd_stop_all(); vo_free(0); vo_free(1); }
 void csx_free(void) {
     csx_stop_audio();
-    free(X.e); memset(&X, 0, sizeof X); X.vo_h[0] = X.vo_h[1] = -1; X.vo_line[0] = X.vo_line[1] = -1;
+    free(X.e); free(X.mv); memset(&X, 0, sizeof X); X.vo_h[0] = X.vo_h[1] = -1; X.vo_line[0] = X.vo_line[1] = -1;
 }
 
 int csx_load(const char *path) {
@@ -215,6 +220,30 @@ int csx_load(const char *path) {
             else if (!strcmp(op, "f")) { x->op = E_F; x->v[0] = (int16_t)v0; x->v[1] = (int16_t)(n >= 4 && v1); }   /* <t> f <frames> [1 = white] */
             else if (!strcmp(op, "chsel")) x->op = E_CHSEL;
             else if (!strcmp(op, "capx")) x->op = E_CAPX;
+            else if (!strcmp(op, "subx")) x->op = E_SUBX;
+            else if (!strcmp(op, "mv")) {                      /* <t> mv <actor> <frames> <path>: chr(79 + dx) chr(79 + dy) a frame (session 26) */
+                const char *q = p; int f_ = 0;
+                while (*q && f_ < 4) { while (*q && *q != ' ') q++; while (*q == ' ') q++; f_++; }   /* the path: the fifth field */
+                int len = (int)strlen(q); while (len > 0 && (q[len - 1] == '\r' || q[len - 1] == ' ')) len--;
+                if (n < 4 || len != 2 * v1 || v1 <= 0 || v1 > 16383) { bad = 1; break; }
+                if (X.mv_n + len > X.mv_cap) {
+                    int nc = X.mv_cap ? X.mv_cap * 2 : 4096; while (nc < X.mv_n + len) nc *= 2;
+                    char *nb = realloc(X.mv, (size_t)nc); if (!nb) { bad = 1; break; }
+                    X.mv = nb; X.mv_cap = nc;
+                }
+                memcpy(X.mv + X.mv_n, q, (size_t)len);
+                x->op = E_MV; x->a = (uint8_t)v0; x->v[0] = (int16_t)(X.mv_n & 0xffff); x->v[1] = (int16_t)(X.mv_n >> 16); x->v[2] = (int16_t)v1;
+                X.mv_n += len;
+            }
+            else if (!strcmp(op, "rga") || !strcmp(op, "rgd") || !strcmp(op, "rgp") || !strcmp(op, "rgj")) {   /* the rig's neck (session 26) */
+                x->op = op[2] == 'a' ? E_RGA : op[2] == 'd' ? E_RGD : op[2] == 'p' ? E_RGP : E_RGJ;
+                x->v[0] = (int16_t)v0; x->v[1] = (int16_t)v1; x->v[2] = (int16_t)v2;
+            }
+            else if (!strcmp(op, "sub")) {                     /* <t> sub <caption key> <y>: a subtitle (session 26, the epilogue's speech) */
+                if (sscanf(p, "%*d %*s %63s %d", s1, &v0) != 2) { bad = 1; break; }
+                x->op = E_SUB; x->v[0] = (int16_t)pool_add(s1); x->v[1] = (int16_t)v0;
+                if (x->v[0] < 0) { bad = 1; break; }
+            }
             else if (!strcmp(op, "pv")) { x->op = E_PV; x->v[0] = (int16_t)v0; x->v[1] = (int16_t)v1; }   /* <t> pv <handle> <0|1> */
             else if (!strcmp(op, "cap")) {                     /* <t> cap <row> <caption key> */
                 if (sscanf(p, "%*d %*s %d %63s", &v0, s1) != 2 || v0 < 0 || v0 > 3) { bad = 1; break; }
@@ -226,7 +255,7 @@ int csx_load(const char *path) {
                 x->op = op[0] == 'o' ? E_O : E_U; x->v[0] = (int16_t)pool_add(s1);
                 if (x->v[0] < 0) { bad = 1; break; }
             } else { p = q + 1; continue; }                 /* an unknown entry: ignored (newer data) */
-            if (x->op <= E_A && x->a >= X.nact) { bad = 1; break; }   /* (E_P .. E_A take an actor) */
+            if ((x->op <= E_A || x->op == E_MV) && x->a >= X.nact) { bad = 1; break; }   /* (E_P .. E_A and E_MV take an actor) */
             X.ne++;
         } else if (sscanf(p, "%15s", op) == 1) {
             if (!strcmp(op, "scene")) sscanf(p, "%*s %23s", X.name);
@@ -238,6 +267,10 @@ int csx_load(const char *path) {
                 char *u = strrchr(cls, '_');
                 X.a[n].handle = u ? atoi(u + 1) : 0; X.a[n].layer = l; X.nact++;
                 X.a[n].add = !strcmp(ink, "add"); X.a[n].alpha = ink[0] == 'a' && ink[1] >= '0' && ink[1] <= '9' ? atoi(ink + 1) : 255;
+            } else if (!strcmp(op, "rigpart")) {               /* rigpart <actor> <kind> <B> <C> <a>: a part of the holo dragon rig */
+                int n = -1, k = 0, b = 0, c = 0, ra = 0;
+                if (sscanf(p, "%*s %d %d %d %d %d", &n, &k, &b, &c, &ra) != 5 || n < 0 || n >= X.nact) { bad = 1; break; }
+                X.a[n].rk = (int16_t)k; X.a[n].rb = (int16_t)b; X.a[n].rc = (int16_t)c; X.a[n].ra = (int16_t)ra;
             } else if (!strcmp(op, "seg")) {
                 if (++seg >= CSX_SEGS) { bad = 1; break; }
                 X.seg_first[seg] = X.ne; X.nseg = seg + 1;
@@ -255,6 +288,11 @@ int csx_load(const char *path) {
 static int row_of(int handle, int anim, int dir) {
     char nm[40];                                          /* the bank's names are 15 characters: s<4 digits>_<2>_<2> fits */
     snprintf(nm, sizeof nm, "s%d_%d_%d", handle & 0xffff, anim & 0xff, dir & 0xff);
+    return X.ens && X.ens->nframes ? bank_anim(X.ens, nm) : -1;
+}
+static int mirror_of(int handle, int anim, int dir) {     /* session 26: 'm<handle>_<anim>_<dir>': a mirror alias of the dir - 16 row */
+    char nm[40];
+    snprintf(nm, sizeof nm, "m%d_%d_%d", handle & 0xffff, anim & 0xff, dir & 0xff);
     return X.ens && X.ens->nframes ? bank_anim(X.ens, nm) : -1;
 }
 static void vo_load(int k, int line) {                    /* story/vo/<voice>.wav (absent: the line is silent, text only) */
@@ -320,8 +358,9 @@ static void xfire(const csx_ent_t *x) {
                 X.a[q].lt = 0; X.a[q].ln = x->v[2] > 0 ? x->v[2] : 1; X.a[q].mn = 0; } break;
     case E_M: X.a[x->a].mdx = x->v[0]; X.a[x->a].mdy = x->v[1]; X.a[x->a].mn = x->v[2]; break;
     case E_I: { if (X.a[x->a].locked) break;                     /* an actor the story code drives (the character select) */
-                int r = row_of(X.a[x->a].handle, x->v[0], x->v[1]);
-                X.a[x->a].row = r;
+                int r = row_of(X.a[x->a].handle, x->v[0], x->v[1]), fl = 0;
+                if (r < 0) { r = mirror_of(X.a[x->a].handle, x->v[0], x->v[1]); fl = r >= 0; }   /* session 26: the base row drawn flipped */
+                X.a[x->a].row = r; if (!X.a[x->a].rk) X.a[x->a].flip = (uint8_t)fl;
                 if (r >= 0) { animator_t *an = &X.a[x->a].an; int c = X.ens->anims[r].count;
                               an->b = X.ens; an->anim = r; an->acc = 0; an->done = 0; an->loops = 0; an->frame = x->v[2] < c ? x->v[2] : c - 1; } } break;
     case E_V: X.a[x->a].vis = x->v[0]; break;
@@ -337,10 +376,20 @@ static void xfire(const csx_ent_t *x) {
     case E_CHSEL: X.chsel_wait = 1; break;
     case E_CAP: X.cap[x->v[0]] = caption(X.pool + x->v[1]); break;
     case E_CAPX: memset(X.cap, 0, sizeof X.cap); break;
+    case E_SUB: X.sub = caption(X.pool + x->v[0]); X.sub_y = x->v[1]; break;
+    case E_MV: X.a[x->a].mvo = (uint16_t)x->v[0] | (int)x->v[1] << 16; X.a[x->a].mvl = x->v[2]; X.a[x->a].mn = 0; break;
+    case E_RGA: X.rig.on = 1; X.rig.A = x->v[0] / 10.0; X.rig.dA = x->v[1] / 100.0; break;
+    case E_RGD: X.rig.on = 1; X.rig.D = x->v[0]; X.rig.dD = x->v[1] / 10.0; break;
+    case E_RGP: X.rig.E = x->v[0]; X.rig.F = x->v[1]; X.rig.H = x->v[2] / 10.0; break;
+    case E_RGJ: X.rig.J = x->v[0]; X.rig.L = x->v[1]; break;
+    case E_SUBX: X.sub = NULL; break;
     case E_PV: par_set_hidden(x->v[0], !x->v[1]); break;   /* the room's backdrop sets */
     case E_FW: X.wipe = x->v[0] > -999; X.wipe_x = x->v[0]; break;
     case E_FA: X.fade = x->v[0] < 0 ? 0 : x->v[0] > 255 ? 255 : x->v[0]; X.fade_d = 0; X.fade_rgb = x->v[1] ? 0xffffff : 0; break;   /* the cover's alpha (RV blend) */
     }
+}
+static void mv_step(int k) {                              /* one frame of an 'mv' path: chr(79 + dx) chr(79 + dy) */
+    X.a[k].x += X.mv[X.a[k].mvo] - 79; X.a[k].y += X.mv[X.a[k].mvo + 1] - 79; X.a[k].mvo += 2; X.a[k].mvl--;
 }
 static void seg_start(int k) { X.seg = k; X.clock = 0; X.exhausted = 0; X.cur = X.seg_first[k]; }
 static void flush_segment(void) {                          /* an early press: the rest of the segment at once (no sounds / lines) */
@@ -352,6 +401,7 @@ static void flush_segment(void) {                          /* an early press: th
     }
     for (int k = 0; k < X.nact; k++) if (X.a[k].mn) { X.a[k].x += X.a[k].mdx * X.a[k].mn; X.a[k].y += X.a[k].mdy * X.a[k].mn; X.a[k].mn = 0; }
     for (int k = 0; k < X.nact; k++) if (X.a[k].ln) { X.a[k].x = X.a[k].lx1; X.a[k].y = X.a[k].ly1; X.a[k].ln = 0; }
+    for (int k = 0; k < X.nact; k++) while (X.a[k].mvl > 0) mv_step(k);
 }
 void csx_chsel_done(void) {                              /* the choice was made: the segment after it starts (the trace's press) */
     if (!X.chsel_wait) return;
@@ -376,6 +426,7 @@ int csx_skip_to_chsel(void) {
     }
     for (int a = 0; a < X.nact; a++) if (X.a[a].mn) { X.a[a].x += X.a[a].mdx * X.a[a].mn; X.a[a].y += X.a[a].mdy * X.a[a].mn; X.a[a].mn = 0; }
     for (int a = 0; a < X.nact; a++) if (X.a[a].ln) { X.a[a].x = X.a[a].lx1; X.a[a].y = X.a[a].ly1; X.a[a].ln = 0; }
+    for (int a = 0; a < X.nact; a++) while (X.a[a].mvl > 0) mv_step(a);
     X.shown = 0; X.clock = X.e[i].t;
     return 0;
 }
@@ -392,6 +443,31 @@ void csx_actor_image(int a, int anim, int dir, int frame) {
     X.a[a].row = r; an->b = X.ens; an->anim = r; an->acc = 0; an->done = 0; an->loops = 0; an->frame = frame > 0 ? frame : 0;
 }
 
+/* session 26: the holo dragon rig (RE PL6 13338 / 13342-13344 / 13390, src/game/pl_boss.c; RV r81_g0l: json 82's dragon follows it).
+ * The neck's values come from the script (rga / rgd / rgp / rgj, its traced alterables); the parts keep their placed offsets
+ * (rigpart B, C), the body scales ride the wave by their index from the tail, the head turns about the neck point by the tilt,
+ * a hit spot sits on its scale. O(parts) arithmetic a frame. */
+static double dsin(double d) { d = fmod(d, 360.); if (d < 0) d += 360.; return d == 0. || d == 180. ? 0. : fd_sin(d * 0.017453292519943295); }   /* as sbb_sin */
+static double dcos(double d) { d = fmod(d, 360.); if (d < 0) d += 360.; return d == 90. || d == 270. ? 0. : fd_cos(d * 0.017453292519943295); }
+static double dnrm(double d) { d = fmod(d, 360.); return d < 0 ? d + 360. : d; }
+static void rig_update(void) {
+    X.rig.A = dnrm(X.rig.A + X.rig.dA); X.rig.D += X.rig.dD;          /* 13338: A = (A + G) mod 360; the anchor moves by I */
+    double A = X.rig.A, D = X.rig.D, E = X.rig.E, F = X.rig.F, H = X.rig.H, s = -X.rig.J, q = F * 0.25;
+    double nx = (int)D, ny = (int)(dsin(A + 10) * F + E), B = dsin(A + 100) * q - (q < 20 ? q : 20) - H;   /* 13342 */
+    for (int k = 0; k < X.nact; k++) {
+        int rk = X.a[k].rk; double b = X.a[k].rb, c = X.a[k].rc;
+        if (rk == 1) {                                                  /* 13343 + the wave of 13344 */
+            X.a[k].x = (int)(s * b + D); X.a[k].y = (int)(dsin(15 * X.a[k].ra + A - 135) * F + (int)(E + c));
+            X.a[k].ang = (float)dnrm(dsin(15 * X.a[k].ra + A - 45) * F * 0.125 * s); X.a[k].flip = 0;
+        } else if (rk >= 2 && rk <= 5) {                                /* 13344: about the neck point */
+            double th = rk == 3 ? B - H : rk == 4 ? B + H : B, cs = dcos(th), sn = dsin(th);
+            X.a[k].x = (int)((sn * c + b * cs) * s + nx); X.a[k].y = (int)(cs * c - sn * b + ny);
+            X.a[k].ang = rk == 5 ? 0.f : (float)dnrm(th * s); X.a[k].flip = X.rig.J > 0;
+        }
+    }
+    for (int k = 0; k < X.nact; k++)                                    /* 13390: a hit spot on its scale */
+        if (X.a[k].rk == 6 && X.a[k].rb >= 0 && X.a[k].rb < X.nact) { X.a[k].x = X.a[X.a[k].rb].x; X.a[k].y = X.a[X.a[k].rb].y + X.a[k].rc; }
+}
 int csx_update(const input_t *in) {
     if (!X.active) return CSX_DONE;
     uint32_t p = X.prev; X.prev = in->pressed;            /* one frame of latency (RE InputsP1) */
@@ -418,6 +494,8 @@ int csx_update(const input_t *in) {
         X.a[k].x = X.a[k].lx0 + (dx * t + (dx >= 0 ? nn / 2 : -nn / 2)) / nn; X.a[k].y = X.a[k].ly0 + (dy * t + (dy >= 0 ? nn / 2 : -nn / 2)) / nn;
         if (t >= nn) X.a[k].ln = 0;
     }
+    for (int k = 0; k < X.nact; k++) if (X.a[k].mvl > 0) mv_step(k);
+    if (X.rig.on) rig_update();
     X.exhausted = X.cur >= lim;
     for (int k = 0; k < X.nact; k++) if (X.a[k].row >= 0 && (X.exhausted || X.a[k].locked)) anim_tick(&X.a[k].an, -1);
     if (X.fade_d) { X.fade += X.fade_d; if (X.fade <= 0) { X.fade = 0; X.fade_d = 0; } if (X.fade >= 255) { X.fade = 255; X.fade_d = 0; } }
@@ -430,12 +508,17 @@ int csx_update(const input_t *in) {
 void csx_draw_actors(int pass) {
     if (!X.active || !X.ens || !X.ens->nframes) return;
     for (int k = 0; k < X.nact; k++) {
-        int l = X.a[k].layer, ps = l <= 1 ? 0 : l <= 3 ? 1 : l <= 5 ? 2 : 3;
+        int l = X.a[k].layer, ps = l <= 0 ? 0 : l == 1 ? 4 : l <= 3 ? 1 : l <= 5 ? 2 : 3;   /* session 26: json layer 1 over its own backdrops (pass 4; RV s81_g0l: the guards over the mountains) */
         if (ps != pass || !X.a[k].vis || X.a[k].row < 0) continue;
         float x = (float)X.a[k].x, y = (float)X.a[k].y;
-        if (pass < 3) { x -= floorf(G.camx); y -= floorf(G.camy); }   /* json layers 6-7 do not scroll (the HUD layers) */
+        if (pass != 3) { x -= floorf(G.camx); y -= floorf(G.camy); }   /* json layers 6-7 do not scroll (the HUD layers) */
         if (X.a[k].add) r_set_additive(1);
-        frame_draw(X.ens, anim_frame(&X.a[k].an), x, y, 0, (uint32_t)X.a[k].alpha << 24 | 0xffffff);
+        if (X.a[k].rk) {                                  /* a rig part: rotated, the hologram's transparency (13345: alpha 255 - L) */
+            int al = X.a[k].alpha * (255 - (int)(X.rig.L < 0 ? 0 : X.rig.L > 255 ? 255 : X.rig.L)) / 255;
+            if (al > 0 && x > -300 && x < SCREEN_W + 300 && y > -300 && y < SCREEN_H + 300)
+                frame_draw_rot(X.ens, anim_frame(&X.a[k].an), x, y, X.a[k].ang, X.a[k].flip, (uint32_t)al << 24 | 0xffffff);
+        } else
+        frame_draw(X.ens, anim_frame(&X.a[k].an), x, y, X.a[k].flip, (uint32_t)X.a[k].alpha << 24 | 0xffffff);
         if (X.a[k].add) r_set_additive(0);
     }
 }
@@ -467,6 +550,16 @@ void csx_draw_ui(void) {
         if (X.arrow_t > ARROW_DELAY && X.row_arrow >= 0) frame_draw(X.ens, anim_frame(&X.arrow), 345, 40, 0, 0xffffffff);   /* DialogArrow_553 */
     }
     if (X.fade > 0) r_rect(0, 0, SCREEN_W, SCREEN_H, (uint32_t)X.fade << 24 | X.fade_rgb);
+    if (X.sub) {                                           /* session 26: SubtitleText_3449 (x 37, the box top y): rows of at most 43 */
+        const char *s = X.sub, *rs[6]; int rn[6], nr = 0;  /* characters word-wrapped, each centred on x 213; the block centred on */
+        while (*s && *s != '\n' && *s != '\r' && nr < 6) {  /* y + 50 (RV s82_g21 shots: 1 row at 180, 4 rows from 150 / 30) */
+            int n = 0, cut = 0;
+            while (s[n] && s[n] != '\n' && s[n] != '\r' && n < 43) { if (s[n] == ' ') cut = n; n++; }
+            if (s[n] && s[n] != ' ' && s[n] != '\n' && s[n] != '\r' && cut > 0) n = cut;
+            rs[nr] = s; rn[nr++] = n; s += n; while (*s == ' ') s++;
+        }
+        for (int r = 0; r < nr; r++) txt8((float)(SCREEN_W / 2 - rn[r] * 4), (float)(X.sub_y + 50 - nr * 10 + r * 20), rs[r], rn[r]);
+    }
     if (X.wipe) game_wipe_draw((float)X.wipe_x);
     for (int r = 0; r < 4; r++) {                          /* captions over the fade, centred, rows 20 px apart (RV c81_g2 */
         const char *s = X.cap[r]; int n = 0;               /* shots 1920-2040: glyphs at y 111-125 / 131-145, centred on 213) */

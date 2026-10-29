@@ -57,7 +57,7 @@ void csx_free(void);                                  /* script, voices */
 void csx_begin(const bank_t *ens, const bank_t *font, const char *const *dialog, int nlines);
 int  csx_update(const input_t *in);                   /* CSX_DONE at the end, CSX_CHSEL while the script waits for a character choice */
 void csx_chsel_done(void);                            /* the character select of the scene finished: the script goes on */
-void csx_draw_actors(int pass);                       /* 0: json layers 0-1 (behind the play layer), 1: layers 2-3, 2: layers 4+ */
+void csx_draw_actors(int pass);                       /* 0: json layer 0, 4: layer 1 (session 26), 1: layers 2-3, 2: layers 4-5, 3: 6+ */
 void csx_draw_ui(void);
 void csx_stop_audio(void);                            /* skip / quit: the voice stops and is freed */
 int  csx_active(void);

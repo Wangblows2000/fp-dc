@@ -13,7 +13,8 @@ two-digit anim = the speaker actor's animation, voice id = Data/voices/eng/<xx>/
 a continuation without a voice; its anim may be "xx" too, kept as -1: it still counts as a paragraph, the line index E
 counts every paragraph, RV DialogData_3923 E 76 = "It's an ambush!"). LipSynchingData_<handle> objects (same layout) are dumped too.
 
-Output: {"binary_md5", "dialog": {"<handle>": [[speaker, anim, voice, text], ...]}, "lipsync": {...}}
+Output: {"binary_md5", "dialog": {"<handle>": [[speaker, anim, voice, text], ...]}, "lipsync": {...},
+        "subtitles": {"<handle>": [text, ...]} (SubtitleData objects: the subtitle paragraphs, session 26)}
 """
 import hashlib, json, re, sys
 from elftools.elf.elffile import ELFFile
@@ -35,8 +36,8 @@ def main(path, out):
         return b.split(b'\0', 1)[0] if b else None
     funcs = {}
     for s in e.get_section_by_name('.symtab').iter_symbols():
-        m = re.match(r'^_ZN(\d+)(DialogData|LipSynchingData)_(\d+)C[12]Eii$', s.name) or \
-            re.match(r'^_Z\d+create_(dialogdata|lipsynchingdata)_(\d+)ii$', s.name)
+        m = re.match(r'^_ZN(\d+)(DialogData|LipSynchingData|SubtitleData)_(\d+)C[12]Eii$', s.name) or \
+            re.match(r'^_Z\d+create_(dialogdata|lipsynchingdata|subtitledata)_(\d+)ii$', s.name)
         if not m or not s['st_size']: continue
         if s.name.startswith('_ZN'): kind, h, ctor = m.group(2).lower(), m.group(3), 1
         else: kind, h, ctor = m.group(1), m.group(2), 0
@@ -44,17 +45,29 @@ def main(path, out):
         if ctor or key not in funcs or not funcs[key][2]:
             funcs[key] = (s['st_value'], s['st_size'], ctor)
     md = Cs(CS_ARCH_X86, CS_MODE_64); md.detail = True
-    res = {'binary_md5': hashlib.md5(open(path, 'rb').read()).hexdigest(), 'dialog': {}, 'lipsync': {}}
+    res = {'binary_md5': hashlib.md5(open(path, 'rb').read()).hexdigest(), 'dialog': {}, 'lipsync': {}, 'subtitles': {}}
+    # one paragraph per Text::add_line call (session 26): a literal the source repeats is built once and added again
+    # (DialogData_3989 paragraphs 47-49 are the same za_04_14 line: RV e81_g3 DialogBox E 83 = li_49_01, i.e. two
+    # paragraphs more than the literals before it)
+    addl = next((s['st_value'] for s in e.get_section_by_name('.symtab').iter_symbols() if s.name == '_ZN4Text8add_lineERKSs'), None)
     for (kind, h), (va, size, ctor) in sorted(funcs.items(), key=lambda kv: int(kv[0][1])):
-        lines = []
+        lines = []; last = None
         for ins in md.disasm(rd(va, size), va):
+            if ins.mnemonic == 'call' and addl is not None and ins.op_str == hex(addl):
+                if last: lines.append(last if isinstance(last, str) else list(last))
+                continue
             if ins.mnemonic != 'mov': continue
             for op in ins.operands:
                 if op.type == X86_OP_IMM and 0x400000 <= op.imm < 0x4000000:
                     sb = cstr(op.imm)
+                    if kind == 'subtitledata':    # SubtitleData_<h> (session 26): plain paragraphs (the epilogue's speech, RE 22248 / 22309)
+                        if sb and len(sb) > 1 and sb != b'Arial' and all(32 <= c < 127 for c in sb): last = sb.decode('latin1')
+                        continue
                     m = LINE.match(sb) if sb else None
-                    if m: lines.append([int(m.group(1)), -1 if m.group(2) == b'xx' else int(m.group(2)), m.group(3).decode(), m.group(4).decode('latin1')])
-        if lines: res['dialog' if kind == 'dialogdata' else 'lipsync'][h] = lines
+                    if m:
+                        last = [int(m.group(1)), -1 if m.group(2) == b'xx' else int(m.group(2)), m.group(3).decode(), m.group(4).decode('latin1')]
+                        if addl is None: lines.append(last)
+        if lines: res['dialog' if kind == 'dialogdata' else 'subtitles' if kind == 'subtitledata' else 'lipsync'][h] = lines
     # scene captions ("Three days later," ...): global std::string constants str_<slug>_<n> set from a literal at start-up;
     # the literal is the .rodata string whose slug is <slug> (RE: TextBlitter::set_text(str_three_days_later_330) in events)
     caps = {}
