@@ -302,7 +302,7 @@ static const signed char DIGR_BG[] = { DIG_EARTH_MON, DIG_CRYSTALS, DIG_CRYSTALS
 /* the stage's own sounds per act (11025 Hz): the flow events play none of their own (RE: the Media calls of the BG flow events are the shared
  * pause / weapon / debris ones); 62 jump pads, 99 explosions; the enemy / gimmick / boss modules add theirs */
 static const short SFX_BG1[] = { 62, 99, 55, 67, 127, 77, 110, 149, 13, 51, 38, 311, 319, 320 };
-static const short SFX_BG2[] = { 62, 99, 55, 438, 127, 77, 110, 149, 294, 295, 342, 408, 195, 38, 311, 319, 320 };
+static const short SFX_BG2[] = { 62, 99, 55, 438, 127, 77, 110, 149, 294, 295, 342, 408, 195, 38, 311, 319, 320, 102 };   /* + 102: the fly-by plane (4875) */
 static const short SFX_BG3[] = { 62, 99, 55, 73, 127, 172, 173, 195, 306, 77, 13, 51, 38, 311, 319, 320, 294, 342, 408 };
 static const short SFX_BG4[] = { 62, 99, 54, 127, 192, 195, 231, 233, 264, 275, 306, 438, 165, 344, 47, 294, 295, 342, 343, 406, 407, 408, 38, 311, 319, 320, 28, 40, 436 };
 static const short SFX_BG5[] = { 62, 99, 54, 73, 127, 192, 195, 231, 233, 264, 306, 308, 316, 345, 346, 438, 165, 285, 344, 40, 436, 28, 24, 74, 38, 311, 319, 320 };
@@ -513,7 +513,7 @@ static const level_def_t LEVELS[] = {
      * the ending (s 13 -> frame 83, ending.c). ML.A 1 / ML.B 2000 (4800 fd2a / fd2b) but only fd2b holds
      * air events, its own (15790-15796: the siren alarm's vacuum, not ML.B; spec_fd_flow 3): dry. ML.Q 48-55. */
     { FD("fd1a", 65, 10, 1, SFX_FD1A, "bgm/m_stage10.adp"), .mus4 = "bgm/m_midboss.adp", .start_card = 1, .cps = CP_FD1A, .ncps = N_(CP_FD1A),
-      .max_objs = 1280 },
+      .max_objs = 1280, .vox = (const char *const[]){ "br_pa_01", "br_pa_02" }, .nvox = 2 /* the jumbotron dialog (15273 / 15279) */ },
     { FD("fd1b", 66, 10, 2, SFX_FD1B, "bgm/m_stage10.adp"), .mus4 = "bgm/m_boss.adp", .res_wipe = 1, .max_objs = 1280 , .vox = (const char *const[]){ "br_pa_03" }, .nvox = 1 /* the push-beam chase (15396) */ },
     { FD("fd2a", 67, 11, 1, SFX_FD2A, "bgm/m_stage10b.adp"), .mus4 = "bgm/m_midboss.adp", .start_card = 1, .cps = CP_FD2A, .ncps = N_(CP_FD2A),
       .exits = EX_FD2A, .nexits = N_(EX_FD2A), .max_objs = 1280 },

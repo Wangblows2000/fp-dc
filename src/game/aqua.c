@@ -488,24 +488,24 @@ void aqua_spring(obj_t *o, player_t *p) {
     double B = p->ground ? p->gsp : p->vx, Gv = p->ground ? 0 : p->vy;
     switch (o->type) {
     case OT_RSPRING_U:                                                                            /* 2997: G = -18 (port: -17.75 after gravity) */
-        if (Gv >= 0 && box_sensor(SENS_BOTTOMBIG, x0, y0, x1, y1)) { player_spring(p, 0, 17.75, y0 - 2 + 0.25f); spring_press(o, "rs_up", "rs_up_b"); }
+        if (Gv >= 0 && box_sensor(SENS_BOTTOMBIG, x0, y0, x1, y1)) { player_spring(p, 0, 17.75, y0 - 2 + 0.25f); spring_press(o, "rs_up", "rs_up_b"); obj_spring_beam(o, 8); }
         break;
     case OT_RSPRING_D:                                                                            /* 3000: G = 18 (+ gravity) */
-        if (Gv <= 0 && box_sensor(SENS_TOPBIG, x0, y0, x1, y1)) { player_launch(p, 0, -18.25, 5); spring_press(o, "rs_down", "rs_down_b"); }
+        if (Gv <= 0 && box_sensor(SENS_TOPBIG, x0, y0, x1, y1)) { player_launch(p, 0, -18.25, 5); spring_press(o, "rs_down", "rs_down_b"); obj_spring_beam(o, 24); }
         break;
     case OT_SPRING_D:                                                                             /* 3008 (RE): as 3000 with G = 11 (+ gravity); */
-        if (Gv <= 0 && box_sensor(SENS_TOPBIG, x0, y0, x1, y1)) { player_launch(p, 0, -11.25, 5); spring_press(o, "ys_down", "ys_down_b"); }   /* force_animation(0), (5) */
+        if (Gv <= 0 && box_sensor(SENS_TOPBIG, x0, y0, x1, y1)) { player_launch(p, 0, -11.25, 5); spring_press(o, "ys_down", "ys_down_b"); obj_spring_beam(o, 24); }   /* force_animation(0), (5) */
         if (o->an.done) { int a = ens_anim("ys_down"); if (a >= 0) anim_set(&o->an, &G.ens, a); }   /* anim 5 (2 frames, loop 1) back to 0 */
         return;
     case OT_RSPRING_R:                                                                            /* 2998: pushes right, B = 14, O = 5 */
-        if (B <= 0 && box_sensor(SENS_LEFTBIG, x0, y0, x1, y1)) { player_spring_side(p, 14); spring_press(o, "rs_right", "rs_right_b"); }
+        if (B <= 0 && box_sensor(SENS_LEFTBIG, x0, y0, x1, y1)) { player_spring_side(p, 14); spring_press(o, "rs_right", "rs_right_b"); obj_spring_beam(o, 0); }
         break;
     case OT_RSPRING_L:                                                                            /* 2999: B = -14, O = -5 */
-        if (B >= 0 && box_sensor(SENS_RIGHTBIG, x0, y0, x1, y1)) { player_spring_side(p, -14); spring_press(o, "rs_left", "rs_left_b"); }
+        if (B >= 0 && box_sensor(SENS_RIGHTBIG, x0, y0, x1, y1)) { player_spring_side(p, -14); spring_press(o, "rs_left", "rs_left_b"); obj_spring_beam(o, 16); }
         break;
     case OT_RSPRING_UR:                                                                           /* 3001 / 3002: (14, -14) (port -13.75) */
         if ((Gv >= 0 && box_sensor(SENS_BOTTOMBIG, x0, y0, x1, y1)) || (!p->ground && B <= 0 && box_sensor(SENS_LEFTBIG, x0, y0, x1, y1))) {
-            player_spring(p, 14.0, 13.75, p->ground || Gv >= 0 ? y0 - 2 : p->y); spring_press(o, "rs_ur", "rs_ur_b");
+            player_spring(p, 14.0, 13.75, p->ground || Gv >= 0 ? y0 - 2 : p->y); spring_press(o, "rs_ur", "rs_ur_b"); obj_spring_beam(o, 4);
         }
         break;
     }

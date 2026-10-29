@@ -9,7 +9,7 @@ tb_gim.c per-type lists (TB5 67 conveyors, PL5 / PL6 70 / 90 time-gate pieces); 
 15273-15303 (fd1a's jumbotron at trunc(0.9 view x + 960), its screen shown at A 3 (X > 11111, Y > 1760), anim 7 at B 20, frames
 1-3 at B 90 / 100 / 110, BackgroundSpawners at 140 < B < 240 (B even) living 11 frames, hidden at B > 270); 12249-12268 / 12704-12713
 (LevelHeatSky alpha); 16183-16185 (FD3a's AlarmLight: alpha 255 - clamp(200 cos A + 180), A + 5, off at B > 300 and A < 20);
-9835 (SBBackEye alpha drawn); 14547 (BGArrowSign direction = the Sparkies alive). RV (original traces, session 26, under the orig
+9835 (SBBackEye2 alpha drawn; SB3: json layer 1 at 0.8, session 26c); 14547 (BGArrowSign direction = the Sparkies alive). RV (original traces, session 26, under the orig
 lock; scratch only): fd3a start shot (the pillars), fd3a alarm (sound 310 at 759 for the teleport at 220; + (152, 56, 0) over the
 view at the pulse's peak), DV4 sound 44, BG4 arrow sign, fd1a jumbotron shots.
 usage: test_late_gimmicks.py [data_dir]   (default: converted2)"""
@@ -247,14 +247,16 @@ with tempfile.TemporaryDirectory() as d:
     check('fd3a_alarm_light_adds_152_56_0', dl and dl[len(dl) // 2] == (152, 56, 0), str(dl[len(dl) // 2] if dl else None))
 
 # ======================================================================== 15. SB3: the back eyes' alpha fade is drawn (9835)
-rows, obs, sids, _, _ = run('sb3', 342, INV + ';5 TP 8304 500', track='1127:8304')   # (the eye at 8304, 416 shows through the hull there)
-E = {f: d['a2'] for f, t, d in obs}
+# (session 26c, RV small fixes sb3_eye: SB3's eyes stand on json layer 1, scrolling at 0.8, and only SBBackEye2, the glow, fades:
+# the player at 7893 sees the eye at 6344, 400)
+rows, obs, sids, _, _ = run('sb3', 342, INV + ';5 TP 7893 495', track='1127:6344')
+E = {f: d['a2'] for f, t, d in obs if d['an'] == max(dd['an'] for ff, tt, dd in obs)}
 check('sb3_back_eye_alpha_cycles', E.get(300) is not None and E[300] < 10 and 100 < E.get(320, 0) < 160 and E.get(340) == 255, '%s %s %s' % (E.get(300), E.get(320), E.get(340)))
 cam = {f: (rows[f]['cx'], rows[f]['cy']) for f in (300, 320, 340) if f in rows}
-imgs = {f: frame_px('sb3', f, INV + ';5 TP 8304 500') for f in (300, 320, 340)}   # (the view stands still from ~200: one picture per alpha)
+imgs = {f: frame_px('sb3', f, INV + ';5 TP 7893 495') for f in (300, 320, 340)}   # (the view stands still from ~200: one picture per alpha)
 if len(set(cam.values())) == 1 and all(imgs.values()):
-    cx, cy = [int(v) for v in cam[300]]
-    box = [(x, y) for y in range(max(0, 416 - cy - 64), min(240, 416 - cy + 256)) for x in range(max(0, 8304 - cx - 64), min(426, 8304 - cx + 256))]
+    cx, cy = [math.trunc(0.8 * int(v)) for v in cam[300]]   # (json layer 1 at 0.8)
+    box = [(x, y) for y in range(max(0, 400 - cy - 64), min(240, 400 - cy + 256)) for x in range(max(0, 6344 - cx - 64), min(426, 6344 - cx + 256))]
     eye = [3 * (y * 426 + x) for x, y in box if imgs[340][3 * (y * 426 + x):3 * (y * 426 + x) + 3] != imgs[300][3 * (y * 426 + x):3 * (y * 426 + x) + 3]]
     mid = [i for i in eye if imgs[320][i:i + 3] not in (imgs[340][i:i + 3], imgs[300][i:i + 3]) and all(min(imgs[300][i + k], imgs[340][i + k]) <= imgs[320][i + k] <= max(imgs[300][i + k], imgs[340][i + k]) for k in range(3))]   # (between the hidden and the opaque eye)
     check('sb3_back_eye_drawn_half_transparent', len(eye) > 5000 and len(mid) > len(eye) // 2, '%d eye pixels, %d blended at alpha %s' % (len(eye), len(mid), E.get(320)))

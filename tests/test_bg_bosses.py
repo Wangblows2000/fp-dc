@@ -133,7 +133,9 @@ def t_chopper():
     for c in CHARS:
         n = NAME[c]
         # Carol's bot lands few hits on the flying chopper: from frame 4000 its HP is cut to 15 (BOSSHPT), the last hits are real ones
-        cut = '4000 BOSSHPT 1200 15;' if c == 2 else ''
+        # (session 26c: Lilac's too: the fly-by plane's camera shake (4876) draws on the shared random stream, and her bot's fight
+        # with the full HP no longer ends within the run)
+        cut = '4000 BOSSHPT 1200 15;' if c in (0, 2) else ''
         rows, s, L = run(CH + cut + INV(14000), 14000 if c != 4 else 600, {'FP_LEVEL': 'bg2', 'FP_CHAR': str(c), 'FP_DBG_SBC': '1', 'FP_BGB_BOT': '1'})
         sb = [(f, t) for f, t in L if t[0] == 'sbc']
         on = [int(t[3]) for f, t in sb]
