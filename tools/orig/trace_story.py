@@ -17,7 +17,10 @@
 # LRUDJXBS as trace_orig.py), STORY_CLASSES=regex (classes to dump, default: every class of the json frame except
 # tiles, backdrops, sensors, GUI and helpers), STORY_FRAMES=dir (tables/frames), STORY_SETG="f:g=v,..." (write global g
 # at frame f), STORY_SETFRAME="f:idx" (GameManager::set_frame from the frame loop: armed by writing the pending-frame
-# fields is not possible here, so it calls nothing; see story_rv.sh which restarts frames through gdb before tracing).
+# fields is not possible here, so it calls nothing; see story_rv.sh which restarts frames through gdb before tracing),
+# STORY_BLEND=1 (phase 2: each O line adds a=<blend alpha> / c=<blend rgb> when the object is not opaque white),
+# STORY_SHOTS="f,f,..." (screenshots at those frames, <out>_shots/f<frame>.png, as STORY_SHOT=N every N frames),
+# STORY_TP="f:x:y,..." (teleport: PlayerMovementValues X / Y at frame f, B / G zeroed, as trace_orig.py TP; logged 'T f x y').
 # Never calls inferior functions from a breakpoint (gdb hangs). Host-only tool: never shipped.
 import gdb, os, re, struct, json, subprocess
 
@@ -27,6 +30,7 @@ NFR = int(gdb.parse_and_eval('$nframes'))
 FRAMESDIR = os.environ.get('STORY_FRAMES', 'tables/frames')
 KEYS = {'L': 0x40000050, 'R': 0x4000004f, 'U': 0x40000052, 'D': 0x40000051, 'J': 0x7a, 'X': 0x78, 'B': 0x63, 'S': 0x0d}
 ORDER = 'LRUDJXBS'
+BLEND = os.environ.get('STORY_BLEND', '0') == '1'      # STORY_BLEND=1: O lines add a=<blend alpha> / c=<rgb> when not opaque white
 ACTORS = re.compile(r'^(npc|placeholder|playerskin(sash|carol|milla|torque|spade)?_|player_|the|brevon|torque|dialog|zao|gong|neera|'
                     r'syntax|kingdom|serpent|boss|comet|space|parallaxcrash|caravan|soldier|jeep|enemy|minibossufo|ship|pigeon|'
                     r'character|charname|levelcard|locationname|fade|mrstumpy|crystalcursor|whitefade|beam|sparkle|thruster|'
@@ -113,6 +117,10 @@ class Story(gdb.Breakpoint):
             r, k = kv.split(':'); a, b = r.split('-'); self.holds.append((int(a), int(b), k))
         self.fr = None; self.cam = None
         self.shot = int(os.environ.get('STORY_SHOT', '0'))
+        self.shots = set(int(v) for v in os.environ.get('STORY_SHOTS', '').split(',') if v.strip())   # exact frames
+        self.tp = {}                                     # STORY_TP="f:x:y,...": PlayerMovementValues X / Y (B / G zeroed)
+        for kv in filter(None, os.environ.get('STORY_TP', '').split(',')):
+            f_, x_, y_ = kv.split(':'); self.tp[int(f_)] = (float(x_), float(y_))
         self.read = int(os.environ.get('STORY_READ', '0')); self.arrow_t = 0
         self.idle = int(os.environ.get('STORY_IDLE', '0')); self.last_j = 0
         self.setg = {}
@@ -173,6 +181,10 @@ class Story(gdb.Breakpoint):
                 s = '%d %d %d %d %d %x %d %d %d %s' % (x, y, aid, afr, dr, fl, ia[0], ia[1], ia[2],
                                                     ' '.join('%s=%.6g' % (chr(65 + i), v) for i, v in enumerate(vals) if v))
                 if c.startswith(('levelcardfade', 'fade')): s += ' a=%d' % m[0x5f]   # the blend byte (+0x5f, RE 20953 / 20996: the fade's alpha)
+                elif BLEND:                             # FrameObject::set_blend_color: rgb at +0x5c..0x5e, alpha (the blend
+                    rgb = m[0x5c] << 16 | m[0x5d] << 8 | m[0x5e]   # coefficient) at +0x5f (RE 3312: alpha 255 = opaque)
+                    if m[0x5f] != 255: s += ' a=%d' % m[0x5f]
+                    if rgb != 0xffffff: s += ' c=%06x' % rgb
             except Exception:
                 continue
             if self.last.get(ob) != s:
@@ -207,7 +219,19 @@ class Story(gdb.Breakpoint):
         g = struct.unpack('<16d', rq(gp, 128))
         gk = g[:3] + g[4:]                                  # g3 counts frames: not a change by itself
         if gk != self.g: self.g = gk; self.w('G %d %s' % (self.f, ' '.join('%g' % v for v in g)))
-        if self.shot and self.f % self.shot == 0:
+        if self.f in self.tp and self.fr:                # teleport (as trace_orig.py TP): the MV object among the Frames members
+            mem = rq(self.fr, 0x22800)
+            for off in range(0, len(mem) - 8, 8):
+                p_ = struct.unpack_from('<Q', mem, off)[0]
+                if not 0x1000000 <= p_ < 0x7fffffffffff: continue
+                try:
+                    if struct.unpack('<Q', rq(p_, 8))[0] != 0x20b2910: continue      # vtable for PlayerMovementValues_253 + 0x10
+                    alt = struct.unpack('<Q', rq(p_ + 0x20, 8))[0]
+                    inf.write_memory(alt + 0x50 + 8 * 23, struct.pack('<2d', *self.tp[self.f]))
+                    inf.write_memory(alt + 0x50 + 8 * 1, struct.pack('<d', 0.0)); inf.write_memory(alt + 0x50 + 8 * 6, struct.pack('<d', 0.0))
+                    self.w('T %d %g %g' % (self.f, self.tp[self.f][0], self.tp[self.f][1])); break
+                except Exception: pass
+        if (self.shot and self.f % self.shot == 0) or self.f in self.shots:
             os.makedirs(OUT + '_shots', exist_ok=True)
             os.system('DISPLAY=:93 import -window root %s_shots/f%05d.png' % (OUT, self.f))
         if self.fr is None or self.rescan:                 # the Frames object: the GameManager word whose +0x213a0 is the globals

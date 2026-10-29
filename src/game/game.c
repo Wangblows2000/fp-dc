@@ -149,7 +149,10 @@ int game_load_level(const char *dir) {
     if (level_def(dir)->lilac_only && G.character != CHR_LILAC) G.character = CHR_LILAC;   /* PL 12844: g1 = 0 at every act start (Lilac's banks load) */
     int who = chr_is_carol(G.character) ? 1 : chr_is_milla(G.character) ? 2 : 0;
     lp_begin(dir);
-    int keep = chr_resident && chr_resident_who == who && chr_crcs(dir, who, want_crc) == 0 && !memcmp(want_crc, chr_crc, sizeof chr_crc);
+    /* a story room (session 25b) draws no player: Carol's bike / Milla's cube bank stays out (VRAM: room 79 with Carol was
+     * ~400 KB free with it); without it her banks are not kept resident, so the next level loads them all again */
+    int sroom = dir[0] == 's' && dir[1] == 't' && dir[2] >= '0' && dir[2] <= '9';
+    int keep = !(sroom && who) && chr_resident && chr_resident_who == who && chr_crcs(dir, who, want_crc) == 0 && !memcmp(want_crc, chr_crc, sizeof chr_crc);
     if (keep) level_free(); else game_unload_all();
     loading_begin(dir);                            /* silent loading screen (src/game/loading.c) */
     const level_def_t *ld = level_def(dir);
@@ -171,8 +174,8 @@ int game_load_level(const char *dir) {
         static const char *const SK[3] = { "lilac2", "carol2", "milla2" }, *const OV[3] = { "lilachair", "caroltail", "millatail" };
         snprintf(nm, sizeof nm, "%s/%s", dir, SK[who]); bad |= bank_load(&G.lilac, nm) < 0;
         snprintf(nm, sizeof nm, "%s/%s", dir, OV[who]); if (bank_load(&G.hair, nm) < 0) plat_log("no overlay bank\n");
-        if (who) { snprintf(nm, sizeof nm, "%s/%s", dir, who == 1 ? "carolbike" : "millafx"); if (bank_load(&G.bike, nm) < 0) plat_log("no bike / cube bank\n"); }
-        chr_resident = !bad && chr_crcs(dir, who, chr_crc) == 0;   /* only packed data can be matched later */
+        if (who && !sroom) { snprintf(nm, sizeof nm, "%s/%s", dir, who == 1 ? "carolbike" : "millafx"); if (bank_load(&G.bike, nm) < 0) plat_log("no bike / cube bank\n"); }
+        chr_resident = !bad && !(sroom && who) && chr_crcs(dir, who, chr_crc) == 0;   /* only packed data can be matched later */
         chr_resident_who = who;
     }
     snprintf(nm, sizeof nm, "%s/%s_obj", dir, dir); bad |= bank_load(&G.objs, nm) < 0;
@@ -295,24 +298,35 @@ static int in_char_group(int id) {
  * shields 308/316, Iron Worm 242/55/69, Chomper / snake 69/99/251/252 */
 /* the stage's own sound group (level_def_t.sfx, D-047): sound RAM holds one stage set besides the shared and character sets */
 static const short *snd_stage_cur; static int snd_stage_n = -1;
+static const char *snd_stage_dir;            /* NULL: sfx/; "story/sfx": a story scene's copies (11025 Hz, tails trimmed) */
+static int in_shared(int id);
 static void snd_stage_load(const short *ids, int n) {
     char nm[48];
     /* the same set again: only reload what a character group change freed (session 17: a stage id can also be one of a
      * character's own, e.g. FN's 61, Carol's) */
     if (!(snd_stage_n >= 0 && snd_stage_cur == ids && snd_stage_n == n))
     for (int i = 0; i < (snd_stage_n > 0 ? snd_stage_n : 0); i++) {          /* free the previous stage's set first */
-        int id = snd_stage_cur[i], keep = in_char_group(id);                  /* the current character's group keeps its own */
+        int id = snd_stage_cur[i], keep = in_char_group(id) || in_shared(id);   /* the current character's group keeps its
+                                                                                 * own; the boot set is never freed (a story
+                                                                                 * scene's set names shared ids too, session 25b) */
         for (int k = 0; k < n; k++) keep |= ids[k] == id;
         if (!keep && snd_handle[id] >= 0) { snd_unload(snd_handle[id]); snd_handle[id] = -1; }
     }
     snd_stage_cur = ids; snd_stage_n = n;
     for (int i = 0; i < n; i++) {
         int id = ids[i];
-        if (snd_handle[id] < 0) { snprintf(nm, sizeof nm, "sfx/s%d.wav", id); snd_handle[id] = snd_load(nm); loading_tick(); }
+        if (snd_handle[id] >= 0) continue;
+        if (snd_stage_dir) { snprintf(nm, sizeof nm, "%s/s%d.wav", snd_stage_dir, id); snd_handle[id] = snd_load(nm); }
+        if (snd_handle[id] < 0) { snprintf(nm, sizeof nm, "sfx/s%d.wav", id); snd_handle[id] = snd_load(nm); }
+        loading_tick();
     }
     if (n) plat_log("stage sounds %d, sound RAM largest free block %d KB\n", n, snd_mem_free_kb());   /* budget >= 256 KB (ASSET_PIPELINE) */
 }
 static int in_group(const int *g, int n, int id) { for (int i = 0; i < n; i++) if (g[i] == id) return 1; return 0; }
+static int in_shared(int id) {               /* the boot set: SND_IDS without the character groups (resident from game_init) */
+    return in_group(SND_IDS, sizeof SND_IDS / sizeof *SND_IDS, id) && !in_group(SND_LILAC, sizeof SND_LILAC / sizeof *SND_LILAC, id) &&
+           !in_group(SND_CAROL, sizeof SND_CAROL / sizeof *SND_CAROL, id) && !in_group(SND_MILLA, sizeof SND_MILLA / sizeof *SND_MILLA, id);
+}
 uint32_t prof_acc[PS_N], prof_max[PS_N];
 static const char *VOICES[] = { "lilac_attack0", "lilac_attack1", "lilac_attack2", "lilac_attack3", "lilac_uppercut0",
     "lilac_uppercut1", "lilac_uppercut2", "lilac_uppercut3", "lilac_cyclone1", "lilac_cyclone2", "lilac_hurt0",
@@ -463,6 +477,22 @@ void game_start_adventure(const char *dir, int time_attack) {
  * file of a story run without a slot, save.c save_run_file) */
 void game_run_reset(void) { G.stage_crystals = 0; G.keystones = 0; G.stage_deaths = 0; save_run_reset(); }
 void game_sfx_set(const short *ids, int n) { snd_stage_load(ids, n); }
+/* a story scene's sound set (session 25b): only what the script plays and sound RAM does not hold yet (the boot set and the
+ * current character's group are resident), read from story/sfx (convert_audio.py story: 11025 Hz, tails trimmed; sfx/ when
+ * the data has no copy). story.c frees it when the scene ends, so a stage never keeps a scene's copy of its own ids. */
+void game_sfx_set_story(const short *ids, int n) {
+    static short keep[64]; int k = 0;                /* NULL / 0: free the scene's set (story.c leave_scene) */
+    snd_stage_load(NULL, 0);                         /* the previous set first (it may be this same buffer) */
+    if (!ids || n <= 0) return;
+    for (int i = 0; i < n && k < 64; i++) if (ids[i] >= 0 && ids[i] < 512 && !in_shared(ids[i]) && !in_char_group(ids[i])) keep[k++] = ids[i];
+#ifdef FP_HOST_ENV
+    long r0 = snd_host_resident();
+#endif
+    snd_stage_dir = "story/sfx"; snd_stage_load(keep, k); snd_stage_dir = NULL;
+#ifdef FP_HOST_ENV
+    printf("story sfx ids %d loaded %d bytes %ld\n", n, k, snd_host_resident() - r0);   /* tests: the scene's sound RAM */
+#endif
+}
 
 /* Classic: the next stage of the route after the results (RE frame 8 routing; lives, shield and the crystal counter carry,
  * spec_records_saves 3; the stage's crystals / deaths / keystones and the timer start again). 0: no next stage ported. */
@@ -1065,14 +1095,16 @@ void game_pause_panel(int frame, int sel, int wipe, float wipe_x) {
             frame_draw(&G.objs, &G.objs.frames[G.objs.seq[an->first + k]], 166, 141 + 24 * sel, 0, 0xffffffff);
         }
     }
-    if (wipe) {                                    /* levelcardfade2 (near black) + fadeedge_77 diagonal edge */
-        float x = wipe_x;
-        if (x + SCREEN_W > 0) r_rect(0, 0, x + SCREEN_W, SCREEN_H, 0xff080000);
-        for (int y = 0; y < SCREEN_H; y += 2) {
-            float w = 120.f * (1.f - (float)y / SCREEN_H);
-            float x0 = x + SCREEN_W; if (x0 < 0) { w += x0; x0 = 0; }
-            if (w > 0) r_rect(x0, (float)y, w, 2, 0xff080000);
-        }
+    if (wipe) game_wipe_draw(wipe_x);
+}
+/* the black wipe (levelcardfade2, near black, + fadeedge_77's diagonal edge) with its left edge at x - SCREEN_W: the pause
+ * rows' wipe and a story scene's own ('fw' entries, session 25b) */
+void game_wipe_draw(float x) {
+    if (x + SCREEN_W > 0) r_rect(0, 0, x + SCREEN_W, SCREEN_H, 0xff080000);
+    for (int y = 0; y < SCREEN_H; y += 2) {
+        float w = 120.f * (1.f - (float)y / SCREEN_H);
+        float x0 = x + SCREEN_W; if (x0 < 0) { w += x0; x0 = 0; }
+        if (w > 0) r_rect(x0, (float)y, w, 2, 0xff080000);
     }
 }
 

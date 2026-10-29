@@ -104,9 +104,18 @@ void plat_poll_input(input_t *in) {
 
 /* audio is a no-op on host (logged) */
 static int nsnd;
+static size_t *snd_bytes; static int snd_bytes_n; static long snd_resident;   /* host: what sound RAM would hold (file bytes) */
 void snd_init_fp(void) {}
-int  snd_load(const char *name) { size_t s; void *d = plat_load_file(name, &s); if (!d) return -1; free(d); return nsnd++; }
-void snd_unload(int h) { (void)h; }
+int  snd_load(const char *name) {
+    size_t s; void *d = plat_load_file(name, &s); if (!d) return -1; free(d);
+    if (nsnd >= snd_bytes_n) { int n = snd_bytes_n ? snd_bytes_n * 2 : 1024; size_t *z = realloc(snd_bytes, sizeof *z * (size_t)n);
+                               if (z) { memset(z + snd_bytes_n, 0, sizeof *z * (size_t)(n - snd_bytes_n)); snd_bytes = z; snd_bytes_n = n; } }
+    if (nsnd < snd_bytes_n) { snd_bytes[nsnd] = s; snd_resident += (long)s; }
+    return nsnd++;
+}
+void snd_unload(int h) { if (h >= 0 && h < snd_bytes_n && snd_bytes[h]) { snd_resident -= (long)snd_bytes[h]; snd_bytes[h] = 0; } }
+long snd_host_resident(void) { return snd_resident; }
+long snd_host_bytes(int h) { return h >= 0 && h < snd_bytes_n ? (long)snd_bytes[h] : 0; }
 int snd_mem_free_kb(void) { return -1; }
 static int host_loop_ch = 1;
 int snd_loop_start(int h, int vol, int freq) { if (getenv("FP_TRACE_SND")) printf("snd loop %d vol %d freq %d @%d\n", h, vol, freq, cur_frame); return h >= 0 ? host_loop_ch++ : -1; }
@@ -182,7 +191,10 @@ static dbg_t dbg[256]; static int ndbg;
 static char host_scene[8][24]; static int nhost_scene;   /* SCENE names (session 25) */
 static struct { int f; char dir[8]; } loads[8]; static int nload;
 static void apply_loads(int f) {   /* "<f> LOAD <dir>": a fresh stage start (card included) of another level, as the menus would */
-    for (int i = 0; i < nload; i++) if (loads[i].f == f && game_load_level(loads[i].dir) == 0) G.mode = MODE_PLAY;
+    for (int i = 0; i < nload; i++) if (loads[i].f == f) {
+        story_host_drop();                                 /* a scene playing is left (session 25b: in-stage scenes need none) */
+        if (game_load_level(loads[i].dir) == 0) G.mode = MODE_PLAY;
+    }
 }
 static void apply_dbg(int f, int tp) {
     for (int i = 0; !tp && i < ntpo; i++) if (tpo[i].f == f)              /* TPO type dx dy [ymax]: next to the first live object of a type */

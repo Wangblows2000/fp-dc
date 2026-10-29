@@ -2140,15 +2140,16 @@ ALPHA_MIN = int(os.environ.get('FP_ALPHA_MIN', '1'))
 # as one TILED piece (pad bit 2 + a size record, write_lv2; game.c draws only the visible tiles); a solid fill tiles a
 # shared 64 x 64 colour block (synthetic image ids >= QB_BASE). Collision is rasterised from the expanded tiles.
 QB_BASE, QB_SYNTH = 10000000, {}
-def story_scenes(n, name):
+def story_scenes(n, name, ids=False):
     """session 25: the tables/story/rows.json entries a story room build serves. A room is st<json>: entry 'json' is the room
     number; a large frame split into one room per scene (frame 83: st83<list>, docs/ADVENTURE.md) names its json frame in
     'frame'. Matched by the room name (st<number>); other builds by the frame number."""
     rp = os.path.join(_FP_ROOT, 'tables', 'story', 'rows.json')
     if not os.path.isfile(rp): return []
-    R = json.load(open(rp, encoding='utf-8')).values()
-    if re.match(r'^st\d+$', name): return [sc for sc in R if 'st%d' % sc.get('json', -1) == name and sc.get('frame', sc.get('json')) == n]
-    return [sc for sc in R if sc.get('json') == n and 'frame' not in sc]
+    R = json.load(open(rp, encoding='utf-8')).items()   # ids: (scene id, entry) pairs
+    if re.match(r'^st\d+$', name): r = [(k, sc) for k, sc in R if 'st%d' % sc.get('json', -1) == name and sc.get('frame', sc.get('json')) == n]
+    else: r = [(k, sc) for k, sc in R if sc.get('json') == n and 'frame' not in sc]
+    return r if ids else [sc for _, sc in r]
 def story_view(n, name):
     """a split story room's views: its scenes' rows.json 'view' boxes [x0, y0, x1, y1] (RV camera, one per camera run), or None"""
     vs = [b for sc in story_scenes(n, name) for b in sc.get('view', [])]
@@ -2159,6 +2160,13 @@ def story_par(n, name):
     for sc in story_scenes(n, name): out.update(sc.get('par', {}))
     return out
 STORY_MARGIN = 64   # a split story room keeps the placements within 64 px of its scenes' views (INFERRED margin: scrolling layers)
+def story_views(n, name):
+    """session 25b: the view box (rows.json 'vbox': [x0, y0, x1, y1] around every camera top-left + the screen, written by
+    story_rv2scn.py --covers) of every scene in story room <name>; None when a scene of the room has none (older conversions
+    and split rooms, which 'view' crops: the room keeps every piece)"""
+    sc = story_scenes(n, name)
+    if not sc or any('vbox' not in v for v in sc): return None
+    return [tuple(v['vbox']) for v in sc]
 STORY_UI = [('dialogbox_551', 0, '0', 'dlgbox'), ('dialogbox2_552', 0, '0', 'dlgname'), ('dialogarrow_553', 0, '0', 'dlgarrow')]
 def story_rows(n, name, an, report):
     """Session 25 (Adventure mode): the rows a story room's scene scripts draw, from tables/story/rows.json (written by
@@ -2167,12 +2175,36 @@ def story_rows(n, name, an, report):
     DialogArrow_553 anim 0: dlgbox / dlgname / dlgarrow). Frames that are no story room get nothing."""
     want = sorted({tuple(r) for sc in story_scenes(n, name) for r in sc['rows']})
     if not want: return []
-    out = []
+    # session 25b: a still anim (speed 0: a pose library like the skins' anim 40, 108 frames) keeps only the frames the room's
+    # scene scripts show ('i' entries); the others reuse a shown frame's image (the indices stay, no image is added: VRAM). A row
+    # no script shows with 'i' (rows the story code shows itself: dv_meet's character select) keeps every frame.
+    use = {}
+    sd = os.path.join(_FP_ROOT, 'tables', 'story', 'scripts')
+    for sid, sc in story_scenes(n, name, True):
+        p_ = os.path.join(sd, sid + '.scn')
+        if not os.path.isfile(p_):
+            for r in sc['rows']: use['%s:%d:%d' % tuple(r)] = None
+            continue
+        act = {}
+        for l in open(p_, encoding='utf-8'):
+            t = l.split()
+            if len(t) >= 3 and t[0] == 'actor': act[t[1]] = t[2]
+            elif len(t) >= 6 and t[1] == 'i' and t[2] in act:
+                k = '%s:%s:%s' % (act[t[2]], t[3], t[4])
+                if use.get(k, ()) is not None: use.setdefault(k, set()).add(int(t[5]))
+    out = []; saved = 0
     for cls, ai, dk, nm in STORY_UI + [(c, a, str(d), 's%s_%d_%d' % (c.rsplit('_', 1)[1], a, d)) for c, a, d in want]:
         try: d = an[cls]['anims'][ai][dk]
         except (KeyError, IndexError, TypeError): report.append('  story: missing %s anim %d dir %s' % (cls, ai, dk)); continue
         if d is None: report.append('  story: missing %s anim %d dir %s' % (cls, ai, dk)); continue
-        out.append({'name': nm, 'frames': d['frames'], 'speed': d['max_speed'], 'loop': d['loop'], 'back_to': d['back_to']})
+        k_ = '%s:%d:%s' % (cls, ai, dk); fr = d['frames']; u = use.get(k_)
+        if u and d['max_speed'] == 0 and len(fr) > 1:
+            u = sorted(k for k in u if 0 <= k < len(fr))
+            if u:
+                saved += len(set(fr) - {fr[k] for k in u})
+                fr = [fr[k] if k in u else fr[u[0]] for k in range(len(fr))]
+        out.append({'name': nm, 'frames': fr, 'speed': d['max_speed'], 'loop': d['loop'], 'back_to': d['back_to']})
+    if saved: report.append('story rows: %d still-pose images left out (frames no scene shows)' % saved)
     report.append('story rows: %d' % len(out))
     return out
 
@@ -2615,6 +2647,12 @@ def main():
                 skipped[o['cls']] = skipped.get(o['cls'], 0) + 1; continue
             objs.append({'type': t, 'x': o['x'], 'y': o['y'], 'cls': key, 'layer': o['layer'] or 0})
 
+    sv = story_views(n, name) if re.match(r'^st\d+$', name) else None   # session 25b: a story room keeps the pieces its scenes can show
+    if sv:
+        M_ = 1024                                    # margin (hot spots, wide images): INFERRED, generous
+        keep_ = lambda p: p.get('scroll08') or any(x0 - M_ <= p['x'] <= x1 + M_ and y0 - M_ <= p['y'] <= y1 + M_ for x0, y0, x1, y1 in sv)
+        n0 = len(pieces); pieces = [p for p in pieces if keep_(p)]
+        report.append('story room: %d of %d pieces in the scenes\' views %s' % (len(pieces), n0, sv))
     for o in objs:   # SB_BOSS: SB3's MinibossUFOBeam_1769 is the satellite's main beam
         if o['type'] == 803 and n == 38: o['type'] = 1164
         if o['type'] == 478 and n == 39: o['type'] = 1188   # SB4's EffectWarning_1528: the spire's drop marker (10123 / col_30_38)
@@ -2867,12 +2905,14 @@ def main():
         except (KeyError, IndexError, TypeError): report.append('  ens: missing %s anim %d dir %s' % (cls, ai, dk)); continue
         fr_ = d['frames'][e[4]] if len(e) > 4 and e[4] is not None else d['frames']
         dst['anims'].append({'name': nm, 'frames': fr_, 'speed': d['max_speed'], 'loop': d['loop'], 'back_to': d['back_to']})
-    if shl and shl['anims']: write_bank2(src, shl, out, report); report.append('shield bank: %s' % [a['name'] for a in shl['anims']])
+    if shl and shl['anims'] and not re.match(r'^st\d+$', name):   # (a story room draws no shield: session 25b)
+        write_bank2(src, shl, out, report); report.append('shield bank: %s' % [a['name'] for a in shl['anims']])
     for cls, nm, frames in FNA_ENS_IMG:   # FN_GIMA: SystemBox images (one frame, no animation table)
         if cls.rsplit('_', 1)[0] in placed: ens['anims'].append({'name': nm, 'frames': frames, 'speed': 0, 'loop': -1, 'back_to': 0})
     srows = story_rows(n, name, an, report)     # session 25: Adventure story rooms (tables/story/rows.json)
-    if srows and sview: ens['anims'] = srows    # a split story room: only its scenes' rows (MODE_STORY neither draws nor updates the
-    else: ens['anims'] += srows                 # level objects; frame 83's placed enemies / gimmicks alone filled a 1024 atlas)
+    if re.match(r'^st\d+$', name): ens['anims'] = srows   # a story room: only its scenes' rows (MODE_STORY neither draws nor
+    else: ens['anims'] += srows                 # updates the level objects: frame 83's enemies / gimmicks filled a 1024 atlas, st78's
+                                                # enemies + the scene overflowed two; sessions 25 / 25b)
     if ens['anims']: write_bank2(src, ens, out, report)
     report.append('ens bank: %s' % [a['name'] for a in ens['anims']])
     # parallax (RE + RV: build/re/spec_parallax.md): layer-0 SystemBox pieces, tiled, moved every frame by

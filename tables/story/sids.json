@@ -40,6 +40,10 @@
   "sf_army": 36,
   "sf_camp": 37,
   "ending": 38,
-  "game_intro": 39
+  "game_intro": 39,
+  "rm5_spade": 40,
+  "th_torque_revealed2": 41,
+  "th_torque_revealed3": 42,
+  "zao_airship2": 43
  }
 }
