@@ -33,6 +33,8 @@ enum {
     OT_TBE_DEBRIS = 1862,   /* runtime: q20 flying debris: EnemyLavaSquidDebris_2742 (av[7] 0), EnemySaucerDebris_2831 (1) */
     OT_TBE_TDEB = 1863      /* runtime: EnemyTankbotDebris_2839 (the tracks) */
 };   /* the saucer's GimmickFireball_1192 / EffectEmber_1025 are Relic Maze's OT_FBALL / OT_EMBER (relic_gima.c fireball_fly / _rules) */
+obj_t *tb_enemy_create(int type, float x, float y);        /* a runtime instance of a placed class with its constructor values (FD pods) */
+obj_t *tb_enemy_bullet_create(float x, float y, int dir);  /* EnemyHomingBullet_2648 in direction dir (0-31) (FD spider beamers) */
 
 /* ---- tb_gim.c (types 1888-1967; build/re/spec_tb_gimmicks.md). Families share a type: par = member (importer TBG_SUB,
  * lvobj anim bits 0-7), layer = instance layer (bits 8-14). Placed classes 1888-1949, runtime objects 1950-1967. */
@@ -69,6 +71,7 @@ obj_t *tb_gim_key_drop(float x, float y);       /* a key card dropped at (x, y):
 void tb_gim_blockers(int solid);                /* TB3 PlayerBlockers: 0 = flag 0 (passable: the spider chase 12260), 1 = solid (12262) */
 int  tb_gim_keycards(void);                     /* GUIKeyCards K: key cards held (HUD, tests) */
 int  tb_gim_button_presses(void);               /* switch buttons pressed so far this act (the bosses' trapdoor, tests) */
+int  tb_gim_xblock_ignite(float x0, float y0, float x1, float y1);   /* sets off the unlit ObjectExplosiveBlocks touching the box (BG drill sats 14306); returns the count */
 
 /* ---- tb_boss.c (types 1968-2047; build/re/spec_tb_bosses.md): tb_boss.c (spawn, lists, shared helpers, dispatch) and the
  * encounter files tb_boss_shrimp.c (TB1 RoboShrimp), tb_boss_pusher.c (TB2 wall pusher), tb_boss_spider.c (TB3 Syntax Spider),

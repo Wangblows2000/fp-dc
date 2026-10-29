@@ -641,6 +641,7 @@ typedef struct {
      * half, 0x2 / 0x4 RM2 tasks done), the exit taken (target act, fade B), the act left, the entry's facing / walk-in B */
     int stage_flags, exit_b, walk_b, keep_g4, stage_carry;
     int input_lock;               /* CTRL.M = 1 set by an object (RM2 hanging mover 5871): no control */
+    int exit_hold_t;              /* frames of a level's exit_hold so far (0: none; FD4a 16721 / 16723) */
     const char *exit_to;
     const void *warp;             /* the warp being faded into (warp_t, RM5 labyrinth rooms); NULL for act exits */
     char prev_dir[8];
@@ -826,6 +827,7 @@ int    obj_hang_box(const obj_t *o, float *x0, float *y0, float *x1, float *y1);
 int    sens_rows_box(int s, float x0, float y0, float x1, float y1);               /* placed player sensor s overlaps the box */
 int    relic_obj_update(obj_t *o, player_t *p);   /* 1: a relic.c type (handled) */
 int    relic_keeps_state(int type);               /* its own events set D on defeat (2764 leaves st) */
+obj_t *relic_enemy_create(int type, float x, float y);   /* a runtime hopper / fire spitter / slug / iris (constructor values; FD pods) */
 obj_t *relic_flame_new(float x, float y, double C, double D);
 int    relic_boss_keeps(int type), relic_is_gate_pillar(const obj_t *o);
 void   rmboss_spawn(void), rmboss_frame(player_t *p);
@@ -860,6 +862,7 @@ int    rm_mantalith_obj(obj_t *o, player_t *p);
  * hazard collision handlers, before combat), per-object events, Q20 membership, the post pass (game.c) and their draw hook */
 void   sb_enemy_spawn(void), sb_enemy_pre(player_t *p), sb_enemy_draw(int pass);
 int    sb_enemy_obj(obj_t *o, player_t *p), sb_enemy_q20(int type);
+obj_t *sb_enemy_hopper_create(float x, float y);   /* a runtime HopperMkII_2189 (FD pods) */
 void   sb_gim_spawn(void), sb_gim_pre(player_t *p), sb_gim_frame(player_t *p), sb_gim_draw(int pass);
 int    sb_gim_obj(obj_t *o, player_t *p), sb_gim_q20(int type);
 int    sb_gim_cannon_kills(void);                 /* SB2-SB4 cannon bases destroyed (9319: PlayerAssist.I += 1 each) */
@@ -999,6 +1002,8 @@ typedef struct {
     /* session 24 (Battle Glacier, spec_bg_flow) */
     int music_fade_g4;                               /* > 0: the act start fades the music out (fadeout_music(2000)) while g4 < this, plays slot 5
                                                         from it on (BG4 14607 / 14608: silent until its opening Brevon mech is beaten, g4 5) */
+    int exit_hold;                                   /* > 0: an exit stops the world this many frames before the fade (FD4a 16721 / 16723:
+                                                        group 0x21a5d off and Sign flag 8, the fade at Sign.B > 100; session 24) */
 } level_def_t;
 int  level_water(void);                              /* the act's water line ML.B now (level data .water, moved by level_water_set; 0 = dry) */
 void level_water_set(int b);                         /* a script moves ML.B (TB5's water levers 12491-12501) */
@@ -1121,6 +1126,7 @@ void   bg_enemy_spawn(void), bg_enemy_pre(player_t *p), bg_enemy_draw(int pass);
 int    bg_enemy_obj(obj_t *o, player_t *p), bg_enemy_q20(int type);
 void   bg_gim_spawn(void), bg_gim_pre(player_t *p), bg_gim_frame(player_t *p), bg_gim_draw(int pass);
 int    bg_gim_obj(obj_t *o, player_t *p), bg_gim_q20(int type);
+int    bg_gim_player(player_t *p, const input_t *in), bg_gim_ride_m(void);   /* ST_RIDE: the magnet launcher M 95, the spiral slide M 96 (bg_gim.c) */
 void   bg_boss_spawn(void), bg_boss_pre(player_t *p), bg_boss_frame(player_t *p);
 int    bg_boss_obj(obj_t *o, player_t *p), bg_boss_q20(int type), bg_boss_draw_obj(const obj_t *o, int pass), bg_boss_input(uint32_t *held);
 int    bg_boss_player_hidden(void);
@@ -1132,6 +1138,7 @@ enum { OT_FDF_FIRST = 2560, OT_FDF_LAST = 2623, OT_FDE_FIRST = 2624, OT_FDE_LAST
 void   fd_flow_spawn(void), fd_flow_frame(player_t *p), fd_flow_draw(int pass);
 int    fd_flow_obj(obj_t *o, player_t *p), fd_flow_act(void);
 float  fd_flow_hud_dy(void);
+void   fd_flow_card(player_t *p, int left);           /* the round's entry during the title card (fd1a: held left of the frame / Milla above it) */
 void   fd_enemy_spawn(void), fd_enemy_pre(player_t *p), fd_enemy_draw(int pass);
 int    fd_enemy_obj(obj_t *o, player_t *p), fd_enemy_q20(int type);
 void   fd_gim_spawn(void), fd_gim_pre(player_t *p), fd_gim_frame(player_t *p), fd_gim_draw(int pass);
@@ -1159,6 +1166,7 @@ void level_warp_do(player_t *p, const warp_t *w);
 int objects_have(int type), objects_have_from(int type);
 void objects_plat_type(int type, float F, float Gm);
 void objects_plat_oneway(int type, int on);   /* 0: the type skips the one-way flags 4737 / 4738 (Trap Hideout's pillars) */
+void objects_plat_own_steps(int type);         /* the type's X / Y path steps are the object's av[6] / av[7] (BG crank ferris) */
 void objects_plat_path(int type, float B, float C, int D, float F, float Gm, int H, int dip);   /* the full q13 path rule (objects.c, session 21c) */
 void obj_pinball_start(obj_t *o, int dir, float speed), obj_pinball_step(obj_t *o, float grav);   /* objects.c: PinballMovement (pellets, debris) */   /* objects.c: a module's type that follows the shared path-platform rule (F step, G amplitude, H 1) */
 void objects_sense_snapshot(int on);

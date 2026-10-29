@@ -52,14 +52,17 @@ static int A_LOG = -1;
  * flags (3270-3272, 3303-3307, 4737 / 4738) apply only to q12 members (dip 1). Thermal Base: fire, piston, spin and scrolling
  * platforms (tb_gim.c). Fields of a registered object: ox / oy = I / J, vx = E, vy = S (dip), fx = N, dir = P, kx = A, ky = M,
  * fy = O; the owner may set E / A / I / J itself (phase at the start, scripted I / J). */
-static struct { int type; float F, G, B, C; signed char D, H, dip, ow; } plat_x[12]; static int nplat_x;
+static struct { int type; float F, G, B, C; signed char D, H, dip, ow, own; } plat_x[12]; static int nplat_x;
 void objects_plat_path(int type, float B, float C, int D, float F, float Gm, int H, int dip) {
     int k = 0;
     while (k < nplat_x && plat_x[k].type != type) k++;
     if (k == nplat_x) { if (nplat_x >= 12) return; nplat_x++; }
     plat_x[k].type = type; plat_x[k].F = F; plat_x[k].G = Gm; plat_x[k].B = B; plat_x[k].C = C;
-    plat_x[k].D = (signed char)D; plat_x[k].H = (signed char)H; plat_x[k].dip = (signed char)dip; plat_x[k].ow = (signed char)dip;
+    plat_x[k].D = (signed char)D; plat_x[k].H = (signed char)H; plat_x[k].dip = (signed char)dip; plat_x[k].ow = (signed char)dip; plat_x[k].own = 0;
 }
+/* session 24: the type's X / Y steps B / F are the object's own (av[6] / av[7], set by its module every frame: Battle Glacier's crank
+ * ferris ratchet 14362-14364, B = F = 0 or -5); the angles keep their sign (the original's fmod) */
+void objects_plat_own_steps(int type) { for (int k = 0; k < nplat_x; k++) if (plat_x[k].type == type) plat_x[k].own = 1; }
 /* the one-way flags 4737 / 4738 (flag 0x41 while the platform is above the player) run only in the frames whose events include them;
  * Trap Hideout's frames (handle_frame_57..59) do not (RE), so its tall pillars are solid on every side (session 21c user report) */
 void objects_plat_oneway(int type, int on) { for (int k = 0; k < nplat_x; k++) if (plat_x[k].type == type) plat_x[k].ow = (signed char)on; }
@@ -222,7 +225,8 @@ void objects_platforms(player_t *p) {
         obj_t *o = &G.o[i];
         if (!o->alive || !plat_type(o->type)) continue;
         double F, Gm; plat_params(o->type, &F, &Gm);
-        int kx = plat_x_of(o->type), dip = kx < 0 || plat_x[kx].dip;
+        int kx = plat_x_of(o->type), dip = kx < 0 || plat_x[kx].dip, own = kx >= 0 && plat_x[kx].own;
+        if (own) F = o->av[7];
         if (dip) {
         o->y -= floorf(o->vy);                                    /* 3270 */
         if (!(o->fl & 4)) o->vy -= o->vy * 0.2f;                   /* 3271 */
@@ -232,7 +236,7 @@ void objects_platforms(player_t *p) {
         o->vx = (float)fmod(o->vx + F, 360.);
         if (o->type == OT_GEYSER && fmod(o->vx, 360.) > 240) { o->vx = (float)fmod(o->vx + 2, 360.); o->fl |= 0x40; }   /* 4969: fast phase, no carry */
         if (kx >= 0 && (plat_x[kx].B != 0 || plat_x[kx].C != 0)) {   /* 3283-3285, 3288: X = floor(M), M = I + C cos|sin A */
-            double K = o->ky; o->kx = fmod(o->kx + plat_x[kx].B, 360.); if (o->kx < 0) o->kx += 360.;
+            double K = o->ky; o->kx = fmod(o->kx + (own ? o->av[6] : plat_x[kx].B), 360.); if (o->kx < 0 && !own) o->kx += 360.;
             double M = o->ox + plat_x[kx].C * (plat_x[kx].D ? p_sin(o->kx) : p_cos(o->kx));
             o->fy = (float)(floor(M) - floor(K)); o->ky = M; o->x = (float)floor(M);
         } else if (kx >= 0 && !plat_x[kx].dip) { double K = o->ky; o->ky = o->ox; o->fy = (float)(floor(o->ox) - floor(K)); o->x = (float)floor(o->ox); }   /* C = 0: X = floor(I) (a scripted I) */
