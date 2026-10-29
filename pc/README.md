@@ -27,24 +27,32 @@ GPU copy on real hardware (1.8 ms with SDL's software renderer here, 4-6 ms with
 
 ## Building
 
+**To play, you do not need any of this**: drag your `Assets.dat` onto `build_win32.bat` / `build_linux.sh` in the top
+folder (BUILDING.md). They use the ready-made programs in `prebuilt/` and need no compiler. The scripts below are for
+developers who compile the program themselves; they make the program only (no game data).
+
 Linux (x86_64), native:
 
     apt-get install build-essential libsdl2-dev        # prerequisites (Debian / Ubuntu)
-    pc/build_linux.sh [outdir]                          # -> outdir/fpdc, README.txt   (default pc/dist/linux)
+    pc/compile_linux.sh [outdir]                        # -> outdir/fpdc, README-PC.txt   (default: the current folder)
 
-Windows 32-bit (i686), cross-compiled on Linux:
+Windows (i686), cross-compiled on Linux:
 
     apt-get install mingw-w64 curl                      # prerequisites
-    pc/build_win32.sh [outdir]                          # -> outdir/fpdc.exe, SDL2.dll, README.txt (default pc/dist/win32)
+    pc/compile_win32.sh [outdir]                        # -> outdir/fpdc.exe, SDL2.dll, README-PC.txt (default: the current folder)
 
-`build_win32.sh` downloads the official SDL2 mingw development package (SDL 2.30.11, SHA-256 checked) once into
-`pc/build/deps`; `SDL2_DEVEL=<SDL2-2.x.y dir>` uses an unpacked one instead. On Windows with MSYS2
-(`pacman -S --needed make tar curl mingw-w64-i686-gcc`): `pc\build_win32.bat [outdir]` runs the same script in
-the MINGW32 environment (not tested on a Windows machine here).
+`compile_win32.sh` downloads the official SDL2 mingw development package (SDL 2.30.11, SHA-256 checked) once into
+`pc/build/deps`; `SDL2_DEVEL=<SDL2-2.x.y dir>` uses an unpacked one instead. It takes the first mingw-w64 gcc it finds
+(`WIN_CC=...` chooses): `i686-w64-mingw32-gcc`, a `gcc` that targets i686-w64-mingw32 (MSYS2 MINGW32), then the 64-bit
+ones (a 64-bit `fpdc.exe`; the prebuilt one is 32-bit). On Windows with MSYS2
+(`pacman -S --needed make tar curl mingw-w64-i686-gcc`): `pc\compile_win32.bat [outdir]` runs the same script in the
+MINGW32 environment, keeping the Windows PATH (a mingw-w64 installed outside MSYS2 is found too); the default outdir is
+the folder it is started from. (Session 25: the old `pc\build_win32.bat` had a quoting error, `\"" was unexpected`, and
+only looked for `i686-w64-mingw32-gcc`.)
 
-Both scripts take `DATA_DIR=<converted2>` to copy the game data to `<outdir>/data`. `JOBS=n` sets make's `-j`.
+Both scripts take `DATA_DIR=<converted2>` to copy converted game data to `<outdir>/data`. `JOBS=n` sets make's `-j`.
 Directly: `make -C pc` (Linux) or `make -C pc PLATFORM=win32 SDL2_DIR=<SDL2>/i686-w64-mingw32`; objects and
-binaries go to `pc/build/<platform>` (never committed: `pc/build/`, `pc/dist/` are in .gitignore).
+binaries go to `pc/build/<platform>` (never committed: `pc/build/` is in .gitignore).
 
 The i686 build uses `-msse2 -mfpmath=sse` (no x87 excess precision): its gameplay frames match the x86_64 /
 host frames (DV1 route below). Title-screen rotations differ by a few edge pixels (msvcrt vs glibc sinf / cosf).
@@ -64,8 +72,8 @@ console); every 600 frames it prints the update / software draw / present times.
 Smoke test against the host harness (classic route to DV1, 65 frames compared; builds host/fpdc_host if needed;
 `fpdc.exe` runs through wine; uses xvfb-run without DISPLAY):
 
-    pc/test_pc.sh pc/dist/linux/fpdc converted2
-    pc/test_pc.sh pc/dist/win32/fpdc.exe converted2
+    pc/compile_linux.sh /tmp/pcl && pc/test_pc.sh /tmp/pcl/fpdc converted2
+    pc/compile_win32.sh /tmp/pcw && pc/test_pc.sh /tmp/pcw/fpdc.exe converted2
 
 ## Tested (session of the PC port)
 

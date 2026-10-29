@@ -67,7 +67,7 @@ were written to build/re/spec_bg_*.md and spec_fd_*.md (gitignored with the rest
   section; fixes the BG3 start squid (RV bg3_squid: wakes at frame 106, x 220, port identical).
 - **Transitions:** tests/test_route_matrix.py (every stage's last act through the results to the next stage, per character).
 - **PC port (branch `pc-port`, user request: master stays Dreamcast-only):** SDL2 platform layer src/platform/plat_sdl.c on
-  the host software renderer; `pc/build_linux.sh`, `pc/build_win32.sh` (mingw-w64 i686 + SDL 2.30.11); tested on Linux
+  the host software renderer; `pc/compile_linux.sh`, `pc/compile_win32.sh` (mingw-w64 i686 + SDL 2.30.11; renamed from build_*.sh in session 25); tested on Linux
   (Xvfb) and Wine 9.0: frames identical to the host harness (5 title frames off by a few px under Wine: Windows sinf/cosf).
 - **Easy builder (master):** drag-and-drop Assets.dat onto build_dreamcast.bat / .sh -> a CDI (BUILDING.md). The layout /
   animation tables derived from the Linux binary are committed for it (D-118, user decision).

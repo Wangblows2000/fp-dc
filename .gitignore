@@ -35,6 +35,14 @@ pc/dist/
 output/
 # the builders' results, written next to the build_*.bat / .sh scripts (fpdc.cdi; on the PC branch fpdc.exe, SDL2.dll, data/ ...)
 /fpdc.cdi
+/fpdc.exe
+/fpdc
+/SDL2.dll
+/SDL2-LICENSE.txt
+/README-PC.txt
+/fpdc.sav
+/data/*
+!/data/test1.txt
 # the project's prebuilt programs and tools are committed (D-119): never ignored
 !/prebuilt/
 !/prebuilt/**

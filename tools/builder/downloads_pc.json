@@ -10,7 +10,8 @@
    "size": 2222606,
    "what": "the PC version for Windows (32-bit, SDL2)",
    "licence": "this repository",
-   "source": "branch pc-port f5e6c93 (src/, pc/): pc/build_win32.sh, stripped"
+   "source": "branch pc-port f5e6c93 (src/, pc/): pc/build_win32.sh, stripped",
+   "src_tree": "f0224a17d984eafe51d2ea1b5c033d5b120c79d5"
   },
   {
    "name": "SDL2.dll",
@@ -40,7 +41,8 @@
    "size": 3523888,
    "what": "the PC version for Linux (x86_64; SDL 2.30.11 linked in; glibc 2.27+)",
    "licence": "this repository; SDL2 zlib",
-   "source": "branch pc-port f5e6c93 (src/, pc/) + SDL2-2.30.11, zig cc 0.13 (glibc 2.28 target): tools/builder/build_release_pc.sh, stripped"
+   "source": "branch pc-port f5e6c93 (src/, pc/) + SDL2-2.30.11, zig cc 0.13 (glibc 2.28 target): tools/builder/build_release_pc.sh, stripped",
+   "src_tree": "f0224a17d984eafe51d2ea1b5c033d5b120c79d5"
   }
  ]
 }

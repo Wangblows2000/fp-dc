@@ -1,26 +1,27 @@
 #!/bin/bash
 # Maintainers: build the PC versions' files of the builder's release and record them in tools/builder/downloads_pc.json.
-#   tools/builder/build_release_pc.sh [out_dir=build/builder_release]
-#   fpdc-win32.exe, SDL2.dll, SDL2-LICENSE.txt   pc/build_win32.sh (mingw-w64 i686; the official SDL 2.30.11 mingw package),
+#   tools/builder/build_release_pc.sh [out_dir=prebuilt]
+#   fpdc-win32.exe, SDL2.dll, SDL2-LICENSE.txt   pc/compile_win32.sh (mingw-w64 i686; the official SDL 2.30.11 mingw package),
 #                                                the program stripped
 #   fpdc-linux-x86_64                            pc/Makefile with SDL 2.30.11 built from source as a static library (its X11,
 #                                                Wayland, ALSA, PulseAudio back ends are loaded at run time), compiled with
 #                                                zig cc for glibc 2.28 (runs on any Linux x86_64 with glibc 2.27+), stripped
-# then rewrites the entries of these files in downloads_pc.json (sha256, size) and SHA256SUMS. Publish the files with the
-# rest of the release (tools/builder/build_release.sh), commit downloads_pc.json.
+# then rewrites the entries of these files in downloads_pc.json (sha256, size, src_tree: the git tree of src/ they were
+# built from; fpbuild.py selftest fails when src/ changes later) and prebuilt/SHA256SUMS. Commit prebuilt/ and
+# downloads_pc.json together (D-119).
 # Needs: mingw-w64 (i686), make, curl, python3 with pip (zig is installed into build/release_work by pip: ziglang 0.13.0),
 # the X11 / Wayland / ALSA / PulseAudio development headers (Debian / Ubuntu: libx11-dev libxext-dev libwayland-dev
 # libxkbcommon-dev libasound2-dev libpulse-dev) so that SDL has those back ends. Host-only tool (FP_HOST_ENV).
 set -eu
 REPO=$(cd "$(dirname "$0")/../.." && pwd)
-OUT=$(mkdir -p "${1:-$REPO/build/builder_release}" && cd "${1:-$REPO/build/builder_release}" && pwd)
+OUT=$(mkdir -p "${1:-$REPO/prebuilt}" && cd "${1:-$REPO/prebuilt}" && pwd)
 W=$REPO/build/release_work; mkdir -p "$W"
 SDL_VER=2.30.11
 SDL_SHA=8b8d4aef2038533da814965220f88f77d60dfa0f32685f80ead65e501337da7f
 J=$(nproc)
 
 echo "== Windows (i686)"
-sh "$REPO/pc/build_win32.sh" "$W/win32" > "$W/pc_win32.log" 2>&1
+WIN_CC=i686-w64-mingw32-gcc sh "$REPO/pc/compile_win32.sh" "$W/win32" > "$W/pc_win32.log" 2>&1
 i686-w64-mingw32-strip -o "$OUT/fpdc-win32.exe" "$W/win32/fpdc.exe"
 cp "$W/win32/SDL2.dll" "$OUT/SDL2.dll"; cp "$W/win32/SDL2-LICENSE.txt" "$OUT/SDL2-LICENSE.txt"
 
@@ -47,15 +48,16 @@ strip -o "$OUT/fpdc-linux-x86_64" "$REPO/pc/build/linux-release/fpdc"; chmod 755
 objdump -T "$OUT/fpdc-linux-x86_64" | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1
 
 echo "== downloads_pc.json, SHA256SUMS"
-python3 - "$OUT" "$REPO/tools/builder/downloads_pc.json" <<'EOF'
+python3 - "$OUT" "$REPO/tools/builder/downloads_pc.json" "$(git -C "$REPO" rev-parse HEAD:src)" <<'EOF'
 import hashlib, json, os, sys
-out, table = sys.argv[1:3]
+out, table, tree = sys.argv[1:4]
 t = json.load(open(table))
 for e in t['files']:
     p = os.path.join(out, e['name'])
     e['sha256'] = hashlib.sha256(open(p, 'rb').read()).hexdigest(); e['size'] = os.path.getsize(p)
+    if e['name'].startswith('fpdc-'): e['src_tree'] = tree
     print('%-24s %s' % (e['name'], e['sha256']))
 with open(table, 'w') as f: json.dump(t, f, indent=1); f.write('\n')
 EOF
-(cd "$OUT" && sha256sum $(ls | grep -v -E '^(SHA256SUMS|RELEASE_NOTES.md)$') > SHA256SUMS)
+(cd "$OUT" && sha256sum $(ls | grep -v -E '^(SHA256SUMS|RELEASE_NOTES.md|README.md)$') > SHA256SUMS)
 echo "done: $OUT"
