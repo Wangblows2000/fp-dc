@@ -72,12 +72,7 @@ int r_pal_load(const void *data, size_t size) {
 }
 
 void r_begin(void) { memset(fb, 0, sizeof fb); }
-#ifdef FP_PC
-void pc_present(const uint32_t *frame, int w, int h);   /* PC build (src/platform/plat_sdl.c): show the finished frame */
-void r_end(void) { pc_present(fb, SCREEN_W, SCREEN_H); }
-#else
 void r_end(void) {}
-#endif
 
 static uint32_t modulate(uint32_t c, uint32_t m) {
     uint32_t r = ((c >> 16) & 255) * ((m >> 16) & 255) / 255;
@@ -105,26 +100,6 @@ void r_sprite(const tex_t *t, int u, int v, int uw, int vh, float x, float y, fl
     const uint16_t *px = texs[t->id].px; const uint8_t *ix = texs[t->id].idx;
     const uint16_t *pal = pals[texs[t->id].grp & 3];
     int tw = texs[t->id].w, th = texs[t->id].h;
-#ifdef FP_PC
-    /* PC build: the common case (1:1 at an integer position, opaque white vertex colour, no additive / invert, not
-     * ARGB4444) without the per-pixel float maths and blend. Same pixels as the loop below: there (k + 0.5) * uw / w
-     * is exactly k + 0.5 (k < uw <= 2048: the product is exact in float), modulate by white and blend at alpha 255
-     * return the texel colour. */
-    if (uw <= 2048 && vh <= 2048 && w == (float)uw && h == (float)vh && x == (float)x0 && y == (float)y0 && argb == 0xffffffffu && !add_on && !invert_on && texs[t->id].fmt != 4) {
-        for (int sy = y0 < 0 ? 0 : y0; sy < y1 && sy < SCREEN_H; sy++) {
-            int tv = v + (sy - y0);
-            if (tv < 0 || tv >= th) continue;
-            uint32_t *row = fb + sy * SCREEN_W;
-            for (int sx = x0 < 0 ? 0 : x0; sx < x1 && sx < SCREEN_W; sx++) {
-                int tu = flip ? u + uw - 1 - (sx - x0) : u + (sx - x0);
-                if (tu < 0 || tu >= tw) continue;
-                uint16_t c = ix ? pal[ix[tv * tw + tu]] : px[tv * tw + tu];
-                if (c & 0x8000) row[sx] = (((c >> 10) & 31) << 19) | (((c >> 5) & 31) << 11) | ((c & 31) << 3);
-            }
-        }
-        return;
-    }
-#endif
     for (int sy = y0 < 0 ? 0 : y0; sy < y1 && sy < SCREEN_H; sy++) {
         int tv = v + (int)((sy - y + 0.5f) * vh / h);
         if (tv < 0 || tv >= th) continue;
