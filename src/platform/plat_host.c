@@ -218,7 +218,7 @@ static void apply_dbg(int f, int tp) {
         if (dbg[i].k == 'A') printf("story new %d\n", story_host_new((int)dbg[i].a));     /* ADVNEW <chr> */
         if (dbg[i].k == 'V') printf("story scene %d\n", story_host_play(host_scene[(int)dbg[i].a]));   /* SCENE <id> */
         if (dbg[i].k == 'W') printf("story stageend %d\n", story_host_stage_end());       /* STAGEEND */
-        if (dbg[i].k == 'O') { extern int fe_mode; fe_mode = (int)dbg[i].a; }              /* MODE <g0> */
+        if (dbg[i].k == 'O') { extern int fe_mode; fe_mode = (int)dbg[i].a; G.time_attack = fe_mode == 0; }   /* MODE <g0> (0: a Time Attack run) */
         if (dbg[i].k == 'S') results_begin_boss(G.frame);   /* test: a boss starts the results (path 3; FN6 8785 before the boss module) */
         if (dbg[i].k == 'F') G.stage_flags = (int)dbg[i].a;   /* test: ML stage flags (Relic Maze gates) */
         if (dbg[i].k == 'I') p->invuln = (int)dbg[i].a;      /* test: Milla inside a dig zone (MILLA.D, set by other stages' zone events) */

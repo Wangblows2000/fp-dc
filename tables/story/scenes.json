@@ -1,5 +1,5 @@
 {
-"about": "Adventure mode scene inventory (session 25). Read by tools/import_story.py (the scenes with a script in tables/story/scripts are 'ported'); documented in docs/ADVENTURE.md. Fields: id (stable, port), list (index in the original's developer CutsceneList_42, RE), title (its name, RE), room (json frame = set_frame index + 1), g4 (global 4 selecting the scene inside the room), triggers (new: a new Adventure; end:I: frame 8 after stage I), next / skip / stage (the steps after the scene, its SKIP SCENE target, the NEXT STAGE target of panel 2), panel (GUIPause frame of its pause menu: 1 RESUME / SKIP SCENE / QUIT, 2 RESUME / SKIP SCENE / NEXT STAGE), chr (g1 mask: 1 Lilac, 2 Carol, 4 Milla), dialog (DialogData handle) and lines (paragraph range, inclusive), evidence (RE / RV / INFERRED per field), missing (what is not known or not available).",
+"about": "Adventure mode scene inventory (session 25). Read by tools/import_story.py (the scenes with a script in tables/story/scripts are 'ported'); documented in docs/ADVENTURE.md. Fields: id (stable, port), list (index in the original's developer CutsceneList_42, RE), title (its name, RE), room (json frame = set_frame index + 1), g4 (global 4 selecting the scene inside the room), triggers (new: a new Adventure; end:I: frame 8 after stage I), next / skip / stage (the steps after the scene, its SKIP SCENE target, the NEXT STAGE target of panel 2), panel (GUIPause frame of its pause menu: 1 RESUME / SKIP SCENE / QUIT, 2 RESUME / SKIP SCENE / NEXT STAGE), chr (g1 mask: 1 Lilac, 2 Carol, 4 Milla), dialog (DialogData handle) and lines (paragraph range, inclusive; also: single paragraphs outside it), evidence (RE / RV / INFERRED per field), missing (what is not known or not available).",
 "scenes": [
 {
 "id": "adv_opening",
@@ -93,10 +93,13 @@
 "chr": 7,
 "dialog": 3923,
 "lines": [
-6,
-24
+8,
+25
 ],
-"evidence": "RE CutsceneList K 4 -> frame 76 (265); RV r75_g1 / a75_g1 (frame 14 -> 76 g4 1 -> 24 with g4 1); RV k76_g1_skip: SKIP SCENE -> RM1"
+"evidence": "RE CutsceneList K 4 -> frame 76 (265); RV r75_g1 / a75_g1 (frame 14 -> 76 g4 1 -> 24 with g4 1); RV k76_g1_skip: SKIP SCENE -> RM1; RV a75_g1 DialogBox E: 8-16, 20-23, then 76 (go_01_04 \"It's an ambush!\", the last paragraph) before 23-25",
+"also": [
+76
+]
 },
 {
 "id": "rm_hideout",
@@ -113,7 +116,7 @@
 "dialog": 3923,
 "lines": [
 0,
-5
+6
 ],
 "evidence": "RE frame 8 (I 0, Aqua Tunnel = Milla's first stage -> frame 76 g4 4); RE CutsceneList K 5 -> 76 with g1 4 (debug: g4 0); lines by content (Milla and Mr. Stumpy): INFERRED",
 "missing": "not traced (phase 2)"
@@ -132,8 +135,8 @@
 "chr": 6,
 "dialog": 3923,
 "lines": [
-69,
-73
+70,
+74
 ],
 "evidence": "RE frame 8 (I 2 with g1 2 / 4 -> frame 76 g4 3); RE CutsceneList K 6 -> 76 g4 3 g1 2; lines by content (Carol trapped, li_04_06 .. go_01_04): INFERRED",
 "missing": "not traced (phase 2); RM5's Adventure dialog (DialogData_1624, RE group 0x22517, D-064) precedes it"
@@ -170,8 +173,8 @@
 "chr": 1,
 "dialog": 3923,
 "lines": [
-25,
-68
+26,
+69
 ],
 "evidence": "RE frame 8 (I 2 with g1 0 -> frame 76 g4 2); RE CutsceneList K 8 -> 76; lines by content: INFERRED",
 "missing": "not traced (phase 2; the s76_g2 trace attempt failed to start)"
@@ -189,7 +192,7 @@
 "dialog": 622,
 "lines": [
 32,
-96
+98
 ],
 "evidence": "lines by content (DialogData_622 in json 16): INFERRED",
 "missing": "trigger, g4: phase 2"
@@ -225,7 +228,7 @@
 "dialog": 550,
 "lines": [
 21,
-34
+35
 ],
 "evidence": "lines by content: INFERRED",
 "missing": "trigger, g4: phase 2"
@@ -281,7 +284,7 @@
 "dialog": 3951,
 "lines": [
 20,
-50
+53
 ],
 "evidence": "RE frame 8 (I 3, Fortune Night -> frame index 78 = json 79, g4 1); lines by content: INFERRED",
 "missing": "phase 2"
@@ -352,8 +355,8 @@
 "chr": 7,
 "dialog": 3951,
 "lines": [
-53,
-57
+58,
+62
 ],
 "evidence": "lines by content: INFERRED",
 "missing": "phase 2"
