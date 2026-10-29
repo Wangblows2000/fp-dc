@@ -142,12 +142,12 @@
    "name": "fpdc.elf",
    "os": "any",
    "kind": "program",
-   "sha256": "caa600dc19e55d41546f389ee6179527f4c757922a8c9497d0f28e2ba7f3c32c",
-   "size": 2003916,
+   "sha256": "f881d35ba592158baa9bb428b176d3e027650f235ba8f5cc1994e7bfbce70e4f",
+   "size": 2030632,
    "what": "the Dreamcast program (fpdc.elf, stripped)",
    "licence": "this repository",
-   "source": "commit f00c1ce",
-   "src_tree": "cc1da922599884cda16bdda4fe7d124a300aac11"
+   "source": "commit 3fa6b96",
+   "src_tree": "489dedf9fc6dcdb84486adb9884a5ce3781dff4a"
   }
  ]
 }
