@@ -10,7 +10,6 @@ set -e
 cd "$(dirname "$0")/.."
 T=${1:-build/orig_traces/adv}
 S=tables/story/scripts
-rm -f tables/story/rows.json
 mkdir -p $S
 python3 tools/story_rv2scn.py $T/c81_g2.log adv_opening 82 - 0 2092 $S/adv_opening.scn --next scene:dv_meet \
   --flash 920,120,140 --fadeout 1745,95 --caption '1890,2060,str_three_days_later_330|str_in_a_valley_to_the_east_331' --drop 'bossholodragon|caravanwheel'
