@@ -142,7 +142,7 @@ static struct {
     const bank_t *ens, *font; const char *const *dlg; int ndlg;
     int line, box, typed, len, arrow_t, shown;            /* DialogBox state (RE 18606 / 18607: C, B) */
     int row_box, row_name, row_arrow; animator_t arrow;
-    int fade, fade_d;                                     /* 0..255 black, per-frame step */
+    int fade, fade_d; uint32_t fade_rgb;                  /* 0..255 cover (black, or white: 'f n 1'), per-frame step */
     const char *cap[4];                                   /* captions shown (rows 0-3), from the caption table */
     const char *captions;                                 /* "key text" lines (story/captions.txt), owned by the caller */
     int vo_h[2], vo_line[2];                              /* voice slots: the current line's clip and the next one's */
@@ -200,7 +200,7 @@ int csx_load(const char *path) {
                 int k = 0; while (k < X.nsfx && X.sfx[k] != v0) k++;
                 if (k == X.nsfx && X.nsfx < (int)(sizeof X.sfx / sizeof X.sfx[0])) X.sfx[X.nsfx++] = (short)v0;
             }
-            else if (!strcmp(op, "f")) { x->op = E_F; x->v[0] = (int16_t)v0; }
+            else if (!strcmp(op, "f")) { x->op = E_F; x->v[0] = (int16_t)v0; x->v[1] = (int16_t)(n >= 4 && v1); }   /* <t> f <frames> [1 = white] */
             else if (!strcmp(op, "chsel")) x->op = E_CHSEL;
             else if (!strcmp(op, "capx")) x->op = E_CAPX;
             else if (!strcmp(op, "pv")) { x->op = E_PV; x->v[0] = (int16_t)v0; x->v[1] = (int16_t)v1; }   /* <t> pv <handle> <0|1> */
@@ -263,7 +263,7 @@ static int line_speaker(int line) { return line >= 0 && line < X.ndlg ? atoi(X.d
 void csx_begin(const bank_t *ens, const bank_t *font, const char *const *dialog, int nlines) {
     X.ens = ens; X.font = font; X.dlg = dialog; X.ndlg = nlines;
     X.active = X.loaded; X.seg = 0; X.clock = 0; X.cur = 0; X.exhausted = 0; X.chsel_wait = 0; X.shown = 0; X.line = -1; X.prev = 0;
-    X.fade = 0; X.fade_d = 0;
+    X.fade = 0; X.fade_d = 0; X.fade_rgb = 0;
     for (int k = 0; k < X.nact; k++) { X.a[k].vis = 0; X.a[k].row = -1; X.a[k].mn = 0; X.a[k].an.b = NULL; }
     int ok = ens && ens->nframes;
     X.row_box = ok ? bank_anim(ens, "dlgbox") : -1;
@@ -315,7 +315,7 @@ static void xfire(const csx_ent_t *x) {
     case E_O: { char nm[40]; snprintf(nm, sizeof nm, "story/vo/%s.wav", X.pool + x->v[0]);   /* a voice outside the dialogue */
                 int k = X.shown && X.vo_line[0] == X.line ? 1 : 0; vo_free(k); X.vo_h[k] = snd_load(nm); if (X.vo_h[k] >= 0) snd_play(X.vo_h[k], 255, 128); } break;
     case E_U: if (!strcmp(X.pool + x->v[0], "-")) music_stop(); else music_play(X.pool + x->v[0]); break;
-    case E_F: X.fade_d = x->v[0] > 0 ? -(255 / x->v[0] + 1) : x->v[0] < 0 ? 255 / -x->v[0] + 1 : 0; if (x->v[0] > 0) X.fade = 255; break;
+    case E_F: X.fade_d = x->v[0] > 0 ? -(255 / x->v[0] + 1) : x->v[0] < 0 ? 255 / -x->v[0] + 1 : 0; if (x->v[0] > 0) X.fade = 255; X.fade_rgb = x->v[1] ? 0xffffff : 0; break;
     case E_CHSEL: X.chsel_wait = 1; break;
     case E_CAP: X.cap[x->v[0]] = caption(X.pool + x->v[1]); break;
     case E_CAPX: memset(X.cap, 0, sizeof X.cap); break;
@@ -436,5 +436,5 @@ void csx_draw_ui(void) {
         }
         if (X.arrow_t > ARROW_DELAY && X.row_arrow >= 0) frame_draw(X.ens, anim_frame(&X.arrow), 345, 40, 0, 0xffffffff);   /* DialogArrow_553 */
     }
-    if (X.fade > 0) r_rect(0, 0, SCREEN_W, SCREEN_H, (uint32_t)X.fade << 24);
+    if (X.fade > 0) r_rect(0, 0, SCREEN_W, SCREEN_H, (uint32_t)X.fade << 24 | X.fade_rgb);
 }

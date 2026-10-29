@@ -46,6 +46,7 @@ def main():
     ap.add_argument('--chsel', default='', help='OPEN,PRESS: the in-scene character select opens at frame OPEN, the choice at PRESS')
     ap.add_argument('--rows', default='', help='extra rows class_handle:anim:dir,... (rows the trace did not show)')
     ap.add_argument('--caption', action='append', default=[], help='F0,F1,key|key: caption rows shown from F0 to F1 (RV screenshots)')
+    ap.add_argument('--flash', default='', help='F,HOLD,N: white from frame F, HOLD frames, then a fade from white of N frames (RV screenshots; timing INFERRED)')
     ap.add_argument('--fadeout', default='', help='F,N: a fade to black of N frames from frame F (INFERRED: the wipe)')
     a = ap.parse_args()
     lines = load_dialog(a.dialog) if a.dialog != '-' else []
@@ -59,6 +60,7 @@ def main():
     par = {}           # parallax class -> {'st': {f: vis}, 'alt'}
     box = []           # (f, vis, E, F, C, img frame)
     snd, cams, presses, gone = [], [], [], {}
+    par_addr = {}      # a parallax piece's address -> its class (a destroyed piece is hidden: 'pv h 0')
     for l in open(a.log, encoding='latin1'):
         t = l.split()
         if not t or len(t) < 2 or not t[1].lstrip('-').isdigit(): continue
@@ -76,8 +78,8 @@ def main():
                 box.append((f, fl & 1, int(float(alt.get('E', 0))), int(float(alt.get('F', 0))), int(float(alt.get('C', 0))), ic))
                 continue
             if fl >= 0x10000: continue                  # not an object (old traces: a non-list member)
-            if cls.startswith('levelparallax'):          # backdrop pieces: visibility per scene ('pv'), scroll from D / E / F (RV)
-                pp = par.setdefault(cls, {'st': {}, 'alt': alt})
+            if cls.startswith(('levelparallax', 'parallax')):   # backdrop pieces: visibility per scene ('pv'), scroll from D / E / F (RV)
+                pp = par.setdefault(cls, {'st': {}, 'alt': alt}); par_addr[addr] = cls
                 pp['st'][max(f, a.first)] = fl & 1
                 continue
             o = obj.setdefault(addr, {'cls': cls, 'st': {}})
@@ -170,6 +172,8 @@ def main():
         f0, f1, keys = c.split(',', 2)
         for r, k in enumerate(keys.split('|')): put(int(f0), 3, 'cap %d %s' % (r, k))
         if int(f1) < a.end: put(int(f1), 3, 'capx')
+    if a.flash:
+        ff, hh, nn = [int(v) for v in a.flash.split(',')]; put(ff, 3, 'f -1 1'); put(ff + hh, 3, 'f %d 1' % nn)
     if a.fadeout:
         ff, nn = [int(v) for v in a.fadeout.split(',')]; put(ff, 3, 'f %d' % -nn)
     if chsel:
@@ -178,6 +182,8 @@ def main():
         ev[k0] = [e for e in ev[k0] if e[0] <= chsel[0] - segs[k0]]
     # ---- parallax pieces: shown / hidden per scene (the room's other scenes use other sets)
     pinfo = {}
+    for addr, c in par_addr.items():           # destroyed at the room's start (RV c81_g2: 3223 / 3224 / 3225 / 3227 at frame 1)
+        if addr in gone: par[c]['st'][max(gone[addr], a.first)] = 0
     for c, pp in par.items():
         h = int(c.rsplit('_', 1)[1]); prev = None
         for f in sorted(pp['st']):

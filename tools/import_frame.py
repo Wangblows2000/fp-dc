@@ -2444,7 +2444,7 @@ def export_parallax(fr, src, name, out, an=None):
         key = '%s_%d' % (o['cls'], o['id'])
         if o['cls'] == 'levelparalaxwatersurface' and o['x'] is not None: water = 2700
         if o['cls'] == 'levelparalaxwatersurface' and fr['frame'] in JC_WATER: water = JC_WATER[fr['frame']]   # mode 2 (Jade Creek)
-        spar = story_par(fr['frame']).get(str(o['id'])) if o['cls'].startswith('levelparallax') else None   # session 25: story rooms
+        spar = story_par(fr['frame']).get(str(o['id'])) if o['cls'].startswith(('levelparallax', 'parallax')) else None   # session 25: story rooms
         if (key not in PAR_IMG and not (spar and an and an.get(key, {}).get('images'))) or o['y'] is None: continue
         if o['id'] in PAR_FIXED_SKIP and (fr['frame'], o['id']) not in PAR_FIXED: continue   # BG_FLOW: the ships only where exported
         img = PAR_IMG[key] if key in PAR_IMG else an[key]['images'][0]
