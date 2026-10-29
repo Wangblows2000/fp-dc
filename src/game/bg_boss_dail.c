@@ -196,7 +196,7 @@ static void ending(player_t *p) {
         B.fvy = fminf(B.fvy + 0.3f, 15); B.fx += B.fvx; B.fy += B.fvy;           /* 15054: B + 0.3 */
         if (B.fy > 1951) { B.fy = 1951; B.fvy = 0; B.fvx = 0; }                 /* 15059: the floor (CameraLimitBossBottom) */
         if (f) { f->x = B.fx; f->y = B.fy; }
-        if (B.F == 60) voice_play("dail_0503");                                 /* 15060 */
+        if (B.F == 60) voice_play("da_05_03");                                 /* 15060 */
         if (B.F > 90 && G.frame % 6 == 0 && b) {                                /* 15061-15064 */
             obj_effect(b->x - 60 + cross_rand(121), b->y - 60 + cross_rand(121), "explosion06"); bgb_explode_snd();
             if (G.cam.Z < 5) G.cam.Z = 5;
@@ -236,7 +236,7 @@ static void assembly(player_t *p) {
             if (e) { e->vx = (b->x - sx) / 40.f; e->vy = (b->y - sy) / 40.f; e->av[6] = 40; }
         }
     }
-    if (B.eyes >= 8 && !B.v2) { B.v2 = 1; voice_play("dail_0502"); }              /* 14924 */
+    if (B.eyes >= 8 && !B.v2) { B.v2 = 1; voice_play("da_05_02"); }              /* 14924 */
     if (B.eyes >= 24) { if (b) b->hidden = 0; if (crown()) crown()->hidden = 0; if (d) d->hidden = 0; }
     if (B.eyes >= 64 && B.fade == 0 && B.phase == 1 && B.t > 0) { B.fade = 32; }   /* 14925: the white flash */
     if (B.fade > 0 && --B.fade == 0) {                                             /* 14929: the fight */
