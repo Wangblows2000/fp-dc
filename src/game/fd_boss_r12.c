@@ -138,7 +138,7 @@ static short mra[MR_N];
 enum { SH_TRAIN = 1, SH_EBALL, SH_LASER, SH_SHOCK, SH_GLOW };
 static struct {
     int on, J, R, hD, hC, def, endt, results, slen, gE, dsub;
-    double w[7], K, Lr, M, Q, P, bA, bB, bC, floorO, vx, gF;
+    double w[7], K, Lr, M, Q, P, bA, bB, bC, vx, gF;
     char str[8];
     short part[MP_N], shot[NSHOT];
 } M;
@@ -394,7 +394,7 @@ static void m_frame(player_t *p) {
         if (p->x > G.camx + 402) { p->x = G.camx + 402; player_sync_sensors(p); }
         if (MVB(p) > 10) setB(p, 10);
     } else if (p->x > G.camx + 426) { p->x = G.camx + 426; player_sync_sensors(p); }
-    M.floorO = fmod(M.floorO + 15, 128);                                        /* 15341 */
+    if (!M.results) fd_gim_scroll_floor(1, 15, 0); else fd_gim_scroll_floor(0, 0, 0);   /* 15341-15344: the treadmill (FD_GIM) while the fight runs */
     M.M = fmod(M.M + 5, 360);                                                   /* 15407 */
     if (!M.def) M.P += 1;                                                       /* 15468 (the defeat counts its own: 15519 / 15522) */
     double *w = M.w;
@@ -474,11 +474,6 @@ static void m_frame(player_t *p) {
 
 static int m_draw_obj(const obj_t *o, int pass) {
     (void)pass;
-    if (o->type == OT_FDB_SFLOOR || o->type == OT_FDB_SFLOOR2) {                 /* drawn scrolled (15341-15344) */
-        obj_t t = *o; t.x = o->x - (float)M.floorO; sbb_draw(&t, 0xffffffff);
-        if (M.on && o->x + 128 >= 512) { t.x += 128; sbb_draw(&t, 0xffffffff); }
-        return 1;
-    }
     if (o->type >= OT_FDB_MPART && o->type <= OT_FDB_FX) {
         if (o->hidden) return 1;
         if (o->type == OT_FDB_MPART + MP_HEAD && M.hC > 5 && (M.hC / 2) % 2) return 1;   /* 15489: the blink */
