@@ -10,6 +10,9 @@ uses the character's normal attack near the apex (Lilac / Carol: attack; Milla: 
    g4 5, hatches sink back);
  - BG4 Sparky (14513-14549): camera locked in the room and released at its right edge, beaten by every character, arena opens (40);
  - BG2 chopper (sb_chopper.c, 14229-14239): starts at X >= 2201 for Lilac / Carol, never for Milla; beaten by Lilac and Carol;
+ - BG5 Milla's Sparky ride (14681-14716): boards (40), moves 5 / 3, shoots (436; 28 upside down), jumps off; not for Lilac / Carol;
+ - BG6 Dail (14912-15136): the assembly near Dail (351), the RV cycle and timings (d1_l / d2_l), cards (71), m_boss3, Dail low in
+   the vortex, the 2-hit shield (315 / 11), 7 hits for every character, the fall and results_begin_boss 865 frames later;
  - BG1 Tredds (bosses.c): every placed Tredd walks (9 in BG1), not only the first.
 usage: test_bg_bosses.py [data_dir]   (default: converted2)"""
 import subprocess, sys, os, tempfile
@@ -164,6 +167,43 @@ def t_ride():
         check('%s_bg5_ride_shoots_436_then_28_upside_down' % n, any(170 <= f <= 201 for f in sid(s, 436)) and any(240 <= f <= 271 for f in sid(s, 28)), '%s %s' % (sid(s, 436)[:3], sid(s, 28)[:3]))
         check('%s_bg5_jumps_off' % n, rows[301]['st'] != '33', rows[301]['st'])
 
+# ======================================================================== BG6: Prince Dail on the Shade Beast (14912-15136)
+def t_dail():
+    WALK = '3 SETV others E 99999;30 900 R;' + ''.join('%d %d X;' % (f, f + 2) for f in range(60, 300, 30))
+    # RV d1_l / d2_l: the cycle D 1 (56) / 0 (61) x3, D 2 (56) / 0 (181), D 1 / 0 x3 (the last D 0 228), D 3 (~720), D 1 ...
+    rows, s, L = run(WALK + INV(3000), 3000, {'FP_LEVEL': 'bg6', 'FP_CHAR': '0', 'FP_DBG_BGD': '1'})
+    bd = dbg(L, 'bgd')
+    tr = []
+    for f, d in bd:
+        k = (d['ph'], d['D'])
+        if not tr or tr[-1][1] != k: tr.append((f, k))
+    ph1 = next((f for f, k in tr if k[0] == '1'), None)
+    x1 = ph1 and float(rows.get(ph1 - 1, {}).get('x', 0))
+    check('bg6_assembly_starts_near_dail', ph1 is not None and 780 < x1 < 830 and any(abs(f - ph1) <= 1 for f in sid(s, 351)), '%s x %s %s' % (ph1, x1, sid(s, 351)[:2]))
+    fight = [(f, k[1]) for f, k in tr if k[0] == '2']
+    ds = [k for f, k in fight]
+    dur = [fight[i + 1][0] - fight[i][0] for i in range(len(fight) - 1)]
+    check('bg6_cycle_rv', ds[:16] == ['0', '1', '0', '1', '0', '1', '0', '2', '0', '1', '0', '1', '0', '1', '0', '3'], ''.join(ds[:17]))
+    if len(dur) >= 16:
+        check('bg6_cycle_timing_rv', dur[1] == 56 and dur[2] == 61 and dur[7] == 56 and dur[8] == 181 and abs(dur[14] - 228) <= 1 and abs(dur[15] - 720) <= 2, str(dur[:16]))
+    check('bg6_cards_71', len([f for f in sid(s, 71)]) >= 4, str(sid(s, 71)[:4]))
+    mus = [t for f, t in L if t[0] == 'music' and 'm_boss3' in t[1]]
+    check('bg6_boss_music_slot4', len(mus) >= 1, str(mus[:1]))
+    # the vortex: Dail comes within reach (the parsed 'xy' pair is dropped by dbg(): read y from the raw line)
+    ys = [int(t[t.index('xy') + 2]) for f, t in L if t[0] == 'bgd' and 'D' in t and t[t.index('D') + 1] == '3']
+    check('bg6_vortex_dail_low', ys and max(ys) > 1820, '%s' % (ys and max(ys)))
+    for c in CHARS:
+        n = NAME[c]
+        rows, s, L = run(WALK + INV(26000), 26000, {'FP_LEVEL': 'bg6', 'FP_CHAR': str(c), 'FP_DBG_BGD': '1', 'FP_BGB_BOT': '1'})
+        bd = dbg(L, 'bgd')
+        Is = sorted(set(int(d['I']) for f, d in bd))
+        shield = sid(s, 315); broke = sid(s, 11)
+        check('%s_dail_shield_2_hits' % n, len(shield) >= 2 and len(broke) >= 1, '%s %s' % (shield[:3], broke[:2]))
+        check('%s_dail_7_hits' % n, Is[-1:] == [7], str(Is))
+        d9 = next((f for f, d in bd if d['D'] == '9'), None)
+        res = next((f for f in sorted(rows) if rows[f].get('res') not in (None, '0')), None)
+        check('%s_dail_defeat_to_results' % n, d9 is not None and res is not None and 800 < res - d9 < 900, '%s %s' % (d9, res))
+
 # ======================================================================== BG1: every Tredd walks (9 placed; bosses.c per instance)
 def t_tredd():
     rows, s, L = run('5 TP 5800 560', 300, {'FP_LEVEL': 'bg1', 'FP_CHAR': '0', 'FP_DBG_TD': '5'})
@@ -171,7 +211,7 @@ def t_tredd():
     xs = [int(t[2]) for t in td]
     check('bg1_fifth_tredd_walks', len(xs) > 100 and xs[0] == 6112 and max(xs) > 6150, '%s..%s' % (xs[:1], xs[-1:]))
 
-for fn, sec in ((t_mech_rv, 'mech'), (t_mech_fight, 'mech'), (t_sparky, 'sparky'), (t_chopper, 'chopper'), (t_ride, 'ride'), (t_tredd, 'tredd')):
+for fn, sec in ((t_mech_rv, 'mech'), (t_mech_fight, 'mech'), (t_sparky, 'sparky'), (t_chopper, 'chopper'), (t_ride, 'ride'), (t_dail, 'dail'), (t_tredd, 'tredd')):
     if want(sec): fn()
 print('%d failures' % fails)
 sys.exit(1 if fails else 0)

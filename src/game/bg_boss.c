@@ -107,7 +107,12 @@ void bg_boss_spawn(void) {
 void bg_boss_pre(player_t *p) { (void)p; if (!on) return; r_compact(); }
 void bg_boss_frame(player_t *p) {
     if (!on) return;
-    for (int k = 0; k < nR; k++) { obj_t *o = &G.o[R[k]]; if (o->alive && o->type == OT_BGB_FX && (!o->an.b || o->an.done)) o->alive = 0; }   /* one-shot effects */
+    for (int k = 0; k < nR; k++) {                                              /* effects: one-shot, or moving for av[6] frames */
+        obj_t *o = &G.o[R[k]];
+        if (!o->alive || o->type != OT_BGB_FX) continue;
+        if (o->av[6] > 0) { o->x += o->vx; o->y += o->vy; if (--o->av[6] <= 0) o->alive = 0; }
+        else if (!o->an.b || o->an.done) o->alive = 0;
+    }
     bgm_frame(p);                                    /* RE handle_frame_63: Absolution (14418-14512) before the Sparky room (14513-14549) */
     bgs_frame(p);
     bgd_frame(p);

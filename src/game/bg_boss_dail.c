@@ -77,7 +77,7 @@ static void cards_frame(player_t *p) {
             if (a[1] == 0) { c->x += (float)a[3]; c->y += (float)a[4]; if (a[2] >= 7) { a[1] = 1; a[2] = 0; } }
             else if (a[1] == 1 || a[1] == 3) {
                 if (a[2] >= (a[1] == 1 ? 36 : 18)) {
-                    if (a[5] >= 3) { obj_effect(c->x, c->y, "bgd_cardfx"); c->alive = 0; n--; continue; }
+                    if (a[5] >= 3) { obj_effect(c->x, c->y, "explosion02"); c->alive = 0; n--; continue; }
                     double ang = atan2(-(sbb_py(p) - c->y), sbb_px(p) - c->x);
                     a[3] = 8 * cos(ang); a[4] = -8 * sin(ang); a[1] = 2; a[2] = 0; a[5] += 1;
                 }
@@ -86,7 +86,7 @@ static void cards_frame(player_t *p) {
         } else {                                                              /* CK_WALL: fly to the V slot 41 frames, the column ~155 */
             if (a[1] == 0) { c->x += (float)a[3]; c->y += (float)a[4]; if (a[2] >= 41) { a[1] = 5; a[2] = 0; } }
             else if (a[1] == 5) {
-                if (a[2] >= 155) { obj_effect(c->x, c->y, "bgd_cardfx"); c->alive = 0; n--; continue; }
+                if (a[2] >= 155) { obj_effect(c->x, c->y, "explosion02"); c->alive = 0; n--; continue; }
                 int X = (int)sbb_px(p);
                 if (abs(X - (int)c->x) < 9 && a[2] >= 4) sbb_hurt(p, 20);          /* 15029: the lightning column, 20 */
             }
@@ -108,7 +108,7 @@ static void cards_wall(obj_t *d) {                   /* RV d2_l f1186-1228: seve
 static void stars_ring(float x, float y, int ring) {
     for (int k = 0; k < 8; k++) {
         double a = 45. * k + 8 * ring;
-        obj_t *s = bgb_spawn(OT_BGB_D_STAR, "bgd_star", x, y, 3);
+        obj_t *s = bgb_spawn(OT_BGB_D_STAR, "bgd_vortex2", x, y, 3);   /* the 64 x 64 hit zone shows as BossVortex2 (INFERRED) */
         if (s) { s->vx = (float)(5 * sbb_cos(a)); s->vy = (float)(5 * sbb_sin(a)); }
     }
 }
@@ -230,7 +230,11 @@ static void assembly(player_t *p) {
     B.t++;
     if (B.t % 7 == 5 && B.eyes < NEYE) {                                           /* 14916 / 14917: a shade gathers, an eye forms */
         B.eyes++;
-        if (b) obj_effect(b->x - 80 + cross_rand(161), b->y + cross_rand(200), "bgd_shade");
+        if (b) {                                                                  /* EffectBossShade: flies into the head (INFERRED 40 frames) */
+            float sx = b->x - 200 + cross_rand(401), sy = b->y - 120 + cross_rand(160);
+            obj_t *e = bgb_spawn(OT_BGB_FX, "bgd_shade", sx, sy, 3);
+            if (e) { e->vx = (b->x - sx) / 40.f; e->vy = (b->y - sy) / 40.f; e->av[6] = 40; }
+        }
     }
     if (B.eyes >= 8 && !B.v2) { B.v2 = 1; voice_play("dail_0502"); }              /* 14924 */
     if (B.eyes >= 24) { if (b) b->hidden = 0; if (crown()) crown()->hidden = 0; if (d) d->hidden = 0; }
@@ -297,6 +301,12 @@ int bgd_draw(const obj_t *o, int pass) {
             for (float y = floorf(G.camy / 64) * 64; y < G.camy + SCREEN_H + 64; y += 64)
                 frame_draw_rot(&G.ens, f, floorf(o->x - G.camx), floorf(y - G.camy), 90, 0, 0xffffffff);
         }
+        sbb_draw(o, 0xffffffff);
+        return 1;
+    }
+    if (o->type == OT_BGB_D_CARD && o->av[0] == CK_AIM) {                          /* the card's green spark (BossDailCardEffect) */
+        int a = ens_anim("bgd_cardx");
+        if (a >= 0) frame_draw(&G.ens, &G.ens.frames[G.ens.seq[G.ens.anims[a].first]], floorf(o->x - G.camx), floorf(o->y - G.camy), 0, 0xffffffff);
         sbb_draw(o, 0xffffffff);
         return 1;
     }
