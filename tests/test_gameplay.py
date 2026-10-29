@@ -98,9 +98,12 @@ check('spring_side_gsp', max(g) > 9.6 and max(g) <= 10.0, 'max gsp %.3f' % max(g
 
 # RE Turretus + pellet + damage (events 4766-4774, PinballMovement, event 2414; hurt_turretus trace):
 # with the original's start phase the pellet hits on frame 189 with B = -2.2, G = -4.2
+# (DV fixes: the pellet's mask against the sensor box at (int X, int Y); RV hurt_turretus.snd / dv_fixes tp_hurt: shot 28 at
+# frame 186, hit 17 25 at 189, the same frame numbers as the host's sounds. The whole 16x16 box with the unfloored X hit at 188,
+# which matched the shift-2 Lilac comparison only because the hit came one frame early.)
 r = run(open(os.path.join(HERE, 'orig', 'hurt_turretus.txt')).read(), 200, env={'FP_SPAWN_X': '0', 'FP_OBJ_PRETICK': '2'})
 hit = next((x for x in r if x['hp'] < 14), None)
-check('turretus_pellet_hit', hit is not None and hit['f'] == 188   # stdout numbering (= CSV / trace-aligned row 189)
+check('turretus_pellet_hit', hit is not None and hit['f'] == 189   # stdout numbering = the original's .snd frame of the hit
        and abs(hit['vx'] + 2.2) < 1e-6 and abs(hit['vy'] + 4.2) < 1e-6,
       hit and 'f%d vx %.3f vy %.3f' % (hit['f'], hit['vx'], hit['vy']))
 # RE camera (MasterCamera_408): after a teleport the view snaps (centre within X .. X+16); running fast the
