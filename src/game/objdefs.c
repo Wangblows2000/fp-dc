@@ -64,7 +64,7 @@ static const objdef_t DEFS[] = {
     { OT_SPIRAL_BOTTOM, 0,                                     NULL         }, /* spiraltunnelbottom */
     { OT_SPIRAL_MASK,   OD_SOLID,                              "spiralmask" }, /* spiraltunnelmask */
     { OT_BALLTUNNEL,    OD_SOLID,                              "balltunnel" }, /* levelballtunnel1 */
-    { OT_GEYSER,        OD_OBSTACLE|OD_NOEDGE,                 "geyser"     }, /* levelgeyserplate */
+    { OT_GEYSER,        0,                                     "geyser"     }, /* levelgeyserplate: q13 only (RE on_frame_22..24_init; DV fixes) */
     { OT_WR_BASE,       0,                                     NULL         }, /* minibosswretchnidbase */
     { OT_WR_TURRET,     0,                                     NULL         }, /* minibosswretchnidturret */
     { OT_WR_WEAK,       0,                                     NULL         }, /* minibosswretchnidweakspot */

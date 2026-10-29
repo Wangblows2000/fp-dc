@@ -142,6 +142,17 @@ int mv_sensor_obj(double X, double Y, double N, int sensor, int objtype) {
     return r;
 }
 
+/* the same sensor test against one given object (a list kept by its module, e.g. the geyser plates: no slot scan) */
+int mv_sensor_on(double X, double Y, double N, int sensor, const obj_t *o) {
+    mv_t m; memset(&m, 0, sizeof m); m.X = X; m.Y = Y; m.N = N;
+    sens_t keep = S[sensor];
+    place(&m, sensor);
+    const smask_t *k = &MK[S[sensor].mask];
+    int r = obj_rows_hit(o, S[sensor].x - k->hx, S[sensor].y - k->hy, k->x0, k->x1, k->h);
+    S[sensor] = keep;
+    return r;
+}
+
 /* overlap test of one sensor (e.g. events 1425-1431): background, then the always-solid group
  * (QualifierList +0x218c0: monitors, wall spring, spikes, breakable rock, ...), then the obstacle group
  * (+0x218d8: bridge logs, springs, ladder tops, platforms; platforms flagged 0 (4738: Lilac's reference
