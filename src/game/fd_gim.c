@@ -42,6 +42,7 @@ static struct {
     int snd_cool[8];                               /* the events' 2-frame sound cool-downs (Frames + 0x22f4c ...) */
     int floor_on; float floor_sx, floor_sy; double floor_o;   /* the Syntax treadmill (fd_gim_scroll_floor) */
     int wind_ch;                                   /* sound 381's loop channel or -1 */
+    int siren_a, siren_b;                          /* fd2b's script state: the off-map ObjectSiren's A / B (15802-15811) */
 } S;
 #define LST S.lst
 #define NLS S.nls
@@ -611,6 +612,24 @@ static void scenery(void) {
     EACH(OT_FDG_TUBESHADE, o) { o->av[1] = fmod(o->av[1] + 2, 360.); o->y = trunc_i(o->av[0] + 24 * c_sin(o->av[1])); }
 }
 
+/* ================================================================ 15. fd2b's alarm (RE 15802, 15803, 15807, 15808, 15811)
+ * The off-map ObjectSiren's A / B: 15802: A 0, MV.Y > 5340, global 4 (the checkpoint) < 2, not Milla (global 1 != 4): A 1 (the
+ * warning subtitle: the flow's). 15803: A 1: B + 1. 15807: A 1 and B > 400, or A < 2 with the checkpoint in [2, 4), not Milla and
+ * CTRL.M 0: A 2, sound 372, OTHERS.J 0 (the air). 15808: A 2: B + 1 up to 460. 15811: A 2 and Y < 288: A 3. INFERRED: global 4 =
+ * G.at_g4 (the restart's checkpoint number). */
+static void siren(player_t *p) {
+    int cp = G.at_g4 > 1 ? G.at_g4 : 0, milla = chr_is_milla(G.character);
+    if (S.siren_a == 0 && MY(p) > 5340 && cp < 2 && !milla) S.siren_a = 1;                   /* 15802 */
+    if (S.siren_a == 1) S.siren_b += 1;                                                        /* 15803 */
+    if ((S.siren_a == 1 && S.siren_b > 400) || (S.siren_a < 2 && cp >= 2 && cp < 4 && !milla && !G.input_lock)) {   /* 15807 */
+        S.siren_a = 2; snd(372);
+    }
+    if (S.siren_a == 2 && S.siren_b < 460) S.siren_b += 1;                                    /* 15808 */
+    if (S.siren_a == 2 && MY(p) < 288) S.siren_a = 3;                                          /* 15811 */
+}
+int fd_gim_siren_alarm(void) { return S.siren_a == 2; }
+int fd_gim_siren_state(void) { return S.siren_a; }
+
 /* ================================================================ effects */
 static void effects(void) {
     obj_t *o;
@@ -735,6 +754,7 @@ void fd_gim_frame(player_t *p) {
     if (N(OT_FDG_RBARRIER) || N(OT_FDG_BUTTON)) barriers(p);                     /* 15729-15739 */
     if (N(OT_FDG_LSWITCH)) lifts(p);                                             /* 15758-15768 */
     if (N(OT_FDG_TUBESHADE)) scenery();                                          /* 15667 */
+    if (S.act == 4) siren(p);                                                    /* 15802-15811 */
     effects();
 #ifdef FP_HOST_ENV
     { static int dbg = -1; if (dbg < 0) dbg = getenv("FP_DBG_FDG") != NULL;

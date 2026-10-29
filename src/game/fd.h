@@ -79,6 +79,10 @@ void fd_gim_hangar_break(void);
  * BossSyntaxValues' position while the floor runs (on 0: the floor stays where it is) */
 void fd_gim_scroll_floor(int on, float sx, float sy);
 int  fd_gim_ride(void);                         /* tests: 95 while the player travels a transporter pipe, else 0 */
+/* fd2b's alarm (RE 15802 / 15807 / 15811: the off-map ObjectSiren's A as the act's script state): 0 quiet, 1 warned (Y > 5340, not
+ * Milla, checkpoint < 2; B counts), 2 the alarm (B > 400, or a restart from checkpoint 2 / 3: sound 372), 3 escaped (Y < 288).
+ * fd_gim_siren_alarm() is 1 while A == 2 (the flow's vacuum air rule 15791-15795 reads it); fd_gim_siren_state() returns A. */
+int  fd_gim_siren_alarm(void), fd_gim_siren_state(void);
 
 /* ---- fd_boss.c (types 2912-3071) */
 
