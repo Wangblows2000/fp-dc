@@ -26,6 +26,7 @@ static struct {
     double tbB[2], tbC[2], brB[2], brC[2];           /* flying tail blades / bars (9594 / 9595) */
     short mis[NMIS]; int nmis; double mG[NMIS], mF[NMIS], mV[NMIS], mx[NMIS], my[NMIS], mE[NMIS]; int mfl[NMIS];
     int ended;
+    int bg2;                                         /* Battle Glacier 2's variant (stage 9: handle_frame_61 14229-14239, session 24) */
 } C;
 static obj_t *ch(void) { return sbb_get(OT_SB_CH, 0); }
 static obj_t *tail(int k) { return sbb_get(OT_SB_CH_TAIL, k); }
@@ -37,6 +38,7 @@ void sbc_spawn(void) {
     obj_t *c = ch();
     if (!c) return;
     for (int k = 0; k < C_N; k++) CA[k] = (short)ens_anim(CN[k]);
+    C.bg2 = level_cur() && level_cur()->stage == 9;                           /* the stage index, not a level name */
     c->A = 70; c->fl |= F_NOFLY; c->hidden = 1;                                 /* ctor A 70, D -3, L 8, M -1; shown by 9555 */
     C.D = -3; C.L = 8; C.M = -1; C.E = c->x; C.F = c->y + 100; C.N = c->y;     /* RV c_idle f0: E = X, F = Y + 100, N = Y */
     int n = sbb_count(OT_SB_CH_TAIL);
@@ -121,10 +123,12 @@ static int tail_k(int A) { for (int k = 0; k < sbb_count(OT_SB_CH_TAIL) && k < N
 
 void sbc_frame(player_t *p) {
     obj_t *c = ch();
-    if (!c || G.character == CHR_LILAC) { if (c) missiles(p); return; }        /* 9553: MV.A != 0 (Lilac meets Spade: sb_spade.c) */
+    /* 9553: MV.A != 0 (Lilac meets Spade: sb_spade.c); BG2 (14229): MV.A != 4 (Lilac / Carol; Milla rides another route) */
+    if (!c || (C.bg2 ? chr_is_milla(G.character) : G.character == CHR_LILAC)) { if (c) missiles(p); return; }
     double PXv = sbb_px(p), PYv = sbb_py(p);
-    /* 9553: the trigger (Carol / Milla; the arena test of the flow's lock 9552) */
-    if (!C.on && sbb_lock_edge(&C.once) > 0 && sbb_bars() > 0) C.on = 1;
+    /* 9553: the trigger (Carol / Milla; the arena test of the flow's lock 9552); BG2 14229: MV.X >= 2201, g4 < 2, once */
+    if (!C.on && !C.bg2 && sbb_lock_edge(&C.once) > 0 && sbb_bars() > 0) C.on = 1;
+    if (!C.on && C.bg2 && !C.once && PXv >= 2201 && G.at_g4 < 2) { C.once = 1; C.on = 1; }
     obj_t *blade = sbb_get(OT_SB_CH_BLADE, 0), *tb = sbb_get(OT_SB_CH_TBLADE, 0), *tb2 = sbb_get(OT_SB_CH_TBLADE2, 0), *bars = sbb_get(OT_SB_CH_BARS, 0), *bars2 = sbb_get(OT_SB_CH_BARS2, 0);
     if (C.on) {
         if (C.on == 1) {                                                        /* 9555 (once): D 1, G 6, M 1, E = VIEWX - 200, shown, flag 4; ML.Y 1 */
@@ -132,7 +136,7 @@ void sbc_frame(player_t *p) {
             for (int k = 0; k < NTAIL; k++) { obj_t *t = tail(k); if (t) t->hidden = 0; }
             obj_t *parts[5] = { blade, tb, tb2, bars, bars2 };
             for (int k = 0; k < 5; k++) if (parts[k]) parts[k]->hidden = 0;
-            sbb_fight_start();
+            if (!C.bg2) sbb_fight_start();                                     /* BG2 14230: no ML.Y (the chase keeps the stage track) */
         }
         C.E += C.G; C.F += C.H;                                                 /* 9556 */
         c->x = (float)(int)C.E; c->y = (float)(int)(sbb_sin(C.I) * C.L + C.F);   /* 9557 */
@@ -175,15 +179,16 @@ void sbc_frame(player_t *p) {
             C.fl2 ^= 1; C.H = 0;
         }
         if (C.D == 2) C.J += 1;                                                 /* 9582 */
-        if (C.D == 2 && (C.J == 20 || C.J == 40 || C.J == 60 || C.J == 80 || C.J == 100)) {   /* 9583: a Tredd bomb */
+        if (C.bg2 && C.D == 2 && (obj_overlaps_bg(c) || px_solid(&G.lvl, (int)c->x, (int)c->y + 32))) C.F -= 3;   /* BG2 14231: climbs over walls */
+        if (C.D == 2 && (C.J == 20 || C.J == 40 || C.J == 60 || C.J == 80 || C.J == 100) && !(C.bg2 && obj_overlaps_bg(c))) {   /* 9583 (BG2 14232: not in a wall) */
             obj_t *b = obj_alloc();
             if (b) { memset(b, 0, sizeof *b); b->type = OT_TD_BOMB; b->alive = 1; b->hp = 1; b->x = c->x; b->y = c->y + 24; b->fy = b->y; b->layer = c->layer; ca(b, C_TDBOMB); }
             C.J += 1;
         }
         if (C.D == 2 && C.J == 120) { C.G = 0; C.M = -C.M; }                    /* 9584 */
         if (C.D == 2 && C.J > 160) C.D = 0;                                     /* 9585 */
-        if ((c->fl & SB_DEF) && C.D != 6) {                                     /* 9586: the defeat */
-            C.D = 6; C.G = 0; C.H = 1; C.J = 0; sbb_music_fadeout();
+        if ((c->fl & SB_DEF) && C.D != 6) {                                     /* 9586: the defeat (BG2 14233: no music change) */
+            C.D = 6; C.G = 0; C.H = 1; C.J = 0; if (!C.bg2) sbb_music_fadeout();
         }
         if (C.D == 6 && C.J < 15 && G.frame % 7 == 0) {                         /* 9588 (g3 % 7) */
             C.J += 1;
@@ -208,7 +213,9 @@ void sbc_frame(player_t *p) {
         if (C.D == 6 && C.J >= 15) {                                            /* 9596: flies away */
             C.G = fmax(fmin(C.M * 0.3 + C.G, 12), -7); C.H = fmax(C.H - 0.1, -7); C.J += 1;
         }
-        if (C.D == 6 && C.J == 50 && !C.ended) { C.ended = 1; sbb_arena_end(1, 0x10); }   /* 9597 */
+        if (C.D == 6 && C.J == 50 && !C.ended && !C.bg2) { C.ended = 1; sbb_arena_end(1, 0x10); }   /* 9597 (BG2: no arena) */
+        if (C.bg2 && C.D == 6 && C.J >= 3 && G.character == CHR_LILAC && !C.ended) { C.ended = 1; voice_play("lilac_awesome"); }   /* 14238 (INFERRED: the flag-9 timer of 14236 / 14237 not ported) */
+        if (C.bg2) C.E = fmin(fmax(C.E, G.camx - 300), G.camx + 726);                     /* 14239: kept near the view (the chase) */
     }
     missiles(p);
     c->av[0] = C.D; c->av[1] = C.E; c->av[2] = C.F; c->av[3] = C.G; c->av[4] = C.H; c->av[5] = C.J; c->av[6] = C.M; c->av[7] = C.on;

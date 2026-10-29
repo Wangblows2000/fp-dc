@@ -1100,6 +1100,20 @@ static const objdef_t DEFS[] = {
     { OT_BGG_TRANSP,    OD_SOLID|OD_BOXCOL,                    NULL         }, /* objecttransporter_3360 (Q7) */
     { OT_BGG_SIREN,     OD_BOXCOL,                             NULL         }, /* objectsiren_3362 (scenery) */
     /* ---- BG_BOSS (bg_boss.c) */
+    { OT_BGB_SPARKY,    0,                                     NULL         }, /* bosssparky_3336 (Q20, A 100) */
+    { OT_BGB_SP_LARM,   0,                                     NULL         }, /* bosssparkyleftarm_3337 */
+    { OT_BGB_SP_RARM,   0,                                     NULL         }, /* bosssparkyrightarm_3338 */
+    { OT_BGB_SP_TAIL,   0,                                     NULL         }, /* bosssparkytail_3335 */
+    { OT_BGB_HATCH,     OD_SOLID,                              NULL         }, /* solid (OBJGRP_SOLID); bosshatchdoor_3312 (bg_boss_mech.c / bg_boss_dail.c) */
+    { OT_BGB_MECHBG,    0,                                     NULL         }, /* brevonmechbackground_2444 (bg_boss_mech.c) */
+    { OT_BGB_MWARN2,    OD_HIDDEN,                             NULL         }, /* effectbrevonmechwarning2_2586 */
+    { OT_BGB_DAIL,      0,                                     NULL         }, /* bossdail_3370 (Q20, A 500 refilled; shield G 2) */
+    { OT_BGB_DAILFALL,  OD_HIDDEN,                             NULL         }, /* bossdailfall_3383 (the defeat's fall) */
+    { OT_BGB_DAILSPAWN, OD_HIDDEN,                             NULL         }, /* bossdailspawnpoint_3366 (the beast's anchor) */
+    { OT_BGB_SBEAST,    0,                                     NULL         }, /* bossshadebeast_3368 (the head) */
+    { OT_BGB_SBCROWN,   0,                                     NULL         }, /* bossshadebeastcrown_3369 */
+    { OT_BGB_PLASMA,    0,                                     NULL         }, /* - (runtime: bosssparkyplasmashot_2587) */
+    { OT_BGB_FX,        0,                                     NULL         }, /* - (runtime: one-shot effects) */
     /* ==== end Battle Glacier */
     /* ==== Final Dreadnought (session 24): one block per module */
     /* ---- FD_FLOW (fd_flow.c) */

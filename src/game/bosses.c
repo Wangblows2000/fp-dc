@@ -154,39 +154,54 @@ static void wr_update(player_t *p) {
  *   body x = (int)I, y = (int)(E + 16 D); piece k (B = -48/-48/-48/-24/-36/-16 left, mirrored right):
  *   x = (int)(X + F B), y = (int)(E + off_k + D B) with off = 0, 32, -, 8, 0, -8 and the column (piece 3) at
  *   y = (int)(E + 64 + min(0, 2 D B)). Gait: w = (1 - sin^8(H/2))^4 - 0.5, D = cos^40(H + 70) - sin^4 H,
- *   F = 1.76 w J, G = 2.2 J (0.88 - |F|); H += 1.5 (340 -> 200), I += 1.76 G while near the view. */
-static struct { int active, latch, stomp, M, K, dead_t, bombs, claw8, free, turn, pd; double colE; double D, E, F, Gw, H, I; int J, L; double pieceB[12]; } TD;
+ *   F = 1.76 w J, G = 2.2 J (0.88 - |F|); H += 1.5 (340 -> 200), I += 1.76 G while near the view.
+ * Session 24 (Battle Glacier: BG1 places 9 Tredds, BG2 / BG3 2 each): every Tredd has its own state. The original pairs the
+ * k-th instance of each piece class with the k-th MinibossTredd (Chowdren's paired selection in 5249: the body at the piece's
+ * instance index), i.e. by placement order; the group (5244) turns on once for all when any body is near the view. Pieces and
+ * the turning markers are indexed once at spawn (no per-frame object scans). */
+#define TD_MAX 12
+typedef struct { short body, piece[12]; int stomp, M, K, claw8, free, turn, pd; double colE; double D, E, F, Gw, H, I; int J, L; double pieceB[12]; } td_t;
+static struct { int active, n, nmark; short mark[16]; td_t t[TD_MAX]; } TD;
 static const double TD_B[12] = { -48, -48, -48, -24, -36, -16, 48, 48, 48, 24, 36, 16 };
 static const double TD_OFF[12] = { 0, 32, 64, 8, 0, -8, 0, 32, 64, 8, 0, -8 };
-static obj_t *td_piece(int k) { for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == OT_TD_PIECE + k) return &G.o[i]; return NULL; }
+static obj_t *td_obj(int i, int type) { return i >= 0 && i < G.nobjs && G.o[i].alive && G.o[i].type == type ? &G.o[i] : NULL; }
+static obj_t *td_piece(const td_t *t, int k) { return td_obj(t->piece[k], OT_TD_PIECE + k); }
 static double powi(double v, int n) { double r = 1; while (n-- > 0) r *= v; return r; }
 static void td_spawn(void) {
-    memset(&TD, 0, sizeof TD); TD.J = 1;
-    for (int k = 0; k < 12; k++) TD.pieceB[k] = TD_B[k];
+    memset(&TD, 0, sizeof TD);
+    int np[12] = { 0 };
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i];
         if (!o->alive) continue;
-        if (o->type == OT_TD_BODY) { set_ens(o, "td_body"); o->A = 50; o->bd = 0; TD.H = 200; }
-        if (o->type == OT_TD_PUSH || o->type == OT_TD_PUSH2) o->an.b = NULL;
-        if (o->type >= OT_TD_PIECE && o->type < OT_TD_PIECE + 12) {
-            static const char *pn[6] = { "td_claw", "td_shaft", "td_column", "td_joint", "td_p5", "td_p6" };
-            set_ens(o, pn[(o->type - OT_TD_PIECE) % 6]);
+        if (o->type == OT_TD_BODY && TD.n < TD_MAX) {
+            td_t *t = &TD.t[TD.n++]; t->body = (short)i; t->J = 1; t->H = 200;
+            for (int k = 0; k < 12; k++) { t->pieceB[k] = TD_B[k]; t->piece[k] = -1; }
+            set_ens(o, "td_body"); o->A = 50; o->bd = 0;
         }
+        if (o->type == OT_TD_PUSH || o->type == OT_TD_PUSH2) { o->an.b = NULL; if (TD.nmark < 16) TD.mark[TD.nmark++] = (short)i; }
+    }
+    for (int i = 0; i < G.nobjs; i++) {                                                       /* the k-th piece of a class -> the k-th body */
+        obj_t *o = &G.o[i];
+        if (!o->alive || o->type < OT_TD_PIECE || o->type >= OT_TD_PIECE + 12) continue;
+        static const char *pn[6] = { "td_claw", "td_shaft", "td_column", "td_joint", "td_p5", "td_p6" };
+        int k = o->type - OT_TD_PIECE;
+        set_ens(o, pn[k % 6]);
+        if (np[k] < TD.n) TD.t[np[k]].piece[k] = (short)i;
+        np[k]++;
     }
 }
-static void td_update(player_t *p) {
-    obj_t *body = first_of(OT_TD_BODY);
+static void td_one(td_t *t, player_t *p, int ti) {
+    obj_t *body = td_obj(t->body, OT_TD_BODY);
     if (!body) return;
-    if (!TD.active) { if (inside_view(body, 200)) TD.active = 1; return; }    /* 5244: groups on, first update next frame (RV) */
 #ifdef FP_HOST_ENV
     if (getenv("FP_TD_KILL") && G.frame == atoi(getenv("FP_TD_KILL"))) body->fl |= 0x40;   /* test hook */
 #endif
     int dead = (body->fl & 0x40) != 0;
     /* 5237-5242 run before the body's events: previous frame's leg positions, E and D */
     /* 5241 / 5242: a stomping column (same window as its damage) destroys a BreakableRock it overlaps */
-    if (TD.colE > 274 && TD.colE < 285) for (int k = 2; k < 12; k += 6) {
-        obj_t *c = td_piece(k);
-        if (!c || !((k < 6) ? TD.pd < 0 : TD.pd > 0)) continue;
+    if (t->colE > 274 && t->colE < 285) for (int k = 2; k < 12; k += 6) {
+        obj_t *c = td_piece(t, k);
+        if (!c || !((k < 6) ? t->pd < 0 : t->pd > 0)) continue;
         for (int i = 0; i < G.nobjs; i++) { obj_t *r = &G.o[i];
             if (r->alive && r->type == OT_ROCK && obj_obj_hit(r, c)) { r->alive = 0; obj_explode(r->x, r->y - 8); snd_play_orig(13, 220, 128); }   /* rock break 13 (as DV1 rocks; INFERRED for Tredd's) */ }
     }
@@ -195,80 +210,90 @@ static void td_update(player_t *p) {
         p->state != ST_ATTACK && p->state != ST_UPPERCUT) {
         int sx0 = (int)floor(p->x) - 7, sy0 = (int)floor(p->y - ORIG_REF_DY) - 34;
         for (int k = 0; k < 12; k++) {
-            obj_t *o = td_piece(k);
+            obj_t *o = td_piece(t, k);
             if (!o || !o->an.b) continue;
             int kind = k % 6;
-            if (kind == 0 && p->shield != 3 && !TD.claw8 && obj_rect_hit(o, sx0, sy0, sx0 + 15, sy0 + 46) && floor(p->y - ORIG_REF_DY) <= o->y + 7) { player_contact(p, 5); break; }
-            if (kind == 2 && TD.colE > 274 && TD.colE < 285 && ((k < 6) ? TD.pd < 0 : TD.pd > 0) && obj_rect_hit(o, sx0, sy0, sx0 + 15, sy0 + 46)) { player_contact(p, 10); break; }
+            if (kind == 0 && p->shield != 3 && !t->claw8 && obj_rect_hit(o, sx0, sy0, sx0 + 15, sy0 + 46) && floor(p->y - ORIG_REF_DY) <= o->y + 7) { player_contact(p, 5); break; }
+            if (kind == 2 && t->colE > 274 && t->colE < 285 && ((k < 6) ? t->pd < 0 : t->pd > 0) && obj_rect_hit(o, sx0, sy0, sx0 + 15, sy0 + 46)) { player_contact(p, 10); break; }
         }
     }
     /* 5245 (H = 230 once, condition "Y <= 79" of unknown meaning) does not fire here: RV tredd3.csv starts at H 200 */
-    if (TD.I == 0) { TD.I = body->x; TD.E = body->y; }                                         /* 5246 */
-    body->x = (float)(int)TD.I;                                                               /* 5247 */
-    double h2 = fd_sin(TD.H / 2 / 57.29577951308232), w = powi(1 - powi(h2, 8), 4) - 0.5;          /* 5248 */
-    double ch = c_cos(fmod(TD.H + 70, 360)), sh = c_sin(fmod(TD.H, 360));
-    TD.D = powi(ch, 40) - powi(sh, 4);
-    TD.F = 1.76 * w * TD.J; TD.Gw = 2.2 * TD.J * (0.88 - fabs(TD.F));
-    body->y = (float)(int)(TD.E + 16 * TD.D);
-    TD.pd = TD.J; TD.colE = TD.H;     /* pieces copy the body's J into their D and H into their E (RV tredd3.csv) */
+    if (t->I == 0) { t->I = body->x; t->E = body->y; }                                         /* 5246 */
+    body->x = (float)(int)t->I;                                                               /* 5247 */
+    double h2 = fd_sin(t->H / 2 / 57.29577951308232), w = powi(1 - powi(h2, 8), 4) - 0.5;          /* 5248 */
+    double ch = c_cos(fmod(t->H + 70, 360)), sh = c_sin(fmod(t->H, 360));
+    t->D = powi(ch, 40) - powi(sh, 4);
+    t->F = 1.76 * w * t->J; t->Gw = 2.2 * t->J * (0.88 - fabs(t->F));
+    body->y = (float)(int)(t->E + 16 * t->D);
+    t->pd = t->J; t->colE = t->H;     /* pieces copy the body's J into their D and H into their E (RV tredd3.csv) */
     for (int k = 0; k < 12; k++) {                                                            /* 5249 */
-        obj_t *o = td_piece(k);
+        obj_t *o = td_piece(t, k);
         if (!o) continue;
-        double B = TD.pieceB[k];
-        o->x = (float)(int)(body->x + TD.F * B);
-        o->y = (float)(int)((k % 6 == 2) ? TD.E + 64 + fmin(0.0, 2 * TD.D * B) : TD.E + TD_OFF[k] + TD.D * B);
+        double B = t->pieceB[k];
+        o->x = (float)(int)(body->x + t->F * B);
+        o->y = (float)(int)((k % 6 == 2) ? t->E + 64 + fmin(0.0, 2 * t->D * B) : t->E + TD_OFF[k] + t->D * B);
     }
-    if (TD.H > 284 && !TD.stomp && !dead) {                                                   /* 5250 / 5251 */
-        TD.stomp = 1; camera_shake(3);
+    if (t->H > 284 && !t->stomp && !dead) {                                                   /* 5250 / 5251 */
+        t->stomp = 1; camera_shake(3);
         if (inside_view(body, 200)) snd_play_orig(51, 220, 128);   /* stomp sound id not read: 51 (heavy impact) INFERRED */
     }
-    if (TD.H >= 340) { TD.stomp = 0; TD.H -= 140; }                                           /* 5252 */
+    if (t->H >= 340) { t->stomp = 0; t->H -= 140; }                                           /* 5252 */
     /* 5253-5255 turning (RE + RV tredd3.csv): 5253 the body overlaps neither marker -> free to turn; 5254 free and
      * overlapping PushLeft with J = 1 (PushLeft2 with J = -1) -> turn pending; 5255 pending and H <= 202 (the next
      * step boundary, after the 5252 wrap) -> negate every piece's B and J. Markers and body: 32x32, hotspot (16,16). */
     {
         int ov = 0;
-        for (int i = 0; i < G.nobjs; i++) {
-            obj_t *m = &G.o[i];
+        for (int j = 0; j < TD.nmark; j++) {
+            obj_t *m = &G.o[TD.mark[j]];
             if (!m->alive || (m->type != OT_TD_PUSH && m->type != OT_TD_PUSH2)) continue;
             if (fabsf(body->x - m->x) < 32 && fabsf(body->y - m->y) < 32) ov |= m->type == OT_TD_PUSH ? 1 : 2;
         }
-        if (!ov) TD.free = 1;
-        if (TD.free && (((ov & 1) && TD.J == 1) || ((ov & 2) && TD.J == -1))) { TD.turn = 1; TD.free = 0; }
-        if (TD.turn && TD.H <= 202) { TD.turn = 0; TD.J = -TD.J; for (int k = 0; k < 12; k++) TD.pieceB[k] = -TD.pieceB[k]; }
+        if (!ov) t->free = 1;
+        if (t->free && (((ov & 1) && t->J == 1) || ((ov & 2) && t->J == -1))) { t->turn = 1; t->free = 0; }
+        if (t->turn && t->H <= 202) { t->turn = 0; t->J = -t->J; for (int k = 0; k < 12; k++) t->pieceB[k] = -t->pieceB[k]; }
     }
-    if (!dead && inside_view(body, 200)) { TD.H += 1.5; TD.I += 1.76 * TD.Gw; }               /* 5258 */
+    if (!dead && inside_view(body, 200)) { t->H += 1.5; t->I += 1.76 * t->Gw; }               /* 5258 */
 #ifdef FP_HOST_ENV
-    if (getenv("FP_DBG_TD")) { obj_t *a = td_piece(0), *b2 = td_piece(1), *c = td_piece(2), *d = td_piece(3), *e = td_piece(4), *f = td_piece(5), *r1 = td_piece(6);
-        printf("td f%d %d %d D%.4f E%.0f F%.4f H%.1f I%.2f J%d L%d A%g c%d | %g,%g %g,%g %g,%g %g,%g %g,%g %g,%g r1 %g,%g\n", G.frame, (int)body->x, (int)body->y, TD.D, TD.E, TD.F, TD.H, TD.I, TD.J, TD.L, body->A, body->c,
+    if (getenv("FP_DBG_TD") && ti == atoi(getenv("FP_DBG_TD")) - 1) {   /* FP_DBG_TD=n: the n-th Tredd */ obj_t *a = td_piece(t, 0), *b2 = td_piece(t, 1), *c = td_piece(t, 2), *d = td_piece(t, 3), *e = td_piece(t, 4), *f = td_piece(t, 5), *r1 = td_piece(t, 6);
+        printf("td f%d %d %d D%.4f E%.0f F%.4f H%.1f I%.2f J%d L%d A%g c%d | %g,%g %g,%g %g,%g %g,%g %g,%g %g,%g r1 %g,%g\n", G.frame, (int)body->x, (int)body->y, t->D, t->E, t->F, t->H, t->I, t->J, t->L, body->A, body->c,
             a?a->x:0, a?a->y:0, b2?b2->x:0, b2?b2->y:0, c?c->x:0, c?c->y:0, d?d->x:0, d?d->y:0, e?e->x:0, e?e->y:0, f?f->x:0, f?f->y:0, r1?r1->x:0, r1?r1->y:0); }
+#else
+    (void)ti;
 #endif
     /* attacks (group 0x222ee): bomb timer L, bombs at L == 150 / L > 300 while H > 300 */
     if (!dead) {
-        if (TD.L != 150) TD.L++;                                                              /* 5259 */
+        if (t->L != 150) t->L++;                                                              /* 5259 */
         /* 5260-5265: claws read their E, a copy of the body's L from the previous frame (RV: tredd.csv tl1_E) */
-        int cl = TD.L - 1, ca = cl == 140 ? 1 : cl == 200 ? 2 : cl == 280 ? 3 : 0;
-        if (ca) for (int k = 0; k < 12; k += 6) { obj_t *c = td_piece(k); if (c) set_ens(c, ca == 1 ? "td_claw_open" : ca == 2 ? "td_claw" : "td_claw_snap"); }
-        if (ca == 2) TD.claw8 = 0; else if (ca == 3) TD.claw8 = 1;
-        if ((TD.L == 150 && TD.H > 300) || (TD.L > 300 && TD.H > 300)) {                      /* 5266 / 5267 */
+        int cl = t->L - 1, ca = cl == 140 ? 1 : cl == 200 ? 2 : cl == 280 ? 3 : 0;
+        if (ca) for (int k = 0; k < 12; k += 6) { obj_t *c = td_piece(t, k); if (c) set_ens(c, ca == 1 ? "td_claw_open" : ca == 2 ? "td_claw" : "td_claw_snap"); }
+        if (ca == 2) t->claw8 = 0; else if (ca == 3) t->claw8 = 1;
+        if ((t->L == 150 && t->H > 300) || (t->L > 300 && t->H > 300)) {                      /* 5266 / 5267 */
             obj_t *b = obj_alloc();
             if (b) { b->type = OT_TD_BOMB; b->alive = 1; b->x = body->x; b->y = body->y; b->fy = b->y; b->vy = 0; set_ens(b, "td_bomb"); }
-            TD.L = TD.L == 150 ? 151 : 0;                                                     /* reset after the second bomb: INFERRED */
+            t->L = t->L == 150 ? 151 : 0;                                                     /* reset after the second bomb: INFERRED */
         }
     }
     /* death (5282-5298): no fly-away, explosions every 7 frames, 10 crystals, debris, final blast */
     if (dead) {
         body->kx = body->ky = 0; body->ang = 0;
         set_ens(body, "td_die");
-        if (G.frame % 7 == 0 && TD.K < 2) {
-            obj_effect(body->x + cross_rand(41) - 20, body->y + cross_rand(41) - 20, "explosion06"); TD.M++;
+        if (G.frame % 7 == 0 && t->K < 2) {
+            obj_effect(body->x + cross_rand(41) - 20, body->y + cross_rand(41) - 20, "explosion06"); t->M++;
             static const int ex[3] = { 311, 319, 320 }; snd_play_orig(ex[cross_rand(3)], 220, 128);
         }
-        if (TD.M == 15) { body->absorbed = 10; TD.M++; }
-        if (TD.M > 16) TD.K++;
-        if (TD.K > 0) for (int k = 0; k < 12; k++) { obj_t *o = td_piece(k); if (o) { obj_t *d = obj_alloc(); if (d) { d->type = OT_DEBRIS; d->alive = 1; d->x = o->x; d->y = o->y; d->vx = (float)(cross_rand(15) - 10) * 0.3f; d->vy = -3; set_ens(d, "td_debris"); } o->alive = 0; } }
-        if (TD.K >= 2) { snd_play_orig(38, 220, 128); obj_effect(body->x, body->y, "explosion"); camera_shake(3); body->alive = 0; }
+        if (t->M == 15) { body->absorbed = 10; t->M++; }
+        if (t->M > 16) t->K++;
+        if (t->K > 0) for (int k = 0; k < 12; k++) { obj_t *o = td_piece(t, k); if (o) { obj_t *d = obj_alloc(); if (d) { d->type = OT_DEBRIS; d->alive = 1; d->x = o->x; d->y = o->y; d->vx = (float)(cross_rand(15) - 10) * 0.3f; d->vy = -3; set_ens(d, "td_debris"); } o->alive = 0; } }
+        if (t->K >= 2) { snd_play_orig(38, 220, 128); obj_effect(body->x, body->y, "explosion"); camera_shake(3); body->alive = 0; }
     }
+}
+static void td_update(player_t *p) {
+    if (!TD.n) return;
+    if (!TD.active) {                                                                         /* 5244: groups on, first update next frame (RV) */
+        for (int k = 0; k < TD.n; k++) { obj_t *b = td_obj(TD.t[k].body, OT_TD_BODY); if (b && inside_view(b, 200)) TD.active = 1; }
+        return;
+    }
+    for (int k = 0; k < TD.n; k++) td_one(&TD.t[k], p, k);
 }
 /* falling bomb -> blast (MonitorIcon frame 9) on solid ground: 20 damage to Player_326 while not hurt */
 void tredd_bomb_update(obj_t *o, player_t *p) {
