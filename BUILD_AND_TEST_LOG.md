@@ -573,3 +573,17 @@ Labels: original-trace (RV), RE, host-test, emulator (Flycast, emulated time). *
   FN4 Lilac (session 22); comparers unchanged.
 - Flycast (build/fpdc_pldemo.cdi): VRAM free pl1 2823, pl2 2815, pl3 2823, pl4 3133, pl5 3133, pl6 3170 KB; sound RAM >= 294 KB;
   update pl1 5.4, pl2 5.4-6.4, pl3 2.8-3.5, pl4 8.8, pl5 9.0-11.5, pl6 3.6 ms. **Emulator only.**
+
+## Session 24 (2026-10-28/29): Battle Glacier, Final Dreadnought, ending, builder, PC port
+- Suites: test_bg_flow / enemies / gimmicks / bosses, test_fd_flow / enemies / gimmicks / bosses_a / bosses_b, test_ending,
+  test_route_matrix (every stage's last act -> the next stage for Lilac / Carol / Milla, FD rounds included): 0 failures; full
+  regression 61 suites 0 failures. Rebuild-compare (now incl. BG / FD): only the _ens / _shl .spr files differ (the BOX1 section).
+- Found and fixed while merging: the BG3 start squid fired at the idle player (view box: D-113, RV bg3_squid); test_th_enemies
+  bike skids (inclusive bounds); FD bosses A / B sprite-name collision (fdm_head / fdm_body moved to json 71: Carol / Milla
+  could not hit the FD1b morpher; B's rows renamed fmm_*).
+- Flycast (build/fpdc_s24demo.cdi, tests/play/s24_verify.txt, Carol / Milla / Lilac walking BG1-6 and FD1a-4b): VRAM free
+  (Carol) bg1 2260, bg2-4 1876-1880, bg5 1980, bg6 3265, fd1a 2180, fd1b 1265, fd2a 2402, fd2b 1454, fd3a 2172, fd3b 768,
+  fd4a 2647, fd4b 2139 KB (Milla +168, Lilac +528); sound RAM largest free block >= 205 KB (BG3); ~12-15 slow frames per 600 in
+  steady play, update up to ~9.5 ms (BG5). **Emulator only.**
+- PC port (branch pc-port): Linux under Xvfb 65/65 sampled frames identical to the host harness, 29 levels x 30 frames
+  identical; Wine 9.0 (i686 exe) 60/65 identical (5 title frames: Windows sinf/cosf); saves reload; draw 2-4 ms a frame.

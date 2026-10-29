@@ -1,5 +1,21 @@
 # TODO (priority order)
 
+## Session 24: Battle Glacier, Final Dreadnought, ending, builder, PC port
+- [x] BG1-BG6 (flow, enemies, gimmicks, bosses) and FD rounds 1-4 (fd1a-fd4b) for Lilac / Carol / Milla; Classic route into
+      BG and FD; each FD round's results; FD4 -> final cutscene -> FINAL SCORE -> credits -> Thanks for Playing -> title
+- [x] Whole-game transition matrix (test_route_matrix), enemy view box (BOX1), FD boss sprite-name collision fixed
+- [x] PC port (branch pc-port): Linux x86_64 + Windows i686 (Wine-tested); drag-and-drop Dreamcast builder (master)
+- [ ] Real hardware: VRAM on fd3b with Carol (768 KB free in Flycast), BG4 / fd1b; sound RAM BG3 (205 KB) and FD1B (198 KB group)
+- [ ] Not ported: the shoot-'em-up lead-in to BG (frame 84), BG6 closing scene, BGArrowSign, Absolution's lasers killing
+      enemies, BG6 iris enemies / shield bubbles / card trails; FD4b space backdrops + background mech (VRAM), the turret's
+      aimed / acid volleys, Brevon's grab (state 10) and weapon-arm throws (14-15), finisher moves, voices, intro Elites;
+      fd2b vacuum air rule (fd_gim_siren_alarm is ready); fd1a pod rain at the dialog step (INFERRED self-start at x 800);
+      Adventure dialogs; the epilogue (frames 81 / 82)
+- [ ] INFERRED (see build/re/spec_bg_*.md / spec_fd_*.md): BG background-mech spacing, Sparky plasma, ride wall stops;
+      gatling barrel formulas, pounder limiter turns; morpher form-G angles, fd2b attack order and arena camera; mutated
+      Milla body motion; suit damage values; PC port: real controllers / sound devices / native Windows untested
+- [ ] FD4b's mech duplicates bg_boss_mech.c with FD numbers: share the code
+
 ## Pangu Lagoon (session 23)
 - [x] PL1-PL6 for Lilac: route from TB6, Lilac-only (TA slot / g1 = 0), enemies, gimmicks, stone doors, Holo-Dragon, results
 - [ ] Not verified: a full start-to-finish run of each act (sections tested with teleports); enemy timings are RE only (no RV)

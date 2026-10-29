@@ -711,3 +711,18 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
 ## Session 23
 - Pangu Lagoon = stage index 7, set_frame 50-55 (json 51-56), port pl1-pl6; types 2048-2079 flow, 2080-2143 enemies, 2144-2223
   gimmicks, 2224-2303 bosses (MAX_OT 2304). `level_def_t.lilac_only`; `player_t.sboost`; game.c `act_fade_step()`.
+
+## Session 24
+- Modules: bg_flow.c, bg_enemy.c, bg_gim.c, bg_boss.c (+ bg_boss_mech.c Absolution, bg_boss_sparky.c Sparky + BG5 ride,
+  bg_boss_dail.c Prince Dail); fd_flow.c, fd_enemy.c, fd_gim.c, fd_boss.c (dispatch) + fd_boss_r12.c (bosses A: push beam,
+  morpher, mech Serpentine; RoboSquid = tb_boss_squid.c) + fd_boss_r34.c / _3b.c / _4b.c (bosses B: Kingdom Stone, mutated
+  Milla, FD4b mech / suit / Brevon; bulldozer = fn_boss.c); ending.c, cutscene.c (+ cutscene_example.c).
+- Hooks: bg_flow_opening_cleared (BG4 mech end -> g4 5 at (444, 1800), music), fd_gim_hangar_break (fd1a Sign.D 160),
+  fd_gim_scroll_floor (FD1b treadmill during the morpher), fd_gim_siren_alarm / fd_gim_siren_state (fd2b), fd_enemy_pod_rain,
+  fd_enemy_gatlings_wake (fd3a alarm), fdb34_* (fd_boss.c -> bosses B), results_begin_boss / results_request_end ->
+  game_ending_begin (FD4b), player.c ST_RIDE chain (bg_boss_ride_m: BG5 Sparky ride; fd_gim_ride_m: transporter pipes).
+- level_def_t: music_fade_g4 (BG4), exit_hold (fd4a: 100 frames before the fade), mus4b / mus4b_g4 (fd4b: m_boss5 -> m_boss7
+  at g4 3), vox lists (bg2, bg6, fd1b). levels.c ROUTE covers stages 0-13 (FD rounds 10 -> 11 -> 12 -> 13 -> ending).
+- obj_near_view uses the bank's BOX1 whole-image box (D-113). Path-platform registry 24 entries (was 12).
+- Host: FP_BGB_BOT (boss bot), FP_F4B_* / FP_F3B_LIVES / FP_G4 (test knobs), FP_DBG_FDB / FP_DBG_TBQ, script RESBOSS /
+  RESEND / ENDTRY / ENDSTATS.
