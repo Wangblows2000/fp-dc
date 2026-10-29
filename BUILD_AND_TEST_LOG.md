@@ -626,7 +626,7 @@ Labels: original-trace (RV), RE, host-test, emulator (Flycast, emulated time). *
 - Host and Dreamcast builds 0 warnings.
 
 ## Session 25 (2026-10-29): builder fixes, DV fixes, Adventure mode, late-stage gimmicks
-- Suites: full regression SUITES_N suites 0 failures at the end (new: test_import_font, test_dv_fixes, test_adventure,
+- Suites: full regression 71 suites 0 failures at the end (new: test_import_font, test_dv_fixes, test_adventure,
   test_adventure_arc2 / arc3 / arc4, test_story_sids, test_late_gimmicks, test_gimmicks_m, test_small_fixes). Host and
   Dreamcast builds 0 warnings. `fpbuild.py selftest` ok on both branches (prebuilt programs current).
 - Builder (D-119): a fresh clone of master built fpdc.cdi from the Windows Assets.dat (data dir = converted2 except the
