@@ -165,11 +165,13 @@ static void doors(player_t *p) {
  * MetalDoorBack / Front: frame = A (0..10, 0.5 a frame): A + 0.5 (max 10) while the PLAYER is within 59 px (x) of it and
  * on screen (80), else A - 0.5 (min 0); sound 279 when it starts opening, 280 when it starts closing. Scenery (no q7).
  * (TBWallLightAnim, 11826, is tb_flow.c's.) */
+static int mdoor_ywin = 59;
+void tb_gim_mdoor_ywin(int y) { mdoor_ywin = y; }   /* Final Dreadnought's lab doors (fd_gim.c): 79 */
 static void scenery(player_t *p) {
     obj_t *o;
     int fr;
     EACH(OT_TBG_MDOOR, o) {
-        int nearp = !dead(p) && in_view(o, 80) && fabs(PX(p) - o->x) <= 59 && fabs(PY(p) - o->y) <= 59;   /* 11828 / 11829 */
+        int nearp = !dead(p) && in_view(o, 80) && fabs(PX(p) - o->x) <= 59 && fabs(PY(p) - o->y) <= mdoor_ywin;   /* 11828 / 11829 (FD's lab doors 15641 / 15646: 79) */
         double A = o->av[0];
         if (nearp) { if (A == 0 && o->par == 1) snd(279); A = fmin(A + 0.5, 10); }   /* 11830 / 11835 / 11837 */
         else { if (A == 10 && o->par == 1) snd(280); A = fmax(A - 0.5, 0); }         /* 11827 / 11832 / 11838 */

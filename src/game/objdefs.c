@@ -1125,7 +1125,51 @@ static const objdef_t DEFS[] = {
     { OT_FDE_SPIDER,    OD_HIDDEN,                             NULL         }, /* enemyspiderbeamer_3755 (q20; ctor invisible) */
     { OT_FDE_PODSPOT,   OD_HIDDEN,                             NULL         }, /* enemyelitespawnerspawner_3453 (ctor invisible) */
     { OT_FDE_GDEB,      0,                                     NULL         }, /* - (runtime: enemygatlinggundebris_3673) */
-    /* ---- FD_GIM (fd_gim.c) */
+    /* ---- FD_GIM (fd_gim.c; qualifiers RE on_frame_66..73_init; box = initialize_active(1) in the constructor) */
+    { OT_FDG_TSTART,    OD_BOXCOL,                             NULL         }, /* objecttransporterstart_3416 (a pipe entrance) */
+    { OT_FDG_TSTART2,   OD_BOXCOL,                             NULL         }, /* objecttransporterstart2_3417 (the orbiting light) */
+    { OT_FDG_TNODE,     OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* objecttransporternode0 / 90 / 180 / 270 (sub 0-3) */
+    { OT_FDG_ZCANNON,   OD_BOXCOL,                             NULL         }, /* hazardzapbeamcannon_3427 */
+    { OT_FDG_ZBEAM,     OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* hazardzapbeam_3428 (drawn y-scaled by fd_gim_draw) */
+    { OT_FDG_ZHIT,      OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* hazardzapbeamhitbox_3429 (ctor invisible) */
+    { OT_FDG_SMAKER,    OD_BOXCOL,                             NULL         }, /* hazardspiralsparkmaker_3430 */
+    { OT_FDG_SLIGHT,    OD_BOXCOL,                             NULL         }, /* fdspiralsparktowerlight_3432 */
+    { OT_FDG_DHPLAT,    OD_OBSTACLE|OD_NOEDGE,                 NULL         }, /* gimmickdownhillplatform_3441 (Q8 Q9 Q13) */
+    { OT_FDG_DHWHEEL,   OD_BOXCOL,                             NULL         }, /* gimmickdownhillplatformwheel_3442 */
+    { OT_FDG_LOWSPRING, OD_BOXCOL,                             NULL         }, /* objectlowspring_3448 (scenery in FD) */
+    { OT_FDG_HANGAR,    OD_BOXCOL,                             NULL         }, /* breakablefdhangarwall_3407 */
+    { OT_FDG_AIRBASE,   OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* airlockbase_3459 (ctor invisible) */
+    { OT_FDG_AIRLOCK_S, OD_SOLID|OD_BOXCOL,                    NULL         }, /* airlock1_3457 / airlock4_3458 (sub 0-1, Q7) */
+    { OT_FDG_AIRLOCK,   OD_BOXCOL,                             NULL         }, /* airlock2_3455 / airlock3_3456 (sub 0-1) */
+    { OT_FDG_PDOOR,     OD_BOXCOL,                             NULL         }, /* pressuredoor1_3489 / pressuredoor2_3490 (sub 0-1) */
+    { OT_FDG_PDOOR3,    OD_SOLID|OD_BOXCOL,                    NULL         }, /* pressuredoor3_3492 (Q7) */
+    { OT_FDG_SFLOOR,    OD_SOLID|OD_BOXCOL,                    NULL         }, /* scrollingfloor_3466 / scrollingfloor2_3465 (sub 0-1; only 2 is Q7: 1 keeps flag 0) */
+    { OT_FDG_PUSH,      OD_OBSTACLE|OD_NOEDGE|OD_HIDDEN,       NULL         }, /* levelfdpushplatform_3540 (Q8 Q9 Q13, ctor invisible) */
+    { OT_FDG_PUSHMASK,  OD_BOXCOL,                             NULL         }, /* levelfdpushplatformmask_3544 */
+    { OT_FDG_FDPLAT,    OD_OBSTACLE|OD_NOEDGE,                 NULL         }, /* fdplatform_3557 (Q8 Q9) */
+    { OT_FDG_CONSOLE,   OD_BOXCOL,                             NULL         }, /* fdconsole1_3552 / fdconsole2_3553 (sub 0-1, scenery) */
+    { OT_FDG_TUBESHADE, OD_BOXCOL,                             NULL         }, /* effecttubeshade_3521 */
+    { OT_FDG_ECRUSH,    OD_SOLID|OD_HIDDEN,                    NULL         }, /* levelelectriccrusher_3541 (Q7 Q13, ctor invisible) */
+    { OT_FDG_ECBOLT,    0,                                     NULL         }, /* levelelectriccrusherbolt_3542 */
+    { OT_FDG_ECMASK,    OD_BOXCOL,                             NULL         }, /* levelelectriccrushermask_3543 */
+    { OT_FDG_CDOOR,     OD_SOLID,                              NULL         }, /* corkscrewdoor_3537 (Q7) */
+    { OT_FDG_CSWITCH,   OD_BOXCOL,                             NULL         }, /* switchcorkscrewdoor_3536 */
+    { OT_FDG_SHGIVER,   OD_BOXCOL,                             NULL         }, /* playershieldgiver_3528 */
+    { OT_FDG_RBARRIER,  OD_SOLID,                              NULL         }, /* fdrotatingbarrier_3567 (Q7, rotated) */
+    { OT_FDG_BUTTON,    OD_BOXCOL,                             NULL         }, /* switchbuttonleft_2707 / right_2705 in fd2b (sub 0-1) */
+    { OT_FDG_BIGLIFT,   OD_SOLID,                              NULL         }, /* objectbiglift_3584 (Q7 Q13) */
+    { OT_FDG_LSWITCH,   OD_BOXCOL,                             NULL         }, /* switchbiglift1_3586 / 2_3587 (sub 0-1) */
+    { OT_FDG_BOOST,     OD_BOXCOL,                             NULL         }, /* gimmickspeedbooster_3640 */
+    { OT_FDG_BOOSTF,    OD_BOXCOL,                             NULL         }, /* gimmickspeedboosterfront_3639 */
+    { OT_FDG_OBASE,     OD_BOXCOL,                             NULL         }, /* hazardorbitbeambase_3652 (Q20 in the original, A 99: INFERRED not a target) */
+    { OT_FDG_OBEAM,     OD_BOXCOL,                             NULL         }, /* hazardorbitbeam_3653 */
+    { OT_FDG_OSCAN,     OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* hazardorbitbeamscan_3654 (drawn x-scaled by fd_gim_draw) */
+    { OT_FDG_LTPLAT,    OD_OBSTACLE|OD_NOEDGE|OD_BOXCOL,       NULL         }, /* fdlasertunnelplatform_3743 (Q8 Q9) */
+    { OT_FDG_LTUNNEL,   OD_BOXCOL|OD_HIDDEN,                   NULL         }, /* hazardlasertunnel_3742 (ctor invisible) */
+    { OT_FDG_LTGLASS,   OD_BOXCOL,                             NULL         }, /* hazardlasertunnelglass1 / 2 / 3 (sub 0-2) */
+    { OT_FDG_FX,        0,                                     NULL         }, /* - (runtime: one-shot moving effects) */
+    { OT_FDG_SPARK,     0,                                     NULL         }, /* - (runtime: hazardspiralspark_3435) */
+    { OT_FDG_WIND,      0,                                     NULL         }, /* - (runtime: effectairlockwind_3460) */
     /* ---- FD_BOSS (fd_boss.c) */
     /* ==== end Final Dreadnought */
 };
