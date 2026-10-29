@@ -670,6 +670,36 @@ static void orbits(player_t *p) {
     if (hit && p->shield != 2 && vulnerable(p)) player_contact(p, 5);
 }
 
+/* ================================================================ 18. the laser tunnel (fd4a; RE 16674-16681, on_frame_72_start)
+ * start: B = 160. 16674: B = (B + 1) mod 400 while MV.X lies between the act's CameraLimitBossLeft / Right. 16676: 200 < B < 340:
+ * A = min(A + 0.2, 16), CAM.Z >= 0.2 A (the charge; 16677: sound 388 as it starts); 16678: B 300: shown, sound 270, CAM.Z >= 20
+ * (it fires); 16681: B in [300, 365) with MV.X in [x, x + 256]: flag 1 (the hit; INFERRED: hurt 10, OTHERS.E rules); B > 340:
+ * A - 0.2. INFERRED: the beam fills the 256-px column from the tunnel up to the view's top while it fires (16679 sizes its box);
+ * the glass panes (16715-16717) are scenery here. */
+static void tunnel(player_t *p) {
+    obj_t *o, *c;
+    float lx = -1e9f, rx = 1e9f;
+    EACH(OT_FDG_LTUNNEL, o) {
+        if (o->av[5] == 0) {                                                    /* (the camera-limit pair, found once) */
+            o->av[5] = 1; o->av[6] = -1e9; o->av[7] = 1e9;
+            for (int i = 0; i < G.nobjs; i++) { c = &G.o[i]; if (!c->alive) continue;
+                if (c->type == OT_CAMLIM_L && fabsf(c->y - o->y) < 600) o->av[6] = c->x;
+                if (c->type == OT_CAMLIM_R && fabsf(c->y - o->y) < 600) o->av[7] = c->x; }
+        }
+        lx = (float)o->av[6]; rx = (float)o->av[7];
+        double *A = &o->av[0], *B = &o->av[1];
+        if (p->x > lx && p->x < rx) *B = fmod(*B + 1, 400.);                    /* 16674 */
+        if (*B > 200 && *B < 340) { *A = fmin(*A + 0.2, 16); shake((float)(0.2 * *A)); if (*B == 201) snd(388); }   /* 16676 / 16677 */
+        if (*B == 300) { snd(270); shake(20); }                                 /* 16678 */
+        if (*B > 340) *A = fmax(*A - 0.2, 0);                                   /* 16681 */
+        o->av[4] = *B >= 300 && *B < 365; o->hidden = 1;                         /* (shown while it fires: drawn by fd_gim_draw) */
+        o->fl &= ~F1;
+        if (*B >= 300 && *B < 365 && p->x > floorf(o->x) && p->x < floorf(o->x) + 256 && MY(p) < o->y + 8) o->fl |= F1;
+        if ((o->fl & F1) && vulnerable(p)) player_contact(p, 10);
+        set_s(o, *B >= 300 ? "fdg_ltun8" : "fdg_ltun0");
+    }
+}
+
 /* ================================================================ 15. fd2b's alarm (RE 15802, 15803, 15807, 15808, 15811)
  * The off-map ObjectSiren's A / B: 15802: A 0, MV.Y > 5340, global 4 (the checkpoint) < 2, not Milla (global 1 != 4): A 1 (the
  * warning subtitle: the flow's). 15803: A 1: B + 1. 15807: A 1 and B > 400, or A < 2 with the checkpoint in [2, 4), not Milla and
@@ -800,6 +830,8 @@ void fd_gim_spawn(void) {
     }
     EACH(OT_FDG_OSCAN, o) { set_s(o, "fdg_oscan1"); o->hidden = 1; }
     EACH(OT_FDG_LTPLAT, o) set_s(o, "fdg_ltplat");
+    EACH(OT_FDG_LTUNNEL, o) { set_s(o, "fdg_ltun0"); o->av[1] = 160; o->hidden = 1; }   /* on_frame_72_start: B 160 */
+    EACH(OT_FDG_LTGLASS, o) set_s(o, (o->par == 2) ? "fdg_ltg3" : (o->par == 1) ? "fdg_ltg2" : "fdg_ltg1");
     if (N(OT_FDG_LSWITCH) == 2 * N(OT_FDG_BIGLIFT)) {                           /* (INFERRED: each lift takes its two switches, by class) */
         int i1 = 0, i2 = 0;
         EACH(OT_FDG_LSWITCH, o) { int j = (o->par & 1) ? i2++ : i1++; if (j < N(OT_FDG_BIGLIFT)) o->tm = LST[OT_FDG_BIGLIFT - RT0][j]; }
@@ -828,6 +860,7 @@ void fd_gim_frame(player_t *p) {
     if (N(OT_FDG_LSWITCH)) lifts(p);                                             /* 15758-15768 */
     if (N(OT_FDG_TUBESHADE)) scenery();                                          /* 15667 */
     if (N(OT_FDG_BOOST)) boosters(p);                                            /* col_26_69, 16038 / 16039 */
+    if (N(OT_FDG_LTUNNEL)) tunnel(p);                                            /* 16674-16681 */
     if (N(OT_FDG_OBEAM)) orbits(p);                                              /* 16040-16046 */
     if (S.act == 4) siren(p);                                                    /* 15802-15811 */
     effects();
@@ -847,6 +880,13 @@ void fd_gim_draw(int pass) {
         int n = (int)ceil(b->av[0]);
         const frame_t *f = anim_frame(&b->an);
         for (int k = 0; k < n; k++) frame_draw_rot(b->an.b, f, sx + (float)(ux * 10 * k), sy + (float)(uy * 10 * k), b->ang, 0, 0xffffffff);
+    }
+    EACH(OT_FDG_LTUNNEL, b) {                                                   /* the firing tunnel: its 2-px line up the view (INFERRED) */
+        if (!b->av[4] || !b->an.b) continue;
+        float sx = floorf(b->x - G.camx), sy = floorf(b->y - G.camy);
+        if (sx < -260 || sx > SCREEN_W) continue;
+        const frame_t *f = anim_frame(&b->an);
+        for (float y = sy > SCREEN_H ? SCREEN_H : sy; y > -2; y -= 2) frame_draw(b->an.b, f, sx, y, 0, 0xffffffff);
     }
     EACH(OT_FDG_OSCAN, b) {                                                     /* the orbit rays: x scale 240 / 64 (INFERRED) */
         if (!b->an.b) continue;
