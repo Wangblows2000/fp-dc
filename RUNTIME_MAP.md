@@ -726,3 +726,19 @@ Demo discs print `demo f` every 600 frames (console output is slow; the report f
 - obj_near_view uses the bank's BOX1 whole-image box (D-113). Path-platform registry 24 entries (was 12).
 - Host: FP_BGB_BOT (boss bot), FP_F4B_* / FP_F3B_LIVES / FP_G4 (test knobs), FP_DBG_FDB / FP_DBG_TBQ, script RESBOSS /
   RESEND / ENDTRY / ENDSTATS.
+
+## Session 26b (gimmick gaps: pads, fd2b vacuum, JC5 rain)
+- Pads: levels.c PADS_TB4 / TH3 / BG2 / JC2 / JC3 / JC4 / FN4 / FN5 (RV dumps of the pad list), level_def_t.pads_inert (JC3);
+  carol_bike.inc keeps the pads' slots in a list at pads_spawn (pads_events / pad_by_A no longer scan every object) and logs an
+  on-map pad with no table row (host); obj_pop_crystal (objects.c, ITEMF_PIN) is the pads' crystal (PinballMovement 36 / 25).
+- fd2b: level_def_t.air_vacuum -> water.c air_vacuum_events (in water_events' slot, after shields_update) and water_draw_hud's
+  GUIAir / countdown digits without water; the siren state read is the previous frame's (fd_gim_siren_state, latched).
+  Patches only on Easy / Casual (fe_difficulty = global 12 >= 2). SFX_FD2B + 20, 91 (11025 Hz, trimmed).
+- JC5: jc_boss5.c rain_frame (before storm()) with a fixed 50-drop / 64-splash table; one runtime object OT_J5_RAIN (1506, layer 4
+  = drawn in objects_draw pass 2) draws them all; par_set_tint (parallax.c, the back pass and the water strip) for 11614's
+  layer-0 colour; the rain loop 293 on a looping channel (snd_loop_orig at spawn, volume each frame, muted by the pause, stopped
+  at the next level spawn). SFX_JC5 + 293 (11025 Hz, 12 s loop).
+- Host: FP_DBG_AIR (vac lines), FP_DBG_J5 adds "j5rain n vis spl skyC vol tint ch"; tests/test_gimmicks_m.py.
+- RV harness: GT (global 3) is not reset at fd2b's start (it carries the previous frame's count), so trace phases of GT % 60 /
+  % 120 events there depend on what ran before; JC5 resets it. Global 12 can be set before a restart (scratch rt2.sh: set
+  {double}(*(long*)0x285ec68 + 96)); set it back to 1 afterwards, the running game keeps it for the next trace.

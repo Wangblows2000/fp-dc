@@ -468,13 +468,88 @@ static void milla_box(const player_t *p) {
     box = mo; GN.boxT = 600;
 }
 
-/* 11618-11622: the storm. LevelDarkSky C counts up while the rain is on (> 40 drops: INFERRED always, the rain is not ported);
- * at C 10 the bolt shows (sound 292) at a random x in the view and up to 100 px above it, facing 0 / 16 at random; at C > 14 it
- * hides and C restarts at -100 - rand(300). (LevelDarkSky's own flash is a 10 x 10 image at world (0, 0): never seen.) */
+/* 11611-11617: the rain (session 26; RE, RV rain_l / rain_tp: the drop count). LevelRain_2526 drops (a 1 x 28 streak, hot spot
+ * (0, 27), json layer 5: in front of the play layer) are made one a frame (11611) while their count is below min(50, (MV.X - 200 +
+ * GT) / 120) (GT = the frame counter: the rain thickens as the player goes right, RV 50 a frame after a TP to x 9000), at x = view
+ * + (31 n mod G16) (n = the new count; G16 = the view width 426), A = view top - rand(200), B = 12 + rand(80) / 10. Each frame they
+ * wrap into the view +-10 horizontally (11612 / 11613: +- (426 + 20)), y = int(A), A += B (11614: they fall 12-20 px a frame), below
+ * the view + 40 they restart at view + rand(426), A = view top - rand(50), new B, shown (11615); one that crossed the water line
+ * (A > ML.C, not yet splashed) stops at y = ML.C, makes an EffectsWaterHit_756 there (alpha 192, anim 4 once: 10 frames, then
+ * destroyed by its flag 8) and hides (11616 / 11617). 11614 also tints layer 0 (LayerObject set_rgb: R = G = 255 - d, B 255 with
+ * d = clamp((MV.X - 400 + GT) / 25, 0, 255): the sky turns dark blue) and sets the volume of the rain loop 293 (channel 29, started
+ * by the start events) to clamp(2 n - 2, 0, 100). 11618 (below): LevelDarkSky C + 1 while n > 40. Cost: no objects; a fixed
+ * table, one pass a frame and one batched draw (OT_J5_RAIN). */
+#define NRAIN 50
+#define NSPL 64
+static struct {
+    int n, ns, ch, vol, tint;
+    float x[NRAIN]; double A[NRAIN], B[NRAIN]; int y[NRAIN]; unsigned char hit[NRAIN], vis[NRAIN];
+    float sx[NSPL], sy[NSPL]; signed char sf[NSPL];                     /* splashes: frame counter (-1 = free) */
+} RN = { .ch = -1 };
+static obj_t *rain_o;
+static short SA_RAIN = -1, SA_WHIT = -1;
+static int rain_vt(void) { return (int)G.camy; }
+static void rain_frame(player_t *p) {
+    int vl = (int)G.camx, vt = rain_vt(), t = G.frame;
+    double want = ((double)p->x - 200 + t) / 120; if (want > 50) want = 50;
+    if ((double)RN.n < want && RN.n < NRAIN) {                                   /* 11611 */
+        int k = RN.n++;
+        RN.x[k] = (float)(int)(vl + fmod((double)(RN.n * 31), (double)SCREEN_W));
+        RN.A[k] = (int)(vt - cross_rand(200)); RN.B[k] = cross_rand(80) * 0.1 + 12; RN.y[k] = 0; RN.hit[k] = 0; RN.vis[k] = 1;
+    }
+    for (int k = 0; k < RN.n; k++) {
+        if (RN.x[k] < vl - 10) RN.x[k] = (float)(int)(RN.x[k] + SCREEN_W + 20);   /* 11612 */
+        if (RN.x[k] > vl + SCREEN_W + 10) RN.x[k] = (float)(int)(RN.x[k] - SCREEN_W - 20);   /* 11613 */
+    }
+    for (int k = 0; k < RN.n; k++) { RN.y[k] = (int)RN.A[k]; RN.A[k] += RN.B[k]; }   /* 11614 */
+    int d = (int)(((double)p->x - 400 + t) / 25); if (d < 0) d = 0; if (d > 255) d = 255;
+    RN.tint = (255 - d) << 16 | (255 - d) << 8 | 0xff; par_set_tint((uint32_t)RN.tint);
+    RN.vol = 2 * RN.n - 2; if (RN.vol < 0) RN.vol = 0; if (RN.vol > 100) RN.vol = 100;
+    if (RN.ch >= 0) snd_loop_update(RN.ch, RN.vol * 255 / 100, 0);
+    for (int k = 0; k < RN.n; k++) if (RN.y[k] > vt + SCREEN_H + 40) {          /* 11615 */
+        RN.x[k] = (float)(vl + cross_rand(SCREEN_W));
+        RN.A[k] = (int)(vt - cross_rand(50)); RN.B[k] = cross_rand(80) * 0.1 + 12; RN.vis[k] = 1; RN.hit[k] = 0;
+    }
+    for (int k = 0; k < RN.n; k++) if (RN.hit[k] && RN.vis[k]) RN.vis[k] = 0;   /* 11616 */
+    double mlc = water_on() ? water_c() : 1e9;
+    for (int k = 0; k < RN.n; k++) if (RN.A[k] > mlc && !RN.hit[k]) {          /* 11617 */
+        RN.y[k] = (int)mlc;
+        for (int s = 0; s < NSPL; s++) if (RN.sf[s] < 0) { RN.sx[s] = RN.x[k]; RN.sy[s] = (float)RN.y[k]; RN.sf[s] = 0; break; }
+        RN.hit[k] = 1; RN.A[k] = mlc;
+    }
+    for (int s = 0; s < NSPL; s++) if (RN.sf[s] >= 0 && ++RN.sf[s] > 10) RN.sf[s] = -1;   /* anim 4: 5 images at speed 50, then destroyed */
+}
+static void rain_draw(void) {
+    int ar = SA_RAIN, aw = SA_WHIT;
+    if (ar >= 0) {
+        const anim_t *an = &G.ens.anims[ar];
+        const frame_t *f = &G.ens.frames[G.ens.seq[an->first]];
+        for (int k = 0; k < RN.n; k++) if (RN.vis[k]) {
+            float sx = RN.x[k] - floorf(G.camx), sy = (float)RN.y[k] - floorf(G.camy);
+            if (sx < -2 || sx > SCREEN_W + 2 || sy < 0 || sy > SCREEN_H + 30) continue;
+            frame_draw(&G.ens, f, sx, sy, 0, 0xffffffff);
+        }
+    }
+    if (aw >= 0) {
+        const anim_t *an = &G.ens.anims[aw];
+        for (int s = 0; s < NSPL; s++) if (RN.sf[s] >= 0) {
+            int fi = RN.sf[s] / 2; if (fi >= an->count) fi = an->count - 1;
+            float sx = RN.sx[s] - floorf(G.camx), sy = RN.sy[s] - floorf(G.camy);
+            if (sx < -16 || sx > SCREEN_W + 16 || sy < -16 || sy > SCREEN_H + 16) continue;
+            frame_draw(&G.ens, &G.ens.frames[G.ens.seq[an->first + fi]], sx, sy, 0, 0xc0ffffff);   /* ctor blend alpha 0xc0 */
+        }
+    }
+}
+void jc_boss5_rain_mute(void) { if (RN.ch >= 0) snd_loop_update(RN.ch, 0, 0); }   /* the pause (Media::pause_samples) */
+int  jc_boss5_rain_count(void) { return on ? RN.n : 0; }
+
+/* 11618-11622: the storm. LevelDarkSky C counts up while the rain has more than 40 drops (11618); at C 10 the bolt shows (sound
+ * 292) at a random x in the view and up to 100 px above it, facing 0 / 16 at random; at C > 14 it hides and C restarts at
+ * -100 - rand(300). (LevelDarkSky's own flash is a 10 x 10 image at world (0, 0): never seen.) */
 static obj_t *bolt, *fadeo;
 static void storm(void) {
     if (!bolt || !bolt->alive || bolt->type != OT_J5_BOLT) return;
-    GN.skyC += 1;
+    if (RN.n > 40) GN.skyC += 1;                                                 /* 11618 */
     if (GN.skyC == 10) {
         GN.skyC = 11;
         snd_play_orig(292, 220, 128);
@@ -488,11 +563,14 @@ static void storm(void) {
 
 /* ======================================================================== spawn / dispatch */
 static void snap_once(void) { static int reg; if (!reg) { reg = 1; snap_register(&GN, sizeof GN); snap_register(RT, sizeof RT); snap_register(&nrt, sizeof nrt);
-                                                  snap_register(&bolt, sizeof bolt); snap_register(&box, sizeof box); snap_register(&fadeo, sizeof fadeo); } }
+                                                  snap_register(&bolt, sizeof bolt); snap_register(&box, sizeof box); snap_register(&fadeo, sizeof fadeo);
+                                                  snap_register(&RN, sizeof RN); snap_register(&rain_o, sizeof rain_o); } }
 void jc_boss5_spawn(void) {
     snap_once();
     memset(L, 0, sizeof L); memset(&GN, 0, sizeof GN); mark_b = -1;
-    on = 0; nrt = 0; bolt = box = fadeo = NULL; G.slowmo = 0;
+    on = 0; nrt = 0; bolt = box = fadeo = rain_o = NULL; G.slowmo = 0;
+    if (RN.ch >= 0) snd_loop_stop(RN.ch);
+    memset(&RN, 0, sizeof RN); RN.ch = -1; memset(RN.sf, -1, sizeof RN.sf);
     for (int t = OT_JCB5_FIRST; t <= OT_J5_LAST && !on; t++) if (objects_have(t)) on = 1;
     if (!on) return;
     for (int k = 0; k < GS_N; k++) SA[k] = (short)ens_anim(SN[k]);
@@ -538,8 +616,11 @@ void jc_boss5_spawn(void) {
     for (int k = 0; k < count(OT_J5_GUN_TROOPER); k++) { obj_t *o = get(OT_J5_GUN_TROOPER, k); if (o) o->av[0] = k * 40 - 20; }   /* 11651: A = 40 k - 20 */
     bolt = spawn(OT_J5_BOLT, GS_BOLT, 0, 0, 0);                                  /* LevelLightningBolt (json layer 1): hidden (ctor) */
     if (bolt) bolt->hidden = 1;
-    GN.skyC = -98;                                                               /* LevelDarkSky C (ctor 0) counts once the rain has > 40 drops:
-                                                                                    * the rain is not ported, its fill time is (RV: the first bolt at 108 in every trace) */
+    GN.skyC = 0;                                                                 /* LevelDarkSky C (ctor 0): counts once the rain has > 40 drops (11618) */
+    SA_RAIN = (short)ens_anim("j5_rain"); SA_WHIT = (short)ens_anim("waterhit");
+    rain_o = spawn(OT_J5_RAIN, -1, 0, 0, 4);                                     /* the drops' batch (json layer 5: drawn in pass 2) */
+    if (rain_o && SA_RAIN >= 0) anim_set(&rain_o->an, &G.ens, SA_RAIN);
+    RN.ch = snd_loop_orig(293, 0, 0);                                            /* start events: play_id(293, channel 29, loop) */
 }
 void jc_boss5_pre(player_t *p) { (void)p; }
 void jc_boss5_frame(player_t *p) {
@@ -550,11 +631,14 @@ void jc_boss5_frame(player_t *p) {
         for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == OT_MON_RINGS && &G.o[i] == box) nb = 1;
         printf("j5 s %d L %.0f E %.0f D %.0f F %.0f A %.0f hd %.0f sm %d pd %.0f cl %d fd %d res %d el %d box %d px %.0f\n", fn_boss_serp_jc5(), GN.Lst, GN.E, GN.D,
                GN.hitF, h ? h->A : -1, GN.hitD, G.slowmo, GN.platD, GN.closing, GN.fade, GN.results, ne, nb, p->x);
+        if (on) { int nv = 0, nsp = 0; for (int k = 0; k < RN.n; k++) nv += RN.vis[k]; for (int k = 0; k < NSPL; k++) nsp += RN.sf[k] >= 0;
+                  printf("j5rain n %d vis %d spl %d skyC %.0f vol %d tint %06x ch %d\n", RN.n, nv, nsp, GN.skyC, RN.vol, RN.tint, RN.ch); }
     }
 #endif
     if (!on) return;
     float y;
     if (!GN.on && fn_boss_serp_falling(&y) && y > GN.P + 800) gunship_start(p);   /* 11283 (gunship y = E: still the placed one) */
+    rain_frame(p);                                                               /* 11611-11617 */
     storm();                                                                     /* 11618-11622 */
     if (GN.on) { gunship_frame(p); projectiles(p); milla_box(p); ending(p); }
     if (GN.fade > 0 && !fadeo) fadeo = spawn(OT_J5_FADE, -1, 0, 0, 7);
@@ -591,6 +675,7 @@ int jc_boss5_draw_obj(const obj_t *o, int pass) {
             if (GN.fade > 0) r_rect(0, 0, SCREEN_W, SCREEN_H, ((uint32_t)GN.fade << 24) | 0xf8fcf8);
             return 1;
         }
+        if (o->type == OT_J5_RAIN) { rain_draw(); return 1; }
         if (o->type == OT_J5_GLOW) { r_set_additive(1); draw1(o, 0xffffffff); r_set_additive(0); return 1; }   /* shader (INFERRED add) */
         draw1(o, 0xffffffff);
         return 1;

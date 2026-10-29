@@ -587,3 +587,20 @@ Labels: original-trace (RV), RE, host-test, emulator (Flycast, emulated time). *
   steady play, update up to ~9.5 ms (BG5). **Emulator only.**
 - PC port (branch pc-port): Linux under Xvfb 65/65 sampled frames identical to the host harness, 29 levels x 30 frames
   identical; Wine 9.0 (i686 exe) 60/65 identical (5 title frames: Windows sinf/cosf); saves reload; draw 2-4 ms a frame.
+
+## Session 26b (2026-10-29): gimmick gaps 2 / 4 / 12 (jump pads, fd2b vacuum, JC5 rain)
+- Regression after rebasing on cca721f: 48 suites (the affected TB / TH / BG / JC / FN / FD / PL / SB suites, test_late_gimmicks,
+  test_carol, test_milla, test_gameplay, test_levels, test_aqua, test_dv_fixes, test_route_matrix, test_gimmicks_m): 0 failures;
+  host and Dreamcast builds 0 warnings.
+- tests/test_gimmicks_m.py: 50 checks, 0 failures; against master's code and data 48 fail (the 2 that pass are "Milla never gets
+  the alarm" and "left-behind crystals stay", vacuous there). test_jc_act5's storm check now teleports as its RV traces did.
+- Comparers (tools/orig/cmp_carol.py, LEVEL=tb4 / bg2): c_jumppad_tb4 X / Y / B / L / M 104 / 104, c_jumppad_bg2 X / Y / L / M
+  134 / 134 (G as c_jumppad_dv2's known ride G); sounds match except TB4's door 280 and BG2's 102 (not pad sounds).
+- Host renders vs the original's screenshots: TB4 floor / ceiling pads, TH3 / JC2 wall pads, FN4, JC3 (lit, 90 degrees), the JC5
+  rain over the cliffs and its splashes, fd2b's GUIAir icon and countdown digit: same sprites and places.
+- Rebuilt with the merged importer: th3, jc2-jc5, fn4, fn5, fd2b (texture bytes unchanged in each: the new rows fit the atlases).
+- Flycast (tests/play/s26_gimmicks_m_vram.txt, Carol / Milla / Lilac): VRAM free th3 2044 / 2212 / 2572, tb4 2483 / 2651 / 3011,
+  bg2 1876 / 2044 / 2404, jc2 596 / 764 / 1125, jc3 596 / 764 / 1125, jc4 2031 / 2199 / 2559, jc5 653 / 821 / 1181, fn4 1593 /
+  1825 / 2057, fn5 953 / 1185 / 1417, fd2b 1454 / 1622 / 1982 KB (= the earlier sessions' numbers: no texture growth). Sound RAM
+  largest free block: jc5 238 (Carol) / 261 (Milla), fd2b 225 / 206, every other act >= 194 KB. Stage groups (own ids): JC5
+  143.5 -> 209.6 KB (+ 293, the 12 s rain loop), FD2B 146.1 -> 164.1 KB (+ 20, 91). **Emulator only.**
