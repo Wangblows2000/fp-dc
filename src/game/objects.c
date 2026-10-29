@@ -130,6 +130,7 @@ void objects_spawn(void) {
     for (int i = 0; i < G.lvl.nobj; i++) { const lvobj_t *lo = &G.lvl.objs[i];
         if (lo->type < MAX_OT && lo->x >= 0 && lo->y >= 0) have_type[lo->type >> 3] |= (uint8_t)(1 << (lo->type & 7)); }
     cards_spawn_all();
+    geyser_fx_reset();                                      /* DV2 / DV3 geyser eruptions: plate list (gimmicks.c) */
     pads_spawn();                                 /* jump pads: index, angle, chain end, lit (spec_carol_bike C2) */
     layers_refresh(&G.p);
     bosses_spawn();
@@ -181,14 +182,18 @@ static void plat_params(int t, double *F, double *Gm) {
     else { int k = plat_x_of(t); if (k >= 0) { *F = plat_x[k].F; *Gm = plat_x[k].G; } else { *F = 1; *Gm = 10; } }
 }
 static int plat_x_present(void) { for (int k = 0; k < nplat_x; k++) if (objects_have(plat_x[k].type)) return 1; return 0; }
-static int plat_dip(int t) { int k = plat_x_of(t); return k < 0 || plat_x[k].dip; }   /* q12 members (the dip and the one-way flags) */
-static int plat_ow(int t) { int k = plat_x_of(t); return k < 0 || plat_x[k].ow; }     /* q12 members whose frame runs 4737 / 4738 */
+/* DV fixes: LevelGeyserPlate_994 is in q13 only (RE on_frame_22_init: q13 = {MasterGroupsA, Valley1, +0x9870}, q12 = {MasterGroupsA,
+ * spring +0x58b0, Valley1, log mask +0x9a70}; DV3 the same, spec_dv3_gimmicks): no dip and no one-way flags 4737 / 4738, so its flag 6
+ * (4961 at E 180, 4969 above 240) is never cleared: RV gey_off / gey_on, the plate carries the player only until its first eruption */
+static int plat_dip(int t) { int k = plat_x_of(t); return t != OT_GEYSER && (k < 0 || plat_x[k].dip); }   /* q12 members (the dip and the one-way flags) */
+static int plat_ow(int t) { int k = plat_x_of(t); return t != OT_GEYSER && (k < 0 || plat_x[k].ow); }     /* q12 members whose frame runs 4737 / 4738 */
 static double p_cos(double n) { return (n == 90. || n == 270.) ? 0. : fd_cos(n / 57.29577951308232); }   /* Chowdren cos: 0 at exactly 90 / 270 */
 static int box_hits_disc27(float bx, float by, float bw, float bh, int px, int py) {   /* Player_326: 27-px disc at (int X, int Y) */
     float cx = fmaxf(bx, fminf((float)px, bx + bw - 1)), cy = fmaxf(by, fminf((float)py, by + bh - 1));
     float dx = cx - px, dy = cy - py;
     return dx * dx + dy * dy <= 13.5f * 13.5f;
 }
+int obj_box_hits_disc27(float bx, float by, float bw, float bh, int px, int py) { return box_hits_disc27(bx, by, bw, bh, px, py); }
 /* comparison harness: the original's platforms have run n frames before its trace frame 0 */
 void objects_plat_pretick(int n) {
     for (int i = 0; i < G.nobjs; i++) {
@@ -234,7 +239,8 @@ void objects_platforms(player_t *p) {
         }
         double L = o->fx;                                         /* 3283: L = N */
         o->vx = (float)fmod(o->vx + F, 360.);
-        if (o->type == OT_GEYSER && fmod(o->vx, 360.) > 240) { o->vx = (float)fmod(o->vx + 2, 360.); o->fl |= 0x40; }   /* 4969: fast phase, no carry */
+        if (o->type == OT_GEYSER && fmod(o->vx, 360.) > 240) o->fl |= 0x40;   /* 4969: no carry in the fast phase (its E += 2 comes after
+                                                                            * the y and the events 4961-4968: geyser_events, DV fixes) */
         if (kx >= 0 && (plat_x[kx].B != 0 || plat_x[kx].C != 0)) {   /* 3283-3285, 3288: X = floor(M), M = I + C cos|sin A */
             double K = o->ky; o->kx = fmod(o->kx + (own ? o->av[6] : plat_x[kx].B), 360.); if (o->kx < 0 && !own) o->kx += 360.;
             double M = o->ox + plat_x[kx].C * (plat_x[kx].D ? p_sin(o->kx) : p_cos(o->kx));
@@ -247,6 +253,7 @@ void objects_platforms(player_t *p) {
     }
     /* 4061: carry / snap onto a moving platform (G >= 0, BottomBig 1 px lower, flag 6 of last frame off) */
     if (p->vy >= 0 || p->ground) {
+        int carried = 0;
         for (int ti = OT_PLAT_VALLEY; ti <= OT_PLAT_MOVE3 + nplat_x; ti++) {
             int t = ti <= OT_PLAT_MOVE3 ? ti : plat_x[ti - OT_PLAT_MOVE3 - 1].type;
             if (ti > OT_PLAT_MOVE3 && !objects_have(t)) continue;
@@ -258,7 +265,21 @@ void objects_platforms(player_t *p) {
             p->vy = 0; p->N = 0; p->O = 0;
             player_sync_sensors(p);
             PY = (int)MY;
+            carried = 1;
             break;
+        }
+        /* geyser plates are q13 members too (RE on_frame_22..24_init) but in no sensor group: tested from their list (gimmicks.c);
+         * their flag 6, set at the first eruption and never cleared, ends the carry for good (RV gey_off / gey_on) */
+        const short *gl; int gn = geyser_plates(&gl);
+        for (int j = 0; j < gn && !carried; j++) {
+            obj_t *o = &G.o[gl[j]];
+            if (!o->alive || o->type != OT_GEYSER || (o->fl & 0x40) || !mv_sensor_on(p->x, MY + 1, p->N, SENSOR_BOTTOMBIG, o)) continue;
+            p->y += o->dir; MY = p->y - ORIG_REF_DY;
+            if (!p->ground) { p->gsp = p->vx; p->ground = 1; }
+            p->vy = 0; p->N = 0; p->O = 0;
+            player_sync_sensors(p);
+            PY = (int)MY;
+            carried = 1;
         }
     }
     for (int i = 0; i < G.nobjs; i++) {                           /* 4737 / 4738 */
@@ -294,17 +315,6 @@ void objects_platforms(player_t *p) {
             lg->fy += (lg->fx - lg->fy) * 0.2f;                   /* 3298 */
             if (over) lg->y = (float)(int)(lg->oy + lg->fy);      /* 3300 */
         }
-    }
-    /* 4968: a geyser in its launch window (180 < E < 240) throws Lilac up: M = 40, L = 0, G = (E - 180) 0.1 - 14 */
-    for (int i = 0; i < G.nobjs; i++) {
-        obj_t *o = &G.o[i];
-        if (!o->alive || o->type != OT_GEYSER || !o->an.b || p->state == ST_DEAD) continue;
-        double E = fmod(o->vx, 360.);
-        if (!(E > 180 && E < 240)) continue;
-        const frame_t *f = anim_frame(&o->an);
-        if (!box_hits_disc27(floorf(o->x) - f->hx, floorf(o->y) - f->hy, f->w, f->h, (int)p->x, (int)(p->y - ORIG_REF_DY))) continue;
-        if (p->ground) { p->vx = p->gsp; p->ground = 0; }
-        p->vy = (E - 180) * 0.1 - 14; p->springing = 1; if (p->state != ST_BOOST) p->state = ST_NORMAL;
     }
     /* 3303 / 3304 / 3307: dip while stood on */
     for (int i = 0; i < G.nobjs; i++) {
@@ -392,16 +402,21 @@ static void set_anim_keep(obj_t *o, int a) {         /* force_animation: frame 0
     if (o->an.b != &G.objs || o->an.anim != a) { int acc = o->an.acc; anim_set(&o->an, &G.objs, a); o->an.acc = acc; }
 }
 
-void obj_spawn_pellet(float x, float y, int dir);
-static void spawn_pellet(float x, float y, int dir) { obj_spawn_pellet(x, y, dir); }
-void obj_spawn_pellet(float x, float y, int dir) {
+/* RE: every EnemyPellet creator (Turretus 4773, Wretchnid turret 4856-4860, TB / JC / SB / BG shooters) adds the pellet with
+ * Frame::add_object(pellet, <the creator's layer>), i.e. at the end of that layer, in front of the layer's backdrops. The port
+ * left o->layer at 0, so pellets were drawn in the layer-0/1 pass, before the play layer's pieces: wherever a layer-2 backdrop
+ * stands behind the shooter (DV1's whole Wretchnid arena is dvbackwall) the pellets were invisible but still hurt (DV fixes). */
+obj_t *obj_spawn_pellet(float x, float y, int dir, int layer) {
     obj_t *e = alloc_obj();
-    if (!e) return;
+    if (!e) return NULL;
     e->type = OT_PELLET; e->alive = 1; e->x = floorf(x); e->y = floorf(y); e->fx = e->fy = 0; e->born = G.frame;
+    e->layer = (uint8_t)layer;
     float a = (float)(dir & 31) * 11.25f * 3.14159265f / 180.f;   /* PinballMovement::set_direction */
     e->vx = PELLET_SPEED * (float)fd_cos(a); e->vy = -PELLET_SPEED * (float)fd_sin(a);
     if (A_PELLET >= 0) anim_set(&e->an, &G.objs, A_PELLET);
+    return e;
 }
+static void spawn_pellet(const obj_t *by, float x, float y, int dir) { obj_spawn_pellet(x, y, dir, by->layer); }
 
 /* PinballMovement::update (RE; floor split of the position reproduces the logged path exactly):
  * vy += gravity/10; speed = |v| (<= 100); position += v/10 with the fraction carried */
@@ -512,10 +527,12 @@ static int item_in_reach(const obj_t *o, const player_t *p, int up) {
     return cx >= ix - 19 && cx <= ix + 19 && cy >= iy - up && cy <= iy + 19;
 }
 
-static void explode2(float x, float y) {
+static void explode2(const obj_t *pel) {
+    float x = pel->x, y = pel->y; uint8_t layer = pel->layer;   /* read first: the dead pellet's slot may be the one reused */
     obj_t *e = alloc_obj();
     if (!e) return;
     e->type = OT_EXPLODE; e->alive = 1; e->x = x; e->y = y;
+    e->layer = layer;               /* RE col_4_20 / col_20_20: add_object(explosion02, the pellet's layer) (was layer 0: behind the decor) */
     if (A_EXPLODE2 >= 0) anim_set(&e->an, &G.objs, A_EXPLODE2);
     else if (A_EXPLODE >= 0) anim_set(&e->an, &G.objs, A_EXPLODE);
     /* RE col_4_20 / col_7_20 / col_20_20 (pellet vs the sensor, Q7, the background): explosion02 + Media slot 136/8 = sound 17
@@ -538,7 +555,7 @@ static void turretus_events(obj_t *o, const player_t *p, float bx0, float by0, f
     if (o->st == 1) set_anim_keep(o, A_TURR[2 + L]);                                   /* 4772 */
     if (o->st == 1 && o->an.anim == A_TURR[2 + L] && o->an.frame == TURR_FIRE_FRAME) { /* 4773 */
         snd_play_orig(28, 220, 128);
-        spawn_pellet(o->x + (L ? -18.f : 18.f), o->y - 14.f, o->dir);   /* action point (RE image data) */
+        spawn_pellet(o, o->x + (L ? -18.f : 18.f), o->y - 14.f, o->dir);   /* action point (RE image data) */
         o->st = 2;
     }
     if (o->st == 2 && (o->an.anim != A_TURR[2 + L] || o->an.done)) o->st = 0;          /* 4774 */
@@ -753,6 +770,18 @@ void obj_hang_try(obj_t *o, player_t *p) {
         p->hang_obj = (int)(o - G.o); p->hang_px = o->x; p->hang_py = o->y;
     }
 }
+/* an effect added to a given layer (the original's add_object(effect, <creator's layer>)): the objects-bank path of obj_effect
+ * leaves layer 0, which the play layer's pieces cover (DV fixes: the Wretchnid's burst over the arena's dvbackwall) */
+obj_t *obj_effect_l(float x, float y, const char *anim, int layer) {
+    int a = bank_anim(&G.objs, anim); const bank_t *b = &G.objs;
+    if (a < 0) { a = ens_anim(anim); b = &G.ens; }
+    if (a < 0) return NULL;
+    obj_t *e = alloc_obj();
+    if (!e) return NULL;
+    e->type = OT_EXPLODE; e->alive = 1; e->x = x; e->y = y; e->layer = (uint8_t)layer;
+    anim_set(&e->an, b, a);
+    return e;
+}
 void obj_effect(float x, float y, const char *anim) {
     int a = bank_anim(&G.objs, anim);
     if (a >= 0) { spawn_effect(x, y, a); return; }
@@ -802,6 +831,10 @@ static int side_sensor_break(const player_t *p, const obj_t *o) {
 void objects_update(void) {
     upd_stamp++;
     player_t *p = &G.p;
+    /* geyser plates 4961-4969 (gimmicks.c), after Lilac's movement: RV gey_on, the frame after the eruption she is first snapped
+     * back onto the rim, then launched from it (G -13.8, no movement in that frame); the dust is created before this frame's
+     * animation tick, as the original's events precede the next update_objects */
+    geyser_events(p);
     float px0 = p->x - 7, px1 = p->x + 7, py0 = p->y - 30, py1 = p->y;
     int dead = p->hp <= 0;
     static uint8_t act[MAX_OBJS];
@@ -822,7 +855,7 @@ void objects_update(void) {
          * update_objects, then events) */
         if (o->type == OT_PELLET && o->born == G.frame) continue;
         if (o->type == OT_PELLET) pellet_move(o);                 /* update_objects: movement, then animation */
-        anim_tick(&o->an, (o->type == OT_AXEL1 || o->type == OT_AXEL2 || o->type == OT_AXEL1P || o->type == OT_AXEL2P || (o->type == OT_SB_SPADE && o->c > 0) || (o->type == OT_THB_CROWD && o->c > 0)) ? o->c : -1);   /* AT axels: speed set by 4085 / 4519; SB2 Spade: force_speed (sb_spade.c); TH3 crowd (th_boss_arena.c 14047) */
+        anim_tick(&o->an, (o->type == OT_AXEL1 || o->type == OT_AXEL2 || o->type == OT_AXEL1P || o->type == OT_AXEL2P || (o->type == OT_SB_SPADE && o->c > 0) || (o->type == OT_THB_CROWD && o->c > 0) || (o->type == OT_EXPLODE && o->par == 4967)) ? o->c : -1);   /* AT axels: speed set by 4085 / 4519; SB2 Spade: force_speed (sb_spade.c); TH3 crowd (th_boss_arena.c 14047) */
         act[i] = 1;
     }
     /* test_collisions: enemies absorb free crystals (col_3_13 + 1290 + 2546) */
@@ -934,11 +967,15 @@ void objects_update(void) {
              * her reference point) unless she is invulnerable; it is destroyed with effectsexplosion02 */
             /* (RV: the hit frames of hurt_turretus & co. are matched with the unfloored X and the pellet's whole
              * image box; the original tests the masks, not reproduced yet) */
-            if (!dead && !player_invincible(p) && overlap(p->x - 7, p->y - 48, p->x + 8, p->y - 2, bx0, by0, bx1, by1)) {
-                player_damage(p, PELLET_DAMAGE); o->alive = 0; explode2(o->x, o->y); break;
+            /* DV fixes: the pellet's image mask (a 12-px disc in its 16x16 frame) against the sensor box at (int X, int Y): RV
+             * wn_pel (the Wretchnid's first shot passes 2 px in front of Lilac's sensor at f219 and hits at f220; the whole
+             * 16x16 box with the unfloored X hit one frame early) and the Turretus traces of cmp_all */
+            int sx = (int)floorf(p->x), sy = (int)floorf(p->y - ORIG_REF_DY);
+            if (!dead && !player_invincible(p) && obj_rect_hit(o, sx - 7, sy - 34, sx + 8, sy + 12)) {
+                player_damage(p, PELLET_DAMAGE); o->alive = 0; explode2(o); break;
             }
             /* INFERRED: removed on solid ground or well outside the view (destroy events not yet recovered) */
-            if (solid_at(&G.lvl, o->x, o->y)) { o->alive = 0; explode2(o->x, o->y); break; }
+            if (obj_overlaps_bg(o)) { o->alive = 0; explode2(o); break; }
             if (o->x < G.camx - 400 || o->x > G.camx + SCREEN_W + 400 || o->y > G.camy + SCREEN_H + 400) o->alive = 0;
             break;
         }

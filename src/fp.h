@@ -771,8 +771,10 @@ int  enemy_type(int type);
 int  obj_rect_hit(const obj_t *o, int rx0, int ry0, int rx1, int ry1);
 int  obj_obj_hit(const obj_t *a, const obj_t *b);
 int  obj_rows_hit(const obj_t *o, int ox, int oy, const signed char *x0, const signed char *x1, int h);
+int  mv_sensor_on(double X, double Y, double N, int sensor, const obj_t *o);   /* a player sensor placed at (X, Y, N) on one object (sensors.c; no slot scan) */
 obj_t *obj_alloc(void);
 void   obj_effect(float x, float y, const char *anim);
+obj_t *obj_effect_l(float x, float y, const char *anim, int layer);   /* the same on a given layer (objects bank, then _ens) */
 void   obj_explode(float x, float y);
 void   obj_drop_crystal(float x, float y, int S);
 void   obj_launch_crystal(float x, float y, int dir);
@@ -783,7 +785,7 @@ int    objects_add_crystals(player_t *p, int n);       /* n crystals into the HU
 int    obj_overlaps_bg(const obj_t *o);
 int  objects_mask_hit_groups(const obj_t *m, int obstacle_top);   /* m on a SOLID (or OBSTACLE, not above) group object */
 int    obj_in_group(int type, int grp);
-void   obj_spawn_pellet(float x, float y, int dir);
+obj_t *obj_spawn_pellet(float x, float y, int dir, int layer);   /* EnemyPellet_934 on its creator's layer (RE 4773 / 4856-4860 add_object(.., creator layer)) */
 void   bosses_spawn(void), bosses_update(player_t *p), bosses_draw(void);
 void   tredd_bomb_update(obj_t *o, player_t *p);
 void   results_reset(void), results_begin(int pathB), results_draw(void);
@@ -1002,6 +1004,8 @@ typedef struct {
     /* session 24 (Battle Glacier, spec_bg_flow) */
     int music_fade_g4;                               /* > 0: the act start fades the music out (fadeout_music(2000)) while g4 < this, plays slot 5
                                                         from it on (BG4 14607 / 14608: silent until its opening Brevon mech is beaten, g4 5) */
+    int geyser_fx;                                   /* the frame runs the geyser eruption events 4961-4967 (DV2 / DV3: burst, sound 44,
+                                                        rising dust or bubbles; gimmicks.c geyser_fx; DV fixes) */
     int exit_hold;                                   /* > 0: an exit stops the world this many frames before the fade (FD4a 16721 / 16723:
                                                         group 0x21a5d off and Sign flag 8, the fade at Sign.B > 100; session 24) */
 } level_def_t;
@@ -1208,6 +1212,7 @@ typedef struct { double E, C, I, J, CUT, RO, RP, D; } phys_w_t;   /* D: MV.D spe
 extern phys_w_t phys_w;
 void   phys_set_water(int h);              /* 1543-1548: the constant tables at the start of the frame */
 void   water_reset(void), water_events(player_t *p), water_draw_tint(void), water_draw_front(void), water_draw_hud(void);
+void   water_geyser_bubble(float x, float y, double d, float scale);   /* 4964 / 4966: a MediumBubble from an underwater geyser */
 int    water_on(void);
 double water_c(void);                      /* ML.C (visual surface) */
 double water_line_get(void); void water_line_set(double b);   /* ML.B now / moved by a frame's events (0: back to the level data; TB5 levers) */
@@ -1220,6 +1225,9 @@ void   obj_throw_petal(float x, float y);
 extern int objects_mon_ghost;           /* RE 1581: monitors non-solid for the sensors (M5 / M6) */
 int    player_core_nov(player_t *p);      /* one movement pass with MV.U = 0 */
 void   cards_spawn_all(void), card_update(obj_t *o, player_t *p);
+int    geyser_plates(const short **list);      /* the slots of the act's LevelGeyserPlates (gimmicks.c) */
+void   geyser_fx_reset(void), geyser_events(player_t *p);   /* geyser plates: DV2 / DV3 eruptions 4961-4967, launch 4968, fast phase 4969 (gimmicks.c) */
+int    obj_box_hits_disc27(float bx, float by, float bw, float bh, int px, int py);   /* the 27-px disc of Player_326 at (int X, int Y) on a box */
 int    cards_commit(void), card_recorded(int id);
 void   wlogs_spawn(void), wlogs_update(const player_t *p), dv3_switch_spawn(void), dv3_switch_update(player_t *p);
 void   trunks_update(player_t *p), bamboo_update(player_t *p), pblock_box(const obj_t *b, int *x1, int *y1, int *x2, int *y2);

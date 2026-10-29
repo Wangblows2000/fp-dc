@@ -11,7 +11,6 @@
  * exactly this rounding), exact 0 at 180 / 90 / 270 */
 static double c_sin(double deg) { return deg == 180. ? 0. : fd_sin(deg / 57.29577951308232); }
 static double c_cos(double deg) { return (deg == 90. || deg == 270.) ? 0. : fd_cos(deg / 57.29577951308232); }
-static obj_t *first_of(int type) { for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == type) return &G.o[i]; return NULL; }
 static void set_ens(obj_t *o, const char *name) { int a = ens_anim(name); if (a >= 0) anim_set(&o->an, &G.ens, a); }
 static void box_of(const obj_t *o, float *x0, float *y0, float *x1, float *y1) {
     if (!o->an.b) { *x0 = *x1 = o->x; *y0 = *y1 = o->y; return; }
@@ -29,11 +28,13 @@ static struct {
     double A, B, C; int E;                 /* Base phase, y (double), amplitude, direction */
     int turretA, baseG, railG, weakF, weakBlink;
     double legA[12], legB[12], legC[12];
+    short ibase, itur, iweak, ileg[12];   /* slots indexed once at spawn (no per-frame object scans; -1: not placed) */
 } WR;
+static obj_t *wr_slot(int i, int type) { return i >= 0 && i < G.nobjs && G.o[i].alive && G.o[i].type == type ? &G.o[i] : NULL; }
 static const double LEG0[12] = { 210, 270, 0, 150, 90, 0, 330, 270, 180, 30, 90, 180 };   /* 4853 base angles: L1-6, R1-6 */
 static const int LEGSGN[12] = { 1, -1, -1, 1, -1, -1, 1, -1, -1, 1, -1, -1 };
 static const double BURSTV[12][2] = { {-3,-5}, {-2,-4}, {-1,-2}, {-6,-5}, {-5,-4}, {-4,-2}, {3,-5}, {2,-4}, {1,-2}, {6,-5}, {5,-4}, {4,-2} };
-static obj_t *leg(int k) { for (int i = 0; i < G.nobjs; i++) if (G.o[i].alive && G.o[i].type == OT_WR_LEG + k) return &G.o[i]; return NULL; }
+static obj_t *leg(int k) { return wr_slot(WR.ileg[k], OT_WR_LEG + k); }
 /* rotated action point of a 32 px segment: joint + (int)(32 cos A, -32 sin A) (INFERRED rounding, spec §4) */
 static void seg_tip(const obj_t *o, float *x, float *y) {
     double a = o->ang;
@@ -42,18 +43,20 @@ static void seg_tip(const obj_t *o, float *x, float *y) {
 }
 static void wr_spawn(void) {
     memset(&WR, 0, sizeof WR); WR.E = 1;
+    WR.ibase = WR.itur = WR.iweak = -1; for (int k = 0; k < 12; k++) WR.ileg[k] = -1;
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i];
         if (!o->alive) continue;
         switch (o->type) {
-        case OT_WR_BASE: set_ens(o, "wr_base"); break;
-        case OT_WR_TURRET: set_ens(o, "wr_turret"); o->dir = 0; break;
-        case OT_WR_WEAK: set_ens(o, "wr_weak"); o->A = 50; o->bd = 0; break;
+        case OT_WR_BASE: set_ens(o, "wr_base"); if (WR.ibase < 0) WR.ibase = (short)i; break;
+        case OT_WR_TURRET: set_ens(o, "wr_turret"); o->dir = 0; if (WR.itur < 0) WR.itur = (short)i; break;
+        case OT_WR_WEAK: set_ens(o, "wr_weak"); o->A = 50; o->bd = 0; if (WR.iweak < 0) WR.iweak = (short)i; break;
         case OT_WR_RAIL: set_ens(o, "wr_rail"); break;
         case OT_WR_BARRIER: set_ens(o, "wr_barrier"); break;
         default:
             if (o->type >= OT_WR_LEG && o->type < OT_WR_LEG + 12) {
                 int k = o->type - OT_WR_LEG, seg = k % 3;
+                if (WR.ileg[k] < 0) WR.ileg[k] = (short)i;
                 set_ens(o, seg == 0 ? "wr_seg1" : seg == 1 ? "wr_seg2" : "wr_seg3");
                 static const double A0[12] = { 225, 270, 0, 135, 90, 0, 315, 270, 180, 45, 90, 180 };
                 o->ang = (float)A0[k];
@@ -62,9 +65,22 @@ static void wr_spawn(void) {
     }
 }
 int boss_invert_base(void) { return 0; }
+/* the turret's rotated action point (RE Active::set_angle + the transform of Active::set_direction / 4962's inline copy): the
+ * image (40x24, hotspot (15,12), action point (42,12); every turret frame, img 1979 / 216 / 232 / 265) turns by a = dir 11.25
+ * degrees with c, s = sincosf(a / 57.2957795) (exact 0 / +-1 at multiples of 90); each point p -> (int)(px c + py s),
+ * (int)(py c - px s) in floats, the offset is action - hotspot. RV wn_pel (DV fixes): 10 / 10 shot origins, e.g. dir 21 gives
+ * (-15, +23) where the plain (int)(27 cos a), (int)(-27 sin a) gave (-15, +22). */
+static void wr_turret_ap(int dir, int *dx, int *dy) {
+    int d = dir & 31; float c, s;
+    if (d % 8 == 0) { static const float C4[4] = { 1, 0, -1, 0 }, S4[4] = { 0, 1, 0, -1 }; c = C4[d / 8]; s = S4[d / 8]; }
+    else { double r = (double)(float)(d * 11.25) / 57.29577951308232; c = (float)fd_cos((double)(float)r); s = (float)fd_sin((double)(float)r); }
+    const float ax = 42, ay = 12, hx = 15, hy = 12;
+    *dx = (int)(ax * c + ay * s) - (int)(hx * c + hy * s);
+    *dy = (int)(ay * c - ax * s) - (int)(hy * c - hx * s);
+}
 static void wr_update(player_t *p) {
-    obj_t *base = first_of(OT_WR_BASE), *tur = first_of(OT_WR_TURRET), *weak = first_of(OT_WR_WEAK);
-    if (!WR.active) {                                                                        /* 4844 */
+    obj_t *base = wr_slot(WR.ibase, OT_WR_BASE), *tur = wr_slot(WR.itur, OT_WR_TURRET), *weak = wr_slot(WR.iweak, OT_WR_WEAK);
+    if (!WR.active) {                                                                      /* 4844 */
         if (base && inside_view(base, 150)) WR.active = 1; else return;
     }
     if (!WR.defeat && base) {
@@ -98,8 +114,12 @@ static void wr_update(player_t *p) {
             if (inside_view(base, 120) || WR.turretA > 100) WR.turretA++;
             if (WR.turretA == 100) { set_ens(tur, "wr_turret_fire"); WR.turretA++; snd_play_orig(74, 220, 128); }
             if (WR.turretA == 140 || WR.turretA == 155 || WR.turretA == 170 || WR.turretA == 185 || WR.turretA == 200) {
-                double a = tur->ang / 57.29577951308232;
-                obj_spawn_pellet(tur->x + (float)(int)(27 * fd_cos(a)), tur->y + (float)(int)(-27 * fd_sin(a)), tur->dir);
+                /* RE 4856-4860: EnemyPellet_934 at the turret's rotated action point, add_object(.., the turret's layer), direction =
+                 * turret direction, flag 1 on (col_7_20 skips flagged pellets: they fly through the arena's Q7 barrier / railing;
+                 * the port's pellets never collide with Q7 objects). Layer: the fix for the invisible pellets (obj_spawn_pellet). */
+                int dx, dy; wr_turret_ap(tur->dir, &dx, &dy);
+                obj_t *pl = obj_spawn_pellet(tur->x + dx, tur->y + dy, tur->dir, tur->layer);
+                if (pl) pl->fl |= 2;
                 snd_play_orig(28, 220, 128);
                 if (WR.turretA == 200) { WR.turretA = -80; set_ens(tur, "wr_turret"); } else WR.turretA++;
             }
@@ -118,7 +138,10 @@ static void wr_update(player_t *p) {
         if (base && WR.baseG > 20 && !WR.burst) {                                            /* 4868 */
             WR.burst = 1; snd_play_orig(38, 220, 128);
             for (int k = 0; k < 12; k++) { WR.legB[k] = BURSTV[k][0]; WR.legC[k] = BURSTV[k][1]; }
-            obj_effect(base->x, base->y + 21, "explosion"); obj_effect(base->x, base->y, "explosion");
+            /* effectshade_436 (y + 21; INFERRED stand-in: explosion01, the DV banks carry no shade row) and effectsexplosion01_367,
+             * both add_object(.., the Base's layer) (RE 4868); obj_effect's objects-bank path left them on layer 0, under the
+             * arena's dvbackwall (DV fixes) */
+            obj_effect_l(base->x, base->y + 21, "explosion", base->layer); obj_effect_l(base->x, base->y, "explosion", base->layer);
             if (tur) tur->alive = 0;
             base->alive = 0; base = NULL;
         }
@@ -137,6 +160,7 @@ static void wr_update(player_t *p) {
                         obj_t *c = obj_alloc();
                         if (!c) break;
                         c->type = OT_CRYSTAL; c->alive = 1; c->x = o->x; c->y = o->y + (k ? 36 : 12);
+                        c->layer = o->layer;   /* RE 4871: add_object(crystal, the railing's layer) (layer 0 hid them behind the dvbackwall) */
                         int a = bank_anim(&G.objs, "objectcrystal_3"); if (a >= 0) anim_set(&c->an, &G.objs, a);
                     }
                     o->alive = 0;
@@ -320,7 +344,7 @@ void bosses_spawn(void) {
     snap_register(&WR, sizeof WR); snap_register(&TD, sizeof TD);
 }
 void bosses_update(player_t *p) {
-    if (first_of(OT_WR_BASE) || WR.active) wr_update(p);
+    if (wr_slot(WR.ibase, OT_WR_BASE) || WR.active) wr_update(p);
     td_update(p);
     chase_update(p);
     serp_update(p);
@@ -333,7 +357,7 @@ int boss_hidden(const obj_t *o) {
     return 0;
 }
 int boss_flash(const obj_t *o) {
-    if (o->type == OT_WR_BASE) { obj_t *w = first_of(OT_WR_WEAK); return w && w->c > 0 && w->A > 0; }
+    if (o->type == OT_WR_BASE) { obj_t *w = wr_slot(WR.iweak, OT_WR_WEAK); return w && w->c > 0 && w->A > 0; }
     return o->inv;
 }
 void bosses_draw(void) {}
