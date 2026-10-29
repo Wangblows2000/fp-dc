@@ -67,6 +67,37 @@ b = d.get('fdb', {})
 check('fd1b lilac: an idle player is pushed along by the beam (x grows, cannon 4 px a frame)',
       b and num(b[max(b)], 'px') > 13300 and num(b[max(b)], 'cx') - num(b[150], 'cx') == 4 * (max(b) - 150), '%s %s' % (b and b[max(b)].get('px'), b and b[max(b)].get('cx')))
 
+# ======================================================================== fd1b: the morpher in the end tunnel (spec 2)
+# From the tunnel start (X 16300 -> 200): every 30 frames next to the head (TPO, the fights' real-attack convention) and two attacks
+# (X; Milla B, her shield burst). Forms in the order "234" (B A C), head A 80 + 3 x 50 (D 4), sound 47 at each D step, the defeat
+# timeline (38, 76) and results_begin_boss (the morpher state 101 / the results).
+HEAD = 2920 + 14
+def morpher_script(atk):
+    s = '20 TP 16300 2090\n22 60 R\n'
+    for f in range(150, 3200, 30): s += '%d TPO %d -30 0\n%d %d %s\n%d %d %s\n' % (f, HEAD, f + 1, f + 4, atk, f + 12, f + 15, atk)
+    return s + INV
+for ch, nm in CHARS:
+    rows, ev, d = run('fd1b', ch, 3200, morpher_script('B' if ch == 4 else 'X'))
+    m = d.get('fdm', {})
+    js = [m[f]['J'] for f in sorted(m)]
+    order = [j for i, j in enumerate(js) if j not in ('0', '1') and (i == 0 or js[i - 1] != j)]
+    check('fd1b %s: the morpher starts with the forms 2 3 (B A of "234"), the later strings bring D G E (5 7 6: "5234" "752" "62754")' % nm,
+          order[:2] == ['2', '3'] and {'5', '6', '7'} <= set(order), str(order))
+    fd = first(m, lambda r: r.get('def') == '1')
+    hp0 = num(m[min(m)], 'hp') if m else 0
+    check('fd1b %s: head HP 230 (80 + 3 x 50) and real attacks defeat it' % nm, hp0 == 230 and fd is not None, '%s %s' % (hp0, fd))
+    s47 = sids(ev, 47)
+    check('fd1b %s: sound 47 at each of the 4 head kills (RE 15488 / RV)' % nm, len(s47) == 4, str(s47))
+    if fd:
+        s38, s76 = [f for f in sids(ev, 38) if f > fd], [f for f in sids(ev, 76) if f > fd]
+        check('fd1b %s: the defeat: 38 (parts slide) then 76 (white fade) 120 frames apart (RV m2_l P 180 / 300)' % nm,
+              len(s38) >= 1 and len(s76) >= 1 and 110 <= s76[0] - s38[0] <= 130, '%s %s' % (s38[:2], s76[:2]))
+        fr = first(m, lambda r: r.get('def') == '1' and num(r, 'P') > 500)
+        res = [i for i, r in enumerate(rows) if r.get('res', 0) > 0]
+        check('fd1b %s: results_begin_boss after the defeat (the results start)' % nm, fr is not None and res and res[0] > fd, '%s %s' % (fr, res[:1]))
+        hit = [f for f in sorted(m) if f < fd and num(m[f], 'hp') < hp0]
+        check('fd1b %s: the head loses HP before the defeat (attacks land)' % nm, len(hit) > 0)
+
 if fails: print('%d FAILED' % fails)
 else: print('ALL PASS')
 sys.exit(1 if fails else 0)
