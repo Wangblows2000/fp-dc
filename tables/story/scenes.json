@@ -145,10 +145,13 @@
 "id": "st_bad_news",
 "list": 6,
 "title": "Shang Tu Royal Palace (Gong's Bad News)",
-"room": 83,
-"g4": null,
+"room": 8306,
+"frame": 83,
+"g4": 0,
 "triggers": [],
-"next": "route",
+"next": "scene:th_torque_revealed",
+"skip": "scene:th_torque_revealed",
+"stage": "fn1",
 "panel": 2,
 "chr": 7,
 "dialog": 4026,
@@ -156,8 +159,7 @@
 0,
 12
 ],
-"evidence": "RE CutsceneList K 7 -> frame 82 (268); lines by content: INFERRED",
-"missing": "g4 and its place in the chain: not traced (phase 2)"
+"evidence": "RE CutsceneList K 7 -> frame 82 g4 0 (268); RV s83_g0 (frame 82 g4 0: lines 0-12, Gong / Magister / Neera; the end sets frame 15 g4 11 at 1175); RE frame 83 pause: SKIP SCENE g4 <= 0 -> frame 15 g4 11 (22337), NEXT STAGE g4 < 4 -> frame 29 = FN1 (22361)"
 },
 {
 "id": "rm_meet_milla",
@@ -201,10 +203,13 @@
 "id": "sg_brevon_plan",
 "list": 9,
 "title": "Shuigang Palace (Brevon's Plan)",
-"room": 83,
-"g4": null,
+"room": 8309,
+"frame": 83,
+"g4": 1,
 "triggers": [],
-"next": "route",
+"next": "scene:th_next_morning",
+"skip": "scene:th_next_morning",
+"stage": "fn1",
 "panel": 2,
 "chr": 7,
 "dialog": 4026,
@@ -212,8 +217,7 @@
 13,
 30
 ],
-"evidence": "lines by content: INFERRED",
-"missing": "trigger, g4: phase 2"
+"evidence": "RV s83_g1 (frame 82 g4 1: lines 13-30, Syntax / Brevon / Dail; the end sets frame 14 g4 12 at 2102); RE frame 83 pause: SKIP SCENE 0 < g4 < 4 -> frame 14 g4 12 (22338), NEXT STAGE g4 < 4 -> FN1 (22361)"
 },
 {
 "id": "th_next_morning",
@@ -293,10 +297,13 @@
 "id": "sm_zao_dinner",
 "list": 14,
 "title": "Shang Mu City Hall (Zao's Dinner)",
-"room": 83,
-"g4": null,
+"room": 8314,
+"frame": 83,
+"g4": 4,
 "triggers": [],
-"next": "route",
+"next": "scene:sg_intruders",
+"skip": "scene:sg_intruders",
+"stage": "sb1",
 "panel": 2,
 "chr": 7,
 "dialog": 4026,
@@ -304,17 +311,20 @@
 46,
 67
 ],
-"evidence": "lines by content: INFERRED",
-"missing": "phase 2"
+"evidence": "RE CutsceneList K 15 -> frame 82 g4 4 (276); RV c83_g4 0-1694 (Shang Mu city hall: lines 46-67; the end sets frame 0 g4 99 = sg_intruders' prelude); RE frame 83 pause rows (SKIP SCENE: GUIPause A 3, NEXT STAGE: A 4, after the 50-frame wipe; events 22337-22370): SKIP g4 4 -> g4 5 (22339), NEXT STAGE g4 4-7 -> frame 35 = SB1 (22362); chr: INFERRED every character (RV g1 0; no g1 condition)",
+"missing": "line 50 (li_13_02) is not shown on the RV route (E 49 -> 51; li_13_03 / carol_laugh / mi_09_04 play outside the box at 617)"
 },
 {
 "id": "sg_intruders",
 "list": 15,
 "title": "Shuigang Palace (Brevon Thwarts the Intruders)",
-"room": 83,
-"g4": null,
+"room": 8315,
+"frame": 83,
+"g4": 5,
 "triggers": [],
-"next": "route",
+"next": "scene:sm_zao_help",
+"skip": "scene:sm_zao_help",
+"stage": "sb1",
 "panel": 2,
 "chr": 7,
 "dialog": 4026,
@@ -322,17 +332,20 @@
 68,
 81
 ],
-"evidence": "lines by content: INFERRED",
-"missing": "phase 2"
+"evidence": "RE CutsceneList K 16 -> frame 0 g4 99 (277); RV c83_g4: frame 0 (json 1) 1694-2102 without dialogue, then frame 82 g4 5 2102-3319 (Shuigang: lines 68-81, Brevon / the intruder / Syntax / Serpentine; the end restarts frame 82 with g4 6); RE frame 83 pause rows (SKIP SCENE: GUIPause A 3, NEXT STAGE: A 4, after the 50-frame wipe; events 22337-22370): SKIP g4 5 -> g4 6 (22340), NEXT STAGE -> SB1 (22362); chr: INFERRED every character",
+"missing": "partial: the prelude in frame index 0 (json 1, g4 99, 408 frames, RV c83_g4 1694-2102: Brevon's mech passes over the starfield, the location name, the intro frame's own events) is not ported: its layer-0 actors do not scroll in the original and the story player scrolls every layer below 6 (a runtime change), and frame 1 has no pause panel; the port starts at the frame 82 g4 5 part"
 },
 {
 "id": "sm_zao_help",
 "list": 16,
 "title": "Shang Mu City Hall (Zao's Help)",
-"room": 83,
-"g4": null,
+"room": 8316,
+"frame": 83,
+"g4": 6,
 "triggers": [],
-"next": "route",
+"next": "scene:zao_airship",
+"skip": "stage:sb1",
+"stage": "sb1",
 "panel": 2,
 "chr": 7,
 "dialog": 4026,
@@ -340,8 +353,8 @@
 82,
 94
 ],
-"evidence": "lines by content: INFERRED",
-"missing": "phase 2"
+"evidence": "RE CutsceneList K 17 -> frame 82 g4 6 (278); RV c83_g4 3319-4215 (lines 82-92; carol_sweet; the end sets frame 78 g4 2 = zao_airship's room 79); RE frame 83 pause rows (SKIP SCENE: GUIPause A 3, NEXT STAGE: A 4, after the 50-frame wipe; events 22337-22370): SKIP g4 6 -> frame 35 g4 99 = SB1 with its in-stage scene (22341), NEXT STAGE -> SB1 g4 0 (22362); chr: INFERRED every character",
+"missing": "SKIP SCENE starts SB1 with g4 99 in the original (SB1's in-stage Adventure scene, not part of this group): the port starts SB1"
 },
 {
 "id": "zao_airship",
@@ -403,10 +416,13 @@
 "id": "st_magister_talk",
 "list": 20,
 "title": "Shang Tu Royal Palace (Talk With Magister)",
-"room": 83,
-"g4": null,
+"room": 8320,
+"frame": 83,
+"g4": 8,
 "triggers": [],
-"next": "route",
+"next": "scene:jail_plan",
+"skip": "scene:jail_plan",
+"stage": "jc1",
 "panel": 2,
 "chr": 7,
 "dialog": 4026,
@@ -414,17 +430,19 @@
 97,
 132
 ],
-"evidence": "lines by content: INFERRED",
-"missing": "phase 2"
+"evidence": "RE CutsceneList K 21 -> frame 82 g4 8 (282); RV c83_g8 (lines 97-132: Gong at the gate, then the throne room; at 2801 g4 9 in place); RE frame 83 pause rows (SKIP SCENE: GUIPause A 3, NEXT STAGE: A 4, after the 50-frame wipe; events 22337-22370): SKIP g4 8 -> g4 9 (22343), NEXT STAGE g4 8-12 -> frame 39 = JC1 (22363); chr: RV g1 0 only, the pause rows have no g1 condition (INFERRED: every character)"
 },
 {
 "id": "jail_plan",
 "list": 21,
 "title": "Royal Palace Jail (Lilac's Plan)",
-"room": 83,
-"g4": null,
+"room": 8321,
+"frame": 83,
+"g4": 9,
 "triggers": [],
-"next": "route",
+"next": "scene:sg_brevon_torque",
+"skip": "scene:jail_fail",
+"stage": "jc1",
 "panel": 2,
 "chr": 7,
 "dialog": 4026,
@@ -432,17 +450,19 @@
 133,
 149
 ],
-"evidence": "lines by content: INFERRED",
-"missing": "phase 2"
+"evidence": "RE CutsceneList K 22 -> frame 82 g4 9 (283); RV c83_g8 2801-4014 (lines 133-149: the jail; the end restarts frame 82 with g4 12); RE frame 83 pause rows (SKIP SCENE: GUIPause A 3, NEXT STAGE: A 4, after the 50-frame wipe; events 22337-22370): SKIP g4 9 -> g4 10 = jail_fail, past sg_brevon_torque (22344), NEXT STAGE -> JC1 (22363); chr: INFERRED every character (RV g1 0)"
 },
 {
 "id": "jail_fail",
 "list": 22,
 "title": "Royal Palace Jail (Escape Plain Fail)",
-"room": 83,
-"g4": null,
+"room": 8322,
+"frame": 83,
+"g4": 10,
 "triggers": [],
-"next": "route",
+"next": "scene:throne_apology",
+"skip": "scene:throne_apology",
+"stage": "jc1",
 "panel": 2,
 "chr": 7,
 "dialog": 4026,
@@ -450,17 +470,20 @@
 150,
 160
 ],
-"evidence": "lines by content: INFERRED",
-"missing": "phase 2"
+"evidence": "RE CutsceneList K 23 -> frame 82 g4 10 (284); RV c83_g8 5160-6094 (lines 153-160; at 6094 g4 11 in place); RE frame 83 pause rows (SKIP SCENE: GUIPause A 3, NEXT STAGE: A 4, after the 50-frame wipe; events 22337-22370): SKIP g4 10 -> g4 11 (22345), NEXT STAGE -> JC1 (22363); chr: INFERRED every character",
+"missing": "lines 150-152 (Milla caught by Neera) are not shown on the RV route (g4 9 -> 12 -> 10)"
 },
 {
 "id": "throne_apology",
 "list": 23,
 "title": "Royal Palace Throne Room (Lilac's Apology)",
-"room": 83,
-"g4": null,
+"room": 8323,
+"frame": 83,
+"g4": 11,
 "triggers": [],
-"next": "route",
+"next": "stage:jc1",
+"skip": "stage:jc1",
+"stage": "jc1",
 "panel": 2,
 "chr": 7,
 "dialog": 4026,
@@ -468,19 +491,19 @@
 161,
 171
 ],
-"evidence": "lines by content: INFERRED",
-"missing": "phase 2"
+"evidence": "RE CutsceneList K 24 -> frame 82 g4 11 (285); RV c83_g8 6094-7207 (lines 161-171, then the night escape without dialogue, carol_awyeah; the end sets frame 39 = JC1); RE frame 83 pause rows (SKIP SCENE: GUIPause A 3, NEXT STAGE: A 4, after the 50-frame wipe; events 22337-22370): SKIP g4 11 -> frame 39 g4 0 (22346), NEXT STAGE -> JC1 (22363); chr: INFERRED every character"
 },
 {
 "id": "sg_brevon_torque",
 "list": 24,
 "title": "Shuigang Palace (Brevon Discovers Torque)",
-"room": 83,
-"g4": 13,
-"triggers": [
-"end:5"
-],
-"next": "route",
+"room": 8324,
+"frame": 83,
+"g4": 12,
+"triggers": [],
+"next": "scene:jail_fail",
+"skip": "scene:jail_fail",
+"stage": "jc1",
 "panel": 2,
 "chr": 7,
 "dialog": 4026,
@@ -488,44 +511,75 @@
 176,
 178
 ],
-"evidence": "RE frame 8 (I 5 -> frame 82 g4 13); lines by content: INFERRED",
-"missing": "phase 2"
+"also": [
+274
+],
+"evidence": "RE CutsceneList K 25 -> frame 82 g4 12 (286), not frame 8's I 5 target (g4 13 is jc_cave, K 26); RV c83_g8 4014-5160 (Shuigang: lines 176, 274, 177, 178 Brevon / Serpentine / Syntax; the end restarts frame 82 with g4 10); RE frame 83 pause rows (SKIP SCENE: GUIPause A 3, NEXT STAGE: A 4, after the 50-frame wipe; events 22337-22370): SKIP g4 12 -> g4 10 (22347), NEXT STAGE -> JC1 (22363); chr: INFERRED every character"
 },
 {
 "id": "jc_cave",
 "list": 25,
 "title": "Jade Creek Cave (What Do We Do Now)",
-"room": 83,
-"g4": null,
-"triggers": [],
-"next": "route",
+"room": 8325,
+"frame": 83,
+"g4": 13,
+"triggers": [
+"end:5"
+],
+"next": "stage:tb1",
+"skip": "stage:tb1",
+"stage": "tb1",
 "panel": 2,
-"chr": 7,
+"chr": 1,
 "dialog": 4026,
 "lines": [
 179,
 202
 ],
-"evidence": "lines by content: INFERRED",
-"missing": "phase 2"
+"evidence": "RE frame 8 (I 5 -> frame 82 g4 13, every g1) and CutsceneList K 26 -> frame 82 g4 13 (287); RV c83_g13 (g1 0: lines 179-197, then the night: Lilac leaves alone; the end sets frame 44 = TB1); RE frame 83 pause rows (SKIP SCENE: GUIPause A 3, NEXT STAGE: A 4, after the 50-frame wipe; events 22337-22370): SKIP g4 13 with g1 0 -> frame 44 (22348), NEXT STAGE g4 13 with g1 0 -> frame 44 = TB1 (22364). Carol / Milla: jc_cave_cm (same g4; RV c83_g13c)"
+},
+{
+"id": "jc_cave_cm",
+"list": null,
+"title": "Jade Creek Cave (What Do We Do Now), Carol / Milla",
+"room": 8325,
+"frame": 83,
+"g4": 13,
+"triggers": [
+"end:5"
+],
+"next": "scene:th_carol_help",
+"skip": "scene:th_carol_help",
+"stage": "th1",
+"panel": 2,
+"chr": 6,
+"dialog": 4026,
+"lines": [
+179,
+202
+],
+"evidence": "the g1 != 0 variant of jc_cave: RE frame 8 (I 5 -> frame 82 g4 13); RV c83_g13c (g1 2: lines 179-190, a cut, 199-202; at 1201 frame 82 restarts with g4 14 = th_carol_help); RE frame 83 pause rows (SKIP SCENE: GUIPause A 3, NEXT STAGE: A 4, after the 50-frame wipe; events 22337-22370): SKIP g4 13 with g1 != 0 -> g4 14 (22349), NEXT STAGE g4 13 with g1 != 0 -> frame 56 = TH1 (22365); Milla: INFERRED as Carol (the original tests g1 != 0)"
 },
 {
 "id": "th_carol_help",
 "list": 26,
 "title": "Trap Hideout (Carol Seeks Help)",
-"room": 83,
-"g4": null,
+"room": 8326,
+"frame": 83,
+"g4": 14,
 "triggers": [],
-"next": "route",
+"next": "stage:th1",
+"skip": "stage:th1",
+"stage": "th1",
 "panel": 2,
 "chr": 6,
 "dialog": 4026,
 "lines": [
 203,
-209
+207
 ],
-"evidence": "lines by content: INFERRED",
-"missing": "phase 2"
+"evidence": "RE CutsceneList K 27 -> frame 82 g4 14 (288); RV c83_g13c 1201-1662 (Carol / Milla: lines 203-207, m_secret; the end sets frame 56 = TH1); RE frame 83 pause rows (SKIP SCENE: GUIPause A 3, NEXT STAGE: A 4, after the 50-frame wipe; events 22337-22370): SKIP g4 14 -> frame 56 g4 0 (22350), NEXT STAGE g4 14-15 -> TH1 (22366); Milla: INFERRED as Carol",
+"missing": "lines 208-209 (Spade / Carol) are not in this scene: they play at frame 82 g4 16 after Trap Hideout (frame 8 I 8 with g1 != 0; CutsceneList K 29 = list 28, 'Enter Team Spade')"
 },
 {
 "id": "tb_torture",
@@ -589,13 +643,13 @@
 "id": "tb_arrest",
 "list": 30,
 "title": "Outside Thermal Base (Lilac's Arrest)",
-"room": 83,
-"g4": 20,
-"triggers": [
-"end:7",
-"end:8"
-],
-"next": "route",
+"room": 8330,
+"frame": 83,
+"g4": 17,
+"triggers": [],
+"next": "scene:st_mission",
+"skip": "scene:st_mission",
+"stage": "pl1",
 "panel": 2,
 "chr": 1,
 "dialog": 4026,
@@ -603,8 +657,8 @@
 210,
 216
 ],
-"evidence": "RE frame 8 (I 7 / 8 with g1 0 -> frame 82 g4 20); lines by content: INFERRED",
-"missing": "phase 2"
+"evidence": "RE CutsceneList K 31 -> frame 82 g4 17 with g1 0 (292); RV c83_g17 (g1 0: outside Thermal Base, lines 210-214; the end restarts frame 82 with g4 19 = st_mission); RE frame 83 pause rows (SKIP SCENE: GUIPause A 3, NEXT STAGE: A 4, after the 50-frame wipe; events 22337-22370): NEXT STAGE g4 17-19 with g1 0 -> frame 50 = PL1 (22368). Carol / Milla at g4 17: tb_outside_team",
+"missing": "SKIP SCENE: the original goes to g4 18 (22353), an empty view at (0, 7760) that waits for A (RV s83_g18: the press starts a 64-frame fade into g4 19 = st_mission); the port goes to st_mission at once (INFERRED; the story player has no wait-for-A without a line)"
 },
 {
 "id": "tb_outside_team",
@@ -631,19 +685,22 @@
 "id": "st_mission",
 "list": 32,
 "title": "Shang Tu Royal Palace (Magister's Mission)",
-"room": 83,
-"g4": null,
+"room": 8332,
+"frame": 83,
+"g4": 19,
 "triggers": [],
-"next": "route",
+"next": "stage:pl1",
+"skip": "stage:pl1",
+"stage": "pl1",
 "panel": 2,
-"chr": 7,
+"chr": 1,
 "dialog": 4026,
 "lines": [
 217,
 232
 ],
-"evidence": "lines by content: INFERRED",
-"missing": "phase 2"
+"evidence": "RE CutsceneList K 33 -> frame 82 g4 19 with g1 0 (294); RV c83_g17 1231-2882 (Shang Tu: lines 217-231, m_river interlude; the end sets frame 50 = PL1); also reached from g4 18 (RV s83_g18); RE frame 83 pause rows (SKIP SCENE: GUIPause A 3, NEXT STAGE: A 4, after the 50-frame wipe; events 22337-22370): SKIP g4 19 -> frame 50 g4 0 (22356), NEXT STAGE -> PL1 (22368)",
+"missing": "line 232 (li_32b02, an alternate take of 221) is not shown on the RV route"
 },
 {
 "id": "pl_final_message",

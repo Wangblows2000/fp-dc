@@ -24,7 +24,7 @@ Outputs:
   <name>_obj.tex/.spr  sprite bank of the active objects the engine implements
   <name>_report.txt
 """
-import json, os, struct, sys, hashlib
+import json, os, re, struct, sys, hashlib
 from PIL import Image, ImageChops, ImageOps
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from convert import write_tex, pack, pack_skyline, pack_skyline_fill, argb1555
@@ -2140,24 +2140,32 @@ ALPHA_MIN = int(os.environ.get('FP_ALPHA_MIN', '1'))
 # as one TILED piece (pad bit 2 + a size record, write_lv2; game.c draws only the visible tiles); a solid fill tiles a
 # shared 64 x 64 colour block (synthetic image ids >= QB_BASE). Collision is rasterised from the expanded tiles.
 QB_BASE, QB_SYNTH = 10000000, {}
-def story_par(n):
-    """session 25: a story room's parallax pieces the scenes show, {handle: [D, E, F]} (RV alterables, tables/story/rows.json 'par')"""
+def story_scenes(n, name):
+    """session 25: the tables/story/rows.json entries a story room build serves. A room is st<json>: entry 'json' is the room
+    number; a large frame split into one room per scene (frame 83: st83<list>, docs/ADVENTURE.md) names its json frame in
+    'frame'. Matched by the room name (st<number>); other builds by the frame number."""
     rp = os.path.join(_FP_ROOT, 'tables', 'story', 'rows.json')
-    if not os.path.isfile(rp): return {}
+    if not os.path.isfile(rp): return []
+    R = json.load(open(rp, encoding='utf-8')).values()
+    if re.match(r'^st\d+$', name): return [sc for sc in R if 'st%d' % sc.get('json', -1) == name and sc.get('frame', sc.get('json')) == n]
+    return [sc for sc in R if sc.get('json') == n and 'frame' not in sc]
+def story_view(n, name):
+    """a split story room's views: its scenes' rows.json 'view' boxes [x0, y0, x1, y1] (RV camera, one per camera run), or None"""
+    vs = [b for sc in story_scenes(n, name) for b in sc.get('view', [])]
+    return vs or None
+def story_par(n, name):
+    """session 25: a story room's parallax pieces the scenes show, {handle: [D, E, F]} (RV alterables, tables/story/rows.json 'par')"""
     out = {}
-    for sc in json.load(open(rp, encoding='utf-8')).values():
-        if sc.get('json') == n: out.update(sc.get('par', {}))
+    for sc in story_scenes(n, name): out.update(sc.get('par', {}))
     return out
+STORY_MARGIN = 64   # a split story room keeps the placements within 64 px of its scenes' views (INFERRED margin: scrolling layers)
 STORY_UI = [('dialogbox_551', 0, '0', 'dlgbox'), ('dialogbox2_552', 0, '0', 'dlgname'), ('dialogarrow_553', 0, '0', 'dlgarrow')]
-def story_rows(n, an, report):
+def story_rows(n, name, an, report):
     """Session 25 (Adventure mode): the rows a story room's scene scripts draw, from tables/story/rows.json (written by
     tools/story_rv2scn.py: per scene its json frame and the [class_handle, animation, direction] its actors show), named
     s<handle>_<anim>_<dir> (src/game/cutscene.c), plus the DialogBox's own rows (DialogBox_551 / DialogBox2_552 /
     DialogArrow_553 anim 0: dlgbox / dlgname / dlgarrow). Frames that are no story room get nothing."""
-    rp = os.path.join(_FP_ROOT, 'tables', 'story', 'rows.json')
-    if not os.path.isfile(rp): return []
-    R = json.load(open(rp, encoding='utf-8'))
-    want = sorted({tuple(r) for sc in R.values() if sc.get('json') == n for r in sc['rows']})
+    want = sorted({tuple(r) for sc in story_scenes(n, name) for r in sc['rows']})
     if not want: return []
     out = []
     for cls, ai, dk, nm in STORY_UI + [(c, a, str(d), 's%s_%d_%d' % (c.rsplit('_', 1)[1], a, d)) for c, a, d in want]:
@@ -2444,7 +2452,7 @@ def export_parallax(fr, src, name, out, an=None):
         key = '%s_%d' % (o['cls'], o['id'])
         if o['cls'] == 'levelparalaxwatersurface' and o['x'] is not None: water = 2700
         if o['cls'] == 'levelparalaxwatersurface' and fr['frame'] in JC_WATER: water = JC_WATER[fr['frame']]   # mode 2 (Jade Creek)
-        spar = story_par(fr['frame']).get(str(o['id'])) if o['cls'].startswith(('levelparallax', 'parallax')) else None   # session 25: story rooms
+        spar = story_par(fr['frame'], name).get(str(o['id'])) if o['cls'].startswith(('levelparallax', 'parallax')) else None   # session 25: story rooms
         if (key not in PAR_IMG and not (spar and an and an.get(key, {}).get('images'))) or o['y'] is None: continue
         if o['id'] in PAR_FIXED_SKIP and (fr['frame'], o['id']) not in PAR_FIXED: continue   # BG_FLOW: the ships only where exported
         img = PAR_IMG[key] if key in PAR_IMG else an[key]['images'][0]
@@ -2555,6 +2563,24 @@ def main():
         o['layer0'] = o['layer'] or 0
         if o['layer'] is not None: o['layer'] = LMAP.get(o['layer'], o['layer'])
     report = ['frame %d -> %s  (%dx%d px, %d placements)' % (n, name, W, H, len(fr['objects']))]
+    sview = story_view(n, name)
+    if sview:   # session 25, a split story room (frame 83: one room per scene): only the placements its scenes' views can show
+        M = STORY_MARGIN
+        def _ext(o):
+            b = bd.get('%s_%d' % (o['cls'], o['id']))
+            if b and '0x4c' in b['fields']: return o['x'], o['y'], o['x'] + b['fields'].get('0x4c', 0), o['y'] + b['fields'].get('0x50', 0)
+            if b and b['image'] is not None:
+                im, hx, hy = load_img(src, b['image'])
+                return o['x'] - hx, o['y'] - hy, o['x'] - hx + im.width, o['y'] - hy + im.height
+            return o['x'], o['y'], o['x'], o['y']
+        keep = []
+        for o in fr['objects']:
+            if o['x'] is None or o['y'] is None or o['cls'] == 'playerstartingpoint' or o['cls'].startswith(('levelparallax', 'parallax')) or o['layer0'] >= 6:
+                keep.append(o); continue                 # (layers 6-7 do not scroll)
+            ax0, ay0, ax1, ay1 = _ext(o)
+            if any(ax1 >= x0 - M and ax0 <= x1 + M and ay1 >= y0 - M and ay0 <= y1 + M for x0, y0, x1, y1 in sview): keep.append(o)
+        report.append('story room view %s: %d of %d placements kept' % (sview, len(keep), len(fr['objects'])))
+        fr['objects'] = keep
 
     pieces, objs, skipped = [], [], {}
     for o in fr['objects']:
@@ -2844,7 +2870,9 @@ def main():
     if shl and shl['anims']: write_bank2(src, shl, out, report); report.append('shield bank: %s' % [a['name'] for a in shl['anims']])
     for cls, nm, frames in FNA_ENS_IMG:   # FN_GIMA: SystemBox images (one frame, no animation table)
         if cls.rsplit('_', 1)[0] in placed: ens['anims'].append({'name': nm, 'frames': frames, 'speed': 0, 'loop': -1, 'back_to': 0})
-    ens['anims'] += story_rows(n, an, report)   # session 25: Adventure story rooms (tables/story/rows.json)
+    srows = story_rows(n, name, an, report)     # session 25: Adventure story rooms (tables/story/rows.json)
+    if srows and sview: ens['anims'] = srows    # a split story room: only its scenes' rows (MODE_STORY neither draws nor updates the
+    else: ens['anims'] += srows                 # level objects; frame 83's placed enemies / gimmicks alone filled a 1024 atlas)
     if ens['anims']: write_bank2(src, ens, out, report)
     report.append('ens bank: %s' % [a['name'] for a in ens['anims']])
     # parallax (RE + RV: build/re/spec_parallax.md): layer-0 SystemBox pieces, tiled, moved every frame by
