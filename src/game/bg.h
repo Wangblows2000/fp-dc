@@ -28,12 +28,14 @@ enum {
  * 300 px above its placed y (A = that y); with the player within 200 px in x and A in (MV.Y - 50, MV.Y + 150) it shows (sound
  * 345) and drops 20 px a frame with afterimages, lands (B 2: a shock wave, sound 346), opens (anim 8, frame B / 6) and at B > 30
  * releases its payload at its feet and goes. Payload: the spawner's av[BGE_SPAWNER_C] (FD's alterable C; 0 = an Elite, BG5's
- * only payload). Another module handles other codes with bg_enemy_spawner_payload(fn): fn(spawner, code) returns non-zero when
- * it created the payload. */
+ * only payload). Another module handles codes != 0 with bg_enemy_spawner_payload(fn): fn(spawner, code) is called from the landing
+ * on (B > 1, FD1 15246-15249) and returns non-zero when it created the payload (the spawner goes); a code it declines falls back to
+ * the Elite at B > 30 (14661 / 15245 ignore C). */
 #define BGE_SPAWNER_C 2      /* spawner av[]: [0] A landing y, [1] B (0 waiting, 1 falling, > 1 opening clock: another module may set
                                 B = 1 to drop one itself, e.g. an arena script), [2] C payload code */
 typedef int (*bge_payload_fn)(obj_t *spawner, int code);
 void bg_enemy_spawner_payload(bge_payload_fn fn);
+obj_t *bg_enemy_spawner_drop(float x, float y, int code);   /* a runtime pod at (x, y), shown and falling (B 1, A = y: FD1's pod rain) */
 int  bg_enemy_spawners_open(void);        /* spawners still waiting / falling (tests, FD arenas) */
 
 /* ---- bg_gim.c (types 2400-2479; build/re/spec_bg_gimmicks.md). Families share a type: par = member (importer BGG_SUB, lvobj anim

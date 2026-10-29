@@ -143,6 +143,13 @@ static void hopper_spawn(obj_t *o) {
     o->A = 20; o->av[1] = -1; o->av[2] = 2; o->dir = 16; o->av[3] = o->av[4] = floorf(o->y);   /* 9769: D = E = Y */
     set_a(o, "sbh_idle");
 }
+/* a runtime HopperMkII with its constructor's values (Final Dreadnought's spawner pods, RE 15249: D = E = its y) */
+obj_t *sb_enemy_hopper_create(float x, float y) {
+    obj_t *o = spawn(OT_SB_HOPPER, NULL, x, y);
+    if (!o) return NULL;
+    S.on = 1; o->layer = 3; hopper_spawn(o);
+    return o;
+}
 static void hopper_face_player(obj_t *o, const player_t *p) {
     if (o->x >= PX(p)) { o->av[1] = -1; face(o, 16); } else { o->av[1] = 1; face(o, 0); }
 }
