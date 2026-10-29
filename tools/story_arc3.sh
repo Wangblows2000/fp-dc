@@ -5,7 +5,7 @@
 # cropped to the scene's camera views by tools/import_frame.py): one room holding every scene overflowed the _ens atlases.
 #   traces (STORY_READ=30 STORY_IDLE=600, tools/orig/story_rv.sh room:82:<g4>:<g1>):
 #     a83_g0 (g4 0), a83_g1 (g4 1), a83_g8 (g4 8 -> 9 -> 12 -> 10 -> 11 -> JC1),
-#     c83_g20 (g4 20 g1 0 -> frame 81 g4 0), c83_g13 (g4 13 g1 0 -> TB1), c83_g13c (g4 13 g1 2 -> 14 -> TH1), c83_g17 (g4 17 g1 0 -> 19 -> PL1),
+#     c83_g20 (g4 20 g1 0 -> frame 81 g4 0), c83_g13 (g4 13 g1 0 -> TB1), c83_g13c (g4 13 g1 2 -> 14 -> TH1), c83_g17 (g4 17 g1 0 -> 19 -> PL1), c83_g17c (g4 17 g1 2 -> frame 81 g4 0),
 #     c83_g4 (g4 4 -> frame 0 g4 99 (sg_intruders' prelude, not ported) -> frame 82 g4 5 -> 6 -> frame 78 g4 2)
 # Frame windows below are those traces' (RV): the scene starts at its F event or its g4 change (G line, same frame) and
 # ends at the next one.
@@ -13,7 +13,7 @@ set -e
 cd "$(dirname "$0")/.."
 T=${1:-build/orig_traces/adv3}
 S=tables/story/scripts
-C=tools/story_rv2scn.py
+C="tools/story_rv2scn.py --by-class"
 mkdir -p $S
 # C1
 python3 $C $T/a83_g0.log st_bad_news 83 4026 0 1175 $S/st_bad_news.scn --room 8306 --next scene:th_torque_revealed
@@ -33,3 +33,4 @@ python3 $C $T/c83_g13c.log th_carol_help 83 4026 1201 1662 $S/th_carol_help.scn 
 python3 $C $T/c83_g17.log tb_arrest 83 4026 0 1231 $S/tb_arrest.scn --room 8330 --next scene:st_mission
 python3 $C $T/c83_g17.log st_mission 83 4026 1231 2882 $S/st_mission.scn --room 8332 --next stage:pl1
 python3 $C $T/c83_g20.log pl_final_message 83 4026 0 2654 $S/pl_final_message.scn --room 8333 --next scene:sf_army
+python3 $C $T/c83_g17c.log tb_outside_team 83 4026 0 2003 $S/tb_outside_team.scn --room 8331 --next scene:sf_army
