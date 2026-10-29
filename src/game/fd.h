@@ -105,8 +105,6 @@ enum {
     OT_FDB_PBC = 2913,      /* MiniBossPushBeamCannon_3494 (fd1b): the beam's ceiling cannon (A: extra speed) */
     OT_FDB_SXV = 2914,      /* BossSyntaxValues_3467 (fd1b; invisible): the morpher's controller (alterables A-Z, flags) */
     OT_FDB_ALARM = 2915,    /* AlarmLight_3495 (fd1b, 0,0): the red screen pulse of the push-beam alarm (an overlay) */
-    OT_FDB_SFLOOR = 2916,   /* ScrollingFloor_3466 (fd1b tunnel floor, 128 x 32) */
-    OT_FDB_SFLOOR2 = 2917,  /* ScrollingFloor2_3465 (fd1b tunnel ceiling, 128 x 32) */
     OT_FDB_PLACED_LAST = 2919,
     OT_FDB_MPART = 2920,    /* runtime: the morpher's parts 2920-2934 (BossMorpher*_3469..3486; par = part index) */
     OT_FDB_MPART_LAST = 2934,

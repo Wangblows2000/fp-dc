@@ -1176,8 +1176,6 @@ static const objdef_t DEFS[] = {
     { OT_FDB_PBC,       0,                                     NULL         }, /* minibosspushbeamcannon_3494 */
     { OT_FDB_SXV,       OD_HIDDEN,                             NULL         }, /* bosssyntaxvalues_3467 (the morpher's controller) */
     { OT_FDB_ALARM,     OD_HIDDEN,                             NULL         }, /* alarmlight_3495 (an overlay: fd_boss_r12.c pb_draw) */
-    { OT_FDB_SFLOOR,    OD_SOLID,                              "fdb_sfloor" }, /* scrollingfloor_3466 (the fd1b tunnel's floor; Q7) */
-    { OT_FDB_SFLOOR2,   OD_SOLID,                              "fdb_sfloor2"}, /* scrollingfloor2_3465 (the fd1b tunnel's ceiling; Q7) */
     /* ==== end Final Dreadnought */
 };
 static objdef_t BY_TYPE[MAX_OT];
