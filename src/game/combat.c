@@ -429,19 +429,6 @@ void ach_boss_finish(void) {
 
 /* the fire hurt shared by the stages' jets and flames (SB 9337-9340, TB 11727 / 11751 / 11953): a vulnerable player without the
  * fire shield (OTHERS.B 2) takes R-hurt n (MV.R 1, LIFE.B + n) and the burn tint (OTHERS.R 30, blend 0x80a0ff) */
-/* any of the player's attack boxes on o: a slash / claw shield, the attacking body's big top / bottom rows (Z), Milla's cube (projectiles
- * the attacks knock back: the FD1 morpher's elec balls and train beam, fd_boss_r12.c) */
-int combat_attack_overlaps(const player_t *p, const obj_t *o) {
-    if (!o || !o->alive || !o->an.b) return 0;
-    for (int i = 0; i < G.nobjs; i++) {
-        const obj_t *s = &G.o[i];
-        if (!s->alive || s->type != OT_SHIELD) continue;
-        int x0, y0, x1, y1; shield_rect(s, &x0, &y0, &x1, &y1);
-        if (obj_rect_hit(o, x0, y0, x1, y1)) return 1;
-    }
-    if (player_body_z(p) && (sensor_hits(o, SENS_BOTTOMBIG) || sensor_hits(o, SENS_TOPBIG))) return 1;
-    return player_cube_hits(o);
-}
 int player_burn(player_t *p, int n) {
     if (p->state == ST_DEAD || p->hp <= 0 || p->hurt_pending || player_invincible(p) || p->shield == 2) return 0;
     player_contact(p, n); p->tint = 30; p->tint_argb = 0xffffa080;

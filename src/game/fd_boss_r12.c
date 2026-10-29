@@ -95,7 +95,10 @@ static void pb_frame(player_t *p) {
         }
         if (p->held & BTN_RIGHT) setB(p, MVB(p) + 0.1);                          /* 15395 (CTRL.D: right held) */
     }
-    if (!P.camlock && X > 12575) { P.camlock = 1; G.cam_nD = G.camy; G.cam_nF = G.camy + SCREEN_H; }   /* 15399 */
+    if (!P.camlock && X > 12575) {                                              /* 15399: the tunnel strips shown, piece0 hidden */
+        P.camlock = 1; G.cam_nD = G.camy; G.cam_nF = G.camy + SCREEN_H;
+        par_set_hidden(3463, 0); par_set_hidden(3464, 0); par_set_hidden(3390, 1);
+    }
     if (P.camlock && !P.tunnel) {                                               /* 15400 */
         float t = marker(OT_CAMLIM_T, 0), b = marker(OT_CAMLIM_B, 0);
         if (t > -1e8f) G.cam_nD = fminf(G.cam_nD + 2, t);
@@ -135,7 +138,7 @@ static short mra[MR_N];
 enum { SH_TRAIN = 1, SH_EBALL, SH_LASER, SH_SHOCK, SH_GLOW };
 static struct {
     int on, J, R, hD, hC, def, endt, results, slen;
-    double w[7], K, Lr, M, Q, P, bA, bB, bC, floorO;
+    double w[7], K, Lr, M, Q, P, bA, bB, bC, floorO, vx;
     char str[8];
     short part[MP_N], shot[NSHOT];
 } M;
@@ -161,9 +164,15 @@ static obj_t *shot_new(int kind, int row, float x, float y) {
     return o;
 }
 
-/* Part offsets from (K, L) per form weight (A B C D E F G), x then y: RV fit of build/orig_traces/fd_bosses_a/m1_l (see the spec);
- * the parts with every weight 0 sit on (K, L) (15409 / 15410: the ball between two forms). */
-static const signed char MOFF[7][MP_N][2] = { { { 0 } } };
+/* Part offsets from (K, L) per form weight (A B C D E F G), x then y: least-squares fit of the RV traces m1_l (A, B, C) and m2_l (D, E,
+ * G) (residuals <= 5 px: the small sin(20 M) 1.1 bobs of 15412-15421 are left out, INFERRED); every weight 0: every part on (K, L)
+ * (15409 / 15410: the ball between two forms). B is A turned upside down (the ceiling walker). Order: MP_* (ORB2 ORB1 WH4 WH3 WH2 WH1
+ * TUBE1 TUBE2 GRILL2 GRILL1 PELVIS BODY NODE2 NODE1 HEAD). */
+static const signed char MOFF[7][MP_N][2] = {
+    { { 32, 8 }, { -32, 8 }, { 36, 44 }, { 12, 44 }, { -12, 44 }, { -36, 44 }, { -16, -16 }, { 16, -16 }, { 24, 32 }, { -24, 32 }, { 0, 0 }, { 0, 0 }, { 52, 0 }, { -52, 0 }, { 0, 0 } },   /* A */
+    { { -32, -8 }, { 32, -8 }, { -36, -44 }, { -12, -44 }, { 12, -44 }, { 36, -44 }, { 16, 16 }, { -16, 16 }, { -24, -32 }, { 24, -32 }, { 0, 0 }, { 0, 0 }, { -52, 0 }, { 52, 0 }, { 0, 0 } },   /* B */
+    { { 32, 64 }, { -24, 64 }, { 100, 84 }, { 68, 84 }, { 31, 63 }, { -25, 63 }, { 64, 32 }, { 80, 56 }, { 96, 72 }, { 72, 72 }, { -16, 32 }, { 0, 0 }, { 28, 24 }, { 3, 57 }, { 0, 0 } },   /* C */
+    { { 0 } }, { { 0 } }, { { 0 } }, { { 0 } } };
 
 static void m_layout(void) {
     double Ls = M.Lr;
@@ -183,9 +192,12 @@ static void m_start(player_t *p) {                                              
     camera_reset(); G.cam_nC = 0; G.cam_nE = SCREEN_W; G.cam_nD = marker(OT_CAMLIM_T, 0); G.cam_nF = marker(OT_CAMLIM_B, 0);
     camera_update();
     for (int k = 0; k < count(OT_FDB_PBC); k++) { obj_t *c = get(OT_FDB_PBC, k); if (c) { c->x = 0; c->A = -4; } }
+    par_set_drift(3463, -8); par_set_drift(3464, -12); par_set_drift(3394, -5); par_set_drift(3391, -3); par_set_drift(3395, -1); par_set_drift(3393, -3);   /* 15401: G */
+    par_set_hidden(3463, 0); par_set_hidden(3464, 0); par_set_hidden(3390, 1);
     music_play(level_music_slot(4) ? level_music_slot(4) : "bgm/m_boss5.adp");   /* stop_music + play_music(global string 4): see the spec (RV) */
     memset(&M, 0, sizeof M);
     M.on = 1; M.J = 0; M.hD = 4; strcpy(M.str, "234"); M.slen = 3; M.K = 0;
+    { obj_t *v = get(OT_FDB_SXV, 0); M.vx = v ? v->x : 512; }
     for (int k = 0; k < NSHOT; k++) M.shot[k] = -1;
     for (int k = 0; k < MP_N; k++) {
         obj_t *o = mspawn(OT_FDB_MPART + k, k, 0, (float)sxv_y());
@@ -195,6 +207,12 @@ static void m_start(player_t *p) {                                              
     if (h) { h->A = 80; h->fl |= F_NOFLY; }                                     /* ctor: A 80, D 4 (RE create_bossmorpherhead_3486) */
 }
 
+static int ov(const obj_t *a, const obj_t *b) {                                 /* a's image box on b's mask (check_overlap, INFERRED box) */
+    if (!a->an.b || !b->an.b) return 0;
+    const frame_t *f = anim_frame(&a->an);
+    int x0 = (int)a->x - f->hx, y0 = (int)a->y - f->hy;
+    return obj_rect_hit(b, x0, y0, x0 + f->w, y0 + f->h);
+}
 static void m_hurt_on(player_t *p, obj_t *o, int dmg, int snd) {
     if (o && !o->hidden && sbb_csens_hit(p, o) && sbb_vulnerable(p)) { if (snd) snd_play_orig(snd, 220, 128); sbb_hurt(p, dmg); }
 }
@@ -206,17 +224,19 @@ static void m_shots(player_t *p) {
         if (!o || o->type < OT_FDB_TRAIN || o->type > OT_FDB_FX) { M.shot[k] = -1; continue; }
         o->av[1] += 1; o->av[2] += 1;                                           /* B / C counters (15497) */
         switch (o->par) {
-        case SH_TRAIN:                                                          /* 15498-15509: up, down to the floor, along it */
-            if (o->av[0] == 0) { o->y -= 8; if (o->y <= sxv_y() - 111 - 64) { mset(o, MR_TRAIN8); o->av[0] = 1; o->av[1] = 0; } }   /* (INFERRED: the rise) */
-            else if (o->av[0] == 1 && o->av[1] > 10) { mset(o, MR_TRAIN24); o->av[0] = 2; o->av[1] = 0; }
-            else if (o->av[0] == 2) { o->y += 8; if (o->av[1] > 8) { mset(o, MR_TRAIN8); o->av[0] = 3; o->av[1] = 0; } }
-            else if (o->av[0] == 3 && o->av[1] > 10) { mset(o, MR_TRAIN0); o->av[0] = 4; o->av[1] = 0; }
+        case SH_TRAIN:   /* 15498-15509 (RV m1_l 1221-1300): A 0 right 12 a frame at head height to the values' x - 111, A 1 a 10-frame stop,
+                          * A 2 down 8 a frame, A 3 a 10-frame stop on the floor, A 5 back left 12 a frame (A 4 / A 7: reflected right / up) */
+            if (o->av[0] == 0) { o->x += 12; if (o->x >= M.vx - 111) { mset(o, MR_TRAIN8); o->av[0] = 1; o->av[1] = 0; } }   /* 15499 / 15504 */
+            else if (o->av[0] == 1 && o->av[1] > 10) { mset(o, MR_TRAIN24); o->av[0] = 2; o->av[1] = 0; }   /* 15500 */
+            else if (o->av[0] == 2) { o->y += 8; if (o->av[1] > 8) { mset(o, MR_TRAIN8); o->av[0] = 3; o->av[1] = 0; } }   /* 15501 / 15502 */
+            else if (o->av[0] == 3 && o->av[1] > 10) { mset(o, MR_TRAIN0); o->av[0] = 5; o->av[1] = 0; }   /* 15503 */
             else if (o->av[0] == 4) o->x += 12;
-            else if (o->av[0] == 5) o->x -= 12;                                 /* reflected back */
-            if (o->av[0] < 5) m_hurt_on(p, o, 10, 0);                           /* 15509: C > 3 */
-            if (o->av[0] >= 4 && o->av[1] > 80) o->alive = 0;                   /* 15508 */
-            if (o->av[0] == 5 && h && !h->hidden && M.hC <= 0 && obj_rect_hit(h, (int)o->x - 16, (int)o->y - 8, (int)o->x + 16, (int)o->y + 8)) {
-                h->A -= 5; M.hC = 5; h->c = 5; snd_play_orig(24, 220, 128); o->alive = 0;   /* 15507 */
+            else if (o->av[0] == 5) o->x -= 12;                                 /* 15505 */
+            else if (o->av[0] == 7) o->y -= 8;                                  /* 15506 */
+            if (o->av[2] > 3) m_hurt_on(p, o, 10, 0);                           /* 15509: C > 3 */
+            if (o->av[0] > 3 && o->av[1] > 80) o->alive = 0;                    /* 15508 */
+            if (o->alive && o->av[0] == 5 && h && !h->hidden && M.hC <= 0 && !(h->fl & (F_ARMOURED | F_DEFEATED)) && ov(o, h)) {
+                h->A -= 5; M.hC = 5; h->c = 5; snd_play_orig(24, 220, 128);     /* 15507: A - 5, C 5, flash */
             }
             break;
         case SH_EBALL:                                                          /* 15510-15516 */
@@ -225,44 +245,54 @@ static void m_shots(player_t *p) {
                 o->x += (o->fl & 2) ? 4 : -4;
                 if (h) o->y = (float)(int)(h->y + (2 * o->av[3] - 1) * sbb_sin(5 * o->av[1]) * 60);
                 if (!(o->fl & 2)) m_hurt_on(p, o, 10, 371);
-                if ((o->fl & 2) && h && M.hC <= 0 && sbb_p326_hit(o) == 0 && obj_rect_hit(h, (int)o->x - 20, (int)o->y - 20, (int)o->x + 20, (int)o->y + 20)) {
+                if ((o->fl & 2) && h && M.hC <= 0 && !(h->fl & (F_ARMOURED | F_DEFEATED)) && ov(o, h)) {
                     h->A -= 5; M.hC = 5; h->c = 5; snd_play_orig(24, 220, 128); o->alive = 0;   /* 15516 */
                 }
                 if (o->av[1] > 300) o->alive = 0;                               /* 15514 */
             }
             break;
-        case SH_LASER: o->x += (float)o->av[4]; m_hurt_on(p, o, 10, 0); if (!obj_near_view(o, 64)) o->alive = 0; break;   /* (speed INFERRED) */
+        case SH_LASER: o->y += (float)o->av[4]; m_hurt_on(p, o, 10, 0); if (!obj_near_view(o, 32) || obj_overlaps_bg(o)) o->alive = 0; break;   /* EnemyTrooperLaser_2530: 15 a frame (RV) */
         case SH_SHOCK: o->x += (float)o->av[4]; m_hurt_on(p, o, 10, 0); if (!obj_near_view(o, 64)) o->alive = 0; break;
         case SH_GLOW: if (o->av[1] > 30) o->alive = 0; break;
         }
     }
 }
 
-/* the player's attack reflects a ball / the train beam (RE col_9_66 / col_23_66: PlayerReflect_463; INFERRED for Lilac and Carol: any
- * attack box, the shared hit rule) */
+/* Milla's cube (PlayerReflect_463) reflects a ball (flag 1, sound 219: col_9_66) or the train beam (A 0 -> 5, A 2 -> 7, sound 219:
+ * col_23_66); no event lets Lilac's or Carol's attacks reflect them (RE): they hit the head directly (Q20). */
 static void m_reflect(player_t *p) {
     for (int k = 0; k < NSHOT; k++) {
         obj_t *o = slot(M.shot[k]);
         if (!o || (o->par != SH_EBALL && o->par != SH_TRAIN)) continue;
-        if (!combat_attack_overlaps(p, o)) continue;
+        if (!player_cube_hits(o)) continue;                                     /* PlayerReflect_463: Milla's cube (RE) */
         if (o->par == SH_EBALL && !(o->fl & 2) && o->av[0] >= 10) { o->fl |= 2; snd_play_orig(219, 220, 128); }
-        if (o->par == SH_TRAIN && o->av[0] == 4) { o->av[0] = 5; o->av[1] = 0; snd_play_orig(219, 220, 128); }
+        if (o->par == SH_TRAIN && (o->av[0] == 0 || o->av[0] == 2) && !(o->fl & 2)) { o->fl |= 2; o->av[0] = o->av[0] == 0 ? 5 : 7; snd_play_orig(219, 220, 128); }   /* col_23_66 */
     }
 }
 
 static void m_attacks(player_t *p) {
     obj_t *h = mpart(MP_HEAD), *n1 = mpart(MP_NODE1), *n2 = mpart(MP_NODE2), *o1 = mpart(MP_ORB1), *o2 = mpart(MP_ORB2);
     double *w = M.w;
-    /* A / B forms: the node lasers (15427-15434): the counter B charges (glows at 10), fires at 40 (sound 192), restarts at 120 */
+    /* A / B forms (15427-15437; RV m1_l 788-902): A walks left 3 a frame to the view x + 80, B (the ceiling) right 3 a frame to 55 px
+     * before the player (RV: stops at X - 55, INFERRED rule); once the weight is 1 the body's B counts: 10 the charge glows at the nodes
+     * (sound 191), from 39 every 4 frames a laser from node 1 / node 2 in turn (20 lasers, sound 192), 15 a frame up from the node - 48
+     * (A) / down from the node + 48 (B); 120 restarts. */
+    if (w[0] >= 1 && M.K > G.camx + 80) M.K -= 3;
+    if (w[1] >= 1 && M.K < sbb_px(p) - 55) M.K += 3;
     if (w[0] < 1 && w[1] < 1) M.bB = 0;
     else {
+        int up = w[0] >= 1;
         M.bB += 1;
-        if (M.bB == 10) { if (n1) shot_new(SH_GLOW, MR_GLOW, n1->x - 4, n1->y - 16); if (n2) shot_new(SH_GLOW, MR_GLOW, n2->x + 4, n2->y - 16); }
-        if (M.bB == 40) {
-            for (int s = 0; s < 2; s++) {
-                obj_t *n = s ? n2 : n1; if (!n) continue;
-                obj_t *l = shot_new(SH_LASER, MR_LASER, n->x, n->y);
-                if (l) { l->av[4] = (sbb_px(p) < n->x) ? -10 : 10; l->flip = l->av[4] < 0; }
+        if (M.bB == 10) {
+            if (n1) shot_new(SH_GLOW, MR_GLOW, n1->x + (up ? -4 : 4), n1->y + (up ? -16 : 16));
+            if (n2) shot_new(SH_GLOW, MR_GLOW, n2->x + (up ? 4 : -4), n2->y + (up ? -16 : 16));
+            snd_play_orig(191, 220, 128);
+        }
+        if (M.bB >= 39 && M.bB < 119 && (int)(M.bB - 39) % 4 == 0) {
+            obj_t *n = ((int)(M.bB - 39) / 4) % 2 ? n2 : n1;
+            if (n) {
+                obj_t *l = shot_new(SH_LASER, MR_LASER, n->x + (up ? -4 : 4), n->y + (up ? -48 : 48));
+                if (l) { l->av[4] = up ? -15 : 15; l->ang = 90; }
             }
             snd_play_orig(192, 220, 128);
         }
