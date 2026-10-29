@@ -11,8 +11,8 @@
 extern int fe_mode;                  /* frontend.c: the original's global 0 (0 Time Attack, 1 Classic, 2 Adventure) */
 
 /* ---- the scene table (story/story.txt) */
-enum { NX_NONE, NX_SCENE, NX_STAGE, NX_ROUTE, NX_MENU, NX_MARK };
-typedef struct { uint8_t kind; int16_t scene; char dir[8]; } step_t;
+enum { NX_NONE, NX_SCENE, NX_STAGE, NX_ROUTE, NX_MENU, NX_MARK, NX_BACK };
+typedef struct { uint8_t kind; int16_t scene; char dir[8]; char txt[28]; } step_t;   /* txt: the table's text (host log) */
 typedef struct {
     char name[24]; int room, g4, chr, panel;   /* panel: GUIPause frame (1 SKIP / QUIT, 2 SKIP / NEXT STAGE; 0: START skips at once) */
     step_t next, skip, stage;
@@ -25,20 +25,26 @@ static int nsc = -1;                 /* -1: not read yet */
 static char *captions;               /* story/captions.txt (the original's caption strings, tables/story/dialog.json) */
 
 static void parse_step(const char *s, step_t *st) {
-    memset(st, 0, sizeof *st); st->scene = -1;
+    memset(st, 0, sizeof *st); st->scene = -1; snprintf(st->txt, sizeof st->txt, "%s", s);
     if (!strncmp(s, "scene:", 6)) { st->kind = NX_SCENE; st->scene = (int16_t)story_scene_id(s + 6); if (st->scene < 0) st->kind = NX_NONE; }
     else if (!strncmp(s, "stage:", 6)) { st->kind = NX_STAGE; snprintf(st->dir, sizeof st->dir, "%.7s", s + 6); }
     else if (!strcmp(s, "route")) st->kind = NX_ROUTE;
     else if (!strcmp(s, "menu")) st->kind = NX_MENU;
     else if (!strncmp(s, "mark:", 5)) st->kind = NX_MARK;     /* SKIP SCENE inside the script (frame 75 g4 0: to the character select) */
+    else if (!strcmp(s, "back")) st->kind = NX_BACK;          /* an in-stage scene (story_inline_begin): back to the stage it plays in */
 }
 static void table_load(void) {
     if (nsc >= 0) return;
     nsc = 0;
     { size_t cz; captions = plat_load_file("story/captions.txt", &cz);
       if (captions) { char *z = realloc(captions, cz + 1); if (z) { captions = z; captions[cz] = 0; } else { free(captions); captions = NULL; } } }
-    size_t sz; char *d = plat_load_file("story/story.txt", &sz);
+    size_t sz, sz2; char *d = plat_load_file("story/story.txt", &sz), *d2 = d ? plat_load_file("story/inline.txt", &sz2) : NULL;
     if (!d) return;
+    if (d2) {                                               /* the in-stage scenes (session 25b) after the room scenes: one buffer */
+        char *z = realloc(d, sz + sz2);
+        if (z) { memcpy(z + sz, d2, sz2); d = z; sz += sz2; }
+        free(d2);
+    }
     /* two passes: names first (a step may name a later scene) */
     char *lines[STORY_MAX]; int nl = 0;
     for (char *p = d, *e = d + sz; p < e && nl < STORY_MAX;) {
@@ -62,7 +68,8 @@ static void table_load(void) {
         parse_step(nx, &s->next); s->skip = s->next; s->panel = 1; s->sid = -1; memset(&s->stage, 0, sizeof s->stage);
         for (const char *p = lines[i] + off; sscanf(p, "%31s%n", tok, &off) == 1; p += off) {
             if (!strncmp(tok, "skip=", 5)) parse_step(tok + 5, &s->skip);
-            else if (!strncmp(tok, "stage=", 6)) { s->stage.kind = NX_STAGE; snprintf(s->stage.dir, sizeof s->stage.dir, "%.7s", tok + 6); }
+            else if (!strncmp(tok, "stage=", 6)) { s->stage.kind = NX_STAGE; snprintf(s->stage.dir, sizeof s->stage.dir, "%.7s", tok + 6);
+                                                   snprintf(s->stage.txt, sizeof s->stage.txt, "stage:%.20s", tok + 6); }
             else if (!strncmp(tok, "panel=", 6)) s->panel = atoi(tok + 6);
             else if (!strcmp(tok, "trig=new")) s->trig_new = 1;
             else if (!strncmp(tok, "trig=end:", 9)) s->trig_end = atoi(tok + 9) + 1;
@@ -88,6 +95,7 @@ static struct {
     int paused, pause_a, sel, wipe_f; float wipe_x;   /* the story pause (GUIPause frame 1: RESUME / SKIP SCENE / QUIT) */
     int chsel, chsel_cur, chsel_t;   /* the in-scene character select (frame 75) */
     int last_stage;                  /* frame 8's MenuSequence.I for 'route' steps */
+    int inl, inl_done;               /* an in-stage scene (session 25b: RM5's Adventure dialogue) is playing / has ended */
     int pos;                         /* the run's story position: the last completed scene id + 1 */
     char *dlg_buf; const char *dlg[320]; int ndlg;
     ui_banks_t font;
@@ -104,11 +112,13 @@ int story_position(void) { return S.run ? S.pos : -1; }
 static void dlg_free(void) { free(S.dlg_buf); S.dlg_buf = NULL; S.ndlg = 0; }
 static void leave_scene(void) {
     csx_free(); dlg_free();
+    game_sfx_set_story(NULL, 0);                            /* the scene's sound set is freed (session 25b) */
     if (S.font.n) ui_banks_free(&S.font);
     S.scene = -1; S.paused = 0; S.chsel = 0; S.wipe_f = 0;
 }
 void story_reset(void) {
     if (S.scene >= 0) leave_scene();
+    S.inl = S.inl_done = 0;
     S.run = 0; S.done = 0; S.last_stage = -1; S.pos = 0;
 #ifdef FP_HOST_ENV
     printf("story reset\n");
@@ -157,7 +167,7 @@ static void complete(int skipped) {
     if (S.done || S.scene < 0) return;
     S.done = 1;
     int id = S.scene;
-    csx_stop_audio(); music_stop();
+    csx_stop_audio(); if (!S.inl) music_stop();            /* in-stage: the stage fades its own music (RM5 6680) */
     story_mark_seen(sid_of(id));
     S.pos = sid_of(id) + 1;                                 /* 0: none (a scene without a number) */
     if (G.file_slot >= 0 && G.file_slot < SAVE_FILES && !G.file_new && SV.file[G.file_slot].used) {   /* the file's story position (save.c v5) */
@@ -165,9 +175,18 @@ static void complete(int skipped) {
         save_store();
     }                                                       /* a new file gets it with its first stage end (game_save_stage_end) */
 #ifdef FP_HOST_ENV
-    printf("story complete %s skipped %d\n", SC[id].name, skipped);
+    printf("story complete %s skipped %d vopeak %ld\n", SC[id].name, skipped, csx_voice_peak());
 #endif
     step_t st = skipped == DONE_SKIP ? SC[id].skip : skipped == DONE_STAGE && SC[id].stage.kind ? SC[id].stage : SC[id].next;
+#ifdef FP_HOST_ENV
+    printf("story next %s%s\n", st.txt[0] ? st.txt : "menu", st.kind == NX_NONE && !strncmp(st.txt, "scene:", 6) ? " (not in the table)" : "");
+#endif
+    if (S.inl) {                                            /* back to the stage (the level stayed loaded) */
+        leave_scene(); S.inl = 0; S.inl_done = 1;
+        game_sfx_set(level_cur()->sfx, level_cur()->nsfx);  /* the stage's own sound group again */
+        G.mode = MODE_PLAY;
+        return;
+    }
     leave_scene();
     go_step(&st);
 }
@@ -175,7 +194,8 @@ static void complete(int skipped) {
 /* a scene that does not play for this character: the scene of the same json frame and g4 that does. The original's room
  * picks the content by g1 at one g4 (frame 82 g4 13: jc_cave / jc_cave_cm, g4 17: tb_arrest / tb_outside_team; RV
  * c83_g13 / c83_g13c, c83_g17 / c83_g17c), so a step into that g4 names either. A split room (st83<list>, ADVENTURE.md 10) is
- * numbered json * 100 + its CutsceneList index. */
+ * numbered json * 100 + its CutsceneList index. Groups A / B (session 25b): the original's room plays other lines for another
+ * g1 (RV b15_g11_c: The Next Morning without Lilac's wake-up): <id>, <id>_c, <id>_m. */
 static int json_of(int room) { return room >= 1000 ? room / 100 : room; }
 static int chr_variant(int id) {
     int cs = chr_slot(G.character); if (cs > 2) cs = 0;
@@ -204,7 +224,7 @@ static int start_scene(int id) {
     G.stage_carry = 0;
     if (r < 0) { csx_free(); story_mark_seen(sid_of(id)); step_t st = SC[id].next; go_step(&st); return 0; }
     music_stop();
-    { short ids[48]; int n = csx_sfx_ids(ids, 48); static short keep[48]; memcpy(keep, ids, sizeof ids); game_sfx_set(keep, n); }
+    { short ids[48]; int n = csx_sfx_ids(ids, 48); game_sfx_set_story(ids, n); }   /* only what is not resident (session 25b) */
     memset(&S.font, 0, sizeof S.font);
     if (bank_load(&S.font.bank[0], "ui/font") == 0) S.font.n = 1;
     if (csx_dialog() > 0) dlg_load(csx_dialog()); else dlg_free();
@@ -217,6 +237,30 @@ static int start_scene(int id) {
 #endif
     return 0;
 }
+
+/* an in-stage scene (session 25b): its script plays over the stage that is loaded (actors from the stage's _ens bank, the
+ * level's pieces behind them, no room load); the table's next step is "back". The stage calls this at the original's
+ * frame (RM5 6864: the Kingdom Stone dialogue in Adventure) and polls story_inline_done() to go on. 0 = started. */
+int story_inline_begin(const char *name) {
+    table_load();
+    int id = story_scene_id(name); if (id >= 0) id = chr_variant(id);
+    if (id < 0 || !story_gate() || SC[id].next.kind != NX_BACK || S.scene >= 0) return -1;
+    char nm[48]; snprintf(nm, sizeof nm, "story/%.23s.scn", SC[id].name);
+    if (csx_load(nm) < 0) return -1;
+    { short ids[48]; int n = csx_sfx_ids(ids, 48); game_sfx_set_story(ids, n); }
+    memset(&S.font, 0, sizeof S.font);
+    if (bank_load(&S.font.bank[0], "ui/font") == 0) S.font.n = 1;
+    if (csx_dialog() > 0) dlg_load(csx_dialog()); else dlg_free();
+    G.mode = MODE_STORY;
+    S.scene = id; S.done = 0; S.paused = 0; S.pause_a = 0; S.wipe_f = 0; S.chsel = 0; S.inl = 1; S.inl_done = 0;
+    csx_set_captions(captions);
+    csx_begin(&G.ens, S.font.n ? &S.font.bank[0] : NULL, S.dlg, S.ndlg);
+#ifdef FP_HOST_ENV
+    printf("story start %s room %s inline\n", SC[id].name, G.lvdir);
+#endif
+    return 0;
+}
+int story_inline_done(void) { int d = S.inl_done; S.inl_done = 0; return d; }
 
 /* ---- triggers */
 /* RE hub 'c1' / character select 800: a new Adventure -> frame 81 with g4 2 (the opening) */
@@ -325,6 +369,8 @@ void story_update(const input_t *in) {
     if (S.paused) { pause_update(in); return; }
     if (S.pause_a > 0) S.pause_a--;
     if ((in->pressed & BTN_START) && !S.pause_a && !S.chsel && !S.done && SC[S.scene].panel == 0) { complete(DONE_SKIP); return; }   /* RV k81_g2_start */
+    input_t nostart;                                        /* panel 3: no pause (RV k69_g99_skip: the flashback in FD3A's frame) */
+    if (SC[S.scene].panel == 3) { nostart = *in; nostart.held &= ~BTN_START; nostart.pressed &= ~BTN_START; in = &nostart; }
     if ((in->pressed & BTN_START) && !S.pause_a && !S.chsel && !S.done) {   /* RE 18656 */
         S.paused = 1; S.pause_a = 5; S.sel = 0;
         music_pause(); snd_stop_all(); snd_play_orig(63, 230, 128);
@@ -362,6 +408,7 @@ int story_host_new(int character) {                     /* as the hub's NEW ADVE
     G.file_slot = getenv("FP_FILE") ? atoi(getenv("FP_FILE")) : -1; G.file_new = getenv("FP_FILE_NEW") != NULL || G.file_slot < 0;
     return story_new_game(character);
 }
+void story_host_drop(void) { if (S.scene >= 0) leave_scene(); S.inl = 0; }
 int story_host_stage_end(void) {                        /* as results.c's stage end in a story run */
     if (story_stage_end(level_cur()->stage)) return 1;
     if (!G.time_attack && game_next_stage()) return 2;

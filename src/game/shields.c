@@ -63,6 +63,8 @@ static void shl_need(void) {
     const bank_t *b;
     if (shl_tried || G.shl.nframes) return;
     shl_tried = 1;                                                           /* one check / load per act */
+    if (G.lvdir[0] == 's' && G.lvdir[1] == 't' && G.lvdir[2] >= '0' && G.lvdir[2] <= '9') return;   /* a story room draws no player:
+                                                                             * a carried shield needs no sprites there (VRAM, session 25b) */
     if (sh_anim("shw", &b) >= 0) return;                                     /* the act's _ens has them */
     char nm[48]; snprintf(nm, sizeof nm, "%s/%s_shl", G.lvdir, G.lvdir);
     if (bank_load(&G.shl, nm) < 0) { memset(&G.shl, 0, sizeof G.shl); G.shl.tex.id = -1; plat_log("shields: no sprites for %s (%s missing)\n", G.lvdir, nm); }

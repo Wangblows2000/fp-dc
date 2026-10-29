@@ -51,6 +51,10 @@ int    snd_load(const char *name);
 void   snd_play(int h, int vol, int pan);
 void   snd_unload(int h);                         /* platform: free a loaded sample (its handle slot is reused) */
 int    snd_mem_free_kb(void);                     /* largest free block of sound RAM (KB; -1 on the host) */
+#ifdef FP_HOST_ENV
+long   snd_host_resident(void);                   /* host: bytes of every loaded sample (sound RAM budgets, tests) */
+long   snd_host_bytes(int h);                     /* host: one loaded sample's bytes (0: none) */
+#endif
 void   snd_group_load(int carol);                 /* game.c: the character's own sound set (one resident at a time) */
 int    snd_loop_start(int h, int vol, int freq);   /* platform: looping sample on an allocated channel (-1: none) */
 void   snd_loop_set(int ch, int vol, int freq);
@@ -460,7 +464,7 @@ enum { OT_SBG_FIRST = 1100, OT_SB_CANNON = 1100 /* GimmickCannon_2142 */, OT_SB_
        OT_SB_CANBULLET = 1140 /* runtime: GimmickCannonBullet_2098 */, OT_SB_FANDEBRIS = 1141 /* GimmickFanDebris_2230 */,
        OT_SB_FLOORPIECE = 1142 /* BreakableFloorPiece2_2229 */, OT_SBG_LAST = 1149 };
 
-#define MAX_ATLAS 4
+#define MAX_ATLAS 6                  /* session 25b: story room st79 (the Shang Mu street, 9600 px of pieces) has 5 */
 typedef struct {
     int w, h;                 /* px */
     int npieces, nobj, natlas, nuniq, tw, th;
@@ -671,6 +675,8 @@ void ending_update(const input_t *in);
 void ending_draw(void);
 int  ending_state(void);                     /* 0 off, 1 space (83), 2 epilogue hold, 3 credits (85), 4 end screen, 5 leaving */
 void game_sfx_set(const short *ids, int n);  /* game.c: load a sound set in place of the stage's (the ending's own sounds) */
+void game_wipe_draw(float x);                /* game.c: the black wipe of the pause rows / a story scene ('fw') */
+void game_sfx_set_story(const short *ids, int n);   /* game.c: a story scene's set: its ids not resident, from story/sfx */
 void game_run_reset(void);                   /* game.c: a new run (stage counters, the RAM run file) */
 #ifdef FP_HOST_ENV
 int  ending_host_force(void);                /* host "<f> ENDING": as if Final Dreadnought 4 had just been cleared */

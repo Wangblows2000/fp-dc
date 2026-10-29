@@ -75,10 +75,14 @@ for s in ported:
     if s['id'] not in rows or rows[s['id']]['json'] != s['room']: bad.append((s['id'], 'rows'))
 check('inventory_scripts_lines_and_rows', not bad, bad[:5])
 st = os.path.join(DATA, 'story', 'story.txt')
-check('data_story_table', os.path.isfile(st) and [l.split()[0] for l in open(st) if l.strip() and l[0] != '#'] == [s['id'] for s in ported],
+inl = [s for s in ported if s.get('next') == 'back']           # in-stage scenes (session 25b): story/inline.txt, no room
+check('data_story_table', os.path.isfile(st) and [l.split()[0] for l in open(st) if l.strip() and l[0] != '#'] == [s['id'] for s in ported if s not in inl],
       'run tools/import_story.py <data>')
+if inl:
+    it = os.path.join(DATA, 'story', 'inline.txt')
+    check('data_inline_table', os.path.isfile(it) and [l.split()[0] for l in open(it) if l.strip() and l[0] != '#'] == [s['id'] for s in inl])
 for s in ported:
-    if not os.path.isdir(os.path.join(DATA, 'st%d' % s['room'])): check('data_room_st%d' % s['room'], False, 'missing')
+    if s not in inl and not os.path.isdir(os.path.join(DATA, 'st%d' % s['room'])): check('data_room_st%d' % s['room'], False, 'missing')
 
 # ------------------------------------------------------------------------------------------- the first arc, new Adventure
 ev, out = run('5 ADVNEW 0\n' + taps(60, 5200) + '5300 STORY\n', 5400)

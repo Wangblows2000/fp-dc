@@ -67,9 +67,13 @@ int  csx_sfx_ids(short *ids, int max);                /* the script's sound ids 
 const char *csx_name(void);
 int  csx_dialog(void);
 void csx_set_captions(const char *table);             /* "<key> <text>" lines (story/captions.txt) for 'cap' entries */
+#ifdef FP_HOST_ENV
+long csx_voice_peak(void);                            /* host: the two voice slots' peak bytes since the last call */
+#endif
 int  csx_skip_to_chsel(void);                         /* SKIP SCENE inside the script: to its character select (-1 none) */
 int  csx_actor_find(int handle, int nth);             /* the nth actor of an object handle (-1 none) */
 int  csx_actor_x(int a);
+int  csx_actor_y(int a);
 void csx_actor_lock(int a, int on);                   /* the script's image entries leave a locked actor alone */
 void csx_actor_image(int a, int anim, int dir, int frame);   /* frame -1: keep it running if already shown */                                /* the script's DialogData handle (0 none) */
 #endif
