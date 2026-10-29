@@ -1126,7 +1126,8 @@ void   bg_enemy_spawn(void), bg_enemy_pre(player_t *p), bg_enemy_draw(int pass);
 int    bg_enemy_obj(obj_t *o, player_t *p), bg_enemy_q20(int type);
 void   bg_gim_spawn(void), bg_gim_pre(player_t *p), bg_gim_frame(player_t *p), bg_gim_draw(int pass);
 int    bg_gim_obj(obj_t *o, player_t *p), bg_gim_q20(int type);
-int    bg_gim_player(player_t *p, const input_t *in), bg_gim_ride_m(void);   /* ST_RIDE: the magnet launcher M 95, the spiral slide M 96 (bg_gim.c) */
+int    bg_gim_player(player_t *p, const input_t *in), bg_gim_ride_m(void);
+int    bg_boss_player(player_t *p, const input_t *in), bg_boss_ride_m(void);   /* ST_RIDE: BG5 Milla's Sparky ride M 93 (bg_boss_sparky.c) */   /* ST_RIDE: the magnet launcher M 95, the spiral slide M 96 (bg_gim.c) */
 void   bg_boss_spawn(void), bg_boss_pre(player_t *p), bg_boss_frame(player_t *p);
 int    bg_boss_obj(obj_t *o, player_t *p), bg_boss_q20(int type), bg_boss_draw_obj(const obj_t *o, int pass), bg_boss_input(uint32_t *held);
 int    bg_boss_player_hidden(void);

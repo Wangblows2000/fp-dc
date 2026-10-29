@@ -69,6 +69,12 @@ R0=$RATE; RATE=11025; TRIM_ALL=1; for i in 44 147 150 322 323 324 325 326 327 32
 R0=$RATE; RATE=11025; for i in 425 294; do conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; done; TRIM_ALL=1; for i in 435 354; do conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; done; RATE=$R0; TRIM_ALL=
 # Battle Glacier (session 24, SFX_BG1..6): 344 magnet launcher, 345 / 346 Elite spawner drop / land; half rate, tails trimmed
 R0=$RATE; RATE=11025; TRIM_ALL=1; for i in 344 345 346; do conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; done; RATE=$R0; TRIM_ALL=
+# Battle Glacier bosses (session 24, SFX_BG1..6): 295 / 342 / 343 / 406-408 Absolution and the background mech, 349 / 351 /
+# 355-357 Prince Dail; voices lilac_awesome (BG2 chopper end), da_05_02 / da_05_03 / dail_no (Prince Dail); half rate, tails trimmed
+R0=$RATE; RATE=11025; TRIM_ALL=1; for i in 295 342 343 406 407 408 349 351 355 356 357; do conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; done
+conv "$VOX/eng/li/lilac_awesome.ogg" "$OUT/lilac_awesome.wav"
+# (Dail's lines are not in the uploaded game copy: the user's PC install, staged to VOX_PC like the gallery clips)
+VP=${VOX_PC:-/mnt/user-data/uploads/Freedom Planet/Data/voices}; for v in da_05_02 da_05_03 dail_no; do conv "$VP/eng/da/$v.ogg" "$OUT/$v.wav"; done; RATE=$R0; TRIM_ALL=
 # Final Dreadnought (session 24, SFX_FD1A..FD4B): 376 gatling-gun burst; gimmicks 358-360 (pipes), 368-370 / 372 (fd2b), 379, 388; 381 (looped: tail kept) (the other FD ids are converted above); half rate, tails trimmed
 R0=$RATE; RATE=11025; TRIM_ALL=1; for i in 376 358 359 360 368 369 370 372 379 388; do conv "$SRC/audio_$i.ogg" "$OUT/s$i.wav"; done; TRIM_ALL=; conv "$SRC/audio_381.ogg" "$OUT/s381.wav"; RATE=$R0
 rm -rf "$TMP"

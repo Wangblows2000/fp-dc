@@ -1728,7 +1728,83 @@ ENS_FRAMES['enemyrock_1194'] = ENS_FRAMES['enemyrock_1194'] | {60, 61}   # 14154
 ENGINE_TYPES_ID.update(BGG_TYPES_ID); ENS += BGG_ENS   # BG_GIM
 for _k, _v in BGG_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # BG_GIM
 
-# ---- BG_BOSS (bg_boss.c, 2480-2559)
+# ---- BG_BOSS (bg_boss.c, 2480-2559; build/re/spec_bg_bosses.md). Types mirror src/game/bg.h (OT_BGB_*); the lvobj anim field carries the
+# instance layer << 8. Placed: the Sparky rig (BG4 boss, BG5 Milla's ride), the hatch doors (BG4 / BG6), the background Brevon mech
+# (BG2-BG4, BG6) and BG4's claw warnings. The BG2 chopper is SB2's (sb_chopper.c): its classes are mapped in json 61 too.
+# Rows: direction 0 only (the parts are drawn turned / flipped); the runtime mech parts are tied to the background mech and kept to BG4.
+BGB_FRAMES = {60, 61, 62, 63, 64, 65}
+BGB_TYPES_ID = {('bosssparky', 3336): 2480, ('bosssparkyleftarm', 3337): 2481, ('bosssparkyrightarm', 3338): 2482,
+                ('bosssparkytail', 3335): 2483, ('bosshatchdoor', 3312): 2484, ('brevonmechbackground', 2444): 2485,
+                ('effectbrevonmechwarning2', 2586): 2486}
+ENGINE_TYPES_ID.update(BGB_TYPES_ID)
+SBBOSS_FRAMES.add(61)                                         # BG2: BossChopper_2216 + parts (sb_chopper.c, the BG2 variant)
+_SPK = ('bosssparky',)
+BGB_ENS = [(c, a, d, nm, None, w) for c, a, d, nm, w in (
+    ('bosssparky_3336', 0, '0', 'bgs_body', _SPK), ('bosssparky_3336', 7, '0', 'bgs_body7', _SPK), ('bosssparky_3336', 8, '0', 'bgs_body8', _SPK),
+    ('bosssparky_3336', 11, '0', 'bgs_body11', _SPK),
+    ('bosssparkyleftarm_3337', 0, '0', 'bgs_larm', _SPK), ('bosssparkyleftarm_3337', 7, '0', 'bgs_larm7', _SPK),
+    ('bosssparkyrightarm_3338', 0, '0', 'bgs_rarm', _SPK), ('bosssparkyrightarm_3338', 7, '0', 'bgs_rarm7', _SPK),
+    ('bosssparkytail_3335', 0, '0', 'bgs_tail', _SPK), ('bosssparkytail_3335', 7, '0', 'bgs_tail7', _SPK),
+    ('bosssparkytail_3335', 8, '0', 'bgs_tail8', _SPK), ('bosssparkytail_3335', 11, '0', 'bgs_tail11', _SPK),
+    ('bosssparkyplasmashot_2587', 0, '0', 'bgs_plasma', _SPK),
+    ('bosshatchdoor_3312', 0, '0', 'bgb_hatch', ('bosshatchdoor',)))]
+# Absolution (BG4, bg_boss_mech.c): its classes are off-map templates of json 63 only (the rows go with brevonmechtorso). Direction 0
+# only: the direction-16 images are mirrors (drawn flipped); the front and back wings share one image (14579), so one row.
+_MCH = ('brevonmechtorso',)
+# VRAM (bg4_ens spills into a second atlas): the head keeps its closed and open images (frames 0, 3), the charge orb every other
+# frame, the background mech two of its four wing frames, the plasma burst every other frame (the port steps them accordingly)
+_BGM_SL = {'bgm_head': slice(0, 4, 3), 'bgm_charge': slice(0, 8, 2), 'bgm_bg': slice(0, 4, 2), 'bgm_burst': slice(1, 13, 2)}
+_MBG = ('brevonmechbackground',)
+BGB_ENS += [(c, a, d, nm, _BGM_SL.get(nm), _MCH) for c, a, d, nm in (
+    ('brevonmechtorso_2539', 0, '0', 'bgm_torso'), ('brevonmechhead_2540', 0, '0', 'bgm_head'), ('brevonmechhead_2540', 10, '0', 'bgm_head10'),
+    ('brevonmechweakspot_2581', 0, '0', 'bgm_weak0'), ('brevonmechweakspot_2581', 0, '1', 'bgm_weak1'),
+    ('brevonmechweakspot_2581', 0, '2', 'bgm_weak2'), ('brevonmechweakspot_2581', 0, '3', 'bgm_weak3'),
+    ('brevonmechturret_2585', 0, '0', 'bgm_turret'), ('brevonmechcharge_2584', 0, '0', 'bgm_charge'),
+    ('brevonmechabdomen_2536', 0, '0', 'bgm_abd'), ('brevonmechaxle_2546', 0, '0', 'bgm_axle'),
+    ('brevonmechbackarm_2534', 0, '0', 'bgm_barm'), ('brevonmechbackclaw_2533', 0, '0', 'bgm_bclaw'),
+    ('brevonmechbackshoulder_2532', 0, '0', 'bgm_bsh'), ('brevonmechbackwing_2531', 0, '0', 'bgm_wing'),
+    ('brevonmechfrontleg_2535', 0, '0', 'bgm_fleg'), ('brevonmechfrontleg2_2537', 0, '0', 'bgm_fleg2'),
+    ('brevonmechfrontknee_2538', 0, '0', 'bgm_fknee'), ('brevonmechfrontfoot_2541', 0, '0', 'bgm_ffoot'),
+    ('brevonmechfrontshoulder_2543', 0, '0', 'bgm_fsh'), ('brevonmechfrontarm_2544', 0, '0', 'bgm_farm'),
+    ('brevonmechfrontclaw_2545', 0, '0', 'bgm_fclaw'),
+    ('effectbrevonmechwarning2_2586', 0, '0', 'bgm_warn2'))]
+# the background mech (BG2-BG4) and its lasers / warnings / burst (created at run time: tied to the background mech)
+BGB_ENS += [(c, a, d, nm, _BGM_SL.get(nm), _MBG) for c, a, d, nm in (
+    ('brevonmechbackground_2444', 0, '0', 'bgm_bg'), ('brevonmechlaser_2583', 0, '0', 'bgm_laser'),
+    ('effectbrevonmechwarning_2582', 0, '0', 'bgm_warn'), ('effectplasmaburst_3091', 4, '0', 'bgm_burst'))]
+BGB_ENS_WITH = {'effectsexplosion06_435': _SPK + _MCH, 'effectshade_436': _SPK, 'bosssparkyplasmashot_2587': _SPK + _MCH,
+                'hazardshockwave_1576': _MCH, 'effectsdebris_427': _MCH, 'brevonmechlaser_2583': _MBG,
+                'effectbrevonmechwarning_2582': _MBG, 'effectplasmaburst_3091': _MBG}
+ENS += BGB_ENS   # BG_BOSS
+for _k, _v in BGB_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # BG_BOSS
+for _e in BGB_ENS: ROW_FRAMES[_e[3]] = BGB_FRAMES   # BG_BOSS rows only in Battle Glacier
+for _e in BGB_ENS:
+    if _e[5] == _MBG: ROW_FRAMES[_e[3]] = {61, 62, 63}   # BG6 places the background mech too (it stays hidden there)
+ROW_FRAMES['bgm_burst'] = {61}                        # BG2's set piece only
+ROW_FRAMES['bgs_body11'] = ROW_FRAMES['bgs_tail11'] = {64}   # Milla aboard (BG5's ride) only
+# BG6 (bg_boss_dail.c): Prince Dail, the Shade Beast (head, crown placed; mouth, teeth, eyes, vortex, cards, lightning at run time)
+BGB_TYPES_ID6 = {('bossdail', 3370): 2490, ('bossdailfall', 3383): 2491, ('bossdailspawnpoint', 3366): 2492,
+                 ('bossshadebeast', 3368): 2493, ('bossshadebeastcrown', 3369): 2494}
+ENGINE_TYPES_ID.update(BGB_TYPES_ID6)
+_SB6 = ('bossshadebeast',)
+BGB_ENS6 = [(c, a, d, nm, None, _SB6) for c, a, d, nm in (
+    ('bossdail_3370', 0, '0', 'bgd_dail'), ('bossdail_3370', 7, '0', 'bgd_dail7'), ('bossdail_3370', 8, '0', 'bgd_dail8'),
+    ('bossdail_3370', 10, '0', 'bgd_dail10'), ('bossdailfall_3383', 0, '0', 'bgd_fall'),
+    ('bossshadebeast_3368', 0, '0', 'bgd_beast'), ('bossshadebeast_3368', 8, '0', 'bgd_beast8'),
+    ('bossshadebeastcrown_3369', 0, '0', 'bgd_crown'), ('bossshadebeastcrown_3369', 8, '0', 'bgd_crown8'),
+    ('bossshadebeastmouth_3373', 0, '0', 'bgd_mouth'), ('bossshadebeasttoptooth_3375', 0, '0', 'bgd_ttooth'),
+    ('bossshadebeastbottomtooth_3376', 0, '0', 'bgd_btooth'), ('bossshadebeasteye_3365', 0, '0', 'bgd_eye'),
+    ('bossshadebeasteye_3365', 7, '0', 'bgd_eye7'), ('bossvortex1_3374', 0, '0', 'bgd_vortex1'),
+    ('bossvortex2_3378', 0, '0', 'bgd_vortex2'), ('bossvortexstar_3379', 0, '0', 'bgd_star'),
+    ('bossdailcard_3371', 0, '0', 'bgd_card'), ('bossdailcardtrail_3372', 0, '0', 'bgd_trail'),
+    ('bossdailcardeffect_3367', 0, '0', 'bgd_cardx'), ('bosslightning2_2132', 0, '0', 'bgd_bolt'),
+    ('effectbossshade_3377', 0, '0', 'bgd_shade'))]
+ENS += BGB_ENS6   # BG_BOSS
+for _e in BGB_ENS6: ROW_FRAMES[_e[3]] = {65}
+for _k in ('bossshadebeastmouth_3373', 'bossshadebeasttoptooth_3375', 'bossshadebeastbottomtooth_3376', 'bossshadebeasteye_3365',
+           'bossvortex1_3374', 'bossvortex2_3378', 'bossvortexstar_3379', 'bossdailcard_3371', 'bossdailcardtrail_3372',
+           'bossdailcardeffect_3367', 'bosslightning2_2132', 'effectbossshade_3377'):
+    ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _SB6   # BG_BOSS (created at run time by the BG6 fight)
 
 # ==== end Battle Glacier
 
@@ -2426,6 +2502,7 @@ def main():
     for o in objs: o['type'] = FRAME_TYPE_REMAP.get((n, o['type']), o['type'])   # per-frame type remaps (BG_ENEMIES: the BG Elites)
     objs = [o for o in objs if not (1430 <= o['type'] < 1480 and n not in JCB_REMAP_FRAMES)]   # JC_BOSS: its types only in JC1-JC5 (JC5: the ice ambush)
     objs = [o for o in objs if not (2992 <= o['type'] < 3072 and n not in FDB_FRAMES)]   # FD_BOSS B: its types only in FD3b / FD4b
+    objs = [o for o in objs if not (n in FDB_FRAMES and 2480 <= o['type'] < 2560)]   # FD_BOSS B: no BG_BOSS object in FD3b / FD4b (FD4b's BrevonMechBackground: fd_boss_r34_4b.c)
     for o in objs:                                   # SB_ENEMIES (session 19b): SB1 / SB3's placed EffectWarning_1528 (SB4's: the boss's 1188)
         if o['cls'] == 'effectwarning_1528' and n in SBE_WARN_FRAMES: o['type'] = 1039
     for o in objs:                                   # PL_GIM: Pangu Lagoon's spinball rule (pl_gim.c)
@@ -3007,6 +3084,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         if 1680 <= o['type'] < 1720: a = THB_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # TH_BOSS (th_boss.c): sub id | instance layer << 8 | 0x8000 json layer 1
         if 1968 <= o['type'] < 2016: a = TBB_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # TB_BOSS (tb_boss.c): member index | instance layer << 8
         if 2992 <= o['type'] < 3072: a = FDB_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # FD_BOSS B (fd_boss_r34.c): sub id | instance layer << 8
+        if 2480 <= o['type'] < 2560: a = o['layer'] << 8   # BG_BOSS (bg_boss.c): instance layer << 8
         if 2080 <= o['type'] < 2144: a = (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0) | (0x4000 if o.get('s08') else 0)   # PL_ENEMIES (pl_enemy.c): instance layer << 8 | 0x8000 json layer 1 of a mapped frame | 0x4000 its layer scrolls at 0.8
         d += struct.pack('<2H2i', o['type'], a, o['x'], o['y'])
     for t in table: d += t

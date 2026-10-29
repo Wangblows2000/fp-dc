@@ -15,6 +15,7 @@ SRC += ../src/game/fd_boss_r12.c ../src/game/fd_boss_r34.c   # Final Dreadnought
 SRC += ../src/game/fd_boss_r34_3b.c ../src/game/fd_boss_r34_4b.c   # Final Dreadnought bosses B encounters (FD3b, FD4b)
 SRC += ../src/game/ending.c ../src/game/cutscene.c ../src/game/cutscene_example.c   # end of the game, cutscene player (session 24)
 SRC += ../src/game/bg_flow.c ../src/game/bg_enemy.c ../src/game/bg_gim.c ../src/game/bg_boss.c   # Battle Glacier (session 24)
+SRC += ../src/game/bg_boss_sparky.c ../src/game/bg_boss_mech.c ../src/game/bg_boss_dail.c   # Battle Glacier bosses (bg_boss.h encounters)
 SRC += ../src/game/pl_flow.c ../src/game/pl_enemy.c ../src/game/pl_gim.c ../src/game/pl_boss.c   # Pangu Lagoon (session 23)
 SRC += ../src/game/tb_flow.c ../src/game/tb_enemy.c ../src/game/tb_gim.c ../src/game/tb_boss.c   # Thermal Base (session 21c)
 SRC += ../src/game/tb_boss_shrimp.c ../src/game/tb_boss_pusher.c ../src/game/tb_boss_syntax.c ../src/game/tb_boss_lift.c ../src/game/tb_boss_squid.c ../src/game/tb_boss_spider.c   # Thermal Base bosses (tb_boss.h encounters)
