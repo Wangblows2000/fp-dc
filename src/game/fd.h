@@ -105,6 +105,7 @@ enum {
     OT_FDB_PBC = 2913,      /* MiniBossPushBeamCannon_3494 (fd1b): the beam's ceiling cannon (A: extra speed) */
     OT_FDB_SXV = 2914,      /* BossSyntaxValues_3467 (fd1b; invisible): the morpher's controller (alterables A-Z, flags) */
     OT_FDB_ALARM = 2915,    /* AlarmLight_3495 (fd1b, 0,0): the red screen pulse of the push-beam alarm (an overlay) */
+    OT_FDB_NPCS = 2916,     /* NPCSerpentine_945 in fd2b (FN_BOSS's 820 elsewhere): the transformation into the mech */
     OT_FDB_PLACED_LAST = 2919,
     OT_FDB_MPART = 2920,    /* runtime: the morpher's parts 2920-2934 (BossMorpher*_3469..3486; par = part index) */
     OT_FDB_MPART_LAST = 2934,
@@ -113,10 +114,13 @@ enum {
     OT_FDB_TLASER = 2937,   /* runtime: EnemyTrooperLaser_2530 (the morpher's lasers) */
     OT_FDB_SHOCK = 2938,    /* runtime: HazardShockwave_1576 */
     OT_FDB_FX = 2939,       /* runtime: a one-shot effect (explosions, sparks) */
-    OT_FDB_SERP = 2940,     /* runtime: the mech Serpentine's parts 2940-2955 (BossMSerp*_3593..3607; par = part index) */
-    OT_FDB_SERP_LAST = 2955,
-    OT_FDB_PUNCH = 2956,    /* BossEnergyPunch_3603 (fd2b) */
-    OT_FDB_SHOT = 2957,     /* runtime: projectiles of the fd2b fight (BossBurstShot, EffectFireball) */
+    OT_FDB_MS = 2940,       /* fd2b, placed templates (x > 8384): the mech Serpentine's parts 2940-2950 in MS_* order (BossMSerpTorso_3598,
+                             * Head_3601, Neck_3593, Tail_3594 x7, RightArm_3595, RightClaw_3596, BackShoulder_3597, FrontShoulder_3599,
+                             * LeftArm_3600, LeftClaw_3602, LaserSight_3607 x4) */
+    OT_FDB_MS_LAST = 2950,
+    OT_FDB_PUNCH = 2951,    /* BossEnergyPunch_3603 (fd2b, placed): the burst in front of the dash */
+    OT_FDB_LIST_LAST = 2951, /* placed types with instance lists: 2912-2919, 2940-2951 */
+    OT_FDB_SHOT = 2952,     /* runtime: fd2b's shots (BossBurstShot_3604, EffectFireball_3605, BossMSerpFlare_3606, bubble / warning) */
     OT_FDB_A_RT_LAST = 2991
 };
 void  fdb12_spawn(void), fdb12_pre(player_t *p), fdb12_frame(player_t *p);

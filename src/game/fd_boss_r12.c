@@ -19,7 +19,7 @@ void tbb_explode_snd(void);
 #include <stdlib.h>
 
 /* ======================================================================== lists, sprites, helpers */
-#define NT (OT_FDB_PLACED_LAST - OT_FDB_PB + 1)
+#define NT (OT_FDB_LIST_LAST - OT_FDB_PB + 1)
 #define LMAX 16
 static struct { short n, i[LMAX]; } L[NT];
 static int on;                                                                  /* the level places any of these types */
@@ -489,28 +489,378 @@ static void m_draw(int pass) {
     if (a > 0) r_rect(0, 0, SCREEN_W, SCREEN_H, ((uint32_t)(a > 255 ? 255 : a) << 24) | 0xffffff);
 }
 
+/* ======================================================================== fd2b: the mech Serpentine (RE 15782-15983, RV s2_l) */
+/* The transformation (NPCSerpentine A stages, its G counting: 15812-15830). 15812: X > the NPC's x - 200 and Y < its y + 50: A 1, the
+ * stage music fades out (fadeout / unqueue / lock_music); 15814: A 1: the player walks right 2 px a frame to the NPC's x - 80 and the
+ * GUI slides up (loop_gui_shiftup_44); 15815: A 1, G > 100: the player stops (loop_stop_player), A 2; 15817: A 2, G > 30: A 3; 15818:
+ * A 3, G = 60: the NPC's animation 17, sound 373; 15819: G > 64: A 4; 15820-15824: A 4: from G 70 sound 374 every 20 frames and the
+ * transform bubble grows on the NPC (RV s2_l: 17 x 374, 326-646); 15830 (RV 657): sound 67, play_music slot 4 (m_boss6, RE 15688), the
+ * flare (BossMSerpFlare_3606) rises 16 px a frame from the NPC, then falls down the shaft at the NPC's x - 150 (RV: 7622, 16 px a
+ * frame); 15831 (RV 720): the flare breaks the FDPlatforms under the NPC (sound 354, explosions) and the camera's bottom markers
+ * there go: the player (at the NPC's x - 6, RV 7766) falls down the shaft (RV: 20 px a frame) to the arena (y 4992, x 7008-8160).
+ * The fight (head group 0x22fc1, 15849-15936): BossMSerpHead A 40 HP, H 5 lives (15913: A <= 0: H - 1, A 40, C 120 (the blink, no
+ * hits), sounds 47 + 378; 15917: H 1 left: A + 20 and m_boss6b, RE 15689); the head's D is the state, E its timer (15870):
+ *   D 0 idle (pose J) -> D 1 (39 frames, pose K, facing the player) -> D 2 the dash (30 frames, sound 375, the target H + 15 F a frame,
+ *   the energy punch's burst in front: 15878) -> D 3 (19 frames) -> D 0;  D 4 (80 frames, pose M: every 6 frames two pairs of burst
+ *   shots from the right claw at +-11.25 and +-45 degrees, 20 px a frame, sound 376 (15891-15894) / every 8 frames a fireball (sound
+ *   377, 15895 / 15896: y = A - D sin B, B + 6, D + 5 to 100, x + 5 F) - the two alternate (15873's flag 1) -> D 5 (19 frames) -> D 0;
+ *   D 6 (19 frames, pose N) -> D 7 the jump (46 frames, sound 147: 10 frames crouched, then 36 frames x + 10 F on a 171 px arc) ->
+ *   D 8 (19 frames, pose O; the landing flare runs along the floor 15 px a frame the other way) -> D 0.
+ *   The idle waits (RV): 41 frames before a dash (31 after a jump), 51 before a jump, 101 before the shots; the order (RV s2_l): a jump
+ *   first, then two dashes between the specials, jump and shots alternating (RE: a random pick, GLOBALS.C: INFERRED order).
+ * Rig (RV fit on s2_l, residual median <= 2 px, the tail's swing left out): every part at the torso + F * x / + y of the pose weights
+ * J-O (MSOFF); the torso bobs y = I + 20 sin 2D (D + 4 a frame, + 12 dashing), its x follows H by half the gap.
+ * Contact (15941 / 15942 / 15946 / 15966): the torso, head, left arm, the burst, shots, fireballs and the floor flare hurt (10).
+ * Milla's cube (PlayerReflect) sends the shots and fireballs back (15947 / 15948, sound 219).
+ * The defeat (H 0: 15918-15936): D 60 (music stopped, poses cleared), explosions on the body for 230 frames (sound 309), the
+ * transform bubble at E 98, the white fade from E 128; D 61: E 120 the parts go and the NPC stands at the torso; E > 220: the results
+ * (CTRL.M 1, Sign.B 179: results_begin_boss). */
+enum { MS_TORSO, MS_HEAD, MS_NECK, MS_TAIL, MS_RARM, MS_RCLAW, MS_BSH, MS_FSH, MS_LARM, MS_LCLAW, MS_SIGHT, MS_NP };
+static const char *const MSROW[MS_NP] = { "fdms_torso", "fdms_head", "fdms_neck", "fdms_tail", "fdms_rarm", "fdms_rclaw", "fdms_bsh", "fdms_fsh",
+    "fdms_larm", "fdms_lclaw", "fdms_sight" };
+enum { MSR_PUNCH, MSR_BURST, MSR_FBALL, MSR_FLARE, MSR_FLARE10, MSR_WARN, MSR_BUBBLE, MSR_NPC, MSR_NPCT, MSR_N };
+static const char *const MSRROW[MSR_N] = { "fdms_punch", "fdms_burst", "fdms_fball", "fdms_flare", "fdms_flare10", "fdms_warn", "fdms_bubble",
+    "fdms_npc", "fdms_npct" };
+static short msa[MS_NP][2], msr[MSR_N][2];                                       /* rows: [dir 0, dir 16] */
+/* pose offsets (J idle, K crouch, L dash, M shoot, N jump crouch, O jump): x (times F) then y; tail x 7 instances */
+static const signed char MSO[MS_NP][2][6] = {
+    { { 0 } },
+    { { 16, 3, 33, 4, 34, -2 }, { -41, -53, -23, -40, -25, -40 } },                   /* head */
+    { { 8, 1, 17, 8, 17, -1 }, { -24, -32, -4, -24, -4, -24 } },                      /* neck */
+    { { 0 } },                                                                        /* tail: MSTAIL */
+    { { 54, 76, -5, 76, 22, 30 }, { 16, 21, 16, -4, 11, 24 } },                       /* right arm */
+    { { 62, 88, -47, 74, 39, 38 }, { 16, 21, 16, -4, 10, 24 } },                      /* right claw */
+    { { 0 }, { -1, 0, 0, 0, 0, 0 } }, { { 0 }, { -1, 0, 0, 0, 0, 0 } },              /* shoulders */
+    { { -39, -89, 60, -40, -60, -40 }, { 15, 21, 16, 16, 22, 8 } },                   /* left arm */
+    { { -46, -103, 72, -48, -39, -48 }, { 15, 21, 16, 16, 22, 8 } },                  /* left claw */
+    { { 0 } } };
+static const signed char MSTAIL[7][2][6] = {
+    { { 6, 31, -91, 4, -18, 14 }, { 59, 68, 42, 57, 17, 106 } }, { { 5, 27, -80, 4, -30, 12 }, { 59, 68, 42, 57, 19, 95 } },
+    { { 4, 23, -68, 3, -41, 12 }, { 59, 68, 41, 57, 21, 83 } }, { { 2, 18, -55, 4, -46, 11 }, { 58, 68, 40, 57, 23, 71 } },
+    { { 0, 14, -43, 3, -42, 10 }, { 51, 68, 38, 56, 28, 57 } }, { { -1, 9, -30, 3, -30, 7 }, { 42, 55, 29, 41, 30, 41 } },
+    { { -1, 6, -18, 1, -13, 4 }, { 25, 33, 17, 25, 22, 25 } } };
+enum { MSS_BURST = 1, MSS_FBALL, MSS_FLARE, MSS_BUBBLE, MSS_FX };
+#define MS_NSHOT 48
+static struct {
+    int on, npcA, F, D, def, results, variant, nspec, dashes, mlast, landed, fallx, gone, cam, par;
+    double G, E, H, I, Dang, w[6], tx, ty;
+    short shot[MS_NSHOT];
+} S;
+static obj_t *ms(int k, int i) { return get(OT_FDB_MS + k, i); }
+static obj_t *npc(void) { return get(OT_FDB_NPCS, 0); }
+int fd_boss_mserp_state(void) { return !S.on ? -1 : S.def ? (S.results ? 162 : 59 + S.def) : S.npcA < 7 ? 100 + S.npcA : S.D; }   /* D, 100 + the intro's A, 60 / 61 the defeat, 162 the results */
+int fd_boss_mserp_hp(void) { obj_t *h = ms(MS_HEAD, 0); return S.on && h ? (int)h->A + 40 * ((int)h->av[7] - 1) : -1; }
+static void ms_row(obj_t *o, short *r) { int a = r[S.F < 0 && r[1] >= 0 ? 1 : 0]; if (o && a >= 0 && (o->an.b != &G.ens || o->an.anim != a)) anim_set(&o->an, &G.ens, a); }
+static obj_t *ms_shot(int kind, int row, float x, float y) {
+    int k; for (k = 0; k < MS_NSHOT && slot(S.shot[k]); k++) ;
+    if (k == MS_NSHOT) return NULL;
+    obj_t *o = obj_alloc();
+    if (!o) return NULL;
+    memset(o, 0, sizeof *o);
+    o->type = OT_FDB_SHOT; o->alive = 1; o->hp = 1; o->x = o->ox = o->fx = x; o->y = o->oy = o->fy = y; o->layer = 3; o->born = G.frame; o->par = kind;
+    if (row >= 0) ms_row(o, msr[row]);
+    S.shot[k] = (short)(o - G.o);
+    return o;
+}
+
+static void ms_spawn(void) {
+    memset(&S, 0, sizeof S);
+    for (int k = 0; k < MS_NSHOT; k++) S.shot[k] = -1;
+    if (!npc()) return;
+    for (int k = 0; k < MS_NP; k++) { msa[k][0] = (short)ens_anim(MSROW[k]); char nm[24]; snprintf(nm, sizeof nm, "%s16", MSROW[k]); msa[k][1] = (short)ens_anim(nm); }
+    for (int k = 0; k < MSR_N; k++) { msr[k][0] = (short)ens_anim(MSRROW[k]); char nm[24]; snprintf(nm, sizeof nm, "%s16", MSRROW[k]); msr[k][1] = (short)ens_anim(nm); }
+    if (msa[MS_TORSO][0] < 0) return;
+    for (int k = 0; k < MS_NP; k++) {                                           /* the exported templates (x > 8384) go: created below */
+        int t = OT_FDB_MS + k - OT_FDB_PB;
+        for (int i = 0; i < L[t].n; i++) { obj_t *o = slot(L[t].i[i]); if (o) o->alive = 0; }
+        L[t].n = 0;
+    }
+    /* the parts: off-map templates in the json (8433-8615, 4880-5071; the importer drops them): created here at the torso's place,
+     * in a drawing order behind to front (INFERRED): the coils, back shoulder, left arm + claw, torso, neck, head, front shoulder,
+     * right arm + claw */
+    static const signed char ORDER[] = { MS_TAIL, MS_TAIL, MS_TAIL, MS_TAIL, MS_TAIL, MS_TAIL, MS_TAIL, MS_BSH, MS_LARM, MS_LCLAW, MS_TORSO,
+                                         MS_NECK, MS_HEAD, MS_FSH, MS_RARM, MS_RCLAW };
+    for (unsigned j = 0; j < sizeof ORDER; j++) {
+        int k = ORDER[j], t = OT_FDB_MS + k - OT_FDB_PB;
+        obj_t *o = obj_alloc();
+        if (!o || L[t].n >= LMAX) break;
+        memset(o, 0, sizeof *o);
+        o->type = OT_FDB_MS + k; o->alive = 1; o->hp = 1; o->x = o->ox = o->fx = 8544; o->y = o->oy = o->fy = 4920; o->layer = 3; o->born = G.frame;
+        L[t].i[L[t].n++] = (short)(o - G.o);
+    }
+    obj_t *t = ms(MS_TORSO, 0);
+    if (!t) return;
+    S.on = 1; S.F = -1; S.w[0] = 1; S.I = 4920; S.H = t->x;
+    obj_t *h = ms(MS_HEAD, 0);
+    if (h) { h->A = 40; h->av[7] = 5; h->fl |= F_NOFLY | F_ARMOURED; }              /* ctor: A 40, H 5 (RV s2_l) */
+    obj_t *n = npc(); S.F = -1; ms_row(n, msr[MSR_NPC]);
+}
+
+static void ms_layout(void) {
+    obj_t *t = ms(MS_TORSO, 0);
+    if (!t) return;
+    for (int k = 0; k < MS_NP; k++)
+        for (int i = 0; i < count(OT_FDB_MS + k); i++) {
+            obj_t *o = ms(k, i); if (!o) continue;
+            if (S.gone) { o->hidden = 1; continue; }
+            ms_row(o, msa[k]);
+            if (k == MS_TORSO || k == MS_SIGHT) continue;
+            const signed char (*m)[6] = k == MS_TAIL ? MSTAIL[i < 7 ? i : 6] : MSO[k];
+            double dx = 0, dy = 0;
+            for (int j = 0; j < 6; j++) { dx += m[0][j] * S.w[j]; dy += m[1][j] * S.w[j]; }
+            o->x = (float)(int)(t->x + S.F * dx); o->y = (float)(int)(t->y + dy);
+        }
+}
+
+static void ms_pose(int tgt, double r) {                                         /* the pose weights move to one pose (0.05 a frame, RV) */
+    for (int j = 0; j < 6; j++) S.w[j] = j == tgt ? fmin(S.w[j] + r, 1) : fmax(S.w[j] - 0.05, 0);
+}
+static void ms_face(player_t *p) { obj_t *t = ms(MS_TORSO, 0); if (t) S.F = PX(p) >= t->x ? 1 : -1; }
+static void ms_setD(int d) { S.D = d; S.E = 0; }
+
+static void ms_hurt(player_t *p, obj_t *o) { if (o && !o->hidden && sbb_csens_hit(p, o) && sbb_vulnerable(p)) sbb_hurt(p, 10); }
+
+static void ms_intro(player_t *p) {
+    obj_t *n = npc(), *t = ms(MS_TORSO, 0);
+    if (!n || !t) return;
+    double X = PX(p), Y = PY(p);
+    S.G += 1;
+    switch (S.npcA) {
+    case 0:
+        if (X > n->x - 200 && Y < n->y + 50) { S.npcA = 1; S.G = 0; music_stop(); }   /* 15812 */
+        break;
+    case 1: if (S.G > 100) { S.npcA = 2; S.G = 0; } break;                        /* 15814 / 15815 */
+    case 2: if (S.G > 30) { S.npcA = 3; S.G = 0; } break;                         /* 15817 */
+    case 3:
+        if (S.G == 60) { ms_row(n, msr[MSR_NPCT]); snd_play_orig(373, 220, 128); }   /* 15818 */
+        if (S.G > 64) { S.npcA = 4; S.G = 0; }                                  /* 15819 */
+        break;
+    case 4:
+        if (S.G >= 70 && (int)(S.G - 70) % 20 == 0 && S.G <= 390) snd_play_orig(374, 220, 128);   /* 15823 (RV: 17 times) */
+        if (S.G == 70) { obj_t *b = ms_shot(MSS_BUBBLE, MSR_BUBBLE, n->x, n->y - 16); if (b) b->scale = 0.1f; }   /* 15824 */
+        if (S.G > 400) {                                                        /* 15830 (RV 657) */
+            S.npcA = 5; S.G = 0;
+            snd_play_orig(67, 220, 128);
+            const char *m = level_music_slot(4); music_play(m ? m : "bgm/m_boss6.adp");   /* RE 15688: m_boss6 */
+            for (int k = 0; k < MS_NSHOT; k++) { obj_t *o = slot(S.shot[k]); if (o && o->par == MSS_BUBBLE) o->alive = 0; }
+            n->hidden = 1;
+            obj_t *f = ms_shot(MSS_FLARE, MSR_FLARE, n->x, n->y - 16); if (f) { f->vy = -16; f->av[0] = 0; }
+        }
+        break;
+    case 5:                                                                     /* the flare (RV 658-720) */
+        if (S.G > 60) {                                                         /* 15831: the platforms under the NPC break */
+            S.npcA = 6; S.G = 0;
+            snd_play_orig(354, 220, 128);
+            for (int i = 0; i < G.nobjs; i++) {
+                obj_t *o = &G.o[i];
+                if (!o->alive) continue;
+                if (o->type == OT_FDG_FDPLAT && fabsf(o->x - n->x) < 450 && o->y < n->y + 100) { obj_effect(o->x, o->y, "explosion01"); o->alive = 0; }
+                if (o->type == OT_CAMLIM_B && o->y < n->y + 200) o->alive = 0;
+            }
+            p->x = n->x - 6; p->vx = p->gsp = 0; player_sync_sensors(p);      /* (RV 750: X 7766) */
+        }
+        break;
+    case 6:                                                                     /* the fall (RV 20 px a frame) to the arena */
+        if (Y < 4600) { if (p->vy < 20) p->vy = 20; }
+        if (Y > 4500 && X > 7000 && !S.cam) { S.cam = 1; camera_boss_bounds(6944, 4764, 8224, 5004); }   /* (INFERRED: the arena's view) */
+        if (p->ground && Y > 4800 && !S.landed) { S.landed = 1; S.G = 0; S.H = 7327; }   /* the mech walks in to x 7327 (RV) */
+        if (S.landed) {
+            t->x = (float)fmax(S.H, t->x - 15);
+            if (t->x <= S.H + 1) { S.npcA = 7; S.G = 0; ms_setD(0); S.dashes = 1; obj_t *h = ms(MS_HEAD, 0); if (h) h->fl &= ~F_ARMOURED; }
+        }
+        break;
+    }
+}
+
+static void ms_fire(obj_t *c) {
+    if (!c) return;
+    if (S.variant == 0) {                                                       /* burst shots (15891-15894, sound 376) */
+        if (S.E >= 20 && (int)(S.E - 20) % 6 == 0) {
+            static const double ang[4] = { 11.25, -11.25, 45, -45 };
+            for (int k = 0; k < 4; k++) {
+                obj_t *b = ms_shot(MSS_BURST, MSR_BURST, c->x + 30 * S.F, c->y + (k & 1 ? 8 : -8));
+                if (b) { double a = ang[k]; b->vx = (float)(20 * sbb_cos(a) * S.F); b->vy = (float)(-20 * sbb_sin(a)); b->av[0] = 5; }
+            }
+            snd_play_orig(376, 220, 128);
+        }
+    } else if (S.E >= 14 && (int)(S.E - 14) % 8 == 0) {                        /* fireballs (15895 / 15896, sound 377) */
+        obj_t *f = ms_shot(MSS_FBALL, MSR_FBALL, c->x, c->y + 16);
+        if (f) { f->av[0] = f->y; f->av[1] = 0; f->av[2] = 5 * S.F; f->av[3] = 0; }
+        snd_play_orig(377, 220, 128);
+    }
+}
+
+static void ms_fight(player_t *p) {
+    obj_t *t = ms(MS_TORSO, 0), *h = ms(MS_HEAD, 0), *pu = get(OT_FDB_PUNCH, 0);
+    if (!t || !h) return;
+    S.E += 1;
+    double rate = 0.05;
+    switch (S.D) {
+    case 0: {
+        ms_pose(0, 0.05);
+        int next = (S.dashes >= 2 || S.mlast == 1) ? (S.nspec % 2 == 0 ? 6 : 4) : 1;   /* (INFERRED order, RV s2_l) */
+        int wait = next == 1 ? (S.mlast == 8 ? 31 : 41) : next == 6 ? 51 : 101;
+        if (S.E > wait) {
+            if (next == 1) { S.dashes++; ms_face(p); }
+            else { S.nspec++; S.dashes = 0; ms_face(p); }
+            S.mlast = 0; ms_setD(next);
+        }
+        break; }
+    case 1: ms_pose(1, 0.025); if (S.E > 39) { ms_setD(2); snd_play_orig(375, 220, 128); } break;
+    case 2:
+        ms_pose(2, 0.1); rate = 0.1;
+        if (S.E > 6) S.H = fmin(fmax(S.H + 15 * S.F, 7070), 8150);
+        if (pu) { pu->hidden = 0; ms_row(pu, msr[MSR_PUNCH]); pu->x = (float)(int)(t->x + S.F * fmin(112, -47 + 16 * S.E)); pu->y = 4946; }
+        if (S.E > 30) { ms_setD(3); if (pu) pu->hidden = 1; }
+        break;
+    case 3: ms_pose(0, 0.05); if (S.E > 19) { ms_setD(0); S.mlast = 3; } break;
+    case 4: ms_pose(3, 0.05); ms_fire(ms(MS_RCLAW, 0)); if (S.E > 80) ms_setD(5); break;
+    case 5: ms_pose(3, 0.05); if (S.E > 19) { ms_setD(0); S.mlast = 5; S.variant ^= 1; } break;
+    case 6: ms_pose(4, 0.05); if (S.E > 19) { ms_setD(7); snd_play_orig(147, 220, 128); S.tx = t->x; } break;
+    case 7:
+        ms_pose(S.E > 10 ? 5 : 4, 0.05);
+        if (S.E > 10 && S.E <= 46) { double u = (S.E - 10) / 36.0; S.H = S.tx + 360 * u * S.F; S.H = fmin(fmax(S.H, 7070), 8150); }
+        if (S.E > 46) {
+            ms_setD(8);
+            obj_t *f = ms_shot(MSS_FLARE, MSR_FLARE10, t->x, 4966); if (f) { f->vx = (float)(-15 * S.F); f->vy = 0; f->av[0] = 1; }   /* 15951-15966 (RV) */
+        }
+        break;
+    case 8: ms_pose(0, 0.05); if (S.E > 19) { ms_setD(0); S.mlast = 8; } break;
+    }
+    (void)rate;
+    /* the torso: x halfway to H, y bobbing (RV); the jump's arc */
+    S.Dang = fmod(S.Dang + (S.D == 2 ? 12 : 4), 360);
+    t->x = (float)(int)(t->x + (S.H - t->x) * (S.D == 7 ? 1 : 0.5));
+    double y = S.I + 20 * sbb_sin(2 * S.Dang);
+    if (S.D == 7 && S.E > 10) y = S.I - 171 * sbb_sin(180 * (S.E - 10) / 36.0);
+    t->y = (float)(int)y;
+    /* the head: hits (Q20), the blink after a lost life (C 120), the lives */
+    if (h->av[6] > 0) h->av[6] -= 1;
+    if (h->av[6] > 0) h->fl |= F_ARMOURED; else h->fl &= ~F_ARMOURED;
+    if (h->fl & F_DEFEATED) {                                                   /* 15913 */
+        h->fl &= ~F_DEFEATED; h->av[7] -= 1; h->A = 40; h->av[6] = 120;
+        snd_play_orig(47, 220, 128); snd_play_orig(378, 220, 128);
+        if (h->av[7] == 1) { h->A += 20; music_play("bgm/m_boss6b.adp"); }       /* 15917: the last life (RE 15689) */
+        if (h->av[7] <= 0) {                                                    /* 15918 */
+            S.def = 1; S.E = 0; h->fl |= F_ARMOURED; music_stop(); snd_play_orig(309, 220, 128);
+            if (pu) pu->hidden = 1;
+        }
+    }
+    /* contact (15941 / 15942) */
+    if (!S.def) { ms_hurt(p, t); ms_hurt(p, h); ms_hurt(p, ms(MS_LARM, 0)); if (pu && !pu->hidden) ms_hurt(p, pu); }
+    /* the arena (the boss camera keeps the player in the view: INFERRED walls) */
+    if (p->x < 6944 + 16) { p->x = 6944 + 16; player_sync_sensors(p); }
+    if (p->x > 8224 - 16) { p->x = 8224 - 16; player_sync_sensors(p); }
+}
+
+static void ms_defeat(player_t *p) {
+    obj_t *t = ms(MS_TORSO, 0), *n = npc();
+    (void)p;
+    S.E += 1;
+    if (S.def == 1) {                                                           /* D 60 (15919-15930) */
+        for (int j = 0; j < 6; j++) S.w[j] = j == 0 ? fmin(S.w[j] + 0.05, 1) : fmax(S.w[j] - 0.05, 0);
+        if (t && (int)S.E % 5 == 0) {
+            int k = cross_rand(MS_SIGHT); obj_t *o = ms(k, 0);
+            if (o) { obj_effect(o->x - 20 + cross_rand(41), o->y - 20 + cross_rand(41), "explosion02"); tbb_explode_snd(); }
+        }
+        if (S.E == 98 && t) { obj_t *b = ms_shot(MSS_BUBBLE, MSR_BUBBLE, t->x, t->y); if (b) b->scale = 0.1f; }
+        if (S.E > 230) { S.def = 2; S.E = 0; }
+    } else {                                                                    /* D 61 (15931-15936) */
+        if (S.E == 120) {
+            S.gone = 1;
+            for (int k = 0; k < MS_NSHOT; k++) { obj_t *o = slot(S.shot[k]); if (o && o->par == MSS_BUBBLE) o->alive = 0; }
+            if (n && t) { n->x = t->x; n->y = 4992 - 32; n->hidden = 0; ms_row(n, msr[MSR_NPC]); }   /* (INFERRED: her feet on the floor) */
+        }
+        if (S.E > 220 && !S.results) { S.results = 1; results_begin_boss(game_timer()); }   /* 15936: Sign.B 179 -> the results */
+    }
+}
+
+static void ms_shots(player_t *p) {
+    obj_t *h = ms(MS_HEAD, 0);
+    for (int k = 0; k < MS_NSHOT; k++) {
+        obj_t *o = slot(S.shot[k]);
+        if (!o || o->type != OT_FDB_SHOT) { S.shot[k] = -1; continue; }
+        switch (o->par) {
+        case MSS_BURST:
+            if (o->av[0] > 0) { o->av[0] -= 1; break; }                          /* (RV: 5 frames at the claw) */
+            o->x += o->vx; o->y += o->vy;
+            if (!(o->fl & 2)) ms_hurt(p, o);
+            if (obj_overlaps_bg(o)) { obj_effect(o->x, o->y, "explosion02"); o->alive = 0; }   /* 15949 */
+            break;
+        case MSS_FBALL:                                                         /* 15950: y = A - D sin B */
+            o->av[1] += 6; o->av[3] = fmin(o->av[3] + 5, 100);
+            o->x += (float)((o->fl & 2) ? -o->av[2] : o->av[2]);
+            o->y = (float)(int)(o->av[0] - o->av[3] * sbb_sin(o->av[1]));
+            if (!(o->fl & 2)) ms_hurt(p, o);
+            if (o->av[1] > 360) o->alive = 0;
+            break;
+        case MSS_FLARE:
+            o->x += o->vx; o->y += o->vy;
+            if (o->av[0] == 0) {                                                /* the intro flare: up 50 frames, then down the shaft */
+                obj_t *n = npc();
+                if (o->vy < 0 && G.frame - o->born > 50 && n) { o->x = n->x - 150; o->y = 100; o->vy = 16; }
+                if (o->y > 1400) o->alive = 0;
+            } else { ms_hurt(p, o); if (!obj_near_view(o, 64)) o->alive = 0; }   /* 15966 */
+            break;
+        case MSS_BUBBLE: if (o->scale < 2) o->scale += 0.02f; break;             /* 15825 (INFERRED growth) */
+        }
+        if (o->alive && h && (o->fl & 2) && !(h->fl & (F_ARMOURED | F_DEFEATED)) && ov(o, h)) {   /* a reflected shot on the head */
+            h->A -= 5; h->c = 5; snd_play_orig(24, 220, 128); o->alive = 0;
+            if (h->A <= 0) h->fl |= F_DEFEATED;
+        }
+        if (o->alive && (o->par == MSS_BURST || o->par == MSS_FBALL) && !(o->fl & 2) && player_cube_hits(o)) {   /* 15947 / 15948 */
+            o->fl |= 2; o->vx = -o->vx; o->vy = -o->vy; snd_play_orig(219, 220, 128);
+        }
+        if (o->alive && (o->par == MSS_BURST || o->par == MSS_FBALL) && !obj_near_view(o, 200)) o->alive = 0;
+    }
+}
+
+static void ms_frame(player_t *p) {
+    if (!S.on) return;
+    if (PX(p) > 7000 && PY(p) > 3500 && !S.par) {                               /* 15836: the shaft's bottom shows the arena's sky */
+        S.par = 1;
+        static const short HID[] = { 3224, 3566, 3569, 3565, 3571, 3570 }, SHOW[] = { 3588, 3591, 3589, 3590 };   /* pieces 1 8 10 3 2 / 7 9 5 0 */
+        for (unsigned k = 0; k < sizeof HID / sizeof *HID; k++) par_set_hidden(HID[k], 1);
+        for (unsigned k = 0; k < sizeof SHOW / sizeof *SHOW; k++) par_set_hidden(SHOW[k], 0);
+    }
+    if (S.npcA < 7) ms_intro(p);
+    else if (!S.def) ms_fight(p);
+    else ms_defeat(p);
+    ms_shots(p);
+    if (S.npcA >= 6) ms_layout();
+}
+
+static int ms_input(uint32_t *held) {
+    if (!S.on || S.npcA < 1 || S.landed) return 0;
+    obj_t *n = npc();
+    *held = (S.npcA == 1 && n && G.p.x < n->x - 80) ? BTN_RIGHT : 0;            /* 15814 (walk), 15815 (stopped) */
+    return 1;
+}
+
 /* ======================================================================== hooks */
-static void snap_once(void) { static int reg; if (!reg) { reg = 1; snap_register(&P, sizeof P); snap_register(&M, sizeof M); } }
+static void snap_once(void) { static int reg; if (!reg) { reg = 1; snap_register(&P, sizeof P); snap_register(&M, sizeof M); snap_register(&S, sizeof S); } }
 void fdb12_spawn(void) {
     snap_once();
     memset(L, 0, sizeof L); on = 0;
-    for (int j = 0; j < G.lvl.nobj && !on; j++) if (G.lvl.objs[j].type >= OT_FDB_PB && G.lvl.objs[j].type <= OT_FDB_PLACED_LAST) on = 1;
-    memset(&P, 0, sizeof P); memset(&M, 0, sizeof M);
+    for (int j = 0; j < G.lvl.nobj && !on; j++) if (G.lvl.objs[j].type >= OT_FDB_PB && G.lvl.objs[j].type <= OT_FDB_LIST_LAST) on = 1;
+    memset(&P, 0, sizeof P); memset(&M, 0, sizeof M); memset(&S, 0, sizeof S);
     if (!on) return;
     for (int k = 0; k < FS_N; k++) fsa[k] = (short)ens_anim(FSN[k]);
     for (int k = 0; k < MR_N; k++) mra[k] = (short)ens_anim(k < MP_N ? MPROW[k] : MRROW[k - MP_N]);
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i];
-        if (!o->alive || o->type < OT_FDB_PB || o->type > OT_FDB_PLACED_LAST) continue;
+        if (!o->alive || o->type < OT_FDB_PB || o->type > OT_FDB_LIST_LAST) continue;
         int t = o->type - OT_FDB_PB; if (L[t].n < LMAX) L[t].i[L[t].n++] = (short)i;
     }
     pb_spawn();
+    ms_spawn();
 }
 void  fdb12_pre(player_t *p) { (void)p; }
 void  fdb12_frame(player_t *p) {
     if (!on) return;
     pb_frame(p);
     m_frame(p);
+    ms_frame(p);
 #ifdef FP_HOST_ENV
     if (getenv("FP_DBG_FDB")) {
         obj_t *c = get(OT_FDB_PBC, 0);
@@ -518,6 +868,9 @@ void  fdb12_frame(player_t *p) {
         obj_t *h = M.on ? mpart(MP_HEAD) : NULL;
         if (M.on) printf("fdm %d J %d P %.0f K %.0f L %.0f w %.2f %.2f %.2f %.2f %.2f %.2f %.2f hA %d hD %d hC %d def %d hp %d\n", G.frame, M.J, M.P, M.K, M.Lr,
             M.w[0], M.w[1], M.w[2], M.w[3], M.w[4], M.w[5], M.w[6], h ? (int)h->A : -1, M.hD, M.hC, M.def, fd_boss_morpher_hp());
+        obj_t *t = S.on ? ms(MS_TORSO, 0) : NULL, *sh = S.on ? ms(MS_HEAD, 0) : NULL;
+        if (t && sh) printf("fds %d st %d A %d G %.0f D %d E %.0f tx %.0f ty %.0f F %d hA %.1f H %.0f def %d hp %d px %.0f py %.0f\n", G.frame, fd_boss_mserp_state(), S.npcA, S.G,
+            S.D, S.E, t->x, t->y, S.F, sh->A, sh->av[7], S.def, fd_boss_mserp_hp(), PX(p), PY(p));
     }
 #endif
 }
@@ -525,12 +878,13 @@ int   fdb12_obj(obj_t *o, player_t *p) { (void)o; (void)p; return 1; }       /* 
 int   fdb12_draw_obj(const obj_t *o, int pass) {
     (void)pass;
     if (o->type == OT_FDB_SXV || o->type == OT_FDB_ALARM) return 1;             /* invisible controllers (the alarm is pb_draw's overlay) */
+    if (o->type == OT_FDB_MS + MS_HEAD && o->av[6] > 0 && ((int)o->av[6] / 2) % 2) return 1;   /* 15913: the blink after a lost life */
     if (m_draw_obj(o, pass)) return 1;
     if (!o->hidden) sbb_draw(o, 0xffffffff);
     return 1;
 }
-int   fdb12_q20(int type) { return type == OT_FDB_MPART + MP_HEAD; }   /* the morpher head takes the shared hits (RE: flag 6 by the shared rule, 15488) */
-int   fdb12_input(uint32_t *held) { (void)held; return 0; }
+int   fdb12_q20(int type) { return type == OT_FDB_MPART + MP_HEAD || type == OT_FDB_MS + MS_HEAD; }   /* the morpher head takes the shared hits (RE: flag 6 by the shared rule, 15488) */
+int   fdb12_input(uint32_t *held) { return on && ms_input(held); }
 int   fdb12_player_hidden(void) { return 0; }
 void  fdb12_draw(int pass) { if (on) { pb_draw(pass); m_draw(pass); } }
 float fdb12_hud_dy(void) { return 0.f; }
