@@ -1,12 +1,7 @@
-# fpdc: Freedom Planet → Sega Dreamcast (native port, work in progress)
+# A partial Freedom Planet Decompilation, targetting Dreamcast.
 
 A native KallistiOS runtime and an asset pipeline that converts **your own** copy of Freedom Planet into
 Dreamcast-ready data. No game data is stored in this repository.
-
-**Status:** a playable vertical slice (Lilac, one original test level built from real game art, a hornet
-enemy, crystals, spikes, checkpoint, goal, SFX and stage music). It runs and is tested on the host
-(Linux reference build). The Dreamcast build and the emulator boot are being validated; see
-`PROJECT_STATUS.md`. This is **not** a full port.
 
 ## Requirements
 - Linux, Python 3 + Pillow, ffmpeg
@@ -37,7 +32,5 @@ the pad's A / B / X, and the game shows the original's "C" as X (D-110). Menus: 
 `data/` original test level · `host/` Linux test build · `tests/` regression tests ·
 `third_party/fp-assets` (public domain) · docs: `HANDOFF.md`, `PROJECT_STATUS.md`, `TODO.md`,
 `RESEARCH_LOG.md`, `DECISIONS.md`, `ASSET_PIPELINE.md`, `BUILD_AND_TEST_LOG.md`
-
-Stages: Dragon Valley 1-4 (Lilac, Carol, Milla) and Aqua Tunnel 1-4 (Milla, session 12).
 
 Fan project, not affiliated with GalaxyTrail. Freedom Planet assets belong to their owners.
