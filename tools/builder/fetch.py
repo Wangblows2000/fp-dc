@@ -3,10 +3,13 @@
 The builder's downloads (tools/builder/downloads.json): pinned files, each checked against its recorded SHA-256 before use.
 
 Where a file is looked for, in this order (the first copy found is used, after the SHA-256 check):
-  1. $FPDC_PREBUILT (a folder)          2. next to the build_*.bat / .sh scripts (the checkout's top folder)
-  3. <checkout>/prebuilt/               4. build/cache/downloads/ (earlier downloads)
-  5. downloaded from its URL (the project's release https://github.com/Wangblows2000/fp-dc/releases/download/builder-v1/
-     for the files built from this repository and the CDI writer, the original publishers for Python, its packages and ffmpeg)
+  1. $FPDC_PREBUILT (a folder)
+  2. <checkout>/prebuilt/ (the project's own files: fpdc.elf, the PC programs, mkdcdisc, wav2adpcm, the Linux ffmpeg are
+     committed there, D-119)
+  3. next to the build_*.bat / .sh scripts (another version there is skipped)
+  4. build/cache/downloads/ (earlier downloads)
+  5. downloaded from its URL (the original publishers for Python, its packages and the Windows ffmpeg; the project's files
+     fall back to the old release URL, which is not published)
 A local copy with another SHA-256 is refused (with the name of the expected file), never used.
 
 usage: fetch.py check                   verify every local copy that exists (no download)
@@ -60,7 +63,7 @@ def sha256(path):
 def search_dirs():
     d = []
     if os.environ.get('FPDC_PREBUILT'): d.append(os.path.abspath(os.environ['FPDC_PREBUILT']))
-    d += [REPO, os.path.join(REPO, 'prebuilt'), DL]
+    d += [os.path.join(REPO, 'prebuilt'), REPO, DL]
     return d
 
 def local(name, say=print):
@@ -73,6 +76,8 @@ def local(name, say=print):
             if h != e['sha256']:
                 if d == DL:      # a broken earlier download: fetch it again
                     os.remove(p); continue
+                if d == REPO:    # e.g. the developers' own `make` output fpdc.elf in the top folder: not the pinned file
+                    continue
                 raise FetchError('%s has SHA-256 %s, expected %s (%s). Delete it, or put the file of the right version '
                                  'there.' % (p, h, e['sha256'], e.get('what', name)))
             return p

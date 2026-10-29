@@ -1,5 +1,5 @@
 {
- "_comment": "Pinned downloads of the drag-and-drop builder (tools/builder/fetch.py). Entries without a url come from release_url. build_dreamcast.bat / .sh repeat the Python archive pins (fpbuild.py selftest checks they agree). Maintainers: tools/builder/build_release.sh rebuilds the release files and rewrites their entries.",
+ "_comment": "Pinned downloads of the drag-and-drop builder (tools/builder/fetch.py). Entries without a url are the project's own files, committed in prebuilt/ (D-119; the old release_url is only a fallback). build_dreamcast.bat / .sh repeat the Python archive pins (fpbuild.py selftest checks they agree, and that fpdc.elf's src_tree is the current src/). Maintainers: tools/builder/build_release.sh [--program-only] rebuilds prebuilt/ and rewrites these entries.",
  "release_url": "https://github.com/Wangblows2000/fp-dc/releases/download/builder-v1/",
  "files": [
   {
@@ -146,7 +146,8 @@
    "size": 2000064,
    "what": "the Dreamcast program (fpdc.elf, stripped)",
    "licence": "this repository",
-   "source": "commit a8551c8 (master)"
+   "source": "commit a8551c8 (master)",
+   "src_tree": "8f723700160c4f0e488c9fb5ff856884022a246e"
   }
  ]
 }

@@ -13,7 +13,6 @@ set "PYNAME=python-3.13.14-embed-amd64.zip"
 set "PYSHA=90b4e5b9898b72d744650524bff92377c367f44bd5fbd09e3148656c080ad907"
 set "PYURL=https://www.python.org/ftp/python/3.13.14/python-3.13.14-embed-amd64.zip"
 set "PYDIR=%CACHE%\python-3.13.14"
-if "%~1"=="" goto usage
 echo Freedom Planet builder: %FPB_WHAT%
 echo.
 if "%FPB_LOCAL%"=="1" goto runlocal

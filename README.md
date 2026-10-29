@@ -14,14 +14,16 @@ Roughly 90% decompiled, 10% inferred. The repo has about 45.7k lines of C. About
 
 > **Easy builder:** no tools to install. Drag your Freedom Planet **1.21.5** `Assets.dat` (the GOG Windows one or the
 > Linux one) onto **`build_dreamcast.bat`** (Windows) or run **`./build_dreamcast.sh /path/to/Assets.dat`** (Linux).
-> It builds everything by itself and writes the disc image to **`output/fpdc.cdi`**.
+> It builds everything by itself and writes the disc image **`fpdc.cdi`** next to the script. No compiler is needed: the
+> program itself is ready-made in `prebuilt/`. (Unzipped inside your Freedom Planet folder, a double-click is enough: it
+> finds the `Assets.dat` by itself.)
 
 1. Download this repository (*Code* > *Download ZIP*) and unzip it.
 2. Drag `Assets.dat` from your Freedom Planet folder onto `build_dreamcast.bat` (Windows), or run
    `./build_dreamcast.sh "/path/to/Freedom Planet/Assets.dat"` (Linux).
-3. The first run downloads the tools it needs (about 110 MB on Windows, 55 MB on Linux, checksum-verified, kept in
+3. The first run downloads Python and ffmpeg (about 110 MB on Windows, 55 MB on Linux, checksum-verified, kept in
    `build/cache`) and takes 20-60 minutes; later runs only redo what changed. About 3 GB of free disk space is needed.
-4. Burn `output/fpdc.cdi` to a CD-R (DiscJuggler, or ImgBurn after converting) for a Dreamcast that boots CD-Rs, or open
+4. Burn `fpdc.cdi` (in the same folder as the script) to a CD-R (DiscJuggler, or ImgBurn after converting) for a Dreamcast that boots CD-Rs, or open
    it in an emulator such as Flycast.
 
 Your game folder is only read. No game data is stored in this repository: the builder takes the art, sound and music
