@@ -1835,6 +1835,27 @@ FDB_SUB.update({'bossmmilla%s_%d' % (p, h): k for k, (p, h) in enumerate(FDB_MM)
 FDB_SUB.update({'brevonsuit%s_%d' % (p, h): k for k, (p, h) in enumerate(FDB_SP)})
 for _k, _t in FDB_TYPES_ID.items(): ENGINE_TYPES_ID.setdefault(_k, _t)   # (never replaces another module's mapping of a class)
 FRAME_TYPE_REMAP.update({(_n, ENGINE_TYPES_ID[_k]): _t for _k, _t in FDB_TYPES_ID.items() for _n in FDB_FRAMES if ENGINE_TYPES_ID[_k] != _t})
+# Rows: direction 0 only (the parts' direction 16 images are mirrors: drawn flipped; directions 1 / 17 are the hit-flash copies:
+# the port inverts instead). FD3b's rows tie to the Kingdom Stone (json 71 places it), FD4b's to the suit / Brevon.
+_F3 = ('bossmmillahead',)
+FDB_ENS = [(c, a, d, nm, sl, _F3) for c, a, d, nm, sl in (
+    ('kingdomstone_3680', 0, '0', 'fdb_stone', None), ('device_3388', 0, '0', 'fdb_device', None),
+    ('computerterminal_3682', 0, '0', 'fdb_term0', None), ('computerterminal2_3684', 0, '0', 'fdb_term1', None),
+    ('computerterminal3_3703', 0, '0', 'fdb_term2', None), ('npcmillabody_3704', 0, '0', 'fdb_mbody', None),
+    ('brevonknifearm_3702', 0, '0', 'fdb_knife', None), ('bosshatchdoor_3312', 0, '0', 'fdb_hatch', None),
+    ('bossmmillahead_3694', 0, '0', 'fdm_head', None), ('bossmmillahead_3694', 7, '0', 'fdm_head7', None),
+    ('bossmmillatail_3689', 0, '0', 'fdm_tail', None), ('bossmmillatailend_3696', 0, '0', 'fdm_tailend', None),
+    ('bossbounceshot_3699', 0, '0', 'fdm_shot', None), ('effectbounceshotdebris_3700', 0, '0', 'fdm_shotdeb', None),
+    ('npctransformbubble_669', 0, '0', 'fdm_bubble', None),
+    ('brevon_3701', 0, '0', 'fdb_brv0', None), ('brevon_3701', 5, '0', 'fdb_brv5', slice(36, 37)),
+    ('brevon_3701', 7, '0', 'fdb_brv7', None), ('brevon_3701', 10, '0', 'fdb_brv10', None),
+    ('brevon_3701', 11, '26', 'fdb_brv11h', None))] + \
+    [('bossmmilla%s_%d' % (p, h), 0, '0', 'fdm_' + p, None, _F3) for p, h in FDB_MM if p not in ('tailend',)]
+ENS += FDB_ENS   # FD_BOSS B
+for _e in FDB_ENS: ROW_FRAMES[_e[3]] = {71}
+FDB_ENS_WITH = {'bossbounceshot_3699': _F3, 'computerterminal3_3703': _F3, 'npcmillabody_3704': _F3, 'brevonknifearm_3702': _F3, 'effectbounceshotdebris_3700': _F3, 'npctransformbubble_669': _F3,
+                'effectsexplosion06_435': _F3, 'effectsexplosion01_367': _F3, 'effectsexplosion02_368': _F3}
+for _k, _v in FDB_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # FD_BOSS B
 
 # ==== end Final Dreadnought
 SHL_CLASSES = {'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
