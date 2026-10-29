@@ -84,6 +84,7 @@ enum { OT_JCB5_FIRST = 1480,
        OT_J5_BOLT = 1502 /* rt LevelLightningBolt_2525 (11619) */, OT_J5_GLOW = 1503 /* rt EnemyEliteChargeGlow_2527 */,
        OT_J5_HERO = 1504 /* rt the closing's heroes (PlayerSkinSash / Carol / Milla, 11369) */,
        OT_J5_FADE = 1505 /* rt LevelCardFade_423 (11365: the white card) */,
+       OT_J5_RAIN = 1506 /* rt the storm: every LevelRain_2526 drop and EffectsWaterHit_756 splash, drawn as one batch (11611-11617) */,
        OT_J5_LAST = 1535 };
 void jc_boss5_spawn(void), jc_boss5_pre(player_t *p), jc_boss5_frame(player_t *p);
 int  jc_boss5_obj(obj_t *o, player_t *p), jc_boss5_q20(int type), jc_boss5_draw_obj(const obj_t *o, int pass), jc_boss5_input(uint32_t *held);

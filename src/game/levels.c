@@ -107,6 +107,28 @@ static const padcfg_t PADS_FN3[] = { {5568,784,0,0,0,1,0}, {5888,640,1,90,0,0,0}
     {10400,520,12,180,0,0,0}, {10496,800,13,0,0,0,0}, {10368,656,14,270,0,0,0}, {10720,616,15,180,0,0,0}, {11360,616,16,180,1,0,0},
     {10656,800,17,0,0,1,0}, {10656,616,18,180,0,0,0}, {11360,616,19,180,1,0,0} };
 static const padcfg_t PADS_RM5[] = { {352,2664,0,0,0,0,0}, {624,2632,1,0,1,0,0}, {1176,520,2,270,0,1,0}, {1176,216,3,270,1,0,0} };
+/* gimmick gaps (session 26, item 2): the pads of TB4 (ObjectJumpPad_539), TH3 (1284), BG2 (539), JC2-JC4 / FN4 / FN5 (1529). A = 3564's
+ * spread index (newest first: the last pad in the frame JSON is 0; off-map templates left out); B / D / E as the act's own once-events
+ * set them at the start: RV (tools/orig XLIST of the pad list +0x6db0 with alterables, 20 frames after the restart, Carol), RE TB4 4950 /
+ * 5357 / 5173 / 7652 / 12375 / 12380-12382, TH3 4955 / 5169 / 5176 / 5177 / 13721-13724 / 6571-6575 / 7186, BG2 4955 / 5170 / 5359 / 7649 /
+ * 10430 / 14200-14204, JC2 5169 / 5178 / 5358 / 8127 / 8341 / 10426-10433, JC4 4950 / 7649, FN4 4950, FN5 4950 / 5172 / 6570 / 8341 (the
+ * rest by qualifier events). All of them run 4943-4949 (display, Lilac's / Milla's crystal pop, Carol's ride) except JC3 (pads_inert) */
+static const padcfg_t PADS_TB4[] = { {4192,2792,0,0,0,1,0}, {4520,2664,1,180,0,0,0}, {4896,2664,2,180,1,0,0}, {3136,3080,3,270,0,1,0}, {3520,3080,4,90,0,0,0},
+    {3424,3304,5,0,0,0,0}, {3744,3368,6,0,0,0,0}, {4160,3240,7,180,0,0,0}, {4864,3272,8,90,1,0,0}, {5824,3208,9,90,0,1,0}, {5792,2920,10,180,1,0,0},
+    {7328,3048,11,0,0,1,0}, {7616,3208,12,270,1,0,0} };
+static const padcfg_t PADS_TH3[] = { {496,1344,0,90,0,1,0}, {496,952,1,90,1,0,0}, {144,640,2,270,0,1,0}, {144,424,3,270,1,0,0}, {3072,672,4,90,0,1,0},
+    {2704,640,5,180,0,0,0}, {2392,696,6,270,0,0,0}, {2400,400,7,270,1,0,0}, {11864,744,8,0,0,1,0}, {12504,744,9,0,1,0,0}, {12632,744,10,0,0,1,0},
+    {11992,744,11,0,1,0,0}, {12248,744,12,0,0,0,0}, {12376,744,13,0,0,0,0}, {12120,744,14,0,0,0,0} };   /* 12-14: never lit (no chain reaches them) */
+static const padcfg_t PADS_BG2[] = { {8304,896,0,270,0,1,0}, {8304,576,1,270,0,0,0}, {8304,240,2,270,1,0,0}, {9008,424,3,90,0,1,0}, {8928,128,4,180,0,0,0},
+    {9392,128,5,180,0,0,0}, {9264,456,6,270,1,0,0}, {10064,496,7,0,0,1,0}, {10360,256,8,180,0,0,0}, {10656,256,9,180,0,0,0}, {10960,256,10,180,1,0,0} };
+static const padcfg_t PADS_JC2[] = { {7040,1008,0,90,0,1,0}, {6768,528,1,180,1,0,0}, {12032,1064,2,90,0,1,0}, {11840,856,3,180,0,0,0}, {11744,536,4,180,1,0,0},
+    {9600,720,5,270,0,1,0}, {9952,712,6,0,1,0,0}, {10232,552,7,0,0,1,0}, {10440,192,8,180,0,0,0}, {10776,192,9,180,1,0,0}, {9856,288,10,270,0,1,0},
+    {10608,192,11,180,0,0,0}, {11496,192,12,180,1,0,0} };
+static const padcfg_t PADS_JC3[] = { {8600,2104,0,90,0,1,0} };   /* lit, angle 90 (RV); handle_frame_42 runs none of 4943-4949: not rideable (RE) */
+static const padcfg_t PADS_JC4[] = { {6136,1192,0,0,0,1,0}, {6648,1192,1,0,0,0,0}, {6712,1224,2,270,1,0,0} };
+static const padcfg_t PADS_FN4[] = { {7200,496,0,0,0,1,0}, {7344,208,1,180,1,0,0} };
+static const padcfg_t PADS_FN5[] = { {4144,864,0,0,0,1,0}, {4624,864,1,0,1,0,0}, {7184,1056,3,0,0,1,0}, {7536,1056,4,0,0,0,0}, {7952,1056,5,0,0,0,0},
+    {8352,1056,6,0,1,0,0} };
 
 static const short SFX_AT[] = { 55, 62, 69, 99, 172, 173, 240, 242, 251, 252, 278, 306, 308, 316 };
 /* Fortune Night flow (session 17, RE spec_fn_flow 1-3, 9; RV where the spec says so). Checkpoints (FN1 7366, FN2 / FN4 inline,
@@ -198,7 +220,8 @@ static const short SFX_JC2[] = { SFX_JC_ACTS, 277, 165, 166, 195, 77 };         
 static const short SFX_JC3[] = { SFX_JC_ACTS, 277, 165, 166, 195, 77, 296, 297, 298, 299, 315, 31, 33 };   /* + Neera (31 / 33: Lilac's / Carol's own, kept) */
 static const short SFX_JC4[] = { SFX_JC_ACTS };
 static const short SFX_JC5[] = { 62, 99, 61, 67, 70, 126, 134, 165, 166, 191, 192, 193, 194, 195, 196, 233, 292, 427,   /* (no frogs, streams or collapsing platforms in JC5: 314 208 426 left out, Milla sound RAM) */
-                                 297, 77, 33, 60 };   /* session 22: Neera's ice ambush (jc_boss.c: 297 missile, 77 burst, 33 landing, Milla's), the BuoyBuoys past its gate (60; RV amb_l f558): ~183 KB */
+                                 297, 77, 33, 60,   /* session 22: Neera's ice ambush (jc_boss.c: 297 missile, 77 burst, 33 landing, Milla's), the BuoyBuoys past its gate (60; RV amb_l f558): ~183 KB */
+                                 293 };   /* session 26: the storm rain loop 293 (the start events play it on channel 29; 11614 sets its volume) */
 /* Trap Hideout (session 21b, stage index 8; Carol / Milla only; spec_th_flow, th_flow.c). Checkpoints (RE): TH1 13501 (g4 < 2, MV.Y > 2208,
  * X < 2000 -> (2, 180, 2288); RV th1_bottom_carol), TH2 13690 + its inline copy in handle_frame_58 (7280 < X < 7480 -> (2, 7380, 570)),
  * TH3 13878 (5446 < X < 5646 -> (6, 5546, 1520)) and 13879 (11460 < X < 11560, MV.Y < 400 -> (7, 11500, 160)); TH3's g4 5 comes from
@@ -302,7 +325,8 @@ static const exit_t EX_FD2A[] = { { 1, 0, -50, 1100, 32767, NULL } };   /* 15652
 /* the stage's own sounds per act (11025 Hz): the flow plays fd1a's entry (98 / 99 / 311 / 354, fd_flow.c); 62 jump pads,
  * 99 explosions; the enemy / gimmick / boss modules add theirs */
 static const short SFX_FD1A[] = { 62, 99, 98, 311, 354, 54, 70, 132, 38, 319, 320, 192, 233, 29, 345, 346, 28, 358, 274, 359, 360 };   /* + fd1a's entry: 98 / 99 / 311 (15298), 354 (15300) */ static const short SFX_FD1B[] = { 62, 99, 70, 172, 173, 237, 312, 132, 38, 311, 319, 320, 192, 233, 29, 345, 346, 28, 358, 274, 359, 360, 279, 381, 310, 169, 382, 191, 384, 386, 47, 24, 60, 385, 371, 219, 383, 76, 98, 23 };
-static const short SFX_FD2A[] = { 62, 99, 192, 233, 29, 345, 346, 28, 311, 274, 371, 49, 368, 369, 241, 279, 280, 285, 286, 37, 134, 38, 17, 319, 320, 23, 24 }; static const short SFX_FD2B[] = { 62, 99, 192, 233, 29, 345, 346, 28, 311, 358, 371, 49, 368, 369, 370, 241, 51, 262, 372, 279, 280, 285, 286, 37, 373, 374, 67, 354, 375, 376, 377, 147, 47, 378, 309, 219, 24, 319, 320 };
+static const short SFX_FD2A[] = { 62, 99, 192, 233, 29, 345, 346, 28, 311, 274, 371, 49, 368, 369, 241, 279, 280, 285, 286, 37, 134, 38, 17, 319, 320, 23, 24 }; static const short SFX_FD2B[] = { 62, 99, 192, 233, 29, 345, 346, 28, 311, 358, 371, 49, 368, 369, 370, 241, 51, 262, 372, 279, 280, 285, 286, 37, 373, 374, 67, 354, 375, 376, 377, 147, 47, 378, 309, 219, 24, 319, 320,
+                                  20, 91 };   /* session 26: the oxygen patches opening 20 (col_5_17), Lilac's death sound 91 (the vacuum, water.c) */
 static const short SFX_FD3A[] = { 62, 99, 254, 310, 376, 38, 132, 311, 319, 320, 192, 233, 29, 345, 346, 379, 70, 279, 280, 285, 286 }; static const short SFX_FD3B[] = { 62, 99, 254, 376, 38, 310, 132, 311, 319, 320, 192, 233, 29, 345, 346, 379, 70, 279, 280, 285, 17, 21, 23, 24, 25, 28, 30, 41, 51, 76, 165, 166, 286, 373, 374, 380, 389, 390, 392, 425 };
 static const short SFX_FD4A[] = { 62, 99, 171, 328, 329, 254, 376, 38, 310, 192, 233, 29, 345, 346, 17, 388, 270, 344 }; static const short SFX_FD4B[] = { 62, 99, 171, 29, 17, 344, 21, 24, 28, 38, 47, 55, 76, 165, 192, 295, 311, 319, 320, 341, 342, 343, 347, 348, 390, 393, 395, 406, 407, 408 };
 #define FD(d, f, st, n, sx, mus) .dir = d, .frame = f, .stage = st, .act = n, .nacts = 2, .music = mus, .checkpoints = 1, .sfx = sx, .nsfx = N_(sx)
@@ -352,8 +376,9 @@ static const level_def_t LEVELS[] = {
     { FN("fn3", 31, 3, "bgm/m_stage3.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage3c.adp", .mus7 = "bgm/m_trouble.adp", .card_first = 36, .pads = PADS_FN3, .npads = N_(PADS_FN3),
       .cps = CP_FN3, .ncps = N_(CP_FN3), .cam_right = 14920 + 213, .script_exit = 1, .fnb = &FNB_FN3, .ckills = CK_FN3, .nckills = N_(CK_FN3), .cmarks = CM_FN3, .ncmarks = N_(CM_FN3) },
     { FN("fn4", 32, 4, "bgm/m_stage3b.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage3b.adp", .mus7 = "bgm/m_stage3b.adp", .card_first = 37, .wplate_cyclone = 1,   /* 5677: the escalator plate takes M 26 too (fn_gimb.c) */
-      .cps = CP_FN4, .ncps = N_(CP_FN4), .exits = EX_FN45, .nexits = N_(EX_FN45), .cam_right = 11992 + 213 },
-    { FN("fn5", 33, 5, "bgm/m_stage3b.adp"), FN_M45, .fne = &FNE_FN5, .fnb = &FNB_FN5, .wplate_cyclone = 1, .fnb_disco = 1, .card_first = 39, .cps = CP_FN5, .ncps = N_(CP_FN5), .exits = EX_FN45, .nexits = N_(EX_FN45), .cam_right = 15288 + 213 },
+      .cps = CP_FN4, .ncps = N_(CP_FN4), .exits = EX_FN45, .nexits = N_(EX_FN45), .cam_right = 11992 + 213, .pads = PADS_FN4, .npads = N_(PADS_FN4) },
+    { FN("fn5", 33, 5, "bgm/m_stage3b.adp"), FN_M45, .fne = &FNE_FN5, .fnb = &FNB_FN5, .wplate_cyclone = 1, .fnb_disco = 1, .card_first = 39, .cps = CP_FN5, .ncps = N_(CP_FN5), .exits = EX_FN45, .nexits = N_(EX_FN45), .cam_right = 15288 + 213,
+      .pads = PADS_FN5, .npads = N_(PADS_FN5) },
     { FN("fn6", 34, 6, "bgm/m_boss.adp"), .mus4 = "bgm/m_boss.adp", .mus6 = "bgm/m_boss.adp", .mus7 = "bgm/m_boss.adp", .walkin_minx = 400, .walkin_free = 1,
       .cam_box = &BOX_FN6, .death_to = "fn5", .death_g4 = 2, .res_voice = "teamlilac_madeit", .res_wipe = 1 },
     /* Sky Battalion: frame index 35-38 (session 19, spec_sb_flow; sb_flow.c): sb1 = json 36 = Zao's airship, the hub. A fresh
@@ -387,11 +412,12 @@ static const level_def_t LEVELS[] = {
     { JC("jc1", 39, 1, "bgm/m_stage5.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage5.adp", .mus7 = "bgm/m_stage5.adp",
       .card_first = 51, .start_card = 1, .water = 1200, .cam_right = 13480 + 213 },
     { JC("jc2", 40, 2, "bgm/m_stage5.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage5.adp", .mus7 = "bgm/m_stage5.adp",
-      .card_first = 54, .water = 1600, .cps = CP_JC2, .ncps = N_(CP_JC2), .cam_right = 14784 + 213 },
+      .card_first = 54, .water = 1600, .cps = CP_JC2, .ncps = N_(CP_JC2), .cam_right = 14784 + 213, .pads = PADS_JC2, .npads = N_(PADS_JC2) },
     { JC("jc3", 41, 3, "bgm/m_stage5.adp"), .music_cp = "bgm/m_stage5b.adp", .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage5.adp", .mus7 = "bgm/m_stage5.adp",
-      .card_first = 57, .water = 1600, .cps = CP_JC3, .ncps = N_(CP_JC3), .cam_right = 9624 + 213, .cam_cp10_left = 9624 - 213, .cam_cp10_pad = 50 },
+      .card_first = 57, .water = 1600, .cps = CP_JC3, .ncps = N_(CP_JC3), .cam_right = 9624 + 213, .cam_cp10_left = 9624 - 213, .cam_cp10_pad = 50,
+      .pads = PADS_JC3, .npads = N_(PADS_JC3), .pads_inert = 1 },
     { JC("jc4", 42, 4, "bgm/m_stage5b.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage5.adp", .mus7 = "bgm/m_stage5.adp",
-      .card_first = 58, .water = 1600, .cps = CP_JC4, .ncps = N_(CP_JC4), .cam_right = 10240 + 213 },
+      .card_first = 58, .water = 1600, .cps = CP_JC4, .ncps = N_(CP_JC4), .cam_right = 10240 + 213, .pads = PADS_JC4, .npads = N_(PADS_JC4) },
     { JC("jc5", 43, 5, "bgm/m_stage5b.adp"), .mus4 = "bgm/m_boss.adp", .mus6 = "bgm/m_stage5.adp", .mus7 = "bgm/m_stage5.adp",
       .water = 1600, .cps = CP_JC5, .ncps = N_(CP_JC5), .res_wipe = 1,
       .vox = (const char *const[]){ "serp_gotyounow", "serp_kungfu" }, .nvox = 2 },
@@ -409,7 +435,7 @@ static const level_def_t LEVELS[] = {
     { TH("th2", 57, 2, "bgm/m_stage7.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage7.adp", .mus7 = "bgm/m_stage7.adp",
       .card_first = 72, .cps = CP_TH2, .ncps = N_(CP_TH2) },
     { TH("th3", 58, 3, "bgm/m_stage7.adp"), .mus4 = "bgm/m_midboss.adp", .mus4b = "bgm/m_boss2.adp", .mus4b_g4 = 5, .mus6 = "bgm/m_stage7.adp",
-      .mus7 = "bgm/m_stage7.adp", .card_first = 76, .cps = CP_TH3, .ncps = N_(CP_TH3), .res_wipe = 1 , .max_objs = 1536 },
+      .mus7 = "bgm/m_stage7.adp", .card_first = 76, .cps = CP_TH3, .ncps = N_(CP_TH3), .res_wipe = 1 , .max_objs = 1536, .pads = PADS_TH3, .npads = N_(PADS_TH3) },
     /* Thermal Base: frame index 44-49 (session 21c, spec_tb_flow; tb_flow.c). Music (RE loop wrappers 4-7 of frames 44-49): slots 5-7
      * m_stage6 in TB1-TB3, m_stage6b in TB4-TB6; slot 4 m_midboss in TB1-TB5, m_boss2 in TB6 (loop_wrapper_play_music_4_49); TB6's start
      * stops channel 31 (12735: the arena starts silent, its boss plays slot 4). Cards (ObjectCodec A newest first, RE start events):
@@ -425,7 +451,7 @@ static const level_def_t LEVELS[] = {
     { TB("tb3", 46, 3, "bgm/m_stage6.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage6.adp", .mus7 = "bgm/m_stage6.adp",
       .card_first = 63, .cps = CP_TB3, .ncps = N_(CP_TB3) },
     { TB("tb4", 47, 4, "bgm/m_stage6b.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage6b.adp", .mus7 = "bgm/m_stage6b.adp",
-      .card_first = 65, .water = 3400, .cps = CP_TB4, .ncps = N_(CP_TB4) },
+      .card_first = 65, .water = 3400, .cps = CP_TB4, .ncps = N_(CP_TB4), .pads = PADS_TB4, .npads = N_(PADS_TB4) },
     { TB("tb5", 48, 5, "bgm/m_stage6b.adp"), .mus4 = "bgm/m_midboss.adp", .mus6 = "bgm/m_stage6b.adp", .mus7 = "bgm/m_stage6b.adp",
       .card_first = 67, .water = 2920, .cps = CP_TB5, .ncps = N_(CP_TB5) },
     { TB("tb6", 49, 6, "bgm/m_stage6b.adp"), .mus4 = "bgm/m_boss2.adp", .mus6 = "bgm/m_stage6b.adp", .mus7 = "bgm/m_stage6b.adp",
@@ -465,7 +491,7 @@ static const level_def_t LEVELS[] = {
       .dig_zones = DIGZ_BG_ALL, .ndig_zones = N_(DIGZ_BG_ALL), .dig_rewards = DIGR_BG, .ndig_rewards = N_(DIGR_BG),
       .vox = (const char *const[]){ "lilac_awesome" }, .nvox = 1 /* the BG2 chopper end (14238) */ },
     { BG("bg2", 60, 2, "bgm/m_stage9.adp"), .mus4 = "bgm/m_midboss.adp", .card_first = 93, .cps = CP_BG2, .ncps = N_(CP_BG2),
-      .dig_zones = DIGZ_BG_ALL, .ndig_zones = N_(DIGZ_BG_ALL), .dig_rewards = DIGR_BG, .ndig_rewards = N_(DIGR_BG) },
+      .dig_zones = DIGZ_BG_ALL, .ndig_zones = N_(DIGZ_BG_ALL), .dig_rewards = DIGR_BG, .ndig_rewards = N_(DIGR_BG), .pads = PADS_BG2, .npads = N_(PADS_BG2) },
     { BG("bg3", 61, 3, "bgm/m_stage9.adp"), .mus4 = "bgm/m_midboss.adp", .card_first = 95, .cps = CP_BG3, .ncps = N_(CP_BG3) },
     { BG("bg4", 62, 4, "bgm/m_stage9b.adp"), .mus4 = "bgm/m_boss6.adp", .card_first = 97, .music_fade_g4 = 5 },
     { BG("bg5", 63, 5, "bgm/m_stage9b.adp"), .mus4 = "bgm/m_boss6.adp", .card_first = 99, .cps = CP_BG5, .ncps = N_(CP_BG5),
@@ -491,7 +517,7 @@ static const level_def_t LEVELS[] = {
     { FD("fd1b", 66, 10, 2, SFX_FD1B, "bgm/m_stage10.adp"), .mus4 = "bgm/m_boss.adp", .res_wipe = 1, .max_objs = 1280 , .vox = (const char *const[]){ "br_pa_03" }, .nvox = 1 /* the push-beam chase (15396) */ },
     { FD("fd2a", 67, 11, 1, SFX_FD2A, "bgm/m_stage10b.adp"), .mus4 = "bgm/m_midboss.adp", .start_card = 1, .cps = CP_FD2A, .ncps = N_(CP_FD2A),
       .exits = EX_FD2A, .nexits = N_(EX_FD2A), .max_objs = 1280 },
-    { FD("fd2b", 68, 11, 2, SFX_FD2B, "bgm/m_stage10b.adp"), .mus4 = "bgm/m_boss6.adp", .res_wipe = 1, .max_objs = 1280 },
+    { FD("fd2b", 68, 11, 2, SFX_FD2B, "bgm/m_stage10b.adp"), .mus4 = "bgm/m_boss6.adp", .res_wipe = 1, .max_objs = 1280, .air_vacuum = 1 },
     { FD("fd3a", 69, 12, 1, SFX_FD3A, "bgm/m_stage10c.adp"), .mus4 = "bgm/m_midboss.adp", .mus7 = "bgm/m_stage10d.adp", .start_card = 1,
       .cps = CP_FD3A, .ncps = N_(CP_FD3A), .max_objs = 1280 },
     { FD("fd3b", 70, 12, 2, SFX_FD3B, "bgm/m_stage10c.adp"), .mus4 = "bgm/m_boss4.adp", .mus7 = "bgm/m_stage10d.adp", .res_wipe = 1,
