@@ -135,6 +135,12 @@
 "Hello?"
 ],
 [
+7,
+-1,
+"go_03_00",
+"Hello. Uh... This is General Gong."
+],
+[
 1,
 57,
 "li_08_02",
@@ -636,6 +642,12 @@
 ],
 [
 5,
+-1,
+"to_xx_xx",
+"or corrupted, enormous amounts of weapon energy stolen... and that's just the tip of the iceberg."
+],
+[
+5,
 0,
 "to_03_16",
 "I didn't tell you anything because I don't want you on his crosshairs. This guy wiped out my entire crew."
@@ -645,6 +657,12 @@
 0,
 "to_03_17",
 "I'll try and convince your leaders of his existence, but if I can't get them to help me... If Brevon gets his"
+],
+[
+5,
+-1,
+"to_xx_xx",
+"hands on the Kingdom Stone... then I'll have no choice. I'll have to destroy it."
 ],
 [
 1,
@@ -2192,6 +2210,12 @@
 ],
 [
 3,
+-1,
+"xx_xx_xx",
+"like in the stories!"
+],
+[
+3,
 15,
 "mi_01_03",
 "Doesn't that sound great?!"
@@ -2951,10 +2975,22 @@
 "We gotta go after them!"
 ],
 [
+5,
+-1,
+"to_07_02",
+"Those airships would ghost us from a mile away. Remember what happened to me in the valley?"
+],
+[
 1,
 21,
 "li_12_03",
 "There has to be a way! What about Mayor Zao?"
+],
+[
+5,
+-1,
+"to_07_03",
+"It's worth a shot."
 ],
 [
 10,
@@ -3035,6 +3071,12 @@
 "I am pretty hungry..."
 ],
 [
+5,
+-1,
+"to_07_04",
+"What about the stone?"
+],
+[
 10,
 21,
 "za_01_09",
@@ -3075,6 +3117,18 @@
 3,
 "li_12_07",
 "That too."
+],
+[
+5,
+-1,
+"to_07_05",
+"We better play along anyway. This is our chance to prove that Brevon exists."
+],
+[
+5,
+-1,
+"to_07_06",
+"Might need to study this later..."
 ],
 [
 1,
@@ -5989,11 +6043,11 @@
 ]
 },
 "captions": {
-"str_meanwhile_332": "Meanwhile,",
+"str_dragon_valley_10": "               DRAGON VALLEY",
 "str_three_days_later_330": "Three days later,",
-"str_dragon_valley_10": "(Dragon Valley)",
+"str_20_minutes_later_364": "20 MINUTES LATER...",
+"str_meanwhile_332": "Meanwhile,",
 "str_15_minutes_later_362": "15 MINUTES LATER...",
-"str_in_a_valley_to_the_east_331": "In a valley to the East...",
-"str_20_minutes_later_364": "20 MINUTES LATER..."
+"str_in_a_valley_to_the_east_331": "In a valley to the East..."
 }
 }

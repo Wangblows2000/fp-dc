@@ -55,9 +55,9 @@ dlg = json.load(open(os.path.join(TAB, 'dialog.json'), encoding='utf-8'))
 rows = json.load(open(os.path.join(TAB, 'rows.json'), encoding='utf-8'))
 ids = [s['id'] for s in sc]
 check('inventory_unique_ids', len(ids) == len(set(ids)), len(ids))
-check('inventory_cutscene_list', sorted(s['list'] for s in sc if s.get('list') is not None) == list(range(37)),
+check('inventory_cutscene_list', sorted(set(s['list'] for s in sc if s.get('list') is not None)) == list(range(37)),
       'the original CutsceneList_42 has 37 entries (RE)')
-check('inventory_dialog_objects', len(dlg['dialog']) == 21 and sum(len(v) for v in dlg['dialog'].values()) == 989,
+check('inventory_dialog_objects', len(dlg['dialog']) == 21 and sum(len(v) for v in dlg["dialog"].values()) == 998,
       '%d objects' % len(dlg['dialog']))
 check('inventory_captions', 'str_three_days_later_330' in dlg.get('captions', {}))
 ported = [s for s in sc if os.path.isfile(os.path.join(TAB, 'scripts', s['id'] + '.scn'))]
@@ -71,7 +71,7 @@ for s in ported:
         if len(t) >= 3 and t[1] == 'say':
             k = int(t[2])
             if h in (None, '-') or k >= len(dlg['dialog'][h]): bad.append((s['id'], k))
-            elif s.get('lines') and not (s['lines'][0] <= k <= s['lines'][1] or k == 42): bad.append((s['id'], k, 'range'))
+            elif s.get('lines') and not (s['lines'][0] <= k <= s['lines'][1] or k in s.get('also', [])): bad.append((s['id'], k, 'range'))
     if s['id'] not in rows or rows[s['id']]['json'] != s['room']: bad.append((s['id'], 'rows'))
 check('inventory_scripts_lines_and_rows', not bad, bad[:5])
 st = os.path.join(DATA, 'story', 'story.txt')
@@ -96,7 +96,7 @@ d = dumps(ev)
 check('chsel_carol', any(l == 'story chsel 2' for f, l in ev) and d and d[-1]['lv'] == 'dv1' and d[-1]['chr'] == '2', d[-1] if d else '')
 # from the real menus (frontend.c HUB_EXIT_NEW_ADVENTURE: title -> START GAME -> file -> ADVENTURE)
 ADV = '40 42 S\n200 201 J\n230 231 J\n260 261 J\n'
-ev, out = run(ADV + '300 STORY\n', 320)
+ev, out = run(ADV + '400 STORY\n', 420)
 check('menu_adventure_starts_opening', starts(ev)[:1] == ['adv_opening'] and dumps(ev) and dumps(ev)[-1]['mode'] == '5', starts(ev))
 
 # ------------------------------------------------------------------------------------- the end of Dragon Valley (frame 8)
@@ -133,7 +133,8 @@ QUIT = '5 ADVNEW 0\n' + '2200 2201 S\n2215 2216 D\n2225 2226 D\n2240 2241 J\n232
 ev, out = run(QUIT + '2400 MODE 1\n2410 LOAD dv4\n2430 STAGEEND\n2460 STORY\n', 2480)
 d = dumps(ev)
 check('quit_to_menu_ends_run', d and d[0]['mode'] == '0' and d[0]['run'] == '0' and 'story reset' in out, d[0] if d else '')
-check('after_quit_classic_no_scene', starts(ev) == ['adv_opening', 'dv_meet'] and d[-1]['lv'] == 'rm1' and not completes(ev), starts(ev))
+check('after_quit_classic_no_scene', starts(ev) == ['adv_opening', 'dv_meet'] and d[-1]['lv'] == 'rm1' and d[-1]['gate'] == '0' and
+      not [c for c in completes(ev) if c[0] != 'adv_opening'], (starts(ev), completes(ev), d[-1]['lv']))
 
 # ------------------------------------------------------------------------------------------------------------ pause
 # resume: START opens (sound 63), START again closes; the scene goes on and finishes

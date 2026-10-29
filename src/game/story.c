@@ -332,7 +332,7 @@ void story_host_dump(void) {
     unsigned long long seen = 0; for (int i = 0; i < 64; i++) if (story_seen(i)) seen |= 1ull << i;
     printf("story run %d gate %d scene %s seg %d line %d paused %d sel %d chsel %d mode %d fe_mode %d chr %d file %d pos %d lv %s seen %llx\n",
            S.run, story_gate(), story_scene_name(S.scene), csx_segment(), csx_line(), S.paused, S.sel, S.chsel, G.mode, fe_mode,
-           G.character, G.file_slot, G.file_slot >= 0 && G.file_slot < SAVE_FILES ? SV.file[G.file_slot].story : -1, G.lvdir, seen);
+           G.character, G.file_slot, G.file_slot >= 0 && G.file_slot < SAVE_FILES ? SV.file[G.file_slot].story : -1, G.lvdir[0] ? G.lvdir : "-", seen);
 }
 int story_host_play(const char *name) {
     table_load();
