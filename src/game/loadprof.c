@@ -4,7 +4,7 @@
  * clock is the SH4 timer, so in Flycast this is emulated time (GD-ROM DMA at 1.8 MB/s, no seek time). */
 #include <stdio.h>
 #include <string.h>
-#ifndef FP_HOST_ENV
+#if !defined(FP_HOST_ENV) && !defined(FP_PC)   /* Dreamcast only (heap / VRAM figures) */
 #include <malloc.h>
 #include <dc/pvr.h>
 #endif
@@ -30,7 +30,7 @@ uint32_t lp_end(void) {
     unsigned kb = (unsigned)(LP.bytes / 1024);
     unsigned rate = LP.read_us ? (unsigned)(LP.bytes * 1000000ull / LP.read_us / 1024) : 0;
     unsigned heap_kb = 0, vram_kb = 0;
-#ifndef FP_HOST_ENV
+#if !defined(FP_HOST_ENV) && !defined(FP_PC)   /* Dreamcast only (heap / VRAM figures) */
     { struct mallinfo mi = mallinfo(); heap_kb = (unsigned)(mi.uordblks / 1024); }   /* RAM in use after the load */
     vram_kb = (unsigned)(pvr_mem_available() / 1024);                                  /* largest free VRAM block */
 #endif
