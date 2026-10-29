@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "../fp.h"
+#include "story.h"
 
 game_t G;
 
@@ -445,6 +446,7 @@ void game_save_stage_end(uint32_t time_ms) {
         save_file_t *f = &SV.file[G.file_slot];
         f->mode = (uint8_t)G.file_mode; f->lives = (uint8_t)(G.p.lives > 255 ? 255 : G.p.lives); f->shield = (uint8_t)G.p.shield;
         f->counter = (uint16_t)G.p.crystals;
+        if (story_position() >= 0) f->story = (uint8_t)story_position();   /* Adventure: the story position (save v5, story.c) */
     }
 }
 
@@ -467,18 +469,23 @@ void game_sfx_set(const short *ids, int n) { snd_stage_load(ids, n); }
 int game_next_stage(void) {
     const char *nx = level_route_next(level_cur()->stage);
     if (!nx) return 0;
+    if (game_start_stage(nx) < 0) fe_enter();
+    return 1;
+}
+/* session 25: the next stage of a run by name (Classic's frame 8 route above; the Adventure story's steps, story.c) */
+int game_start_stage(const char *nx) {
     G.at_g4 = 1; G.at_dir[0] = 0; G.prev_dir[0] = 0; G.stage_flags = 0; G.exit_to = NULL; G.exit_b = 0;
     G.stage_crystals = 0; G.keystones = 0; G.stage_deaths = 0;
     G.mode = MODE_PLAY;
     G.stage_carry = 1;
     int r = game_load_level(nx);
     G.stage_carry = 0;
-    if (r < 0) { fe_enter(); return 1; }
-    return 1;
+    return r < 0 ? -1 : 0;
 }
 
 /* developer level select: reachable only from the title screen (L+R within 2 s, frontend.c) */
 void game_dev_select(void) {
+    story_reset();                                  /* session 25: no Adventure run survives into the developer select */
     game_unload_all();
     G.mode = MODE_SELECT; G.in_select = 1; sel_scan();
 }
@@ -716,6 +723,7 @@ void game_update(const input_t *in) {
       if (G.mode == MODE_PLAY && !G.in_select) vmuscr_char(G.character); else if (fc >= 0) vmuscr_char(fc); else vmuscr_crystal(); }
     if (G.mode == MODE_FRONTEND) { fe_update(in); return; }
     if (G.mode == MODE_ENDING) { ending_update(in); return; }   /* session 24: src/game/ending.c */
+    if (G.mode == MODE_STORY) { story_update(in); return; }     /* session 25: Adventure story scenes (src/game/story.c) */
     if (G.in_select) { sel_update(in); return; }
     if (G.mode == MODE_RESULTS) {
         G.res_t++;
@@ -1041,19 +1049,24 @@ static void card_draw(void) {
 
 static void pause_draw(void) {
     if (!G.paused) return;
+    game_pause_panel(pause_frame(), G.pause_sel <= 2 ? G.pause_sel : -1, G.pause_wipe_f, G.pause_wipe_x);
+}
+/* the pause panel: GUIPause frame (3 RESUME / RESTART / QUIT, 4 RESTART greyed, 1 RESUME / SKIP SCENE / QUIT: story rooms),
+ * the crystal cursor on row sel (-1 none), the confirm wipe (session 25: shared with story.c) */
+void game_pause_panel(int frame, int sel, int wipe, float wipe_x) {
     /* RE 4477: GUIPause at (0.5 G - (105 - 53 J), 101) = (214, 101) at 426 px (RV); Crystal at its action point,
      * y + 24 per row (RV: (166, 141 + 24 row)) */
-    hud_img_hot(8, pause_frame(), 214, 101);
-    if (G.pause_sel <= 2) {
+    hud_img_hot(8, frame, 214, 101);
+    if (sel >= 0) {
         hud_init();
         if (hud_anim[15] >= 0) {
             const anim_t *an = &G.objs.anims[hud_anim[15]];
             int k = (G.frame_draw_t / 6) % an->count;      /* Crystal_447 spins (speed 18) */
-            frame_draw(&G.objs, &G.objs.frames[G.objs.seq[an->first + k]], 166, 141 + 24 * G.pause_sel, 0, 0xffffffff);
+            frame_draw(&G.objs, &G.objs.frames[G.objs.seq[an->first + k]], 166, 141 + 24 * sel, 0, 0xffffffff);
         }
     }
-    if (G.pause_wipe_f) {                          /* levelcardfade2 (near black) + fadeedge_77 diagonal edge */
-        float x = G.pause_wipe_x;
+    if (wipe) {                                    /* levelcardfade2 (near black) + fadeedge_77 diagonal edge */
+        float x = wipe_x;
         if (x + SCREEN_W > 0) r_rect(0, 0, x + SCREEN_W, SCREEN_H, 0xff080000);
         for (int y = 0; y < SCREEN_H; y += 2) {
             float w = 120.f * (1.f - (float)y / SCREEN_H);
@@ -1070,6 +1083,7 @@ void game_draw(void) {
     if (G.mode == MODE_FRONTEND) { fe_draw(); return; }
     if (G.mode == MODE_ENDING) { ending_draw(); return; }
     if (G.in_select) { sel_draw(); return; }
+    int story = G.mode == MODE_STORY;              /* session 25: a story room (story.c): actors instead of the player, no HUD */
     r_begin();
     draw_parallax();
     /* Session 20: layer 1 of a mapped frame (json layer 1, scrolling at 0.8 in SB2-SB4 / AT / FN, 0.25 in SB1) is behind json layer 2,
@@ -1077,28 +1091,34 @@ void game_draw(void) {
      * were drawn after every layer-1 piece, so SB1's airships covered the red sail of Zao's ship (ship19, json layer 2). Now: layer 0,
      * the 0.8 pieces, the layer-1 objects, then the other layer-1 pieces (the order inside a layer is unchanged). */
     draw_pieces(0, 0);
+    if (story) story_draw_layer(0);
     pieces_s08 = 1; draw_pieces(1, 1);
-    objects_draw(-1); sb_flow_draw(-1); pl_enemy_draw(-1);   /* PL: the json-1 swarm at scroll 1 (pl_enemy.c) */
+    if (!story) { objects_draw(-1); sb_flow_draw(-1); pl_enemy_draw(-1); }   /* story rooms: every object the scene shows is a script actor */   /* PL: the json-1 swarm at scroll 1 (pl_enemy.c) */
     pieces_s08 = 0; draw_pieces(1, 1); pieces_s08 = -1;
-    objects_draw(0);
+    if (!story) objects_draw(0);
     fn_gimb_draw_back();                          /* FN: carousel rings, A5 disco light (back of the play layer) */
     draw_pieces(2, 2);
-    objects_draw(1);
+    if (!story) objects_draw(1);
     water_draw_front();
     int pfront = jc_boss_player_front();          /* JC3: the player on the subtanker's layer, in front of its pieces (jc_boss.c) */
+    if (story) story_draw_layer(1);
+    else {
     if (!pfront && game_player_visible()) player_draw(&G.p);   /* FN6 closing scene: MV.M 50, the cast stands in (fn_assist.c) */
     if (!pfront) shields_draw(&G.p);
+    }
     fn_gimb_draw_front();                         /* FN: restroom doors / pole-pod shells over the player */
     spiral_front_draw();
     water_draw_tint();
     draw_pieces(3, 3);
-    if (pfront && game_player_visible()) player_draw(&G.p);
-    if (pfront) shields_draw(&G.p);
+    if (story) story_draw_layer(2);
+    if (pfront && !story && game_player_visible()) player_draw(&G.p);
+    if (pfront && !story) shields_draw(&G.p);
     par_draw_front();                             /* layer-3 parallax pieces (RM3 piece5, the caravan chase) */
-    objects_draw(2);
+    if (!story) objects_draw(2);
     draw_pieces(4, 7);
     relic_gima_draw_overlay();                    /* RM2 basement darkness (5997, BasementLight on layer 5) */
     rm_mantalith_draw(0);                         /* RM5 end: light rays, hook line, ground cuts (rm_mantalith.c) */
+    if (story) { story_draw_overlay(); r_end(); return; }
     hud_draw();
     tb_gim_draw(3);                               /* Thermal Base: the key card HUD (tb_gim.c, GUIKeyCardIcon / GUIKeyCards) */
     water_draw_hud();

@@ -11,7 +11,12 @@
  * header (128) and the 3-frame icon (1536) the memory-card file is 3025 bytes = still 6 blocks (<= 3072). v3 files load
  * with every taken card face down and no achievement (INFERRED: the PC records of a port player cannot be known), and
  * every older file is written as v4 on the next save. A damaged, foreign or truncated file is ignored (defaults) and
- * only replaced by the next deliberate save. */
+ * only replaced by the next deliberate save.
+ *
+ * v5 (session 25, Adventure mode, src/game/story.c) appends the story: one byte per file (the story position: the last
+ * story scene id + 1, 0 none) and 8 bytes of seen flags (scene id n = bit n). Payload 1371 bytes, file 1377: with the VMU
+ * header and icon 3041 bytes, still 6 blocks. v1-v4 files load with no story position and nothing seen (an older file had
+ * no Adventure story: its next continue routes by the file's stage as before). */
 #include <stdio.h>
 #include <string.h>
 #include "../fp.h"
@@ -50,6 +55,10 @@ static void io3(buf_t *b, int wr, int ver) {
     if (ver >= 4) {                                            /* v4: gallery */
         for (unsigned k = 0; k < sizeof SV.cards_open; k++) F8(SV.cards_open[k]);
         for (int k = 0; k < SAVE_ACH; k++) F8(SV.ach[k]);
+    }
+    if (ver >= 5) {                                            /* v5: Adventure story (session 25) */
+        for (int i = 0; i < SAVE_FILES; i++) F8(SV.file[i].story);
+        for (unsigned k = 0; k < sizeof SV.story_seen; k++) F8(SV.story_seen[k]);
     }
 #undef F8
 #undef F16
@@ -92,8 +101,8 @@ void save_defaults(void) {
     for (int i = 0; i < SAVE_FILES; i++) SV.file[i].last_stage = 0xff;
 }
 
-#define SAVE_VER 4
-#define SAVE_BUF 1536            /* 4 + payload (1355) + 2, with room to spare */
+#define SAVE_VER 5
+#define SAVE_BUF 1536            /* 4 + payload (1371) + 2, with room to spare */
 int save_store(void) {
     uint8_t data[SAVE_BUF];
     buf_t b = { data, 0, sizeof data - 2, 0 };

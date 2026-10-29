@@ -1,0 +1,6406 @@
+{
+"binary_md5": "65f22f98729ed6bddecdf4242197d2cf",
+"dialog": {
+"550": [
+[
+1,
+0,
+"li_02_07",
+"So what are you doing out here? The skies haven't been safe for days."
+],
+[
+5,
+0,
+"to_01_10",
+"Someone is about to steal the Kingdom Stone, and I have to stop them."
+],
+[
+1,
+0,
+"li_02_08",
+"The Kingdom Stone? That's impossible!"
+],
+[
+2,
+18,
+"ca_02_07",
+"Yeah, only I could steal it!"
+],
+[
+1,
+6,
+"li_02_09",
+"Pff, you wish."
+],
+[
+5,
+0,
+"to_01_11",
+"It's already happening. Mayor Zao is sending troops in disguise to the ancient temple. I have to warn them!"
+],
+[
+1,
+27,
+"li_02_10",
+"Carol and I are pretty fast. We could run over there for you."
+],
+[
+5,
+0,
+"to_01_12",
+"Seriously?"
+],
+[
+2,
+9,
+"ca_02_08",
+"Yep! I've got a motorcycle! And she's a dragon! They're like, super fast!"
+],
+[
+1,
+57,
+"li_02_11",
+"Darn straight!"
+],
+[
+5,
+0,
+"to_01_13",
+"Well... It's worth a shot! Hurry over there, before it's too late!"
+],
+[
+2,
+36,
+"ca_02_09",
+"What about you?"
+],
+[
+5,
+0,
+"to_01_14",
+"I'll catch up with you as soon as I find all my stuff."
+],
+[
+1,
+27,
+"li_02_12",
+"Right! C'mon Carol!"
+],
+[
+1,
+39,
+"li_02_13",
+"I'm sorry about running off on you back there..."
+],
+[
+2,
+42,
+"ca_02_10",
+"Yeah, well, it happens..."
+],
+[
+2,
+36,
+"ca_02_11",
+"We can trust this guy, right?"
+],
+[
+1,
+39,
+"li_02_14",
+"Well, what if he's telling the truth? What if the stone really can be taken? You know what'll happen then, right?"
+],
+[
+2,
+0,
+"ca_02_12",
+"No more Charge-ups?"
+],
+[
+1,
+0,
+"li_02_15",
+"Exactly."
+],
+[
+1,
+27,
+"li_02b10",
+"Carol and I are pretty fast. We could run right"
+],
+[
+1,
+0,
+"li_08_01",
+"Hello?"
+],
+[
+7,
+-1,
+"go_03_00",
+"Hello. Uh... This is General Gong."
+],
+[
+1,
+57,
+"li_08_02",
+"Hey! Up and at 'em! We've got adventuring to do!"
+],
+[
+2,
+51,
+"ca_09_01",
+"Five more minutes..."
+],
+[
+3,
+3,
+"mi_05_02",
+"Good morning Carol!"
+],
+[
+5,
+0,
+"to_04_01",
+"I was wondering when you'd be awake."
+],
+[
+1,
+3,
+"li_08_04",
+"You can blame Carol for that. She sleeps for like, half a day."
+],
+[
+2,
+21,
+"ca_09_03",
+"Totally worth it!"
+],
+[
+1,
+3,
+"li_08_05",
+"Well anyway, I got a call from that big panda guy I told you about. He's gonna help us."
+],
+[
+5,
+0,
+"to_04_02",
+"When is he coming?"
+],
+[
+1,
+3,
+"li_08_06",
+"Actually, we have to go meet him. He'll be waiting for us north of here."
+],
+[
+5,
+0,
+"to_04_03",
+"Perfect. I fixed my radar last night, so we can use it to find the meeting point."
+],
+[
+1,
+27,
+"li_08_07",
+"Great! Ready, girls?"
+],
+[
+2,
+12,
+"ca_09_04",
+"Aye aye, Captain!"
+],
+[
+3,
+42,
+"mi_05_03",
+"To adventure!"
+],
+[
+1,
+3,
+"li_08b05",
+"Well anyway, I got a big call from that big panda guy I told y"
+]
+],
+"622": [
+[
+5,
+0,
+"to_02_01",
+"Are you sure it's okay for me to set up a tent here?"
+],
+[
+1,
+39,
+"li_06_01",
+"It's the least we can do after what happened today..."
+],
+[
+5,
+0,
+"to_02_02",
+"Eh, don't blame yourself. You did everything you could. I'll get the stone back somehow."
+],
+[
+1,
+3,
+"li_06_02",
+"You sure you don't wanna hang out with us?"
+],
+[
+5,
+0,
+"to_02_03",
+"Thanks, but, I have a lot of work to do. I'm gonna try and fix my gadgets."
+],
+[
+1,
+27,
+"li_06_03",
+"Fair enough. Just shout if you need anything."
+],
+[
+5,
+0,
+"to_02_04",
+"Alright. What are you gonna be up to?"
+],
+[
+1,
+27,
+"li_06_04",
+"Oh, we should have plenty of things to do. Especially with the new girl around."
+],
+[
+2,
+51,
+"ca_07_01",
+"I'm booorrred..."
+],
+[
+1,
+3,
+"li_06_05",
+"How 'bout a movie?"
+],
+[
+3,
+21,
+"mi_03_01",
+"Sure!"
+],
+[
+2,
+51,
+"ca_07_02",
+"Mh, why not."
+],
+[
+1,
+69,
+"li_06_06",
+"What kind of movies do you like, Milla?"
+],
+[
+3,
+3,
+"mi_03_02",
+"I like being surprised!"
+],
+[
+1,
+69,
+"li_06_07",
+"Alright. I think I have just the thing!"
+],
+[
+2,
+3,
+"ca_07_03",
+"Hey Lilac?"
+],
+[
+1,
+0,
+"li_06_08",
+"Hm?"
+],
+[
+2,
+3,
+"ca_07_04",
+"How come Torque doesn't wanna hang out with us?"
+],
+[
+1,
+0,
+"li_06_09",
+"He said he had some work to do."
+],
+[
+2,
+6,
+"ca_07_05",
+"Ehh, he's probably just scared of getting cooties."
+],
+[
+1,
+63,
+"li_06_11",
+"Can I ask you something?"
+],
+[
+2,
+0,
+"ca_07_06",
+"Like what?"
+],
+[
+1,
+60,
+"li_06_12",
+"Well... Do you ever think about your family? I mean, about seeing them again someday?"
+],
+[
+2,
+0,
+"ca_07_07",
+"I think about my big sister sometimes. I dunno... It's not like I can go back there anytime soon."
+],
+[
+1,
+63,
+"li_06_13",
+"Yeah..."
+],
+[
+3,
+36,
+"mi_03_04",
+"I wish I had a sister, but nothing's happened yet. I tried shooting stars, crystal balls, chewing grass..."
+],
+[
+2,
+0,
+"ca_07_08",
+"How 'bout rubbing your ears? I did that when I was little."
+],
+[
+1,
+45,
+"li_06_14",
+"You know what? Carol and I can be your sisters!"
+],
+[
+3,
+33,
+"mi_03_06",
+"You can DO THAT??"
+],
+[
+1,
+45,
+"li_06_15",
+"Sure, why not?"
+],
+[
+3,
+3,
+"mi_03_07",
+"I guess that works afterall! Thanks Carol!"
+],
+[
+4,
+0,
+"sp_01r01",
+"Not like a couple of traitors like yourselves would care..."
+],
+[
+2,
+0,
+"ca_08_01",
+"Lilac! Lilac!"
+],
+[
+1,
+0,
+"li_07_01",
+"......"
+],
+[
+2,
+0,
+"ca_08_02",
+"Torque's a, I mean I went down there and and he said I mean his-"
+],
+[
+1,
+6,
+"li_07_02",
+"Calm down. What is it?"
+],
+[
+2,
+3,
+"ca_08_03",
+"Torque turned into an alien or something!!"
+],
+[
+1,
+6,
+"li_07_03",
+"What?"
+],
+[
+2,
+3,
+"ca_08_04",
+"Just come with me! Come on!"
+],
+[
+1,
+0,
+"li_07_04",
+"Nrrrhh... you probably had a bad dream."
+],
+[
+2,
+3,
+"ca_08_05",
+"I'm serious! Get up! Come on! GET UP GET UPPPP!"
+],
+[
+1,
+3,
+"li_07_05",
+"Alright! Let me get my shoes on!"
+],
+[
+1,
+18,
+"li_07_07",
+"Torque?!"
+],
+[
+5,
+6,
+"to_03_02",
+"It's not what it looks like!"
+],
+[
+2,
+27,
+"ca_08_06",
+"What are you?! Give us answers buddy!"
+],
+[
+5,
+3,
+"to_03_03",
+"Okay okay, I'll tell you! But you have to promise to keep it to yourselves."
+],
+[
+1,
+0,
+"li_07_08",
+"We promise... Right, Carol?"
+],
+[
+2,
+0,
+"ca_08_07",
+"Right. Pinky swear."
+],
+[
+5,
+0,
+"to_03_04",
+"Alright. Take a seat."
+],
+[
+5,
+0,
+"to_03_05",
+"Everything I've told you so far is true."
+],
+[
+5,
+0,
+"to_03_b5",
+"It's just that... well... remember when I said that I'm not from around here?"
+],
+[
+1,
+72,
+"li_07_09",
+"Yeah, and?"
+],
+[
+5,
+0,
+"to_03_06",
+"I'm from another world. Actually, I'm part of an alliance between many different worlds. We're called Chasers."
+],
+[
+5,
+0,
+"xx_xx_xx",
+"Chasers."
+],
+[
+1,
+72,
+"li_07_10",
+"So, you're an alien then?"
+],
+[
+5,
+0,
+"to_03_07",
+"Pretty much, yeah."
+],
+[
+2,
+48,
+"ca_08_08",
+"Space cooties!"
+],
+[
+5,
+0,
+"to_03_08",
+"You don't believe me."
+],
+[
+1,
+72,
+"li_07_12",
+"Actually, I do."
+],
+[
+5,
+0,
+"to_03_09",
+"Really?"
+],
+[
+1,
+72,
+"li_07_13",
+"They say that a long time ago, dragons came to Avalice and mixed with our ancestors."
+],
+[
+2,
+21,
+"ca_08_09",
+"And not just ones like Lilac. Huge ones, like in the movies!"
+],
+[
+1,
+78,
+"li_07_14",
+"So I guess it's not much of a stretch for other things to be out there too."
+],
+[
+5,
+0,
+"to_03_10",
+"I see..."
+],
+[
+2,
+36,
+"ca_08_10",
+"So why do a bunch of aliens care about our planet?"
+],
+[
+5,
+0,
+"to_03_11",
+"The man that wants your Kingdom Stone isn't from around here either. He calls himself Lord Brevon."
+],
+[
+1,
+75,
+"li_07_15",
+"Lord?"
+],
+[
+5,
+0,
+"to_03_12",
+"Well, he didn't get that name selling cookies. He's dangerous with a capital D."
+],
+[
+5,
+0,
+"to_03_13",
+"Brevon is the most powerful enemy we've ever faced. Hundreds of worlds destroyed, thousands of heroes killed"
+],
+[
+5,
+-1,
+"to_xx_xx",
+"or corrupted, enormous amounts of weapon energy stolen... and that's just the tip of the iceberg."
+],
+[
+5,
+0,
+"to_03_16",
+"I didn't tell you anything because I don't want you on his crosshairs. This guy wiped out my entire crew."
+],
+[
+5,
+0,
+"to_03_17",
+"I'll try and convince your leaders of his existence, but if I can't get them to help me... If Brevon gets his"
+],
+[
+5,
+-1,
+"to_xx_xx",
+"hands on the Kingdom Stone... then I'll have no choice. I'll have to destroy it."
+],
+[
+1,
+9,
+"li_07_16",
+"Destroy it?! You can't be serious!"
+],
+[
+5,
+15,
+"to_03_18",
+"I'll only destroy it if I have no other choice. I swore to my Captain on his dying breath that I would not let Brevon get that stone!"
+],
+[
+5,
+15,
+"xx_xx_xx",
+"not let Brevon get that stone!"
+],
+[
+1,
+9,
+"li_07_17",
+"I'm sorry about your Captain, but... you can't destroy it!"
+],
+[
+1,
+24,
+"li_07_18",
+"In fact, you won't even have to think about it, because I'm going to help you get it back!"
+],
+[
+1,
+24,
+"li_07_19",
+"I don't care how dangerous it is! It's gonna take a lot more than robots and aliens to slow a dragon down!"
+],
+[
+1,
+24,
+"xx_xx_xx",
+"dragon down!"
+],
+[
+2,
+60,
+"ca_08_12",
+"If she's gonna go for it, then I am too! If we can beat up a giant praying mantis thing together, then who knows what else we can do?"
+],
+[
+3,
+21,
+"mi_04_02",
+"Ummm... I wanna come too!"
+],
+[
+1,
+27,
+"li_07_20",
+"I guess we could let you save Carol's life a few more times."
+],
+[
+2,
+15,
+"ca_08_13",
+"Hey..."
+],
+[
+3,
+3,
+"mi_04_03",
+"Yay!"
+],
+[
+5,
+0,
+"to_03_19",
+"So the three of you are really gonna help me stop him?"
+],
+[
+2,
+9,
+"ca_08_14",
+"Say no more! Team Lilac's got your back!"
+],
+[
+2,
+0,
+"ca_08_15",
+"We'll talk about the name later, 'kay?"
+],
+[
+5,
+9,
+"to_03_20",
+"I'd be lying if I said I was comfortable with this, but... I honestly could use your help."
+],
+[
+5,
+0,
+"to_03_21",
+"You know this world better than I do."
+],
+[
+2,
+24,
+"ca_08_16",
+"Soooo it's official, right?"
+],
+[
+5,
+0,
+"to_03_22",
+"Moreorless. Welcome aboard, ladies."
+],
+[
+5,
+0,
+"to_03_23",
+"Just remember something really important... Don't talk about our mission unless I say so."
+],
+[
+5,
+0,
+"to_03_24",
+"We do not want the whole world thinking we're crazy."
+],
+[
+1,
+24,
+"li_07_22",
+"Understood."
+],
+[
+2,
+0,
+"ca_08_18",
+"I dunno about you guys, but I'm exhausted."
+],
+[
+1,
+0,
+"li_07_23",
+"Yeah, we better get some shut-eye. We've got a big day ahead of us."
+],
+[
+5,
+0,
+"to_03_25",
+"Lilac..."
+],
+[
+5,
+0,
+"to_03_26",
+"Thank you."
+],
+[
+5,
+0,
+"to_31_02",
+"I never got to properly thank you all for helping me."
+],
+[
+2,
+18,
+"ca_44_01",
+"Hey, we're buds! That's what buddies do."
+],
+[
+5,
+21,
+"to_31_03",
+"Well, on behalf of the Coalition of Planets, you have our sincerest gratitude."
+],
+[
+1,
+57,
+"li_52_02",
+"Pssh, c'mere, you!"
+],
+[
+5,
+18,
+"to_31_04",
+"Thank you."
+],
+[
+1,
+0,
+"li_52_01",
+"So I guess this is it, huh?"
+],
+[
+3,
+0,
+"mi_31_01",
+"I'm gonna miss you..."
+],
+[
+2,
+0,
+"ca_44_02",
+"Me too..."
+],
+[
+5,
+0,
+"to_31_05",
+"Well, who knows? I could be coming back sooner than you think. Until then, just take care of yourselves. The world needs you."
+],
+[
+7,
+0,
+"go_09_01",
+"See ya around, spaceman!"
+],
+[
+3,
+3,
+"mi_31_02",
+"Goodbye Torque!"
+],
+[
+2,
+33,
+"ca_44_03",
+"Bye Torque!"
+],
+[
+1,
+57,
+"li_52_03",
+"See you soon!"
+],
+[
+1,
+0,
+"li_52_04",
+"Aww, don't worry girls. We'll get Space Cooties back here someday."
+],
+[
+2,
+0,
+"ca_44_04",
+"Yeah."
+]
+],
+"1624": [
+[
+2,
+36,
+"ca_04_01",
+"Spade? What's he doing here?"
+],
+[
+1,
+12,
+"li_04_01",
+"HEY!"
+],
+[
+1,
+12,
+"li_04_02",
+"What do you think you're doing?! That's the Kingdom Stone!"
+],
+[
+4,
+0,
+"sp_01_01",
+"So? I need it to find my father's killer. Not like a couple of traitors like yourselves would care."
+],
+[
+2,
+27,
+"ca_04_02",
+"I'd rather be called a traitor than a murderer."
+],
+[
+1,
+24,
+"li_04_03",
+"The Scarves left us no choice!"
+],
+[
+4,
+6,
+"sp_01_02",
+"And you've left me no choice!"
+],
+[
+4,
+9,
+"sp_01_03",
+"Still training, I see."
+],
+[
+2,
+27,
+"ca_04_03",
+"You wanna fight? Come and get it!"
+],
+[
+4,
+12,
+"sp_01_04",
+"I'd love to stay and dance, but Mayor Zao's got a tight schedule."
+],
+[
+4,
+12,
+"sp_01_05",
+"Besides, if something else is guarding this thing, I'd hate to be around when it wakes up."
+],
+[
+1,
+66,
+"li_04_04",
+"You're insane, you know that? You're never gonna get away with it!"
+],
+[
+4,
+9,
+"sp_01_07",
+"We'll see about that."
+],
+[
+2,
+54,
+"ca_04_04",
+"He'll never make it out."
+],
+[
+1,
+24,
+"li_04_05",
+"But we should! Come on!"
+]
+],
+"1896": [
+[
+6,
+6,
+"se_02_01",
+"Hold it right there you sparkly twit!"
+],
+[
+1,
+24,
+"li_11_01",
+"What did you call me?!"
+],
+[
+6,
+6,
+"se_02_02",
+"You think you can just walk into this conflict, don't you? Well I have news for you... this isn't your fight!"
+],
+[
+1,
+66,
+"li_11_02",
+"It was the moment you brought it to our homeworld!"
+],
+[
+6,
+9,
+"se_02_03",
+"So the duck man couldn't keep his mouth shut..."
+],
+[
+6,
+9,
+"se_02_04",
+"Well I hope he realizes that he just cost you your life!"
+],
+[
+1,
+12,
+"li_11_03",
+"You'll have to take it first, snake man!"
+]
+],
+"2135": [
+[
+5,
+0,
+"to_10_01",
+"I gotta admit, your planet looks pretty cool."
+],
+[
+2,
+0,
+"ca_15_01",
+"Thanks, I guess."
+],
+[
+2,
+0,
+"ca_15_02",
+"What's your planet like?"
+],
+[
+5,
+0,
+"to_10_02",
+"Well, there's a lot of water. Over 80% of my world is covered in it."
+],
+[
+2,
+0,
+"ca_15_03",
+"Does it have sharks?"
+],
+[
+5,
+0,
+"to_10_03",
+"What?"
+],
+[
+2,
+0,
+"ca_15_04",
+"Y'know, sharks. Big fish with lots of teeth."
+],
+[
+5,
+0,
+"to_10_04",
+"Oh, yeah, quite a lot."
+],
+[
+2,
+0,
+"ca_15_05",
+"What about ninjas?"
+],
+[
+5,
+0,
+"to_10_05",
+"That's a weird name for a fish."
+],
+[
+2,
+0,
+"ca_15_06",
+"You got a lot to learn about this planet."
+],
+[
+1,
+69,
+"li_15_01",
+"Just imagine it, Carol. There are other worlds out there, just like ours..."
+],
+[
+2,
+48,
+"ca_15_07",
+"We should go on a space adventure someday! Don't you think that'd be SO cool??"
+],
+[
+1,
+78,
+"li_15_02",
+"Are you kidding? It'd be the coolest thing ever!"
+],
+[
+5,
+0,
+"to_10_06",
+"I remember saying almost exactly the same thing."
+],
+[
+1,
+72,
+"li_15_03",
+"Did you have a change of heart?"
+],
+[
+5,
+0,
+"to_10_07",
+"Not really, no. I guess I just wasn't prepared for the sacrifices I had to make..."
+],
+[
+5,
+9,
+"to_10_08",
+"Just gotta keep moving forward with the mission I guess. No point thinking about a past that can't be changed."
+],
+[
+1,
+60,
+"li_15_04",
+"You're right."
+],
+[
+5,
+0,
+"to_10_09",
+"How's the other girl doing?"
+],
+[
+1,
+60,
+"li_15_05",
+"Milla? I'm not sure. Can you go check on her, Carol?"
+],
+[
+2,
+42,
+"ca_15_08",
+"Okie dokie."
+],
+[
+1,
+0,
+"li_15_06",
+"I'm gonna get some sleep."
+],
+[
+5,
+0,
+"to_10_10",
+"I'm fine. You go on ahead."
+],
+[
+2,
+0,
+"ca_15_09",
+"Hey there."
+],
+[
+3,
+0,
+"mi_11_01",
+"Hi..."
+],
+[
+2,
+21,
+"ca_15_10",
+"How's it goin'?"
+],
+[
+3,
+0,
+"mi_11_02",
+"I'm... I'm making a wish."
+],
+[
+2,
+24,
+"ca_15_11",
+"Oh... What kind of wish?"
+],
+[
+3,
+24,
+"mi_11_03",
+"Well...... I really wanna see my mommy and daddy again!"
+],
+[
+2,
+0,
+"ca_15_13",
+"Sounds like a good thing to wish for."
+],
+[
+2,
+0,
+"ca_15_14",
+"We're gonna be going inside soon. You wanna come?"
+],
+[
+3,
+3,
+"mi_11_04",
+"Okay!"
+],
+[
+5,
+0,
+"to_11_02",
+"Shoot! We've gotta disable those ships or we're toast!"
+],
+[
+1,
+0,
+"li_16_01",
+"Torque, are you thinking what I'm thinking?"
+],
+[
+5,
+0,
+"to_11_03",
+"I think it's crazy enough to work!"
+],
+[
+1,
+0,
+"li_16_02",
+"Alright girls, here's the plan. We're gonna run to the other ships and kung-fu their cannons."
+],
+[
+2,
+0,
+"ca_16_04",
+"Let's do it!"
+],
+[
+3,
+0,
+"mi_12_02",
+"It's time to be brave!"
+]
+],
+"2251": [
+[
+4,
+0,
+"sp_03_01",
+"You just don't know when to fold, do you?"
+],
+[
+1,
+9,
+"li_17_01",
+"Don't you get it?! Lord Brevon's the murderer!"
+],
+[
+4,
+18,
+"sp_03_02",
+"Thanks for the tip. Now get off our ship before I throw you overboard!"
+],
+[
+1,
+12,
+"li_17_02",
+"Like that'll happen!"
+],
+[
+4,
+18,
+"sp_03_03",
+"Oh well. Don't say I didn't warn you!"
+]
+],
+"2580": [
+[
+3,
+24,
+"mi_16_01",
+"What do we do?"
+],
+[
+3,
+24,
+"mi_16_02",
+"Lilac?"
+],
+[
+1,
+66,
+"li_26_02",
+"I don't know!"
+],
+[
+1,
+39,
+"li_26_03",
+"I don't know..."
+]
+],
+"3103": [
+[
+1,
+18,
+"li_33_02",
+"You're one of Brevon's robots!"
+],
+[
+0,
+0,
+"sx_06_01",
+"BREVON... SEARCHING MEMORY BANKS."
+],
+[
+0,
+0,
+"sx_06_02",
+"THAT NAME DOES NOT EXIST IN OUR DATABASE."
+],
+[
+1,
+0,
+"li_33_03",
+"Then what are you?"
+],
+[
+0,
+0,
+"sx_06_03",
+"THIS IS THE PRIMARY SECURITY SYSTEM FOR OR OR OR orrrrrrrrrrrr"
+],
+[
+0,
+0,
+"sx_06_02",
+"THAT NAME DOES NOT EXIST IN OUR DATABASE."
+],
+[
+1,
+24,
+"li_33_04",
+"What are you? Where did you come from?"
+],
+[
+0,
+0,
+"sx_06_04",
+"APOLOGIES. THAT INFORMATION IS PASSWORD PROTECTED PASSWORD PROTECTED PASSWORD PROTECTEDPAaAa*-*-..*"
+],
+[
+0,
+0,
+"sx_06_05",
+"PASSWORD ACCEPTED. FOLLOW ME."
+]
+],
+"3222": [
+[
+4,
+12,
+"sp_04_01",
+"You're here to ask for help, aren't you? Couldn't handle that little quest of yours on your own?"
+],
+[
+2,
+27,
+"ca_26_05",
+"Cram it, Spade!"
+],
+[
+3,
+60,
+"mi_19_01",
+"STOP IT!"
+],
+[
+3,
+24,
+"mi_19_02",
+"You're right... We need your help. Our friends are in trouble!"
+],
+[
+4,
+0,
+"sp_04_02",
+"I'm supposed to care, why?"
+],
+[
+2,
+75,
+"ca_26_06",
+"The guy who kidnapped them is the one who killed your father."
+],
+[
+2,
+0,
+"ca_26_07",
+"Face it, buster, we're the only lead you've got."
+]
+],
+"3384": [
+[
+11,
+0,
+"da_05_01",
+"It seems that I have underestimated your strength. Not this time!"
+],
+[
+1,
+0,
+"li_39_01",
+"Do your worst!"
+],
+[
+5,
+0,
+"to_23_01",
+"We've beaten you before and we'll beat you again!"
+],
+[
+2,
+0,
+"ca_33_01",
+"Yeah, what are you gonna do? Throw robots at us? Giant robots with lasers in their buttcheeks maybe?"
+],
+[
+2,
+0,
+"ca_33_02",
+"...Oh."
+],
+[
+1,
+0,
+"li_39_02",
+"Carol, you jinxed us!"
+],
+[
+2,
+0,
+"ca_33_03",
+"So did you and Torque!"
+],
+[
+3,
+0,
+"mi_24_01",
+"Is anyone else feeling a little scared right now?"
+],
+[
+11,
+0,
+"da_05_02",
+"It's such a shame that you chose the wrong side. Enjoy the last few minutes of your pathetic lives!"
+],
+[
+3,
+0,
+"mi_25_01",
+"LOOK OUT!"
+],
+[
+2,
+0,
+"ca_34_01",
+"Y'know, for once I'm actually glad to see you show up."
+],
+[
+1,
+9,
+"li_40_01",
+"Spade!"
+],
+[
+4,
+0,
+"sp_05_01",
+"I hate to disappoint you, but I'm just passing through. Have fun saving the world."
+],
+[
+1,
+66,
+"li_40_02",
+"Look, I'm sorry, okay?! I was scared! I didn't know what I was doing!"
+],
+[
+4,
+0,
+"sp_05_02",
+"You still don't."
+],
+[
+12,
+0,
+"br_pa_00",
+"ATTENTION TROOPS! PREPARE FOR LIFTOFF!"
+],
+[
+5,
+0,
+"to_24_01",
+"Listen, guys... I'll go in alone while you help the General take back the city."
+],
+[
+3,
+0,
+"mi_25_02",
+"Why can't we go in together?"
+],
+[
+5,
+0,
+"to_24_02",
+"It'll be easier this way. Trust me."
+],
+[
+2,
+0,
+"ca_35_01",
+"But they'll have a harder time catching us if we stick together."
+],
+[
+5,
+15,
+"to_24_03",
+"But that's what Brevon's expecting us to do."
+],
+[
+1,
+0,
+"li_41_01",
+"Then let me go instead. You're too important to the mission."
+],
+[
+5,
+48,
+"to_24_04",
+"I CAN'T LOSE ANOTHER CREW!"
+],
+[
+5,
+9,
+"to_24_05",
+"If something happens to you, I'm... I'm not strong enough to save you."
+],
+[
+3,
+0,
+"mi_25_03",
+"We'll be strong for you!"
+],
+[
+1,
+24,
+"li_41_02",
+"We said we were gonna help you get back the stone. We still mean it."
+],
+[
+2,
+0,
+"ca_35_02",
+"Yeah, you're stuck with us buddy, whether you like it or not."
+],
+[
+5,
+0,
+"to_24_06",
+"As soon as you step foot into that Dreadnought, you may never come out again."
+],
+[
+5,
+0,
+"to_24_07",
+"Are you ready to make that sacrifice?"
+],
+[
+2,
+15,
+"ca_35_03",
+"Yeah, whatever, let's go! We're wasting time."
+],
+[
+5,
+21,
+"to_24_08",
+"Alright. Here's the plan."
+]
+],
+"3616": [
+[
+5,
+0,
+"to_03_14",
+"According to our scans, the Kingdom Stone has enough energy to double the size of his army."
+],
+[
+5,
+0,
+"to_03_15",
+"If he gets it... he'll be unstoppable."
+]
+],
+"3674": [
+[
+5,
+0,
+"to_03_14",
+"According to our scans, the Kingdom Stone has enough energy to double the size of his army."
+],
+[
+5,
+0,
+"to_03_15",
+"If he gets it... he'll be unstoppable."
+],
+[
+12,
+0,
+"br_11_01",
+"Remove the device."
+],
+[
+12,
+0,
+"br_11_02",
+"I won't ask you again."
+],
+[
+12,
+0,
+"br_11_03",
+"Throw it to me."
+],
+[
+12,
+0,
+"br_11_04",
+"Just like I said... right in harm's way."
+],
+[
+3,
+57,
+"mi_32_01",
+"Carol!"
+],
+[
+5,
+54,
+"to_29_01",
+"It was an ambush. Brevon came out of nowhere."
+],
+[
+5,
+54,
+"to_29_02",
+"I have to take her back to the surface or she'll die."
+],
+[
+3,
+57,
+"mi_32_02",
+"Where's Lilac?"
+],
+[
+5,
+54,
+"to_29_03",
+"She ran off to stop him."
+],
+[
+5,
+6,
+"to_29_04",
+"Wait, what are you doing?!"
+],
+[
+3,
+57,
+"mi_32_04",
+"Lilac needs help!"
+],
+[
+5,
+3,
+"to_29_05",
+"B-but... What about the-"
+],
+[
+3,
+57,
+"mi_32_05",
+"We'll be stronger together!"
+],
+[
+3,
+57,
+"mi_32_06",
+"I can do this!"
+],
+[
+5,
+0,
+"to_29_06",
+"...Alright. Keep an eye on her, will ya?"
+],
+[
+3,
+0,
+"mi_32_07",
+"Yes!"
+]
+],
+"3756": [
+[
+1,
+12,
+"li_46_01",
+"I'll never forgive you!"
+],
+[
+12,
+52,
+"br_12_01",
+"I have no use for forgiveness, esp. from someone who puts my homeworld at risk for an oversized battery."
+],
+[
+12,
+52,
+"br_12_02",
+"I offer you one final chance. Leave. Now."
+],
+[
+12,
+52,
+"br_12_03",
+"So be it."
+],
+[
+1,
+12,
+"li_46_02",
+"Your machines won't save you from the dragon you've unleashed! I WILL DESTROY EVERYTHING YOU THROW AT ME!"
+],
+[
+1,
+12,
+"li_46_02",
+"I WILL MAKE YOU PAY FOR WHAT YOU HAVE DONE!!"
+],
+[
+12,
+48,
+"br_13_01",
+"I'd like to see you try."
+],
+[
+2,
+75,
+"ca_40_01",
+"What you did is unforgiveable!"
+],
+[
+2,
+75,
+"ca_40_02",
+"NO! You're DEAD!"
+],
+[
+2,
+60,
+"ca_40_03",
+"YEAH! In your FACE!"
+],
+[
+2,
+60,
+"ca_40_04",
+"I'll be taking that Kingdom Stone now!"
+],
+[
+5,
+0,
+"to_28_01",
+"C'mon!"
+],
+[
+5,
+0,
+"to_28_02",
+"Lilac!"
+],
+[
+1,
+0,
+"li_47_02",
+"The stone!"
+],
+[
+5,
+0,
+"to_28_03",
+"We're out of time!"
+],
+[
+1,
+0,
+"li_47_03",
+"But our world won't survive without it!01 00 li_47_04 Take Milla and go! I'll catch up!"
+],
+[
+2,
+0,
+"ca_41_01",
+"I gotta help her!"
+],
+[
+2,
+0,
+"ca_41_02",
+"No no no NO!!"
+],
+[
+5,
+0,
+"to_28_04",
+"We'll blast our way through it! To the ship!"
+],
+[
+12,
+52,
+"br_16_01",
+"So, it's come down to this..."
+],
+[
+3,
+57,
+"mi_33_01",
+"Where's Lilac?"
+],
+[
+12,
+52,
+"br_16_02",
+"Who? Oh, yes. Quite the fool for challenging me."
+],
+[
+12,
+52,
+"br_16_03",
+"You won't be seeing her again."
+],
+[
+3,
+57,
+"mi_33_02",
+"Lilac...?"
+],
+[
+12,
+52,
+"br_12b02",
+"I offer you one final chance. Leave! Now!"
+],
+[
+3,
+57,
+"mi_33_03",
+"I... can't... I WON'T!"
+],
+[
+12,
+52,
+"br_12_03",
+"So be it."
+],
+[
+12,
+48,
+"br_16_04",
+"Rrrgh! You've pestered me long enough!"
+],
+[
+12,
+0,
+"br_16_05",
+"Say goodbye!"
+]
+],
+"3903": [
+[
+2,
+0,
+"ca_01_01",
+"Try and catch me this time!"
+],
+[
+1,
+0,
+"li_01_01",
+"Way ahead of you!"
+],
+[
+2,
+9,
+"ca_01_02",
+"I can't wait! This is gonna be the best Charge-Up ever!"
+],
+[
+1,
+6,
+"li_01_02",
+"Just take from the rich, okay?"
+],
+[
+2,
+0,
+"ca_01_03",
+"Got it!"
+],
+[
+1,
+6,
+"li_01_03",
+"You swear?"
+],
+[
+2,
+12,
+"ca_01_04",
+"Pinky swear!"
+],
+[
+2,
+3,
+"ca_01_06",
+"Where are you going?"
+],
+[
+1,
+15,
+"li_01_04",
+"I have to make sure they're okay!"
+],
+[
+2,
+6,
+"ca_01_07",
+"Can't you be Little Miss Heropants some other time?"
+],
+[
+1,
+12,
+"li_01_05",
+"Not a chance!"
+],
+[
+2,
+0,
+"ca_01_08",
+"Fine, I'll go by myself. Yipee... woohoo..."
+],
+[
+2,
+3,
+"ca_01_09",
+"Eek! I better help!"
+],
+[
+6,
+6,
+"se_01_01",
+"How many Chasers are left? Tell me!"
+],
+[
+5,
+3,
+"to_01_01",
+"You didn't say Please."
+],
+[
+6,
+9,
+"se_01_02",
+"Don't play games with me, duckling! Tell me!"
+],
+[
+5,
+3,
+"to_01_02",
+"Fine, be that way."
+],
+[
+6,
+15,
+"se_01_03",
+"TSSSHAH! Where's that blasted snake mount?!"
+],
+[
+6,
+15,
+"se_01_04",
+"I guess we'll have to do this the hard way!"
+],
+[
+6,
+15,
+"se_01_05",
+"I can do this all day!"
+],
+[
+6,
+12,
+"se_01_06",
+"What is this hideous creature?"
+],
+[
+1,
+24,
+"li_02_01",
+"Stay back!"
+],
+[
+6,
+9,
+"se_01_07",
+"Oohh, no! The duck man comes with me!"
+],
+[
+1,
+12,
+"li_02_02",
+"I'm not gonna let you eat him!"
+],
+[
+6,
+3,
+"se_01_08",
+"What?"
+],
+[
+6,
+3,
+"se_01_09",
+"Tchyaa hahahahaha! Too easy!"
+],
+[
+5,
+0,
+"to_01_03",
+"That was a close one."
+],
+[
+5,
+0,
+"to_01_04",
+"Thank you, Miss...?"
+],
+[
+1,
+0,
+"li_02_03",
+"Lilac."
+],
+[
+5,
+6,
+"to_01_05",
+"Miss Lilac."
+],
+[
+2,
+0,
+"ca_02_01",
+"Aw crap! Hold on Lilac, your buddy's comin' to save you!"
+],
+[
+2,
+3,
+"ca_02_02",
+"Are you okay?! I saw a huge explosion back there!"
+],
+[
+1,
+27,
+"li_02_04",
+"You've been following me this whole time, haven't you?"
+],
+[
+2,
+15,
+"ca_02_03",
+"Duh?"
+],
+[
+5,
+0,
+"to_01_06",
+"I take it you know this guy?"
+],
+[
+2,
+15,
+"ca_02_04",
+"Girl."
+],
+[
+5,
+9,
+"to_01_07",
+"This girl?"
+],
+[
+1,
+0,
+"li_02_05",
+"She's like my tail! Always right behind me."
+],
+[
+2,
+0,
+"ca_02_05",
+"Carol the Wildcat, at your service! AaaandthisisLilac."
+],
+[
+5,
+0,
+"to_01_08",
+"Well I'm Torque. I'm a, uh, shell-duck."
+],
+[
+1,
+33,
+"li_02_06",
+"Shellduck?"
+],
+[
+5,
+12,
+"to_01_09",
+"It's more of a nickname. I'm not exactly from around here."
+],
+[
+1,
+12,
+"li_01b05",
+"CAROL YOU STUPID FURBALL GO TAKE YOUR FLEABATH SOME OTHER TIME I GOTTA GO CHECK ON THOSE CIVILIANS"
+],
+[
+1,
+54,
+"xx_xx_xx",
+"CAUSE WE WON'T BE ABLE TO GET THROUGH THE PLOT IF I DON'T!"
+]
+],
+"3923": [
+[
+3,
+6,
+"mi_01_01",
+"Guess what I got, Mr. Stumpy! The secret ingredient for my SUPER feather potion!"
+],
+[
+3,
+9,
+"mi_01_02",
+"I'll fly real high in the clouds so I can find my mommy and daddy, and we'll all live happily ever after,"
+],
+[
+3,
+-1,
+"xx_xx_xx",
+"like in the stories!"
+],
+[
+3,
+15,
+"mi_01_03",
+"Doesn't that sound great?!"
+],
+[
+3,
+3,
+"mi_01_04",
+"You're so funny when you don't say anything!"
+],
+[
+3,
+27,
+"mi_01_06",
+"What's going on?"
+],
+[
+3,
+0,
+"mi_01_08",
+"A dragon?"
+],
+[
+3,
+3,
+"mi_01_09",
+"I always wanted to meet a dragon!"
+],
+[
+1,
+18,
+"li_03_01",
+"General Gong!"
+],
+[
+7,
+6,
+"go_01_01",
+"You two again?"
+],
+[
+2,
+15,
+"ca_03_01",
+"Nice to see you too."
+],
+[
+1,
+21,
+"li_03_02",
+"We have to talk to you. The Kingdom Stone is in danger!"
+],
+[
+7,
+3,
+"go_01_02",
+"Don't be ridiculous! Nothing gets past MY nose!"
+],
+[
+2,
+15,
+"ca_03_02",
+"Will you just listen for a minute?!"
+],
+[
+8,
+3,
+"ne_01_01",
+"What is the meaning of this?"
+],
+[
+1,
+36,
+"li_03_03",
+"We mean no disrespect. We're just trying to-"
+],
+[
+8,
+3,
+"ne_01_02",
+"You heard what the General said. There is nothing to worry about."
+],
+[
+2,
+0,
+"ca_03_03",
+"Then why are you here?"
+],
+[
+7,
+6,
+"go_01_03",
+"She's protecting our guests this evening. Can't be too careful with all these robots runnin' around."
+],
+[
+8,
+9,
+"ne_01_03",
+"If you're here to recharge, there's a line over there. Otherwise I suggest you let us do our jobs."
+],
+[
+8,
+9,
+"ne_01_04",
+"Don't make me repeat myself."
+],
+[
+2,
+21,
+"ca_03_05",
+"Well, they sound like they know what they're doin'. Why don't we just charge up and go home? Whaddya say?"
+],
+[
+1,
+39,
+"li_03_05",
+"I don't know. I feel like they're hiding something from us..."
+],
+[
+1,
+24,
+"li_03_06",
+"Follow me!"
+],
+[
+1,
+0,
+"li_03_07",
+"We're gonna steal the Kingdom Stone before they do!"
+],
+[
+2,
+0,
+"ca_03_07",
+"Whoa, really?"
+],
+[
+1,
+0,
+"li_03_08",
+"Well, we'll give it right back. Come on!"
+],
+[
+2,
+30,
+"ca_06_01",
+"Wha... How did I...?"
+],
+[
+1,
+9,
+"li_05_01",
+"CAROL!!"
+],
+[
+1,
+9,
+"li_05_02",
+"CAROOOL!!"
+],
+[
+2,
+3,
+"ca_06_02",
+"I'm over here!"
+],
+[
+2,
+33,
+"ca_06_03",
+"You made it out!"
+],
+[
+1,
+18,
+"li_05_03",
+"Your ear!"
+],
+[
+2,
+21,
+"ca_06_04",
+"It's just a scratch. I'm fine."
+],
+[
+1,
+0,
+"li_05_04",
+"Well, we better find Torque and get home so I can patch it up."
+],
+[
+2,
+0,
+"ca_06_05",
+"Well this stinks. How are we gonna get more money?"
+],
+[
+1,
+0,
+"li_05_05",
+"We'll think of something. What I really want to know is why Spade is working for Mayor Zao."
+],
+[
+2,
+24,
+"ca_06_06",
+"Buttloads of cash?"
+],
+[
+1,
+39,
+"li_05_06",
+"Well, Zao might know something about the assassination... but that still doesn't explain what he needs the"
+],
+[
+1,
+39,
+"xx_xx_xx",
+"stone for."
+],
+[
+1,
+39,
+"li_05_07",
+"I have a bad feeling about all this..."
+],
+[
+1,
+0,
+"li_05_08",
+"What?"
+],
+[
+2,
+36,
+"ca_06_07",
+"Someone's following us..."
+],
+[
+1,
+0,
+"li_05_09",
+"What do you mean?"
+],
+[
+2,
+0,
+"ca_06_08",
+"Wait... Someone with a shield pulled me out of the cave. It must'a been her."
+],
+[
+2,
+9,
+"ca_06_09",
+"Eheh... Sorry about pouncing on ya."
+],
+[
+2,
+6,
+"ca_06_10",
+"Hello? I'm sorry?"
+],
+[
+1,
+45,
+"li_05_10",
+"Don't be scared. I promise we'll keep you safe."
+],
+[
+3,
+21,
+"mi_02_01",
+"Are you a dragon?"
+],
+[
+1,
+45,
+"li_05_11",
+"Yeah!"
+],
+[
+3,
+21,
+"mi_02_02",
+"Can... can I touch your hair?"
+],
+[
+1,
+48,
+"li_05_12",
+"Huh?"
+],
+[
+3,
+12,
+"mi_02_03",
+"Oh, okay, nevermind..."
+],
+[
+1,
+48,
+"li_05_13",
+"No, no, it's okay. I was just surprised, is all. Go ahead."
+],
+[
+1,
+51,
+"li_05_14",
+"I won't hurt you."
+],
+[
+3,
+30,
+"mi_02_04",
+"It's like a rope!"
+],
+[
+1,
+51,
+"li_05_15",
+"Yeah."
+],
+[
+3,
+3,
+"mi_02_05",
+"Maybe we can be friends!"
+],
+[
+1,
+27,
+"li_05_16",
+"Sure!"
+],
+[
+3,
+3,
+"mi_02_06",
+"I'm Milla! What's your name?"
+],
+[
+1,
+27,
+"li_05_17",
+"Lilac."
+],
+[
+3,
+18,
+"mi_02_07",
+"That's a pretty name."
+],
+[
+1,
+27,
+"li_05_18",
+"Thanks. This is my friend Carol."
+],
+[
+3,
+24,
+"mi_02_08",
+"Hi..."
+],
+[
+2,
+21,
+"ca_06_11",
+"So, thanks for saving me back there... but what are you doing all the way out here?"
+],
+[
+3,
+0,
+"mi_02_09",
+"I was playing over here, and then those people came. They're not very nice."
+],
+[
+2,
+0,
+"ca_06_12",
+"I'll say..."
+],
+[
+1,
+27,
+"li_05_19",
+"You know what? You can come to our secret hideout!"
+],
+[
+3,
+33,
+"mi_02_10",
+"Really?"
+],
+[
+1,
+27,
+"li_05_20",
+"Yeah! Nobody knows where it is except us."
+],
+[
+3,
+3,
+"mi_02_11",
+"That sounds like fun!"
+],
+[
+1,
+9,
+"li_04_06",
+"Carol! Where are you?!"
+],
+[
+2,
+3,
+"ca_05_01",
+"I can't break it!"
+],
+[
+1,
+9,
+"li_04_07",
+"Don't worry about me! Keep going!"
+],
+[
+2,
+3,
+"ca_05_02",
+"But I-"
+],
+[
+1,
+12,
+"li_04_08",
+"DO IT!"
+],
+[
+7,
+18,
+"go_01_04",
+"It's an ambush!"
+]
+],
+"3948": [
+[
+5,
+18,
+"to_05_01",
+"According to the radar, we seem to be at the right location..."
+],
+[
+2,
+36,
+"ca_10_01",
+"Umm... I think it's a little off."
+],
+[
+3,
+9,
+"mi_06_01",
+"This way!"
+],
+[
+5,
+0,
+"to_05_02",
+"She's got a good nose."
+],
+[
+1,
+27,
+"li_09_01",
+"I'll say."
+],
+[
+7,
+15,
+"go_03_01",
+"Allow me to properly introduce myself. I am General Gong of Shang Tu."
+],
+[
+1,
+36,
+"li_09_02",
+"It's an honor, General."
+],
+[
+7,
+0,
+"go_03_02",
+"The Royal Magister has a proposal. We'd like you to help us get the Stone back."
+],
+[
+7,
+0,
+"go_03_03",
+"It's in the greedy little hands of Mayor Zao, in our neighbor city Shang Mu."
+],
+[
+2,
+36,
+"ca_10_02",
+"Why do you need our help? Don't you have soldiers and spies and stuff?"
+],
+[
+7,
+0,
+"go_03_04",
+"We wanna try and resolve this thing peacefully if we can, so we're sending a neutral party to negotiate."
+],
+[
+7,
+0,
+"go_03_05",
+"Given the, uh, current state of affairs in Shuigang, they're out of the picture."
+],
+[
+5,
+0,
+"to_05_03",
+"So you need us to fly to Shang Mu and convince Zao to give the stone back."
+],
+[
+7,
+0,
+"go_03_06",
+"Precisely."
+],
+[
+1,
+30,
+"li_09_03",
+"Let's give it a shot!"
+],
+[
+5,
+12,
+"to_05_04",
+"Right! I assume we'll be taking one of these planes..."
+],
+[
+7,
+6,
+"go_03_07",
+"Uh huh. You do know how to fly it?"
+],
+[
+5,
+6,
+"to_05_05",
+"Of course I do!"
+],
+[
+7,
+0,
+"go_03_08",
+"Good. When you get there, head straight for the city hall."
+],
+[
+5,
+0,
+"to_05_06",
+"Yes, sir!"
+],
+[
+1,
+0,
+"li_09_04",
+"Hope you're not afraid of heights!"
+],
+[
+3,
+0,
+"mi_06_02",
+"I'll be okay!"
+]
+],
+"3951": [
+[
+4,
+15,
+"sp_02_01",
+"You just had to follow me here, didn't you?"
+],
+[
+2,
+0,
+"ca_11_01",
+"How did you know we were coming?"
+],
+[
+4,
+15,
+"sp_02_02",
+"You seemed pretty determined to get that stone back."
+],
+[
+5,
+15,
+"to_06_01",
+"So you're the thief Lilac was talking about!"
+],
+[
+4,
+15,
+"sp_02_03",
+"I've been called worse."
+],
+[
+1,
+12,
+"li_10_01",
+"Where is it?"
+],
+[
+4,
+15,
+"sp_02_04",
+"I've already finished the job. It's time for my brother to play his hand."
+],
+[
+5,
+0,
+"to_06_02",
+"Your brother?"
+],
+[
+1,
+12,
+"li_10_02",
+"Prince Dail of Shuigang."
+],
+[
+5,
+0,
+"to_06_03",
+"Really!"
+],
+[
+4,
+15,
+"sp_02_05",
+"When he finds the man who murdered our father, there will be no mercy for the kingdom responsible."
+],
+[
+1,
+66,
+"li_10_03",
+"We know who's responsible."
+],
+[
+4,
+15,
+"sp_02_06",
+"Nice try."
+],
+[
+2,
+6,
+"ca_11_02",
+"Will you JUST hold ON a minute and let us explain?"
+],
+[
+4,
+18,
+"sp_02_07",
+"What, so you can throw me off again with your lies? Thanks, but I've had enou-"
+],
+[
+5,
+15,
+"to_06_04",
+"Everyone split up!"
+],
+[
+5,
+15,
+"to_06_05",
+"We'll cut him off at the huge shopping mall over there!"
+],
+[
+1,
+0,
+"li_10_04",
+"Got it!"
+],
+[
+2,
+6,
+"ca_11_03",
+"Got it!"
+],
+[
+3,
+6,
+"mi_07_01",
+"Okay!"
+],
+[
+1,
+30,
+"li_12_01",
+"YEAH! We kicked some serious tail back there!"
+],
+[
+2,
+48,
+"ca_12_01",
+"That was totally awesome did you see that? You were like \"Take that!\" and I was like \"POW POW!\""
+],
+[
+3,
+42,
+"mi_08_01",
+"Wow! We're really strong as a team!"
+],
+[
+5,
+18,
+"to_07_01",
+"Woo! That was awesome!"
+],
+[
+6,
+0,
+"se_04_01",
+"Not so fast Commander!"
+],
+[
+6,
+0,
+"se_04_02",
+"Chya hahaha... If you're searching for the stone, you might want to look up!"
+],
+[
+6,
+0,
+"se_04_03",
+"Now if you'll excuse me, I have a delivery to make!"
+],
+[
+6,
+0,
+"se_04_04",
+"Enjoy your victory!"
+],
+[
+1,
+9,
+"li_12_02",
+"No! STOP!!"
+],
+[
+2,
+3,
+"ca_12_02",
+"We gotta go after them!"
+],
+[
+5,
+-1,
+"to_07_02",
+"Those airships would ghost us from a mile away. Remember what happened to me in the valley?"
+],
+[
+1,
+21,
+"li_12_03",
+"There has to be a way! What about Mayor Zao?"
+],
+[
+5,
+-1,
+"to_07_03",
+"It's worth a shot."
+],
+[
+10,
+3,
+"za_01_01",
+"It's gone! My one chance for re-election is gone!"
+],
+[
+10,
+6,
+"za_01_02",
+"You! Over there!"
+],
+[
+1,
+36,
+"li_12_04",
+"He's royalty! You have to bow!"
+],
+[
+2,
+0,
+"ca_12_03",
+"Oh!"
+],
+[
+10,
+0,
+"za_01_03",
+"Very good. Rise!"
+],
+[
+10,
+0,
+"za_01_04",
+"Were you the ones who disposed of this wretched mechanical beast?"
+],
+[
+2,
+12,
+"ca_12_04",
+"You bet we are!"
+],
+[
+10,
+12,
+"za_01_05",
+"Glorious!"
+],
+[
+10,
+9,
+"za_01_06",
+"As a token of my appreciation, I offer each of you free reign over Zao's Shopping Paradise!"
+],
+[
+10,
+15,
+"za_01_07",
+"...Uh, with this coupon... for five percent off selected brands!"
+],
+[
+10,
+15,
+"za_01_08",
+"Aw, what the heck, why don't I just invite you over to dinner? My treat!"
+],
+[
+3,
+33,
+"mi_08_02",
+"You mean... a royal feast?"
+],
+[
+2,
+18,
+"ca_12_05",
+"I am pretty hungry..."
+],
+[
+5,
+-1,
+"to_07_04",
+"What about the stone?"
+],
+[
+10,
+21,
+"za_01_09",
+"That scoundrel Prince took it from me! I won't even be able to chase him until my ships are repaired!"
+],
+[
+1,
+36,
+"li_12_05",
+"Well, Mayor Zao, we would be honored to be your guests this evening."
+],
+[
+10,
+9,
+"za_01_10",
+"Follow me then. I shall drown your sorrows in delicious chow mein!"
+],
+[
+2,
+36,
+"ca_12_06",
+"He seems a little..."
+],
+[
+1,
+3,
+"li_12_06",
+"Eccentric?"
+],
+[
+2,
+36,
+"ca_12_07",
+"Un-Mayor-ish."
+],
+[
+1,
+3,
+"li_12_07",
+"That too."
+],
+[
+5,
+-1,
+"to_07_05",
+"We better play along anyway. This is our chance to prove that Brevon exists."
+],
+[
+5,
+-1,
+"to_07_06",
+"Might need to study this later..."
+],
+[
+1,
+24,
+"li_12b03",
+"Let's ask"
+],
+[
+4,
+15,
+"sp_02b05",
+"Prince Dail of S... Prince d"
+],
+[
+3,
+33,
+"mi_10_04",
+"Wow..."
+],
+[
+2,
+3,
+"ca_14_02",
+"We get to ride in THAT? Ohmygush yes."
+],
+[
+10,
+0,
+"za_03_07",
+"But of course! It's equipped with everything you'll need for your trip, including your luxurious living quarters."
+],
+[
+10,
+12,
+"za_03_08",
+"Good luck, my friends!"
+],
+[
+3,
+3,
+"mi_10_05",
+"Thank you!"
+],
+[
+2,
+36,
+"ca_43_01",
+"Hmm..."
+],
+[
+2,
+0,
+"ca_43_02",
+"Brevon still got your tongue?"
+],
+[
+1,
+72,
+"li_51_01",
+"Do you think he was telling the truth? About trying to save his homeworld and all?"
+],
+[
+2,
+0,
+"ca_43_03",
+"I don't know, but, if he was, then, well, we showed him how it was done."
+],
+[
+1,
+72,
+"li_51_02",
+"Yeah..."
+],
+[
+2,
+15,
+"ca_43_04",
+"Hey... Who's a grumpy little Lilac? Who's a gwumpy widdle Wiwac?"
+],
+[
+1,
+81,
+"li_51_03",
+"Hey!"
+],
+[
+1,
+27,
+"li_51_04",
+"Thanks."
+]
+],
+"3965": [
+[
+5,
+24,
+"to_12_03",
+"Huh. So that's why your airships are boat-shaped..."
+],
+[
+1,
+0,
+"li_19_01",
+"How could Zao do this?"
+],
+[
+5,
+0,
+"to_13_01",
+"He must have thought we were all he needed."
+],
+[
+1,
+24,
+"li_19_02",
+"We would've been ready if he had told us. No wonder Brevon's gotten away with everything. Our leaders are too"
+],
+[
+1,
+0,
+"li_xx_xx",
+"brain-dead to pay attention to anything but themselves!"
+],
+[
+1,
+6,
+"li_19_03",
+"Never mind. I'm just... I don't know."
+],
+[
+5,
+0,
+"to_13_02",
+"It's alright."
+],
+[
+5,
+0,
+"to_13_03",
+"How far is the closest city?"
+],
+[
+1,
+0,
+"li_19_04",
+"Shang Tu is just a few miles east. The river should take us there."
+],
+[
+5,
+0,
+"to_13_04",
+"We'll give that panda guy an update on our situation. The Magister might be able to help."
+],
+[
+1,
+39,
+"li_19_05",
+"I hope he believes us..."
+],
+[
+1,
+0,
+"li_20_01",
+"Things have been pretty crazy so far, huh?"
+],
+[
+3,
+51,
+"mi_13_01",
+"Yeah..."
+],
+[
+1,
+72,
+"li_20_02",
+"How long have you been away from your parents?"
+],
+[
+3,
+54,
+"mi_13_02",
+"I'm not sure... It feels like a really long time."
+],
+[
+1,
+72,
+"li_20_03",
+"And you've been alone in the woods ever since?"
+],
+[
+3,
+54,
+"mi_13_03",
+"Yeah..."
+],
+[
+1,
+72,
+"li_20_04",
+"I hope this doesn't sound weird, but... that's kind of impressive. I wouldn't survive a day without my treehouse."
+],
+[
+1,
+72,
+"li_20_05",
+"Hey... When this is all over, how about we have a girls' night out? Just you and me?"
+],
+[
+3,
+51,
+"mi_13_04",
+"You mean... a playdate?"
+],
+[
+1,
+78,
+"li_20_06",
+"Something like that. We could try out some dresses, or maybe buy a huge plate of sushi and just pig out!"
+],
+[
+3,
+39,
+"mi_13_05",
+"What about Carol? Can she come too?"
+],
+[
+1,
+75,
+"li_20_07",
+"Good luck getting her to put a dress on."
+],
+[
+3,
+18,
+"mi_13_06",
+"Well, sure! I'd like that!"
+],
+[
+1,
+27,
+"li_20_08",
+"Great!"
+],
+[
+5,
+27,
+"to_14_01",
+"So, uh, how did you two meet anyway? A green cat and a purple dragon girl seem like a weird mix."
+],
+[
+2,
+0,
+"ca_18_01",
+"Yeah. We were part of a street gang called the Red Scarves. We used to make crazy money from martial arts tournaments."
+],
+[
+5,
+0,
+"to_14_02",
+"Is that where you met Spade?"
+],
+[
+2,
+0,
+"ca_18_02",
+"Yep. He was cool at first, but, uh... things got weird."
+],
+[
+5,
+0,
+"to_14_03",
+"Why?"
+],
+[
+2,
+42,
+"ca_18_03",
+"Well, there's... there's lines we don't cross. And he crossed 'em."
+],
+[
+5,
+0,
+"to_14_05",
+"If Spade is Prince Dail's brother, doesn't that make him a Prince too?"
+],
+[
+2,
+0,
+"ca_18_04",
+"I guess so. He never talked about it."
+],
+[
+3,
+0,
+"mi_13_07",
+"Look everyone! The city!"
+]
+],
+"3971": [
+[
+6,
+0,
+"se_06_01",
+"Looks like it's payback time!"
+],
+[
+1,
+24,
+"li_28_01",
+"Let him go!"
+],
+[
+6,
+0,
+"se_06_02",
+"Or else what?"
+],
+[
+1,
+66,
+"li_28_02",
+"Remember what happened the last time you messed with a dragon?! LET HIM GO!"
+],
+[
+6,
+15,
+"se_06_03",
+"Good girl! I want you to be nice and angry for THIS!"
+],
+[
+12,
+0,
+"br_05_02",
+"Before you decided to throw your life away and interfere with our mission, you should have asked yourself one very important question..."
+],
+[
+12,
+0,
+"br_05_03",
+"What makes you so special?"
+],
+[
+12,
+0,
+"br_06_01",
+"Why do you fight?"
+],
+[
+12,
+0,
+"br_06_02",
+"I know you're awake. Answer the question. Why do you fight?"
+],
+[
+1,
+0,
+"li_29_01",
+"For my friends. I'll do whatever it takes to keep them safe from freaks like you."
+],
+[
+12,
+0,
+"br_06_03",
+"Keep them safe? Every move you've made has put them directly in harm's way."
+],
+[
+12,
+16,
+"br_06_04",
+"Destroying our property, assisting our sworn enemies, attempting sabotage against our mission which,"
+],
+[
+12,
+16,
+"br_xx_xx",
+"by the way, has nothing to do with your world."
+],
+[
+12,
+16,
+"br_06_05",
+"We are leaving this barbaric planet behind as soon as our ship is repaired."
+],
+[
+1,
+6,
+"li_29_02",
+"You forgot the part where you took our Kingdom Stone! Where you ruined years of peace between my people and put thousands in danger!"
+],
+[
+12,
+16,
+"br_06_06",
+"An unfortunate side effect, yes... but I wouldn't have resorted to such drastic measures if you had the"
+],
+[
+12,
+16,
+"br_xx_xx",
+"common sense to stay out of our affairs."
+],
+[
+12,
+16,
+"br_06_07",
+"Thanks to you, your companions are in more danger than ever."
+],
+[
+12,
+0,
+"br_06_08",
+"Allow me to show you the consequences of your stupidity."
+],
+[
+5,
+39,
+"to_18_01",
+"Lilac!"
+],
+[
+1,
+12,
+"li_29_04",
+"I had to do something!"
+],
+[
+12,
+0,
+"br_06_09",
+"Answers, Commander. Give them to me."
+],
+[
+12,
+0,
+"br_06_10",
+"Don't be a fool. You've seen how far I'll go to get the information I need."
+],
+[
+1,
+12,
+"li_29_05",
+"Don't tell him anything!"
+],
+[
+12,
+0,
+"br_06_11",
+"Very well. Don't say I didn't warn you."
+],
+[
+5,
+42,
+"to_18_02",
+"I'm the last one! There's no one else left! There, you happy?!"
+],
+[
+5,
+39,
+"to_18_03",
+"I'm telling the truth!"
+],
+[
+12,
+0,
+"br_06_12",
+"That's nice to know, but I was more interested in your resolve. You crack easily, it seems."
+],
+[
+12,
+8,
+"br_06_13",
+"And this one... I have a funny feeling about you. I'll bet I could hack at your limbs all day and you'd still find a way to bite back."
+],
+[
+1,
+15,
+"li_29_10",
+"I'll do more than that you monster!!"
+],
+[
+12,
+8,
+"br_06_14",
+"When we've lured the rest of your group into our hands, you'll be at the top of our execution list."
+],
+[
+13,
+0,
+"sx_04_01",
+"SIR, THE CHASERS ARE WITHIN VISUAL RANGE."
+],
+[
+12,
+0,
+"br_06_15",
+"Let's see what they're made of."
+],
+[
+3,
+0,
+"mi_20_01",
+"Lilac's scent is this way!"
+],
+[
+2,
+63,
+"ca_28_01",
+"LILAC!"
+],
+[
+2,
+66,
+"ca_28_03",
+"I'm sorry I ran off without you! I'll never do it again!"
+],
+[
+1,
+99,
+"li_30_01",
+"We gotta leave, now!"
+],
+[
+12,
+0,
+"br_07_01",
+"You know, it was so smart of your Coalition to attack my ship above an inhabited planet."
+],
+[
+12,
+0,
+"br_07_02",
+"What ever happened to that Prime Directive of yours, hm?"
+],
+[
+5,
+15,
+"to_19_01",
+"You think you're some blameless force of nature, don't you?! That the rules don't apply to you?!"
+],
+[
+12,
+0,
+"br_07_03",
+"It's my world on the line. You know exactly how far I'll go to ensure its safety."
+],
+[
+5,
+15,
+"to_19_02",
+"Your world is in danger because of the suffering you've caused to the other worlds!"
+],
+[
+12,
+60,
+"br_07_04",
+"My actions have hurt people? I had no idea. I'm dreadfully sorry."
+],
+[
+3,
+24,
+"mi_20_02",
+"Really?"
+],
+[
+2,
+75,
+"ca_28_04",
+"He's lying."
+],
+[
+12,
+16,
+"br_07_05",
+"I have a lot of work to do, so let's make this quick. Kill them."
+],
+[
+3,
+60,
+"mi_20_03",
+"I can't hold it!"
+],
+[
+13,
+0,
+"sx_05_01",
+"PRESSURE OVERLOAD DETECTED. THE FACILITY WILL IMPLODE IN SIX MINUTES."
+],
+[
+12,
+28,
+"br_07_06",
+"Don't let them escape! Find out who did this!"
+]
+],
+"3989": [
+[
+7,
+6,
+"go_05_06",
+"We ain't gonna stay hidden forever, spaceman. Be quick about it."
+],
+[
+2,
+12,
+"ca_29_03",
+"For sure! It's what we're all about."
+],
+[
+10,
+21,
+"za_04_01",
+"What are THEY doing here?!"
+],
+[
+7,
+0,
+"go_06_01",
+"Nice hat."
+],
+[
+10,
+0,
+"za_04_02",
+"Nice gut."
+],
+[
+3,
+0,
+"mi_22_01",
+"Let me help!"
+],
+[
+7,
+27,
+"go_06_02",
+"It seems that we have a common enemy, Zao."
+],
+[
+10,
+0,
+"za_04_04",
+"So let me get this straight... The Magister says that if we join together and fight Mr. Braven, we get half of the Kingdom Stone's energy?"
+],
+[
+7,
+0,
+"go_06_03",
+"Sounds like a fair offer, does it not?"
+],
+[
+10,
+21,
+"za_04_05",
+"Are you kidding?! My city needs WAY more than half!"
+],
+[
+7,
+24,
+"go_06_04",
+"Phah! You just want to hog the last of our reserves!"
+],
+[
+10,
+30,
+"za_04_06",
+"I know you feel a little jealous, but I can't help if my city is bigger than yours!"
+],
+[
+7,
+18,
+"go_06_05",
+"RRRRAGH!"
+],
+[
+5,
+21,
+"to_21_01",
+"Hold on a minute, fellas! This is exactly what Brevon wants! For you two to fight while he gets away with all of your energy!"
+],
+[
+7,
+24,
+"go_06_06",
+"What difference does it make if it's Brevon or this swine?"
+],
+[
+10,
+36,
+"za_04_07",
+"Upftcrhthrchffooo We're marching into Shuigang whether you like it or not!"
+],
+[
+7,
+24,
+"go_06_07",
+"You don't have the guts!"
+],
+[
+3,
+57,
+"mi_22_03",
+"Look!"
+],
+[
+7,
+21,
+"go_06_08",
+"Dragon..."
+],
+[
+7,
+18,
+"go_06_09",
+"Kneel before the ancient beast!"
+],
+[
+10,
+39,
+"za_04_08",
+"Oh?"
+],
+[
+10,
+39,
+"za_04_09",
+"You're saying that... we should work together?"
+],
+[
+10,
+9,
+"za_04_10",
+"Ohohoh, of course! Eheheh! Heh... Please don't eat us!"
+],
+[
+3,
+57,
+"mi_22_04",
+"Was that...?"
+],
+[
+5,
+21,
+"to_21_02",
+"I couldn't have been her... could it?"
+],
+[
+1,
+0,
+"li_35_01",
+"Careful what you wish for."
+],
+[
+2,
+33,
+"ca_30_01",
+"LILAC!"
+],
+[
+3,
+33,
+"mi_22_05",
+"LILAC!"
+],
+[
+5,
+6,
+"to_21_03",
+"LILAC!"
+],
+[
+1,
+57,
+"li_35_02",
+"Guys!!"
+],
+[
+3,
+3,
+"mi_22_06",
+"It's really you! You came back!"
+],
+[
+2,
+48,
+"ca_30_03",
+"Where've you been? How did you do that??"
+],
+[
+1,
+30,
+"li_35_03",
+"I didn't do it. This little fella did."
+],
+[
+3,
+57,
+"mi_22_07",
+"Eeeeh!"
+],
+[
+1,
+27,
+"li_35_04",
+"It's okay, guys. This robot wasn't made by Brevon."
+],
+[
+5,
+0,
+"to_21_05",
+"Really!"
+],
+[
+1,
+27,
+"li_35_05",
+"It's a long story... but the Magister believes us now. We have his full support."
+],
+[
+2,
+9,
+"ca_30_04",
+"Awww yeah! That's ma girl!"
+],
+[
+7,
+18,
+"go_06_10",
+"My friends! We have been blessed with the seal of the dragon! We must heed its call and join together for the greater good!"
+],
+[
+10,
+9,
+"za_04_11",
+"Under my leadership!"
+],
+[
+7,
+6,
+"go_06_11",
+"...You can't be serious."
+],
+[
+1,
+0,
+"li_36_01",
+"Uh, excuse me..."
+],
+[
+7,
+0,
+"go_06_12",
+"You're alive?"
+],
+[
+1,
+0,
+"li_36_02",
+"Of course! I was the one who led that dragon here."
+],
+[
+2,
+0,
+"ca_30_05",
+"And guess what, Mayor Zao? Lilac said that the invaders have a lot of treasure on their ship!"
+],
+[
+10,
+0,
+"za_04_12",
+"Of course!"
+],
+[
+10,
+0,
+"za_04_13",
+"Hear this, my friends! There's treasure to be won from this battle!"
+],
+[
+10,
+0,
+"za_04_14",
+"Even if you don't fight for freedom, fight for wealth! For glory! For everlasting chow mein!"
+],
+[
+7,
+0,
+"go_07_01",
+"What can you tell us about the invaders?"
+],
+[
+5,
+0,
+"to_22_01",
+"Well, Brevon is a starship commander. He doesn't have as much experience fighting on the ground as you do."
+],
+[
+10,
+21,
+"za_05_01",
+"Then we shall take the battle to the streets!"
+],
+[
+7,
+0,
+"go_07_02",
+"But we need to cross the snowfields without gettin' wasted."
+],
+[
+1,
+0,
+"li_37_01",
+"We do have one advantage... Brevon wants the four of us dead no matter what."
+],
+[
+1,
+24,
+"li_37_02",
+"If he sees us coming, we can distract him."
+],
+[
+7,
+0,
+"go_07_03",
+"A diversion? Do you really think you can pull it off?"
+],
+[
+2,
+0,
+"ca_31_01",
+"Remember all the times we distracted -you-?"
+],
+[
+7,
+6,
+"go_07_04",
+"Point taken."
+],
+[
+10,
+0,
+"za_05_02",
+"What about the stone? How do we get it back?"
+],
+[
+5,
+0,
+"to_22_02",
+"I could modify one of my hacking devices to knock out power to the engine mainframe."
+],
+[
+10,
+0,
+"za_05_03",
+"...In my language?"
+],
+[
+1,
+24,
+"li_37_03",
+"Kill the power, get the stone back... Right?"
+],
+[
+5,
+0,
+"to_22_03",
+"You got it."
+],
+[
+5,
+0,
+"to_22_04",
+"I hope this works. In case it doesn't... I need you to be prepared for what I might have to do."
+],
+[
+1,
+72,
+"li_37_04",
+"...It'll work. It has to."
+],
+[
+1,
+0,
+"li_37_05",
+"...Would Brevon have left us alone if we hadn't tried to stop him?"
+],
+[
+5,
+18,
+"to_22_05",
+"He pulled that trick on you, huh?"
+],
+[
+1,
+0,
+"li_37_06",
+"But is it true?"
+],
+[
+5,
+0,
+"to_22_06",
+"Maybe, but I wouldn't trust him on it. Even if he did leave your people alone, it would only be a matter"
+],
+[
+5,
+0,
+"to_xx_xx",
+"of time before his conquest affected your world."
+],
+[
+1,
+24,
+"li_37_07",
+"...You're right. We can't quit now."
+],
+[
+10,
+0,
+"za_06_01",
+"Gyaah!"
+],
+[
+7,
+0,
+"go_08_01",
+"It's an ambush!"
+],
+[
+7,
+0,
+"go_08_02",
+"Keep moving! We'll hold them off!"
+],
+[
+10,
+0,
+"za_06_02",
+"You better!"
+],
+[
+10,
+0,
+"za_06_03",
+"Alright! While you're driving my tank, I have only two rules..."
+],
+[
+10,
+0,
+"za_06_04",
+"Aim, and fire!"
+],
+[
+1,
+0,
+"li_38_01",
+"You ready, Carol?"
+],
+[
+2,
+0,
+"ca_32_01",
+"Ready to rock!"
+],
+[
+1,
+0,
+"li_38_02",
+"Milla?"
+],
+[
+3,
+0,
+"mi_23_01",
+"Together!"
+],
+[
+1,
+0,
+"li_38_03",
+"Let's show this green maniac how to save a planet!"
+],
+[
+1,
+42,
+"li_49_01",
+"I couldn't save it... I couldn't even stop him from getting away..."
+],
+[
+5,
+0,
+"to_30_01",
+"Don't beat yourself up. Brevon didn't get the stone, and his army was destroyed with his ship."
+],
+[
+5,
+0,
+"to_30_02",
+"Thanks to you, our mission is complete."
+],
+[
+1,
+66,
+"li_49_02",
+"But at what cost? How are we going to survive without any more energy?"
+],
+[
+2,
+54,
+"ca_42_01",
+"Uhh, Lilac... You might wanna look up."
+],
+[
+3,
+0,
+"mi_29_01",
+"Wow..."
+],
+[
+1,
+0,
+"li_49_03",
+"It's... It's not destroyed?"
+],
+[
+1,
+0,
+"li_49_04",
+"It must have changed form!"
+],
+[
+5,
+0,
+"to_30_03",
+"Call me impressed..."
+],
+[
+2,
+0,
+"ca_41_03",
+"She's alive!"
+],
+[
+3,
+63,
+"mi_28_02",
+"I'm sorry..."
+],
+[
+1,
+0,
+"li_48_02",
+"You weren't yourself. It's okay."
+],
+[
+1,
+0,
+"li_48_03",
+"It's okay."
+],
+[
+1,
+0,
+"li_48_01",
+"Milla!"
+],
+[
+2,
+0,
+"ca_22_01",
+"STOP!"
+],
+[
+13,
+0,
+"sx_07_01",
+"THE ALIEN ARMY HAS COMMENCED ITS ATTACK."
+],
+[
+12,
+16,
+"br_08_01",
+"Give the order to your troops."
+],
+[
+11,
+0,
+"da_05_00",
+"It will be done."
+],
+[
+12,
+28,
+"br_08_02",
+"Find the Commander and his pets and tear them to shreds. And leave their brains intact if possible. I might use them for something."
+],
+[
+12,
+28,
+"br_08_03",
+"Fire at will!"
+],
+[
+3,
+33,
+"mi_34_01",
+"It's Carol! She's okay!"
+],
+[
+3,
+42,
+"mi_34_02",
+"Carol!"
+],
+[
+1,
+0,
+"li_54_01",
+"Are you okay?"
+],
+[
+2,
+51,
+"ca_46_01",
+"No, I'm dead. Blegh."
+],
+[
+1,
+27,
+"li_54_02",
+"...Yep, she's fine."
+],
+[
+2,
+45,
+"ca_46_02",
+"Did we win?"
+],
+[
+1,
+0,
+"li_54_03",
+"Yeah. We did."
+],
+[
+2,
+45,
+"ca_46_03",
+"Awesome."
+]
+],
+"4026": [
+[
+7,
+9,
+"go_02_01",
+"The Kingdom Stone has been taken!"
+],
+[
+7,
+9,
+"go_02_02",
+"Your Excellency!"
+],
+[
+9,
+1,
+"ma_01_01",
+"By who?!"
+],
+[
+7,
+9,
+"go_02_03",
+"Mayor Zao. His pilgrimage to the temple was a coverup!"
+],
+[
+9,
+3,
+"ma_01_02",
+"This is troubling. Zao may be a buffoon, but I never believed he was capable of this."
+],
+[
+7,
+0,
+"go_02_04",
+"A pair of youngsters warned us about the attack. I... refused to listen."
+],
+[
+7,
+12,
+"go_02_05",
+"I have failed you, Magister."
+],
+[
+9,
+4,
+"ma_01_03",
+"Don't be so hard on yourself, General. I would have been just as skeptical."
+],
+[
+9,
+0,
+"ma_01_04",
+"Tell me... Who was it that issued this warning?"
+],
+[
+8,
+3,
+"ne_02_01",
+"Something doesn't smell right..."
+],
+[
+7,
+6,
+"go_02_06",
+"Well sorrrrry."
+],
+[
+8,
+6,
+"ne_02_02",
+"You never smell right. I'm referring to those kids."
+],
+[
+8,
+9,
+"ne_02_03",
+"They know something about this. We have to find them."
+],
+[
+13,
+0,
+"sx_01_01",
+"GOOD EVENING, SIR."
+],
+[
+13,
+0,
+"sx_01_02",
+"IT MAY INTEREST YOU TO KNOW THAT THE LOCATION OF THE ARTIFACT HAS SHIFTED."
+],
+[
+12,
+16,
+"br_02_01",
+"Where?"
+],
+[
+13,
+0,
+"sx_01_03",
+"IT'S MOVING TOWARD A DENSELY POPULATED REGION TO THE EAST."
+],
+[
+12,
+16,
+"br_02_02",
+"This could work to our advantage... Get me the king's son."
+],
+[
+12,
+16,
+"br_02_03",
+"Where do your duties lie, Prince?"
+],
+[
+11,
+3,
+"da_02_01",
+"It is my duty to protect my father's kingdom."
+],
+[
+12,
+4,
+"br_02_04",
+"You would sacrifice your very life for the good of this kingdom, wouldn't you?"
+],
+[
+11,
+3,
+"da_02_02",
+"Yes."
+],
+[
+12,
+4,
+"br_02_05",
+"And you would crush all those who threaten its safety."
+],
+[
+11,
+3,
+"da_02_03",
+"We must protect it at all costs."
+],
+[
+12,
+12,
+"br_02_06",
+"Exactly."
+],
+[
+12,
+0,
+"br_02_07",
+"The one you call Zao has taken something very precious... Something that could put your kingdom at risk."
+],
+[
+12,
+12,
+"br_02_08",
+"You're not going to let him keep it, are you?"
+],
+[
+11,
+6,
+"da_03_01",
+"Revenge is upon us, my fellow kin. We have confirmed who is responsible for the death of our king."
+],
+[
+11,
+9,
+"da_03_02",
+"Zao of Shang Mu!"
+],
+[
+11,
+9,
+"da_03_03",
+"His plans to steal our Kingdom Stone must be stopped!"
+],
+[
+11,
+12,
+"da_03_04",
+"Deploy our Sky Battalion!"
+],
+[
+14,
+0,
+"ki_01_01",
+"How did this happen?! Our walls are impenetrable!"
+],
+[
+12,
+12,
+"br_01_02",
+"Your floor isn't."
+],
+[
+14,
+0,
+"ki_01_02",
+"Well then... If death is what you seek, then I will gladly provide it!"
+],
+[
+12,
+20,
+"br_01_03",
+"There is not reason to be hostile, your majesty. In fact, you should be proud. Your son is moments away from inheriting the throne."
+],
+[
+14,
+9,
+"ki_01_03",
+"DAIL!"
+],
+[
+11,
+15,
+"da_01_01",
+"I tried, father!"
+],
+[
+14,
+9,
+"ki_01_04",
+"What... do you WANT WITH US?!"
+],
+[
+12,
+24,
+"br_01_04",
+"How shall I explain this... I'm gifting your son with my knowledge."
+],
+[
+12,
+20,
+"br_01_05",
+"It will make him the most powerful ruler your world has ever known... and he will answer to no one but me."
+],
+[
+11,
+18,
+"da_01_03",
+"MURDERER!"
+],
+[
+12,
+16,
+"br_01_06",
+"Prepare the snatcher."
+],
+[
+9,
+0,
+"ma_00_01",
+"A crisis has befallen our world. For centuries, we have depended on the Kingdom Stone... but its strength is fading."
+],
+[
+9,
+0,
+"ma_00_02",
+"It cannot keep up with our growing demand for energy."
+],
+[
+9,
+0,
+"ma_00_03",
+"The prince of Shuigang, poisoned with madness over the death of his father, has spread machines across the land to steal energy from other kingdoms."
+],
+[
+9,
+0,
+"ma_00_04",
+"Tensions are growing, and I fear that war may be inevitable."
+],
+[
+10,
+24,
+"za_02_01",
+"Don't worry about taking turns! I'm sure you must be hungry, so have at it!"
+],
+[
+1,
+3,
+"li_13_01",
+"SUSHI!"
+],
+[
+3,
+3,
+"mi_09_03",
+"I love sushi!"
+],
+[
+2,
+6,
+"ca_13_03",
+"Me too!"
+],
+[
+1,
+15,
+"li_13_02",
+"Whoawhoawhoawhoawhoa, you both like something? Is this the end of the world?"
+],
+[
+5,
+3,
+"to_08_01",
+"So, what's that giant head on the wall over there?"
+],
+[
+10,
+24,
+"za_02_02",
+"That's the pride of my collection! An ancient statue modeled after the dragons of the Before Time."
+],
+[
+5,
+0,
+"to_08_02",
+"What's special about them compared to, y'know, someone like Lilac?"
+],
+[
+10,
+27,
+"za_02_03",
+"What's special? Hah! Did you come from another planet or something?"
+],
+[
+1,
+12,
+"li_13_05",
+"Sorry."
+],
+[
+10,
+27,
+"za_02_04",
+"Long ago, a magnificant creature soared across Avalice in a ball of fire."
+],
+[
+10,
+27,
+"za_02_05",
+"When it landed, our ancestors were so captivated by its power and beauty that they built three kingdoms in its honor."
+],
+[
+5,
+0,
+"to_08_03",
+"Shang Mu, Shang Tu and Shuigang?"
+],
+[
+10,
+24,
+"za_02_06",
+"Bingo! And when the cities were built, the dragon transformed into the legendary Kingdom Stone we know and love today."
+],
+[
+10,
+21,
+"za_02_07",
+"The same stone that was heartlessly yanked away from me!"
+],
+[
+2,
+9,
+"ca_13_04",
+"You took it first!"
+],
+[
+1,
+18,
+"li_13_06",
+"Carol! Manners."
+],
+[
+2,
+9,
+"ca_13_05",
+"Sorry..."
+],
+[
+1,
+12,
+"li_13_07",
+"Why did you take it? Why now?"
+],
+[
+10,
+15,
+"za_02_08",
+"Shang Mu is on the brink of an energy crisis. With the Stone in our hands, we could have solved it overnight!"
+],
+[
+2,
+12,
+"ca_13_06",
+"Well that worked out well..."
+],
+[
+5,
+0,
+"to_08_04",
+"I don't think this \"energy crisis\" of yours is an accident. I think it's deliberate, and I think we know who is responsible."
+],
+[
+12,
+16,
+"br_03_01",
+"Don't bore me with your lectures. I've heard them a thousand times from a thousand self-righteous warriors."
+],
+[
+12,
+16,
+"br_03_02",
+"Unless you have something useful to say, the only thing that matters to me is how quickly I can cast you"
+],
+[
+12,
+16,
+"br_xx_xx",
+"aside. I really have a lot of work to do."
+],
+[
+0,
+0,
+"wa_01_01",
+"You'll fail. Men like you always fail."
+],
+[
+12,
+20,
+"br_03_03",
+"Interesting theory."
+],
+[
+13,
+0,
+"sx_02_01",
+"HELLO SIR. HAVE YOU BEHEADED THE INTRUDERS YET?"
+],
+[
+12,
+8,
+"br_03_05",
+"What is it?"
+],
+[
+13,
+0,
+"sx_02_02",
+"THERE IS AN INCOMING TRANSMISSION FROM GENERAL SERPENTINE."
+],
+[
+6,
+0,
+"se_05_01",
+"The full moon is out! Not a cloud in the sky!"
+],
+[
+12,
+16,
+"br_03_06",
+"Don't relax just yet! Upload the scans and get back here immediately."
+],
+[
+6,
+18,
+"se_05_02",
+"Of course, my Lord!"
+],
+[
+12,
+16,
+"br_03_07",
+"Contact the crash site and tell them to refit our warp drive. I want the artifact to fit like a glove."
+],
+[
+13,
+0,
+"sx_02_03",
+"AS YOU WISH, SIR."
+],
+[
+12,
+0,
+"br_03_08",
+"We're getting off this rock."
+],
+[
+10,
+0,
+"za_03_01",
+"An alliance with Shang Tu? What a lovely idea! \"Oh hey Magister! Sorry about ambushing your soldiers and"
+],
+[
+10,
+30,
+"za_xx_xx",
+"desecrating your temple! Let's go frolicking in the woods together with our makeup and pretty dresses!\""
+],
+[
+1,
+0,
+"li_14_01",
+"Your excellency, we're a neutral party. Send us to speak on your behalf."
+],
+[
+10,
+0,
+"za_03_02",
+"If he won't listen to the greatest ruler in all of Avalice, why would he listen to a bunch of kids?"
+],
+[
+3,
+21,
+"mi_10_01",
+"Can we try? Pretty please?"
+],
+[
+1,
+30,
+"li_14_02",
+"Just imagine how much people are going to love you for reuniting the three kingdoms against a common enemy. You'll be a hero!"
+],
+[
+10,
+0,
+"za_03_03",
+"Me, a war hero?"
+],
+[
+10,
+33,
+"za_03_04",
+"Now that you mention it, I could use a few extra hands..."
+],
+[
+5,
+0,
+"to_09_01",
+"So you'll help us, then?"
+],
+[
+10,
+9,
+"za_03_05",
+"Ah, what the heck? It's worth a shot!"
+],
+[
+10,
+9,
+"za_03_06",
+"To the airship!"
+],
+[
+1,
+27,
+"li_14_03",
+"Good job, Milla!"
+],
+[
+3,
+3,
+"mi_10_03",
+"Thanks!"
+],
+[
+2,
+3,
+"ca_16_01",
+"What's going on?!"
+],
+[
+5,
+33,
+"to_11_02",
+"Shoot! We've gotta disable those ships or we're toast!"
+],
+[
+7,
+3,
+"go_04_01",
+"My friends! How did the negotiations fare?"
+],
+[
+1,
+42,
+"li_21_01",
+"Prince Dail took the stone."
+],
+[
+5,
+0,
+"to_15_01",
+"We need to speak to the Magister immediately."
+],
+[
+7,
+0,
+"go_04_02",
+"I see... Very well, then. He deserves to know."
+],
+[
+5,
+24,
+"to_16_01",
+"A thousand good greetings to you, Magister."
+],
+[
+9,
+0,
+"ma_02_01",
+"It's my understanding that Shuigang is now in possession of the Kingdom Stone."
+],
+[
+5,
+0,
+"to_16_02",
+"Not exactly, Your Greatness. Someone else has it."
+],
+[
+9,
+0,
+"ma_02_02",
+"...Explain."
+],
+[
+5,
+0,
+"to_16_03",
+"It's been taken by a warlord named Brevon. He has been manipulating the three kingdoms into waging war."
+],
+[
+9,
+5,
+"ma_02_03",
+"And you have proof of this?"
+],
+[
+5,
+0,
+"to_16_04",
+"This is a fragment of one of Brevon's machines."
+],
+[
+5,
+0,
+"to_16_05",
+"Have your scientists examine it. You'll find that its mineral composition doesn't match anything that's built on your world."
+],
+[
+8,
+6,
+"ne_03_01",
+"Wait! Don't touch it."
+],
+[
+8,
+9,
+"ne_03_02",
+"This theory you have of a man from another world sounds highly suspicious, at best."
+],
+[
+8,
+15,
+"ne_03_03",
+"If you will allow me to explain, Magister, I have a different theory in mind."
+],
+[
+9,
+0,
+"ma_02_04",
+"Proceed."
+],
+[
+8,
+9,
+"ne_03_04",
+"This is nothing but an attempt from Mayor Zao to cover up the atrocity he committed against our Kingdom Stone."
+],
+[
+8,
+9,
+"ne_03_05",
+"He must have offered you a generous reward to come here and make up this ridiculous story."
+],
+[
+8,
+9,
+"ne_03_06",
+"Afterall, you can't resist money, Sash Lilac and Carol Tea."
+],
+[
+1,
+33,
+"li_22_01",
+"And you know our names because...?"
+],
+[
+8,
+12,
+"ne_03_07",
+"You were quite the fortune teller yesterday, so I couldn't resist doing a little background check."
+],
+[
+8,
+12,
+"ne_03_08",
+"Not only have the two of you been stealing crystal shards, you've been working for the same group that"
+],
+[
+8,
+12,
+"ne_xx_xx",
+"claimed responsibility for the stone's theft..."
+],
+[
+8,
+18,
+"ne_03_09",
+"The Red Scarves."
+],
+[
+2,
+9,
+"ca_19_01",
+"Hey, look Lilac! It's our identical twin sisters!"
+],
+[
+8,
+9,
+"ne_03_10",
+"They're criminals and spies, your Excellency."
+],
+[
+9,
+0,
+"ma_02_05",
+"Is this true?"
+],
+[
+2,
+0,
+"ca_19_02",
+"We were just-"
+],
+[
+1,
+0,
+"li_22_02",
+"Wait."
+],
+[
+1,
+0,
+"li_22_03",
+"Magister, we're no longer members of the Scarves. It was a long time ago."
+],
+[
+1,
+0,
+"li_22_04",
+"We did what we had to do to survive."
+],
+[
+9,
+4,
+"ma_02_06",
+"Detain them until further notice. Make sure the Commander and his \"evidence\" are properly quarantined."
+],
+[
+5,
+21,
+"to_16_06",
+"Heyheyheyhey! Easy!"
+],
+[
+1,
+9,
+"li_22_05",
+"Magister, please! We don't have time for this!"
+],
+[
+9,
+0,
+"ma_02_07",
+"You're right. Take them away immediately."
+],
+[
+5,
+21,
+"to_16_07",
+"Examine the fragment! Examine it!"
+],
+[
+2,
+27,
+"ca_20_01",
+"That stupid panda girl!"
+],
+[
+1,
+60,
+"li_23_01",
+"Come closer. We can't let the guards hear us."
+],
+[
+1,
+3,
+"li_23_02",
+"Now let's try and figure this out. We gotta bust out of here, but we can't leave without Torque."
+],
+[
+2,
+15,
+"ca_20_02",
+"You got any bright ideas, Ms. Heropants?"
+],
+[
+1,
+3,
+"li_23_03",
+"It's not gonna be easy. He's been quarantined."
+],
+[
+2,
+24,
+"ca_20_03",
+"What if we bribed the guards?"
+],
+[
+1,
+33,
+"li_23_04",
+"Uh, Carol, we don't have any of our belongings."
+],
+[
+2,
+48,
+"ca_20_04",
+"Ooh, ooh! I'll pretend that I have to pee really bad, and when they open the gate we'll make a break for it!"
+],
+[
+1,
+0,
+"li_23_05",
+"I told you, we can't leave without Torque."
+],
+[
+2,
+0,
+"ca_20_05",
+"Ah, right..."
+],
+[
+2,
+36,
+"ca_20_06",
+"Hmm... Oh, I got it now! First, we'll both switch clothes, and then I'll switch with Milla, and then when th-"
+],
+[
+3,
+12,
+"mi_14_01",
+"This way!"
+],
+[
+3,
+12,
+"mi_14_02",
+"I can dig through here!"
+],
+[
+2,
+21,
+"ca_20_08",
+"Well that makes it easy. Let's go!"
+],
+[
+1,
+0,
+"li_23_07",
+"Actually, only one of us should go. We don't want the guards to suspect anything."
+],
+[
+3,
+21,
+"mi_14_03",
+"I'll go! For the team!"
+],
+[
+1,
+27,
+"li_23_08",
+"The sooner you find Torque, the sooner we can get out of here."
+],
+[
+3,
+24,
+"mi_15_01",
+"What are you gonna do to me?"
+],
+[
+8,
+9,
+"ne_04_01",
+"Relax. It's dishonorable to hurt small children."
+],
+[
+8,
+3,
+"ne_04_02",
+"Follow me."
+],
+[
+8,
+9,
+"ne_05_01",
+"Nice try."
+],
+[
+2,
+6,
+"ca_21_01",
+"Well there goes that plan..."
+],
+[
+3,
+24,
+"mi_15_02",
+"I'm sorry..."
+],
+[
+1,
+9,
+"li_24_01",
+"Wait!"
+],
+[
+1,
+0,
+"li_24_02",
+"Tell the Magister I want to confess!"
+],
+[
+2,
+3,
+"ca_21_02",
+"What?!"
+],
+[
+8,
+15,
+"ne_05_02",
+"Very well."
+],
+[
+1,
+0,
+"li_24_03",
+"It's okay. I have an idea."
+],
+[
+1,
+0,
+"li_25_01",
+"So Torque has nothing to do with this. We forced him to help us against his will."
+],
+[
+9,
+0,
+"ma_03_01",
+"I see."
+],
+[
+9,
+0,
+"ma_03_02",
+"Since you have displayed integrity in revealing this farce, I will release your friend... but this does not change your own fate."
+],
+[
+9,
+5,
+"ma_03_03",
+"You and your companions have lied to us, and in doing so have wasted our time and resources."
+],
+[
+9,
+5,
+"ma_03_04",
+"You will remain imprisoned until I deem otherwise."
+],
+[
+1,
+36,
+"li_25_02",
+"If I may make one last request... I want to say goodbye to him, and apologize for the trouble I've caused."
+],
+[
+9,
+0,
+"ma_03_05",
+"Very well. Make it quick."
+],
+[
+5,
+0,
+"to_17_01",
+"I don't know what to say... We needed Shang Tu's support."
+],
+[
+1,
+39,
+"li_25_03",
+"I know... but we can't do anything while we're all sitting behind bars. We need more evidence."
+],
+[
+5,
+0,
+"to_17_02",
+"But what about you guys?"
+],
+[
+1,
+0,
+"li_25_04",
+"We'll catch up with you. Busting out of here will be a piece of crab cake."
+],
+[
+9,
+0,
+"ma_03b02",
+"We shall establish a timtams currency exchange program."
+],
+[
+1,
+33,
+"li_05_12",
+"Huh?"
+],
+[
+9,
+5,
+"ma_03b03",
+"WE SHALL ESTABLISH. A TIMTAMS. CURRENCY EXCHANGE PROGRAM."
+],
+[
+1,
+0,
+"li_05_13",
+"No, no, it's okay. I was just surprised, is all. Go ahead."
+],
+[
+12,
+52,
+"br_04_01",
+"It has come to my attention that there are still Chasers among us. We must neutralize them."
+],
+[
+13,
+0,
+"sx_03_01",
+"ACCORDING TO OUR INTELLIGENCE REPORTS, DIRECT INFILTRATION OF THE CITY WILL BE IMPOSSIBLE WITHOUT EXPOSING OUR OPERATIONS."
+],
+[
+12,
+16,
+"br_04_04",
+"As soon as they leave, I want them dragged to our remote base. Do whatever it takes to bring them under our control."
+],
+[
+2,
+72,
+"ca_23_01",
+"Maybe we're not cut out for this... We should go home."
+],
+[
+1,
+66,
+"li_27_01",
+"So that's it? We just leave and let Torque die?"
+],
+[
+2,
+42,
+"ca_23_02",
+"What are we supposed to do? I like Torque, but... This is so much bigger than us. We're just kids."
+],
+[
+1,
+66,
+"li_27_02",
+"That doesn't mean anything."
+],
+[
+2,
+0,
+"ca_23_03",
+"Doesn't mean anything?! Look at what they did to me! To us! Sometimes I feel like you're trying to get us killed!"
+],
+[
+1,
+66,
+"li_27_03",
+"How can you say that? I put myself out there on the front lines so you don't have to!"
+],
+[
+2,
+75,
+"ca_23_04",
+"Yeah, and I always have to bail you out!"
+],
+[
+1,
+66,
+"li_27_04",
+"What's the problem with that? We're helping each other do the right thing!"
+],
+[
+2,
+75,
+"ca_23_05",
+"But I don't want to do the right thing! I just wanna spend time with my best friend!"
+],
+[
+2,
+75,
+"ca_23_06",
+"If the only way I can do that is by risking my life... maybe we shouldn't be friends anymore."
+],
+[
+1,
+42,
+"li_27_05",
+"Carol..."
+],
+[
+2,
+75,
+"ca_23_07",
+"DON'T... Just don't. I'm done."
+],
+[
+1,
+60,
+"li_48_03",
+"It's okay."
+],
+[
+1,
+0,
+"li_27_06",
+"I'm going after him. Alone."
+],
+[
+3,
+0,
+"mi_17_01",
+"Let me come with you!"
+],
+[
+1,
+39,
+"li_27_07",
+"No. Carol's right. Friends shouldn't let each other get hurt."
+],
+[
+1,
+39,
+"li_27_08",
+"You should stay behind with her."
+],
+[
+1,
+24,
+"li_27_09",
+"Milla, stay here."
+],
+[
+3,
+24,
+"mi_17_02",
+"I won't leave you..."
+],
+[
+3,
+57,
+"mi_17_03",
+"Lilac!"
+],
+[
+3,
+0,
+"mi_17_05",
+"She's gone!"
+],
+[
+2,
+72,
+"ca_24_01",
+"She actually went through with it. Big surprise."
+],
+[
+3,
+0,
+"mi_17_06",
+"Are you mad at her?"
+],
+[
+2,
+0,
+"ca_24_02",
+"I'll get over it, I guess. But we're gonna do things my way now."
+],
+[
+3,
+0,
+"mi_18_01",
+"What is this place?"
+],
+[
+2,
+0,
+"ca_25_01",
+"The Red Scarves are down here. They've still got all of my ninja stuff."
+],
+[
+3,
+0,
+"mi_18_02",
+"You were a ninja?"
+],
+[
+2,
+0,
+"ca_25_02",
+"Eh, not really. I mean, it's a long story, so, I'll tell you someday if you're good."
+],
+[
+2,
+60,
+"ca_25_03",
+"C'mon, let's show Ms. Heropants how it's done."
+],
+[
+4,
+0,
+"sp_xx_xx",
+"I'm not doing the buddy-buddy thing with you. As soon as we're in, I'm flying solo."
+],
+[
+2,
+0,
+"ca_27_01",
+"Whatever you say, pal."
+],
+[
+1,
+93,
+"li_31_01",
+"No! NO!!"
+],
+[
+8,
+9,
+"ne_06_01",
+"Stand down!"
+],
+[
+1,
+93,
+"li_31_02",
+"I have to find them!!"
+],
+[
+8,
+9,
+"ne_06_02",
+"There are two ways we can do this, dragon! And you're only conscious in one of them!"
+],
+[
+1,
+93,
+"li_31_03",
+"Do what you have to do."
+],
+[
+8,
+6,
+"ne_06_03",
+"Contact the Magister."
+],
+[
+8,
+3,
+"ne_06_04",
+"We have a problem."
+],
+[
+9,
+3,
+"ma_04_01",
+"Once again, you have deceived us. Do you realize what this means?"
+],
+[
+1,
+93,
+"li_32_01",
+"If it makes any difference, your excellency... I'm deeply sorry."
+],
+[
+9,
+3,
+"ma_04_02",
+"It means that I have been foolish."
+],
+[
+9,
+0,
+"ma_04_03",
+"We examined the fragment your Commander gave us."
+],
+[
+1,
+96,
+"li_32_02",
+"Does that mean that you'll help?"
+],
+[
+9,
+0,
+"ma_04_04",
+"There is something you must do for us first. A mission, if you will."
+],
+[
+9,
+0,
+"ma_04_05",
+"Accept and we will restore your strength. Succeed and we will restore your honor."
+],
+[
+1,
+96,
+"li_32_03",
+"Th... Thank you, your Excellency."
+],
+[
+8,
+3,
+"ne_07_01",
+"The fragment your Commander gave us is indeed crafted from a rare mineral."
+],
+[
+8,
+3,
+"ne_07_02",
+"But we've discovered it before. In one other location."
+],
+[
+1,
+0,
+"li_32_04",
+"Why haven't you dug it up by now?"
+],
+[
+8,
+3,
+"ne_07_03",
+"We feared that it was radioactive. Now that we've studied it in person, we know that it is safe enough to investigate."
+],
+[
+9,
+4,
+"ma_04_06",
+"This could provide the answers we seek... Why the invaders know of our world, and more importantly, how to defeat them."
+],
+[
+8,
+9,
+"ne_07_04",
+"Get in there, find what you can, and leave. Do it as quickly as possible."
+],
+[
+1,
+36,
+"li_32_05",
+"I won't fail you."
+],
+[
+1,
+96,
+"li_32b02",
+"Does that mean y-that you'll help?"
+],
+[
+0,
+0,
+"sc_01_01",
+"This is our final message... A message that we leave for the future."
+],
+[
+0,
+0,
+"sc_01_02",
+"Although we will respect the wishes of your people and allow our influence to pass into legend, there"
+],
+[
+0,
+0,
+"sc_xx_xx",
+"will come a time in your history when you must learn the truth."
+],
+[
+0,
+0,
+"sc_01_03",
+"When we were stranded here, we sought desperately to return to our world. We wasted countless years"
+],
+[
+0,
+0,
+"sc_xx_xx",
+"trying to find a way home, but we are no closer to an answer than when we started."
+],
+[
+0,
+0,
+"sc_01_05",
+"We decided that helping your civilization survive and prosper was a more efficient use of our technology."
+],
+[
+0,
+0,
+"sc_01_06",
+"We have condensed our energy reserves into a physical relic of extraordinary power. With proper"
+],
+[
+0,
+0,
+"sc_xx_xx",
+"care, you may one day use it to travel to the stars... to find the answers that we alone could never find."
+],
+[
+0,
+0,
+"sc_01_07",
+"If you wish to know more, you'll have to access our internal database. I pray that it is still intact by the time you receive this message."
+],
+[
+0,
+4,
+"sc_01_08",
+"May the winds of time carry you for eternity."
+],
+[
+9,
+3,
+"ma_05_01",
+"The implications of this are powerful..."
+],
+[
+1,
+0,
+"li_34_01",
+"Do you believe it, your excellency?"
+],
+[
+9,
+0,
+"ma_05_02",
+"It's difficult to say... But if it's true, then the Kingdom Stone is more important to our future than we realise."
+],
+[
+9,
+0,
+"ma_05_03",
+"It must be returned to its resting place before the energy within is lost forever."
+],
+[
+9,
+4,
+"ma_05_04",
+"Something terrible has happened in your absence. Zao has sent his army to attack Shuigang."
+],
+[
+1,
+9,
+"li_34_02",
+"What?! But they're innocent!"
+],
+[
+9,
+0,
+"ma_05_05",
+"Not as far as Zao is concerned. I have sent soldiers of our own to hold them off, but I fear that it will not be for long."
+],
+[
+1,
+9,
+"li_34_03",
+"What are we gonna do?!"
+],
+[
+9,
+0,
+"ma_05_06",
+"As ironic as it may seem, you are the only dragonblood worthy of our trust. You can stop this war before it begins."
+],
+[
+1,
+24,
+"li_34_04",
+"Tell me what to do."
+],
+[
+9,
+0,
+"ma_05_07",
+"Our ships will take you as far as they can. When you land, ride the northern winds to the snowfields."
+],
+[
+1,
+24,
+"li_07_22",
+"Understood."
+],
+[
+9,
+0,
+"ma_05_08",
+"We are counting on you, dragonblood. Safe winds."
+],
+[
+13,
+0,
+"sx_07_01",
+"THE ALIEN ARMY HAS COMMENCED ITS ATTACK."
+],
+[
+12,
+0,
+"br_18_01",
+"Give the order to your troops."
+],
+[
+11,
+0,
+"da_05_00",
+"It will be done."
+],
+[
+12,
+0,
+"br_18_02",
+"Find the Commander and his pets and tear them to shreds. And leave their brains intact if possible. I might use them for something."
+],
+[
+2,
+0,
+"ca_28_05",
+"Lilac!"
+],
+[
+5,
+0,
+"to_20_00",
+"Can you sense where she is, Milla?"
+],
+[
+3,
+48,
+"mi_21_01",
+"Something's coming! Something very very big is coming!"
+],
+[
+5,
+15,
+"to_20_01",
+"Stay behind me."
+],
+[
+7,
+18,
+"go_05_01",
+"Halt! I SAID HALT!"
+],
+[
+7,
+6,
+"go_05_02",
+"Well look what we have here."
+],
+[
+3,
+0,
+"mi_21_02",
+"Have you seen Lilac?"
+],
+[
+7,
+6,
+"go_05_03",
+"The dragon girl? Afraid not."
+],
+[
+2,
+36,
+"ca_29_01",
+"Well, what's with the army?"
+],
+[
+7,
+0,
+"go_05_04",
+"Zao and his goons are about to attack Shuigang. I'm not about to let that happen."
+],
+[
+5,
+21,
+"to_20_02",
+"Zao is going to war?!"
+],
+[
+2,
+18,
+"ca_29_02",
+"Not if we reach him. All he needs is a little bit of persuasion, if you know what I'm talkin' about."
+],
+[
+3,
+0,
+"mi_21_03",
+"We're friends with him. Maybe we can ask him to stop!"
+],
+[
+7,
+6,
+"go_05_05",
+"Yeah, like that's gonna w... Hey, wait a minute... I think you might be on to something! Hop in!"
+],
+[
+6,
+15,
+"se_05_03",
+"TSSSHAH! I'll get you, commander!"
+]
+]
+},
+"lipsync": {
+"3910": [
+[
+1,
+12,
+"li_02_02",
+"I'm not gonna let you eat him!"
+]
+]
+},
+"captions": {
+"str_15_minutes_later_362": "15 MINUTES LATER...",
+"str_dragon_valley_10": "               DRAGON VALLEY",
+"str_three_days_later_330": "Three days later,",
+"str_meanwhile_332": "Meanwhile,",
+"str_20_minutes_later_364": "20 MINUTES LATER...",
+"str_in_a_valley_to_the_east_331": "In a valley to the East..."
+},
+"ink": {
+"acidfloorglow_4077": {
+"shader": 32
+},
+"active_3907": {
+"alpha": 159
+},
+"alarmlight_3495": {
+"shader": 32
+},
+"basementlight_1276": {
+"shader": 20
+},
+"basementlight_1548": {
+"shader": 20
+},
+"basementlight_3498": {
+"shader": 20
+},
+"bgfireplace2_3990": {
+"shader": 32
+},
+"blackborder_276": {
+"alpha": 127
+},
+"bosschopperblade_2217": {
+"shader": 32
+},
+"bosschoppertailblade2_2214": {
+"shader": 32
+},
+"bosschoppertailblade_2218": {
+"shader": 32
+},
+"bossdailcardtrail_3372": {
+"shader": 32
+},
+"bossgunshiphitbox_2577": {
+"shader": 32
+},
+"bossholodragoneye2_3097": {
+"alpha": 199
+},
+"bosshovercopchargeglow_2471": {
+"shader": 32
+},
+"bosshovercopsiren1_2433": {
+"shader": 32
+},
+"bosshovercopsiren2_2434": {
+"shader": 32
+},
+"bosshovercopsiren3_2427": {
+"shader": 32
+},
+"bosshovercopsiren4_2426": {
+"shader": 32
+},
+"bosspantherlaser_2047": {
+"shader": 32
+},
+"bosssyntaxelecball_3484": {
+"shader": 32
+},
+"bosssyntaxspiderweb_2760": {
+"shader": 32
+},
+"bosstractorbeam_3796": {
+"shader": 32
+},
+"bossvortex2_3378": {
+"shader": 32
+},
+"brevonmechbackwing_2531": {
+"shader": 32
+},
+"brevonmechcharge_2584": {
+"shader": 32
+},
+"brevonmechfrontwing_2542": {
+"shader": 32
+},
+"brevonsuitaura_3770": {
+"shader": 32
+},
+"brevonsuitspeedline2_3768": {
+"shader": 32
+},
+"brevonsuitspeedline_3767": {
+"shader": 32
+},
+"brevonsuitspin_3766": {
+"shader": 32
+},
+"comet_4005": {
+"shader": 32
+},
+"controlbox_82": {
+"alpha": 191
+},
+"controlboxname_83": {
+"alpha": 191
+},
+"discolight_1932": {
+"shader": 20
+},
+"effectrebound2_3055": {
+"shader": 32
+},
+"effectrebound_3054": {
+"shader": 32
+},
+"effectschargebeam_2130": {
+"shader": 32
+},
+"effectscolordot_438": {
+"shader": 32
+},
+"effectsdust01_369": {
+"alpha": 116
+},
+"effectsheart_444": {
+"shader": 32
+},
+"effectsspadeimage_456": {
+"alpha": 127
+},
+"effectstickyice_2469": {
+"shader": 32
+},
+"effectswaterhit_756": {
+"alpha": 192
+},
+"enemyflare_1809": {
+"shader": 32
+},
+"enemysleepgas_2941": {
+"alpha": 159
+},
+"enemysoundwave_1989": {
+"shader": 32
+},
+"fdlasertunnelglass1_3744": {
+"shader": 32
+},
+"fdlasertunnelglass2_3745": {
+"shader": 32
+},
+"fdpowercore2_3677": {
+"shader": 32
+},
+"fdpowercore3_3678": {
+"shader": 32
+},
+"fdpowercore4_3764": {
+"shader": 32
+},
+"flashbackbg_3617": {
+"shader": 20
+},
+"fntreeshadow_1927": {
+"alpha": 63
+},
+"fountainfront2_1919": {
+"alpha": 191
+},
+"generalwater_378": {
+"shader": 20
+},
+"generalwaterhorizon_377": {
+"shader": 32
+},
+"gimmickantigrav_3322": {
+"shader": 32
+},
+"gimmickmagnetlauncherlight_3330": {
+"shader": 32
+},
+"handshadow_302": {
+"shader": 20
+},
+"hazardlasertunnelglass1_3746": {
+"shader": 32
+},
+"hazardlasertunnelglass2_3747": {
+"shader": 32
+},
+"hazardlasertunnelglass3_3748": {
+"shader": 32
+},
+"highlighter_3842": {
+"alpha": 127
+},
+"introscene2_17": {
+"alpha": 127
+},
+"jcsub16_2507": {
+"alpha": 127
+},
+"kingdomstonesparkle_4072": {
+"shader": 32
+},
+"kingdomstonewave_3681": {
+"shader": 32
+},
+"levelballtunnel1_1032": {
+"alpha": 97
+},
+"levelballtunnel2_2271": {
+"alpha": 97
+},
+"levelballtunnel3_2273": {
+"alpha": 97
+},
+"levelcrushdeath_1627": {
+"alpha": 127
+},
+"levelheatsky_2779": {
+"shader": 32
+},
+"levelhovercraftlight_2465": {
+"shader": 32
+},
+"levelparalaxwatersurface_1008": {
+"alpha": 156
+},
+"levelslipperysurface_2473": {
+"alpha": 127
+},
+"leveltrollycarlight2_1813": {
+"shader": 32
+},
+"leveltrollycarlight_1812": {
+"shader": 32
+},
+"lightray1_698": {
+"shader": 32
+},
+"lightray2_1592": {
+"shader": 32
+},
+"lightray2_699": {
+"shader": 32
+},
+"lightray_1591": {
+"shader": 32
+},
+"lightspark2_661": {
+"shader": 32
+},
+"minibosspushbeam_3493": {
+"shader": 32
+},
+"minibossufobeam2_2288": {
+"shader": 32
+},
+"minibossufobeam_1769": {
+"shader": 32
+},
+"npchologram2_3100": {
+"shader": 32
+},
+"npcsyntaxeye_2682": {
+"shader": 32
+},
+"objecttransporterstart2_3417": {
+"shader": 32
+},
+"redflash_3754": {
+"shader": 20
+},
+"redflash_3758": {
+"shader": 20
+},
+"ringsparkle_142": {
+"shader": 32
+},
+"shieldearth_443": {
+"shader": 32
+},
+"shieldflameback_376": {
+"shader": 32
+},
+"shieldserpentine_1872": {
+"shader": 32
+},
+"shieldwater_439": {
+"shader": 32
+},
+"shipcable2_2027": {
+"shader": 32
+},
+"shockwave_4164": {
+"shader": 32
+},
+"shockwave_54": {
+"shader": 32
+},
+"sparkle1_316": {
+"shader": 32
+},
+"sparkle2_398": {
+"shader": 32
+},
+"sparkle3_399": {
+"shader": 32
+},
+"sparkle4_400": {
+"shader": 32
+},
+"sparkle5_284": {
+"shader": 32
+},
+"sparkle_4": {
+"shader": 32
+},
+"sparkletrail_5": {
+"shader": 32
+},
+"spiraltunnelmask_889": {
+"alpha": 97
+},
+"strobelight_1857": {
+"shader": 32
+},
+"syntaxprojection1_4065": {
+"shader": 32
+},
+"syntaxprojection2_4066": {
+"shader": 32
+},
+"syntaxprojection3_4067": {
+"shader": 32
+},
+"tbtorturechamberglass_3987": {
+"shader": 32
+},
+"thspotlight_3209": {
+"shader": 32
+},
+"torturelightning_3982": {
+"shader": 32
+},
+"waterfallback_1036": {
+"alpha": 156
+},
+"waterfallback_2847": {
+"alpha": 192
+},
+"waterfallfront_1037": {
+"shader": 32
+}
+}
+}

@@ -20,6 +20,7 @@ OBJS += src/game/fd_flow.o src/game/fd_enemy.o src/game/fd_gim.o src/game/fd_bos
 OBJS += src/game/fd_boss_r12.o src/game/fd_boss_r34.o   # Final Dreadnought bosses A / B (fd_boss.c dispatch)
 OBJS += src/game/fd_boss_r34_3b.o src/game/fd_boss_r34_4b.o   # Final Dreadnought bosses B encounters (FD3b, FD4b)
 OBJS += src/game/ending.o src/game/cutscene.o src/game/cutscene_example.o   # end of the game, cutscene player (session 24)
+OBJS += src/game/story.o   # Adventure story (session 25)
 OBJS += src/game/bg_flow.o src/game/bg_enemy.o src/game/bg_gim.o src/game/bg_boss.o   # Battle Glacier (session 24)
 OBJS += src/game/bg_boss_sparky.o src/game/bg_boss_mech.o src/game/bg_boss_dail.o   # Battle Glacier bosses (bg_boss.h encounters)
 OBJS += src/game/pl_flow.o src/game/pl_enemy.o src/game/pl_gim.o src/game/pl_boss.o   # Pangu Lagoon (session 23)

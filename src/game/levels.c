@@ -503,8 +503,12 @@ static const level_def_t LEVELS[] = {
 };
 static const level_def_t DEFAULT = { .dir = "", .frame = -1, .stage = -1, .act = 1, .nacts = 1, .music = "bgm/m_stage1.adp" };
 
+/* session 25: the Adventure story rooms (st<json frame>, src/game/story.c) are built like levels; they start silent (the
+ * scene script plays the music) and belong to no stage */
+static const level_def_t STORY_ROOM = { .dir = "st", .frame = -1, .stage = -1, .act = 1, .nacts = 1, .music = "bgm/m_stage1.adp", .music_off = 1 };
 const level_def_t *level_def(const char *dir) {
     for (int i = 0; i < (int)(sizeof LEVELS / sizeof LEVELS[0]); i++) if (!strcmp(LEVELS[i].dir, dir)) return &LEVELS[i];
+    if (dir[0] == 's' && dir[1] == 't' && dir[2] >= '0' && dir[2] <= '9') return &STORY_ROOM;
     return &DEFAULT;
 }
 const level_def_t *level_cur(void) { return level_def(G.lvdir); }
