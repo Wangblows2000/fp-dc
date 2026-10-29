@@ -420,23 +420,34 @@ static void pot_frame(obj_t *o) {
 
 /* ================================================================ hooks */
 int relic_keeps_state(int t) { return (t >= OT_IRIS && t <= OT_BLUEPOT) || relic_boss_keeps(t); }
+static void ctor(obj_t *o) {                                                    /* the constructors' values */
+    o->st = 0; o->tm = 0; o->bd = 0; o->dir = 0; memset(o->av, 0, sizeof o->av); o->fx = o->fy = 0; o->vx = o->vy = 0;
+    switch (o->type) {
+    case OT_IRIS: o->A = 1; set_a(o, "ir_idle"); o->av[3] = (cross_rand_raw(0x10000) >> 10) & 31; break;   /* ctor: random direction, stopped */
+    case OT_SLUG: o->A = 15; set_a(o, "sl_idle"); break;
+    case OT_HOPPER: o->A = 15; o->dir = 16; set_a(o, "hp_idle"); o->fx = o->x; o->fy = o->y; break;   /* ctor: dir 14 (left set) */
+    case OT_FSPITTER: o->A = 10; o->av[0] = 1; set_a(o, "fs_walk"); break;
+    case OT_SENTINEL: o->A = 10; o->fx = o->x; o->fy = o->y; set_a(o, "sn_eye"); break;   /* home E, F (RM5 6525 U6: INFERRED the same) */
+    case OT_EXHEAD: o->A = 25; o->absorbed = 10; set_a(o, "ex_idle"); break;   /* S = 10 */
+    case OT_EXBASE: o->A = 40; set_a(o, "eb_idle"); o->par = -1; break;
+    case OT_POT: case OT_BLUEPOT: o->A = 1; o->fl |= F_NOFLY; set_a(o, "pot"); break;   /* act start: flag 16 (the broken pot stays) */
+    }
+}
+/* a runtime hopper / fire spitter / slug / iris with its constructor's values (Final Dreadnought's spawner pods, RE 15247 / 15248) */
+obj_t *relic_enemy_create(int type, float x, float y) {
+    if (type != OT_HOPPER && type != OT_FSPITTER && type != OT_SLUG && type != OT_IRIS) return NULL;
+    obj_t *o = spawn(type, NULL, x, y);
+    if (o) { o->par = -1; ctor(o); }
+    return o;
+}
 void relic_spawn(void) {
     int nhead = 0, heads[16];
     for (int i = 0; i < G.nobjs; i++) {
         obj_t *o = &G.o[i];
         if (!o->alive || o->type < OT_IRIS || o->type > OT_BLUEPOT) continue;
         if (o->x < 0 || o->x >= G.lvl.w || o->y < 0 || o->y >= G.lvl.h) { o->alive = 0; continue; }   /* off-map templates */
-        o->st = 0; o->tm = 0; o->bd = 0; o->dir = 0; memset(o->av, 0, sizeof o->av); o->fx = o->fy = 0; o->vx = o->vy = 0;
-        switch (o->type) {
-        case OT_IRIS: o->A = 1; set_a(o, "ir_idle"); o->av[3] = (cross_rand_raw(0x10000) >> 10) & 31; break;   /* ctor: random direction, stopped */
-        case OT_SLUG: o->A = 15; set_a(o, "sl_idle"); break;
-        case OT_HOPPER: o->A = 15; o->dir = 16; set_a(o, "hp_idle"); o->fx = o->x; o->fy = o->y; break;   /* ctor: dir 14 (left set) */
-        case OT_FSPITTER: o->A = 10; o->av[0] = 1; set_a(o, "fs_walk"); break;
-        case OT_SENTINEL: o->A = 10; o->fx = o->x; o->fy = o->y; set_a(o, "sn_eye"); break;   /* home E, F (RM5 6525 U6: INFERRED the same) */
-        case OT_EXHEAD: o->A = 25; o->absorbed = 10; set_a(o, "ex_idle"); if (nhead < 16) heads[nhead++] = i; break;   /* S = 10 */
-        case OT_EXBASE: o->A = 40; set_a(o, "eb_idle"); o->par = -1; break;
-        case OT_POT: case OT_BLUEPOT: o->A = 1; o->fl |= F_NOFLY; set_a(o, "pot"); break;   /* act start: flag 16 (the broken pot stays) */
-        }
+        ctor(o);
+        if (o->type == OT_EXHEAD && nhead < 16) heads[nhead++] = i;
     }
     for (int i = 0, k = 0; i < G.nobjs; i++) {                                  /* 5786: base k <-> head k (index pairing) */
         obj_t *b = &G.o[i];
