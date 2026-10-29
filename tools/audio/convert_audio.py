@@ -21,6 +21,12 @@ too (no shell). tools/audio/convert_bgm.sh, convert_sfx.sh and convert_gallery.s
       holding eng/<xx>/<name>.ogg, else <fallback_voices_dir> (reported as PLACEHOLDER). Plus the samples played by the
       sound cards that have no file (RV t_gal6: 0 1 2 3 57 188 362) at 11025 Hz and the gallery's UI sound 443 at 22050 Hz.
 
+  convert_audio.py story   <extracted_audio_dir> <voices_dirs> <tables/story> <out_data_dir>
+      Adventure scenes (session 25): the voice of every dialogue line the ported scene scripts show -> story/vo/<voice>.wav
+      (mono ADPCM 11025 Hz, lower for a clip over 5.9 s), from the first of <voices_dirs> (os.pathsep list) holding a genuine
+      eng/<xx>/<voice>.ogg; placeholder stubs (< 4000 bytes) and missing clips are skipped (text-only lines). Plus the
+      scripts' sound ids the sfx list lacks (sfx/s<id>.wav). Manifest story/vo_manifest.csv.
+
 Tools: FFMPEG (default ffmpeg on the PATH), WAV2ADPCM (default tools/audio/wav2adpcm, compiled with cc from KallistiOS
 utils/wav2adpcm or the identical third_party/wav2adpcm when missing). Durations come from tools/audio/oggdur.py (the same
 text as ffprobe's format=duration).
@@ -213,8 +219,72 @@ def gallery(src, voices, fallback, out):
     rows = open(os.path.join(out, 'gal_manifest.csv'), encoding='utf-8').read().splitlines()[1:]
     print('%d gallery sounds, %.1f KB' % (len(rows), sum(int(l.split(',')[-1]) for l in rows) / 1024))
 
+# ------------------------------------------------------------------------------------------------------------------ story
+STUB_MAX = 4000       # the Linux copy's placeholder voice clips are 3,564 bytes: never converted (the line stays text-only)
+
+def story_needs(tables):
+    """the voices and sound ids the ported scene scripts use: every line they show ('say' -> the DialogData paragraph's
+    voice), every voice outside the dialogue ('o') and every sound id ('s')"""
+    import json
+    dlg = json.load(open(os.path.join(tables, 'dialog.json'), encoding='utf-8'))['dialog']
+    voices, ids = set(), set()
+    sd = os.path.join(tables, 'scripts')
+    for f in sorted(os.listdir(sd)) if os.path.isdir(sd) else []:
+        if not f.endswith('.scn'): continue
+        h = None
+        for l in open(os.path.join(sd, f), encoding='utf-8'):
+            t = l.split()
+            if not t: continue
+            if t[0] == 'dialog' and t[1] != '-': h = t[1]
+            elif len(t) >= 3 and t[1] == 'say' and h:
+                v = dlg[h][int(t[2])][2]
+                if 'xx' not in v: voices.add(v)
+            elif len(t) >= 3 and t[1] == 'o': voices.add(t[2])
+            elif len(t) >= 3 and t[1] == 's': ids.add(int(t[2]))
+    return sorted(voices), sorted(ids)
+
+def story(src, voices, tables, out):
+    """Adventure scenes (session 25, src/game/story.c): the voice of every line the ported scripts show, one mono ADPCM clip
+    per line at 11025 Hz (story/vo/<voice>.wav, loaded per line), lower when a clip is longer than one sample may be
+    (snd_sfx_load: <= 65534 samples); placeholder stubs and missing clips are left out (the line is shown text-only). And
+    the scripts' sound ids that the sfx step does not convert (sfx/s<id>.wav, 11025 Hz, tails trimmed)."""
+    os.makedirs(os.path.join(out, 'story', 'vo'), exist_ok=True); os.makedirs(os.path.join(out, 'sfx'), exist_ok=True)
+    tmp = tempfile.mkdtemp()
+    m = manifest(os.path.join(out, 'story', 'vo_manifest.csv'), 'name,source,duration_s,rate,bytes')
+    need, ids = story_needs(tables)
+    roots = [d for d in voices.split(os.pathsep) if d]
+    n = stub = miss = tot = 0
+    for v in need:
+        pre = v.split('_')[0][:2]
+        src_v = None; best = -1
+        for r in roots:                                  # the first genuine copy (a stub only if nothing better exists)
+            p = os.path.join(r, 'eng', pre, v + '.ogg')
+            if os.path.isfile(p) and os.path.getsize(p) > best: src_v, best = p, os.path.getsize(p)
+            if best >= STUB_MAX: break
+        d = os.path.join(out, 'story', 'vo', v + '.wav')
+        if os.path.exists(d): os.remove(d)
+        if not src_v: miss += 1; continue
+        if best < STUB_MAX: stub += 1; continue
+        dur = float(oggdur.duration_text(src_v))
+        rate = 11025 if dur * 11025 <= 65000 else int(65000 / dur)
+        wav = os.path.join(tmp, 'x.wav')
+        to_wav(src_v, wav, 1, rate, TRIM_AF)
+        run([wav2adpcm(), '-t', wav, d])
+        tot += os.path.getsize(d); n += 1
+        m.write('%s,%s,%s,%d,%d\n' % (v, os.path.basename(src_v), oggdur.duration_text(src_v), rate, os.path.getsize(d))); m.flush()
+    have = set(f for f in os.listdir(os.path.join(out, 'sfx')) if f.endswith('.wav'))
+    k = 0
+    for i in ids:
+        if 's%d.wav' % i in have: continue
+        wav = os.path.join(tmp, 'x.wav')
+        to_wav(os.path.join(src, 'audio_%d.ogg' % i), wav, 1, 11025, TRIM_AF)
+        run([wav2adpcm(), '-t', wav, os.path.join(out, 'sfx', 's%d.wav' % i)]); k += 1
+    m.close(); shutil.rmtree(tmp)
+    print('story voices: %d of %d converted (%.1f KB), %d placeholder stubs and %d missing left text-only; %d story sound ids added'
+          % (n, len(need), tot / 1024, stub, miss, k))
+
 if __name__ == '__main__':
-    cmds = {'bgm': (bgm, 2, 3), 'sfx': (sfx, 3, 4), 'gallery': (gallery, 4, 4)}
+    cmds = {'bgm': (bgm, 2, 3), 'sfx': (sfx, 3, 4), 'gallery': (gallery, 4, 4), 'story': (story, 4, 4)}
     if len(sys.argv) < 2 or sys.argv[1] not in cmds or not cmds[sys.argv[1]][1] <= len(sys.argv) - 2 <= cmds[sys.argv[1]][2]:
         sys.exit(__doc__)
     cmds[sys.argv[1]][0](*sys.argv[2:])

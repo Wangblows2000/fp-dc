@@ -1,0 +1,738 @@
+{
+"about": "Adventure mode scene inventory (session 25). Read by tools/import_story.py (the scenes with a script in tables/story/scripts are 'ported'); documented in docs/ADVENTURE.md. Fields: id (stable, port), list (index in the original's developer CutsceneList_42, RE), title (its name, RE), room (json frame = set_frame index + 1), g4 (global 4 selecting the scene inside the room), triggers (new: a new Adventure; end:I: frame 8 after stage I), next / skip / stage (the steps after the scene, its SKIP SCENE target, the NEXT STAGE target of panel 2), panel (GUIPause frame of its pause menu: 1 RESUME / SKIP SCENE / QUIT, 2 RESUME / SKIP SCENE / NEXT STAGE), chr (g1 mask: 1 Lilac, 2 Carol, 4 Milla), dialog (DialogData handle) and lines (paragraph range, inclusive), evidence (RE / RV / INFERRED per field), missing (what is not known or not available).",
+"scenes": [
+{
+"id": "adv_opening",
+"list": null,
+"title": "(Adventure opening: Brevon's ship crashes in the snowfields; 'Three days later, In a valley to the East...')",
+"room": 82,
+"g4": 2,
+"triggers": [
+"new"
+],
+"next": "scene:dv_meet",
+"skip": "scene:dv_meet",
+"panel": 0,
+"chr": 7,
+"dialog": null,
+"lines": null,
+"evidence": "RE hub 'c1' / chsel 800 (a new Adventure: frame index 81, g4 2); RV s81_g2 / a81_g2 (no DialogBox; brevon_bigno voice; START skips at once to frame 75 g4 0, k81_g2_start; A does nothing, k81_g2_j)",
+"missing": "the caption text objects ('Three days later,' / 'In a valley to the East...') are drawn by their own Text objects: shown as script actors only if they have images (INFERRED: the port draws them with the font, port_captions)"
+},
+{
+"id": "dv_meet",
+"list": 1,
+"title": "Dragon Valley (Meet Lilac and Carol)",
+"room": 76,
+"g4": 0,
+"triggers": [],
+"next": "stage:dv1",
+"skip": "mark:chsel",
+"panel": 1,
+"chr": 7,
+"dialog": 3903,
+"lines": [
+0,
+11
+],
+"evidence": "RE CutsceneList K 2 -> frame 75 (debug 263); RV a75_g0 / s75_g0b (Torque's ship chased by the Sky Battalion, the cliff, Carol and Lilac, Lilac runs off, the in-scene character select LILAC / CAROL, wipe 56, DV1 with g4 1); RV k75_g0_skip700: SKIP SCENE jumps to the character select; k75_g0_row2: QUIT -> frame 3 (g0 0)",
+"missing": "lines 0-6 (ca_01_01 .. ca_01_04) and the easter-egg line 42 (li_01b05, RE 18414: E 9 with a held input) are not shown on the RV route"
+},
+{
+"id": "dv_crash",
+"list": 2,
+"title": "Crash Site (Meet Serpentine and Torque)",
+"room": 76,
+"g4": 1,
+"triggers": [
+"end:1"
+],
+"next": "scene:dv_crash2",
+"skip": "scene:dv_crash2",
+"stage": "rm1",
+"panel": 2,
+"chr": 7,
+"dialog": 3903,
+"lines": [
+13,
+41
+],
+"evidence": "RE frame 8 (g0 2, I 1 -> frame 75, g4 1) and CutsceneList K 3 -> 75; RV r75_g1 / a75_g1 (Serpentine and Torque, the snake mount, Lilac, Carol arrives); RV k75_g1_skip: SKIP SCENE -> frame 14 g4 11; k75_g1_row2: NEXT STAGE -> frame 24 (RM1)"
+},
+{
+"id": "dv_crash2",
+"list": 2,
+"title": "Crash Site (Meet Serpentine and Torque), part 2 (the forest: Torque's request)",
+"room": 15,
+"g4": 11,
+"triggers": [],
+"next": "scene:rm_gong",
+"skip": "scene:rm_gong",
+"stage": "rm1",
+"panel": 2,
+"chr": 7,
+"dialog": 550,
+"lines": [
+0,
+13
+],
+"evidence": "RV r75_g1 / a75_g1 (frame 75 -> 14 with g4 11); RV k14_g11_skip -> frame 76 g4 1; k14_g11_row2: NEXT STAGE -> RM1",
+"missing": "line 20 (li_02b10, an alternate take) is never shown on the RV routes"
+},
+{
+"id": "rm_gong",
+"list": 3,
+"title": "Relic Maze (Meet Gong and Neera)",
+"room": 77,
+"g4": 1,
+"triggers": [],
+"next": "stage:rm1",
+"skip": "stage:rm1",
+"stage": "rm1",
+"panel": 2,
+"chr": 7,
+"dialog": 3923,
+"lines": [
+6,
+24
+],
+"evidence": "RE CutsceneList K 4 -> frame 76 (265); RV r75_g1 / a75_g1 (frame 14 -> 76 g4 1 -> 24 with g4 1); RV k76_g1_skip: SKIP SCENE -> RM1"
+},
+{
+"id": "rm_hideout",
+"list": 4,
+"title": "Relic Maze (Milla's Hideout)",
+"room": 77,
+"g4": 4,
+"triggers": [
+"end:0"
+],
+"next": "route",
+"panel": 2,
+"chr": 4,
+"dialog": 3923,
+"lines": [
+0,
+5
+],
+"evidence": "RE frame 8 (I 0, Aqua Tunnel = Milla's first stage -> frame 76 g4 4); RE CutsceneList K 5 -> 76 with g1 4 (debug: g4 0); lines by content (Milla and Mr. Stumpy): INFERRED",
+"missing": "not traced (phase 2)"
+},
+{
+"id": "rm_collapse",
+"list": 5,
+"title": "Relic Maze (Cave Collapse)",
+"room": 77,
+"g4": 3,
+"triggers": [
+"end:2"
+],
+"next": "route",
+"panel": 2,
+"chr": 6,
+"dialog": 3923,
+"lines": [
+69,
+73
+],
+"evidence": "RE frame 8 (I 2 with g1 2 / 4 -> frame 76 g4 3); RE CutsceneList K 6 -> 76 g4 3 g1 2; lines by content (Carol trapped, li_04_06 .. go_01_04): INFERRED",
+"missing": "not traced (phase 2); RM5's Adventure dialog (DialogData_1624, RE group 0x22517, D-064) precedes it"
+},
+{
+"id": "st_bad_news",
+"list": 6,
+"title": "Shang Tu Royal Palace (Gong's Bad News)",
+"room": 83,
+"g4": null,
+"triggers": [],
+"next": "route",
+"panel": 2,
+"chr": 7,
+"dialog": 4026,
+"lines": [
+0,
+12
+],
+"evidence": "RE CutsceneList K 7 -> frame 82 (268); lines by content: INFERRED",
+"missing": "g4 and its place in the chain: not traced (phase 2)"
+},
+{
+"id": "rm_meet_milla",
+"list": 7,
+"title": "Relic Maze (Meet Milla)",
+"room": 77,
+"g4": 2,
+"triggers": [
+"end:2"
+],
+"next": "route",
+"panel": 2,
+"chr": 1,
+"dialog": 3923,
+"lines": [
+25,
+68
+],
+"evidence": "RE frame 8 (I 2 with g1 0 -> frame 76 g4 2); RE CutsceneList K 8 -> 76; lines by content: INFERRED",
+"missing": "not traced (phase 2; the s76_g2 trace attempt failed to start)"
+},
+{
+"id": "th_torque_revealed",
+"list": 8,
+"title": "Lilac's Treehouse (Torque Revealed)",
+"room": 16,
+"g4": null,
+"triggers": [],
+"next": "route",
+"panel": 2,
+"chr": 7,
+"dialog": 622,
+"lines": [
+32,
+96
+],
+"evidence": "lines by content (DialogData_622 in json 16): INFERRED",
+"missing": "trigger, g4: phase 2"
+},
+{
+"id": "sg_brevon_plan",
+"list": 9,
+"title": "Shuigang Palace (Brevon's Plan)",
+"room": 83,
+"g4": null,
+"triggers": [],
+"next": "route",
+"panel": 2,
+"chr": 7,
+"dialog": 4026,
+"lines": [
+13,
+30
+],
+"evidence": "lines by content: INFERRED",
+"missing": "trigger, g4: phase 2"
+},
+{
+"id": "th_next_morning",
+"list": 10,
+"title": "Lilac's Treehouse (The Next Morning)",
+"room": 15,
+"g4": null,
+"triggers": [],
+"next": "route",
+"panel": 2,
+"chr": 7,
+"dialog": 550,
+"lines": [
+21,
+34
+],
+"evidence": "lines by content: INFERRED",
+"missing": "trigger, g4: phase 2"
+},
+{
+"id": "np_gong_help",
+"list": 11,
+"title": "Northern Plateau (Gong's Help)",
+"room": 78,
+"g4": null,
+"triggers": [],
+"next": "route",
+"panel": 2,
+"chr": 7,
+"dialog": 3948,
+"lines": [
+0,
+21
+],
+"evidence": "lines by content (DialogData_3948, json 78): INFERRED",
+"missing": "phase 2"
+},
+{
+"id": "sm_spade",
+"list": 12,
+"title": "Shang Mu (Spade Encounter)",
+"room": 79,
+"g4": null,
+"triggers": [],
+"next": "route",
+"panel": 2,
+"chr": 7,
+"dialog": 3951,
+"lines": [
+0,
+19
+],
+"evidence": "lines by content: INFERRED",
+"missing": "phase 2"
+},
+{
+"id": "fn_panther_defeated",
+"list": 13,
+"title": "Fortune Night (Robopanther Defeated)",
+"room": 79,
+"g4": 1,
+"triggers": [
+"end:3"
+],
+"next": "route",
+"panel": 2,
+"chr": 7,
+"dialog": 3951,
+"lines": [
+20,
+50
+],
+"evidence": "RE frame 8 (I 3, Fortune Night -> frame index 78 = json 79, g4 1); lines by content: INFERRED",
+"missing": "phase 2"
+},
+{
+"id": "sm_zao_dinner",
+"list": 14,
+"title": "Shang Mu City Hall (Zao's Dinner)",
+"room": 83,
+"g4": null,
+"triggers": [],
+"next": "route",
+"panel": 2,
+"chr": 7,
+"dialog": 4026,
+"lines": [
+46,
+67
+],
+"evidence": "lines by content: INFERRED",
+"missing": "phase 2"
+},
+{
+"id": "sg_intruders",
+"list": 15,
+"title": "Shuigang Palace (Brevon Thwarts the Intruders)",
+"room": 83,
+"g4": null,
+"triggers": [],
+"next": "route",
+"panel": 2,
+"chr": 7,
+"dialog": 4026,
+"lines": [
+68,
+81
+],
+"evidence": "lines by content: INFERRED",
+"missing": "phase 2"
+},
+{
+"id": "sm_zao_help",
+"list": 16,
+"title": "Shang Mu City Hall (Zao's Help)",
+"room": 83,
+"g4": null,
+"triggers": [],
+"next": "route",
+"panel": 2,
+"chr": 7,
+"dialog": 4026,
+"lines": [
+82,
+94
+],
+"evidence": "lines by content: INFERRED",
+"missing": "phase 2"
+},
+{
+"id": "zao_airship",
+"list": 17,
+"title": "Zao's Airship",
+"room": 79,
+"g4": null,
+"triggers": [],
+"next": "route",
+"panel": 2,
+"chr": 7,
+"dialog": 3951,
+"lines": [
+53,
+57
+],
+"evidence": "lines by content: INFERRED",
+"missing": "phase 2"
+},
+{
+"id": "zao_airship_ambush",
+"list": 18,
+"title": "Zao's Airship (Ambushed)",
+"room": 37,
+"g4": 99,
+"triggers": [
+"end:4"
+],
+"next": "route",
+"panel": 2,
+"chr": 7,
+"dialog": 4026,
+"lines": [
+95,
+96
+],
+"evidence": "RE frame 8 (I 4 -> frame 36 (SB2) with g4 99: inside the stage); lines by content: INFERRED",
+"missing": "an in-stage scene (SB2 Adventure branch): phase 2"
+},
+{
+"id": "jiang_river",
+"list": 19,
+"title": "Jiang River (Route to Shang Tu)",
+"room": 80,
+"g4": null,
+"triggers": [],
+"next": "route",
+"panel": 2,
+"chr": 7,
+"dialog": 3965,
+"lines": [
+0,
+33
+],
+"evidence": "lines by content (DialogData_3965, json 80): INFERRED",
+"missing": "phase 2"
+},
+{
+"id": "st_magister_talk",
+"list": 20,
+"title": "Shang Tu Royal Palace (Talk With Magister)",
+"room": 83,
+"g4": null,
+"triggers": [],
+"next": "route",
+"panel": 2,
+"chr": 7,
+"dialog": 4026,
+"lines": [
+97,
+132
+],
+"evidence": "lines by content: INFERRED",
+"missing": "phase 2"
+},
+{
+"id": "jail_plan",
+"list": 21,
+"title": "Royal Palace Jail (Lilac's Plan)",
+"room": 83,
+"g4": null,
+"triggers": [],
+"next": "route",
+"panel": 2,
+"chr": 7,
+"dialog": 4026,
+"lines": [
+133,
+149
+],
+"evidence": "lines by content: INFERRED",
+"missing": "phase 2"
+},
+{
+"id": "jail_fail",
+"list": 22,
+"title": "Royal Palace Jail (Escape Plain Fail)",
+"room": 83,
+"g4": null,
+"triggers": [],
+"next": "route",
+"panel": 2,
+"chr": 7,
+"dialog": 4026,
+"lines": [
+150,
+160
+],
+"evidence": "lines by content: INFERRED",
+"missing": "phase 2"
+},
+{
+"id": "throne_apology",
+"list": 23,
+"title": "Royal Palace Throne Room (Lilac's Apology)",
+"room": 83,
+"g4": null,
+"triggers": [],
+"next": "route",
+"panel": 2,
+"chr": 7,
+"dialog": 4026,
+"lines": [
+161,
+171
+],
+"evidence": "lines by content: INFERRED",
+"missing": "phase 2"
+},
+{
+"id": "sg_brevon_torque",
+"list": 24,
+"title": "Shuigang Palace (Brevon Discovers Torque)",
+"room": 83,
+"g4": 13,
+"triggers": [
+"end:5"
+],
+"next": "route",
+"panel": 2,
+"chr": 7,
+"dialog": 4026,
+"lines": [
+176,
+178
+],
+"evidence": "RE frame 8 (I 5 -> frame 82 g4 13); lines by content: INFERRED",
+"missing": "phase 2"
+},
+{
+"id": "jc_cave",
+"list": 25,
+"title": "Jade Creek Cave (What Do We Do Now)",
+"room": 83,
+"g4": null,
+"triggers": [],
+"next": "route",
+"panel": 2,
+"chr": 7,
+"dialog": 4026,
+"lines": [
+179,
+202
+],
+"evidence": "lines by content: INFERRED",
+"missing": "phase 2"
+},
+{
+"id": "th_carol_help",
+"list": 26,
+"title": "Trap Hideout (Carol Seeks Help)",
+"room": 83,
+"g4": null,
+"triggers": [],
+"next": "route",
+"panel": 2,
+"chr": 6,
+"dialog": 4026,
+"lines": [
+203,
+209
+],
+"evidence": "lines by content: INFERRED",
+"missing": "phase 2"
+},
+{
+"id": "tb_torture",
+"list": 27,
+"title": "Thermal Base (Torturing Lilac)",
+"room": 81,
+"g4": 0,
+"triggers": [
+"end:6"
+],
+"next": "route",
+"panel": 2,
+"chr": 1,
+"dialog": 3971,
+"lines": [
+0,
+32
+],
+"evidence": "RE frame 8 (I 6 with g1 0 -> frame 80 g4 0); lines by content: INFERRED",
+"missing": "phase 2"
+},
+{
+"id": "tb_team_spade",
+"list": 28,
+"title": "Thermal Base (Enter Team Spade)",
+"room": 81,
+"g4": 1,
+"triggers": [
+"end:6"
+],
+"next": "route",
+"panel": 2,
+"chr": 6,
+"dialog": 3971,
+"lines": [
+33,
+36
+],
+"evidence": "RE frame 8 (I 6 with g1 != 0 -> frame 80 g4 1); lines by content: INFERRED",
+"missing": "phase 2"
+},
+{
+"id": "tb_brevon",
+"list": 29,
+"title": "Thermal Base (Brevon Encounter)",
+"room": 81,
+"g4": null,
+"triggers": [],
+"next": "route",
+"panel": 2,
+"chr": 7,
+"dialog": 3971,
+"lines": [
+37,
+48
+],
+"evidence": "lines by content: INFERRED",
+"missing": "phase 2"
+},
+{
+"id": "tb_arrest",
+"list": 30,
+"title": "Outside Thermal Base (Lilac's Arrest)",
+"room": 83,
+"g4": 20,
+"triggers": [
+"end:7",
+"end:8"
+],
+"next": "route",
+"panel": 2,
+"chr": 1,
+"dialog": 4026,
+"lines": [
+210,
+216
+],
+"evidence": "RE frame 8 (I 7 / 8 with g1 0 -> frame 82 g4 20); lines by content: INFERRED",
+"missing": "phase 2"
+},
+{
+"id": "tb_outside_team",
+"list": 31,
+"title": "Outside Thermal Base (Carol, Milla and Torque)",
+"room": 83,
+"g4": 16,
+"triggers": [
+"end:7",
+"end:8"
+],
+"next": "route",
+"panel": 2,
+"chr": 6,
+"dialog": 4026,
+"lines": [
+256,
+274
+],
+"evidence": "RE frame 8 (I 7 g1 != 0 -> 82 g4 13, I 8 g1 != 0 -> 82 g4 16); lines by content: INFERRED",
+"missing": "phase 2"
+},
+{
+"id": "st_mission",
+"list": 32,
+"title": "Shang Tu Royal Palace (Magister's Mission)",
+"room": 83,
+"g4": null,
+"triggers": [],
+"next": "route",
+"panel": 2,
+"chr": 7,
+"dialog": 4026,
+"lines": [
+217,
+232
+],
+"evidence": "lines by content: INFERRED",
+"missing": "phase 2"
+},
+{
+"id": "pl_final_message",
+"list": 33,
+"title": "Pangu Lagoon (The Final Message)",
+"room": 83,
+"g4": null,
+"triggers": [],
+"next": "route",
+"panel": 2,
+"chr": 1,
+"dialog": 4026,
+"lines": [
+233,
+255
+],
+"evidence": "lines by content: INFERRED",
+"missing": "phase 2"
+},
+{
+"id": "sf_army",
+"list": 34,
+"title": "Snowfields (Army of Shang Tu)",
+"room": 82,
+"g4": null,
+"triggers": [],
+"next": "route",
+"panel": 2,
+"chr": 7,
+"dialog": 3989,
+"lines": [
+0,
+24
+],
+"evidence": "lines by content: INFERRED",
+"missing": "phase 2"
+},
+{
+"id": "sf_camp",
+"list": 35,
+"title": "Snowfield Encampment (Prepare For Final Batle)",
+"room": 82,
+"g4": null,
+"triggers": [],
+"next": "route",
+"panel": 2,
+"chr": 7,
+"dialog": 3989,
+"lines": [
+25,
+80
+],
+"evidence": "lines by content: INFERRED",
+"missing": "phase 2"
+},
+{
+"id": "ending",
+"list": 36,
+"title": "Ending",
+"room": 82,
+"g4": null,
+"triggers": [
+"end:13"
+],
+"next": "menu",
+"panel": 2,
+"chr": 7,
+"dialog": 3989,
+"lines": [
+81,
+108
+],
+"evidence": "RE frame 8 (I 13 -> frame 83, the space ending, ported: ending.c); the epilogue frames 81 / 82 (DialogData_3989 81-108, DialogData_622 97-111): INFERRED",
+"missing": "phase 2 (the session-24 ending plays the space scene and the credits in every story mode)"
+},
+{
+"id": "game_intro",
+"list": 0,
+"title": "Game Intro (Meet Brevon)",
+"room": 83,
+"g4": null,
+"triggers": [],
+"next": "menu",
+"panel": 0,
+"chr": 7,
+"dialog": 4026,
+"lines": [
+31,
+45
+],
+"evidence": "RV route_dv1 (2026-10-22): boot -> frame index 82 ('opening') -> 2 (logo) before any mode exists; RE records.dat x2 y42 decides the opening (spec_records_saves); lines by content (the king of Shuigang, Brevon, Dail; the Magister's narration ma_00): INFERRED",
+"missing": "a boot attract sequence, not an Adventure scene: outside the Adventure gate; not ported"
+}
+]
+}

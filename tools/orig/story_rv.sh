@@ -14,8 +14,12 @@ export STORY_FRAMES=${STORY_FRAMES:-$REPO/tables/frames} STORY_TAP=${STORY_TAP:-
 pkill -x Xvfb || true; timeout 2 tail -f /dev/null || true
 trap 'kill -9 $(pgrep -x Chowdren) 2>/dev/null; true' EXIT
 cd /home/claude/fpdc
-sh tools/orig/start_orig.sh > /dev/null
 export DISP=:93 DISPLAY=:93
+for try in 1 2 3; do                                   # the game window sometimes does not come up in time: start again
+  sh tools/orig/start_orig.sh > /dev/null 2>&1
+  [ -n "$(xdotool search --name 'Freedom Planet' 2>/dev/null | head -1)" ] && break
+  pkill -x Xvfb || true; timeout 3 tail -f /dev/null || true
+done
 tools/orig/key.sh - wait:4 Return wait:2 Return wait:3 > /dev/null        # splash / opening -> logo -> title menu
 tools/orig/key.sh - Return wait:2 Return wait:2 > /dev/null               # START GAME -> NEW File 1 (Normal): mode select
 PID=$(pgrep -x Chowdren | head -1)

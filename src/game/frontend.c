@@ -12,6 +12,7 @@
 #include <stdarg.h>
 #include "../fp.h"
 #include "ui.h"
+#include "story.h"
 
 enum { FE_PRESS, FE_HUB, FE_CHSEL, FE_STSEL, FE_GAL, FE_ACH };   /* FE_ACH: the achievement pop-up after a stage (frame index 9) */
 
@@ -95,6 +96,7 @@ static void set_state(int s) { fe_state = s; fe_t = 0; }
 static void title_start(void);
 
 int fe_enter(void) {
+    story_reset();                           /* session 25: the menu ends any Adventure run (story.c gate) */
     game_unload_all();
     if (fe_load() < 0) return -1;
     G.mode = MODE_FRONTEND;
@@ -114,6 +116,7 @@ static void fe_new_file(int classic) { G.file_slot = hub_selected_file(); G.file
 /* pause QUIT (RE 4305 -> frame 7 dispatcher): RV Time Attack -> stage select (frame 5); otherwise the title
  * menu (the dispatcher's other routes are not traced; INFERRED) */
 int fe_enter_from_stage(int time_attack) {
+    story_reset();                           /* session 25: the menu ends any Adventure run (story.c gate) */
     game_unload_all();
     if (fe_load() < 0) return -1;
     G.mode = MODE_FRONTEND;
@@ -455,6 +458,7 @@ static void chsel_update(const input_t *now) {
         wipe.on = 0;
         if (C.exit_to == 3) { set_state(FE_HUB); hub_enter(); }
         else if (C.exit_to == 5) { if (scr_load(1) == 0) { set_state(FE_STSEL); stsel_enter(); } }
+        else if (fe_mode == 2) { fe_unload(); if (story_new_game(G.character) < 0) game_start_adventure(level_route_start(G.character), 0); }   /* RE 800: Adventure -> frame 81 (story.c) */
         else { const char *lv = level_route_start(G.character); fe_unload(); game_start_adventure(lv, 0); }   /* RE 799: the character's first stage (levels.c) */
     }
 }
@@ -505,10 +509,11 @@ void fe_update(const input_t *in) {
         int ex = hub_update(in);
         if (ex == HUB_EXIT_QUIT) { plat_quit(); break; }
         if (ex == HUB_EXIT_GALLERY) { if (scr_load(2) == 0) { set_state(FE_GAL); gal_enter(); } else { set_state(FE_HUB); hub_enter(); } }   /* RE 390: frame 10 */
-        if (ex == HUB_EXIT_TIME_ATTACK) { fe_mode = 0; if (scr_load(0) == 0) { set_state(FE_CHSEL); chsel_enter(); } }
-        if (ex == HUB_EXIT_NEW_CLASSIC) { fe_mode = 1; fe_new_file(1); if (scr_load(0) == 0) { set_state(FE_CHSEL); chsel_enter(); } }
-        if (ex == HUB_EXIT_NEW_ADVENTURE) {   /* original: frame 81 (opening cutscene, not ported) -> DV1 */
-            fe_mode = 2; fe_new_file(0); G.character = CHR_LILAC; fe_unload(); game_start_adventure(level_route_start(CHR_LILAC), 0);
+        if (ex == HUB_EXIT_TIME_ATTACK) { story_reset(); fe_mode = 0; if (scr_load(0) == 0) { set_state(FE_CHSEL); chsel_enter(); } }
+        if (ex == HUB_EXIT_NEW_CLASSIC) { story_reset(); fe_mode = 1; fe_new_file(1); if (scr_load(0) == 0) { set_state(FE_CHSEL); chsel_enter(); } }
+        if (ex == HUB_EXIT_NEW_ADVENTURE) {   /* RE hub 'c1': frame 81 with g4 2, the opening (story.c); Lilac until the scene's own choice */
+            fe_mode = 2; fe_new_file(0); G.character = CHR_LILAC; fe_unload();
+            if (story_new_game(CHR_LILAC) < 0) game_start_adventure(level_route_start(CHR_LILAC), 0);   /* no story data: DV1 as before */
         }
         if (ex == HUB_EXIT_CONTINUE) {        /* original: frame 8 (stage from the save); the port has Dragon Valley only */
             fe_mode = SV.file[hub_selected_file()].mode ? 1 : 2; G.file_slot = hub_selected_file(); G.file_new = 0; G.file_mode = SV.file[G.file_slot].mode;
@@ -517,7 +522,14 @@ void fe_update(const input_t *in) {
             const char *lv = NULL;                    /* frame 8: ML.Q = StageIDList[y5] -> the stage after the last completed one (session 14) */
             if (sf->last_stage != 0xff) { lv = level_route_next(sf->last_stage); if (!lv) lv = level_first_of_stage(sf->last_stage); }   /* next not ported: replay the last */
             if (!lv) lv = level_route_start(G.character);
-            fe_unload(); game_start_adventure(lv, 0);
+            fe_unload();
+            story_reset();
+            if (fe_mode == 2 && sf->last_stage != 0xff) {   /* session 25: an Adventure file goes through frame 8's story routing (story.c) */
+                G.time_attack = 0; game_run_reset();
+                G.p.lives = sf->lives ? sf->lives : 5; G.p.crystals = sf->counter ? sf->counter : 200; G.p.shield = sf->shield; G.p.energy_init = 1;
+                if (story_continue(sf->last_stage)) break;
+            }
+            game_start_adventure(lv, 0);
             if (sf->last_stage != 0xff && G.mode == MODE_PLAY) {   /* 955: lives, shield and the crystal counter carried in the file */
                 if (sf->lives) G.p.lives = sf->lives;
                 if (sf->counter) G.p.crystals = sf->counter;
