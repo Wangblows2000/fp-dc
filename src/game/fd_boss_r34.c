@@ -116,6 +116,7 @@ int fdb34_draw_obj(const obj_t *o, int pass) {
 int fdb34_input(uint32_t *held) { if (!on || !fdb_ctrl) return 0; *held = fdb_keys; return 1; }   /* CTRL.M 1: the script's buttons */
 int fdb34_player_hidden(void) { return 0; }
 float fdb34_hud_dy(void) { return on ? f3b_hud_dy() + f4b_hud_dy() : 0.f; }
+void  fdb34_draw(int pass) { (void)pass; }                                   /* objects_draw passes (fd_boss_draw): the module draws through fdb34_draw_obj */
 #ifdef FP_HOST_ENV
 int fdb34_host_state(char *buf, int n) { int k = f3b_host_state(buf, n); return k + f4b_host_state(buf + k, n - k); }
 #endif

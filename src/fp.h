@@ -1148,6 +1148,7 @@ int    fd_gim_player(player_t *p, const input_t *in), fd_gim_ride_m(void);   /* 
 void   fd_boss_spawn(void), fd_boss_pre(player_t *p), fd_boss_frame(player_t *p);
 int    fd_boss_obj(obj_t *o, player_t *p), fd_boss_q20(int type), fd_boss_draw_obj(const obj_t *o, int pass), fd_boss_input(uint32_t *held);
 int    fd_boss_player_hidden(void);
+void   fd_boss_draw(int pass);                    /* objects_draw passes 0-2: parts drawn out of the object order (beams, overlays) */
 float  fd_boss_hud_dy(void);
 void   sb_boss_spawn(void), sb_boss_pre(player_t *p), sb_boss_frame(player_t *p), sb_boss_cannon_down(void);
 int    sb_boss_obj(obj_t *o, player_t *p), sb_boss_q20(int type), sb_boss_draw_obj(const obj_t *o, int pass), sb_boss_input(uint32_t *held);
