@@ -24,8 +24,9 @@ too (no shell). tools/audio/convert_bgm.sh, convert_sfx.sh and convert_gallery.s
   convert_audio.py story   <extracted_audio_dir> <voices_dirs> <tables/story> <out_data_dir>
       Adventure scenes (session 25): the voice of every dialogue line the ported scene scripts show -> story/vo/<voice>.wav
       (mono ADPCM 11025 Hz, lower for a clip over 5.9 s), from the first of <voices_dirs> (os.pathsep list) holding a genuine
-      eng/<xx>/<voice>.ogg; placeholder stubs (< 4000 bytes) and missing clips are skipped (text-only lines). Plus the
-      scripts' sound ids the sfx list lacks (sfx/s<id>.wav). Manifest story/vo_manifest.csv.
+      eng/<xx>/<voice>.ogg; placeholder stubs (< 4000 bytes) and missing clips are skipped (text-only lines). Plus every
+      sound id the scripts play (story/sfx/s<id>.wav, 11025 Hz, tails trimmed: a scene loads the ids sound RAM does not hold
+      yet). Manifests story/vo_manifest.csv, story/sfx_manifest.csv.
 
 Tools: FFMPEG (default ffmpeg on the PATH), WAV2ADPCM (default tools/audio/wav2adpcm, compiled with cc from KallistiOS
 utils/wav2adpcm or the identical third_party/wav2adpcm when missing). Durations come from tools/audio/oggdur.py (the same
@@ -247,7 +248,7 @@ def story(src, voices, tables, out):
     """Adventure scenes (session 25, src/game/story.c): the voice of every line the ported scripts show, one mono ADPCM clip
     per line at 11025 Hz (story/vo/<voice>.wav, loaded per line), lower when a clip is longer than one sample may be
     (snd_sfx_load: <= 65534 samples); placeholder stubs and missing clips are left out (the line is shown text-only). And
-    the scripts' sound ids that the sfx step does not convert (sfx/s<id>.wav, 11025 Hz, tails trimmed for the TRIM ids)."""
+    every sound id the scripts play, as story/sfx/s<id>.wav (11025 Hz, tails trimmed; session 25b: a scene's sound set)."""
     os.makedirs(os.path.join(out, 'story', 'vo'), exist_ok=True); os.makedirs(os.path.join(out, 'sfx'), exist_ok=True)
     tmp = tempfile.mkdtemp()
     m = manifest(os.path.join(out, 'story', 'vo_manifest.csv'), 'name,source,duration_s,rate,bytes')
@@ -272,19 +273,30 @@ def story(src, voices, tables, out):
         run([wav2adpcm(), '-t', wav, d])
         tot += os.path.getsize(d); n += 1
         m.write('%s,%s,%s,%d,%d\n' % (v, os.path.basename(src_v), oggdur.duration_text(src_v), rate, os.path.getsize(d))); m.flush()
-    have = set(f for f in os.listdir(os.path.join(out, 'sfx')) if f.endswith('.wav'))
-    k = 0; bad = []
+    # the scenes' sound ids (session 25b): one copy each in story/sfx at 11025 Hz with the tails trimmed (a scene loads only
+    # the ids sound RAM does not hold yet, from here: game.c game_sfx_set_story; a scene's 's' entries are one-shots, so no
+    # id is looped); the sfx/ set (22050 Hz for the character groups) stays as it is
+    sd = os.path.join(out, 'story', 'sfx'); os.makedirs(sd, exist_ok=True)
+    for f in os.listdir(sd):
+        if f.endswith('.wav'): os.remove(os.path.join(sd, f))
+    sm = manifest(os.path.join(out, 'story', 'sfx_manifest.csv'), 'name,source,duration_s,rate,bytes')
+    k = kb = 0; bad = []
     for i in ids:
-        if 's%d.wav' % i in have: continue
-        wav = os.path.join(tmp, 'x.wav')
-        try:                                             # tails trimmed as the sfx step does (TRIM); a clip that cannot be
-            to_wav(os.path.join(src, 'audio_%d.ogg' % i), wav, 1, 11025, TRIM_AF if str(i) in TRIM else None)   # converted
-            run([wav2adpcm(), '-t', wav, os.path.join(out, 'sfx', 's%d.wav' % i)]); k += 1      # stays silent
+        wav = os.path.join(tmp, 'x.wav'); d = os.path.join(sd, 's%d.wav' % i); s_ = os.path.join(src, 'audio_%d.ogg' % i)
+        try:                                             # a clip that cannot be converted stays silent
+            du = float(oggdur.duration_text(s_))         # one sample holds <= 65534 (snd_sfx_load): a long one (s444, the airship
+            r_ = 11025 if du * 11025 <= 65000 else int(65000 / du)   # leaving, 18 s) at a lower rate, as the long voice clips
+            try: to_wav(s_, wav, 1, r_, TRIM_AF); run([wav2adpcm(), '-t', wav, d])
+            except subprocess.CalledProcessError:        # a quiet clip (all below -48 dB: s26) trims to nothing: kept whole
+                to_wav(s_, wav, 1, r_); run([wav2adpcm(), '-t', wav, d])
+            k += 1; kb += os.path.getsize(d)
+            sm.write('s%d,%s,%s,%d,%d\n' % (i, os.path.basename(s_), oggdur.duration_text(s_), r_, os.path.getsize(d))); sm.flush()
         except (subprocess.CalledProcessError, OSError): bad.append(i)
+    sm.close()
     if bad: print('story sounds not converted (silent): %s' % ' '.join(map(str, bad)))
     m.close(); shutil.rmtree(tmp)
-    print('story voices: %d of %d converted (%.1f KB), %d placeholder stubs and %d missing left text-only; %d story sound ids added'
-          % (n, len(need), tot / 1024, stub, miss, k))
+    print('story voices: %d of %d converted (%.1f KB), %d placeholder stubs and %d missing left text-only; %d story sounds (%.1f KB)'
+          % (n, len(need), tot / 1024, stub, miss, k, kb / 1024))
 
 if __name__ == '__main__':
     cmds = {'bgm': (bgm, 2, 3), 'sfx': (sfx, 3, 4), 'gallery': (gallery, 4, 4), 'story': (story, 4, 4)}
