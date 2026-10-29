@@ -1745,6 +1745,29 @@ for _k, _v in BGG_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   #
 # FD3b's MinibossBulldozer (json 71) is FN1 / FN2's Fusion object (same handles 1745-1754, same events 7404-7464): its classes are
 # mapped to FN_BOSS's types (fn_boss.c runs it) in json 71 too.
 FNBOSS_FRAMES.add(71)
+# Types mirror src/game/fd.h (OT_FDB_*); the lvobj anim field carries FDB_SUB (the member of a family type) | instance layer << 8.
+# The classes are mapped in json 71 / 73 only (FDB_FRAMES: other stages place none of them under these handles).
+FDB_FRAMES = {71, 73}
+FDB_TYPES_ID = {('kingdomstone', 3680): 2992, ('brevon', 3701): 2993, ('brevonknifearm', 3702): 2994,
+                ('computerterminal', 3682): 2995, ('computerterminal2', 3684): 2995, ('computerterminal3', 3703): 2995,
+                ('device', 3388): 2996, ('npcmillabody', 3704): 2997,
+                ('bossmmillahead', 3694): 2998, ('bossmmillatail', 3689): 3000, ('bosshatchdoor', 3312): 3001,
+                ('brevonsuithead', 3777): 3002, ('brevonsuitwallleft', 3797): 3004, ('brevonsuitwallright', 3798): 3004,
+                ('bosshealthbar1', 3800): 3005, ('bosshealthbar2', 3801): 3005, ('brevoncrosshair6', 3790): 3006,
+                ('brevoncrosshair7', 3791): 3006, ('brevondummycape', 3792): 3007}
+# BossMMilla* parts (one family type, sub = member index: fd_boss_r34_3b.c MM_*) and the suit's limbs (fd_boss_r34_4b.c SP_*)
+FDB_MM = ('footback', 3685), ('armback', 3686), ('pawback', 3687), ('earback', 3688), ('body', 3690), ('leg', 3691), \
+         ('armfront', 3692), ('foot', 3693), ('pawfront', 3695), ('tailend', 3696), ('earfront', 3697)
+FDB_SP = ('backgun', 3772), ('backarm', 3773), ('backleg', 3774), ('backknee', 3775), ('backfoot', 3776), ('pelvis', 3778), \
+         ('frontleg', 3779), ('frontknee', 3780), ('frontfoot', 3781), ('torso', 3782), ('frontarm', 3783), ('frontgun', 3784)
+FDB_TYPES_ID.update({('bossmmilla' + p, h): 2999 for p, h in FDB_MM})
+FDB_TYPES_ID.update({('brevonsuit' + p, h): 3003 for p, h in FDB_SP})
+FDB_SUB = {'computerterminal2_3684': 1, 'computerterminal3_3703': 2, 'brevonsuitwallright_3798': 1, 'bosshealthbar2_3801': 1,
+           'brevoncrosshair7_3791': 1}
+FDB_SUB.update({'bossmmilla%s_%d' % (p, h): k for k, (p, h) in enumerate(FDB_MM)})
+FDB_SUB.update({'brevonsuit%s_%d' % (p, h): k for k, (p, h) in enumerate(FDB_SP)})
+for _k, _t in FDB_TYPES_ID.items(): ENGINE_TYPES_ID.setdefault(_k, _t)   # (never replaces another module's mapping of a class)
+FRAME_TYPE_REMAP.update({(_n, ENGINE_TYPES_ID[_k]): _t for _k, _t in FDB_TYPES_ID.items() for _n in FDB_FRAMES if ENGINE_TYPES_ID[_k] != _t})
 
 # ==== end Final Dreadnought
 SHL_CLASSES = {'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}
@@ -2164,6 +2187,7 @@ def main():
         if n in JCB_REMAP_FRAMES and o['cls'] in JCB_CLS: o['type'] = JCB_CLS[o['cls']]
     for o in objs: o['type'] = FRAME_TYPE_REMAP.get((n, o['type']), o['type'])   # per-frame type remaps (BG_ENEMIES: the BG Elites)
     objs = [o for o in objs if not (1430 <= o['type'] < 1480 and n not in JCB_REMAP_FRAMES)]   # JC_BOSS: its types only in JC1-JC5 (JC5: the ice ambush)
+    objs = [o for o in objs if not (2992 <= o['type'] < 3072 and n not in FDB_FRAMES)]   # FD_BOSS B: its types only in FD3b / FD4b
     for o in objs:                                   # SB_ENEMIES (session 19b): SB1 / SB3's placed EffectWarning_1528 (SB4's: the boss's 1188)
         if o['cls'] == 'effectwarning_1528' and n in SBE_WARN_FRAMES: o['type'] = 1039
     for o in objs:                                   # PL_GIM: Pangu Lagoon's spinball rule (pl_gim.c)
@@ -2735,6 +2759,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         if 1100 <= o['type'] < 1150: a = SBG_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # SB_GIM (sb_gim.c): member index | instance layer << 8 | 0x8000: json layer 1 of a mapped frame (session 20: behind the json-2 pieces, scrolls with layer 1)
         if 1680 <= o['type'] < 1720: a = THB_SUB.get(o['cls'], 0) | (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0)   # TH_BOSS (th_boss.c): sub id | instance layer << 8 | 0x8000 json layer 1
         if 1968 <= o['type'] < 2016: a = TBB_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # TB_BOSS (tb_boss.c): member index | instance layer << 8
+        if 2992 <= o['type'] < 3072: a = FDB_SUB.get(o['cls'], 0) | (o['layer'] << 8)   # FD_BOSS B (fd_boss_r34.c): sub id | instance layer << 8
         if 2080 <= o['type'] < 2144: a = (o['layer'] << 8) | (0x8000 if mapped and o.get('layer0') == 1 else 0) | (0x4000 if o.get('s08') else 0)   # PL_ENEMIES (pl_enemy.c): instance layer << 8 | 0x8000 json layer 1 of a mapped frame | 0x4000 its layer scrolls at 0.8
         d += struct.pack('<2H2i', o['type'], a, o['x'], o['y'])
     for t in table: d += t

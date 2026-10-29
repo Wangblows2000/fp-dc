@@ -27,5 +27,20 @@ void  fdb34_spawn(void), fdb34_pre(player_t *p), fdb34_frame(player_t *p);
 int   fdb34_obj(obj_t *o, player_t *p), fdb34_draw_obj(const obj_t *o, int pass), fdb34_q20(int type), fdb34_input(uint32_t *held);
 int   fdb34_player_hidden(void);
 float fdb34_hud_dy(void);
+/* bosses B types (tools/import_frame.py FD_BOSS B; the lvobj anim field carries sub id | instance layer << 8). Placed classes of
+ * json 71 (fd3b) / 73 (fd4b); OT_FDB_RT is every runtime object of the module (o->st = its kind, FDB_K_*). */
+enum { OT_FDB_STONE = 2992 /* KingdomStone_3680 (the scripts' state holder: D phase, E timer) */, OT_FDB_BREVON = 2993 /* Brevon_3701 */,
+       OT_FDB_KNIFE = 2994 /* BrevonKnifeArm_3702 */, OT_FDB_TERM = 2995 /* ComputerTerminal_3682 / 2_3684 (sub 1) / 3_3703 (sub 2) */,
+       OT_FDB_DEVICE = 2996 /* Device_3388 */, OT_FDB_MBODY = 2997 /* NPCMillaBody_3704 */,
+       OT_FDB_MM_HEAD = 2998 /* BossMMillaHead_3694 (Q20) */, OT_FDB_MM_PART = 2999 /* the other BossMMilla* parts (sub = FDB_MM_*) */,
+       OT_FDB_MM_TAIL = 3000 /* BossMMillaTail_3689 (6 segments) */, OT_FDB_HATCH = 3001 /* BossHatchDoor_3312 (Q7, fd3b) */,
+       OT_FDB_SUIT_HEAD = 3002 /* BrevonSuitHead_3777 (Q20, A 30) */, OT_FDB_SUIT_PART = 3003 /* BrevonSuit* parts (sub = FDB_SP_*) */,
+       OT_FDB_SUIT_WALL = 3004 /* BrevonSuitWallLeft_3797 / Right_3798 (sub 1) */, OT_FDB_HBAR = 3005 /* BossHealthBar1_3800 / 2_3801 (sub 1) */,
+       OT_FDB_XHAIR = 3006 /* BrevonCrosshair6_3790 / 7_3791 (sub 1) */, OT_FDB_CAPE = 3007 /* BrevonDummyCape_3792 */,
+       OT_FDB_BHIT = 3008 /* BrevonHitbox_3809 (Q20, A 160; runtime) */, OT_FDB_RT = 3009 /* runtime objects (st = FDB_K_*) */,
+       OT_FDB_LAST_USED = 3009 };
+#ifdef FP_HOST_ENV
+int   fdb34_host_state(char *buf, int n);                                       /* one-line state for host tests */
+#endif
 
 #endif

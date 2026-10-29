@@ -1106,6 +1106,25 @@ static const objdef_t DEFS[] = {
     /* ---- FD_ENEMIES (fd_enemy.c) */
     /* ---- FD_GIM (fd_gim.c) */
     /* ---- FD_BOSS (fd_boss.c) */
+    /* ---- FD_BOSS B (fd_boss_r34*.c; sprites set by fdb34_spawn) */
+    { OT_FDB_STONE,     0,                                     NULL         }, /* kingdomstone_3680 */
+    { OT_FDB_BREVON,    0,                                     NULL         }, /* brevon_3701 */
+    { OT_FDB_KNIFE,     OD_HIDDEN,                             NULL         }, /* brevonknifearm_3702 (shown by the FD3b scene) */
+    { OT_FDB_TERM,      0,                                     NULL         }, /* computerterminal_3682 / 2_3684 / 3_3703 */
+    { OT_FDB_DEVICE,    0,                                     NULL         }, /* device_3388 */
+    { OT_FDB_MBODY,     OD_HIDDEN,                             NULL         }, /* npcmillabody_3704 (shown by the FD3b end) */
+    { OT_FDB_MM_HEAD,   OD_HIDDEN,                             NULL         }, /* bossmmillahead_3694 (Q20; shown at the fight) */
+    { OT_FDB_MM_PART,   OD_HIDDEN,                             NULL         }, /* bossmmilla* parts */
+    { OT_FDB_MM_TAIL,   OD_HIDDEN,                             NULL         }, /* bossmmillatail_3689 */
+    { OT_FDB_HATCH,     OD_SOLID,                              NULL         }, /* bosshatchdoor_3312 (Q7) */
+    { OT_FDB_SUIT_HEAD, 0,                                     NULL         }, /* brevonsuithead_3777 (Q20) */
+    { OT_FDB_SUIT_PART, 0,                                     NULL         }, /* brevonsuit* limbs */
+    { OT_FDB_SUIT_WALL, OD_HIDDEN,                             NULL         }, /* brevonsuitwallleft_3797 / right_3798 */
+    { OT_FDB_HBAR,      OD_HIDDEN,                             NULL         }, /* bosshealthbar1_3800 / 2_3801 */
+    { OT_FDB_XHAIR,     OD_HIDDEN,                             NULL         }, /* brevoncrosshair6_3790 / 7_3791 */
+    { OT_FDB_CAPE,      OD_HIDDEN,                             NULL         }, /* brevondummycape_3792 */
+    { OT_FDB_BHIT,      OD_HIDDEN,                             NULL         }, /* brevonhitbox_3809 (Q20, runtime) */
+    { OT_FDB_RT,        0,                                     NULL         }, /* runtime objects of the module */
     /* ==== end Final Dreadnought */
 };
 static objdef_t BY_TYPE[MAX_OT];
