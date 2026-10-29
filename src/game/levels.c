@@ -301,8 +301,8 @@ static const exit_t EX_FD2A[] = { { 1, 0, -50, 1100, 32767, NULL } };   /* 15652
  * 99 explosions; the enemy / gimmick / boss modules add theirs */
 static const short SFX_FD1A[] = { 62, 99, 98, 311, 354, 54, 70, 132, 38, 319, 320, 192, 233, 29, 345, 346, 28, 358, 274, 359, 360 };   /* + fd1a's entry: 98 / 99 / 311 (15298), 354 (15300) */ static const short SFX_FD1B[] = { 62, 99, 70, 172, 173, 237, 312, 132, 38, 311, 319, 320, 192, 233, 29, 345, 346, 28, 358, 274, 359, 360, 279, 381 };
 static const short SFX_FD2A[] = { 62, 99, 192, 233, 29, 345, 346, 28, 311, 274, 371, 49, 368, 369, 241, 279, 280, 285, 286, 37 }; static const short SFX_FD2B[] = { 62, 99, 192, 233, 29, 345, 346, 28, 311, 358, 371, 49, 368, 369, 370, 241, 51, 262, 372, 279, 280, 285, 286, 37 };
-static const short SFX_FD3A[] = { 62, 99, 254, 310, 376, 38, 132, 311, 319, 320, 192, 233, 29, 345, 346, 379, 70, 279, 280 }; static const short SFX_FD3B[] = { 62, 99, 254, 376, 38, 310, 132, 311, 319, 320, 192, 233, 29, 345, 346, 379, 70, 279, 280 };
-static const short SFX_FD4A[] = { 62, 99, 171, 328, 329, 254, 376, 38, 310, 192, 233, 29, 345, 346, 17, 388, 270, 344 }; static const short SFX_FD4B[] = { 62, 99, 171, 29, 17, 344 };
+static const short SFX_FD3A[] = { 62, 99, 254, 310, 376, 38, 132, 311, 319, 320, 192, 233, 29, 345, 346, 379, 70, 279, 280 }; static const short SFX_FD3B[] = { 62, 99, 254, 376, 38, 310, 132, 311, 319, 320, 192, 233, 29, 345, 346, 379, 70, 279, 280, 17, 21, 23, 24, 25, 28, 30, 41, 51, 76, 165, 166, 286, 373, 374, 380, 389, 390, 392, 425 };
+static const short SFX_FD4A[] = { 62, 99, 171, 328, 329, 254, 376, 38, 310, 192, 233, 29, 345, 346, 17, 388, 270, 344 }; static const short SFX_FD4B[] = { 62, 99, 171, 29, 17, 344, 21, 24, 28, 38, 47, 55, 76, 165, 192, 295, 311, 319, 320, 341, 342, 343, 347, 348, 390, 393, 395, 406, 407, 408 };
 #define FD(d, f, st, n, sx, mus) .dir = d, .frame = f, .stage = st, .act = n, .nacts = 2, .music = mus, .checkpoints = 1, .sfx = sx, .nsfx = N_(sx)
 #define PL(d, f, n, mus) .dir = d, .frame = f, .stage = 7, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_PL##n, .nsfx = N_(SFX_PL##n), .lilac_only = 1
 #define TB(d, f, n, mus) .dir = d, .frame = f, .stage = 6, .act = n, .nacts = 6, .music = mus, .checkpoints = 1, .sfx = SFX_TB##n, .nsfx = N_(SFX_TB##n)
@@ -495,7 +495,7 @@ static const level_def_t LEVELS[] = {
       .max_objs = 1280 },
     { FD("fd4a", 71, 13, 1, SFX_FD4A, "bgm/m_stage10d.adp"), .mus4 = "bgm/m_midboss.adp", .mus7 = "bgm/m_stage10d.adp", .start_card = 1,
       .cps = CP_FD4A, .ncps = N_(CP_FD4A), .exit_hold = 100, .max_objs = 1280 },
-    { FD("fd4b", 72, 13, 2, SFX_FD4B, "bgm/m_stage10e.adp"), .mus4 = "bgm/m_boss7.adp", .mus4b = "bgm/m_boss5.adp", .mus4b_g4 = 3,
+    { FD("fd4b", 72, 13, 2, SFX_FD4B, "bgm/m_stage10e.adp"), .mus4 = "bgm/m_boss5.adp", .mus4b = "bgm/m_boss7.adp", .mus4b_g4 = 3,   /* RV fd_bosses_b b1_0 f 631 / b4_0 f 4439: m_boss5 intro -> suit, m_boss7 Brevon (g4 3) */
       .mus6 = "bgm/m_boss7.adp", .mus7 = "bgm/m_stage10e.adp" /* no wipe (handle_frame_73 has no 8547-8549): the final boss's
       script ends the results (results_request_end) and results.c's stage end starts the ending (ending.c) */ },
 };
