@@ -20,8 +20,9 @@ Evidence (RE build/re, RV original traces of session 26c, scratch only: rv1 / rv
  9. FD1a's jumbotron dialog: voices br_pa_01 (15273) / br_pa_02 (B 20, 15279) and the subtitle paragraphs (RV fd1a_dlg: both voices
     at 650 / 669 for the teleport at 650; f700 paragraph 0 in two rows; late_gim f532 paragraph 1).
 10. FD transporter nodes are visible (RV fd1a_node f440: the plain junction circles at (1152, 224) / (1408, 224)).
-11. SB3's back eyes stand on json layer 1 (0.8 scroll): with the player at the eye's own x the eye is out of its layer's view and
-    does not fade (RV sb3_eye: A stays 0); TB3 / TB6 heat sky compared with the original's shots (p7_l / x2_l) by hand (log).
+11. SB3's back eyes stand on json layer 1 (0.8 scroll) and only SBBackEye2 (the glow, list Frames + 0x125b0) fades (RV sb3_eye rv2:
+    TP 7893 495: the glow's A + 4 a frame, the base eye's A 0, the eye on screen); TB3 / TB6 heat sky compared with the original's
+    shots (p7_l / x2_l) by hand (BUILD_AND_TEST_LOG).
 usage: test_small_fixes.py [data_dir]   (default: converted2)"""
 import os, re, subprocess, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
