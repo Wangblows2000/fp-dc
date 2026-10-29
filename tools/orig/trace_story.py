@@ -5,7 +5,8 @@
 # Output <out> (one line per event, frame numbers = logic frames since attach):
 #   F <f> <frame index>                  GameManager::set_frame (the frame that starts next)
 #   G <f> g0 g1 ... g15                  global values when any of them changed
-#   O <f> <obj> <class> x y anim afr dir vis img_anim img_dir img_frame [A=v ...]   an object's state when it changed
+#   O <f> <obj> <class> x y anim afr dir vis img_anim img_dir img_frame [A=v ...] [a=v]   an object's state when it changed
+#                                         (a: fades only, the blend byte +0x5f = the cover's alpha, 255 opaque; arc 3)
 #                                         (vis: the FrameObject flags word; img_*: the image shown, from images_<class>_<a>_<d>)
 #   D <f> <obj>                          object gone (vtable changed / freed)
 #   S <f> id|str <value>                 Media::play_id / Media::play (sounds, voices, music; channel, loop)
@@ -171,6 +172,7 @@ class Story(gdb.Breakpoint):
                 ia = self.imgmap.get(img, (-1, -1, -1))
                 s = '%d %d %d %d %d %x %d %d %d %s' % (x, y, aid, afr, dr, fl, ia[0], ia[1], ia[2],
                                                     ' '.join('%s=%.6g' % (chr(65 + i), v) for i, v in enumerate(vals) if v))
+                if c.startswith(('levelcardfade', 'fade')): s += ' a=%d' % m[0x5f]   # the blend byte (+0x5f, RE 20953 / 20996: the fade's alpha)
             except Exception:
                 continue
             if self.last.get(ob) != s:
