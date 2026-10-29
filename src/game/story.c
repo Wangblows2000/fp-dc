@@ -408,6 +408,17 @@ void story_draw_overlay(void) {
     if (S.paused) game_pause_panel(SC[S.scene].panel == 2 ? 2 : 1, S.wipe_f ? -1 : S.sel, S.wipe_f, S.wipe_x);   /* GUIPause frame 1 / 2 (RV) */
 }
 
+/* verification discs only (plat_dc.c demo "SCENE"): an Adventure run without a save file, then the scene, through the same
+ * start path as a trigger (story_gate() still decides). Session 25: Flycast VRAM / sound RAM of every story room. */
+int story_verify_play(const char *name, int character) {
+    table_load();
+    if (S.scene >= 0) leave_scene();                        /* the previous verification scene, without its completion */
+    story_reset();
+    fe_mode = 2; G.file_mode = 0; G.file_slot = -1; G.file_new = 1; G.time_attack = 0;
+    G.character = character; S.run = 1; S.last_stage = -1;
+    return start_scene(story_scene_id(name));
+}
+
 #ifdef FP_HOST_ENV
 void story_host_dump(void) {
     unsigned long long seen = 0; for (int i = 0; i < 64; i++) if (story_seen(i)) seen |= 1ull << i;
