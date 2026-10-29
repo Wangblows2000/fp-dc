@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """The permanent scene numbers (tables/story/sids.json, session 25): save v5 keeps the seen flags and each file's story
 position by these numbers, so they must never change. This test freezes the numbers given so far: a number may be added
-(the next free one), never changed or reused; every scene of scenes.json has one; all are below STORY_MAX (64).
+(the next free one), never changed or reused; every scene of scenes.json has one, or (a character variant, session 25b)
+names its base scene in sid_of: same json frame and g4, the base numbered, so it shares the base's number; all are below
+STORY_MAX (64).
 usage: test_story_sids.py"""
 import json, os, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -49,7 +51,11 @@ FROZEN = {
  "game_intro": 39
 }
 sid = json.load(open(os.path.join(T, 'sids.json'), encoding='utf-8'))['sid']
-scenes = [s['id'] for s in json.load(open(os.path.join(T, 'scenes.json'), encoding='utf-8'))['scenes']]
+SC = {s['id']: s for s in json.load(open(os.path.join(T, 'scenes.json'), encoding='utf-8'))['scenes']}
+json_of = lambda r: r // 100 if r >= 1000 else r
+def variant_ok(i):   # a variant (sid_of): its base is numbered and is the same json frame and g4
+    b = SC[i].get('sid_of'); return b in sid and b in SC and json_of(SC[b]['room']) == json_of(SC[i]['room']) and SC[b]['g4'] == SC[i]['g4']
+scenes = [i for i in SC if i in sid or not variant_ok(i)]   # the variants share their base's number
 fails = 0
 def check(name, cond, info=''):
     global fails

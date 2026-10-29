@@ -478,8 +478,8 @@ def build_data(a, inp):
          [os.path.join(gal, 'gal_manifest.csv')], lambda: run(py(ca, 'gallery', audio, voices, voices, gal)))
     # Adventure scenes (session 25, docs/ADVENTURE.md): the scene table, scripts, dialogue and story rooms from the committed
     # tables/story (tools/import_story.py), then one voice clip per line from the install's voices (convert_audio.py story:
-    # a placeholder or missing clip is left out and its line is shown text-only). After the sfx step: the story step adds
-    # the scripts' sound ids that sfx/ lacks.
+    # a placeholder or missing clip is left out and its line is shown text-only), and the scripts' sound ids as story/sfx
+    # copies (11025 Hz, tails trimmed).
     sty = os.path.join(out, 'story')
     tstory = T('tools/import_story.py', 'tables/story')
     step(st, 9, total, 'story', 'Adventure scenes and story rooms', st.key(base, tools_py, tstory),

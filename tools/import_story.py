@@ -13,6 +13,7 @@ Inputs (all committed, read from the Linux 1.21.5 program once: tables/README.md
   tables/story/rows.json     the sprite rows each script draws (tools/import_frame.py story_rows puts them in st<json>_ens)
 Outputs:
   story/story.txt            the scene table the game reads (only the ported scenes; src/game/story.c)
+  story/inline.txt           the in-stage scenes (next 'back': played over the loaded stage, no room; session 25b)
   story/<id>.scn             the scripts
   story/captions.txt         the scene captions ("Three days later," ...): '<str_ symbol> <text>' lines
   story/dlg_<handle>.txt     the paragraphs of each DialogData object a script uses, one per line (Latin-1, as the original)
@@ -39,19 +40,31 @@ def sids():
     """tables/story/sids.json: the permanent scene numbers (seen flags, saved story position; append-only)"""
     return json.load(open(os.path.join(TABLES, 'sids.json'), encoding='utf-8'))['sid']
 
-def write_table(out, sc):
+def sid_for(s, sid):
+    """a scene's number: its own, or (a character variant: scenes.json 'sid_of', session 25b) its base scene's. A variant is the
+    same story scene staged for another character (same json frame and g4, story.c chr_variant): it shares the seen flag and
+    the story position, so the 64 numbers are not spent on variants"""
+    if s['id'] in sid: return sid[s['id']]
+    if s.get('sid_of') in sid: return sid[s['sid_of']]
+    sys.exit('import_story: scene %s has no number in tables/story/sids.json (append the next free one, or name its base '
+             'scene in sid_of when it is a character variant)' % s['id'])
+
+def inline(s): return s.get('next') == 'back'      # an in-stage scene (session 25b: RM5's Adventure dialogue): story/inline.txt, no room
+
+def write_table(out, sc, which='story'):
     rows = ['# Adventure story scenes (tools/import_story.py from tables/story/scenes.json): id room g4 next sid= [skip=] [stage=] [panel=] [trig=] [chr=]']
+    if which == 'inline': rows[0] = '# in-stage scenes (played over the stage that is loaded, story.c story_inline_begin): same columns; room = the stage\'s json frame'
     sid = sids()
     for s in ported(sc):
-        if s['id'] not in sid: sys.exit('import_story: scene %s has no number in tables/story/sids.json (append the next free one)' % s['id'])
-        r = '%s %d %d %s sid=%d' % (s['id'], s['room'], s['g4'], step(s.get('next')), sid[s['id']])
+        if inline(s) != (which == 'inline'): continue
+        r = '%s %d %d %s sid=%d' % (s['id'], s['room'], s['g4'], step(s.get('next')), sid_for(s, sid))
         if s.get('skip') and s['skip'] != s.get('next'): r += ' skip=%s' % s['skip']
         if s.get('stage'): r += ' stage=%s' % s['stage']
         r += ' panel=%d' % s.get('panel', 1)
         for t in s.get('triggers', []): r += ' trig=%s' % t
         if s.get('chr', 7) != 7: r += ' chr=%d' % s['chr']
         rows.append(r)
-    with open(os.path.join(out, 'story', 'story.txt'), 'w', encoding='utf-8', newline='\n') as f: f.write('\n'.join(rows) + '\n')
+    with open(os.path.join(out, 'story', which + '.txt'), 'w', encoding='utf-8', newline='\n') as f: f.write('\n'.join(rows) + '\n')
     return len(rows) - 1
 
 def dialog_handles(sc):
@@ -68,7 +81,7 @@ def main():
     sc = scenes()
     os.makedirs(os.path.join(out, 'story'), exist_ok=True)
     if '--rooms-only' not in a:
-        n = write_table(out, sc)
+        n = write_table(out, sc); n += write_table(out, sc, 'inline')
         for s in ported(sc):
             shutil.copyfile(os.path.join(TABLES, 'scripts', s['id'] + '.scn'), os.path.join(out, 'story', s['id'] + '.scn'))
         D = json.load(open(os.path.join(TABLES, 'dialog.json'), encoding='utf-8'))['dialog']
@@ -82,8 +95,9 @@ def main():
         print('story: %d scenes of %d ported, %d dialogue objects' % (n, len(sc), len(dialog_handles(sc))))
     if '--no-rooms' not in a:
         # a room is st<room> built from json frame <room>, or from 'frame' for a split room (one per scene of a large frame:
-        # frame 83's scenes are st83<list>, cropped to their views by tools/import_frame.py; docs/ADVENTURE.md)
-        rooms = sorted({(s['room'], s.get('frame', s['room'])) for s in ported(sc)})
+        # frame 83's scenes are st83<list>, cropped to their views by tools/import_frame.py; docs/ADVENTURE.md); in-stage scenes
+        # have none
+        rooms = sorted({(s['room'], s.get('frame', s['room'])) for s in ported(sc) if not inline(s)})
         env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
         def one(rf):
             subprocess.run([sys.executable, '-B', os.path.join(ROOT, 'tools', 'build_level.py'), str(rf[1]), 'st%d' % rf[0], out],

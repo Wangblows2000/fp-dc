@@ -102,6 +102,42 @@
 ]
 },
 {
+"id": "rm5_spade",
+"title": "(Relic Maze act 5, Adventure: the Kingdom Stone and Spade, in the stage)",
+"room": 29,
+"g4": 0,
+"triggers": [],
+"next": "back",
+"skip": "back",
+"panel": 3,
+"chr": 1,
+"dialog": 1624,
+"lines": [
+0,
+14
+],
+"evidence": "RE 6864 (RM5 leaving the labyrinth: g0 >= 2, g1 < 4, ML flag 0x80 off -> group 0x22517, events 6600-6730, m_trouble; spec_rm_mantalith 1.3); RE 6680 / 6885 (stone D 14: control back); RV b28_g0_l (teleport to x 2600, run right: the exit fade, the dialogue 249-1571, lines 0-14, Lilac standing at (3453, 938) after it); the pause group is off from 6861 (no pause menu: panel 3)",
+"missing": "the light rays and the hook line are drawn by rm_mantalith.c from the scene's stone (their scale / angle are not traced: the 6901 / 6880 rules, INFERRED)"
+},
+{
+"id": "rm5_spade_c",
+"sid_of": "rm5_spade",
+"title": "(Relic Maze act 5, Adventure: the Kingdom Stone and Spade, in the stage), Carol",
+"room": 29,
+"g4": 0,
+"triggers": [],
+"next": "back",
+"skip": "back",
+"panel": 3,
+"chr": 2,
+"dialog": 1624,
+"lines": [
+0,
+14
+],
+"evidence": "RV b28_g0_c (g1 2): the room as the original stages it for Carol (its own line(s), the skins' places); trigger, steps and pause as rm5_spade"
+},
+{
 "id": "rm_hideout",
 "list": 4,
 "title": "Relic Maze (Milla's Hideout)",
@@ -110,16 +146,17 @@
 "triggers": [
 "end:0"
 ],
-"next": "route",
+"next": "stage:rm1",
+"skip": "scene:st_bad_news",
+"stage": "fn1",
 "panel": 2,
 "chr": 4,
 "dialog": 3923,
 "lines": [
 0,
-6
+7
 ],
-"evidence": "RE frame 8 (I 0, Aqua Tunnel = Milla's first stage -> frame 76 g4 4); RE CutsceneList K 5 -> 76 with g1 4 (debug: g4 0); lines by content (Milla and Mr. Stumpy): INFERRED",
-"missing": "not traced (phase 2)"
+"evidence": "RE frame 8 (I 0, Aqua Tunnel, Milla -> frame 76 g4 4); RV b76_g4_m (lines 0-7: Milla, Mr. Stumpy, the dragon; the wipe (sound 56) from 1807, frame 24 = RM1 at 1858); RE 19134: SKIP SCENE with g4 >= 3 -> frame 82 g4 0; RE 19136: NEXT STAGE with g4 >= 2 -> frame 29 (FN1); RE CutsceneList K 5 names frame 76 with g4 0 and g1 4 (the debug list; frame 8 uses g4 4)"
 },
 {
 "id": "rm_collapse",
@@ -130,16 +167,39 @@
 "triggers": [
 "end:2"
 ],
-"next": "route",
+"next": "scene:rm_meet_milla",
+"skip": "scene:st_bad_news",
+"stage": "fn1",
 "panel": 2,
-"chr": 6,
+"chr": 2,
 "dialog": 3923,
 "lines": [
-70,
-74
+71,
+75
 ],
-"evidence": "RE frame 8 (I 2 with g1 2 / 4 -> frame 76 g4 3); RE CutsceneList K 6 -> 76 g4 3 g1 2; lines by content (Carol trapped, li_04_06 .. go_01_04): INFERRED",
-"missing": "not traced (phase 2); RM5's Adventure dialog (DialogData_1624, RE group 0x22517, D-064) precedes it"
+"evidence": "RE frame 8 (I 2 with g1 2 / 4 -> frame 76 g4 3); RE CutsceneList K 6 -> 76 g4 3 g1 2; RV b76_g3_c / b76_g3_m (lines 71-75: Lilac is trapped, Carol / Milla go on; the room again with g4 2 at 1206 = Meet Milla as Carol / Milla see it, RE 19077: A 8, B > 240); RE 19134: SKIP SCENE with g4 >= 3 -> frame 82 g4 0 (Gong's Bad News); RE 19136: NEXT STAGE -> frame 29 (FN1)"
+},
+{
+"id": "rm_collapse_m",
+"sid_of": "rm_collapse",
+"list": 5,
+"title": "Relic Maze (Cave Collapse), Milla",
+"room": 77,
+"g4": 3,
+"triggers": [
+"end:2"
+],
+"next": "scene:rm_meet_milla",
+"skip": "scene:st_bad_news",
+"stage": "fn1",
+"panel": 2,
+"chr": 4,
+"dialog": 3923,
+"lines": [
+71,
+75
+],
+"evidence": "RV b76_g3_m (g1 4): the room as the original stages it for Milla (its own line(s), the skins' places); trigger, steps and pause as rm_collapse"
 },
 {
 "id": "st_bad_news",
@@ -170,34 +230,195 @@
 "triggers": [
 "end:2"
 ],
-"next": "route",
+"next": "scene:st_bad_news",
+"skip": "scene:st_bad_news",
+"stage": "fn1",
 "panel": 2,
 "chr": 1,
 "dialog": 3923,
 "lines": [
-26,
-69
+28,
+70
 ],
-"evidence": "RE frame 8 (I 2 with g1 0 -> frame 76 g4 2); RE CutsceneList K 8 -> 76; lines by content: INFERRED",
-"missing": "not traced (phase 2; the s76_g2 trace attempt failed to start)"
+"evidence": "RE frame 8 (I 2 with g1 0 -> frame 76 g4 2); RE CutsceneList K 8 -> 76 g4 2; RV b76_g2_l (room 77 g4 2: lines 28-70, Lilac and Carol out of the cave, Milla; a fade to black from 3020, frame 82 g4 0 at 3084 = Gong's Bad News); RE 19133: SKIP SCENE with g4 2 -> frame 82 g4 0; RE 19136: NEXT STAGE with g4 >= 2 -> frame 29 (FN1); Carol / Milla: the same room after Cave Collapse (RV b76_g2_c / b76_g2_m)",
+"missing": "line 27 (ca_06_01) is not shown on the RV route"
+},
+{
+"id": "rm_meet_milla_c",
+"sid_of": "rm_meet_milla",
+"list": 7,
+"title": "Relic Maze (Meet Milla), Carol",
+"room": 77,
+"g4": 2,
+"triggers": [],
+"next": "scene:st_bad_news",
+"skip": "scene:st_bad_news",
+"stage": "fn1",
+"panel": 2,
+"chr": 2,
+"dialog": 3923,
+"lines": [
+27,
+70
+],
+"evidence": "RV b76_g2_c (g1 2): the room as the original stages it for Carol (its own line(s), the skins' places); trigger, steps and pause as rm_meet_milla"
+},
+{
+"id": "rm_meet_milla_m",
+"sid_of": "rm_meet_milla",
+"list": 7,
+"title": "Relic Maze (Meet Milla), Milla",
+"room": 77,
+"g4": 2,
+"triggers": [],
+"next": "scene:st_bad_news",
+"skip": "scene:st_bad_news",
+"stage": "fn1",
+"panel": 2,
+"chr": 4,
+"dialog": 3923,
+"lines": [
+27,
+70
+],
+"evidence": "RV b76_g2_m (g1 4): the room as the original stages it for Milla (its own line(s), the skins' places); trigger, steps and pause as rm_meet_milla"
 },
 {
 "id": "th_torque_revealed",
 "list": 8,
 "title": "Lilac's Treehouse (Torque Revealed)",
 "room": 16,
-"g4": null,
+"g4": 11,
 "triggers": [],
-"next": "route",
+"next": "scene:th_torque_revealed2",
+"skip": "scene:sg_brevon_plan",
+"stage": "fn1",
 "panel": 2,
-"chr": 7,
+"chr": 1,
 "dialog": 622,
 "lines": [
-32,
-98
+3,
+69
 ],
-"evidence": "lines by content (DialogData_622 in json 16): INFERRED",
-"missing": "trigger, g4: phase 2"
+"evidence": "RE CutsceneList K 9 -> frame 15 g4 11; RV b76_g2_l / b15_g11_l (after Gong's Bad News: frame 15 g4 11; lines 3-11, 31-47, 52, 54, 55, 64-69; the TV show, night, Torque's shell; then frame 69 g4 99 at 3049, RE 3764: A 21, B > 70); RE 3984: SKIP SCENE with g4 < 14 -> frame 82 g4 1 (Brevon's Plan); RE 3985: NEXT STAGE with g4 < 14 -> frame 29 (FN1)",
+"missing": "lines 0-2, 12-30, 48-51, 53, 56-63 of DialogData_622 are not shown on the RV routes (g1 0 / 2 / 4)"
+},
+{
+"id": "th_torque_revealed_c",
+"sid_of": "th_torque_revealed",
+"list": 8,
+"title": "Lilac's Treehouse (Torque Revealed), Carol",
+"room": 16,
+"g4": 11,
+"triggers": [],
+"next": "scene:th_torque_revealed2",
+"skip": "scene:sg_brevon_plan",
+"stage": "fn1",
+"panel": 2,
+"chr": 2,
+"dialog": 622,
+"lines": [
+3,
+69
+],
+"evidence": "RV b15_g11_c (g1 2): the room as the original stages it for Carol (its own line(s), the skins' places); trigger, steps and pause as th_torque_revealed"
+},
+{
+"id": "th_torque_revealed_m",
+"sid_of": "th_torque_revealed",
+"list": 8,
+"title": "Lilac's Treehouse (Torque Revealed), Milla",
+"room": 16,
+"g4": 11,
+"triggers": [],
+"next": "scene:sg_brevon_plan",
+"skip": "scene:sg_brevon_plan",
+"stage": "fn1",
+"panel": 2,
+"chr": 4,
+"dialog": 622,
+"lines": [
+15,
+91
+],
+"evidence": "RV b15_g11_m (g1 4): Milla's Torque Revealed (lines 15-19, 76-78, 80-91; no flashback, no part 3: frame 82 g4 1 = Brevon's Plan at 2688); pause as th_torque_revealed (RE 3984 / 3985)"
+},
+{
+"id": "th_torque_revealed2",
+"list": 8,
+"title": "Lilac's Treehouse (Torque Revealed), part 2 (the flashback: the Dreadnought)",
+"room": 70,
+"g4": 99,
+"triggers": [],
+"next": "scene:th_torque_revealed3",
+"skip": "scene:th_torque_revealed3",
+"panel": 3,
+"chr": 5,
+"dialog": 3616,
+"lines": [
+0,
+1
+],
+"evidence": "RE 3764 (frame 15: A 21, B > 70 -> frame 69 g4 99); RV b15_g11_l 3049-3377 (FD3A's frame as the set: flashbackbg, Torque's lines to_03_14 / to_03_15; frame 15 g4 13 at 3377, RE 16113); RV k69_g99_skip: START opens no pause menu (panel 3)"
+},
+{
+"id": "th_torque_revealed2_c",
+"sid_of": "th_torque_revealed2",
+"list": 8,
+"title": "Lilac's Treehouse (Torque Revealed), part 2 (the flashback: the Dreadnought), Carol",
+"room": 70,
+"g4": 99,
+"triggers": [],
+"next": "scene:th_torque_revealed3",
+"skip": "scene:th_torque_revealed3",
+"panel": 3,
+"chr": 2,
+"dialog": 3616,
+"lines": [
+0,
+1
+],
+"evidence": "RV b15_g11_c (g1 2): the room as the original stages it for Carol (its own line(s), the skins' places); trigger, steps and pause as th_torque_revealed2"
+},
+{
+"id": "th_torque_revealed3",
+"list": 8,
+"title": "Lilac's Treehouse (Torque Revealed), part 3",
+"room": 16,
+"g4": 13,
+"triggers": [],
+"next": "scene:sg_brevon_plan",
+"skip": "scene:sg_brevon_plan",
+"stage": "fn1",
+"panel": 2,
+"chr": 5,
+"dialog": 622,
+"lines": [
+71,
+91
+],
+"evidence": "RE 16113 (frame 70: the flashback ends -> frame 15 g4 13); RV b15_g11_l 3377-4555 (lines 71-74, 76-78, 80-91; frame 82 g4 1 at 4555, RE 3875: A 17); RE 3984 / 3985 as part 1",
+"missing": "lines 75 and 79 are not shown on the RV routes"
+},
+{
+"id": "th_torque_revealed3_c",
+"sid_of": "th_torque_revealed3",
+"list": 8,
+"title": "Lilac's Treehouse (Torque Revealed), part 3, Carol",
+"room": 16,
+"g4": 13,
+"triggers": [],
+"next": "scene:sg_brevon_plan",
+"skip": "scene:sg_brevon_plan",
+"stage": "fn1",
+"panel": 2,
+"chr": 2,
+"dialog": 622,
+"lines": [
+71,
+91
+],
+"evidence": "RV b15_g11_c (g1 2): the room as the original stages it for Carol (its own line(s), the skins' places); trigger, steps and pause as th_torque_revealed3"
 },
 {
 "id": "sg_brevon_plan",
@@ -224,54 +445,178 @@
 "list": 10,
 "title": "Lilac's Treehouse (The Next Morning)",
 "room": 15,
-"g4": null,
+"g4": 12,
 "triggers": [],
-"next": "route",
+"next": "scene:np_gong_help",
+"skip": "scene:np_gong_help",
+"stage": "fn1",
 "panel": 2,
-"chr": 7,
+"chr": 1,
 "dialog": 550,
 "lines": [
 21,
 35
 ],
-"evidence": "lines by content: INFERRED",
-"missing": "trigger, g4: phase 2"
+"evidence": "RE CutsceneList K 11 -> frame 14 g4 12; RV b15_g11_l (after Brevon's Plan: frame 14 g4 12 at 6657; lines 21-35; frame 77 g4 0 at 8021, RE 3446: A 16); RE 3553: SKIP SCENE with g4 > 11 -> frame 77 g4 0; RE 3554: NEXT STAGE with g4 > 11 -> frame 29 (FN1)"
+},
+{
+"id": "th_next_morning_c",
+"sid_of": "th_next_morning",
+"list": 10,
+"title": "Lilac's Treehouse (The Next Morning), Carol",
+"room": 15,
+"g4": 12,
+"triggers": [],
+"next": "scene:np_gong_help",
+"skip": "scene:np_gong_help",
+"stage": "fn1",
+"panel": 2,
+"chr": 2,
+"dialog": 550,
+"lines": [
+23,
+35
+],
+"evidence": "RV b15_g11_c (g1 2): the room as the original stages it for Carol (its own line(s), the skins' places); trigger, steps and pause as th_next_morning"
+},
+{
+"id": "th_next_morning_m",
+"sid_of": "th_next_morning",
+"list": 10,
+"title": "Lilac's Treehouse (The Next Morning), Milla",
+"room": 15,
+"g4": 12,
+"triggers": [],
+"next": "scene:np_gong_help",
+"skip": "scene:np_gong_help",
+"stage": "fn1",
+"panel": 2,
+"chr": 4,
+"dialog": 550,
+"lines": [
+23,
+35
+],
+"evidence": "RV b15_g11_m (g1 4): the room as the original stages it for Milla (its own line(s), the skins' places); trigger, steps and pause as th_next_morning"
 },
 {
 "id": "np_gong_help",
 "list": 11,
 "title": "Northern Plateau (Gong's Help)",
 "room": 78,
-"g4": null,
+"g4": 0,
 "triggers": [],
-"next": "route",
+"next": "scene:sm_spade",
+"skip": "scene:sm_spade",
+"stage": "fn1",
 "panel": 2,
-"chr": 7,
+"chr": 1,
 "dialog": 3948,
 "lines": [
 0,
 21
 ],
-"evidence": "lines by content (DialogData_3948, json 78): INFERRED",
-"missing": "phase 2"
+"evidence": "RE CutsceneList K 12 -> frame 77 g4 0; RV b15_g11_l 8021-10287 (lines 0-21; Gong breaks the totems; frame 78 g4 0 at 10287, RE 19249: A 25); RE 19312: SKIP SCENE -> frame 78 g4 0; RE 19313: NEXT STAGE -> frame 29 (FN1)"
+},
+{
+"id": "np_gong_help_c",
+"sid_of": "np_gong_help",
+"list": 11,
+"title": "Northern Plateau (Gong's Help), Carol",
+"room": 78,
+"g4": 0,
+"triggers": [],
+"next": "scene:sm_spade",
+"skip": "scene:sm_spade",
+"stage": "fn1",
+"panel": 2,
+"chr": 2,
+"dialog": 3948,
+"lines": [
+0,
+21
+],
+"evidence": "RV b15_g11_c (g1 2): the room as the original stages it for Carol (its own line(s), the skins' places); trigger, steps and pause as np_gong_help"
+},
+{
+"id": "np_gong_help_m",
+"sid_of": "np_gong_help",
+"list": 11,
+"title": "Northern Plateau (Gong's Help), Milla",
+"room": 78,
+"g4": 0,
+"triggers": [],
+"next": "scene:sm_spade",
+"skip": "scene:sm_spade",
+"stage": "fn1",
+"panel": 2,
+"chr": 4,
+"dialog": 3948,
+"lines": [
+0,
+21
+],
+"evidence": "RV b15_g11_m (g1 4): the room as the original stages it for Milla (its own line(s), the skins' places); trigger, steps and pause as np_gong_help"
 },
 {
 "id": "sm_spade",
 "list": 12,
 "title": "Shang Mu (Spade Encounter)",
 "room": 79,
-"g4": null,
+"g4": 0,
 "triggers": [],
-"next": "route",
+"next": "stage:fn1",
+"skip": "stage:fn1",
+"stage": "fn1",
 "panel": 2,
-"chr": 7,
+"chr": 1,
+"dialog": 3951,
+"lines": [
+0,
+17
+],
+"evidence": "RE CutsceneList K 13 -> frame 78 g4 0; RV b15_g11_l 10287-11948 (lines 0-17, Spade's cards, m_midboss; frame 29 = FN1 at 11948, RE 19467: A 8); RE 19698: SKIP SCENE / NEXT STAGE with g4 0 -> frame 29 (FN1)",
+"missing": "lines 18-19 are not shown on the RV routes"
+},
+{
+"id": "sm_spade_c",
+"sid_of": "sm_spade",
+"list": 12,
+"title": "Shang Mu (Spade Encounter), Carol",
+"room": 79,
+"g4": 0,
+"triggers": [],
+"next": "stage:fn1",
+"skip": "stage:fn1",
+"stage": "fn1",
+"panel": 2,
+"chr": 2,
+"dialog": 3951,
+"lines": [
+0,
+18
+],
+"evidence": "RV b15_g11_c (g1 2): the room as the original stages it for Carol (its own line(s), the skins' places); trigger, steps and pause as sm_spade"
+},
+{
+"id": "sm_spade_m",
+"sid_of": "sm_spade",
+"list": 12,
+"title": "Shang Mu (Spade Encounter), Milla",
+"room": 79,
+"g4": 0,
+"triggers": [],
+"next": "stage:fn1",
+"skip": "stage:fn1",
+"stage": "fn1",
+"panel": 2,
+"chr": 4,
 "dialog": 3951,
 "lines": [
 0,
 19
 ],
-"evidence": "lines by content: INFERRED",
-"missing": "phase 2"
+"evidence": "RV b15_g11_m (g1 4): the room as the original stages it for Milla (its own line(s), the skins' places); trigger, steps and pause as sm_spade"
 },
 {
 "id": "fn_panther_defeated",
@@ -282,16 +627,62 @@
 "triggers": [
 "end:3"
 ],
-"next": "route",
+"next": "scene:sm_zao_dinner",
+"skip": "scene:sm_zao_dinner",
+"stage": "sb1",
 "panel": 2,
-"chr": 7,
+"chr": 1,
 "dialog": 3951,
 "lines": [
 20,
-53
+49
 ],
-"evidence": "RE frame 8 (I 3, Fortune Night -> frame index 78 = json 79, g4 1); lines by content: INFERRED",
-"missing": "phase 2"
+"evidence": "RE frame 8 (I 3, Fortune Night -> frame 78 g4 1); RE CutsceneList K 14 -> 78 g4 1; RV b78_g1_l (lines 20, 24, 25, 27-31, 33-49: Serpentine, the chase, Mayor Zao; frame 82 g4 4 = Zao's Dinner at 2993, RE 19641: A 35); RE 19699: SKIP SCENE with g4 not 0 / 2 -> frame 82 g4 4; RE 19701: NEXT STAGE with g4 != 0 -> frame 35 g4 0 (SB1)",
+"missing": "lines 21-23, 26, 32 and 50-53 are not shown on the RV routes"
+},
+{
+"id": "fn_panther_defeated_c",
+"sid_of": "fn_panther_defeated",
+"list": 13,
+"title": "Fortune Night (Robopanther Defeated), Carol",
+"room": 79,
+"g4": 1,
+"triggers": [
+"end:3"
+],
+"next": "scene:sm_zao_dinner",
+"skip": "scene:sm_zao_dinner",
+"stage": "sb1",
+"panel": 2,
+"chr": 2,
+"dialog": 3951,
+"lines": [
+21,
+49
+],
+"evidence": "RV b78_g1_c (g1 2): the room as the original stages it for Carol (its own line(s), the skins' places); trigger, steps and pause as fn_panther_defeated"
+},
+{
+"id": "fn_panther_defeated_m",
+"sid_of": "fn_panther_defeated",
+"list": 13,
+"title": "Fortune Night (Robopanther Defeated), Milla",
+"room": 79,
+"g4": 1,
+"triggers": [
+"end:3"
+],
+"next": "scene:sm_zao_dinner",
+"skip": "scene:sm_zao_dinner",
+"stage": "sb1",
+"panel": 2,
+"chr": 4,
+"dialog": 3951,
+"lines": [
+22,
+49
+],
+"evidence": "RV b78_g1_m (g1 4): the room as the original stages it for Milla (its own line(s), the skins' places); trigger, steps and pause as fn_panther_defeated"
 },
 {
 "id": "sm_zao_dinner",
@@ -361,18 +752,116 @@
 "list": 17,
 "title": "Zao's Airship",
 "room": 79,
-"g4": null,
+"g4": 2,
 "triggers": [],
-"next": "route",
+"next": "scene:zao_airship2",
+"skip": "scene:zao_airship2",
+"stage": "sb1",
 "panel": 2,
-"chr": 7,
+"chr": 1,
 "dialog": 3951,
 "lines": [
 58,
 62
 ],
-"evidence": "lines by content: INFERRED",
-"missing": "phase 2"
+"evidence": "RE 19700: SKIP SCENE with g4 2 -> frame 35 g4 99 (part 2); RE 19691: A 9, B > 1000 -> frame 35 g4 99; RE 19701: NEXT STAGE with g4 != 0 -> frame 35 g4 0 (SB1); RV r78_g1_l (after Zao's Help: frame 78 g4 2), RV b78_g2_l (lines 58-62, the airship leaves; frame 35 g4 99 at 2192)"
+},
+{
+"id": "zao_airship_c",
+"sid_of": "zao_airship",
+"list": 17,
+"title": "Zao's Airship, Carol",
+"room": 79,
+"g4": 2,
+"triggers": [],
+"next": "scene:zao_airship2",
+"skip": "scene:zao_airship2",
+"stage": "sb1",
+"panel": 2,
+"chr": 2,
+"dialog": 3951,
+"lines": [
+58,
+62
+],
+"evidence": "RV b78_g2_c (g1 2): the room as the original stages it for Carol (its own line(s), the skins' places); trigger, steps and pause as zao_airship"
+},
+{
+"id": "zao_airship_m",
+"sid_of": "zao_airship",
+"list": 17,
+"title": "Zao's Airship, Milla",
+"room": 79,
+"g4": 2,
+"triggers": [],
+"next": "scene:zao_airship2",
+"skip": "scene:zao_airship2",
+"stage": "sb1",
+"panel": 2,
+"chr": 4,
+"dialog": 3951,
+"lines": [
+58,
+62
+],
+"evidence": "RV b78_g2_m (g1 4): the room as the original stages it for Milla (its own line(s), the skins' places); trigger, steps and pause as zao_airship"
+},
+{
+"id": "zao_airship2",
+"list": 17,
+"title": "Zao's Airship, part 2 (on deck: SB1's frame with g4 99)",
+"room": 36,
+"g4": 99,
+"triggers": [],
+"next": "scene:zao_airship_ambush",
+"skip": "scene:zao_airship_ambush",
+"panel": 3,
+"chr": 1,
+"dialog": 2135,
+"lines": [
+11,
+32
+],
+"evidence": "RE CutsceneList K 18 -> frame 35 g4 99; RV b78_g2_l 2192-4186 (DialogData_2135 lines 11-23, 26-32 on Zao's deck; frame 82 g4 7 = Zao's Airship (Ambushed) at 4186, RE 8995: A 16); RE 9205: SKIP SCENE with g4 >= 99 -> frame 82 g4 7; RE 9206: NEXT STAGE with g4 >= 99 -> this frame with g4 0 (SB1), but RV k35_g99_skip (START at 300) and k35_g99_late (START at 600): START opens no pause menu here (the pause group 0x21a4d is off: RE 8965 / 8992 clear it) -> panel 3; 9205 / 9206 are not reached on the RV routes",
+"missing": "DialogData_2135 lines 0-10, 24-25 and 33-38 are not shown on the RV routes"
+},
+{
+"id": "zao_airship2_c",
+"sid_of": "zao_airship2",
+"list": 17,
+"title": "Zao's Airship, part 2 (on deck: SB1's frame with g4 99), Carol",
+"room": 36,
+"g4": 99,
+"triggers": [],
+"next": "scene:zao_airship_ambush",
+"skip": "scene:zao_airship_ambush",
+"panel": 3,
+"chr": 2,
+"dialog": 2135,
+"lines": [
+11,
+32
+],
+"evidence": "RV b78_g2_c (g1 2): the room as the original stages it for Carol (its own line(s), the skins' places); trigger, steps and pause as zao_airship2"
+},
+{
+"id": "zao_airship2_m",
+"sid_of": "zao_airship2",
+"list": 17,
+"title": "Zao's Airship, part 2 (on deck: SB1's frame with g4 99), Milla",
+"room": 36,
+"g4": 99,
+"triggers": [],
+"next": "scene:zao_airship_ambush",
+"skip": "scene:zao_airship_ambush",
+"panel": 3,
+"chr": 4,
+"dialog": 2135,
+"lines": [
+26,
+32
+],
+"evidence": "RV b78_g2_m (g1 4): the room as the original stages it for Milla (its own line(s), the skins' places); trigger, steps and pause as zao_airship2"
 },
 {
 "id": "zao_airship_ambush",

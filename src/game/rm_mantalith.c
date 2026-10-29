@@ -17,6 +17,8 @@
  * head flags: 2 shockwaves done, 3 landing thud done, 7 defeat processed, 12 roar pending (flag 5 / 6 = the obj's armour
  * / defeated bits of the shared rules). */
 #include "../fp.h"
+#include "story.h"
+#include "cutscene.h"
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -68,6 +70,7 @@ static struct {
     double target;
     int timer_off, toff, kill_time;
     int res_on, post_fade, ended, postK;
+    int adv;                                                                  /* the Adventure dialogue (0x22517) is playing */
 } MT;
 #define B_(c) MT.b[(c) - 'A']
 #define H_(c) MT.h[(c) - 'A']
@@ -211,11 +214,21 @@ static void exit_events(player_t *p) {
     if (!MT.ex) return;
     if (MT.blkUp) MT.blk = 2 * (MT.blk >> 1) + 4 > 255 ? 255 : 2 * (MT.blk >> 1) + 4;   /* 6862 */
     p->face = 1; if (p->ground) { if (p->gsp < 3) p->gsp = 3; } else if (p->vx < 3) p->vx = 3;   /* CTRL.D = 1 (auto-run right; speed INFERRED) */
-    if (MT.blk >= 255) {                                                       /* 6865 (Classic; 6864 is Adventure only) */
+    if (MT.blk >= 255) {                                                       /* 6864 (Adventure) / 6865 (Classic) */
         p->x = 0; p->y = 1432 + ORIG_REF_DY; p->vx = p->vy = p->gsp = 0; p->face = 1; p->state = ST_NORMAL;
         p->scripted = 1;                                                       /* parked out of view (6881); player block off */
         MT.blkUp = 0; MT.blk = 255; MT.blkA = 0;                               /* fade2 destroyed; a black LevelCardFade at the view */
-        MT.g_exit = 0; MT.g_scene = 1;                                         /* MV.M = 0, group 0x22511 on */
+        MT.g_exit = 0;
+        /* 6864 (session 25b): g0 >= 2, g1 < 4 and ML flag 0x80 off -> the Adventure dialogue (group 0x22517, DialogData_1624,
+         * m_trouble), played as the in-stage scene rm5_spade (RV b28_g0_l / b28_g0_c, story.c story_inline_begin) */
+        if (!chr_is_milla(G.character) && !(G.stage_flags & 0x80) && story_gate()) {
+            G.stage_flags |= 0x80;                                             /* ML 0x80: once */
+            if (story_inline_begin("rm5_spade") == 0) {
+                MT.adv = 1; MT.blk = -1; MT.mus_fade = 0; music_volume(fe_music_volume); MT.sC = 888;
+                return;
+            }
+        }
+        MT.g_scene = 1;                                                        /* 6865: MV.M = 0, group 0x22511 on */
     }
 }
 
@@ -755,8 +768,23 @@ static void results_events(player_t *p) {
 }
 
 /* ===================================================================================================== hooks */
+/* the Adventure dialogue ended (6680: 0x22517 off, 0x22511 on with the stone's D at 14; 6885: control back without the
+ * position copy). The RV state at that frame (b28_g0_l 1571): Lilac standing at (3453, 938) facing right, the stone, Spade
+ * and the hook risen far out of view (stone A -3144, B -16, still rising: 6880), the camera following again (CAM.M 2) */
+static void adv_return(player_t *p) {
+    MT.adv = 0;
+    p->x = 3453; p->y = 938 + ORIG_REF_DY; p->vx = p->vy = p->gsp = 0; p->face = 1; p->state = ST_NORMAL; p->scripted = 0;
+    G.input_lock = 0; MT.timer_off = 0;
+    MT.sD = 4; MT.sA = -3144; MT.sB = -16; MT.g_scene = 1;
+    if (MT.stone) { MT.stone->y = (float)(int)(MT.sC + MT.sA); if (MT.spade) MT.spade->y = MT.stone->y; if (MT.hook) MT.hook->y = MT.stone->y - 31; }
+    for (int k = 0; k < 2; k++) if (MT.ks[k]) { MT.ks[k]->alive = 0; MT.ks[k] = NULL; }
+    G.cam.M3 = 0; G.cam_m2 = 1;
+    MT.mus_fade = 180;                                                         /* 6680: fadeout_music(3000) */
+}
+
 void rm_mantalith_frame(player_t *p) {
     if (!MT.on || MT.ended) return;
+    if (MT.adv) { if (story_inline_done()) adv_return(p); else return; }
     if (MT.timer_off) MT.toff++;
     if (MT.mus_fade > 0) { MT.mus_fade--; music_volume(fe_music_volume * MT.mus_fade / 180); if (!MT.mus_fade) { music_stop(); music_volume(fe_music_volume); } }   /* fadeout_music(3000), linear INFERRED */
     if (MT.g_exit) exit_events(p);
@@ -784,6 +812,12 @@ void rm_mantalith_draw(int front) {
         if (MT.blk > 0) r_fade(MT.blk / 255.f);
         if (MT.wht > 0) r_rect(0, 0, SCREEN_W, SCREEN_H, ((uint32_t)MT.wht << 24) | 0xffffff);
         return;
+    }
+    if (MT.adv && story_active()) {                                            /* the Adventure dialogue: the rays and the hook follow
+                                                                                * the scene's stone (the 6901 rule; the hook 31 px above it, as 6880: INFERRED) */
+        int a = csx_actor_find(1589, 0);
+        if (a >= 0) { MT.sA = csx_actor_y(a) - MT.sC; if (MT.hook && MT.sA < 0) MT.hook->y = csx_actor_y(a) - 31; }
+        MT.sD = MT.sA < 0 ? 2 : 1;
     }
     /* 6901: the two light rays at shrine + (24, 20): y-scale 100, x-scale min(-0.06 A, 8), angles closing as the stone rises
      * (drawn as a column of x-scaled squares, additive; the second ray mirrors the first: INFERRED for its > 35 branch) */

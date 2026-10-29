@@ -99,10 +99,10 @@ def expect_after(ev, i, step):
     if kind == 'stage':
         d = dumps(ev)
         return bool(d) and d[-1]['lv'] == arg and d[-1]['mode'] == '1' and d[-1]['run'] == '1'
-    st = starts(ev)
+    st = [sc.get(x, {}).get('sid_of', x) for x in starts(ev)]   # (a character variant of groups A / B, sid_of: its base scene)
     if arg in tab: return i in st and st.index(i) + 1 < len(st) and st[st.index(i) + 1] == arg
     # not ported in this data (another group's scene): story.c's step names no scene, the run ends (story_reset, menu)
-    ls = [l for f, l in ev if l.startswith('story ')]
+    ls = [l for f, l in ev if l.startswith('story ') and not l.startswith('story next ')]   # (the host's step line, session 25b)
     k = next((n for n, l in enumerate(ls) if l.startswith('story complete %s ' % i)), None)
     return k is not None and k + 1 < len(ls) and ls[k + 1] == 'story reset'
 
