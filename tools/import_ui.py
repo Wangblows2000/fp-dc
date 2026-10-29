@@ -48,6 +48,8 @@ def load_img(src, i):
         return im, hx, hy
     im = Image.open(os.path.join(src, 'img_%d.png' % i)).convert('RGBA')
     if i == title_credit.IMAGE_ID: im = title_credit.patch(im)      # port credit (intentional change)
+    if im.width > 1024:                  # session 24 (FD flow): a strip wider than an atlas (the stage select's bg13layer1, img 15180, 2048 x 50,
+        im = im.crop((0, 0, 1024, im.height))   # hot spot 0) keeps its left 1024 px: the preview window (272 px, no scroll) shows only that
     m = [int(v, 0) for v in open(os.path.join(src, 'img_%d_meta.txt' % i)).read().split()]
     hx, hy = [v - 65536 if v > 32767 else v for v in m[:2]]
     ax, ay = ([v - 65536 if v > 32767 else v for v in m[2:4]] if len(m) >= 4 else (hx, hy))
