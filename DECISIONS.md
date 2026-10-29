@@ -522,3 +522,10 @@ truth; cmp_all still passes 76/76, cmp_carol / cmp_milla are unchanged. DV2 / DV
 The JC5 rain (RE 11611-11618) adds the 12 s looping rain sound 293, which cannot have its tail trimmed without cutting the
 loop the original plays. The group goes 143.5 -> 209.6 KB, ~10 KB over the ~200 KB target. Accepted: Flycast shows the
 largest free sound RAM block during JC5 at 238 KB (Carol) / 261 KB (Milla). Nothing else may be added to JC5's group.
+
+## D-122 (session 25): story progress is saved by permanent scene numbers; character variants share their base's number
+Save v5 keeps one story byte per file and 64 seen flags. They first used the scene's row in story/story.txt, which shifts
+whenever a scene is ported (arc 3 inserted jc_cave_cm), so an old save would have pointed at other scenes. Each scene has a
+permanent number in tables/story/sids.json (append-only; tests/test_story_sids.py freezes the given ones), written into
+story.txt as sid=. A character variant (the same json frame and g4, chosen by chr_variant()) names its base scene with
+"sid_of" and shares its number, so the 64 numbers are enough (44 used + 3 in groups D / E at the end of session 25).

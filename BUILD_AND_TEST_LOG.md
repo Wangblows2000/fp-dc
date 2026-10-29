@@ -624,3 +624,35 @@ Labels: original-trace (RV), RE, host-test, emulator (Flycast, emulated time). *
 - Sound: FD1A's own group 68.0 -> 112.9 KB (br_pa_01 22.7 KB, br_pa_02 22.1 KB, resident voices), BG2 99.5 -> 105.1 KB (s102),
   Lilac's character set + 10.9 KB (s91, every act); JC5 unchanged.
 - Host and Dreamcast builds 0 warnings.
+
+## Session 25 (2026-10-29): builder fixes, DV fixes, Adventure mode, late-stage gimmicks
+- Suites: full regression SUITES_N suites 0 failures at the end (new: test_import_font, test_dv_fixes, test_adventure,
+  test_adventure_arc2 / arc3 / arc4, test_story_sids, test_late_gimmicks, test_gimmicks_m, test_small_fixes). Host and
+  Dreamcast builds 0 warnings. `fpbuild.py selftest` ok on both branches (prebuilt programs current).
+- Builder (D-119): a fresh clone of master built fpdc.cdi from the Windows Assets.dat (data dir = converted2 except the
+  font (the Windows sheet), two Lilac voice wavs and the manifests); the Windows builder under Wine 9.0 (Windows Python
+  3.13, the user's Data/font.bmp and voices) built fpdc.exe + data next to the script, and that fpdc.exe gives 60/65 frames
+  identical + 5 title frames within 1 % (pc/test_pc.sh); Linux prebuilt 65/65 identical after every rebuild. Bugs found on
+  the way and fixed: release 404 (prebuilt/), font texture too large (Windows font.bmp 256x2280), Access denied on a
+  rebuild (hard-linked read-only voices), pc\build_win32.bat quoting / compiler detection (renamed pc/compile_*).
+- DV fixes (D-120): cmp_all 76/76 (strict 11311 -> 11259 accepted), cmp_carol 43/53, cmp_milla 37/43 unchanged.
+- Flycast, story rooms (build/fpdc_s25story.cdi, tests/play/s25_story_verify.txt, 97 scene starts, 0 failures): lowest VRAM
+  free / lowest sound RAM free over the scene, Lilac / Carol / Milla in KB:
+  st15 2951/2807/2639 / 309/256/238; st16 2183/2039/1871 / 282/229/241; st1636 2955/2811/2643 / 237/185/167;
+  st36 1651/1507/1339 / 278/226/256; st3719 4256/4112/3944 / 350/298/280; st70 3948/3804/3636 / 345/292/274;
+  st76 2439/2295/2127 / 250/235/176; st77 2244/2100/1932 / 273/220/202; st78 3062/2918/2750 / 275/219/203;
+  st79 1039/895/727 / 295/243/225; st8019 2175/2031/1863 / 282/229/230; st8127 3705/-/- / 308/-/-;
+  st8129 3961/3817/3649 / 302/259/240; st82 3016/2872/2704 / 351/298/280; st8234 2252/2108/1940 / 280/201/185;
+  st8235 2764/2620/2452 / 197/144/127; st8236 3276/3132/2964 / 294/241/219; st8306 4055/3911/3743 / 356/303/286;
+  st8309 3927/3783/3615 / 252/199/182; st8314 4439/4295/4127 / 299/246/229; st8315 4055/3911/3743 / 243/190/172;
+  st8316 4407/4263/4095 / 261/208/191; st8318 4439/4295/4127 / 296/243/226; st8320 3927/3783/3615 / 268/215/198;
+  st8321 4472/4328/4160 / 269/216/199; st8322 4439/4295/4127 / 310/257/240; st8323 4216/4072/3904 / 214/171/144;
+  st8324 4183/4039/3871 / 289/241/219; st8325 3542/3398/3230 / 290/238/222; st8326 -/4163/3995 / -/224/206;
+  st8328 -/3910/3742 / -/277/259; st8330 3798/-/- / 303/-/-; st8331 -/3398/3230 / -/243/227;
+  st8332 4439/-/- / 279/-/-; st8333 3799/-/- / 283/-/-; st8336 3040/2896/2728 / 330/278/260
+  RM5 with Spade's dialogue rows: VRAM free 1548 / 1020 / 1188 KB. **Emulator only.**
+- Late-stage gimmicks: per agent reports (RE_NOTES "Session 26*"): JC2 / JC3 Carol 596 KB free unchanged, FD3a Carol ~2044
+  (est.), BG2 Carol ~1364 (est., small fixes: the fly-by plane and spring beams), JC5 sound group 209.6 KB (D-121; largest
+  free block 238 / 261 KB Carol / Milla in Flycast).
+- The user's personal CDI: builder output from master 418b9e8 (Windows Assets.dat, the user's voices), 442 MB, sha256
+  a4d7c7f4cc8618f236ecc59564682dfdf6b4f09f5e411ff7f770a93502c58469; boots in Flycast to the title / menu / file select.

@@ -362,9 +362,10 @@ VOX_PC="/mnt/user-data/uploads/Freedom Planet/Data/voices" \
 ## Session 25: one-step builder (BUILDING.md)
 `build_dreamcast.bat` / `.sh` (drag Assets.dat onto it) start a pinned portable Python (tools/builder/bootstrap.cmd /
 bootstrap.sh) that runs `tools/builder/fpbuild.py`: every step above in order from a dropped Assets.dat (Windows GOG or
-Linux 1.21.5) into one data dir, then the disc. Nothing else is needed on the user's computer: the tools are pinned
-downloads (tools/builder/downloads.json, fetch.py; the project's release builder-v1 has fpdc.elf, mkdcdisc, wav2adpcm and
-a Linux ffmpeg, made by tools/builder/build_release.sh).
+Linux 1.21.5) into one data dir, then the disc. Nothing else is needed on the user's computer: Python, its wheels and the
+Windows ffmpeg are pinned downloads (tools/builder/downloads.json, fetch.py); fpdc.elf, mkdcdisc, wav2adpcm and a Linux
+ffmpeg (and on pc-port the PC programs) are committed in prebuilt/ (D-119; tools/builder/build_release.sh [--program-only]
+rebuilds them and records each program's src_tree; `fpbuild.py selftest` fails on a stale one).
 - **The shell steps are Python now** (they run on Windows): `tools/build_level.py`, `tools/build_ending.py`,
   `tools/audio/convert_audio.py` (bgm / sfx / gallery; durations by tools/audio/oggdur.py, the same text as ffprobe on all
   1,928 .ogg), `tools/make_disc.py` (disc tree + mkdcdisc). `tools/build_level.sh`, `import_ending.sh`,
@@ -382,3 +383,9 @@ a Linux ffmpeg, made by tools/builder/build_release.sh).
   bg6, jc1, jc5, two lilac voice wavs: identical to a fresh run of the original shell scripts on the Linux inputs), the
   gallery manifest's source paths and the title atlas (the PC PRESS (X) art, which the port does not draw).
 
+- Later in session 25: the builder has 11 data steps (9: the Adventure scenes and story rooms, tools/import_story.py from
+  tables/story/; 10: one voice clip per story line, convert_audio.py story, text-only lines for stubs / missing clips; each
+  scene's own sound ids go to story/sfx). The results go next to the scripts. import_font.py keeps the top 256x60 of any
+  font.bmp (the Windows one is 256x2280). Voices are copied, not hard-linked, from the game folder. Story rooms of big frames
+  are split per scene (import_frame.py rows.json `frame` / `view` crop boxes, `vbox`); mirror-row aliases; still-pose
+  trimming. Sounds added this session: 20, 91, 102 (BG2 plane), 285 / 286 (FD3), 293 (JC5 rain loop), br_pa_01 / 02 (FD1a).
