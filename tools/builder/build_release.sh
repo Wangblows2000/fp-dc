@@ -1,19 +1,23 @@
 #!/bin/bash
-# Maintainers: build the files of the builder's GitHub release (builder-vN) and record them in tools/builder/downloads.json.
-#   tools/builder/build_release.sh [out_dir=build/builder_release]
+# Maintainers: build the prebuilt files of the drag-and-drop builder (committed in prebuilt/, D-119) and record them in
+# tools/builder/downloads.json (sha256, size; fpdc.elf also src_tree = the git tree of src/ it was built from: fpbuild.py
+# selftest fails when src/ has changed since, so a stale fpdc.elf cannot be committed unnoticed).
+#   tools/builder/build_release.sh [--program-only] [out_dir=prebuilt]
+#   --program-only: only fpdc.elf (after a change of src/); the tools below are pinned and rarely change
 # Builds, from this checkout and pinned upstream sources:
 #   fpdc.elf                 the Dreamcast program (KallistiOS: make, then sh-elf-strip)
 #   wav2adpcm.exe            third_party/wav2adpcm (mingw-w64, static) / wav2adpcm-linux-x86_64 (gcc -static)
 #   mkdcdisc.exe             mkdcdisc 2b98b0d9 (mingw-w64, its vendored libisofs, static) / mkdcdisc-linux-x86_64 (static,
 #                            libisofs 1.5.6.pl01 without ACL / xattr); sources: mkdcdisc-2b98b0d9-src.tar.gz, libisofs tarball
 #   ffmpeg-6.1.1-linux-x86_64  minimal static ffmpeg (LGPL: Ogg Vorbis / WAV in, 16-bit WAV out); source ffmpeg-6.1.1.tar.xz
-# then SHA256SUMS, and rewrites the entries of these files in downloads.json (sha256, size). Publish every file of <out_dir>
+# then SHA256SUMS, and rewrites the entries of these files in downloads.json (sha256, size). Commit every file of <out_dir>
 # as an asset of the release named in downloads.json's release_url, then commit downloads.json.
 # Needs: KallistiOS ($KOS_BASE or /opt/toolchains/dc/kos), mingw-w64 (posix threads) with libz-mingw-w64-dev and
 # win-iconv-mingw-w64-dev, gcc, meson, ninja, nasm, git, curl. Host-only tool (FP_HOST_ENV).
 set -eu
 REPO=$(cd "$(dirname "$0")/../.." && pwd)
-OUT=$(mkdir -p "${1:-$REPO/build/builder_release}" && cd "${1:-$REPO/build/builder_release}" && pwd)
+ONLY_PROGRAM=0; [ "${1:-}" = --program-only ] && { ONLY_PROGRAM=1; shift; }
+OUT=$(mkdir -p "${1:-$REPO/prebuilt}" && cd "${1:-$REPO/prebuilt}" && pwd)
 W=$REPO/build/release_work; mkdir -p "$W"
 MKDCDISC_REV=2b98b0d9480e364e3517355648fbc3b49fb19882
 FFMPEG_SHA=8684f4b00f94b85461884c3719382f1261f0d9eb3d59640a1f4ac0873616f968
@@ -29,6 +33,9 @@ KOS_ENV=${KOS_BASE:-/opt/toolchains/dc/kos}/environ.sh
 rm -rf "$W/src" && mkdir "$W/src" && git -C "$REPO" archive HEAD | tar x -C "$W/src"
 (cd "$W/src" && source "$KOS_ENV" && make -j"$J" > "$W/fpdc_make.log" 2>&1 && "$KOS_CC_BASE/bin/$KOS_CC_PREFIX-strip" -o "$OUT/fpdc.elf" fpdc.elf)
 git -C "$REPO" rev-parse --short HEAD > "$W/fpdc_commit.txt"
+git -C "$REPO" rev-parse HEAD:src > "$W/fpdc_src_tree.txt"
+chmod 755 "$OUT/fpdc.elf"
+if [ "$ONLY_PROGRAM" = 0 ]; then
 
 echo "== wav2adpcm"
 x86_64-w64-mingw32-gcc -O2 -static -s -o "$OUT/wav2adpcm.exe" "$REPO/third_party/wav2adpcm/wav2adpcm.c"
@@ -83,19 +90,20 @@ cp "$W/ffmpeg-6.1.1.tar.xz" "$OUT/"
      --enable-filter=abuffer,abuffersink,aresample,areverse,silenceremove,aformat,anull,atrim,anullsrc > "$W/ffmpeg.log" 2>&1 \
   && make -j"$J" >> "$W/ffmpeg.log" 2>&1 && strip -o "$OUT/ffmpeg-6.1.1-linux-x86_64" ffmpeg)
 chmod 755 "$OUT"/*-linux-x86_64 "$OUT/fpdc.elf"
+fi
 
 echo "== SHA256SUMS, downloads.json"
-(cd "$OUT" && sha256sum $(ls | grep -v -E '^(SHA256SUMS|RELEASE_NOTES.md)$') > SHA256SUMS)
-python3 - "$OUT" "$REPO/tools/builder/downloads.json" "$(cat "$W/fpdc_commit.txt")" <<'EOF'
+(cd "$OUT" && sha256sum $(ls | grep -v -E '^(SHA256SUMS|RELEASE_NOTES.md|README.md)$') > SHA256SUMS)
+python3 - "$OUT" "$REPO/tools/builder/downloads.json" "$(cat "$W/fpdc_commit.txt")" "$(cat "$W/fpdc_src_tree.txt")" <<'EOF'
 import hashlib, json, os, sys
-out, table, commit = sys.argv[1:4]
+out, table, commit, tree = sys.argv[1:5]
 t = json.load(open(table))
 for e in t['files']:
     p = os.path.join(out, e['name'])
     if 'url' in e or not os.path.isfile(p): continue
     e['sha256'] = hashlib.sha256(open(p, 'rb').read()).hexdigest(); e['size'] = os.path.getsize(p)
-    if e['name'] == 'fpdc.elf': e['source'] = 'commit %s' % commit
+    if e['name'] == 'fpdc.elf': e['source'] = 'commit %s' % commit; e['src_tree'] = tree
     print('%-40s %s' % (e['name'], e['sha256']))
 with open(table, 'w') as f: json.dump(t, f, indent=1); f.write('\n')
 EOF
-echo "done: $OUT (publish its files as the release assets; commit tools/builder/downloads.json)"
+echo "done: $OUT (commit prebuilt/ and tools/builder/downloads.json together)"

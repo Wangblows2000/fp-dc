@@ -3,7 +3,7 @@
 Freedom Planet builder: your Assets.dat -> the port's data dir -> the Dreamcast disc image.
 BUILDING.md has the user-facing description; build_dreamcast.bat / build_dreamcast.sh call this file.
 
-usage: fpbuild.py dc   <Assets.dat or the game folder> [options] [--cdi FILE] [--elf FILE]
+usage: fpbuild.py dc   [Assets.dat or the game folder] [options] [--cdi FILE (default: fpdc.cdi in the top folder)] [--elf FILE]
        fpbuild.py data <Assets.dat or the game folder> [options]
        fpbuild.py selftest
 options: --out DIR (data dir, default build/builder/data)  --work DIR (intermediates, default build/builder)
@@ -127,7 +127,41 @@ def link(src, dst):
     except OSError: shutil.copyfile(src, dst)
 
 # ------------------------------------------------------------------------------------------------------------- inputs
+GAME_DIRS = [r'C:\Program Files (x86)\Steam\steamapps\common\Freedom Planet', r'C:\Program Files\Steam\steamapps\common\Freedom Planet',
+             r'C:\GOG Games\Freedom Planet', r'C:\Program Files (x86)\GOG Galaxy\Games\Freedom Planet',
+             '~/.steam/steam/steamapps/common/Freedom Planet', '~/.local/share/Steam/steamapps/common/Freedom Planet',
+             '~/GOG Games/Freedom Planet']
+
+def auto_assets():
+    """no file given (double-clicked, or started without arguments): an Assets.dat in the project folder, the current folder,
+    up to three folders above the project (e.g. the project unpacked inside the Freedom Planet folder) or a usual Steam / GOG
+    install; else a file dialog (Windows: PowerShell; Linux: zenity) when there is a screen"""
+    dirs = [REPO, os.getcwd()]
+    up = REPO
+    for _ in range(3):
+        up = os.path.dirname(up); dirs.append(up)
+    dirs += [os.path.expanduser(d) for d in GAME_DIRS]
+    for d in dirs:
+        for c in (os.path.join(d, 'Assets.dat'), os.path.join(d, 'game', 'Assets.dat')):
+            if os.path.isfile(c) and md5(c) in ASSETS:
+                LOG.say('No file was given: using %s (found automatically)' % c); return c
+    try:
+        if os.name == 'nt':
+            ps = ('Add-Type -AssemblyName System.Windows.Forms; $d = New-Object System.Windows.Forms.OpenFileDialog; '
+                  '$d.Title = "Select the Assets.dat of your Freedom Planet folder"; $d.Filter = "Assets.dat|Assets.dat|All files|*.*"; '
+                  'if ($d.ShowDialog() -eq "OK") { [Console]::Out.Write($d.FileName) }')
+            r = subprocess.run(['powershell', '-NoProfile', '-STA', '-Command', ps], stdout=subprocess.PIPE, text=True, timeout=600)
+        elif (os.environ.get('DISPLAY') or os.environ.get('WAYLAND_DISPLAY')) and shutil.which('zenity'):
+            r = subprocess.run(['zenity', '--file-selection', '--title=Select the Assets.dat of your Freedom Planet folder'],
+                               stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, timeout=600)
+        else: r = None
+        if r and r.stdout.strip(): return r.stdout.strip()
+    except (OSError, subprocess.SubprocessError): pass
+    raise Fail('no Assets.dat given and none found next to the project. Drag the Assets.dat of your Freedom Planet folder '
+               'onto the build script (or give its path: build_dreamcast.bat "C:\\Games\\Freedom Planet\\Assets.dat").')
+
 def find_inputs(a):
+    if not a.assets: a.assets = auto_assets()
     src = os.path.abspath(a.assets)
     if not os.path.exists(src): raise Fail('not found: %s' % a.assets)
     if os.path.isfile(src) and os.path.basename(src).lower() != 'assets.dat':
@@ -154,10 +188,13 @@ def find_inputs(a):
     def first(*paths):
         return next((p for p in paths if p and os.path.exists(p)), None)
     # the Data folder next to the Assets.dat; the GOG layout with the Linux copy in game/ is searched too
-    dd = [os.path.join(d, 'Data'), os.path.join(d, 'game', 'Data'), os.path.join(os.path.dirname(d), 'Data')]
+    dd = [os.path.join(d, 'Data'), os.path.join(d, 'game', 'Data')]
+    up = d
+    for _ in range(3):              # (an Assets.dat copied into a folder inside the game folder: the game's Data above it)
+        up = os.path.dirname(up); dd.append(os.path.join(up, 'Data'))
     bgm = first(*[os.path.join(x, 'BGM') for x in dd])
     font = first(*[os.path.join(x, 'font.bmp') for x in dd])
-    vox = first(os.path.join(d, 'Data', 'voices'), os.path.join(d, 'game', 'Data', 'voices'))
+    vox = first(*[os.path.join(x, 'voices') for x in dd])
     # the PC (Windows) clips for the Linux copy's placeholders: --voices-pc, or the Windows folder around a Linux copy
     vpc = os.path.abspath(a.voices_pc) if a.voices_pc else (
         first(os.path.join(os.path.dirname(d), 'Data', 'voices')) if kind == 'linux' else None)
@@ -459,7 +496,7 @@ def build_dc(a, tools):
     if not os.path.isfile(elf): raise Fail('Dreamcast program not found: %s' % elf)
     LOG.say('[10] Dreamcast program: %s (%s)' % (elf, how))
     disc = os.path.join(a.work, 'disc')
-    cdi = os.path.abspath(a.cdi) if a.cdi else os.path.join(REPO, 'output', 'fpdc.cdi')
+    cdi = os.path.abspath(a.cdi) if a.cdi else os.path.join(REPO, 'fpdc.cdi')     # next to build_dreamcast.bat / .sh
     os.makedirs(os.path.dirname(cdi), exist_ok=True)
     tmp = os.path.join(a.work, 'cdi', os.path.basename(cdi))     # (mkdcdisc records the file name in the image)
     rmtree(os.path.dirname(tmp)); os.makedirs(os.path.dirname(tmp))
@@ -492,6 +529,15 @@ def selftest():
     for e in t['files']:
         try: fetch.local(e['name'])
         except fetch.FetchError as ex: print('FAIL', ex); ok = False
+    if os.path.isdir(os.path.join(REPO, '.git')):          # (a ZIP download has no history: nothing to compare)
+        try: tree = subprocess.check_output(['git', '-C', REPO, 'rev-parse', 'HEAD:src'], text=True,
+                                            stderr=subprocess.DEVNULL).strip()
+        except (OSError, subprocess.CalledProcessError): tree = None
+        for e in t['files']:
+            if tree and e.get('src_tree') and e['src_tree'] != tree:
+                print('FAIL prebuilt/%s was built from an older src/ (tree %s, now %s): run tools/builder/build_release.sh '
+                      '--program-only%s' % (e['name'], e['src_tree'][:10], tree[:10],
+                                            ' and build_release_pc.sh' if e['name'] != 'fpdc.elf' else '')); ok = False
     import convert_audio as ca
     if len(needed_voices()) < 30 or not ca.SFX: print('FAIL sfx list'); ok = False
     print('selftest %s' % ('ok' if ok else 'FAILED'))
@@ -514,7 +560,8 @@ def main():
     load_targets()
     p = argparse.ArgumentParser(description='Freedom Planet port builder (BUILDING.md)')
     p.add_argument('target', choices=sorted(TARGETS))
-    p.add_argument('assets', help='Assets.dat (Windows GOG or Linux 1.21.5), or the folder holding it')
+    p.add_argument('assets', nargs='?', help='Assets.dat (Windows GOG or Linux 1.21.5), or the folder holding it; '
+                   'without it: found automatically next to the project, else asked with a file dialog')
     p.add_argument('extra', nargs='*', help=argparse.SUPPRESS)       # (a second dropped file is ignored)
     p.add_argument('--out', default=os.path.join(REPO, 'build', 'builder', 'data'))
     p.add_argument('--work', default=os.path.join(REPO, 'build', 'builder'))

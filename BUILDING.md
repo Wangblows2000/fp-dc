@@ -5,14 +5,14 @@ PC version (this branch):
 
 | Drag `Assets.dat` onto | You get |
 |---|---|
-| `build_dreamcast.bat` (Windows) / `build_dreamcast.sh` (Linux) | `output/fpdc.cdi`, the Dreamcast disc image |
-| `build_win32.bat` (Windows; `build_windows32.bat` is the same) | `output\win32\`: `fpdc.exe`, `SDL2.dll`, `data\`, `README.txt`: start `fpdc.exe` |
-| `build_linux.sh` (Linux) | `output/linux/`: `fpdc`, `data/`, `README.txt`: start `./fpdc` (SDL2 is built in: no packages needed; glibc 2.27 or newer) |
+| `build_dreamcast.bat` (Windows) / `build_dreamcast.sh` (Linux) | `fpdc.cdi`, the Dreamcast disc image |
+| `build_win32.bat` (Windows; `build_windows32.bat` is the same) | `fpdc.exe`, `SDL2.dll`, `data\`, `README-PC.txt`: start `fpdc.exe` |
+| `build_linux.sh` (Linux) | `fpdc`, `data/`, `README-PC.txt`: start `./fpdc` (SDL2 is built in: no packages needed; glibc 2.27 or newer) |
 
-The PC version is the same game code with SDL2 (keyboard or any game controller; the keys are in `README.txt` next to
+The PC version is the same game code with SDL2 (keyboard or any game controller; the keys are in `README-PC.txt` next to
 the program). It needs the same data as the disc, so its build takes as long; the downloads below are the same, plus the
-PC program itself (2-4 MB) instead of the Dreamcast program and the CDI writer. (`pc/build_win32.bat` is the developers'
-MSYS2 build of the program alone, pc/README.md.)
+PC program itself (2-4 MB) instead of the Dreamcast program and the CDI writer. (`pc/compile_win32.bat` is the developers'
+MSYS2 compile of the program alone, without data: pc/README.md.)
 
 ## Quick start
 
@@ -22,26 +22,31 @@ You need Freedom Planet **1.21.5**: the Windows version from GOG (what most peop
 
 1. Download this project (on GitHub: *Code* > *Download ZIP*) and unzip it, for example to `C:\fp-dc`.
 2. Open your Freedom Planet folder (GOG: *More* > *Manage installation* > *Show folder*, usually
-   `C:\GOG Games\Freedom Planet`). Drag its **`Assets.dat`** onto **`build_dreamcast.bat`**.
-3. A window shows the progress. At the end it says `Finished`: the disc image is **`output\fpdc.cdi`** in the project
-   folder. For the PC version drag it onto **`build_win32.bat`** instead: **`output\win32\fpdc.exe`**.
+   `C:\GOG Games\Freedom Planet`). Drag its **`Assets.dat`** onto **`build_dreamcast.bat`**. (Or unzip the project
+   inside your Freedom Planet folder and double-click `build_dreamcast.bat`: an `Assets.dat` in the project folder or up
+   to three folders above it, or in the usual Steam / GOG folders, is found by itself; otherwise a file dialog asks.)
+3. A window shows the progress. At the end it says `Finished`: the disc image is **`fpdc.cdi`**, next to
+   `build_dreamcast.bat`.
+   For the PC version drag it onto **`build_win32.bat`** instead: **`fpdc.exe`** (with `SDL2.dll` and `data\`) appears
+   next to `build_win32.bat`.
 
 **Linux (x86_64)**
 
     ./build_dreamcast.sh "/path/to/Freedom Planet/Assets.dat"
 
-The disc image is `output/fpdc.cdi`. (Started without an argument from a file manager, it asks for the file.) The PC
-version: `./build_linux.sh "/path/to/Freedom Planet/Assets.dat"`, then `output/linux/fpdc`.
+The disc image is `fpdc.cdi`, next to the script. (Without an argument it looks for the Assets.dat as on Windows, then
+asks with a file dialog when zenity is installed.)
+The PC version: `./build_linux.sh "/path/to/Freedom Planet/Assets.dat"`, then `./fpdc` (next to the script).
 
 | | Windows | Linux |
 |---|---|---|
 | first run downloads | about 110 MB, once | about 55 MB, once |
 | build time | 20-60 minutes, depending on the computer (most of it: the 57 levels) | 15-40 minutes |
 | free disk space | 3 GB (about 2 GB stay in `build` afterwards) | 3 GB |
-| result | `output\fpdc.cdi` (about 380 MB) | `output/fpdc.cdi` |
+| result | `fpdc.cdi` next to the script (about 380 MB) | `fpdc.cdi` next to the script |
 
 Nothing is installed on your computer and nothing outside the project folder is written: the tools go to
-`build\cache`, the intermediate files to `build\builder`, the result to `output`. Your game folder is only read. Delete
+`build\cache`, the intermediate files to `build\builder`, the result next to the script. Your game folder is only read. Delete
 `build` afterwards to get the space back. A second run only redoes what changed (a few seconds when nothing
 did).
 
@@ -57,9 +62,9 @@ Every file has a fixed version and is checked against its recorded SHA-256 befor
 |---|---|---|
 | Python 3.13.14 (Windows: embeddable; Linux: python-build-standalone) | python.org / GitHub (astral-sh) | 11 / 35 MB |
 | Pillow 12.3.0, lz4 4.4.5 (Python packages) | pypi.org | 7 / 8 MB |
-| ffmpeg 6.1.1 (Windows: gyan.dev essentials build; Linux: a minimal static build) | GitHub (GyanD/codexffmpeg) / this project's release | 88 / 3 MB |
-| the Dreamcast program `fpdc.elf`, the CDI writer `mkdcdisc`, the ADPCM encoder `wav2adpcm` | this project's release `builder-v1` | 4-6 MB |
-| PC version: `fpdc-win32.exe` + `SDL2.dll` (SDL 2.30.11, zlib licence), or `fpdc-linux-x86_64` | this project's release `builder-v1` | 4 MB |
+| ffmpeg 6.1.1 (Windows: gyan.dev essentials build) | GitHub (GyanD/codexffmpeg) | 88 MB |
+| the Dreamcast program `fpdc.elf`, the CDI writer `mkdcdisc`, the ADPCM encoder `wav2adpcm`, the Linux ffmpeg | not downloaded: committed in `prebuilt/` (D-119) | - |
+| PC version: `fpdc-win32.exe` + `SDL2.dll` (SDL 2.30.11, zlib licence), or `fpdc-linux-x86_64` | not downloaded: committed in `prebuilt/` (D-119) | - |
 
 Windows: the downloads use the `curl.exe` and `tar.exe` that come with Windows 10 (1803) and 11 (older Windows 10:
 PowerShell); Linux: `curl` or `wget`, `tar`, `sha256sum`.
@@ -138,14 +143,16 @@ transparent. Result: 16,879 of 16,885 images are identical to the Linux extracti
 **Tables**: `tools/builder/make_tables.py layout <bin64/Chowdren> build/re tables` (after a change to the dump tools or
 a new List* constructor), `make_tables.py winmap` / `labels` for the Windows map (tables/README.md).
 
-**PC version from source**: `--local-tools` compiles it with `pc/build_win32.sh` / `pc/build_linux.sh` (pc/README.md);
-`tools/builder/fpbuild_targets_pc.py` is the builder's PC part, `tools/builder/downloads_pc.json` its downloads.
+**PC version from source**: `--local-tools` compiles it with `pc/compile_win32.sh` / `pc/compile_linux.sh` (pc/README.md);
+`tools/builder/fpbuild_targets_pc.py` is the builder's PC part, `tools/builder/downloads_pc.json` its program list.
 
-**Release files** (`builder-v1`): `tools/builder/build_release_pc.sh [out_dir]` builds the PC programs (Windows i686 with
-mingw-w64; Linux with SDL 2.30.11 built in, compiled with zig cc for glibc 2.28) and updates `downloads_pc.json`;
-`tools/builder/build_release.sh [out_dir]` builds `fpdc.elf` (KallistiOS), wav2adpcm,
-mkdcdisc and the Linux ffmpeg for Windows and Linux from pinned sources, writes `SHA256SUMS` and updates their entries in
-`tools/builder/downloads.json`. Publish every file of the output folder as an asset of the GitHub release named in
-`release_url`, and commit `downloads.json`. **The published `fpdc.elf` must match the data format of the checkout**: when
-a change to the game code changes what the data tools write (or the other way round), build and publish a new release
-(`builder-v2`, update `release_url`) in the same change.
+**Prebuilt files** (`prebuilt/`, D-119): `tools/builder/build_release.sh [--program-only]` builds `fpdc.elf`
+(KallistiOS) and, without `--program-only`, wav2adpcm, mkdcdisc and the Linux ffmpeg for Windows and Linux from pinned
+sources into `prebuilt/`, writes `prebuilt/SHA256SUMS` and updates their entries in `tools/builder/downloads.json`
+(fpdc.elf: also `src_tree`). Commit `prebuilt/` and `downloads.json` together. **`prebuilt/fpdc.elf` must match the
+checkout**: after a change of `src/`, rebuild it in the same change; `fpbuild.py selftest` fails while it is older than
+`src/`.
+
+On this branch `tools/builder/build_release_pc.sh` rebuilds the PC programs into `prebuilt/` (Windows i686 with
+mingw-w64; Linux with SDL 2.30.11 built in, compiled with zig cc for glibc 2.28) and updates `downloads_pc.json`
+(also `src_tree`).
