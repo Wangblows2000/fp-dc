@@ -58,6 +58,7 @@ GAL_EXCLUDE = ('^(artwork|fade|achievementdescription|helpmessage|blackborder|ba
                'playerinput|masterinput|inputsp1|globalinputdata|mouseobject|sarassteam.*|list.*|mapdata2?|savedata|'
                'windowcontrol|recorddata|icon.*|charname1|active2)$')
 STUB_MAX = 4000      # the Linux copy's placeholder voice clips are 3,564 bytes
+DATA_STEPS = 11      # the data dir's steps (build_data); the targets' own steps are numbered after them
 NEED_GB = 3.0        # free disk space for a first build (work dir, data dir, disc tree, image)
 
 class Fail(Exception): pass
@@ -393,7 +394,7 @@ def build_data(a, inp):
     ex = os.path.join(work, 'extracted'); voices = os.path.join(work, 'voices')
     assets_dir = os.path.join(ex, 'assets-linux-ids')
     images, audio = os.path.join(assets_dir, 'images'), os.path.join(assets_dir, 'audio')
-    total = 9
+    total = DATA_STEPS
     env = dict(FP_FRAMES=FRAMES, FP_IMAGES=images, FP_RE=TABLES, FP_BIN=STRINGS)
     T = lambda *p: tree_hash(p)
 
@@ -475,12 +476,28 @@ def build_data(a, inp):
          lambda: run(py(ca, 'sfx', audio, voices, os.path.join(out, 'sfx')), env=dict(VOX_PC=voices)))
     step(st, 8, total, 'galsnd', 'gallery sounds', st.key(k_extract, vkey, taud, ttool),
          [os.path.join(gal, 'gal_manifest.csv')], lambda: run(py(ca, 'gallery', audio, voices, voices, gal)))
+    # Adventure scenes (session 25, docs/ADVENTURE.md): the scene table, scripts, dialogue and story rooms from the committed
+    # tables/story (tools/import_story.py), then one voice clip per line from the install's voices (convert_audio.py story:
+    # a placeholder or missing clip is left out and its line is shown text-only). After the sfx step: the story step adds
+    # the scripts' sound ids that sfx/ lacks.
+    sty = os.path.join(out, 'story')
+    tstory = T('tools/import_story.py', 'tables/story')
+    step(st, 9, total, 'story', 'Adventure scenes and story rooms', st.key(base, tools_py, tstory),
+         [os.path.join(sty, 'story.txt')], lambda: run(py(os.path.join(REPO, 'tools', 'import_story.py'), out, '-j', str(jobs)), env=env))
+    step(st, 10, total, 'storyvo', 'Adventure voices (one clip per line)', st.key(k_extract, vkey, taud, ttool, tstory),
+         [os.path.join(sty, 'vo_manifest.csv')], lambda: run(py(ca, 'story', audio, voices, os.path.join(REPO, 'tables', 'story'), out)))
     miss = [n for f, n in LEVELS if not os.path.isfile(os.path.join(out, n, n + '.lv2'))]
+    rooms = sorted({'st' + l.split()[1] for l in open(os.path.join(sty, 'story.txt'), encoding='utf-8') if l.strip() and l[0] != '#'})
+    miss += [r for r in rooms if not os.path.isfile(os.path.join(out, r, r + '.lv2'))]
     if miss: raise Fail('levels missing after the build: %s' % ' '.join(miss))
     for t in [d for d in os.listdir(out) if d.endswith('.tmp')]: rmtree(os.path.join(out, t))
-    LOG.say('[9/%d] data check: %d levels, %d ui files, %d music tracks, %d sounds, %d gallery files'
-            % (total, len(LEVELS), len(os.listdir(ui)), len([f for f in os.listdir(os.path.join(out, 'bgm')) if f.endswith('.adp')]),
-               len([f for f in os.listdir(os.path.join(out, 'sfx')) if f.endswith('.wav')]), len(os.listdir(gal))))
+    nvo = len([f for f in os.listdir(os.path.join(sty, 'vo')) if f.endswith('.wav')]) if os.path.isdir(os.path.join(sty, 'vo')) else 0
+    LOG.say('[%d/%d] data check: %d levels, %d ui files, %d music tracks, %d sounds, %d gallery files, %d story scenes in %d rooms '
+            '(%d voice clips%s)'
+            % (total, total, len(LEVELS), len(os.listdir(ui)), len([f for f in os.listdir(os.path.join(out, 'bgm')) if f.endswith('.adp')]),
+               len([f for f in os.listdir(os.path.join(out, 'sfx')) if f.endswith('.wav')]), len(os.listdir(gal)),
+               len([l for l in open(os.path.join(sty, 'story.txt'), encoding='utf-8') if l.strip() and l[0] != '#']), len(rooms),
+               nvo, '' if nvo else ': the lines are shown without voices'))
     LOG.say('data dir ready: %s' % out)
 
 # ------------------------------------------------------------------------------------------------------------ Dreamcast
@@ -494,7 +511,7 @@ def build_dc(a, tools):
     env_sh = kos_environ() if a.local_tools and os.name != 'nt' else None
     if a.elf: elf = os.path.abspath(a.elf); how = 'given'
     elif env_sh:
-        LOG.say('[10] compile fpdc.elf with KallistiOS (%s) ...' % env_sh)
+        LOG.say('[%d] compile fpdc.elf with KallistiOS (%s) ...' % (DATA_STEPS + 1, env_sh))
         r = subprocess.run(['bash', '-c', 'source "$1" && make -j%d' % max(1, a.jobs), 'fpbuild', env_sh], cwd=REPO,
                            stdout=LOG.f, stderr=subprocess.STDOUT, env=child_env())
         if r.returncode: raise Fail('the KallistiOS build failed (log: %s)' % LOG.path)
@@ -502,13 +519,13 @@ def build_dc(a, tools):
     else:
         elf = fetch.tool('fpdc.elf', LOG.say); how = 'the published program, SHA-256 checked'
     if not os.path.isfile(elf): raise Fail('Dreamcast program not found: %s' % elf)
-    LOG.say('[10] Dreamcast program: %s (%s)' % (elf, how))
+    LOG.say('[%d] Dreamcast program: %s (%s)' % (DATA_STEPS + 1, elf, how))
     disc = os.path.join(a.work, 'disc')
     cdi = os.path.abspath(a.cdi) if a.cdi else os.path.join(REPO, 'fpdc.cdi')     # next to build_dreamcast.bat / .sh
     os.makedirs(os.path.dirname(cdi), exist_ok=True)
     tmp = os.path.join(a.work, 'cdi', os.path.basename(cdi))     # (mkdcdisc records the file name in the image)
     rmtree(os.path.dirname(tmp)); os.makedirs(os.path.dirname(tmp))
-    LOG.say('[11] disc image: copy, pre-twiddle, pack, pad the data (tools/make_disc.py), mkdcdisc ...')
+    LOG.say('[%d] disc image: copy, pre-twiddle, pack, pad the data (tools/make_disc.py), mkdcdisc ...' % (DATA_STEPS + 2))
     run(py(os.path.join(REPO, 'tools', 'make_disc.py'), 'cdi', elf, a.out, disc, tmp, '--mkdcdisc', tools['mkdcdisc']),
         env=dict(SOURCE_DATE_EPOCH=os.environ.get('SOURCE_DATE_EPOCH', SOURCE_DATE)))
     if os.path.exists(cdi): os.remove(cdi)
