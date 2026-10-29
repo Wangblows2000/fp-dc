@@ -336,6 +336,7 @@ void tbx_frame(player_t *p) {
             if (X.hE >= 3) {                                                    /* 12704: the defeat */
                 X.fight = 0; X.end = 1; X.hF = 0; X.hG = 0;
                 snd_play_orig(309, 220, 128);
+                tbb_heat_show(0);                                               /* 12704: the heat sky shown, alpha 0, scale 43 x 24 (session 26) */
                 sbb_music_fadeout();
                 for (int i = 0; i < G.nobjs; i++) { obj_t *o = &G.o[i]; if (o->alive && o->type == OT_TBB_SHOT) o->alive = 0; }
                 for (int k = 0; k < 3; k++) { obj_t *s = sphere(k, 0), *s2 = sphere(k, 1); if (s) s->alive = 0; if (s2) s2->alive = 0; }
@@ -348,6 +349,8 @@ void tbx_frame(player_t *p) {
     if (X.end) {                                                                /* 12711-12715: the parts flash, collapse, explode; the results */
         X.hF += 1;
         if (X.hG == 0) {
+            { obj_t *hs = tbb_heat(); double v = 255 - X.hF * 0.5;             /* 12711: the heat sky's alpha byte from the parts' F (session 26) */
+              if (hs) hs->av[0] = v < 128 ? 127 : fmax(0, fmin(255, 255 - (int)v)); }
             if (X.hF == 1) ach_boss_finish();                                   /* 12718-12726: the finishing-move achievements 10-17 */
             camera_shake((int)fmin(12, 0.1 * X.hF));
             if (X.hF == 270) snd_play_orig(92, 220, 128);                      /* RV x2_l 2171 (F 270; INFERRED its event) */
@@ -358,6 +361,7 @@ void tbx_frame(player_t *p) {
             }
             if (X.hF > 360) {                                                   /* 12713: gone; sound 50, explosion01, the HUD up */
                 X.hG = 1; X.hF = 0;
+                { obj_t *hs = tbb_heat(); if (hs) hs->st = 0; }                 /* 12713: the heat sky destroyed */
                 if (hd) obj_effect(hd->x, hd->y, "explosion");
                 snd_play_orig(50, 220, 128);
                 for (int k = 0; k < tbb_count(OT_TBB_SX_PART); k++) { obj_t *o = tbb_get(OT_TBB_SX_PART, k); if (o) o->alive = 0; }

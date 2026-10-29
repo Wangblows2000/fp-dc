@@ -41,7 +41,7 @@ void r_set_additive(int on) { add_on = on; }
 typedef struct { int kind; const tex_t *t; int u, v, uw, vh, flip; float a[8]; uint32_t argb; int inv, add; float z; } dcmd_t;
 #define NDQ 640
 static dcmd_t dq[NDQ]; static int ndq, overlay, in_tr;
-static pvr_poly_hdr_t col_hdr_tr, col_hdr_mul;
+static pvr_poly_hdr_t col_hdr_tr, col_hdr_mul, col_hdr_add;   /* col_hdr_add: additive colour rects (session 26: the view tints) */
 static int ntex;
 static pvr_poly_hdr_t col_hdr;
 static int cur_hdr;           /* -2 none, -1 colour, >=0 texture */
@@ -68,6 +68,8 @@ int r_init(void) {
     cxt.depth.comparison = PVR_DEPTHCMP_GEQUAL;
     cxt.gen.culling = PVR_CULLING_NONE;
     pvr_poly_compile(&col_hdr_tr, &cxt);
+    cxt.blend.src = PVR_BLEND_SRCALPHA; cxt.blend.dst = PVR_BLEND_ONE;          /* additive: dst + src * a */
+    pvr_poly_compile(&col_hdr_add, &cxt);
     cxt.blend.src = PVR_BLEND_ZERO; cxt.blend.dst = PVR_BLEND_INVDESTCOLOR;   /* dst factor INVDESTCOLOR = 1 - source colour */
     pvr_poly_compile(&col_hdr_mul, &cxt);
     return 0;
@@ -273,11 +275,12 @@ void r_rect(float x, float y, float w, float h, uint32_t argb) {
     if (x + w < 0 || y + h < 0 || x >= SCREEN_W || y >= SCREEN_H) return;
     uint32_t a = argb >> 24;
     if (a == 0) return;                                  /* as the host renderer: alpha 0 draws nothing */
-    if ((overlay || a < 0xff) && !in_tr) {               /* translucent rects (session 16: they were forced opaque) */
-        if (ndq < NDQ) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 3, NULL, 0, 0, 0, 0, 0, { x, y, w, h }, argb, 0, 0, zc }; zc += 0.0001f; }
+    if ((overlay || a < 0xff || add_on) && !in_tr) {     /* translucent / additive rects (session 16: they were forced opaque) */
+        if (ndq < NDQ) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 3, NULL, 0, 0, 0, 0, 0, { x, y, w, h }, argb, 0, add_on, zc }; zc += 0.0001f; }
         return;
     }
-    if (cur_hdr != -1) { pvr_prim(in_tr ? &col_hdr_tr : &col_hdr, sizeof col_hdr); cur_hdr = -1; }
+    if (in_tr && add_pass) { if (cur_hdr != -4) { pvr_prim(&col_hdr_add, sizeof col_hdr_add); cur_hdr = -4; } }   /* (session 26) */
+    else if (cur_hdr != -1) { pvr_prim(in_tr ? &col_hdr_tr : &col_hdr, sizeof col_hdr); cur_hdr = -1; }
     quad(x * SX + OFF_X, y * SY + OFF_Y, (x + w) * SX + OFF_X, (y + h) * SY + OFF_Y, 0, 0, 0, 0, in_tr ? argb : argb | 0xff000000);
 }
 
