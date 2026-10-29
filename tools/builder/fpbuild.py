@@ -277,8 +277,15 @@ def step(st, n, total, name, title, key, outputs, fn):
     fn(); st.mark(name, key)
     LOG.say('[%d/%d] %s: done (%.0f s)' % (n, total, title, time.time() - t))
 
+def _writable_retry(fn, path, *_):
+    # Windows: a read-only file (e.g. a hard link to a read-only clip of an earlier build) cannot be deleted; clear the flag
+    import stat
+    os.chmod(path, stat.S_IWRITE); fn(path)
+
 def rmtree(p):
-    if os.path.isdir(p): shutil.rmtree(p)
+    if os.path.isdir(p):
+        if sys.version_info >= (3, 12): shutil.rmtree(p, onexc=_writable_retry)
+        else: shutil.rmtree(p, onerror=_writable_retry)
 
 def extract(assets, fmt, dest):
     tmp = dest + '.part'
@@ -351,8 +358,9 @@ def needed_voices():
     return sorted(need)
 
 def merge_voices(vox, vpc, dest):
-    """the install's voices; a placeholder stub (or a missing clip) is taken from the PC voices when given. Copies (or hard
-    links), so the result is the same on every file system."""
+    """the install's voices; a placeholder stub (or a missing clip) is taken from the PC voices when given. Copies, never
+    hard links: a link shares the game file's read-only flag (Windows then refuses to delete it on the next build, seen
+    under Wine in session 25) and anything done to the link would touch the game folder, which is only read."""
     rmtree(dest); os.makedirs(dest)
     n = rep = 0
     for root in [r for r in (vox, vpc) if r]:
@@ -362,9 +370,9 @@ def merge_voices(vox, vpc, dest):
                 s = os.path.join(r, f); rel = os.path.relpath(s, root); d = os.path.join(dest, rel)
                 if os.path.lexists(d):
                     if root == vpc and os.path.getsize(d) < STUB_MAX < os.path.getsize(s):
-                        os.remove(d); link(s, d); rep += 1
+                        os.remove(d); shutil.copyfile(s, d); rep += 1
                     continue
-                os.makedirs(os.path.dirname(d), exist_ok=True); link(s, d); n += 1
+                os.makedirs(os.path.dirname(d), exist_ok=True); shutil.copyfile(s, d); n += 1
     LOG.say('  voices: %d clips%s' % (n, ', %d placeholder clips replaced by the PC clips' % rep if vpc else ''))
     bad = []
     for v in needed_voices() + ['li/' + f[:-4] for f in sorted(os.listdir(os.path.join(dest, 'eng', 'li')))
