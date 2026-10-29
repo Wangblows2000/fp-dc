@@ -117,6 +117,36 @@ for ch, nm in CHARS:
           '%s' % sids(ev, 134))
     check('fd2a %s: second defeat destroys it (38, R 1)' % nm, len(sids(ev, 38)) == 1 and q and q[max(q)]['R'] == '1', '%s' % sids(ev, 38))
 
+# ======================================================================== fd2b: the mech Serpentine (spec 4)
+# RV s2_l (Lilac at 7600 274 next to the NPC at 7772 260): the trigger, 373 (the transformation), 374 x 17, 67 + m_boss6 (slot 4), 354
+# (the ledge breaks: the fall down the shaft to the arena, y 4992); the fight from RV ~1150. Real attacks next to the head every 30 frames
+# (TPO; Milla B): 5 lives of 40 (the last + 20, m_boss6b), 47 at each, the defeat (60 / 61), results_begin_boss (162, the results).
+HEADS = 2941
+def serp_script(atk):
+    s = '60 TP 7600 274\n'
+    for f in range(1150, 4400, 30): s += '%d TPO %d -30 0\n%d %d %s\n%d %d %s\n' % (f, HEADS, f + 1, f + 4, atk, f + 12, f + 15, atk)
+    return s + INV
+for ch, nm in CHARS:
+    rows, ev, d = run('fd2b', ch, 4400, serp_script('B' if ch == 4 else 'X'), {'FP_TRACE_SND': '1'})
+    s = d.get('fds', {})
+    mus = [(f, l.split()[1]) for f, l in ev if l.startswith('music ') and len(l.split()) > 1]
+    s373, s374, s354 = sids(ev, 373), sids(ev, 374), sids(ev, 354)
+    check('fd2b %s: the transformation: 373 once, 374 x 17 every 20 frames, then m_boss6 (RE 15688) and 354 (the ledge breaks)' % nm,
+          len(s373) == 1 and len(s374) == 17 and all(b - a == 20 for a, b in zip(s374, s374[1:])) and len(s354) == 1
+          and any(m.endswith('m_boss6.adp') and f < s354[0] for f, m in mus), '%s %s %s %s' % (s373, s374[:2], s354, mus[:3]))
+    fl = first(s, lambda r: r.get('st') == '0' and num(r, 'py') > 4900)
+    check('fd2b %s: the player falls down the shaft to the arena and the fight starts (RV ~1150)' % nm, fl is not None and 1000 < fl < 1250, str(fl))
+    seen = {r.get('st') for r in s.values()}
+    check('fd2b %s: the dash (1-3), the shots (4 / 5) and the jump (6-8) all happen' % nm, {'1', '2', '3', '4', '5', '6', '7', '8'} <= seen, str(sorted(seen)))
+    s47 = sids(ev, 47)
+    check('fd2b %s: real attacks take the 5 lives (sound 47 x 5) and the last plays m_boss6b (RE 15689)' % nm,
+          len(s47) == 5 and any(m.endswith('m_boss6b.adp') for f, m in mus), '%s %s' % (s47, [m for f, m in mus]))
+    fd = first(s, lambda r: r.get('st') == '60')
+    fr = first(s, lambda r: r.get('st') == '162')
+    res = [i for i, r in enumerate(rows) if r.get('res', 0) > 0]
+    check('fd2b %s: the defeat (D 60, 61) then results_begin_boss (the results start)' % nm, fd is not None and fr is not None and fr > fd and res and res[0] >= fr - 1,
+          '%s %s %s' % (fd, fr, res[:1]))
+
 if fails: print('%d FAILED' % fails)
 else: print('ALL PASS')
 sys.exit(1 if fails else 0)
