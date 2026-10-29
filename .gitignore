@@ -24,3 +24,8 @@ converted_audio/
 tools/audio/wav2adpcm
 *.d
 tools/__pycache__/
+# PC build (pc/): objects, binaries, the downloaded SDL2 package, dist folders
+pc/build/
+pc/dist/
+*.exe
+*.dll
