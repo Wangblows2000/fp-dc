@@ -66,6 +66,24 @@ def main(path, out):
     for lit in set(re.findall(rb'[\x20-\x7e]{6,60}', ro)):
         slug = re.sub(r'[^a-z0-9]+', '_', lit.decode().lower()).strip('_')
         if slug in caps: res['captions'][caps[slug]] = lit.decode()
+    # the actors' ink (story scenes draw them): create_<class>_<handle> sets FrameObject::set_shader(<esi>) (0x20 = additive,
+    # RE_NOTES "Blend modes") and the blend colour's alpha byte (movb $a, 0x5f(%rbx) after initialize_active; RE
+    # create_effectsdust01_369: ff ff ff 74). Only non-default values are kept.
+    shader_va = next((s['st_value'] for s in e.get_section_by_name('.symtab').iter_symbols()
+                      if s.name == '_ZN11FrameObject10set_shaderEi'), None)
+    ink = {}
+    for s in e.get_section_by_name('.symtab').iter_symbols():
+        m = re.match(r'^_Z\d+create_([a-z0-9_]+_\d+)ii$', s.name)
+        if not m or not s['st_size'] or s['st_size'] > 0x4000: continue
+        esi, rec = None, {}
+        for ins in md.disasm(rd(s['st_value'], s['st_size']), s['st_value']):
+            if ins.mnemonic == 'mov' and ins.op_str.startswith('esi, 0x'): esi = int(ins.op_str.split(', ')[1], 16)
+            elif ins.mnemonic == 'call' and shader_va and ins.op_str == hex(shader_va) and esi is not None: rec['shader'] = esi
+            elif ins.mnemonic == 'mov' and re.match(r'byte ptr \[rbx \+ 0x5f\], 0x([0-9a-f]+)$', ins.op_str):
+                a_ = int(ins.op_str.rsplit('0x', 1)[1], 16)
+                if a_ != 0xff: rec['alpha'] = a_
+        if rec: ink[m.group(1)] = rec
+    res['ink'] = dict(sorted(ink.items()))
     with open(out, 'w', encoding='utf-8', newline='\n') as o:
         json.dump(res, o, indent=0, ensure_ascii=False); o.write('\n')
     print('dialog: %d objects, %d lines; lipsync: %d objects' % (len(res['dialog']), sum(len(v) for v in res['dialog'].values()), len(res['lipsync'])))

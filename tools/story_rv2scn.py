@@ -50,9 +50,12 @@ def main():
     ap.add_argument('--fadeout', default='', help='F,N: a fade to black of N frames from frame F (INFERRED: the wipe)')
     a = ap.parse_args()
     lines = load_dialog(a.dialog) if a.dialog != '-' else []
+    INK = json.load(open(os.path.join(ROOT, 'tables', 'story', 'dialog.json'), encoding='utf-8')).get('ink', {})
     fr = json.load(open(os.path.join(ROOT, 'tables', 'frames', 'frame_%d.json' % a.json)))
     layer_of = {}
-    for o in fr['objects']: layer_of.setdefault('%s_%d' % (o['cls'], o['id']), o.get('layer', 2))
+    zpos = {}          # draw order inside a layer: the frame's object order (Fusion draws later instances on top)
+    for k_, o in enumerate(fr['objects']):
+        layer_of.setdefault('%s_%d' % (o['cls'], o['id']), o.get('layer', 2)); zpos.setdefault('%s_%d' % (o['cls'], o['id']), k_)
     act_re, drop_re = re.compile(a.actors), re.compile(a.drop)
 
     # ---- parse the window
@@ -127,7 +130,9 @@ def main():
     if len(actors) > 128:
         from collections import Counter
         sys.exit('%d actors (the player holds 128): narrow --actors / --drop: %s' % (len(actors), Counter(obj[a_]['cls'] for _, a_ in actors)))
-    actors.sort()
+    # actor number = draw order: by the frame's object order, runtime-created classes after the placed ones (creation
+    # order); several instances of a class by first sighting (RV: comet2_4004 under the additive comet_4005)
+    actors.sort(key=lambda fa: (zpos.get(obj[fa[1]]['cls'], 100000), fa[0], fa[1]))
     rows = set()
     for r in filter(None, a.rows.split(',')):
         c_, an_, d_ = r.split(':'); rows.add((c_, int(an_), int(d_)))
@@ -135,7 +140,8 @@ def main():
     for n, (_, addr) in enumerate(actors):
         o = obj[addr]; c = o['cls']; h = int(c.rsplit('_', 1)[1])
         lay = 2 if c.startswith(('playerskin', 'player_')) else layer_of.get(c, 2)   # the player's templates sit on layer 5 off-map
-        decl.append('actor %d %s %d' % (n, c, lay))
+        ik = INK.get(c, {})                       # RE: create_<class> set_shader 0x20 = additive / blend colour alpha
+        decl.append('actor %d %s %d%s' % (n, c, lay, ' add' if ik.get('shader') == 32 else ' a%d' % ik['alpha'] if 'alpha' in ik else ''))
         prev = None; run = None                      # run: [f0, dx, dy, count]
         def flush_run():
             if run and run[3]: put(run[0], 1, 'm %d %d %d %d' % (n, run[1], run[2], run[3]))
