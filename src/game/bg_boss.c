@@ -113,7 +113,7 @@ void bg_boss_frame(player_t *p) {
     bgd_frame(p);
 }
 int  bg_boss_obj(obj_t *o, player_t *p) { (void)o; (void)p; return 1; }        /* every rule runs in bg_boss_frame */
-int  bg_boss_q20(int type) { return type == OT_BGB_SPARKY || type == OT_BGB_M_WEAK; }   /* RE qualifier 0x219f8 (14402: Sparky, the mech's weak spot) */
+int  bg_boss_q20(int type) { return type == OT_BGB_SPARKY || type == OT_BGB_M_WEAK || type == OT_BGB_DAIL; }   /* + BG6 Dail (frame 65 Q20) */   /* RE qualifier 0x219f8 (14402: Sparky, the mech's weak spot) */
 int  bg_boss_draw_obj(const obj_t *o, int pass) {
     if (!on) return 1;
     if (bgs_draw(o, pass) || bgm_draw(o, pass) || bgd_draw(o, pass)) return 1;

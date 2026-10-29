@@ -1107,6 +1107,11 @@ static const objdef_t DEFS[] = {
     { OT_BGB_HATCH,     OD_SOLID,                              NULL         }, /* solid (OBJGRP_SOLID); bosshatchdoor_3312 (bg_boss_mech.c / bg_boss_dail.c) */
     { OT_BGB_MECHBG,    0,                                     NULL         }, /* brevonmechbackground_2444 (bg_boss_mech.c) */
     { OT_BGB_MWARN2,    OD_HIDDEN,                             NULL         }, /* effectbrevonmechwarning2_2586 */
+    { OT_BGB_DAIL,      0,                                     NULL         }, /* bossdail_3370 (Q20, A 500 refilled; shield G 2) */
+    { OT_BGB_DAILFALL,  OD_HIDDEN,                             NULL         }, /* bossdailfall_3383 (the defeat's fall) */
+    { OT_BGB_DAILSPAWN, OD_HIDDEN,                             NULL         }, /* bossdailspawnpoint_3366 (the beast's anchor) */
+    { OT_BGB_SBEAST,    0,                                     NULL         }, /* bossshadebeast_3368 (the head) */
+    { OT_BGB_SBCROWN,   0,                                     NULL         }, /* bossshadebeastcrown_3369 */
     { OT_BGB_PLASMA,    0,                                     NULL         }, /* - (runtime: bosssparkyplasmashot_2587) */
     { OT_BGB_FX,        0,                                     NULL         }, /* - (runtime: one-shot effects) */
     /* ==== end Battle Glacier */
