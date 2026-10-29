@@ -1176,6 +1176,19 @@ static const objdef_t DEFS[] = {
     { OT_FDB_PBC,       0,                                     NULL         }, /* minibosspushbeamcannon_3494 */
     { OT_FDB_SXV,       OD_HIDDEN,                             NULL         }, /* bosssyntaxvalues_3467 (the morpher's controller) */
     { OT_FDB_ALARM,     OD_HIDDEN,                             NULL         }, /* alarmlight_3495 (an overlay: fd_boss_r12.c pb_draw) */
+    { OT_FDB_NPCS,      0,                                     "fdms_npc16" }, /* npcserpentine_945 in fd2b (the transformation) */
+    { OT_FDB_MS + 0,    0,                                     "fdms_torso" }, /* bossmserptorso_3598 (fd2b's mech Serpentine: placed templates) */
+    { OT_FDB_MS + 1,    0,                                     "fdms_head"  }, /* bossmserphead_3601 (Q20: A 40, 5 lives) */
+    { OT_FDB_MS + 2,    0,                                     "fdms_neck"  }, /* bossmserpneck_3593 */
+    { OT_FDB_MS + 3,    0,                                     "fdms_tail"  }, /* bossmserptail_3594 (x7) */
+    { OT_FDB_MS + 4,    0,                                     "fdms_rarm"  }, /* bossmserprightarm_3595 */
+    { OT_FDB_MS + 5,    0,                                     "fdms_rclaw" }, /* bossmserprightclaw_3596 */
+    { OT_FDB_MS + 6,    0,                                     "fdms_bsh"   }, /* bossmserpbackshoulder_3597 */
+    { OT_FDB_MS + 7,    0,                                     "fdms_fsh"   }, /* bossmserpfrontshoulder_3599 */
+    { OT_FDB_MS + 8,    0,                                     "fdms_larm"  }, /* bossmserpleftarm_3600 */
+    { OT_FDB_MS + 9,    0,                                     "fdms_lclaw" }, /* bossmserpleftclaw_3602 */
+    { OT_FDB_MS + 10,   OD_HIDDEN,                             "fdms_sight" }, /* bossmserplasersight_3607 (x4) */
+    { OT_FDB_PUNCH,     OD_HIDDEN,                             "fdms_punch" }, /* bossenergypunch_3603 (the dash's burst) */
     /* ==== end Final Dreadnought */
 };
 static objdef_t BY_TYPE[MAX_OT];
