@@ -104,6 +104,11 @@ int bank_load(bank_t *b, const char *name) {
             memcpy(b->mbits, d + off + 4, msz);
             uint32_t o = 0;
             for (int i = 0; i < b->nframes; i++) { b->moff[i] = o; o += (uint32_t)((b->frames[i].w + 7) / 8) * b->frames[i].h; }
+            off += 4 + msz;
+        }
+        if (off + 4 + (size_t)b->nframes * 8 <= sz && !memcmp(d + off, "BOX1", 4)) {   /* session 24: the uncropped image boxes (is_near_border) */
+            b->fbox = malloc(8 * (size_t)b->nframes);
+            for (int i = 0; i < 4 * b->nframes; i++) b->fbox[i] = (int16_t)rd16(d + off + 4 + 2 * i);
         }
     }
     free(d);

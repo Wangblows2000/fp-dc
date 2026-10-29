@@ -195,6 +195,7 @@ typedef struct {
     uint16_t *seq;
     int16_t *act;                      /* optional action points (ax, ay per frame, relative to the image) */
     uint8_t *mbits; uint32_t *moff;   /* collision masks (alpha != 0), rows of (w + 7) / 8 bytes; NULL if absent */
+    int16_t *fbox;                     /* optional uncropped image boxes (HX, HY, W, H per frame: the original image's hotspot and size); NULL if absent */
 } bank_t;
 int frame_mask_px(const bank_t *b, const frame_t *f, int x, int y);   /* 1 = solid pixel of the frame image */
 
