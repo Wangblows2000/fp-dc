@@ -19,8 +19,9 @@
  *  - Defeat (16576 flag 6): tailend D 60 (explosions, the music stops: 16581-16593), D 61 the fade (F 0..120) and Milla's body
  *    (NPCMillaBody_3704) where the head fell, D 62 the player walks to her, D 63 the end scene (voices), F 500: Sign.B 179 -> the
  *    results (results_begin_boss; the level's .res_wipe ends the act -> FD4a).
- *  - Milla (character 4): 16237 returns for her; 16395 / 16396 test g0 = 2 (Adventure only: not ported). In Classic Milla walks
- *    through the room (no fight) and the act ends at its right edge (flow). */
+ *  - Milla (character 4): 16237 returns for her (no scene, no fight). 16395 (g0 != 2, Classic): once she is past the stone (MV.X >
+ *    stone.x, MV.Y > 1024) CTRL.M 1, the music fades, CTRL.D 1 for 90 frames (she walks on), E 90 Sign.B 179: the results (RV b2_4: the
+ *    tally at f430, FD4a at f994). 16396 (Adventure: another scene) is not ported. */
 #include "fd_boss_r34.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,6 +42,7 @@ static struct {
     short shot[NSHOT];
     int head_x0, head_y0;
     int fade;                                           /* 0..255 black overlay */
+    int lives, inv, mpath;                                     /* the head's O (5 lives of A 60) and C (90 frames of invulnerability) */
     int music;
 } S;
 
@@ -68,7 +70,11 @@ void f3b_spawn(void) {
     for (int i = 0; i < fdb_count(OT_FDB_HATCH); i++) { obj_t *t = fdb_get(OT_FDB_HATCH, i); if (t) fdb_set(t, "fdb_hatch"); }
     /* the rig: every part keeps its placement offset from the head (RE placements 13008-13120, 1198-1292) */
     S.head_x0 = (int)h->x; S.head_y0 = (int)h->y; S.hx = h->x; S.hy = h->y; S.base_y = h->y;
-    fdb_set(h, "fdm_head"); h->A = 60; h->fl |= F_NOFLY; h->hidden = 1; h->bd = 0;   /* ctor A 60, H 1, M 1, O 5 (RE BossMMillaHead_3694) */
+    fdb_set(h, "fdm_head"); h->A = 60; h->fl |= F_NOFLY; h->hidden = 1; h->bd = 0; S.lives = 5;
+#ifdef FP_HOST_ENV
+    if (getenv("FP_F3B_LIVES")) S.lives = atoi(getenv("FP_F3B_LIVES"));          /* host tests: a shorter fight */
+#endif
+    /* ctor A 60, H 1, M 1, O 5 (RE BossMMillaHead_3694) */
     S.dirm = 1;
     for (int t = OT_FDB_MM_PART; t <= OT_FDB_MM_TAIL; t++)
         for (int i = 0; i < fdb_count(t) && S.npart < MAXP; i++) {
@@ -196,7 +202,7 @@ static void shots(player_t *p, obj_t *h) {
         if (!s || s->type != OT_FDB_RT || s->st != FDB_K_BOUNCE) { S.shot[n] = -1; continue; }
         s->vy += 0.25f; s->fx += s->vx; s->fy += s->vy; s->x = floorf(s->fx); s->y = floorf(s->fy);
         if (s->A == 9 && h) {                                                   /* reflected: back at the head (16562; INFERRED) */
-            if (obj_obj_hit(s, h)) { h->A -= 10; h->inv = 1; h->c = 5; snd_play_orig(24, 220, 128); obj_effect(s->x, s->y, "explosion02"); s->alive = 0; continue; }
+            if (obj_obj_hit(s, h)) { if (S.inv <= 0) h->A -= 10; if (h->A <= 0) h->fl |= FDB_DEF; snd_play_orig(24, 220, 128); obj_effect(s->x, s->y, "explosion02"); s->alive = 0; continue; }
         } else {
             if (sbb_csens_hit(p, s) && sbb_hurt(p, 5)) { obj_effect(s->x, s->y, "explosion02"); s->alive = 0; continue; }   /* 16563 */
             if (player_contact_safe(p) && sbb_csens_hit(p, s)) {                       /* 16562: hit back (A 9) */
@@ -229,7 +235,15 @@ static void rig(obj_t *h) {
 static void fight_frame(player_t *p) {
     obj_t *h = head();
     if (!h) return;
-    int def = (h->fl & FDB_DEF) != 0;
+    if ((h->fl & FDB_DEF) && S.lives > 0) {                                     /* 16576 / 16577: a life lost (ctor O 5; RV b2_0 f3100-3200) */
+        if (S.lives > 1) for (int k = 0; k < 2; k++) obj_throw_petal(h->x, h->y - 20);   /* 16576: petals while O > 1 */
+        h->fl &= ~FDB_DEF; h->A = 60; S.inv = 90; S.lives--;
+        snd_play_orig(25, 220, 128); snd_play_orig(392, 220, 128);              /* 16577: sound 25, media 3136 */
+        if (S.lives <= 1) fdb_set(h, "fdm_head7");                              /* 16579: O <= 1 -> anim 7 */
+        if (S.lives <= 0) h->fl |= FDB_DEF;                                     /* 16580: O <= 0 -> the defeat (D 60) */
+    }
+    if (S.inv > 0) { S.inv--; h->inv = 1; if (S.inv >= 6) h->c = 3; if (!S.inv) { h->inv = 0; h->c = 0; } }   /* C 90 (16577 / 16578) */
+    int def = (h->fl & FDB_DEF) != 0 && S.lives <= 0;
     shots(p, h);
     if (S.done) return;
     if (!def) {
@@ -258,7 +272,6 @@ static void fight_frame(player_t *p) {
         S.hx += S.vx; S.hop = S.st == 4 ? fmax(0, sbb_sin(S.t * 3.0) * 6) : 0;
         h->x = (float)floor(S.hx); h->y = (float)floor(S.hy);
         rig(h);
-        if (h->c > 0) h->inv = 1;
     } else {                                                                    /* 16576-16637 */
         if (S.defF == 0) { music_fade(60, 0); snd_play_orig(38, 220, 128); for (int n = 0; n < NSHOT; n++) { obj_t *s = fdb_slot(S.shot[n]); if (s) s->alive = 0; } }
         S.defF++; h->bd = 0;
@@ -284,6 +297,13 @@ void f3b_frame(player_t *p) {
     if (!S.on) return;
     if (!S.scene && !S.fight && !S.results && p->y - ORIG_REF_DY > 1024 && fabs(p->x - S.stoneX) < 200 && G.character != CHR_MILLA && p->hp > 0)
         scene_start(p);                                                         /* 16237 */
+    if (!S.mpath && !S.scene && !S.fight && !S.results && G.character == CHR_MILLA && p->y - ORIG_REF_DY > 1024 && p->x > S.stoneX && p->hp > 0) {
+        S.mpath = 1; S.E = 0; fdb_ctrl = 1; fdb_keys = 0; music_fade(120, 0);   /* 16395 (g0 != 2): CTRL.M 1, CAM.M 3, fadeout_music(2000) */
+    }
+    if (S.mpath == 1) {                                                         /* 16397-16399: E < 90 CTRL.D 1 (walk on), E 90 Sign.B 179 */
+        S.E++; fdb_keys = S.E < 90 ? BTN_RIGHT : 0;
+        if (S.E == 90) { S.mpath = 2; S.results = 1; fdb_ctrl = 0; fdb_keys = 0; results_begin_boss(game_timer()); }
+    }
     if (S.scene) scene_frame(p);
     if (S.fight) fight_frame(p);
     for (int k = 0; k < fdb_rt_n(); k++) {                                      /* transform bubbles */

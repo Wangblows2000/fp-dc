@@ -1856,6 +1856,56 @@ for _e in FDB_ENS: ROW_FRAMES[_e[3]] = {71}
 FDB_ENS_WITH = {'bossbounceshot_3699': _F3, 'computerterminal3_3703': _F3, 'npcmillabody_3704': _F3, 'brevonknifearm_3702': _F3, 'effectbounceshotdebris_3700': _F3, 'npctransformbubble_669': _F3,
                 'effectsexplosion06_435': _F3, 'effectsexplosion01_367': _F3, 'effectsexplosion02_368': _F3}
 for _k, _v in FDB_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # FD_BOSS B
+# FD4b (json 73, fd_boss_r34_4b.c): Brevon's mech (BrevonMech* placed on the map: the BG4 Absolution rig and events, here events
+# 17002-17068), his suit (BrevonSuit*), the health bars. The mech parts are one family type (sub = MP_* of fd_boss_r34_4b.c, in the
+# order of FDB_MP); the weak spot (Q20) and the low pass's warning column have their own types.
+FDB_MP = ('backshoulder', 2532), ('backclaw', 2533), ('backarm', 2534), ('backwing', 2531), ('frontleg', 2535), ('abdomen', 2536), \
+         ('frontleg2', 2537), ('frontknee', 2538), ('torso', 2539), ('head', 2540), ('frontwing', 2542), ('frontfoot', 2541), \
+         ('frontshoulder', 2543), ('frontarm', 2544), ('frontclaw', 2545), ('axle', 2546), ('charge', 2584), ('turret', 2585)
+_FDB_T4 = {('brevonmech' + p, h): 3010 for p, h in FDB_MP}
+_FDB_T4.update({('brevonmechweakspot', 2581): 3011, ('effectbrevonmechwarning2', 2586): 3012})
+FDB_SUB.update({'brevonmech%s_%d' % (p, h): k for k, (p, h) in enumerate(FDB_MP)})
+for _k, _t in _FDB_T4.items(): ENGINE_TYPES_ID.setdefault(_k, _t)
+FRAME_TYPE_REMAP.update({(73, ENGINE_TYPES_ID[_k]): _t for _k, _t in _FDB_T4.items() if ENGINE_TYPES_ID[_k] != _t})
+FDB_TYPES_ID.update(_FDB_T4)
+_F4M = ('brevonmechtorso',)
+_F4S = ('brevonsuittorso',)   # on-map (FD4b is a NEWPACK frame: off-map templates such as the suit's head pull no rows)
+# VRAM: direction 0 only (16 = mirrors, drawn flipped; 1 / 17 = hit-flash copies); the mech head keeps its closed and open images
+# (frames 0, 3), the charge orb every other frame (the BG4 rows' choices); no background mech / space backdrops (see the spec)
+_FDB_SL4 = {'fdk_head': slice(0, 4, 3), 'fdk_charge': slice(0, 8, 2), 'fdb_brv5s': slice(52, 53)}
+FDB_ENS4 = [(c, a, d, nm, _FDB_SL4.get(nm), _F4M) for c, a, d, nm in (
+    ('brevonmechtorso_2539', 0, '0', 'fdk_torso'), ('brevonmechhead_2540', 0, '0', 'fdk_head'), ('brevonmechhead_2540', 10, '0', 'fdk_head10'),
+    ('brevonmechweakspot_2581', 0, '0', 'fdk_weak0'), ('brevonmechweakspot_2581', 0, '1', 'fdk_weak1'),
+    ('brevonmechweakspot_2581', 0, '2', 'fdk_weak2'), ('brevonmechweakspot_2581', 0, '3', 'fdk_weak3'),
+    ('brevonmechturret_2585', 0, '0', 'fdk_turret'), ('brevonmechcharge_2584', 0, '0', 'fdk_charge'),
+    ('brevonmechabdomen_2536', 0, '0', 'fdk_abd'), ('brevonmechaxle_2546', 0, '0', 'fdk_axle'),
+    ('brevonmechbackarm_2534', 0, '0', 'fdk_barm'), ('brevonmechbackclaw_2533', 0, '0', 'fdk_bclaw'),
+    ('brevonmechbackshoulder_2532', 0, '0', 'fdk_bsh'), ('brevonmechbackwing_2531', 0, '0', 'fdk_wing'),
+    ('brevonmechfrontleg_2535', 0, '0', 'fdk_fleg'), ('brevonmechfrontleg2_2537', 0, '0', 'fdk_fleg2'),
+    ('brevonmechfrontknee_2538', 0, '0', 'fdk_fknee'), ('brevonmechfrontfoot_2541', 0, '0', 'fdk_ffoot'),
+    ('brevonmechfrontshoulder_2543', 0, '0', 'fdk_fsh'), ('brevonmechfrontarm_2544', 0, '0', 'fdk_farm'),
+    ('brevonmechfrontclaw_2545', 0, '0', 'fdk_fclaw'), ('effectbrevonmechwarning2_2586', 0, '0', 'fdk_warn2'),
+    ('brevonmechlaser_2583', 0, '0', 'fdk_laser'), ('effectbrevonmechwarning_2582', 0, '0', 'fdk_warn'),
+    ('bosssparkyplasmashot_2587', 0, '0', 'fdk_plasma'))]
+FDB_ENS4 += [(c, a, d, nm, _FDB_SL4.get(nm), _F4S) for c, a, d, nm in (
+    ('brevonsuithead_3777', 0, '0', 'fdu_head'), ('brevonsuitlaser_3765', 0, '0', 'fdu_laser'), ('brevonsuitlaser_3765', 7, '0', 'fdu_lashit'),
+    ('brevonsuitspin_3766', 0, '0', 'fdu_spin'), ('brevonslash1_3804', 4, '0', 'fdu_slash'), ('effectbrevonsuitwarning_3799', 4, '0', 'fdu_warn'),
+    ('effectstinyexplosion_3803', 4, '0', 'fdu_tiny'), ('bosshealthbar1_3800', 0, '0', 'fdu_hb1'), ('bosshealthbar2_3801', 0, '0', 'fdu_hb2'),
+    ('brevon_3701', 5, '0', 'fdb_brv5s'))]
+FDB_ENS4 += [('brevonsuit%s_%d' % (p, h), 0, '0', 'fdu_' + p, None, _F4S) for p, h in FDB_SP]
+ENS += FDB_ENS4
+for _e in FDB_ENS4: ROW_FRAMES[_e[3]] = {73}; ENS_WITH[_e[0]] = ENS_WITH.get(_e[0], ()) + _e[5]
+# rows shared with FD3b: the stone, Brevon's anims 7 / 10 (FD4b: out of the mech, rising into it)
+for _i, _e in enumerate(ENS):
+    if _e[3] in ('fdb_stone', 'fdb_brv7', 'fdb_brv10'): ENS[_i] = _e[:5] + (_F3 + _F4S,); ROW_FRAMES[_e[3]] = {71, 73}
+for _k, _v in {'hazardshockwave_1576': _F4M, 'effectsdebris_427': _F4M, 'effectsexplosion06_435': _F4M + _F4S, 'effectsexplosion02_368': _F4S,
+               'effectsexplosion01_367': _F4M, 'bosssparkyplasmashot_2587': _F4M, 'brevonmechlaser_2583': _F4M,
+               'effectbrevonmechwarning_2582': _F4M, 'brevonsuitlaser_3765': _F4S, 'brevonslash1_3804': _F4S,
+               'effectstinyexplosion_3803': _F4S, 'effectbrevonsuitwarning_3799': _F4S}.items():
+    ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v
+# the BG4 Absolution rows (bg_boss_mech.c, BG_BOSS) stay out of FD4b, which places the same classes (it has its own rows above)
+for _e in ENS:
+    if _e[3].startswith('bgm_'): ROW_FRAMES[_e[3]] = ROW_FRAMES.get(_e[3], set(range(73))) - {73}
 
 # ==== end Final Dreadnought
 SHL_CLASSES = {'shieldwood_342', 'shieldearth_443', 'shieldwater_439', 'shieldmagnetic_344', 'shieldflamefront_343', 'shieldflameback_376', 'effectsshield_440'}

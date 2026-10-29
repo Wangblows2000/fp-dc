@@ -1146,6 +1146,9 @@ static const objdef_t DEFS[] = {
     { OT_FDB_CAPE,      OD_HIDDEN,                             NULL         }, /* brevondummycape_3792 */
     { OT_FDB_BHIT,      OD_HIDDEN,                             NULL         }, /* brevonhitbox_3809 (Q20, runtime) */
     { OT_FDB_RT,        0,                                     NULL         }, /* runtime objects of the module */
+    { OT_FDB_MECH,      OD_HIDDEN,                             NULL         }, /* brevonmech* rig parts (FD4b; shown by the fight) */
+    { OT_FDB_MWEAK,     OD_HIDDEN,                             NULL         }, /* brevonmechweakspot_2581 (Q20) */
+    { OT_FDB_MWARN2,    OD_HIDDEN,                             NULL         }, /* effectbrevonmechwarning2_2586 */
     /* ==== end Final Dreadnought */
 };
 static objdef_t BY_TYPE[MAX_OT];

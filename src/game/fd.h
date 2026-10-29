@@ -61,7 +61,9 @@ enum { OT_FDB_STONE = 2992 /* KingdomStone_3680 (the scripts' state holder: D ph
        OT_FDB_SUIT_WALL = 3004 /* BrevonSuitWallLeft_3797 / Right_3798 (sub 1) */, OT_FDB_HBAR = 3005 /* BossHealthBar1_3800 / 2_3801 (sub 1) */,
        OT_FDB_XHAIR = 3006 /* BrevonCrosshair6_3790 / 7_3791 (sub 1) */, OT_FDB_CAPE = 3007 /* BrevonDummyCape_3792 */,
        OT_FDB_BHIT = 3008 /* BrevonHitbox_3809 (Q20, A 160; runtime) */, OT_FDB_RT = 3009 /* runtime objects (st = FDB_K_*) */,
-       OT_FDB_LAST_USED = 3009 };
+       OT_FDB_MECH = 3010 /* BrevonMech* rig parts of FD4b (sub = the part: fd_boss_r34_4b.c MP_*) */,
+       OT_FDB_MWEAK = 3011 /* BrevonMechWeakSpot_2581 (Q20) */, OT_FDB_MWARN2 = 3012 /* EffectBrevonMechWarning2_2586 (4 placed) */,
+       OT_FDB_LAST_USED = 3012 };
 #ifdef FP_HOST_ENV
 int   fdb34_host_state(char *buf, int n);                                       /* one-line state for host tests */
 #endif
