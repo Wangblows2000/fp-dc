@@ -13,6 +13,13 @@ Roughly 90% decompiled, 10% inferred. The repo has about 45.7k lines of C. About
 ## Current issues?
 To keep it brief, many adventure-mode cutscenes are extremely rough visually, and some late-stage gimmicks are either missing or visually-lacking.
 
+Status as of 29 Oct 2026: every Adventure-mode story scene the original has is now in (Lilac, Carol and Milla versions,
+voiced, skippable from the pause menu, Adventure only). Their visuals are still being polished, and two short pieces are
+missing (Brevon's starfield opening before the Zao ambush scenes, the ride before Battle Glacier). An audit of the late
+stages fixed the gimmicks it found missing or invisible (Final Dreadnought vanishing blocks, Carol's jump pads, the vacuum
+in Final Dreadnought 2b, Jade Creek's rain, springs, pillars, jumbotrons and more). What is still open is listed at the
+top of [TODO.md](TODO.md).
+
 ## Building for Dreamcast
 
 > **Easy builder:** no tools to install. Drag your Freedom Planet **1.21.5** `Assets.dat` (the GOG Windows one or the
@@ -30,7 +37,8 @@ To keep it brief, many adventure-mode cutscenes are extremely rough visually, an
    it in an emulator such as Flycast.
 
 Your game folder is only read. No game data is stored in this repository: the builder takes the art, sound and music
-from your copy. The only game-derived files here are the level layout / animation tables in `tables/` (see its README).
+from your copy. The only game-derived files here are the level layout / animation tables and the story tables (scene list,
+dialogue text) in `tables/` (see its README).
 Details, troubleshooting and the developer build (KallistiOS toolchain, `make && make cdi`) are in **[BUILDING.md](BUILDING.md)**.
 
 ## PC port (Linux and Windows)
