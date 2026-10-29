@@ -11,6 +11,21 @@
 - [ ] INFERRED: the FD1b alarm (fd_boss_r12.c) draws an alpha rect from sin; RE 15388 is the same 255 - (200 cos A + 180)
       additive rule as FD3a's 16184 (not changed here)
 
+## Session 26b: gimmick gaps (build/gimmick_audit.md items 2, 4, 12)
+- [x] Carol's jump pads in TB4, TH3, BG2, JC2-JC4, FN4, FN5 (RV pad dumps -> levels.c PADS_*; JC3's pad lit and inert), drawn
+      with each handle's images; Lilac / Milla's crystal pop as PinballMovement 36 / 25 taken on landing; 113 at the launch
+- [x] fd2b's vacuum air rule (J, dings, warnings, death 91 / 128, GUIAir, countdown digits) and its 6 oxygen patches (Easy /
+      Casual only, sound 20); JC5's LevelRain (drops, splashes, loop 293, layer-0 tint, the bolt after 40 drops)
+- [ ] Found, not fixed (not in the brief): RM2's pads still draw DV's 539 images (no jpad_rm rows for frame 26); Lilac's normal
+      death lacks sound 91 and Carol's lacks 1960's 29 (RV fd2b_air / fd2b_air_c, p7); TB4's metal door 280 plays 15 frames
+      early after a teleport (RV c_jumppad_tb4); BG2's sound 102 during the wall-pad ride (RV c_jumppad_bg2, source not found);
+      the JC5 white card (OT_J5_FADE) is spawned without a sprite, so objects_draw may skip it (unverified)
+- [ ] Brevon mech fly-by (BG4 wings, JC5 BrevonMechFlyby 11117 / 11118, FD4b BrevonMechBackground_2444): not done. Plan: an
+      importer flag that halves an ENS row's images (2 x 2 box filter, frame size / hot spot / action point halved) and a
+      draw flag that scales them x2 (as parallax PAR_ALPHA flag 2); export the fly-by rows only for 62 / 44 / 73 with that flag
+      (~130 K px of the JC5 flyby -> ~33 K px), then port 11117 / 11118 (view x + width + 120, y + 100; speed 0.05 N capped at 4;
+      scale from sin((20 + N) 0.05); alpha 248 - 2 N). Check Flycast VRAM >= 500 KB per character before enabling a stage.
+
 ## Session 24: Battle Glacier, Final Dreadnought, ending, builder, PC port
 - [x] BG1-BG6 (flow, enemies, gimmicks, bosses) and FD rounds 1-4 (fd1a-fd4b) for Lilac / Carol / Milla; Classic route into
       BG and FD; each FD round's results; FD4 -> final cutscene -> FINAL SCORE -> credits -> Thanks for Playing -> title
@@ -20,7 +35,7 @@
 - [ ] Not ported: the shoot-'em-up lead-in to BG (frame 84), BG6 closing scene, Absolution's lasers killing
       enemies, BG6 iris enemies / shield bubbles / card trails; FD4b space backdrops + background mech (VRAM), the turret's
       aimed / acid volleys, Brevon's grab (state 10) and weapon-arm throws (14-15), finisher moves, voices, intro Elites;
-      fd2b vacuum air rule (fd_gim_siren_alarm is ready); fd1a pod rain at the dialog step (INFERRED self-start at x 800);
+      fd1a pod rain at the dialog step (INFERRED self-start at x 800);
       Adventure dialogs; the epilogue (frames 81 / 82)
 - [ ] INFERRED (see build/re/spec_bg_*.md / spec_fd_*.md): BG background-mech spacing, Sparky plasma, ride wall stops;
       gatling barrel formulas, pounder limiter turns; morpher form-G angles, fd2b attack order and arena camera; mutated
@@ -176,7 +191,7 @@
 ## Jade Creek (session 21)
 - [x] JC1-JC5 for Lilac, Carol, Milla: flow / route, enemies, gimmicks, bosses (Hovercop fly-by / chase, Neera, subtanker ride,
       JC5 ambush, Tredd, Serpentine 2, gunship), results, save, Time Attack, stage groups; SB boss voices / HUD
-- [ ] Not ported: Brevon mech fly-by scene (needs half-resolution ENS rows), the ice death (PlayerIceDeath), LevelRain,
+- [ ] Not ported: Brevon mech fly-by scene (needs half-resolution ENS rows; plan in "Session 26b"), the ice death (PlayerIceDeath),
       Adventure dialogue / cutscenes, the bubble hitting enemies (10445)
 - [ ] INFERRED: Elite constants, bubble-spring bounce constants, slab carry, subtanker bob phase, meteor speed, ring bounce
       outside observed cases, JC1 Hovercop y fit, JC3 park x 8084, buoy period (+3), plant first shot (-3), JC4 first volley

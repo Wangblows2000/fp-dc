@@ -156,6 +156,10 @@ SFX = (
           trim=True)
     + ids('381')
     + vox('br/br_pa_03', trim=True, kind='voxpc')
+    # session 26: fd2b's oxygen patches opening 20 (col_5_17) and Lilac's death sound 91 (loop_sound_die_8, RV fd2b_air), SFX_FD2B; JC5's storm rain loop 293 (11614 volume, played on channel 29
+    # by the JC5 start events, SFX_JC5; looped: tail kept)
+    + ids('20 91', trim=True)
+    + ids('293')
 )
 
 TRIM_AF = 'areverse,silenceremove=start_periods=1:start_threshold=-48dB,areverse'

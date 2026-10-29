@@ -531,6 +531,11 @@ FNA_ENS_WITH = {'breakablewallpiece_1638': ('breakablewall',), 'breakablefloorpi
 FNA_ENS_FRAMES = {'objectjumppad_1529': {30, 31, 32},
                   'breakablefloorpiece_1764': {30, 31, 32, 35}, 'breakablefloorpiece_1995': {34}}   # FN5 8343-8346 create piece 1995 (its own image)
 ENGINE_TYPES_ID.update(FNA_TYPES_ID); ENS += FNA_ENS; ENS_FRAMES.update(FNA_ENS_FRAMES)
+# session 26 (gimmick gaps item 2): Carol's pads in JC2-JC4 / FN4 / FN5 (handle 1529, its own images) and TH3 (handle 1284: the RM
+# pad images 4925 / 4935..). Their rows were limited to FN1-FN3 / RM3-RM5, so those acts' pads had no sprite (levels.c PADS_*)
+ENS_FRAMES['objectjumppad_1529'] = ENS_FRAMES['objectjumppad_1529'] | {33, 34, 41, 42, 43}
+ENS += [('objectjumppad_1284', 0, '0', 'jpad_rm'), ('objectjumppad_1284', 0, '1', 'jpad_rm_lit')]
+ENS_FRAMES['objectjumppad_1284'] = {59}
 for _k, _v in FNA_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v
 # ---- FN_GIMB: Fortune Night gimmicks, acts 4-5 (build/re/spec_fn_gimmicks_b.md; src/game/fn_gimb.c). Types 680-707 mirror
 # src/fp.h (OT_FNB_FIRST..OT_FNB_LAST). Families share a type; the lvobj anim field carries the member index (FNB_SUB, bits
@@ -1100,6 +1105,12 @@ JCB5_ENS_WITH = {'bossgunshipflare_2568': _G5, 'bossmissile_1867': _G5, 'effects
                  'playerskinsash_341': _G5, 'playerskincarol_449': _G5, 'playerskinmilla_461': _G5}
 for _nm in ('fc_l37l', 'fc_c37l', 'fc_m37'): ROW_FRAMES[_nm] = ROW_FRAMES.get(_nm, {35}) | {44}   # the closing's three heroes (11369 / 11372): FN6's cast rows
 for _k, _v in JCB5_ENS_WITH.items(): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _v   # JC_BOSS5
+# session 26 (gimmick gaps item 12): the storm's rain (LevelRain_2526, 11611-11617: a 1 x 28 streak, made at run time) and its
+# splash on the water (EffectsWaterHit_756, 11617)
+JCB5_RAIN = [('levelrain_2526', 0, '0', 'j5_rain', None, _G5)]
+ENS += JCB5_RAIN
+for _e in JCB5_RAIN: ENS_FRAMES[_e[0]] = ENS_FRAMES.get(_e[0], set()) | JCB5_FRAMES
+for _k in ('levelrain_2526', 'effectswaterhit_756'): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _G5
 
 # the enemies module's Elite rows (jee_*): the only Elites are jc5's, which the act-5 module owns (types 1498 / 1499, its own
 # j5e_* rows); jc_enemy.c removes any in stage 5. Leaving them out keeps jc5_ens smaller (session 21 merge).
@@ -1828,7 +1839,12 @@ FDF_ENS = [('%s_%d' % (c, h), 0, '0', 'fdl%s' % c[11:]) for c, h, _ in FDF_LOOPS
 ENGINE_TYPES_ID.update(FDF_TYPES_ID); ENS += FDF_ENS   # FD_FLOW
 for _e in FDF_ENS: ROW_FRAMES[_e[3]] = {70, 71}         # FD_FLOW rows only in fd3a / fd3b (the only acts that place them)
 # no water: ML.A 1 / ML.B 2000 (4800 in fd2a / fd2b) are written by the start events, but only handle_frame_69 (fd2b) holds air events,
-# its own vacuum rule (15790-15796: the air counter rises while the siren alarm is on, not ML.B): not in WATER_FRAMES
+# its own vacuum rule (15790-15796: the air counter rises while the siren alarm is on, not ML.B): not in WATER_FRAMES.
+# Session 26 (gimmick gaps item 4, src/game/water.c air_vacuum_events): fd2b gets the air rows without the water ones (no splash,
+# horizon or bubbles): its 6 oxygen BubblePatch_804 (anims 0 / 7 / 8: col_5_17 opens them), the countdown digits (BubbleNumbers_405,
+# 4272-4280) and the GUIAir counter (hud_air, 15794-15796 / 4170)
+AIR_FRAMES = (69,)
+for _k in ('bubblepatch_804', 'bubblenumbers_405'): ENS_WITH[_k] = ENS_WITH.get(_k, ()) + ('air_level',)
 
 # ---- FD_ENEMIES (fd_enemy.c, 2624-2751; build/re/spec_fd_enemies.md). Reused classes (RE: the FD frames run the same events as
 # their home stages, build/re/fde/f66..f73_calls): the EliteSpawner pods (bg_enemy.c 2337, BG5's 14657-14662 everywhere; payload by
@@ -2901,7 +2917,7 @@ def main():
            ('card_name', [an['levelcardintro2_683']['anims'][0]['0']['frames'][stage_card(n)[0]]]),    # the stage name (STAGE_CARDS)
            ('card_fade', [129]), ('card_gameover', [27]),
            ('pause', an['guipause_347']['anims'][0]['0']['frames']),               # Paused banner + options
-           ] + ([('hud_air', an['guiair_700']['images'])] if n in WATER_FRAMES else []) + ([('res_complete', an['levelcardactclear1_864']['anims'][7]['0']['frames']),  # "Stage Complete!" build-in
+           ] + ([('hud_air', an['guiair_700']['images'])] if n in WATER_FRAMES or n in AIR_FRAMES else []) + ([('res_complete', an['levelcardactclear1_864']['anims'][7]['0']['frames']),  # "Stage Complete!" build-in
            ('res_results', [955]), ('res_panel', [10860]), ('res_rows', an['levelcardactclear3_866']['anims'][7]['0']['frames']),   # 6-frame reveal (RE 4570-4573)
            ('res_bar', [10844, 10660]),
            ('res_complete_t', [-8005]), ('res_panel_t', [-10860]), ('res_bar_t', [-10844, -10660]),   # alpha-87 layers (RV screenshots)
@@ -2928,6 +2944,7 @@ def main():
     # in (src/game/shields.c; it would grow the _ens atlas, e.g. FN3 +512 KB of VRAM): session 18
     shl = {'name': name + '_shl', 'anims': []} if ({'shieldwood', 'shieldearth', 'shieldwater', 'shieldmagnetic', 'shieldflamefront', 'shieldflameback'} <= placed
                                                  and 'shieldmonitor_onmap' not in placed) else None
+    if n in AIR_FRAMES: placed.add('air_level')        # fd2b's vacuum air rule (session 26)
     if n in WATER_FRAMES: placed.add('water_level')   # DV2 / DV3: MasterLevel A = 1 (5109 / 5314); AT1 / AT2 / AT4 (4309 / 4478 / 4685)
     ens = {'name': name + '_ens', 'anims': [], 'keep_box': set()}
     placed_handles = {}

@@ -23,6 +23,7 @@ static int A_GAN[10] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };   /* Ganseki:
 static int A_PELLET = -1, A_EXPLODE2 = -1, A_SPARKLE = -1, A_HEART = -1, A_CRYSTAL = -1, A_PETAL = -1;
 
 static void ext_cache_reset(void);
+#define ITEMF_PIN 0x100                 /* OT_ITEM_FLY: a jump pad's crystal in PinballMovement (obj_pop_crystal) */
 static unsigned obj_gen = 1;   /* bumped whenever a slot is (re)allocated or retyped: invalidates the sensor candidates */
 /* superset of the types alive now: rebuilt when a slot is allocated / retyped (obj_gen) and at every objects_update, so a
  * pass can skip its full slot scan when none of its types exists (a type that died since stays set until then) */
@@ -459,6 +460,18 @@ void obj_throw_petal(float x, float y) {
 }
 /* 2766: one absorbed crystal per frame from a defeated enemy, fanned around straight up (spec_combat; the Pinball
  * movement's speed is INFERRED: 4 px/frame, then the thrown-item rules) */
+/* 3275 (session 26): a jump pad's crystal. ObjectCrystal_317's movement 1 is a PinballMovement (RE create_objectcrystal_317: speed
+ * 36, deceleration 0, gravity 25); 3275 selects it (advance_movement 1) with flag 0 and direction 8: straight up 3.6 px a frame,
+ * back down, and it rests on the ground 8 px above it (RV lpop_run: (4192, 2776) -> 2752 at +11..+14 -> 2784 over the floor 2792
+ * at +31, then still while nobody takes it); only then can it be taken (RV lpop_l: Lilac overlaps it at the pop and on the way, takes
+ * it 1 frame after it lands) */
+void obj_pop_crystal(float x, float y) {
+    obj_t *e = alloc_obj();
+    if (!e) return;
+    e->type = OT_ITEM_FLY; e->st = OT_CRYSTAL; e->alive = 1; e->layer = 2; e->x = x; e->y = y; e->fl = ITEMF_PIN; e->tm = 0;
+    obj_pinball_start(e, 8, 36.f);
+    if (A_CRYSTAL >= 0) anim_set(&e->an, &G.objs, A_CRYSTAL);
+}
 void obj_drop_crystal(float x, float y, int S) { obj_launch_crystal(x, y, (int)((2 * (S % 2) - 1) * (S + 1) / 2.0 + 8)); }
 void obj_launch_crystal(float x, float y, int d) {     /* a crystal thrown out in direction d (0..31) */
     obj_t *e = alloc_obj();
@@ -1014,6 +1027,15 @@ void objects_update(void) {
             if (!dead && player_cube_breaks_rock(o)) { snd_play_orig(13, 220, 128); obj_explode(o->x + 16, o->y + 16); o->alive = 0; }
             break;
         case OT_ITEM_FLY:
+            if (o->fl & ITEMF_PIN) {                       /* a jump pad's crystal (obj_pop_crystal): PinballMovement 36 / 25 */
+                obj_pinball_step(o, 25);
+                if (o->vy > 0 && solid_at(&G.lvl, o->x, o->y + 8)) {          /* lands: resting 8 px above the ground (RV) */
+                    o->y = floorf(o->y);
+                    for (int k = 0; k < 16 && solid_at(&G.lvl, o->x, o->y + 7); k++) o->y -= 1;
+                    o->type = o->st; o->st = 0; o->tm = 0; o->fl = 0; obj_gen++;
+                }                                          /* (not taken in flight: RV lpop_l, flag 0 on until it lands) */
+                break;
+            }
             /* crystals / petals thrown out of a monitor: ballistic, settle on the ground, then normal items */
             o->vy += 0.2f; o->x += o->vx; o->y += o->vy;
             if (o->vy > 0 && solid_at(&G.lvl, o->x, o->y + 4)) { o->vy = -o->vy * 0.5f; o->vx *= 0.8f; if (o->vy > -0.5f) { o->vy = 0; o->vx = 0; } }
