@@ -39,7 +39,8 @@ void bgs_spawn(void) {
     memset(&S, 0, sizeof S);
     obj_t *b = body();
     if (!b) return;
-    S.act = level_cur()->act == 5 ? 5 : 4;                                   /* BG4: the boss room; BG5: Milla's ride */
+    S.act = level_cur()->act;                                                /* BG4: the boss room; BG5: Milla's ride */
+    if (S.act != 4 && S.act != 5) { kill_all(); return; }                    /* BG6 places one below the map for its closing scene (15139 / 15140: not ported) */
     if (S.act == 4 && G.at_g4 >= 8) {                                        /* 14612: a restart past the fight: the room is open */
         kill_all();
         bgb_arena_open(-1e9f, 1e9f);

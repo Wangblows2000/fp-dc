@@ -1782,6 +1782,29 @@ for _e in BGB_ENS:
     if _e[5] == _MBG: ROW_FRAMES[_e[3]] = {61, 62, 63}   # BG6 places the background mech too (it stays hidden there)
 ROW_FRAMES['bgm_burst'] = {61}                        # BG2's set piece only
 ROW_FRAMES['bgs_body11'] = ROW_FRAMES['bgs_tail11'] = {64}   # Milla aboard (BG5's ride) only
+# BG6 (bg_boss_dail.c): Prince Dail, the Shade Beast (head, crown placed; mouth, teeth, eyes, vortex, cards, lightning at run time)
+BGB_TYPES_ID6 = {('bossdail', 3370): 2490, ('bossdailfall', 3383): 2491, ('bossdailspawnpoint', 3366): 2492,
+                 ('bossshadebeast', 3368): 2493, ('bossshadebeastcrown', 3369): 2494}
+ENGINE_TYPES_ID.update(BGB_TYPES_ID6)
+_SB6 = ('bossshadebeast',)
+BGB_ENS6 = [(c, a, d, nm, None, _SB6) for c, a, d, nm in (
+    ('bossdail_3370', 0, '0', 'bgd_dail'), ('bossdail_3370', 7, '0', 'bgd_dail7'), ('bossdail_3370', 8, '0', 'bgd_dail8'),
+    ('bossdail_3370', 10, '0', 'bgd_dail10'), ('bossdailfall_3383', 0, '0', 'bgd_fall'),
+    ('bossshadebeast_3368', 0, '0', 'bgd_beast'), ('bossshadebeast_3368', 8, '0', 'bgd_beast8'),
+    ('bossshadebeastcrown_3369', 0, '0', 'bgd_crown'), ('bossshadebeastcrown_3369', 8, '0', 'bgd_crown8'),
+    ('bossshadebeastmouth_3373', 0, '0', 'bgd_mouth'), ('bossshadebeasttoptooth_3375', 0, '0', 'bgd_ttooth'),
+    ('bossshadebeastbottomtooth_3376', 0, '0', 'bgd_btooth'), ('bossshadebeasteye_3365', 0, '0', 'bgd_eye'),
+    ('bossshadebeasteye_3365', 7, '0', 'bgd_eye7'), ('bossvortex1_3374', 0, '0', 'bgd_vortex1'),
+    ('bossvortex2_3378', 0, '0', 'bgd_vortex2'), ('bossvortexstar_3379', 0, '0', 'bgd_star'),
+    ('bossdailcard_3371', 0, '0', 'bgd_card'), ('bossdailcardtrail_3372', 0, '0', 'bgd_trail'),
+    ('bossdailcardeffect_3367', 7, '0', 'bgd_cardfx'), ('bosslightning2_2132', 0, '0', 'bgd_bolt'),
+    ('effectbossshade_3377', 0, '0', 'bgd_shade'), ('effectvortexburst_3380', 4, '0', 'bgd_burst'))]
+ENS += BGB_ENS6   # BG_BOSS
+for _e in BGB_ENS6: ROW_FRAMES[_e[3]] = {65}
+for _k in ('bossshadebeastmouth_3373', 'bossshadebeasttoptooth_3375', 'bossshadebeastbottomtooth_3376', 'bossshadebeasteye_3365',
+           'bossvortex1_3374', 'bossvortex2_3378', 'bossvortexstar_3379', 'bossdailcard_3371', 'bossdailcardtrail_3372',
+           'bossdailcardeffect_3367', 'bosslightning2_2132', 'effectbossshade_3377', 'effectvortexburst_3380'):
+    ENS_WITH[_k] = ENS_WITH.get(_k, ()) + _SB6   # BG_BOSS (created at run time by the BG6 fight)
 
 # ==== end Battle Glacier
 
