@@ -24,13 +24,17 @@
  *     st<json>/             the story rooms, built like levels, with the scene actors' rows in st<json>_ens
  *
  * ---- Scene table (story/story.txt), one scene per line, '#' comments:
- *     <id> <json room> <g4> <next> [skip=<next>] [trig=<trigger>...] [chr=<mask>]
- *   next / skip: "scene:<id>", "stage:<level dir>", "route" (frame 8: the stage after the last one), "menu"
+ *     <id> <json room> <g4> <next> [skip=<next>] [stage=<level dir>] [panel=<0|1|2>] [trig=<trigger>...] [chr=<mask>]
+ *   next / skip: "scene:<id>", "stage:<level dir>", "route" (frame 8: the stage after the last one), "menu";
+ *   skip "mark:chsel": SKIP SCENE jumps to the scene's own character select (no completion, RV k75_g0_skip700)
+ *   stage: the NEXT STAGE row's target (panel 2); panel: the pause menu (0 none: START = SKIP at once, RV k81_g2_start;
+ *   1 GUIPause frame 1 RESUME / SKIP SCENE / QUIT; 2 frame 2 RESUME / SKIP SCENE / NEXT STAGE)
  *   trig: "new" (a new Adventure), "end:<I>" (frame 8 after stage I); chr: g1 mask (1 Lilac, 2 Carol, 4 Milla; default 7)
  *
  * ---- Scene script (story/<id>.scn, tools/story_rv2scn.py), one entry per line:
  *     scene <id> / room st<json> / dialog <handle> / title <text>
- *     actor <n> <class>_<handle> <json layer>       actor n (0..127), drawn with the rows s<handle>_<anim>_<dir>
+ *     actor <n> <class>_<handle> <json layer> [ink] actor n (0..127), drawn with the rows s<handle>_<anim>_<dir>;
+ *                                                    ink "add" (set_shader 0x20) or "a<alpha>" (blend colour, RE)
  *     seg <k>                                        segment k: starts at the scene start (0) or when the line of the
  *                                                    previous segment is dismissed (A with the arrow shown)
  *     <t> p <n> <x> <y>                              actor position (frame coordinates) at segment time t
@@ -43,6 +47,8 @@
  *     <t> s <id> / <t> o <voice> / <t> u <bgm file|->   sound id / a voice clip outside the dialogue / music
  *     <t> f <frames> [1]                             fade: > 0 from black, < 0 to black (1: white instead of black)
  *     <t> chsel                                      the in-scene character select (frame 75: Lilac / Carol, sets g1)
+ *     <t> cap <row> <key> / <t> capx                 caption row 0-3 from story/captions.txt / all captions off
+ *     <t> pv <handle> <0|1>                          the room's parallax piece <handle> hidden / shown (par_set_hidden)
  *     end <t>                                        the scene ends at time t of the last segment
  *     next <step>                                    (informative: the table's next wins) */
 #ifndef FP_STORY_H

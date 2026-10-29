@@ -138,7 +138,7 @@ static struct {
     csx_ent_t *e; int seg_first[CSX_SEGS + 1];
     char name[24], pool[CSX_POOL]; int pool_n;
     short sfx[48];
-    struct { int handle, layer, x, y, vis, row, mdx, mdy, mn, locked; animator_t an; } a[CSX_ACTORS];
+    struct { int handle, layer, x, y, vis, row, mdx, mdy, mn, locked, add, alpha; animator_t an; } a[CSX_ACTORS];
     const bank_t *ens, *font; const char *const *dlg; int ndlg;
     int line, box, typed, len, arrow_t, shown;            /* DialogBox state (RE 18606 / 18607: C, B) */
     int row_box, row_name, row_arrow; animator_t arrow;
@@ -220,10 +220,12 @@ int csx_load(const char *path) {
             if (!strcmp(op, "scene")) sscanf(p, "%*s %23s", X.name);
             else if (!strcmp(op, "dialog")) X.dialog = atoi(p + 7);
             else if (!strcmp(op, "actor")) {
-                int n = -1, l = 2; char cls[48];
-                if (sscanf(p, "%*s %d %47s %d", &n, cls, &l) != 3 || n != X.nact || n >= CSX_ACTORS) { bad = 1; break; }
+                int n = -1, l = 2, k = 0; char cls[48], ink[16] = "";
+                if (sscanf(p, "%*s %d %47s %d %n", &n, cls, &l, &k) < 3 || n != X.nact || n >= CSX_ACTORS) { bad = 1; break; }
+                if (k) sscanf(p + k, "%15s", ink);                /* ink: "add" (set_shader 0x20) or "a<alpha>" (blend colour) */
                 char *u = strrchr(cls, '_');
                 X.a[n].handle = u ? atoi(u + 1) : 0; X.a[n].layer = l; X.nact++;
+                X.a[n].add = !strcmp(ink, "add"); X.a[n].alpha = ink[0] == 'a' && ink[1] >= '0' && ink[1] <= '9' ? atoi(ink + 1) : 255;
             } else if (!strcmp(op, "seg")) {
                 if (++seg >= CSX_SEGS) { bad = 1; break; }
                 X.seg_first[seg] = X.ne; X.nseg = seg + 1;
@@ -406,7 +408,9 @@ void csx_draw_actors(int pass) {
         if (ps != pass || !X.a[k].vis || X.a[k].row < 0) continue;
         float x = (float)X.a[k].x, y = (float)X.a[k].y;
         if (pass < 3) { x -= floorf(G.camx); y -= floorf(G.camy); }   /* json layers 6-7 do not scroll (the HUD layers) */
-        frame_draw(X.ens, anim_frame(&X.a[k].an), x, y, 0, 0xffffffff);
+        if (X.a[k].add) r_set_additive(1);
+        frame_draw(X.ens, anim_frame(&X.a[k].an), x, y, 0, (uint32_t)X.a[k].alpha << 24 | 0xffffff);
+        if (X.a[k].add) r_set_additive(0);
     }
 }
 static void txt8(float x, float y, const char *s, int n) {
@@ -437,4 +441,11 @@ void csx_draw_ui(void) {
         if (X.arrow_t > ARROW_DELAY && X.row_arrow >= 0) frame_draw(X.ens, anim_frame(&X.arrow), 345, 40, 0, 0xffffffff);   /* DialogArrow_553 */
     }
     if (X.fade > 0) r_rect(0, 0, SCREEN_W, SCREEN_H, (uint32_t)X.fade << 24 | X.fade_rgb);
+    for (int r = 0; r < 4; r++) {                          /* captions over the fade, centred, rows 20 px apart (RV c81_g2 */
+        const char *s = X.cap[r]; int n = 0;               /* shots 1920-2040: glyphs at y 111-125 / 131-145, centred on 213) */
+        if (!s) continue;
+        while (s[n] && s[n] != '\n' && s[n] != '\r') n++;
+        while (n > 0 && s[0] == ' ') { s++; n--; }
+        txt8((float)(SCREEN_W / 2 - n * 4), (float)(108 + r * 20), s, n);
+    }
 }

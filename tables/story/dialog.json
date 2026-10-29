@@ -6043,11 +6043,364 @@
 ]
 },
 "captions": {
+"str_15_minutes_later_362": "15 MINUTES LATER...",
 "str_dragon_valley_10": "               DRAGON VALLEY",
 "str_three_days_later_330": "Three days later,",
-"str_20_minutes_later_364": "20 MINUTES LATER...",
 "str_meanwhile_332": "Meanwhile,",
-"str_15_minutes_later_362": "15 MINUTES LATER...",
+"str_20_minutes_later_364": "20 MINUTES LATER...",
 "str_in_a_valley_to_the_east_331": "In a valley to the East..."
+},
+"ink": {
+"acidfloorglow_4077": {
+"shader": 32
+},
+"active_3907": {
+"alpha": 159
+},
+"alarmlight_3495": {
+"shader": 32
+},
+"basementlight_1276": {
+"shader": 20
+},
+"basementlight_1548": {
+"shader": 20
+},
+"basementlight_3498": {
+"shader": 20
+},
+"bgfireplace2_3990": {
+"shader": 32
+},
+"blackborder_276": {
+"alpha": 127
+},
+"bosschopperblade_2217": {
+"shader": 32
+},
+"bosschoppertailblade2_2214": {
+"shader": 32
+},
+"bosschoppertailblade_2218": {
+"shader": 32
+},
+"bossdailcardtrail_3372": {
+"shader": 32
+},
+"bossgunshiphitbox_2577": {
+"shader": 32
+},
+"bossholodragoneye2_3097": {
+"alpha": 199
+},
+"bosshovercopchargeglow_2471": {
+"shader": 32
+},
+"bosshovercopsiren1_2433": {
+"shader": 32
+},
+"bosshovercopsiren2_2434": {
+"shader": 32
+},
+"bosshovercopsiren3_2427": {
+"shader": 32
+},
+"bosshovercopsiren4_2426": {
+"shader": 32
+},
+"bosspantherlaser_2047": {
+"shader": 32
+},
+"bosssyntaxelecball_3484": {
+"shader": 32
+},
+"bosssyntaxspiderweb_2760": {
+"shader": 32
+},
+"bosstractorbeam_3796": {
+"shader": 32
+},
+"bossvortex2_3378": {
+"shader": 32
+},
+"brevonmechbackwing_2531": {
+"shader": 32
+},
+"brevonmechcharge_2584": {
+"shader": 32
+},
+"brevonmechfrontwing_2542": {
+"shader": 32
+},
+"brevonsuitaura_3770": {
+"shader": 32
+},
+"brevonsuitspeedline2_3768": {
+"shader": 32
+},
+"brevonsuitspeedline_3767": {
+"shader": 32
+},
+"brevonsuitspin_3766": {
+"shader": 32
+},
+"comet_4005": {
+"shader": 32
+},
+"controlbox_82": {
+"alpha": 191
+},
+"controlboxname_83": {
+"alpha": 191
+},
+"discolight_1932": {
+"shader": 20
+},
+"effectrebound2_3055": {
+"shader": 32
+},
+"effectrebound_3054": {
+"shader": 32
+},
+"effectschargebeam_2130": {
+"shader": 32
+},
+"effectscolordot_438": {
+"shader": 32
+},
+"effectsdust01_369": {
+"alpha": 116
+},
+"effectsheart_444": {
+"shader": 32
+},
+"effectsspadeimage_456": {
+"alpha": 127
+},
+"effectstickyice_2469": {
+"shader": 32
+},
+"effectswaterhit_756": {
+"alpha": 192
+},
+"enemyflare_1809": {
+"shader": 32
+},
+"enemysleepgas_2941": {
+"alpha": 159
+},
+"enemysoundwave_1989": {
+"shader": 32
+},
+"fdlasertunnelglass1_3744": {
+"shader": 32
+},
+"fdlasertunnelglass2_3745": {
+"shader": 32
+},
+"fdpowercore2_3677": {
+"shader": 32
+},
+"fdpowercore3_3678": {
+"shader": 32
+},
+"fdpowercore4_3764": {
+"shader": 32
+},
+"flashbackbg_3617": {
+"shader": 20
+},
+"fntreeshadow_1927": {
+"alpha": 63
+},
+"fountainfront2_1919": {
+"alpha": 191
+},
+"generalwater_378": {
+"shader": 20
+},
+"generalwaterhorizon_377": {
+"shader": 32
+},
+"gimmickantigrav_3322": {
+"shader": 32
+},
+"gimmickmagnetlauncherlight_3330": {
+"shader": 32
+},
+"handshadow_302": {
+"shader": 20
+},
+"hazardlasertunnelglass1_3746": {
+"shader": 32
+},
+"hazardlasertunnelglass2_3747": {
+"shader": 32
+},
+"hazardlasertunnelglass3_3748": {
+"shader": 32
+},
+"highlighter_3842": {
+"alpha": 127
+},
+"introscene2_17": {
+"alpha": 127
+},
+"jcsub16_2507": {
+"alpha": 127
+},
+"kingdomstonesparkle_4072": {
+"shader": 32
+},
+"kingdomstonewave_3681": {
+"shader": 32
+},
+"levelballtunnel1_1032": {
+"alpha": 97
+},
+"levelballtunnel2_2271": {
+"alpha": 97
+},
+"levelballtunnel3_2273": {
+"alpha": 97
+},
+"levelcrushdeath_1627": {
+"alpha": 127
+},
+"levelheatsky_2779": {
+"shader": 32
+},
+"levelhovercraftlight_2465": {
+"shader": 32
+},
+"levelparalaxwatersurface_1008": {
+"alpha": 156
+},
+"levelslipperysurface_2473": {
+"alpha": 127
+},
+"leveltrollycarlight2_1813": {
+"shader": 32
+},
+"leveltrollycarlight_1812": {
+"shader": 32
+},
+"lightray1_698": {
+"shader": 32
+},
+"lightray2_1592": {
+"shader": 32
+},
+"lightray2_699": {
+"shader": 32
+},
+"lightray_1591": {
+"shader": 32
+},
+"lightspark2_661": {
+"shader": 32
+},
+"minibosspushbeam_3493": {
+"shader": 32
+},
+"minibossufobeam2_2288": {
+"shader": 32
+},
+"minibossufobeam_1769": {
+"shader": 32
+},
+"npchologram2_3100": {
+"shader": 32
+},
+"npcsyntaxeye_2682": {
+"shader": 32
+},
+"objecttransporterstart2_3417": {
+"shader": 32
+},
+"redflash_3754": {
+"shader": 20
+},
+"redflash_3758": {
+"shader": 20
+},
+"ringsparkle_142": {
+"shader": 32
+},
+"shieldearth_443": {
+"shader": 32
+},
+"shieldflameback_376": {
+"shader": 32
+},
+"shieldserpentine_1872": {
+"shader": 32
+},
+"shieldwater_439": {
+"shader": 32
+},
+"shipcable2_2027": {
+"shader": 32
+},
+"shockwave_4164": {
+"shader": 32
+},
+"shockwave_54": {
+"shader": 32
+},
+"sparkle1_316": {
+"shader": 32
+},
+"sparkle2_398": {
+"shader": 32
+},
+"sparkle3_399": {
+"shader": 32
+},
+"sparkle4_400": {
+"shader": 32
+},
+"sparkle5_284": {
+"shader": 32
+},
+"sparkle_4": {
+"shader": 32
+},
+"sparkletrail_5": {
+"shader": 32
+},
+"spiraltunnelmask_889": {
+"alpha": 97
+},
+"strobelight_1857": {
+"shader": 32
+},
+"syntaxprojection1_4065": {
+"shader": 32
+},
+"syntaxprojection2_4066": {
+"shader": 32
+},
+"syntaxprojection3_4067": {
+"shader": 32
+},
+"tbtorturechamberglass_3987": {
+"shader": 32
+},
+"thspotlight_3209": {
+"shader": 32
+},
+"torturelightning_3982": {
+"shader": 32
+},
+"waterfallback_1036": {
+"alpha": 156
+},
+"waterfallback_2847": {
+"alpha": 192
+},
+"waterfallfront_1037": {
+"shader": 32
+}
 }
 }

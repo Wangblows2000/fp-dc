@@ -6,7 +6,7 @@ The Dreamcast disc: the disc tree from a data dir (copy, pre-twiddle, pack, pad)
   make_disc.py tree <data_dir> <disc_dir> [--bgm FILE...] [--demo FILE]
       <disc_dir>/data: levels.txt; per level of levels.txt its *.tex *.spr *.lv2 *.pal (*.bin: parallax pieces); ui/ (scenes,
       banks, font), bgm/ (the ADPCM music library, or the --bgm files only), sfx/ (ADPCM sfx / voices), end/ (the end of
-      the game), gal/ (gallery: loose, on demand); then tools/twiddle_disc.py (pre-twiddled textures), tools/pack_disc.py
+      the game), gal/ (gallery: loose, on demand), story/ + story/vo/ + st<json>/ (Adventure scenes, when built); then tools/twiddle_disc.py (pre-twiddled textures), tools/pack_disc.py
       (one .pak per directory), --demo as data/demo.txt (verification builds: scripted input, plat_dc demo_load) and
       tools/pad_disc.py (every file a multiple of 32 bytes).
   make_disc.py cdi <fpdc.elf> <data_dir> <disc_dir> <out.cdi> [--mkdcdisc PATH] [--bgm FILE...] [--demo FILE]
@@ -34,6 +34,18 @@ def tree(data, disc, bgm=None, demo=None):
     for lv in open(os.path.join(data, 'levels.txt'), encoding='utf-8').read().split():
         copy(os.path.join(data, lv), ['*.tex', '*.spr', '*.lv2', '*.pal'], os.path.join(d, lv))
         copy(os.path.join(data, lv), ['*.bin'], os.path.join(d, lv), required=False)    # *_par.bin: parallax pieces
+    # Adventure scenes (session 25, tools/import_story.py; absent from older data dirs): story/ (scene table, scripts,
+    # dialogue: packed), story/vo/ (one voice clip per line: loose, read per line; absent when the install's voices are
+    # placeholders) and the story rooms st<json>/ the table names (built like levels)
+    sd = os.path.join(data, 'story')
+    if os.path.isfile(os.path.join(sd, 'story.txt')):
+        copy(sd, ['*.txt', '*.scn'], os.path.join(d, 'story'))
+        copy(os.path.join(sd, 'vo'), ['*.wav'], os.path.join(d, 'story', 'vo'), required=False)
+        rooms = sorted({'st' + l.split()[1] for l in open(os.path.join(sd, 'story.txt'), encoding='utf-8')
+                        if l.strip() and not l.startswith('#')})
+        for rm in rooms:
+            copy(os.path.join(data, rm), ['*.tex', '*.spr', '*.lv2', '*.pal'], os.path.join(d, rm))
+            copy(os.path.join(data, rm), ['*.bin'], os.path.join(d, rm), required=False)
     # front end (ui scenes + banks + font), ADPCM music library (.adp), ADPCM sfx / voices
     copy(os.path.join(data, 'ui'), ['*.ui', '*.spr', '*.tex', '*.bin'], os.path.join(d, 'ui'))
     os.makedirs(os.path.join(d, 'bgm'))
