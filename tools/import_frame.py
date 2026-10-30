@@ -2205,6 +2205,36 @@ def story_par(n, name):
     out = {}
     for sc in story_scenes(n, name): out.update(sc.get('par', {}))
     return out
+# The story rooms' layer scroll rates (RE Layer::init(layer, x_coef, y_coef) at the start of Frames::on_frame_<json>_init; layers
+# 0-5 at 1.0 unless listed, 6 at 0): a placed or scripted object on such a layer is drawn at its position minus trunc(view * rate)
+# (RV r82_g16c: json 83's ParallaxThermalBase_4133 / LevelParalaxWaterSurface_14 on layer 1 keep their screen x while the view pans
+# 387 -> 0). Written as <room>.lay (json layer, x, y; 'map 1': json layer 2 shares the port's piece layer 1, pad bit 8) and read
+# by game.c for story rooms only (the stages keep their own handling: SCROLL08, sb_flow.c's 0.25)
+STORY_LAYER_CO = {36: {1: (.25, .25)}, 37: {1: (.8, .8)}, 70: {1: (.8, .8)}, 78: {1: (.8, .8)}, 80: {1: (.25, .25)},
+                  83: {1: (0., 1.), 2: (.6, 1.)}}
+def story_still(n, name, o, an):
+    """a story room's 'Parallax*' Active (not a LevelParallaxPiece) whose traced alterables D / E / F are all 0: no parallax event
+    moves it, it sits at its placed position on its layer (RV r82_g16c: ParallaxThermalBase_4133 at 207, 5329 on json layers 0 / 1,
+    the screen x constant while the view pans; json 83 layer 1 scrolls x at 0, RE on_frame_83_init). Drawn as a still piece (the
+    parallax export left it at D = E = 0: tiled across the screen at the wrong height, never in view)"""
+    if not re.match(r'^st\d+$', name) or not o['cls'].startswith('parallax'): return 0
+    sp = story_par(n, name).get(str(o['id']))
+    if sp is None or any(sp) or not an.get('%s_%d' % (o['cls'], o['id']), {}).get('images'): return 0
+    return 2 if o.get('cover') else 1                 # 2: covered by the layer-0 parallax pieces created after it (see story_cover)
+def story_cover(fr):
+    """a still 'Parallax*' Active under a LevelParallaxPiece (on a lower layer, or placed before it on the same layer) is covered by the
+    backdrop pieces (Fusion draws the layers in order, a layer's objects in instance order; the port draws the parallax pieces
+    first): RV r82_g16c shows one ParallaxThermalBase_4133, the json-1 instance placed after json 83's layer-1 night sky pieces; the
+    json-0 one is under them"""
+    ps = [(o.get('layer') or 0, k) for k, o in enumerate(fr['objects']) if o['cls'].startswith('levelparallax')]
+    for k, o in enumerate(fr['objects']):
+        l_ = o.get('layer') or 0
+        if o['cls'].startswith('parallax') and any(pl > l_ or (pl == l_ and pk > k) for pl, pk in ps): o['cover'] = 1
+def story_lay_box(n, layer0, box):
+    """a view box [x0, y0, x1, y1] (camera top-lefts + the screen) in the coordinates of json layer layer0 (STORY_LAYER_CO)"""
+    cx, cy = STORY_LAYER_CO.get(n, {}).get(layer0, (1., 1.))
+    x0, y0, x1, y1 = box
+    return [cx * x0, cy * y0, cx * (x1 - 426) + 426, cy * (y1 - 240) + 240]
 STORY_MARGIN = 64   # a split story room keeps the placements within 64 px of its scenes' views (INFERRED margin: scrolling layers)
 def story_views(n, name):
     """session 25b: the view box (rows.json 'vbox': [x0, y0, x1, y1] around every camera top-left + the screen, written by
@@ -2400,7 +2430,8 @@ SCROLL08 = {17: 1, 18: 1, 19: 1, 20: 1, 25: 1, 26: 1, 27: 1, 28: 1, 29: 0, 30: 1
 # (flag 2048); LevelParallaxZaoShip_2243 is a SystemBox on layer 0 at a world position, between piece6 and piece7 (flag 4096:
 # drawn once at (D, y0) in world coordinates; RE create_levelparallaxzaoship_2243: image 0x131 = 305, 507 x 323)
 PAR_BOB_FRAMES = {36, 37, 38, 39}
-PAR_WORLD = {2243}
+PAR_WORLD = {2243, 3962}   # session 27: LevelParallaxZaoShip2_3962 in json 79 too (RV b78_g1_l: at 6744, 128 while the view is at 2267,
+                           # never in view; b78_g2_l 1863: moving left 4 px a frame, 'pw' entries; the D = 0 tiling drew it across the screen)
 # images with per-pixel alpha (Sky Battalion's mist: pieces 5 / 6 / 7, every pixel alpha 1..~100, RE images 8426 / 8421 / 8425):
 # flag 1 = ARGB4444 texture (FPTX fmt 4) drawn through the translucent list, flag 2 = stored at half resolution, drawn x2
 # (soft mist; a quarter of the VRAM: about 200 KB instead of 800 KB). Image id -> flags (session 19)
@@ -2483,6 +2514,21 @@ PAR_FIXED = {(63, 3310)}                              # json frame, handle: draw
 PAR_FIXED_SKIP = {3353, 3364}                         # the close views: not exported (BG5: on screen only at view left > 5300 near the top,
                                                       # two 305 x 657 images ~400 KB of VRAM, INFERRED not worth it; BG6: its ending's)
 PAR_ALPHA.update({1614: 3})                           # piece1_3224: white mist, alpha 0..211 (ARGB4444 at half resolution, drawn x2)
+# json 82 (the Adventure opening's crash site): LevelParallaxPiece7_4008 is the crashed ship's ground smoke, image 591 (594 x 128,
+# 76k of its pixels alpha 1..254; RV c81_g2 shots 1080-1320: soft translucent smoke over the ship). ARGB1555 drew it as opaque
+# white blobs: ARGB4444 at half resolution, drawn x2 (38 KB of VRAM instead of 152 KB)
+PAR_ALPHA.update({591: 3})
+# Story rooms only (session 27): json 76's (Dragon Valley's) LevelParallaxPiece3_894 / 4_895 are a translucent haze over the lowland
+# (images 937, 320 x 73, 8.8k pixels alpha 1..254; 326, 320 x 140, 34.7k): RV c75_g0 shots 120-480, dv_meet's flight over the valley.
+# The DV stages draw them opaque too (not changed here: their VRAM / look are the stages' own)
+STORY_PAR_ALPHA = {937: 3, 326: 3}
+# Session 27: json 83's skies (RE create_sunset_4063 / create_daytimesky_4118: SystemBox, box 0x234 x 0xf0, image 12345 / 8093,
+# mode 0 = the image tiles in the box, scissored to it: SystemBox::draw) on layer 1 (x rate 0, y 1: Layer::init) at (0, 384):
+# exported as screen-fixed parallax pieces (D 1, E 0, y 384) in the story rooms; the scripts show / hide them ('pv', RV a83_g0:
+# DaytimeSky hidden for Bad News, the sunset seen; RV a83_g8 600: the daytime sky behind the palace windows)
+STORY_SKY = {'sunset_4063': (1., 0., 0.), 'daytimesky_4118': (1., 0., 0.)}
+PAR_BOXW.update({'sunset_4063': 564, 'daytimesky_4118': 564})
+PAR_BOXH.update({'sunset_4063': 240, 'daytimesky_4118': 240})
 # ---- FD_FLOW parallax (session 24, build/re/spec_fd_flow.md 5): SystemBox pieces (RE create_levelparallaxpiece*_33xx-37xx /
 # create_levelparallaxtunnel1_3464 / 2_3463: image, box w x h; the image tiles in the box). D / E / G: fd1a 15309, fd1b its start inline (the
 # same values + the tunnel strips: tunnel2 D .5, tunnel1 D .25, E 0), fd2a / fd2b their start inline, fd3a / fd3b 16200, fd4a 16728 (piece0 D 1
@@ -2553,13 +2599,15 @@ def export_parallax(fr, src, name, out, an=None):
         if o['cls'] == 'levelparalaxwatersurface' and o['x'] is not None: water = 2700
         if o['cls'] == 'levelparalaxwatersurface' and fr['frame'] in JC_WATER: water = JC_WATER[fr['frame']]   # mode 2 (Jade Creek)
         spar = story_par(fr['frame'], name).get(str(o['id'])) if o['cls'].startswith(('levelparallax', 'parallax')) else None   # session 25: story rooms
+        if re.match(r'^st\d+$', name) and key in STORY_SKY: spar = STORY_SKY[key]   # (session 27)
         if (key not in PAR_IMG and not (spar and an and an.get(key, {}).get('images'))) or o['y'] is None: continue
+        if an and story_still(fr['frame'], name, o, an): continue   # (a still piece instead: story_still)
         if o['id'] in PAR_FIXED_SKIP and (fr['frame'], o['id']) not in PAR_FIXED: continue   # BG_FLOW: the ships only where exported
         img = PAR_IMG[key] if key in PAR_IMG else an[key]['images'][0]
         if img not in imgidx:
             im, hx, hy = load_img(src, img)
             fw, fh = im.width, im.height
-            iflags = PAR_ALPHA.get(img, 0)
+            iflags = PAR_ALPHA.get(img, STORY_PAR_ALPHA.get(img, 0) if re.match(r'^st\d+$', name) else 0)
             if iflags & 2:                                 # half resolution (drawn x2): premultiplied resize
                 im = im.convert('RGBa').resize(((im.width + 1) // 2, (im.height + 1) // 2), Image.BILINEAR).convert('RGBA')
             chunks = []
@@ -2649,6 +2697,7 @@ def main():
     fr = json.load(open(os.path.join(fd, 'frame_%d.json' % n)))
     bd = json.load(open(os.path.join(fd, 'backdrops.json')))
     an = json.load(open(os.path.join(fd, 'anims.json')))
+    story_cover(fr)
     W, H = fr['width'], fr['height']
     # Layer map (session 12, D-045): the port draws and collides with the play layer as 2 (Dragon Valley's). Aqua Tunnel
     # has one more background layer: the player and the collision backdrops are on layer 3 (RE: FrameObject::
@@ -2675,10 +2724,12 @@ def main():
             return o['x'], o['y'], o['x'], o['y']
         keep = []
         for o in fr['objects']:
-            if o['x'] is None or o['y'] is None or o['cls'] == 'playerstartingpoint' or o['cls'].startswith(('levelparallax', 'parallax')) or o['layer0'] >= 6:
+            if o['x'] is None or o['y'] is None or o['cls'] == 'playerstartingpoint' or o['cls'].startswith(('levelparallax', 'parallax')) or o['layer0'] >= 6 \
+                    or '%s_%d' % (o['cls'], o['id']) in STORY_SKY:
                 keep.append(o); continue                 # (layers 6-7 do not scroll)
             ax0, ay0, ax1, ay1 = _ext(o)
-            if any(ax1 >= x0 - M and ax0 <= x1 + M and ay1 >= y0 - M and ay0 <= y1 + M for x0, y0, x1, y1 in sview): keep.append(o)
+            if any(ax1 >= x0 - M and ax0 <= x1 + M and ay1 >= y0 - M and ay0 <= y1 + M for x0, y0, x1, y1 in
+                   (story_lay_box(n, o['layer0'], b_) for b_ in sview)): keep.append(o)
         report.append('story room view %s: %d of %d placements kept' % (sview, len(keep), len(fr['objects'])))
         fr['objects'] = keep
 
@@ -2709,6 +2760,11 @@ def main():
                 continue
             pieces.append({'img': b['image'], 'x': o['x'], 'y': o['y'], 'layer': o['layer'] or 0, 'layer0': o['layer0'], 'scroll08': invisible_extra, 'col': col,
                            'box': box, 'invisible': invisible, 'cls': o['cls']})
+        elif story_still(fr['frame'], name, o, an) == 2: continue   # (under the layer-0 parallax pieces: never seen)
+        elif story_still(fr['frame'], name, o, an):    # a story room's still 'parallax' Active (no D / E: not moved by the parallax events)
+            im_, hx_, hy_ = load_img(src, an[key]['images'][0])
+            pieces.append({'img': an[key]['images'][0], 'x': o['x'] - hx_, 'y': o['y'] - hy_, 'layer': o['layer'] or 0, 'layer0': o['layer0'],
+                           'scroll08': 2 if SCROLL08.get(n) == o['layer0'] else 0, 'col': 0, 'box': False, 'invisible': False, 'cls': o['cls']})
         else:
             t = engine_type(o['cls'], o['id'])
             if t is None:
@@ -2718,9 +2774,13 @@ def main():
     sv = story_views(n, name) if re.match(r'^st\d+$', name) else None   # session 25b: a story room keeps the pieces its scenes can show
     if sv:
         M_ = 1024                                    # margin (hot spots, wide images): INFERRED, generous
-        keep_ = lambda p: p.get('scroll08') or any(x0 - M_ <= p['x'] <= x1 + M_ and y0 - M_ <= p['y'] <= y1 + M_ for x0, y0, x1, y1 in sv)
+        keep_ = lambda p: p.get('scroll08') or any(x0 - M_ <= p['x'] <= x1 + M_ and y0 - M_ <= p['y'] <= y1 + M_ for x0, y0, x1, y1 in
+                                                   (story_lay_box(n, p['layer0'], b_) for b_ in sv))
         n0 = len(pieces); pieces = [p for p in pieces if keep_(p)]
         report.append('story room: %d of %d pieces in the scenes\' views %s' % (len(pieces), n0, sv))
+    if re.match(r'^st\d+$', name) and LMAP:         # a story room of a mapped frame (json 2 -> port layer 1, with json 1): its json-2 pieces
+        for p in pieces:                             # get pad bit 8, so the story player draws the json-1 actors between json 1's pieces and
+            if p['layer0'] == 2: p['j1'] = 8         # json 2's (Fusion: a layer's backdrops, then its objects; RV r82_g16c 360: bushes over the water)
     for o in objs:   # SB_BOSS: SB3's MinibossUFOBeam_1769 is the satellite's main beam
         if o['type'] == 803 and n == 38: o['type'] = 1164
         if o['type'] == 478 and n == 39: o['type'] = 1188   # SB4's EffectWarning_1528: the spire's drop marker (10123 / col_30_38)
@@ -3086,6 +3146,11 @@ def main():
             mb['patch'] = {i: dc_hud_c_to_x for i in an['guiscoretimerings_345']['anims'][0]['4']['frames']}   # "C" -> "X" (D-110)
         write_bank2(src, mb, out, report)
     write_lv2(os.path.join(out, name + '.lv2'), W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, len(atlases), bank, bool(LMAP))
+    if re.match(r'^st\d+$', name):                 # a story room: <name>.lay, its frame's layer rates (none listed: every layer 1.0)
+        with open(os.path.join(out, name + '.lay'), 'w', newline='\n') as f:
+            f.write('map %d\n' % bool(LMAP))
+            for j, (cx_, cy_) in sorted(STORY_LAYER_CO.get(n, {}).items()): f.write('%d %g %g\n' % (j, cx_, cy_))
+        report.append('layer scroll (json layer x y): %s%s' % (STORY_LAYER_CO.get(n, {}), ', mapped' if LMAP else ''))
     report.append('objects exported: %d (types %s)' % (len(objs), sorted({o['type'] for o in objs})))
     report.append('skipped classes (not implemented / helpers): %s' % sorted(skipped.items(), key=lambda kv: -kv[1])[:40])
     open(os.path.join(out, name + '_report.txt'), 'w', encoding='utf-8', newline='\n').write('\n'.join(report) + '\n')
@@ -3293,7 +3358,7 @@ def write_lv2(path, W, H, pieces, where, imgs, objs, TW, TH, table, smap, pmap, 
         k, u, v = where[p['img']]
         qb = p.get('qb')
         if qb == 'tile': continue                   # the other tiles of a tiled Quick Backdrop (collision only)
-        fl = (1 if p['invisible'] else 0) | p.get('scroll08', 0)
+        fl = (1 if p['invisible'] else 0) | p.get('scroll08', 0) | p.get('j1', 0)
         if qb:                                      # tiled piece: the tile rect, pad bit 2, then a size record {s32 w, h; 0...; pad 0x80}
             d += struct.pack('<2i4H4B', p['x'] - hx, p['y'] - hy, u, v, im.width, im.height, k, p['layer'], p['col'], fl | 4)
             d += struct.pack('<2i4H4B', qb[0], qb[1], 0, 0, 0, 0, k, p['layer'], 0, 0x81)

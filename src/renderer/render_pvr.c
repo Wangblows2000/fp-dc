@@ -36,6 +36,9 @@ void r_set_invert(int on) { invert_on = on; }
 /* additive blend (Chowdren shader 0x20, e.g. the elemental shields): replayed in the translucent list */
 static int add_on, add_pass;   /* add_pass: replaying an additive sprite */
 void r_set_additive(int on) { add_on = on; }
+/* shader 20 (session 27, story FlashbackBG): dst x (1 - texel colour) = the invert's pass B alone (dcmd inv 2) */
+static int mul_on;
+void r_set_mul(int on) { mul_on = on; }
 /* Fades: r_fade() queues a translucent black quad; everything drawn after it in the same frame is
  * deferred and replayed in the translucent list on top of the fade (PVR lists are submitted once). */
 typedef struct { int kind; const tex_t *t; int u, v, uw, vh, flip; float a[8]; uint32_t argb; int inv, add; float z; } dcmd_t;
@@ -213,8 +216,8 @@ static void bars(void) {          /* letterbox: opaque black over anything drawn
 
 void r_sprite(const tex_t *t, int u, int v, int uw, int vh, float x, float y, float w, float h, int flip, uint32_t argb) {
     if (t->id < 0 || t->id >= ntex) return;
-    if ((overlay || invert_on || add_on || (argb >> 24) < 0xff) && !in_tr) {   /* translucent / additive / flash: TR list */
-        if (ndq < NDQ) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 0, t, u, v, uw, vh, flip, { x, y, w, h }, argb, invert_on, add_on, zc }; zc += 0.0001f; }
+    if ((overlay || invert_on || mul_on || add_on || (argb >> 24) < 0xff) && !in_tr) {   /* translucent / additive / flash: TR list */
+        if (ndq < NDQ) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 0, t, u, v, uw, vh, flip, { x, y, w, h }, argb, invert_on ? 1 : mul_on ? 2 : 0, add_on, zc }; zc += 0.0001f; }
         return;
     }
     if (x + w < 0 || y + h < 0 || x >= SCREEN_W || y >= SCREEN_H) return;
@@ -236,8 +239,8 @@ float r_get_xscale(void) { return rxscale; }
 void r_sprite_rot(const tex_t *t, int u, int v, int uw, int vh, float px, float py, float hx, float hy,
                   float angle, int flip, uint32_t argb) {
     if (t->id < 0 || t->id >= ntex) return;
-    if ((overlay || invert_on || add_on || (argb >> 24) < 0xff) && !in_tr) {
-        if (ndq < NDQ) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 1, t, u, v, uw, vh, flip, { px, py, hx, hy, angle, rscale, rxscale }, argb, invert_on, add_on, zc }; zc += 0.0001f; }
+    if ((overlay || invert_on || mul_on || add_on || (argb >> 24) < 0xff) && !in_tr) {
+        if (ndq < NDQ) { dcmd_t *c = &dq[ndq++]; *c = (dcmd_t){ 1, t, u, v, uw, vh, flip, { px, py, hx, hy, angle, rscale, rxscale }, argb, invert_on ? 1 : mul_on ? 2 : 0, add_on, zc }; zc += 0.0001f; }
         return;
     }
     if (flip) hx = uw - 1 - hx;                    /* the mirrored image's hotspot (texture u reversed below) */
@@ -290,7 +293,7 @@ static void replay(void) {
         dcmd_t *c = &dq[i];
         zc = c->z;                                     /* the depth it had when it was drawn (not the end of the frame) */
         if ((c->kind == 0 || c->kind == 1) && c->inv) {
-            for (inv_pass = 1; inv_pass <= 2; inv_pass++) {
+            for (inv_pass = c->inv; inv_pass <= 2; inv_pass++) {   /* (inv 2: shader 20, pass B only) */
                 cur_hdr = -2; zc = c->z;                                  /* force the pass header */
                 cur_oargb = inv_pass == 1 ? 0x00ffffff : 0;
                 uint32_t col = inv_pass == 1 ? (c->argb & 0xff000000) : (c->argb | 0x00ffffff);

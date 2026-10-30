@@ -226,7 +226,8 @@ static void apply_dbg(int f, int tp) {
         if (dbg[i].k == 'n') printf("ending try %d\n", game_ending_begin());
         if (dbg[i].k == 'y') ending_host_dump();
         if (dbg[i].k == 'Y') printf("cutscene start %d\n", cutscene_host_example());
-        if (dbg[i].k == 'g') story_host_dump();                                            /* session 25: STORY */
+        if (dbg[i].k == 'g') story_host_dump();
+        if (dbg[i].k == 'v') csx_host_actors();                                           /* ACTORS: the story actors drawn */                                            /* session 25: STORY */
         if (dbg[i].k == 'A') printf("story new %d\n", story_host_new((int)dbg[i].a));     /* ADVNEW <chr> */
         if (dbg[i].k == 'V') printf("story scene %d\n", story_host_play(host_scene[(int)dbg[i].a]));   /* SCENE <id> */
         if (dbg[i].k == 'W') printf("story stageend %d\n", story_host_stage_end());       /* STAGEEND */
@@ -296,6 +297,7 @@ int main(int argc, char **argv) {
              * starts it), SCENE <id> (play a scene in an Adventure run), STAGEEND (frame 8 after the current stage), MODE <g0> */
             if (sscanf(line, "%d STORY%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'g', 0, 0 }; continue; }
             if (sscanf(line, "%d ADVNEW %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'A', fx, 0 }; continue; }
+            if (sscanf(line, "%d ACTORS%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'v', 0, 0 }; continue; }
             if (sscanf(line, "%d STAGEEND%n", &ff, &nn) == 1 && nn > 0 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'W', 0, 0 }; continue; }
             if (sscanf(line, "%d MODE %f", &ff, &fx) == 2 && ndbg < 256) { dbg[ndbg++] = (dbg_t){ ff, 'O', fx, 0 }; continue; }
             { char sn[24]; if (sscanf(line, "%d SCENE %23s", &ff, sn) == 2 && ndbg < 256 && nhost_scene < 8) {

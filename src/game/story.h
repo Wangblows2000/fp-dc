@@ -42,7 +42,8 @@
  * ---- Scene script (story/<id>.scn, tools/story_rv2scn.py), one entry per line:
  *     scene <id> / room st<json> / dialog <handle> / title <text>
  *     actor <n> <class>_<handle> <json layer> [ink] actor n (0..255), drawn with the rows s<handle>_<anim>_<dir>;
- *                                                    ink "add" (set_shader 0x20) or "a<alpha>" (blend colour, RE)
+ *                                                    ink "add" (set_shader 0x20), "mul" (shader 20: dst x (1 - texel),
+ *                                                    session 27), "bg" (a cover inside the layers) or "a<alpha>" (blend colour, RE)
  *     seg <k>                                        segment k: starts at the scene start (0) or when the line of the
  *                                                    previous segment is dismissed (A with the arrow shown)
  *     <t> p <n> <x> <y>                              actor position (frame coordinates) at segment time t
@@ -51,6 +52,9 @@
  *     <t> i <n> <anim> <dir> <frame>                 actor image (the original's animation, direction, frame index)
  *     <t> v <n> <0|1>                                visibility
  *     <t> a <n> <alpha>                              actor blend alpha 0-255 (RV FrameObject blend colour, STORY_BLEND)
+ *     <t> sc <n> <x> <y> / <t> rot <n> <deg x 100>   session 27: the Active's scale (x 1000) / angle (RV Active +0xc4..0xcc)
+ *     <t> ra <n> <frames> <unit> <path>              session 27: the angle frame by frame, chr(79 + d) per frame (d: its change in
+ *                                                    units of 0.1 degree (unit 1) or 1 degree (unit 10))
  *     <t> c <x> <y>                                  view top-left
  *     <t> say <line> <box frame>                     DialogBox shows paragraph <line> (DialogBox frame); voice played
  *     <t> close                                      DialogBox hidden
@@ -61,8 +65,17 @@
  *     <t> chsel                                      the in-scene character select (frame 75: Lilac / Carol, sets g1)
  *     <t> cap <row> <key> / <t> capx                 caption row 0-3 from story/captions.txt / all captions off
  *     <t> pv <handle> <0|1>                          the room's parallax piece <handle> hidden / shown (par_set_hidden)
+ *     <t> pp <handle> <dC> <G x 100> / <t> pf <handle> <F x 10>   session 27: the piece's base y (placed + dC) and drift / its offset F
+ *                                                    (RV alterables C, G, F: the scene's events move the backdrops)
  *     <t> sub <key> <y> / <t> subx                   a subtitle (session 26: SubtitleData paragraph, caption key sub<h>_<k>)
  *                                                    in the box at y, word-wrapped, centred / subtitle off
+ *     <t> by <y>                                     session 27: the DialogBox's top (8; RV: the ending's at 148)
+ *     <t> pw <handle> <x> <y>                        session 27: a world-positioned piece (Zao's airship SystemBox) moves
+ *     <t> ly <n> <json layer>                        session 27: actor n moves to another layer (RV l=)
+ *     <t> lo <json layer> <ox> <oy> / <t> lv <json layer> <0|1>   session 27: the layer's offset (drawn at view x rate - offset) /
+ *                                                    shown or hidden, pieces and actors (RV L lines, RE Layer::draw)
+ *     <t> loc <key> [<key2>]                         session 27: LocationName_592 types "<key>\n<key2>" at (16, 192), a character
+ *                                                    a frame, fades from A 151 and hides after A 278 (RE 3316-3319)
  *     end <t>                                        the scene ends at time t of the last segment
  *     next <step>                                    (informative: the table's next wins) */
 #ifndef FP_STORY_H

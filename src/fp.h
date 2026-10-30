@@ -152,6 +152,7 @@ int    hub_vmu_file_char(void);              /* fe_hub.c: highlighted used file 
 const uint8_t *vmuscr_current(void);                         /* stop every sound effect channel */
 /* loading screen (src/game/loading.c): silent, spinning crystal bottom-right */
 void   loading_begin(const char *label);   /* label: load profiler (loadprof.c) */
+void   loading_keep_music(void);           /* the next loading_begin pauses the music instead of stopping it (a chained story room, session 27) */
 void   loading_tick(void);
 void   loading_end(void);
 /* load profiler (src/game/loadprof.c) */
@@ -187,6 +188,7 @@ void   r_reset(void);                 /* free all textures (level change) */
 void   r_tint(float x, float y, float w, float h, uint32_t rgb);   /* dst *= (1 - rgb) */
 void   r_set_additive(int on);       /* following sprites drawn additively (Chowdren shader 0x20) */
 void   r_set_invert(int on);         /* following sprites drawn colour-inverted (Chowdren invert shader) */
+void   r_set_mul(int on);            /* following sprites darken: dst x (1 - texel colour) (Chowdren shader 20, as r_tint) */
 void   r_set_letterbox(int on);       /* presentation only: 1 = 16:9 letterboxed (x1.5), 0 = 4:3 fill (x1.5, x2) */
 
 /* ---------------------------------------------------------------- resources */
@@ -677,6 +679,10 @@ int  ending_state(void);                     /* 0 off, 1 space (83), 2 epilogue 
 void ending_after_epilogue(void);              /* story.c (session 26): the Adventure epilogue ended: the credits (frame 85) */
 void game_sfx_set(const short *ids, int n);  /* game.c: load a sound set in place of the stage's (the ending's own sounds) */
 void game_wipe_draw(float x);                /* game.c: the black wipe of the pause rows / a story scene ('fw') */
+void game_layer_view(int json_layer, int *vx, int *vy);   /* game.c: a story room's view in json layer coordinates (<room>.lay rates) */
+int  game_story_mapped(void);
+void game_layer_reset(void), game_layer_offset(int json_layer, int ox, int oy), game_layer_hide(int json_layer, int hidden);   /* session 27: */
+int  game_layer_hidden(int json_layer);      /* a story scene's layer offsets and hidden layers ('lo' / 'lv', RE Layer::draw) */                /* game.c: the story room's frame is mapped (json 2 -> port layer 1, 3 -> 2, 4 -> 3; <room>.lay) */
 void game_sfx_set_story(const short *ids, int n);   /* game.c: a story scene's set: its ids not resident, from story/sfx */
 void game_run_reset(void);                   /* game.c: a new run (stage counters, the RAM run file) */
 #ifdef FP_HOST_ENV
@@ -864,6 +870,7 @@ int    rm_claw_input(uint32_t *held);             /* CTRL.M = 1 (6202-6257): the
 float  rm_claw_hud_dy(void);                      /* 6206 / 6258: HUD slid up during the shrine scene */
 void   rm_claw_draw_front(void);                  /* the white fade of the wreck (6281-6293) */
 void   par_set_drift(int handle, float g), par_set_hidden(int handle, int hidden), par_destroy(int handle), par_draw_front(void);
+void   par_set_piece(int handle, int what, int dc, float g, double f);   /* a story scene's 'pp' / 'pf' / 'pw' (what 1: base y = placed + dc, 2: drift g, 4: offset f, 8: a world piece at x dc, y g) */
 void   par_set_tint(uint32_t rgb);                 /* layer-0 colour (LayerObject set_rgb, 0xRRGGBB; JC5 11614): white at every level load */
 void   jc_boss5_rain_mute(void);                  /* JC5: the rain loop silent while paused (Media::pause_samples) */
 int    jc_boss5_rain_count(void);                 /* JC5: LevelRain drops (11611) */

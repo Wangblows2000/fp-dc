@@ -57,7 +57,7 @@ void csx_free(void);                                  /* script, voices */
 void csx_begin(const bank_t *ens, const bank_t *font, const char *const *dialog, int nlines);
 int  csx_update(const input_t *in);                   /* CSX_DONE at the end, CSX_CHSEL while the script waits for a character choice */
 void csx_chsel_done(void);                            /* the character select of the scene finished: the script goes on */
-void csx_draw_actors(int pass);                       /* 0: json layer 0, 4: layer 1 (session 26), 1: layers 2-3, 2: layers 4-5, 3: 6+ */
+void csx_draw_actors(int pass);                       /* the draw slots of game_draw (cutscene.c pass_of): 0, 4, 5, 1, 2, then 3 (layers 6+) */
 void csx_draw_ui(void);
 void csx_stop_audio(void);                            /* skip / quit: the voice stops and is freed */
 int  csx_active(void);
@@ -68,7 +68,8 @@ const char *csx_name(void);
 int  csx_dialog(void);
 void csx_set_captions(const char *table);             /* "<key> <text>" lines (story/captions.txt) for 'cap' entries */
 #ifdef FP_HOST_ENV
-long csx_voice_peak(void);                            /* host: the two voice slots' peak bytes since the last call */
+long csx_voice_peak(void);
+void csx_host_actors(void);                           /* host "<f> ACTORS": every drawn actor (tests/test_story_visuals.py) */                            /* host: the two voice slots' peak bytes since the last call */
 #endif
 int  csx_skip_to_chsel(void);                         /* SKIP SCENE inside the script: to its character select (-1 none) */
 int  csx_actor_find(int handle, int nth);             /* the nth actor of an object handle (-1 none) */

@@ -70,15 +70,27 @@ def main(path, out):
         if lines: res['dialog' if kind == 'dialogdata' else 'subtitles' if kind == 'subtitledata' else 'lipsync'][h] = lines
     # scene captions ("Three days later," ...): global std::string constants str_<slug>_<n> set from a literal at start-up;
     # the literal is the .rodata string whose slug is <slug> (RE: TextBlitter::set_text(str_three_days_later_330) in events)
-    caps = {}
-    for s in e.get_section_by_name('.symtab').iter_symbols():
-        m = re.match(r'^str_(.*(?:later|meanwhile|valley).*)_(\d+)$', s.name)
-        if m: caps[m.group(1)] = s.name
-    ro = e.get_section_by_name('.rodata').data()
+    # Session 27: the value is read from the static initialiser that builds the constant (mov $len, %edx; mov $literal, %esi;
+    # mov $str_<slug>_<n>, %edi; call std::string(const char *, size_t, alloc)): a slug can match several literals (str_dragon_valley_10
+    # is 'DRAGON VALLEY', not the padded caption literal). Also the location names LocationName_592 types out at a story room's start
+    # (RE: TextBlitter text = <name> "\n" <second line> in events 3322 / 3581 / 18771 / 19418 / 20319 / 20934 / 20974 / 21538 /
+    # 21827 / 21912 / 21942 / 21962)
+    CAPS = re.compile(r'^str_(.*(?:later|meanwhile|valley).*|lilac_s_treehouse|ancient_temple|shang_mu|commercial_district|'
+                      r'shuigang_snowfields|north_avalice|royal_palace|shang_tu|shuigang_palace|jade_creek_outskirts|storm_drainage_tunnel)_(\d+)$')
+    syms = {s['st_value']: s.name for s in e.get_section_by_name('.symtab').iter_symbols() if CAPS.match(s.name)}
+    ctor = next((s['st_value'] for s in e.get_section_by_name('.symtab').iter_symbols() if s.name == '_ZNSsC1EPKcmRKSaIcE'), None)
     res['captions'] = {}
-    for lit in set(re.findall(rb'[\x20-\x7e]{6,60}', ro)):
-        slug = re.sub(r'[^a-z0-9]+', '_', lit.decode().lower()).strip('_')
-        if slug in caps: res['captions'][caps[slug]] = lit.decode()
+    for s in e.get_section_by_name('.symtab').iter_symbols():
+        if '__static_initialization_and_destruction_0' not in s.name or not s['st_size']: continue
+        reg = {}
+        for ins in md.disasm(rd(s['st_value'], s['st_size']), s['st_value']):
+            if ins.mnemonic == 'mov' and re.match(r'^e(dx|si|di), (0x[0-9a-f]+|\d+)$', ins.op_str):   # (a length below 10 prints
+                reg[ins.op_str[:3]] = int(ins.op_str.split(', ')[1], 0)                             # in decimal: 'SHANG TU', 8)
+            elif ins.mnemonic == 'call':
+                if ctor and ins.op_str == hex(ctor) and reg.get('edi') in syms and 'edx' in reg and 'esi' in reg:
+                    res['captions'][syms[reg['edi']]] = rd(reg['esi'], reg['edx']).decode('latin1')
+                reg = {}
+    res['captions'] = dict(sorted(res['captions'].items()))
     # the actors' ink (story scenes draw them): create_<class>_<handle> sets FrameObject::set_shader(<esi>) (0x20 = additive,
     # RE_NOTES "Blend modes") and the blend colour's alpha byte (movb $a, 0x5f(%rbx) after initialize_active; RE
     # create_effectsdust01_369: ff ff ff 74). Only non-default values are kept.

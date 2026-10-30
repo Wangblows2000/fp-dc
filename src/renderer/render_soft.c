@@ -55,6 +55,8 @@ static int invert_on;
 void r_set_invert(int on) { invert_on = on; }
 static int add_on;
 void r_set_additive(int on) { add_on = on; }
+static int mul_on;                                 /* shader 20 (session 27): dst x (1 - texel colour), the texel's alpha bit only */
+void r_set_mul(int on) { mul_on = on; }
 void r_set_letterbox(int on) { if (getenv("FP_TRACE_SND") && r_letterbox_mode != on) printf("letterbox %d\n", on); r_letterbox_mode = on; }
 
 void r_reset(void) {
@@ -83,6 +85,10 @@ static uint32_t modulate(uint32_t c, uint32_t m) {
 
 /* alpha blend (a = 255: opaque), as the PVR's translucent list does with the vertex alpha */
 static uint32_t blend(uint32_t dst, uint32_t src, uint32_t a) {
+    if (mul_on) {
+        uint32_t kr = 255 - ((src >> 16) & 255), kg = 255 - ((src >> 8) & 255), kb = 255 - (src & 255);
+        return ((((dst >> 16) & 255) * kr / 255) << 16) | ((((dst >> 8) & 255) * kg / 255) << 8) | ((dst & 255) * kb / 255);
+    }
     if (add_on) {                                  /* additive: dst + src * a */
         uint32_t r = ((dst >> 16) & 255) + ((src >> 16) & 255) * a / 255, g = ((dst >> 8) & 255) + ((src >> 8) & 255) * a / 255, b = (dst & 255) + (src & 255) * a / 255;
         return ((r > 255 ? 255 : r) << 16) | ((g > 255 ? 255 : g) << 8) | (b > 255 ? 255 : b);

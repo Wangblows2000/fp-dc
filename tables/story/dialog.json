@@ -6332,11 +6332,23 @@
  },
  "captions": {
   "str_15_minutes_later_362": "~T~2775baaaad698cfde773~19~",
-  "str_dragon_valley_10": "~T~7442dd31e154ba41b0a2~28~9e06b78175ba",
-  "str_three_days_later_330": "~T~ac9086009af4e0d60991~17~",
-  "str_meanwhile_332": "~T~01d0eef70abc55d087bd~10~",
   "str_20_minutes_later_364": "~T~c0deff5ee77338af30d5~19~",
-  "str_in_a_valley_to_the_east_331": "~T~de6861197979c77f40fe~26~df545f713768"
+  "str_ancient_temple_304": "~T~59a244ab069f8a764940~14~",
+  "str_commercial_district_312": "~T~c753df16cef4a11ce479~19~",
+  "str_dragon_valley_10": "~T~d14a6c3e9e5333a53f71~13~",
+  "str_in_a_valley_to_the_east_331": "~T~de6861197979c77f40fe~26~df545f713768",
+  "str_jade_creek_outskirts_361": "~T~835ea4a1334884c7dc01~20~",
+  "str_lilac_s_treehouse_113": "~T~8d0764a4a8f41d5e1c83~17~",
+  "str_meanwhile_332": "~T~01d0eef70abc55d087bd~10~",
+  "str_north_avalice_325": "~T~afcff01f57f5d731123e~13~",
+  "str_royal_palace_339": "~T~1ec8f805676f6dc8cf8d~12~",
+  "str_shang_mu_311": "~T~6f7ad419b4677eaef59d~8~",
+  "str_shang_tu_340": "~T~511bb020eb488a2f043c~8~",
+  "str_shuigang_palace_22": "~T~055f91a4ef478e16ffa5~15~",
+  "str_shuigang_palace_24": "~T~2926c1d169225220df96~19~",
+  "str_shuigang_snowfields_324": "~T~223e168a17593c32c253~19~",
+  "str_storm_drainage_tunnel_363": "~T~59c670ec97b8d6560953~21~",
+  "str_three_days_later_330": "~T~ac9086009af4e0d60991~17~"
  },
  "ink": {
   "acidfloorglow_4077": {

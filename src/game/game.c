@@ -144,6 +144,7 @@ static int chr_crcs(const char *dir, int who, uint32_t c[8]) {
 static void snd_stage_load(const short *ids, int n);
 static void svox_load(const level_def_t *ld);
 /* every level lives in its own data dir (own palettes + Lilac bank; tools/build_level.sh) */
+static void lay_load(const char *dir);
 int game_load_level(const char *dir) {
     uint32_t want_crc[8];
     if (level_def(dir)->lilac_only && G.character != CHR_LILAC) G.character = CHR_LILAC;   /* PL 12844: g1 = 0 at every act start (Lilac's banks load) */
@@ -183,6 +184,7 @@ int game_load_level(const char *dir) {
     snprintf(nm, sizeof nm, "%s/%s", dir, dir); bad |= level_load(&G.lvl, nm) < 0;
     if (bad) { loading_end(); lp_end(); plat_log("level %s: data load failed\n", dir); return -1; }
     par_load(dir);                                 /* layer-0 parallax (src/game/parallax.c) */
+    lay_load(dir);                                 /* a story room's layer scroll rates (session 27) */
     G.p.spawn_x = G.p.spawn_y = 0;
     hud_reset();
     { uint64_t to = plat_time_us(); level_start(); LP.obj_us += plat_time_us() - to; }
@@ -193,7 +195,7 @@ int game_load_level(const char *dir) {
     loading_end();
     G.mus_resume_t = 0;
     music_fade(0, 0);                              /* a running fade ends with the level */
-    { uint64_t tm = plat_time_us(); if (level_def(dir)->music_off) music_stop(); else if (level_def(dir)->music_fade_g4 > 0 && G.at_g4 < level_def(dir)->music_fade_g4) music_fade(120, 0); else music_play(level_music(dir)); LP.music_us += plat_time_us() - tm; }   /* TB6 12735: silent start; BG4 14607 / 14608 (g4 < 5: fadeout_music(2000)) */
+    { uint64_t tm = plat_time_us(); if (sroom) { } else if (level_def(dir)->music_off) music_stop(); else if (level_def(dir)->music_fade_g4 > 0 && G.at_g4 < level_def(dir)->music_fade_g4) music_fade(120, 0); else music_play(level_music(dir)); LP.music_us += plat_time_us() - tm; }   /* TB6 12735: silent start; BG4 14607 / 14608 (g4 < 5: fadeout_music(2000)); a story room: story.c */
     lp_end();
     return 0;
 }
@@ -900,7 +902,46 @@ int act_fade_step(int a) {
 
 static void draw_parallax(void) { par_draw(G.frame); }
 
+/* a story room's layer scroll rates (session 27, <room>.lay from tools/import_frame.py STORY_LAYER_CO; RE Layer::init of the
+ * room's json frame): an object or piece on json layer j is drawn at its position minus trunc(view * rate_j). lay_map: json layer
+ * 2 shares the port's piece layer 1 (pad bit 3), json 3 / 4 are port layers 2 / 3 */
+static float lay_co[8][2]; static int lay_on, lay_map, lay_st;
+static int16_t lay_off[8][2]; static uint8_t lay_hid[8];   /* session 27: a story scene's layer offsets / hidden layers ('lo' / 'lv'; RE
+                                                          * Layer::draw: the layer is drawn at view x coef - off (Layer + 0x68 / 0x6c),
+                                                          * not at all when hidden (+ 0x40); RV b76_g2_c: json 77's layer 1 at x -3200) */
+void game_layer_reset(void) { memset(lay_off, 0, sizeof lay_off); memset(lay_hid, 0, sizeof lay_hid); }
+void game_layer_offset(int j, int ox, int oy) { if (j >= 0 && j < 8) { lay_off[j][0] = (int16_t)ox; lay_off[j][1] = (int16_t)oy; } }
+void game_layer_hide(int j, int h) { if (j >= 0 && j < 8) lay_hid[j] = (uint8_t)(h != 0); }
+int game_layer_hidden(int j) { return j >= 0 && j < 8 && lay_hid[j]; }
+static void lay_load(const char *dir) {
+    for (int j = 0; j < 8; j++) lay_co[j][0] = lay_co[j][1] = 1.f;
+    lay_on = lay_map = 0; game_layer_reset();
+    lay_st = dir[0] == 's' && dir[1] == 't' && dir[2] >= '0' && dir[2] <= '9';   /* a story room */
+    char nm[48]; size_t sz; snprintf(nm, sizeof nm, "%s/%s.lay", dir, dir);
+    char *d = dir[0] == 's' && dir[1] == 't' ? plat_load_file(nm, &sz) : NULL;
+    if (!d) return;
+    char *z = realloc(d, sz + 1); if (!z) { free(d); return; }
+    d = z; d[sz] = 0;
+    for (char *p = d; p && *p; p = strchr(p, '\n'), p = p ? p + 1 : NULL) {
+        int j; float x, y;
+        if (!strncmp(p, "map ", 4)) lay_map = atoi(p + 4);
+        else if (sscanf(p, "%d %f %f", &j, &x, &y) == 3 && j >= 0 && j < 8) { lay_co[j][0] = x; lay_co[j][1] = y; lay_on = 1; }
+    }
+    free(d);
+}
+int game_story_mapped(void) { return lay_map; }
+void game_layer_view(int j, int *vx, int *vy) {
+    int cx = (int)floorf(G.camx), cy = (int)floorf(G.camy);
+    if (j < 0 || j > 7) { *vx = cx; *vy = cy; return; }
+    *vx = (lay_on ? (int)trunc(lay_co[j][0] * cx) : cx) - lay_off[j][0]; *vy = (lay_on ? (int)trunc(lay_co[j][1] * cy) : cy) - lay_off[j][1];
+}
+static int piece_json_layer(const piece_t *p) {
+    if (!lay_map) return p->layer;
+    if (p->layer == 1) return p->pad & 8 ? 2 : 1;
+    return p->layer == 2 || p->layer == 3 ? p->layer + 1 : p->layer;
+}
 static int pieces_s08 = -1;   /* -1 every piece; 0 / 1: only the pieces without / with the 0.8 scroll (pad bit 1) */
+static int pieces_j2 = -1;    /* -1 every piece; 0 / 1: only the pieces without / with pad bit 3 (a story room of a mapped frame: json layer 2) */
 static void draw_pieces(int lmin, int lmax) {
     const level_t *l = &G.lvl;
 #ifdef FP_HOST_ENV
@@ -914,6 +955,7 @@ static void draw_pieces(int lmin, int lmax) {
         const piece_t *p = &l->pieces[i];
         if (p->layer < lmin || p->layer > lmax || (p->pad & 1)) continue;   /* bit0: invisible (blend alpha 0) */
         if (pieces_s08 >= 0 && ((p->pad & 2) != 0) != pieces_s08) continue;
+        if (pieces_j2 >= 0 && ((p->pad & 8) != 0) != pieces_j2) continue;
 #ifdef FP_HOST_ENV
         { static const char *hp; static int init; if (!init) { init = 1; hp = getenv("FP_HIDE_PIECE"); }
           if (hp) { char k[16]; snprintf(k, sizeof k, ",%d,", i); if (strstr(hp, k)) continue; } }
@@ -921,6 +963,11 @@ static void draw_pieces(int lmin, int lmax) {
         int sx = p->x - cx, sy = p->y - cy;
         if (p->layer < 8) { sx += l->lay_dx[p->layer]; sy += l->lay_dy[p->layer]; }   /* moving layers (level_t.lay_dx: 0 but JC3's subtanker) */
         if (p->pad & 2) { sx = p->x - (int)trunc(0.800000011920929 * cx); sy = p->y - (int)trunc(0.800000011920929 * cy); }   /* AT layer 1 scrolls at 0.8 */
+        else if (lay_st) {                           /* a story room's layer rates and offsets, its hidden layers (session 27) */
+            int j = piece_json_layer(p), vx, vy;
+            if (game_layer_hidden(j)) continue;
+            game_layer_view(j, &vx, &vy); sx += cx - vx; sy += cy - vy;
+        }
         if (sx >= SCREEN_W || sy >= SCREEN_H || sx + p->w <= 0 || sy + p->h <= 0) continue;
         if (p->tw) {                                  /* tiled piece (Quick Backdrop): only the visible tiles, the last row / column cut */
             int i0 = sx < 0 ? -sx / p->tw : 0, j0 = sy < 0 ? -sy / p->th : 0;
@@ -1127,8 +1174,13 @@ void game_draw(void) {
     if (story) story_draw_layer(0);
     pieces_s08 = 1; draw_pieces(1, 1);
     if (!story) { objects_draw(-1); sb_flow_draw(-1); pl_enemy_draw(-1); }   /* story rooms: every object the scene shows is a script actor */   /* PL: the json-1 swarm at scroll 1 (pl_enemy.c) */
-    pieces_s08 = 0; draw_pieces(1, 1); pieces_s08 = -1;
-    if (story) story_draw_layer(4);               /* session 26: story actors on json layer 1, over that layer's backdrops (as Fusion draws a layer: backdrops, then objects) */
+    if (!story) { pieces_s08 = 0; draw_pieces(1, 1); pieces_s08 = -1; }
+    else {                                        /* session 26: story actors on json layer 1, over that layer's backdrops (as Fusion draws a layer: backdrops, then objects); */
+        pieces_s08 = 0; pieces_j2 = 0; draw_pieces(1, 1);   /* a mapped frame's json-2 pieces share port layer 1 (pad bit 3): over them (RV r82_g16c: */
+        story_draw_layer(4);                      /* the bushes in front of the water surface) */
+        pieces_j2 = 1; draw_pieces(1, 1); pieces_s08 = -1; pieces_j2 = -1;
+        story_draw_layer(5);                      /* session 27: a mapped frame's json-2 actors, after json 2's pieces (port layer 1, bit 3) */
+    }
     if (!story) objects_draw(0);
     fn_gimb_draw_back();                          /* FN: carousel rings, A5 disco light (back of the play layer) */
     draw_pieces(2, 2);

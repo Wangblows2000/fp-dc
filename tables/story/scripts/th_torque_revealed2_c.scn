@@ -20,7 +20,7 @@ actor 14 bosssparky_3336 3
 actor 15 bosssparkyleftarm_3337 3
 actor 16 bosssparkyrightarm_3338 3
 actor 17 objecttransporterstart2_3417 3 add
-actor 18 flashbackbg_3617 5
+actor 18 flashbackbg_3617 5 mul
 seg 0
 0 fa 252
 0 c 45 1745
@@ -65,10 +65,13 @@ seg 0
 2 i 8 7 0 8
 2 v 9 1
 2 i 9 0 0 0
+2 sc 10 700 700
 2 v 10 1
 2 i 10 0 0 0
+2 sc 11 800 800
 2 v 11 1
 2 i 11 0 0 0
+2 sc 12 900 900
 2 v 12 1
 2 i 12 0 0 0
 2 v 13 1
@@ -81,14 +84,25 @@ seg 0
 2 i 16 0 0 0
 2 v 17 1
 2 i 17 0 0 0
+2 sc 18 42600 24000
 2 v 18 1
 2 i 18 0 0 0
 2 fa 244
 2 pv 3609 1
+2 pp 3609 0 0
+2 pf 3609 0
 2 pv 3608 1
+2 pp 3608 0 0
+2 pf 3608 0
 2 pv 3611 1
+2 pp 3611 0 0
+2 pf 3611 0
 2 pv 3612 1
+2 pp 3612 0 0
+2 pf 3612 0
 2 pv 3613 1
+2 pp 3613 0 0
+2 pf 3613 0
 3 l 3 500 1759 4
 3 l 4 396 1759 4
 3 l 5 324 1951 4

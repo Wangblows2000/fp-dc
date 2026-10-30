@@ -21,42 +21,61 @@
 # st8318 / 8328 / 8336, st1636 (a split room's _ens holds only its scenes' rows: whole, json 80 measured 5.6 MB for Carol).
 set -e
 cd "$(dirname "$0")/.."
-T=${1:-build/orig_traces/adv4}
+T=${1:-build/orig_traces/pol}
 S=tables/story/scripts
+# session 27 (cutscene polish, docs/ADVENTURE.md 12): the traces again with STORY_TAP=0 STORY_BLEND=1 (scale / angle too), every
+# conversion with --by-class --covers (the fade covers, actor alpha) --npc-skins (Milla / Spade / Torque as NPCs) --pieces (the
+# backdrops' scripted C / G) and the location names (--loc, RE 20319 / 21962)
+C="--by-class --covers --npc-skins --pieces"
+rv() {   # rv <story_rv2scn arguments>: skipped (with a note) when its trace is not there
+    for a_ in "$@"; do case $a_ in *.log) [ -f "$a_" ] || { echo "skipped: $a_ missing"; return 0; } ;; esac; done
+    python3 tools/story_rv2scn.py "$@"
+}
+F() {    # F <trace> <k>: frame of the k-th room change (F event) of a trace (the windows below; session 25's traces: the frames named)
+    [ -f $T/$1.log ] && awk -v k=$2 '$1=="F" { n++; if (n==k) { print $2; exit } }' $T/$1.log
+}
 mkdir -p $S
 # ---- D: Jiang River (CutsceneList K 20 -> frame 36 g4 99, RE handle_frame_2; frame 8 I 4 -> 36 g4 99)
 # part 1 in SB2's frame: the falling airship (the stage's own objects shown only at the first frame are left out)
-python3 tools/story_rv2scn.py --mv $T/r36_g99.log jiang_river 37 - 0 661 $S/jiang_river.scn --room 3719 --next scene:jiang_river2 \
+rv $C --mv $T/r36_g99.log jiang_river 37 - 0 $(F r36_g99 1) $S/jiang_river.scn --room 3719 --next scene:jiang_river2 \
   --drop 'levelsbplatform|levelbackgroundplane'
+# jiang_river2 (2c, 2m): the frame restarts after the press at 779 (RV r36_g99 / r36_g99c / r36_g99m: objects re-created at 844, the shot at 840 at 10 % brightness, the
+# new instance's LevelCardFade2 at alpha 34 at 900, 4 a frame: --restart; the fade-out's length INFERRED)
 # the river branches on g1 (RV r36_g99 / r36_g99c / r36_g99m: Lilac lines 0-24 + 33, Carol 0-10 + 25-33, Milla 0 + 11-24 + 33)
-python3 tools/story_rv2scn.py --mv $T/r36_g99.log jiang_river2 80 3965 661 2933 $S/jiang_river2.scn --room 8019 --next scene:st_magister_talk
-python3 tools/story_rv2scn.py --mv $T/r36_g99c.log jiang_river2c 80 3965 661 2277 $S/jiang_river2c.scn --room 8019 --next scene:st_magister_talk
-python3 tools/story_rv2scn.py --mv $T/r36_g99m.log jiang_river2m 80 3965 661 2237 $S/jiang_river2m.scn --room 8019 --next scene:st_magister_talk
+rv $C --mv $T/r36_g99.log jiang_river2 80 3965 $(F r36_g99 1) $(F r36_g99 2) $S/jiang_river2.scn --room 8019 --next scene:st_magister_talk \
+  --restart 783,845,4
+rv $C --mv $T/r36_g99c.log jiang_river2c 80 3965 $(F r36_g99c 1) $(F r36_g99c 2) $S/jiang_river2c.scn --room 8019 --next scene:st_magister_talk \
+  --restart 783,845,4
+rv $C --mv $T/r36_g99m.log jiang_river2m 80 3965 $(F r36_g99m 1) $(F r36_g99m 2) $S/jiang_river2m.scn --room 8019 --next scene:st_magister_talk \
+  --restart 783,845,4
 # ---- D: Zao's airship ambushed (CutsceneList K 19 -> frame 82 g4 7: aboard the airship, lines 95-96; wipe 56 at 420, F 472 -> 35 = SB1)
-python3 tools/story_rv2scn.py --mv $T/r82_g7.log zao_airship_ambush 83 4026 0 472 $S/zao_airship_ambush.scn --room 8318 --next stage:sb1 --fadeout 420,51
+rv $C --mv $T/r82_g7.log zao_airship_ambush 83 4026 0 $(F r82_g7 1) $S/zao_airship_ambush.scn --room 8318 --next stage:sb1
 # ---- D: Thermal Base (frame 8 I 6 -> frame 80 g4 0 for Lilac, g4 1 for Carol / Milla). Lilac: the torture (F 5082 -> 80 g4 1),
 # then her version of the Brevon encounter (F 6766 -> 82 g4 17); Carol: the Brevon encounter (F 1886 -> 82 g4 17)
-python3 tools/story_rv2scn.py --mv $T/r80_g0.log tb_torture 81 3971 0 5082 $S/tb_torture.scn --room 8127 --next scene:tb_brevon_l
-python3 tools/story_rv2scn.py --mv $T/r80_g0.log tb_brevon_l 81 3971 5082 6766 $S/tb_brevon_l.scn --room 8129 --next scene:tb_arrest
-python3 tools/story_rv2scn.py --mv $T/r80_g1c.log tb_brevon 81 3971 0 1886 $S/tb_brevon.scn --room 8129 --next scene:tb_outside_team
+rv $C --mv $T/r80_g0.log tb_torture 81 3971 0 $(F r80_g0 1) $S/tb_torture.scn --room 8127 --next scene:tb_brevon_l
+rv $C --mv $T/r80_g0.log tb_brevon_l 81 3971 $(F r80_g0 1) $(F r80_g0 2) $S/tb_brevon_l.scn --room 8129 --next scene:tb_arrest
+rv $C --mv $T/r80_g1c.log tb_brevon 81 3971 0 $(F r80_g1c 1) $S/tb_brevon.scn --room 8129 --next scene:tb_outside_team
 # Enter Team Spade: frame 8 I 8 (Trap Hideout, Carol / Milla) -> frame 82 g4 16 (CutsceneList K 29), F 540 -> 44 = TB1
-python3 tools/story_rv2scn.py --mv $T/r82_g16c.log tb_team_spade 83 - 0 540 $S/tb_team_spade.scn --room 8328 --next stage:tb1 --fadeout 489,51
+rv $C --mv $T/r82_g16c.log tb_team_spade 83 - 0 $(F r82_g16c 1) $S/tb_team_spade.scn --room 8328 --next stage:tb1 \
+  --loc 'str_jade_creek_outskirts_361|str_20_minutes_later_364'
 # ---- E: the snowfields (frame 81 = json 82). Army of Shang Tu (g4 0; entered from Pangu Lagoon's Final Message 82 g4 20 for
 # Lilac, RV r82_g20 F 2654, and from Outside Thermal Base 82 g4 17 for Carol / Milla, RV r80_g1c F 3889) -> the encampment
 # (g4 1; F 5054 Lilac / 5774 Carol) -> frame 84 (the ride to Battle Glacier; F 3018 Lilac / 2330 Carol). Lilac's versions
 # differ (lines; RV r81_g0l / r81_g1 against r81_g0c / r81_g1c / r81_g0m). The holo dragon follows the PL6 rig (--rig).
-python3 tools/story_rv2scn.py --mv $T/r81_g0c.log sf_army 82 3989 0 5774 $S/sf_army.scn --room 8234 --next scene:sf_camp --rig
-python3 tools/story_rv2scn.py --mv $T/r81_g0l.log sf_army_l 82 3989 0 5054 $S/sf_army_l.scn --room 8234 --next scene:sf_camp_l --rig
-python3 tools/story_rv2scn.py --mv $T/r81_g1c.log sf_camp 82 3989 0 2330 $S/sf_camp.scn --room 8235 --next stage:bg1 --rig
-python3 tools/story_rv2scn.py --mv $T/r81_g1.log sf_camp_l 82 3989 0 3018 $S/sf_camp_l.scn --room 8235 --next stage:bg1 --rig
+rv $C --mv $T/r81_g0c.log sf_army 82 3989 0 $(F r81_g0c 1) $S/sf_army.scn --room 8234 --next scene:sf_camp --rig \
+  --loc 'str_shuigang_snowfields_324|str_north_avalice_325'
+rv $C --mv $T/r81_g0l.log sf_army_l 82 3989 0 $(F r81_g0l 1) $S/sf_army_l.scn --room 8234 --next scene:sf_camp_l --rig \
+  --loc 'str_shuigang_snowfields_324|str_north_avalice_325'
+rv $C --mv $T/r81_g1c.log sf_camp 82 3989 0 $(F r81_g1c 1) $S/sf_camp.scn --room 8235 --next stage:bg1 --rig
+rv $C --mv $T/r81_g1.log sf_camp_l 82 3989 0 $(F r81_g1 1) $S/sf_camp_l.scn --room 8235 --next stage:bg1 --rig
 # ---- E: the Adventure epilogue (after ending.c's space scene, RE 22441: frame 81 g4 3)
-python3 tools/story_rv2scn.py --mv $T/e81_g3n.log ending 82 3989 0 2698 $S/ending.scn --room 8236 --next scene:ending2 --rig
+rv $C --mv $T/e81_g3n.log ending 82 3989 0 $(F e81_g3n 1) $S/ending.scn --room 8236 --next scene:ending2 --rig
 # Milla's part 1 (RV e81_g3m: Carol found, lines 103-110, then 83-91; F 2705 -> 82 g4 21 as for Lilac and Carol, e81_g3c)
-python3 tools/story_rv2scn.py --mv $T/e81_g3m.log ending_m 82 3989 0 2705 $S/ending_m.scn --room 8236 --next scene:ending2 --rig
+rv $C --mv $T/e81_g3m.log ending_m 82 3989 0 $(F e81_g3m 1) $S/ending_m.scn --room 8236 --next scene:ending2 --rig
 # the Magister's speech: SubtitleText_3449 shown / moved (RV e81_g3n: on at 3184, y 140; y 20 from 4018), each paragraph of
 # SubtitleData_4135 set by the controller's phases (RE 22248: paragraph 13, 22309: 16; the others in that order, RV shots
 # s82_g21 300-4800 read 12-18)
-python3 tools/story_rv2scn.py --mv $T/e81_g3n.log ending2 83 - 2698 7569 $S/ending2.scn --room 8336 --carry --next scene:ending3 \
+rv $C --mv $T/e81_g3n.log ending2 83 - $(F e81_g3n 1) $(F e81_g3n 2) $S/ending2.scn --room 8336 --carry --next scene:ending3 \
   --sub 3184,3424,sub4135_12,140 --sub 3424,3955,sub4135_13,140 --sub 4081,4883,sub4135_14,20 --sub 5009,5589,sub4135_15,20 \
   --sub 5589,6210,sub4135_16,20 --sub 6336,6876,sub4135_17,20 --sub 6876,7456,sub4135_18,20
-python3 tools/story_rv2scn.py --mv $T/e81_g3n.log ending3 16 622 7569 9174 $S/ending3.scn --room 1636 --dialogbox dialogbox_551 --next credits
+rv $C --mv $T/e81_g3n.log ending3 16 622 $(F e81_g3n 2) $(F e81_g3n 3) $S/ending3.scn --room 1636 --dialogbox dialogbox_551 --next credits
