@@ -1,9 +1,28 @@
 # TODO (priority order)
 
 ## Session 25 status (end of session): what is left
-- [ ] Adventure cutscenes look rough in places (the user's README note). A polish agent (ranked difference list per scene vs
-      the original's screenshots: blends, fades, layers, music carry-over, the snowfields' black sky, the DV crash smoke)
-      was running at the end of session 25; merge its branch or redo from build/cutscene_polish.md.
+- [ ] **Adventure cutscenes: visual polish (none of the 70 scene rows has had a full visual review against the original).**
+      All play with the right dialogue, voices, triggers, skip and save, but the look is rough in places. A polish pass was
+      stopped unfinished at the user's request; its uncommitted work is on GitHub branch `wip-cutscene-polish` (NOT merged:
+      untested, the scene scripts there are mid-re-conversion; new script ops for layer offsets / visibility, location
+      names, scale / rotation, multiply ink, dialog box position; tools/story_cmp.py and tests/test_story_visuals.py
+      started). Unpolished scenes, by arc (variants _c / _m / _l share their base's issues):
+  - Arc 1 (DV / RM): adv_opening (comet / pod trail explosions off-view in the trace are missing; linear fade-in),
+    dv_meet, dv_crash (the ground smoke is opaque white, the original's is translucent; the white flash timing is from
+    screenshots; falling leaves not played), dv_crash2, rm_gong.
+  - Groups A / B (RM, Treehouse, Gong, Spade, Fortune Night, Zao's airship): rm_hideout, rm_collapse, rm_meet_milla,
+    th_torque_revealed (+ 2, 3: the flashback's multiply ink), th_next_morning, np_gong_help (the totems), sm_spade,
+    fn_panther_defeated, zao_airship, zao_airship2 (Zao's ship moving through the world), rm5_spade (in RM5: light rays /
+    hook line INFERRED).
+  - Groups C1 / C2 (Shang Tu / Shang Mu, room 83): st_bad_news, sg_brevon_plan, sm_zao_dinner, sg_intruders (its 408-frame
+    starfield opening is not ported at all), sm_zao_help, st_magister_talk, jail_plan, jail_fail, throne_apology,
+    sg_brevon_torque, jc_cave, jc_cave_cm, th_carol_help, tb_arrest, tb_outside_team, st_mission, pl_final_message. Scenes
+    chained from another group start silent instead of keeping the previous track; only the wipes before a room change
+    are played (other fades skipped); the location-name captions are missing.
+  - Groups D / E (Jiang river, Thermal Base, snowfields, ending): zao_airship_ambush, jiang_river, jiang_river2,
+    tb_torture, tb_team_spade, tb_brevon, sf_army (the dragon flight's sky should be black, the port keeps the mountain
+    backdrop), sf_camp, ending, ending2 (restarts m_ending instead of continuing it), ending3.
+  - Not ported: the frame-84 ride before Battle Glacier (the port goes straight to BG1).
 - [ ] Not ported: sg_intruders' 408-frame starfield opening (frame index 0, g4 99: a non-scrolling layer 0 and no pause
       panel); the frame-84 ride before Battle Glacier (the port goes to BG1); FD1a's death taunts br_pa_07..09; SB2's
       LevelBackgroundPlane2; the Brevon mech fly-by (BG4 / JC5 / FD4b, plan in "Session 26b"); spring beams in FN3 (VRAM).
