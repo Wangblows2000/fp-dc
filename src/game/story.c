@@ -103,6 +103,7 @@ static struct {
     int last_stage;                  /* frame 8's MenuSequence.I for 'route' steps */
     int inl, inl_done;               /* an in-stage scene (session 25b: RM5's Adventure dialogue) is playing / has ended */
     int pos;                         /* the run's story position: the last completed scene id + 1 */
+    int keep_music;                  /* session 27: a scene that ended into the next scene: its track plays on into it */
     char *dlg_buf; const char *dlg[320]; int ndlg;
     ui_banks_t font;
 } S = { .scene = -1, .last_stage = -1 };
@@ -124,6 +125,7 @@ static void leave_scene(void) {
 }
 void story_reset(void) {
     if (S.scene >= 0) leave_scene();
+    S.keep_music = 0;
     S.inl = S.inl_done = 0;
     S.run = 0; S.done = 0; S.last_stage = -1; S.pos = 0;
 #ifdef FP_HOST_ENV
@@ -174,7 +176,12 @@ static void complete(int skipped) {
     if (S.done || S.scene < 0) return;
     S.done = 1;
     int id = S.scene;
-    csx_stop_audio(); if (!S.inl) music_stop();            /* in-stage: the stage fades its own music (RM5 6680) */
+    step_t nx = skipped == DONE_SKIP ? SC[id].skip : skipped == DONE_STAGE && SC[id].stage.kind ? SC[id].stage : SC[id].next;
+    S.keep_music = skipped == DONE_END && nx.kind == NX_SCENE && !S.inl;   /* session 27: the original keeps the room's track playing
+                                                              * into the next story room (RV e81_g3n: m_ending from part 1 through
+                                                              * ending2; a83_g8: m_hub3 into throne_apology); a scene's own 'u' of
+                                                              * the same track goes on without a restart (music_play) */
+    csx_stop_audio(); if (!S.inl && !S.keep_music) music_stop();   /* in-stage: the stage fades its own music (RM5 6680) */
     story_mark_seen(sid_of(id));
     S.pos = sid_of(id) + 1;                                 /* 0: none (a scene without a number) */
     if (G.file_slot >= 0 && G.file_slot < SAVE_FILES && !G.file_new && SV.file[G.file_slot].used) {   /* the file's story position (save.c v5) */
@@ -227,10 +234,12 @@ static int start_scene(int id) {
     }
     snprintf(room, sizeof room, "st%d", SC[id].room);
     G.stage_carry = 1;                                      /* lives, crystals and the shield go through the room */
+    if (S.keep_music) loading_keep_music();                 /* session 27: the track pauses through the load, then goes on */
     int r = game_load_level(room);
     G.stage_carry = 0;
     if (r < 0) { csx_free(); story_mark_seen(sid_of(id)); step_t st = SC[id].next; go_step(&st); return 0; }
-    music_stop();
+    if (!S.keep_music) music_stop(); else music_resume();   /* (a chained scene: the previous scene's track plays on) */
+    S.keep_music = 0;
     { short ids[48]; int n = csx_sfx_ids(ids, 48); game_sfx_set_story(ids, n); }   /* only what is not resident (session 25b) */
     memset(&S.font, 0, sizeof S.font);
     if (bank_load(&S.font.bank[0], "ui/font") == 0) S.font.n = 1;

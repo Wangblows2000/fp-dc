@@ -24,7 +24,7 @@
 #define PMAXCH 32   /* FN piece5 (380 x 400): 18 power-of-two chunks; FN2 5_1802 (380 x 460): 30 */
 #define PMAXPIECE 24
 typedef struct { int x, y, w, h; tex_t t; } pchunk_t;
-typedef struct { int img; float D, E, G; int y0, bw, bh, flags; double F; int handle; } ppiece_t;   /* handle: the Fusion object (file version 1) */
+typedef struct { int img; float D, E, G; int y0, bw, bh, flags; double F; int handle, yp; } ppiece_t;   /* handle: the Fusion object (file version 1); yp: placed y */
 static struct { int w, h, n, fl; pchunk_t ch[PMAXCH]; } IMG[PMAXIMG];   /* fl (file version 2): 1 ARGB4444 (translucent list), 2 half resolution (drawn x2) */
 static ppiece_t PC[PMAXPIECE];
 static int nimg, npc, has_water, water_y;
@@ -78,7 +78,7 @@ int par_load(const char *dir) {
         if (off + rec > sz) goto bad;
         PC[i].img = rd16(d + off); PC[i].D = rdf(d + off + 2); PC[i].E = rdf(d + off + 6); PC[i].G = rdf(d + off + 10);
         PC[i].y0 = rd32(d + off + 14); PC[i].bw = rd16(d + off + 18); PC[i].bh = rd16(d + off + 20); PC[i].flags = rd16(d + off + 22);
-        PC[i].F = 0; PC[i].handle = ver >= 1 ? rd16(d + off + 24) : 0;
+        PC[i].F = 0; PC[i].handle = ver >= 1 ? rd16(d + off + 24) : 0; PC[i].yp = PC[i].y0;
         if (PC[i].img >= nimg) goto bad;
         npc = i + 1;
     }
@@ -127,6 +127,16 @@ int par_count(void) { return npc; }
  * frame) and the hidden flag 512 (a hidden piece is not drawn); flag 128 = destroyed */
 void par_set_drift(int handle, float g) { for (int i = 0; i < npc; i++) if (PC[i].handle == handle) PC[i].G = g; }
 void par_set_hidden(int handle, int hidden) { for (int i = 0; i < npc; i++) if (PC[i].handle == handle) PC[i].flags = (PC[i].flags & ~512) | (hidden ? 512 : 0); }
+/* session 27, a story scene's 'pp' entry: the piece's base y C (placed y + dc), drift G and offset F as the original's scene events set
+ * them (RV c81_g2 561-920: LevelParallaxPiece1_4006 / 5_3226 / 6layer2_4020 drift and drop while the comet flies) */
+void par_set_piece(int handle, int what, int dc, float g, double f) {   /* what: 1 the base y, 2 the drift, 4 the offset, 8 (session 27) */
+    for (int i = 0; i < npc; i++) if (PC[i].handle == handle) {                 /* a world piece's position (flag 4096: x dc, y g) */
+        if (what & 8) { PC[i].D = (float)dc; PC[i].y0 = (int)g; }
+        if (what & 1) PC[i].y0 = PC[i].yp + dc;
+        if (what & 2) PC[i].G = g;
+        if (what & 4) PC[i].F = f;
+    }
+}
 void par_destroy(int handle) { for (int i = 0; i < npc; i++) if (PC[i].handle == handle) PC[i].flags |= 128; }
 
 int par_hidden(int handle) { for (int i = 0; i < npc; i++) if (PC[i].handle == handle) return (PC[i].flags & 512) != 0; return 0; }

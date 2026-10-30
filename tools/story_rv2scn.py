@@ -18,7 +18,7 @@ Everything in the script is RV (read from the running original), turned into seg
 
 The format (one entry per line; '#' comments) is documented in src/game/story.h ("Scene script").
 """
-import json, os, re, sys, argparse
+import bisect, json, math, os, re, sys, argparse
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 
@@ -30,6 +30,8 @@ DROP = re.compile(r'^(dialog|lipsync|levelparallax|levelcard|levelcardfade|fade|
                   r'masterlevel|playerassist|enemylimiter|sign_|link_|separator|objectcrystal_317|monitor|yellowspring|redspring|'
                   r'gimmickbridge|objectbike|thunderspark|effectswatersplash|ringsparkle|playerskincarolbike|playerskinmilla|'
                   r'effectfallingleaf)')   # ambient falling leaves (random sine paths: 36k entries a scene) are left out (INFERRED)
+
+NPC_SKINS = re.compile(r'^(playerskin(spade|torque|milla|millatail|carolbike)|objectbike)_')   # --npc-skins (session 27)
 
 def load_dialog(handle):
     d = json.load(open(os.path.join(ROOT, 'tables', 'story', 'dialog.json'), encoding='utf-8'))
@@ -71,6 +73,30 @@ def enc_pos(n, pos, put, seg_of):
         else:
             i = max(j, i + 1)
     plain(lo, N)
+
+# ---- session 27: an Active's angle (trace_story.py r=): 'rot' entries, and where it turns on every frame for a while (Syntax's
+# and Pangu's arm segments) one 'ra' path, a character a frame: chr(79 + d), d the change of round(angle x 10) (0.1 degree)
+def enc_rot(n, rots, put, seg_of):
+    i, N = 0, len(rots)
+    while i < N:
+        for u in (1, 10):                        # the path's unit: 0.1 degree, or 1 degree for fast spinners (sparks: 10-15 a frame)
+            q = lambda k: (rots[k][1] + (5 * u if rots[k][1] >= 0 else -5 * u)) // (10 * u)
+            dw = lambda k: (q(k) - q(k - 1) + 1800 // u) % (3600 // u) - 1800 // u   # (the angle wraps at 360)
+            j = i + 1
+            while j < N and rots[j][0] - rots[j - 1][0] <= 8 and abs(dw(j)) <= 46 and seg_of(rots[j][0]) == seg_of(rots[i][0]):
+                j += 1
+            if j - i > MV_MIN: break
+        if j - i > MV_MIN:
+            put(rots[i][0], 2, 'rot %d %d' % (n, (q(i) * 10 * u + 18000) % 36000 - 18000))   # (-180..180: the entry's int16)
+            ch = []; k = i + 1
+            for f in range(rots[i][0] + 1, rots[j - 1][0] + 1):
+                if rots[k][0] == f: d = dw(k); k += 1
+                else: d = 0
+                ch.append(chr(79 + d))
+            put(rots[i][0] + 1, 2, 'ra %d %d %d %s' % (n, len(ch), u, ''.join(ch)))
+            i = j
+        else:
+            put(rots[i][0], 2, 'rot %d %d' % (n, (rots[i][1] + 18000) % 36000 - 18000)); i += 1
 
 # ---- session 26: the holo dragon rig (--rig). RE (PL6 13342-13344, 13390; src/game/pl_boss.c, spec_pl_bosses): every part keeps its
 # placed offset from the neck (B, C); body scales (Scale2-4) ride the wave by their index from the tail (a = n - 1 - k); the head
@@ -164,6 +190,9 @@ def main():
     ap.add_argument('--rows', default='', help='extra rows class_handle:anim:dir,... (rows the trace did not show)')
     ap.add_argument('--caption', action='append', default=[], help='F0,F1,key|key: caption rows shown from F0 to F1 (RV screenshots)')
     ap.add_argument('--flash', default='', help='F,HOLD,N: white from frame F, HOLD frames, then a fade from white of N frames (RV screenshots; timing INFERRED)')
+    ap.add_argument('--restart', default='', help='F0,F1,STEP (--covers): the frame restarts: the screen fades to black from F0 to F1 '
+                    '(the runtime\'s frame transition: no object), then the new instance\'s cover from 255, STEP a frame (session 27, '
+                    'RV r36_g99 783-907; INFERRED, the trace shows no cover until it reappears)')
     ap.add_argument('--fadeout', default='', help='F,N: a fade to black of N frames from frame F (INFERRED: the wipe)')
     ap.add_argument('--rig', action='store_true', help='session 26: the holo dragon (BossHoloDragon*, its neck traced): its body / head parts and hit '
                     'spots follow the PL6 rig (RE 13342-13344 / 13390) from the neck\'s traced alterables (rig entries) instead of per-frame positions')
@@ -176,6 +205,12 @@ def main():
                     '(without it the later objects\' states are merged into the first class, as arc 1 was converted)')
     ap.add_argument('--carry', action='store_true', help='a scene chained inside the trace that starts no music: the track the '
                     'original still plays (the last one before the window) starts with it (the port stops the music between scenes)')
+    ap.add_argument('--loc', default='', help='session 27: KEY[|KEY2]: the location name LocationName_592 types out (RE: the room\'s '
+                    'event sets str_<KEY> "\\n" str_<KEY2>); written as \'loc\' where the trace shows the object with A 1 (RV)')
+    ap.add_argument('--pieces', action='store_true', help='session 27: the parallax pieces\' base y C and drift G as the scene\'s events '
+                    'set them (\'pp\' / \'pf\' entries at the window start and where C or G changes; RV alterables)')
+    ap.add_argument('--npc-skins', action='store_true', help='session 27: the player skins / bike seen in view are actors (Milla, Spade, '
+                    'Torque, Carol\'s bike as NPCs; DROP leaves them out because the hidden templates sit at -32, -32)')
     ap.add_argument('--room', type=int, default=0, help='a split story room (one room per scene of a large frame: st<room>, built '
                     'from <json frame> cropped to the scene\'s camera views; docs/ADVENTURE.md): rows.json gets json <room>, frame <json>, view')
     a = ap.parse_args()
@@ -203,15 +238,26 @@ def main():
                        # playerskincaroltail_448 at frame 1); the same class goes on as one actor. Without them (arc 1's scripts)
                        # the address keeps its first class. gone: object key -> destroyed at (in the window)
     reuse = a.by_class or a.split_reuse
+    locs = []          # session 27: frames where LocationName_592 starts (A 1, visible)
     gone_raw = {}      # address -> destroyed at (whatever lived there: the parallax pieces' rule, arc 3)
+    lays = []          # session 27: (frame, layer, off x, off y, visible) from the L lines
+    bev = []           # session 27: (frame, address, visible) of the DialogBox objects
+    boxy = []          # session 27: (frame, y) of the visible DialogBox (RV e81_g3n 2413: at 148 for the ending's lines; 'by')
+    ipress = []        # session 27: the tracer's idle presses (STORY_IDLE): a press while the DialogBox shows is the reader's
+                       # (RV b76_g4_m 1656: Milla's line 6 dismissed, line 7 at 1664)
     for l in open(a.log, encoding='latin1'):
         t = l.split()
         if not t or len(t) < 2 or not t[1].lstrip('-').isdigit(): continue
         f = int(t[1])
+        if t[0] == 'L' and len(t) >= 8:             # session 27: a layer's offset / visibility (trace_story.py L lines)
+            lays.append((f, int(t[2]), int(t[5]), int(t[6]), int(t[7]))); continue
         if t[0] == 'D':
             if a.first <= f < a.end: gone[cur.get(t[2], t[2])] = f; gone_raw[t[2]] = f; fade_d.setdefault(t[2], []).append(f)
             continue
-        if t[0] == 'O' and (cur.get(t[2], '/').split('/')[1] != t[3] if reuse else t[2] not in cur): cur[t[2]] = '%s/%s' % (t[2], t[3])
+        if t[0] == 'O' and (cur.get(t[2], '/').split('/')[1] != t[3] if reuse else t[2] not in cur):
+            pk = cur.get(t[2])                       # session 27: another class at the address: its object went (the tracer misses a D
+            if reuse and pk in obj and a.first <= f < a.end and gone.get(pk, -1) < max(obj[pk]['st']): gone[pk] = f   # made and
+            cur[t[2]] = '%s/%s' % (t[2], t[3])       # reused between two scans; RV r81_g0l: effectswhiteburst_31 1860-1864 -> 1866 dragontailpath)
         if f < a.first or f >= a.end:
             if t[0] == 'O' and f < a.first and a.first == 0: pass   # (a trace that starts in the room: its first states)
             elif t[0] == 'C' and f < a.first: pass                  # the view before the window
@@ -222,24 +268,44 @@ def main():
             x, y, aid, afr, dr, fl = int(t[4]), int(t[5]), int(t[6]), int(t[7]), int(t[8]), int(t[9], 16)
             ia, ib, ic = int(t[10]), int(t[11]), int(t[12])
             alt = dict(kv.split('=') for kv in t[13:])
+            if cls.startswith('locationname_') and alt.get('A') == '1' and fl & 1 and a.loc:   # session 27: the location name starts
+                locs.append(f); continue
             if cls.startswith(a.dialogbox):
                 box.append((f, fl & 1, int(float(alt.get('E', 0))), int(float(alt.get('F', 0))), int(float(alt.get('C', 0))), ic))
+                bev.append((f, t[2], fl & 1))
+                if fl & 1 and cls.startswith(('dialogbox_551', a.dialogbox)) and not cls.startswith('dialogbox2'): boxy.append((f, y))
                 continue
             if fl >= 0x10000: continue                  # not an object (old traces: a non-list member)
             if cls.startswith(('levelcardfade2', 'levelcardfade_')) and 'a' in alt:   # the black covers (0x2: being destroyed)
                 fade_a.setdefault(t[2], {})[max(f, a.first)] = int(alt['a']) if (fl & 3) == 1 else 0
-            if cls.startswith(('levelparallax', 'parallax')):   # backdrop pieces: visibility per scene ('pv'), scroll from D / E / F (RV)
+            if cls.startswith(('levelparallax', 'parallax', 'sunset_4063', 'daytimesky_4118')):   # backdrop pieces: visibility per scene ('pv'),
+                # scroll from D / E / F (RV); session 27: json 83's skies are pieces too (tools/import_frame.py STORY_SKY)
                 pp = par.setdefault(cls, {'st': {}, 'alt': alt}); par_addr[addr if a.split_reuse else t[2]] = cls
                 pp['st'][max(f, a.first)] = fl & 1
+                if cls.startswith('levelparallaxzaoship'): pp.setdefault('pos', {})[max(f, a.first)] = (x, y)   # session 27: a world piece ('pw')
+                if pp.setdefault('addr', t[2]) == t[2] and 'A' in alt:   # session 27: the first instance's C / G / F / A (--pieces)
+                    pp.setdefault('cg', {})[f] = (float(alt.get('C', 0)), float(alt.get('G', 0)), float(alt.get('F', 0)), float(alt['A']))
                 continue
             if a.rig and cls.startswith('bossholodragonneck_'): neck[max(f, a.first)] = {k_: float(v_) for k_, v_ in alt.items() if k_ != 'a'}
             o = obj.setdefault(addr, {'cls': cls, 'st': {}})
-            o['st'][max(f, a.first)] = (x, y, ia, ib, ic, fl & 1, int((fl & 3) == 1), int(alt.get('a', 255)))
-            # [6]: drawable (0x2: being destroyed); [7]: the blend alpha (STORY_BLEND traces)
+            sc_ = tuple(round(float(v) * 1000) for v in alt.get('s', '1,1').split(','))
+            o['st'][max(f, a.first)] = (x, y, ia, ib, ic, fl & 1, int((fl & 3) == 1), int(alt.get('a', 255)), dr, sc_,
+                                        round(float(alt.get('r', 0)) * 100), int(alt['l']) if 'l' in alt else None)
+            # [6]: drawable (0x2: being destroyed); [7]: the blend alpha (STORY_BLEND traces); [8]: the direction; session 27:
+            # [9]: the Active's scale (x, y) x 1000, [10]: its angle x 100 (trace_story.py s= / r=, RE Active +0xc4 / +0xc8 / +0xcc),
+            # [11]: its layer (l=; None in older traces: the class's placed layer)
         elif t[0] == 'S': snd.append((f, t[2], ' '.join(t[3:])))
         elif t[0] == 'C': cams.append((f, int(t[2]), int(t[3])))
         elif t[0] == 'A': presses.append(f)
+        elif t[0] == 'I': ipress.append(f)
     # segment starts
+    def box_shown(f):                          # a DialogBox shows at f (rooms 15 / 16 also hold a hidden one)
+        v = {}
+        for bf, ad, bv in bev:
+            if bf > f: break
+            v[ad] = bv
+        return any(v.values())
+    presses = sorted(set(presses) | {f for f in ipress if box_shown(f)})
     chsel = [int(v) for v in a.chsel.split(',')] if a.chsel else None
     if chsel: presses = sorted(set(presses + [chsel[1]]))
     segs = [a.first] + [p + 1 for p in presses if a.first <= p < a.end - 1]
@@ -260,13 +326,27 @@ def main():
             if cf > f: break
             v = (x, y)
         return v
+    lay_by = {}
+    for lf, li, ox, oy, vis in lays: lay_by.setdefault(li, ([], []))[0].append(lf); lay_by[li][1].append((ox, oy))
+    def loff(i, f):                            # session 27: layer i's offset at frame f (L lines; RV b76_g2_c: json 77's layer 1 at -3200)
+        if i not in lay_by: return (0, 0)
+        k = bisect.bisect_right(lay_by[i][0], f) - 1
+        return lay_by[i][1][k] if k >= 0 else (0, 0)
+    def tlayer(o):                             # session 27: the object's traced layer (its first state that has one)
+        return next((st_[11] for f_, st_ in sorted(o['st'].items()) if len(st_) > 11 and st_[11] is not None), None)
+    bgcov = lambda o: re.match(r'^(levelcardfade|fade_)', o['cls']) and tlayer(o) is not None and tlayer(o) < 5
+    # a cover on a lower layer (RE 20454: json 82's dragon flight, a LevelCardFade2 created on layer 2 and moved to its back) is no
+    # screen cover: an actor (scaled to the screen by its s=, alpha by its a=, ink 'bg') drawn first among layer 2's objects (RV
+    # r81_g0l 2700-3300: the parallax and the layer 1-2 backdrops hidden, the layer-2 dragon and the ground shown). The shots also
+    # show the layer-1 guards / mercs over it: while it shows, the player draws json layer 1's actors right after it (INFERRED)
     actors = []
     for addr, o in obj.items():
         c = o['cls']
-        if drop_re.search(c) or (DROP.match(c) and not keep_re.search(c)) or not act_re.match(c.rsplit('_', 1)[0] + '_'): continue
+        if drop_re.search(c) or (DROP.match(c) and not keep_re.search(c) and not (a.npc_skins and NPC_SKINS.match(c)) and not bgcov(o)) or \
+                not act_re.match(c.rsplit('_', 1)[0] + '_'): continue
         if not a.split_reuse and addr in gone and gone[addr] <= a.first + 2 and max(o['st']) <= a.first + 2: continue   # destroyed by the room's start events
-        if re.match(r'^(levelcardfade|fadeedge|fade_)', c): continue          # fades: 'f' entries below
-        fixed = layer_of.get(c, 2) >= 6
+        if re.match(r'^(levelcardfade|fadeedge|fade_)', c) and not bgcov(o): continue          # fades: 'f' entries below
+        fixed = (tlayer(o) if tlayer(o) is not None else layer_of.get(c, 2)) >= 6   # (session 27: the traced layer first)
         seen = []
         fs_ = sorted(o['st'])
         for k_, f in enumerate(fs_):
@@ -275,82 +355,115 @@ def main():
             # groups A / B as converted in session 25b: a visible one is: Spade's afterimages effectsspadeimage_456 carry 0x2)
             f2 = fs_[k_ + 1] if k_ + 1 < len(fs_) else a.end
             vs = [(0, 0)] if fixed else [view(f)] + [(x, y) for cf, x, y in camf if f < cf < f2]
-            if any(vx - 48 < st_[0] < vx + 426 + 48 and vy - 48 < st_[1] < vy + 240 + 48 for vx, vy in vs): seen.append(f)
+            lx_, ly_ = (0, 0) if fixed else loff(st_[11] if len(st_) > 11 and st_[11] is not None else tlayer(o), f)   # (session 27: its layer's offset)
+            if any(vx - lx_ - 48 < st_[0] < vx - lx_ + 426 + 48 and vy - ly_ - 48 < st_[1] < vy - ly_ + 240 + 48 for vx, vy in vs): seen.append(f)
         if seen: actors.append((min(seen), addr))
-    if len(actors) > 256:
-        from collections import Counter
-        sys.exit('%d actors (the player holds 256): narrow --actors / --drop: %s' % (len(actors), Counter(obj[a_]['cls'] for _, a_ in actors)))
     # actor number = draw order: by the frame's object order, runtime-created classes after the placed ones (creation
     # order); several instances of a class by first sighting (RV: comet2_4004 under the additive comet_4005)
-    actors.sort(key=lambda fa: (zpos.get(obj[fa[1]]['cls'], 100000), fa[0], fa[1]))
+    actors.sort(key=lambda fa: (-1 if bgcov(obj[fa[1]]) else zpos.get(obj[fa[1]]['cls'], 100000), fa[0], fa[1]))
     rows = set()
     used = {}          # (class, anim, dir) -> the frame indices the script shows (--covers: the room build keeps only those
                        # of a still anim, e.g. the skins' pose library anim 40: 108 frames, a scene shows a few)
     for r in filter(None, a.rows.split(',')):
         c_, an_, d_ = r.split(':'); rows.add((c_, int(an_), int(d_)))
+    # session 27: the player holds 320 actors (a 10-bit actor number; 256 before: the snowfields have 280 once the convoy on json
+    # layer 1 counts as seen with its layer's offset). Beyond that an actor number is reused by a later object of the same class
+    # once the earlier one is gone (its D, or its class left the address: before the later one's first state); the holo dragon's
+    # rig parts keep their own numbers
+    slots = [[addr] for _, addr in actors]
+    if len(actors) > 320:
+        slots = []
+        for _, addr in actors:
+            c = obj[addr]['cls']; f0 = min(obj[addr]['st'])
+            s_ = None if c.startswith('bossholodragon') else next((s for s in slots if obj[s[-1]]['cls'] == c and s[-1] in gone
+                                                                    and gone[s[-1]] >= max(obj[s[-1]]['st']) and gone[s[-1]] < f0), None)
+            if s_ is not None: s_.append(addr)
+            else: slots.append([addr])
+    if len(slots) > 320:
+        from collections import Counter
+        sys.exit('%d actors (the player holds 320): narrow --actors / --drop: %s' % (len(slots), Counter(obj[s[0]]['cls'] for s in slots)))
     decl = []
-    rigof = rig_parts(a, fr, obj, actors, neck) if a.rig and neck else {}
-    for n, (_, addr) in enumerate(actors):
-        o = obj[addr]; c = o['cls']; h = int(c.rsplit('_', 1)[1])
-        lay = 2 if c.startswith(('playerskin', 'player_')) else layer_of.get(c, 2)   # the player's templates sit on layer 5 off-map
-        ik = INK.get(c, {})                       # RE: create_<class> set_shader 0x20 = additive / blend colour alpha
-        decl.append('actor %d %s %d%s' % (n, c, lay, ' add' if ik.get('shader') == 32 else ' a%d' % ik['alpha'] if 'alpha' in ik else ''))
-        if addr in rigof: decl.append('rigpart %d %d %d %d %d' % ((n,) + rigof[addr]))
-        pos = []                                     # --mv: the position changes (f, x, y) -> enc_pos
-        prev = None; run = None                      # run: [f0, dx, dy, count]
-        def flush_run():
-            if run and run[3]: put(run[0], 1, 'm %d %d %d %d' % (n, run[1], run[2], run[3]))
-        alpha0 = ik.get('alpha', 255)              # the declared ink; --covers (blend traces): the traced alpha wins ('a')
-        for f in sorted(o['st']):
-            x, y, ia, ib, ic, vis = o['st'][f][:6]; al = o['st'][f][7]
-            if prev is None:
-                put(f, 0, 'p %d %d %d' % (n, x, y)); put(f, 2, 'v %d %d' % (n, vis)); pos.append((f, x, y))
-                if ia >= 0: put(f, 2, 'i %d %d %d %d' % (n, ia, ib, ic)); rows.add((c, ia, ib)); used.setdefault((c, ia, ib), set()).add(ic)
-                if a.covers and al != alpha0: put(f, 2, 'a %d %d' % (n, al))
-                prev = (f, x, y, ia, ib, ic, vis, al); continue
-            pf, px, py, pia, pib, pic, pvis, pal = prev
-            if a.covers and al != pal: put(f, 2, 'a %d %d' % (n, al))
-            dx, dy = x - px, y - py
-            if (dx or dy) and a.mv:                        # (--mv: enc_pos below; a rig part's position follows the rig)
-                if addr not in rigof: pos.append((f, x, y))
-            elif (dx or dy) and not a.covers:              # (--covers: the positions are fitted below, 'l' / 'p')
-                if f == pf + 1 and run and run[1] == dx and run[2] == dy and run[0] + run[3] == f and seg_of(run[0]) == seg_of(f):
-                    run[3] += 1
-                elif f == pf + 1:
-                    flush_run(); run = [f, dx, dy, 1]
-                else:
-                    flush_run(); run = None; put(f, 0, 'p %d %d %d' % (n, x, y))
-            if (ia, ib, ic) != (pia, pib, pic) and ia >= 0:
-                put(f, 2, 'i %d %d %d %d' % (n, ia, ib, ic)); rows.add((c, ia, ib)); used.setdefault((c, ia, ib), set()).add(ic)
-            if vis != pvis: put(f, 2, 'v %d %d' % (n, vis))
-            prev = (f, x, y, ia, ib, ic, vis, al)
-        flush_run()
-        if a.mv: enc_pos(n, pos, put, seg_of)
-        if a.covers:                                   # piecewise-linear positions: 'l n x y k' reaches (x, y) in k frames, each
-            fs_ = sorted(o['st']); f0 = fs_[0]         # frame within 1 px of the trace (RV positions are integers): drifting
-            f1 = min(a.end, gone.get(addr, a.end))     # backdrops / bobbing ships cost one entry instead of one a frame
-            P = []; k_ = 0
-            for f in range(f0, f1):
-                while k_ + 1 < len(fs_) and fs_[k_ + 1] <= f: k_ += 1
-                P.append(o['st'][fs_[k_]][:2])
-            i = 0
-            while i < len(P) - 1:
-                if P[i + 1] == P[i]:
-                    i += 1; continue
-                j = i + 1; best = i + 1; xi, yi = P[i]
-                lo, hi = [-1e9, -1e9], [1e9, 1e9]       # the slopes (x, y) every frame so far allows (within 1 px)
-                while j < len(P) and j - i <= 4000 and seg_of(f0 + j) == seg_of(f0 + i + 1):
-                    N = j - i; sx, sy = (P[j][0] - xi) / N, (P[j][1] - yi) / N
-                    if lo[0] <= sx <= hi[0] and lo[1] <= sy <= hi[1]: best = j   # ending here fits every frame before it
-                    for ax, v0 in ((0, xi), (1, yi)):  # this frame as an inner one of a longer move
-                        lo[ax] = max(lo[ax], (P[j][ax] - v0 - 1) / N); hi[ax] = min(hi[ax], (P[j][ax] - v0 + 1) / N)
-                    if lo[0] > hi[0] or lo[1] > hi[1]: break
-                    j += 1
-                N = best - i
-                if N == 1: put(f0 + best, 0, 'p %d %d %d' % (n, P[best][0], P[best][1]))
-                else: put(f0 + i + 1, 1, 'l %d %d %d %d' % (n, P[best][0], P[best][1], N))
-                i = best
-        if addr in gone and (not a.by_class or gone[addr] >= max(o['st'])): put(gone[addr], 2, 'v %d 0' % n)
+    rigof = rig_parts(a, fr, obj, [(0, s[0]) for s in slots], neck) if a.rig and neck else {}
+    for n, slot in enumerate(slots):
+      for si, addr in enumerate(slot):
+          o = obj[addr]; c = o['cls']; h = int(c.rsplit('_', 1)[1])
+          lay = 2 if c.startswith(('playerskin', 'player_')) else layer_of.get(c, 2)   # the player's templates sit on layer 5 off-map
+          if tlayer(o) is not None and not c.startswith(('playerskin', 'player_')): lay = tlayer(o)   # session 27: the traced layer (l=)
+          if tlayer(o) is not None and c.startswith('playerskin') and 1 <= tlayer(o) <= 4: lay = tlayer(o)
+          if si == 0: slot_lay = lay
+          cur_l = slot_lay                             # session 27: the layer changes ('ly'; RV c83_g17: Lilac's skin 2 -> 3, st_mission)
+          if lay != slot_lay: put(min(o['st']), 0, 'ly %d %d' % (n, lay)); cur_l = lay   # (a reused actor number)
+
+          ik = INK.get(c, {})                       # RE: create_<class> set_shader 0x20 = additive / blend colour alpha; session 27:
+          # shader 20 = dst x (1 - texel colour), as GeneralWater's r_tint (RV b15_g11_l 3120: FlashbackBG_3617, 160 112 0 over the
+          # flashback: red x 0.37, green x 0.56, blue kept)
+          if si == 0: decl.append('actor %d %s %d%s' % (n, c, lay, ' bg' if bgcov(o) else ' add' if ik.get('shader') == 32 else ' mul' if ik.get('shader') == 20 else ' a%d' % ik['alpha'] if 'alpha' in ik else ''))
+          if si == 0 and addr in rigof: decl.append('rigpart %d %d %d %d %d' % ((n,) + rigof[addr]))
+          pos = []                                     # --mv: the position changes (f, x, y) -> enc_pos
+          rots = []                                    # session 27: the angle changes (f, angle x 100) -> enc_rot
+          prev = None; run = None                      # run: [f0, dx, dy, count]
+          def flush_run():
+              if run and run[3]: put(run[0], 1, 'm %d %d %d %d' % (n, run[1], run[2], run[3]))
+          alpha0 = ik.get('alpha', 255)              # the declared ink; --covers (blend traces): the traced alpha wins ('a')
+          for f in sorted(o['st']):
+              x, y, ia, ib, ic, vis = o['st'][f][:6]; al = o['st'][f][7]
+              scr = o['st'][f][9:11]                     # session 27: scale / angle ('sc' entries / enc_rot below when they change)
+              if scr != (prev_scr if prev is not None else ((1000, 1000), 0)) and addr not in rigof:
+                  if scr[0] != (prev_scr[0] if prev is not None else (1000, 1000)): put(f, 2, 'sc %d %d %d' % ((n,) + scr[0]))
+                  if scr[1] != (prev_scr[1] if prev is not None else 0): rots.append((f, scr[1]))
+              prev_scr = scr
+              tl = o['st'][f][11] if len(o['st'][f]) > 11 else None
+              if tl is not None and tl != cur_l and 0 <= tl <= 7 and (not c.startswith('playerskin') or 1 <= tl <= 4):
+                  put(f, 0, 'ly %d %d' % (n, tl)); cur_l = tl
+              if prev is None:
+                  put(f, 0, 'p %d %d %d' % (n, x, y)); put(f, 2, 'v %d %d' % (n, vis)); pos.append((f, x, y))
+                  if ia >= 0: put(f, 2, 'i %d %d %d %d' % (n, ia, ib, ic)); rows.add((c, ia, ib)); used.setdefault((c, ia, ib), set()).add(ic)
+                  if a.covers and al != alpha0: put(f, 2, 'a %d %d' % (n, al))
+                  prev = (f, x, y, ia, ib, ic, vis, al); continue
+              pf, px, py, pia, pib, pic, pvis, pal = prev
+              if a.covers and al != pal: put(f, 2, 'a %d %d' % (n, al))
+              dx, dy = x - px, y - py
+              if (dx or dy) and a.mv:                        # (--mv: enc_pos below; a rig part's position follows the rig)
+                  if addr not in rigof: pos.append((f, x, y))
+              elif (dx or dy) and not a.covers:              # (--covers: the positions are fitted below, 'l' / 'p')
+                  if f == pf + 1 and run and run[1] == dx and run[2] == dy and run[0] + run[3] == f and seg_of(run[0]) == seg_of(f):
+                      run[3] += 1
+                  elif f == pf + 1:
+                      flush_run(); run = [f, dx, dy, 1]
+                  else:
+                      flush_run(); run = None; put(f, 0, 'p %d %d %d' % (n, x, y))
+              if (ia, ib, ic) != (pia, pib, pic) and ia >= 0:
+                  put(f, 2, 'i %d %d %d %d' % (n, ia, ib, ic)); rows.add((c, ia, ib)); used.setdefault((c, ia, ib), set()).add(ic)
+              if vis != pvis: put(f, 2, 'v %d %d' % (n, vis))
+              prev = (f, x, y, ia, ib, ic, vis, al)
+          flush_run()
+          enc_rot(n, rots, put, seg_of)
+          if a.mv: enc_pos(n, pos, put, seg_of)
+          if a.covers and not a.mv:                      # piecewise-linear positions: 'l n x y k' reaches (x, y) in k frames, each
+              fs_ = sorted(o['st']); f0 = fs_[0]         # frame within 1 px of the trace (RV positions are integers): drifting
+              f1 = min(a.end, gone.get(addr, a.end))     # backdrops / bobbing ships cost one entry instead of one a frame
+              P = []; k_ = 0
+              for f in range(f0, f1):
+                  while k_ + 1 < len(fs_) and fs_[k_ + 1] <= f: k_ += 1
+                  P.append(o['st'][fs_[k_]][:2])
+              i = 0
+              while i < len(P) - 1:
+                  if P[i + 1] == P[i]:
+                      i += 1; continue
+                  j = i + 1; best = i + 1; xi, yi = P[i]
+                  lo, hi = [-1e9, -1e9], [1e9, 1e9]       # the slopes (x, y) every frame so far allows (within 1 px)
+                  while j < len(P) and j - i <= 4000 and seg_of(f0 + j) == seg_of(f0 + i + 1):
+                      N = j - i; sx, sy = (P[j][0] - xi) / N, (P[j][1] - yi) / N
+                      if lo[0] <= sx <= hi[0] and lo[1] <= sy <= hi[1]: best = j   # ending here fits every frame before it
+                      for ax, v0 in ((0, xi), (1, yi)):  # this frame as an inner one of a longer move
+                          lo[ax] = max(lo[ax], (P[j][ax] - v0 - 1) / N); hi[ax] = min(hi[ax], (P[j][ax] - v0 + 1) / N)
+                      if lo[0] > hi[0] or lo[1] > hi[1]: break
+                      j += 1
+                  N = best - i
+                  if N == 1: put(f0 + best, 0, 'p %d %d %d' % (n, P[best][0], P[best][1]))
+                  else: put(f0 + i + 1, 1, 'l %d %d %d %d' % (n, P[best][0], P[best][1], N))
+                  i = best
+          if addr in gone and (not a.by_class or gone[addr] >= max(o['st'])): put(gone[addr], 2, 'v %d 0' % n)
     if rigof: rig_entries(neck, put, a)
     # ---- fades: LevelCardFade2 (the black cover). Traces with its alpha: every fade (RV). Older traces: visible at the window's
     # start = a fade from black until it hides (RV visibility; the original's alpha ramp is not traced: linear, INFERRED)
@@ -388,23 +501,52 @@ def main():
     # that sit on the view combine (1 - product of (1 - alpha)); 'fa' entries follow the result frame by frame.
     if a.covers:
         COV = re.compile(r'^(levelcardfade|whitefade|fade_)')
-        cov = [(addr, o) for addr, o in obj.items() if COV.match(o['cls'])]
+        cov = [(addr, o) for addr, o in obj.items() if COV.match(o['cls']) and not bgcov(o)]
         fr_ = sorted({f for _, o in cov for f in o['st']} | {f for f in (gone.get(ad) for ad, _ in cov) if f is not None} |
                      {f for f, x, y in cams if a.first <= f < a.end} | {a.first})
+        rs = [int(v) for v in a.restart.split(',')] if a.restart else None
+        if rs: fr_ = sorted(set(fr_) | set(range(rs[0], rs[1] + 256 // rs[2] + 2)))
+        def rs_al(f):                          # the restart's synthetic cover alpha at f
+            if not rs or f < rs[0]: return 0
+            if f < rs[1]: return round(255 * (f - rs[0]) / (rs[1] - rs[0]))
+            return max(0, 255 - rs[2] * (f - rs[1]))
         last = None; lastw = -999
         for f in fr_:
-            vx, vy = view(f); blk = wht = 1.0; wx = -999
+            vx, vy = view(f); blk = 1 - rs_al(f) / 255.; wht = 1.0; wx = -999
             for addr, o in cov:
                 ks = [k for k in o['st'] if k <= f]
-                if not ks or (addr in gone and gone[addr] <= f): continue
-                x, y, _, _, _, vis, _, al = o['st'][max(ks)]
+                if not ks or (addr in gone and max(ks) < gone[addr] <= f): continue   # (gone after its last state; session 27: a key
+                # that comes back is no longer gone, RV c83_g17 2754: the end's cover at the address of the start's)
+                x, y, _, _, _, vis, _, al, dr_ = o['st'][max(ks)][:9]
                 if vis and abs(y) <= 2 and -600 < x < -2 and al == 255: wx = max(wx, x)   # the black wipe sliding in (RV b76_g4_m 1807)
                 if not vis or not ((abs(x) <= 2 and abs(y) <= 2) or (abs(x - vx) <= 2 and abs(y - vy) <= 2)): continue
-                if o['cls'].startswith('whitefade'): wht *= 1 - al / 255.
+                if o['cls'].startswith('whitefade') or (o['cls'].startswith('levelcardfade_') and dr_ == 8): wht *= 1 - al / 255.   # (RE anims:
+                # LevelCardFade_423 direction 0 = image 129, 8, 0, 0; direction 8 = image 381, 248, 252, 248: RV c81_g2 910-1150, the crash's flash)
                 else: blk *= 1 - al / 255.
-            cur_ = (round(255 * (1 - wht)), 1) if wht < 1 else (round(255 * (1 - blk)), 0)
+            cur_ = (round(255 * (1 - wht)), 1) if 1 - wht > 1 - blk else (round(255 * (1 - blk)), 0)   # (session 27: the stronger cover;
+            # a white one left at alpha 4 no longer hides the black covers after it: RV r80_g0 1079 / 1448)
             if cur_ != last: put(f, 3, 'fa %d%s' % (cur_[0], ' 1' if cur_[1] else '')); last = cur_
             if wx != lastw: put(f, 3, 'fw %d' % wx); lastw = wx
+    # ---- layer offsets / visibility (session 27, RE Layer::draw: a layer is drawn at view x coef - off, not at all when its
+    # flag + 0x40 is clear; RV b76_g2_c: json 77's layer 1, Zao's caravan, at x -3200 while Lilac meets Milla)
+    lst = {}
+    for f, i, ox, oy, vis in sorted(lays, key=lambda r: r[0]):
+        if f > a.first: break
+        lst[i] = (ox, oy, vis)
+    for i, (ox, oy, vis) in sorted(lst.items()):
+        if (ox, oy) != (0, 0): put(a.first, 1, 'lo %d %d %d' % (i, ox, oy))
+        if not vis: put(a.first, 1, 'lv %d 0' % i)
+    for f, i, ox, oy, vis in lays:
+        if not (a.first < f < a.end): continue
+        o_ = lst.get(i, (0, 0, 1))
+        if (ox, oy) != o_[:2]: put(f, 1, 'lo %d %d %d' % (i, ox, oy))
+        if vis != o_[2]: put(f, 1, 'lv %d %d' % (i, vis))
+        lst[i] = (ox, oy, vis)
+    lby = 8
+    for f, y in boxy:
+        if y != lby and a.first <= f < a.end: put(f, 3, 'by %d' % y); lby = y
+    for f in locs[:1]: put(f, 3, 'loc %s' % ' '.join(a.loc.split('|')))
+    if a.loc and not locs: print('warning: --loc given but the trace shows no LocationName start in the window')
     for c in a.caption:
         f0, f1, keys = c.split(',', 2)
         for r, k in enumerate(keys.split('|')): put(int(f0), 3, 'cap %d %s' % (r, k))
@@ -426,12 +568,29 @@ def main():
     g_ = gone if a.split_reuse else gone_raw   # (--split-reuse: by object key, so a D of the address's previous object is not the piece's)
     for addr, c in par_addr.items():           # destroyed at the room's start (RV c81_g2: 3223 / 3224 / 3225 / 3227 at frame 1)
         if addr in g_: par[c]['st'][max(g_[addr], a.first)] = 0
+    if par:                                    # session 27: a placed piece the trace never shows was destroyed before the first scan (the
+        for o in fr['objects']:                # frame's start events; RV b78_g2_l 2192: SB1's frame at night, its day pieces 2059 / 2060 /
+            k_ = '%s_%d' % (o['cls'], o['id'])   # 2064 / 2065 / 2094 never listed): hidden at the window's start
+            if o['cls'].startswith('levelparallax') and k_ not in par: put(a.first, 3, 'pv %d 0' % o['id'])
     for c, pp in par.items():
         h = int(c.rsplit('_', 1)[1]); prev = None
         for f in sorted(pp['st']):
             if pp['st'][f] != prev: put(f, 3, 'pv %d %d' % (h, pp['st'][f])); prev = pp['st'][f]
         al = pp['alt']
         pinfo[str(h)] = [float(al.get('D', 0)), float(al.get('E', 0)), float(al.get('F', 0))]
+        lastp = None                            # session 27: a world piece's position (tools/import_frame.py PAR_WORLD, 'pw')
+        for f in sorted(pp.get('pos', {})):
+            if pp['pos'][f] != lastp: put(f, 3, 'pw %d %d %d' % ((h,) + pp['pos'][f])); lastp = pp['pos'][f]
+        if a.pieces and pp.get('cg'):           # session 27: C / G as the scene's events set them (placed y: the frame's first instance)
+            y0 = next((o['y'] for o in fr['objects'] if '%s_%d' % (o['cls'], o['id']) == c and o['y'] is not None), None)
+            cg = pp['cg']; fs = sorted(cg); last = None
+            for f in [max([g for g in fs if g <= a.first] or fs[:1])] + [g for g in fs if a.first < g < a.end]:
+                C, G, F, A = cg[f]; cur_ = (round(C - y0), round(G * 100)) if y0 is not None else None
+                if cur_ is None or cur_ == last: continue
+                f_ = max(f, a.first)
+                put(f_, 3, 'pp %d %d %d' % (h, cur_[0], cur_[1]))
+                put(f_, 3, 'pf %d %d' % (h, round(math.fmod(F, A) * 10) if A else round(F * 10)))
+                last = cur_
     # ---- camera
     cam0 = None
     for f, x, y in cams:

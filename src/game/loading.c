@@ -43,9 +43,12 @@ static void loading_draw(void) {
 }
 
 /* called after the previous scene's textures were dropped (r_reset) */
+static int keep_mus;
+void loading_keep_music(void) { keep_mus = 1; }
 void loading_begin(const char *label) {
     if (!LP.on) lp_begin(label);   /* a level load starts its profile earlier (pack index check) */
-    music_stop();
+    if (keep_mus) music_pause(); else music_stop();   /* session 27: a chained story room resumes the track where it was (story.c) */
+    keep_mus = 0;
     snd_stop_all();
     have_bank = bank_load(&lb, "ui/loading") == 0;
     active = 1;

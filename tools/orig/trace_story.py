@@ -12,6 +12,8 @@
 #   S <f> id|str <value>                 Media::play_id / Media::play (sounds, voices, music; channel, loop)
 #   K <f> <keys>                         keys injected this frame
 #   C <f> x y                            the view's top-left (Frames + 0x213b4, Frame::set_display_center) when it changed
+#   L <f> <i> cx cy ox oy vis            session 27 (STORY_BLEND): layer i's scroll coefficients, offset and visibility when changed
+#                                        (RE Layer::draw: the layer is drawn at view x cx - ox, view y cy - oy)
 #   A <f> / I <f>                        J pressed by the reader (STORY_READ frames after the dialog arrow) / the idle tap
 # Environment: STORY_TAP=N (tap J every N frames, default 0 = never), STORY_KEYS="f0-f1:KEYS,..." (explicit holds,
 # LRUDJXBS as trace_orig.py), STORY_CLASSES=regex (classes to dump, default: every class of the json frame except
@@ -21,6 +23,8 @@
 # STORY_BLEND=1 (phase 2: each O line adds a=<blend alpha> / c=<blend rgb> when the object is not opaque white),
 # STORY_SHOTS="f,f,..." (screenshots at those frames, <out>_shots/f<frame>.png, as STORY_SHOT=N every N frames),
 # STORY_TP="f:x:y,..." (teleport: PlayerMovementValues X / Y at frame f, B / G zeroed, as trace_orig.py TP; logged 'T f x y').
+# Session 27, with STORY_BLEND=1, an Active's O line also has s=<x scale>,<y scale> (when not 1), r=<angle> (when not 0) and
+# l=<layer index> (RE: Active +0xc4 angle, +0xc8 / +0xcc scale; FrameObject +0x10 its Layer, Frame + 0x21388 the layers, 0xb0 each).
 # Never calls inferior functions from a breakpoint (gdb hangs). Host-only tool: never shipped.
 import gdb, os, re, struct, json, subprocess
 
@@ -111,7 +115,7 @@ class Story(gdb.Breakpoint):
     def __init__(self):
         super().__init__('*0x9fcb7a', internal=True)
         self.o = open(OUT, 'w'); self.f = 0; self.cur = int(os.environ.get('STORY_START_FRAME', '-1')); self.rescan = 1
-        self.objs = {}; self.lists = {}; self.vt_of = {}; self.last = {}; self.g = None; self.prev = set(); self.imgmap = {}
+        self.objs = {}; self.lists = {}; self.vt_of = {}; self.last = {}; self.g = None; self.prev = set(); self.imgmap = {}; self.lays = {}
         self.tap = int(os.environ.get('STORY_TAP', '0')); self.holds = []; self.tap_from = int(os.environ.get('STORY_TAP_FROM', '0'))
         for kv in filter(None, os.environ.get('STORY_KEYS', '').split(',')):
             r, k = kv.split(':'); a, b = r.split('-'); self.holds.append((int(a), int(b), k))
@@ -166,6 +170,10 @@ class Story(gdb.Breakpoint):
         return out
     def dump(self):
         self.objs = self.live()
+        self.lay0 = 0                                     # session 27: the Frame's layer array (Frame + 0x21388, RE Frame::add_object)
+        if self.fr:
+            try: self.lay0 = struct.unpack('<Q', rq(self.fr + 0x21388, 8))[0]
+            except Exception: pass
         for ob in [o for o in self.last if o not in self.objs]:
             self.w('D %d %x' % (self.f, ob)); del self.last[ob]
         for ob, c in self.objs.items():
@@ -180,6 +188,12 @@ class Story(gdb.Breakpoint):
                 ia = self.imgmap.get(img, (-1, -1, -1))
                 s = '%d %d %d %d %d %x %d %d %d %s' % (x, y, aid, afr, dr, fl, ia[0], ia[1], ia[2],
                                                     ' '.join('%s=%.6g' % (chr(65 + i), v) for i, v in enumerate(vals) if v))
+                if ia[0] >= 0 and BLEND:                # session 27: an Active's angle / scale (RE Active::set_angle: float +0xc4;
+                    ang, xs, ys = struct.unpack_from('<3f', m, 0xc4)   # Active::set_scale / set_x_scale: floats +0xc8 / +0xcc)
+                    if (xs, ys) != (1.0, 1.0): s += ' s=%.4g,%.4g' % (xs, ys)
+                    if ang != 0.0: s += ' r=%.4g' % ang
+                    lp = struct.unpack_from('<Q', m, 0x10)[0]   # the Layer (RE Frame::add_object: obj+0x10 = layers + index * 0xb0)
+                    if self.lay0 and lp >= self.lay0: s += ' l=%d' % ((lp - self.lay0) // 0xb0)
                 if c.startswith(('levelcardfade', 'fade')): s += ' a=%d' % m[0x5f]   # the blend byte (+0x5f, RE 20953 / 20996: the fade's alpha)
                 elif BLEND:                             # FrameObject::set_blend_color: rgb at +0x5c..0x5e, alpha (the blend
                     rgb = m[0x5c] << 16 | m[0x5d] << 8 | m[0x5e]   # coefficient) at +0x5f (RE 3312: alpha 255 = opaque)
@@ -248,6 +262,15 @@ class Story(gdb.Breakpoint):
                 cam = struct.unpack('<ii', rq(self.fr + 0x213b4, 8))
                 if cam != self.cam: self.cam = cam; self.w('C %d %d %d' % (self.f, cam[0], cam[1]))
             except Exception: pass
+            if BLEND:                                     # L: a layer's scroll (session 27, RE Layer::draw: offset = view x coef - off)
+                try:
+                    l0 = struct.unpack('<Q', rq(self.fr + 0x21388, 8))[0]
+                    for i in range(8):
+                        m = rq(l0 + i * 0xb0, 0xb0)
+                        cx, cy = struct.unpack_from('<dd', m, 0x48); ox, oy = struct.unpack_from('<ii', m, 0x68)
+                        st = '%.4g %.4g %d %d %d' % (cx, cy, ox, oy, m[0x40])
+                        if self.lays.get(i) != st: self.lays[i] = st; self.w('L %d %d %s' % (self.f, i, st))
+                except Exception: pass
         if self.rescan:
             self.rescan -= 1
             if self.rescan == 0: self.lists = {}; self.scan()

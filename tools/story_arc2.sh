@@ -17,14 +17,18 @@
 #   b78_g1_l/c/m room:78:1:g1  Robopanther Defeated (79 g4 1) -> [Zao's Dinner, C1]
 #   b78_g2_l/c/m room:78:2:g1  Zao's Airship (79 g4 2), part 2 on deck (SB1's frame 36, g4 99) -> [the ambush, frame 82 g4 7]
 # Room windows are the traces' F events (RV); fades are the LevelCardFade covers' blend alpha (--covers).
+# Session 27 (cutscene polish): Lilac's traces retaken with the objects' scale / angle / layer (tools/orig/trace_story.py,
+# build/orig_traces/pol); a script whose trace is not there is kept as it is (the Carol / Milla variants: session 25b's
+# traces). --pieces: the backdrops' scripted C / G; --loc: the location names (RE 3581 / 18771, RV b15_g11_l 32 / 10319).
 set -e
 cd "$(dirname "$0")/.."
-T=${1:-build/orig_traces/adv2}
+T=${1:-build/orig_traces/pol}
 S=tables/story/scripts
 mkdir -p $S
-C="--split-reuse --covers --keep ^playerskinmilla"
+C="--split-reuse --covers --keep ^playerskinmilla --pieces"
 cv() {   # cv <trace> <id> <json> <dialog> <first> <end> <next> [options]
     tr=$1; id=$2; shift 2
+    if [ ! -f $T/$tr.log ]; then echo "$id: $T/$tr.log missing: kept"; return 0; fi
     if [ -z "$4" ]; then echo "$id: $tr has no room change after $3 (trace too short): skipped"; return 0; fi
     python3 tools/story_rv2scn.py $T/$tr.log $id "$1" "$2" "$3" "$4" $S/$id.scn --next "$5" $C ${6:+"$6"} ${7:+"$7"}
 }
@@ -54,12 +58,12 @@ for v in l c m; do
         cv $t np_gong_help_m 78 3948 "$(F $t 3)" "$(F $t 4)" scene:sm_spade
         cv $t sm_spade_m 79 3951 "$(F $t 4)" "$(F $t 5)" stage:fn1
     elif ok $t; then
-        cv $t th_torque_revealed$s 16 622 0 "$(F $t 1)" scene:th_torque_revealed2
+        cv $t th_torque_revealed$s 16 622 0 "$(F $t 1)" scene:th_torque_revealed2 --loc 'str_dragon_valley_10|str_lilac_s_treehouse_113'
         cv $t th_torque_revealed2$s 70 3616 "$(F $t 1)" "$(F $t 2)" scene:th_torque_revealed3
         cv $t th_torque_revealed3$s 16 622 "$(F $t 2)" "$(F $t 3)" scene:sg_brevon_plan
         cv $t th_next_morning$s 15 550 "$(F $t 4)" "$(F $t 5)" scene:np_gong_help
         cv $t np_gong_help$s 78 3948 "$(F $t 5)" "$(F $t 6)" scene:sm_spade
-        cv $t sm_spade$s 79 3951 "$(F $t 6)" "$(F $t 7)" stage:fn1
+        cv $t sm_spade$s 79 3951 "$(F $t 6)" "$(F $t 7)" stage:fn1 --loc 'str_shang_mu_311|str_commercial_district_312'
     fi
     t=b78_g1_$v
     if ok $t; then cv $t fn_panther_defeated$s 79 3951 0 "$(F $t 1)" scene:sm_zao_dinner; fi
