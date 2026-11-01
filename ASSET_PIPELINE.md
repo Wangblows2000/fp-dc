@@ -389,3 +389,11 @@ rebuilds them and records each program's src_tree; `fpbuild.py selftest` fails o
   font.bmp (the Windows one is 256x2280). Voices are copied, not hard-linked, from the game folder. Story rooms of big frames
   are split per scene (import_frame.py rows.json `frame` / `view` crop boxes, `vbox`); mirror-row aliases; still-pose
   trimming. Sounds added this session: 20, 91, 102 (BG2 plane), 285 / 286 (FD3), 293 (JC5 rain loop), br_pa_01 / 02 (FD1a).
+
+## Session 26: the game's text from the player's program (D-123)
+tables/story/dialog.json and tables/strings.json hold text tokens, not text. The builder runs `tools/textdb.py materialize`
+on the game program next to the Assets.dat (FP.exe / bin64/Chowdren) into `<work>/text` and points FP_TEXT_DIR and FP_BIN
+(build_ending), the gallery's strings argument and import_story at it. Developers: `python3 tools/textdb.py materialize
+<program>` once (build/text). `make_tables.py layout|story` writes tokens and keeps the full text in build/text.
+tests/test_textdb.py checks the tables and the round trip. Developer test build: `fpbuild.py data|dreamcast <Assets.dat>
+--only dv1,adv_opening,dv_meet --no-music`.

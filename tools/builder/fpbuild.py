@@ -27,6 +27,8 @@ HERE = os.path.join(REPO, 'tools', 'builder')
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(REPO, 'tools', 'audio'))
 import fetch
+sys.path.insert(0, os.path.join(REPO, 'tools'))
+import textdb        # the game's text comes from the player's game program (D-123)
 
 ASSETS = {
     '9d00124aa9e4498d217f951afb962171': ('linux', 'Linux 1.21.5 (31.5 MB)'),
@@ -58,6 +60,7 @@ GAL_EXCLUDE = ('^(artwork|fade|achievementdescription|helpmessage|blackborder|ba
                'playerinput|masterinput|inputsp1|globalinputdata|mouseobject|sarassteam.*|list.*|mapdata2?|savedata|'
                'windowcontrol|recorddata|icon.*|charname1|active2)$')
 STUB_MAX = 4000      # the Linux copy's placeholder voice clips are 3,564 bytes
+ONLY = None          # --only (developers): the acts and Adventure scenes of a test build; None: all
 DATA_STEPS = 11      # the data dir's steps (build_data); the targets' own steps are numbered after them
 NEED_GB = 3.0        # free disk space for a first build (work dir, data dir, disc tree, image)
 
@@ -209,7 +212,20 @@ def find_inputs(a):
     LOG.say('  music: %s (%d tracks); font: %s' % (bgm, nbgm, font))
     LOG.say('  voices: %s%s' % (vox, ('  + PC voices %s' % vpc) if vpc else ''))
     la = first(os.path.join(d, 'game', 'Assets.dat')) if kind == 'windows' else None
-    return dict(assets=src, md5=m, kind=kind, bgm=bgm, font=font, vox=vox, vpc=vpc,
+    # the game program (D-123): the game's text (dialogue, captions, gallery / credits) is read from it at build time
+    progs = [os.path.abspath(a.game_exe)] if a.game_exe else []
+    up = d
+    for _ in range(4):
+        progs += [os.path.join(up, n) for n in ('FP.exe', os.path.join('bin64', 'Chowdren'), os.path.join('bin32', 'Chowdren'),
+                                                 os.path.join('game', 'bin64', 'Chowdren'))]
+        up = os.path.dirname(up)
+    prog = first(*progs)
+    if not prog:
+        raise Fail('the game program was not found next to the Assets.dat (%s: FP.exe on Windows, bin64/Chowdren on Linux). '
+                   'The game\'s text is read from it (this repository has none). Drop the Assets.dat that sits in your Freedom '
+                   'Planet folder, or name the program with --game-exe.' % d)
+    LOG.say('  game program (for the text): %s' % prog)
+    return dict(assets=src, md5=m, kind=kind, bgm=bgm, font=font, vox=vox, vpc=vpc, prog=prog,
                 linux_assets=la if la and os.path.getsize(la) < 35e6 and md5(la) == LINUX_ASSETS_MD5 else None)
 
 # -------------------------------------------------------------------------------------------------------------- tools
@@ -395,7 +411,8 @@ def build_data(a, inp):
     assets_dir = os.path.join(ex, 'assets-linux-ids')
     images, audio = os.path.join(assets_dir, 'images'), os.path.join(assets_dir, 'audio')
     total = DATA_STEPS
-    env = dict(FP_FRAMES=FRAMES, FP_IMAGES=images, FP_RE=TABLES, FP_BIN=STRINGS)
+    text = os.path.join(work, 'text'); strings = os.path.join(text, 'strings.json')
+    env = dict(FP_FRAMES=FRAMES, FP_IMAGES=images, FP_RE=TABLES, FP_BIN=strings, FP_TEXT_DIR=text)
     T = lambda *p: tree_hash(p)
 
     def s_extract():
@@ -416,13 +433,30 @@ def build_data(a, inp):
     vkey = sorted((os.path.relpath(os.path.join(r, f), voices).replace('\\', '/'), os.path.getsize(os.path.join(r, f)))
                   for r, ds, fs in os.walk(voices) for f in fs)
 
+    # the game's text (D-123): every token of tables/story/dialog.json and tables/strings.json, read from the game program
+    k_text = st.key(md5(inp['prog']), T('tools/textdb.py', 'tables/strings.json', 'tables/story/dialog.json'))
+    tfiles = [os.path.join(text, r) for r in textdb.FILES]
+    if st.done('text', k_text, tfiles):
+        LOG.say('  game text: up to date')
+    else:
+        st.clear('text'); rmtree(text)
+        ts, _ = textdb.materialize([inp['prog']], text)
+        LOG.say('  game text from %s: %d of %d texts (%d worded differently in this build)'
+                % (os.path.basename(inp['prog']), ts['tokens'] - len(ts['missing']), ts['tokens'], ts['variant']))
+        if ts['tokens'] - len(ts['missing']) < ts['tokens'] * 0.9:
+            raise Fail('%s holds only %d of the %d texts: it is not the Freedom Planet 1.21.5 program (FP.exe or bin64/Chowdren)'
+                       % (inp['prog'], ts['tokens'] - len(ts['missing']), ts['tokens']))
+        st.mark('text', k_text)
+    os.environ['FP_TEXT_DIR'] = text
     base = st.key(k_extract, T('tables'))   # every later step depends on the extracted images and the tables
     tools_py = T('tools/import_frame.py', 'tools/palettize.py', 'tools/par_top.py', 'tools/convert.py', 'tools/build_level.py',
                  'tools/title_credit.py', 'tools/slice_manifest.json')
     jobs = max(1, a.jobs)
+    lv = [(f, n) for f, n in LEVELS if not ONLY or n in ONLY]
+    if ONLY: LOG.say('  TEST BUILD (--only): acts %s; scenes %s' % (' '.join(n for f, n in lv) or '-', ' '.join(ONLY)))
     def s_levels():
-        todo = [(f, n) for f, n in LEVELS if not st.done('lv_' + n, st.key(base, tools_py, n), [os.path.join(out, n)])]
-        LOG.say('  %d of %d levels to build, %d at a time (logs: %s)' % (len(todo), len(LEVELS), jobs, os.path.join(work, 'logs')))
+        todo = [(f, n) for f, n in lv if not st.done('lv_' + n, st.key(base, tools_py, n), [os.path.join(out, n)])]
+        LOG.say('  %d of %d levels to build, %d at a time (logs: %s)' % (len(todo), len(lv), jobs, os.path.join(work, 'logs')))
         os.makedirs(os.path.join(work, 'logs'), exist_ok=True)
         done = [0]
         def one(fn):
@@ -438,9 +472,9 @@ def build_data(a, inp):
             except BaseException:
                 for fu in futs: fu.cancel()          # stop at the first failure (the running ones finish)
                 raise
-        with open(os.path.join(out, 'levels.txt'), 'w', newline='\n') as f: f.write(''.join(n + '\n' for n in sorted(n for f, n in LEVELS)))
-    step(st, 2, total, 'levels', 'levels (%d acts, the longest step)' % len(LEVELS), st.key(base, tools_py, [n for f, n in LEVELS]),
-         [os.path.join(out, n) for f, n in LEVELS], s_levels)
+        with open(os.path.join(out, 'levels.txt'), 'w', newline='\n') as f: f.write(''.join(n + '\n' for n in sorted(n for f, n in lv)))
+    step(st, 2, total, 'levels', 'levels (%d acts, the longest step)' % len(lv), st.key(base, tools_py, [n for f, n in lv]),
+         [os.path.join(out, n) for f, n in lv], s_levels)
 
     ui = os.path.join(out, 'ui'); tools_ui = T('tools/import_ui.py', 'tools/convert.py', 'tools/title_credit.py', 'tools/import_loading.py',
                                                'tools/make_vmu_icons.py', 'tools/import_font.py')
@@ -457,20 +491,23 @@ def build_data(a, inp):
     step(st, 3, total, 'ui', 'front end: title, menus, loading, VMU icons, font', st.key(base, tools_ui, md5(inp['font'])),
          [os.path.join(ui, 'title_3.ui'), os.path.join(ui, 'font.tex')], s_ui)
 
-    step(st, 4, total, 'end', 'ending and credits', st.key(base, tools_ui, T('tools/build_ending.py', 'tools/import_ending.py', 'tools/import_gallery.py'), md5(inp['font'])),
+    step(st, 4, total, 'end', 'ending and credits', st.key(base, k_text, tools_ui, T('tools/build_ending.py', 'tools/import_ending.py', 'tools/import_gallery.py'), md5(inp['font'])),
          [os.path.join(out, 'end', 'credits.txt')], lambda: run(py(os.path.join(REPO, 'tools', 'build_ending.py'), out), env=env))
 
     gal = os.path.join(out, 'gal')
     step(st, 5, total, 'gallery', 'gallery artworks and texts',
-         st.key(base, T('tools/import_gallery.py')), [os.path.join(gal, 'gal_text.txt')],
-         lambda: run(py(os.path.join(REPO, 'tools', 'import_gallery.py'), FRAMES, images, STRINGS, TABLES, gal)))
+         st.key(base, k_text, T('tools/import_gallery.py')), [os.path.join(gal, 'gal_text.txt')],
+         lambda: run(py(os.path.join(REPO, 'tools', 'import_gallery.py'), FRAMES, images, strings, TABLES, gal), env=env))
 
     ca = os.path.join(REPO, 'tools', 'audio', 'convert_audio.py')
     taud = T('tools/audio/convert_audio.py', 'tools/audio/oggdur.py', 'tools/audio/adpcm_loop_seal.py', 'third_party/wav2adpcm/wav2adpcm.c')
     ttool = [md5(TOOLENV['FFMPEG']), md5(TOOLENV['WAV2ADPCM'])]
     bkey = sorted((f, os.path.getsize(os.path.join(inp['bgm'], f))) for f in os.listdir(inp['bgm']))
-    step(st, 6, total, 'bgm', 'music (%d tracks to ADPCM)' % len(bkey), st.key(bkey, taud, ttool),
-         [os.path.join(out, 'bgm', 'bgm_manifest.csv')], lambda: run(py(ca, 'bgm', inp['bgm'], os.path.join(out, 'bgm'))))
+    if a.no_music:
+        os.makedirs(os.path.join(out, 'bgm'), exist_ok=True); LOG.say('[6/%d] music: skipped (--no-music)' % total)
+    else:
+        step(st, 6, total, 'bgm', 'music (%d tracks to ADPCM)' % len(bkey), st.key(bkey, taud, ttool),
+             [os.path.join(out, 'bgm', 'bgm_manifest.csv')], lambda: run(py(ca, 'bgm', inp['bgm'], os.path.join(out, 'bgm'))))
     step(st, 7, total, 'sfx', 'sound effects and voices', st.key(k_extract, vkey, taud, ttool),
          [os.path.join(out, 'sfx', 'sfx_manifest.csv')],
          lambda: run(py(ca, 'sfx', audio, voices, os.path.join(out, 'sfx')), env=dict(VOX_PC=voices)))
@@ -481,12 +518,13 @@ def build_data(a, inp):
     # a placeholder or missing clip is left out and its line is shown text-only), and the scripts' sound ids as story/sfx
     # copies (11025 Hz, tails trimmed).
     sty = os.path.join(out, 'story')
-    tstory = T('tools/import_story.py', 'tables/story')
-    step(st, 9, total, 'story', 'Adventure scenes and story rooms', st.key(base, tools_py, tstory),
-         [os.path.join(sty, 'story.txt')], lambda: run(py(os.path.join(REPO, 'tools', 'import_story.py'), out, '-j', str(jobs)), env=env))
+    tstory = T('tools/import_story.py', 'tools/textdb.py', 'tables/story')
+    step(st, 9, total, 'story', 'Adventure scenes and story rooms', st.key(base, k_text, tools_py, tstory, ONLY),
+         [os.path.join(sty, 'story.txt')], lambda: run(py(os.path.join(REPO, 'tools', 'import_story.py'), out, '-j', str(jobs)),
+                      env=dict(env, FP_STORY_ONLY=','.join(ONLY or []))))
     step(st, 10, total, 'storyvo', 'Adventure voices (one clip per line)', st.key(k_extract, vkey, taud, ttool, tstory),
          [os.path.join(sty, 'vo_manifest.csv')], lambda: run(py(ca, 'story', audio, voices, os.path.join(REPO, 'tables', 'story'), out)))
-    miss = [n for f, n in LEVELS if not os.path.isfile(os.path.join(out, n, n + '.lv2'))]
+    miss = [n for f, n in lv if not os.path.isfile(os.path.join(out, n, n + '.lv2'))]
     rooms = sorted({'st' + l.split()[1] for l in open(os.path.join(sty, 'story.txt'), encoding='utf-8') if l.strip() and l[0] != '#'})
     miss += [r for r in rooms if not os.path.isfile(os.path.join(out, r, r + '.lv2'))]
     if miss: raise Fail('levels missing after the build: %s' % ' '.join(miss))
@@ -494,7 +532,7 @@ def build_data(a, inp):
     nvo = len([f for f in os.listdir(os.path.join(sty, 'vo')) if f.endswith('.wav')]) if os.path.isdir(os.path.join(sty, 'vo')) else 0
     LOG.say('[%d/%d] data check: %d levels, %d ui files, %d music tracks, %d sounds, %d gallery files, %d story scenes in %d rooms '
             '(%d voice clips%s)'
-            % (total, total, len(LEVELS), len(os.listdir(ui)), len([f for f in os.listdir(os.path.join(out, 'bgm')) if f.endswith('.adp')]),
+            % (total, total, len(lv), len(os.listdir(ui)), len([f for f in os.listdir(os.path.join(out, 'bgm')) if f.endswith('.adp')]),
                len([f for f in os.listdir(os.path.join(out, 'sfx')) if f.endswith('.wav')]), len(os.listdir(gal)),
                len([l for l in open(os.path.join(sty, 'story.txt'), encoding='utf-8') if l.strip() and l[0] != '#']), len(rooms),
                nvo, '' if nvo else ': the lines are shown without voices'))
@@ -548,6 +586,7 @@ def selftest():
                 if (e['os'] == 'windows') == w.endswith('.cmd') and not (e['name'] in s and e['sha256'] in s and
                                                                         (e.get('url') or '') in s):
                     print('FAIL %s does not pin %s / %s' % (w, e['name'], e['sha256'])); ok = False
+    if textdb.check(): print('FAIL tables/ hold plain game text (D-123: python3 tools/textdb.py check)'); ok = False
     for f in [WINMAP, STRINGS, os.path.join(FRAMES, 'anims.json'), os.path.join(FRAMES, 'backdrops.json')] + \
              [os.path.join(FRAMES, 'frame_%d.json' % n) for n in [3, 4, 6, 7, 11, 12, 84, 86] + [f for f, n in LEVELS]]:
         if not os.path.isfile(f): print('FAIL missing table %s' % f); ok = False
@@ -591,12 +630,16 @@ def main():
     p.add_argument('--out', default=os.path.join(REPO, 'build', 'builder', 'data'))
     p.add_argument('--work', default=os.path.join(REPO, 'build', 'builder'))
     p.add_argument('--voices-pc', default=None)
+    p.add_argument('--game-exe', default=None, help='the game program (FP.exe or bin64/Chowdren) if it is not next to the Assets.dat')
+    p.add_argument('--only', default=None, help=argparse.SUPPRESS)     # developers: a test build of some acts / scenes only
+    p.add_argument('--no-music', action='store_true', help=argparse.SUPPRESS)
     p.add_argument('-j', '--jobs', type=int, default=max(1, min(4, os.cpu_count() or 1)))
     p.add_argument('--force', action='store_true')
     p.add_argument('--cdi'); p.add_argument('--elf')
     p.add_argument('--local-tools', action='store_true', default=os.environ.get('FPB_LOCAL') == '1')
     for f in EXTRA_ARGS: f(p)
     a = p.parse_args()
+    global ONLY; ONLY = sorted(x for x in (a.only or '').split(',') if x) or None
     a.out = os.path.abspath(a.out); a.work = os.path.abspath(a.work)
     what, need_disc, fn = TARGETS[a.target]
     LOG = Log(os.path.join(a.work, 'build.log'))

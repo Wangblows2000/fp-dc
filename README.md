@@ -1,6 +1,13 @@
 # A Freedom Planet Decompilation targetting Dreamcast.
 Fan project, not affiliated with GalaxyTrail. Freedom Planet assets belong to their owners.
 
+> **No game content in this repository.** You need your own copy of Freedom Planet 1.21.5 to build anything. The art,
+> sound, music **and the game's text** (dialogue, captions, gallery descriptions, credits) are read from your installed
+> copy at build time and never stored here: the text comes from the game program next to your `Assets.dat` (`FP.exe` on
+> Windows, `bin64/Chowdren` on Linux). The repository's tables keep only numbers (layouts, animation tables, timings) and
+> fingerprints (hashes) that say which of the game's own text strings goes where. Earlier versions of the repository did
+> hold the dialogue and gallery text; it was removed from the whole history in November 2026 (DECISIONS.md D-123).
+
 ## Win32 build screenshot.
 <img width="1497" height="681" alt="PC RAM" src="https://github.com/user-attachments/assets/c01e3311-cd91-4a72-9ca4-3bc71cb5f1a4" />
 
@@ -28,8 +35,10 @@ Roughly 90% decompiled, 10% inferred. The repo has about 45.7k lines of C. About
 4. Burn `fpdc.cdi` (in the same folder as the script) to a CD-R (DiscJuggler, or ImgBurn after converting) for a Dreamcast that boots CD-Rs, or open
    it in an emulator such as Flycast.
 
-Your game folder is only read. No game data is stored in this repository: the builder takes the art, sound and music
-from your copy. The only game-derived files here are the level layout / animation tables in `tables/` (see its README).
+Your game folder is only read. No game data is stored in this repository: the builder takes the art, sound, music and
+text from your copy, so drop the `Assets.dat` that sits in your Freedom Planet folder (next to `FP.exe` / `bin64`). The
+only game-derived files here are numeric tables (level layouts, animation tables, scene timings) and text fingerprints in
+`tables/` (see its README).
 Details, troubleshooting and the developer build (KallistiOS toolchain, `make && make cdi`) are in **[BUILDING.md](BUILDING.md)**.
 
 ## PC port (Linux and Windows)

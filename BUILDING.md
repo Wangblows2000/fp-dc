@@ -79,6 +79,7 @@ folder of the project, or in a folder named by the environment variable `FPDC_PR
 |---|---|
 | `unknown Assets.dat (md5 ...)` | The file is not Freedom Planet 1.21.5 (GOG Windows `4085c983...` or Linux `9d00124a...`), or it was modified (mods). Use the file of an unmodified, up-to-date install. |
 | `this Assets.dat ... is the Nintendo Switch build / a newer Linux build / an older release` | Only 1.21.5 is supported: update the game (GOG Galaxy) and drop its Assets.dat. |
+| `the game program was not found next to the Assets.dat` | The text is read from `FP.exe` (Windows) or `bin64/Chowdren` (Linux) in the game folder. Drop the `Assets.dat` that is inside the game folder, or add `--game-exe "C:\GOG Games\Freedom Planet\FP.exe"`. |
 | `Data/BGM ... not found next to the Assets.dat` | Drop the `Assets.dat` that is inside the game folder (it needs the `Data` folder beside it: music, voices, font), not a copy on its own. |
 | `voice clip Data/voices/eng/... is missing` | The install is incomplete: verify / repair it in GOG Galaxy. |
 | `WARNING: ... voice clips the port uses are 3.5 KB placeholders` | The Linux copy has placeholder clips for some lines; they stay silent. Build from the Windows `Assets.dat`, or add `--voices-pc "<Windows folder>\Data\voices"`. |
@@ -90,7 +91,8 @@ folder of the project, or in a folder named by the environment variable `FPDC_PR
 | Windows SmartScreen / antivirus | The script only runs Python, ffmpeg, mkdcdisc and wav2adpcm from `build\cache`. Antivirus scanning of the 30,000 small intermediate files can slow the build down a lot: excluding the project folder helps. |
 
 Options (after the Assets.dat): `-j N` (levels built in parallel, default up to 4), `--force` (redo every step),
-`--cdi FILE` (another output file), `--voices-pc DIR` (see above), `--local-tools` (developers, below).
+`--cdi FILE` (another output file), `--voices-pc DIR` (see above), `--game-exe FILE` (the game program, if it is not
+next to the Assets.dat), `--local-tools` (developers, below).
 
 ## What the builder does
 
@@ -110,8 +112,12 @@ Options (after the Assets.dat): `-j N` (levels built in parallel, default up to 
 11. a completeness check; then the disc: `tools/make_disc.py` (copy, pre-twiddle, pack, pad) and mkdcdisc with the
    Dreamcast program `fpdc.elf`. The disc dates are fixed (SOURCE_DATE_EPOCH), so the same input gives the same image.
 
-Level layouts, animation tables, backdrops and the gallery / credits texts come from the original program, not from
-`Assets.dat`; they are committed in `tables/` (`tables/README.md`), so the Windows `Assets.dat` alone is enough.
+Level layouts, animation tables and backdrops come from the original program, not from `Assets.dat`; they are committed
+in `tables/` as numbers (`tables/README.md`). The game's text (dialogue, captions, gallery and credits) is **not** in this
+repository (D-123): before step 2 the builder reads it from the game program next to the `Assets.dat` (`FP.exe`, or
+`bin64/Chowdren` in a Linux copy; the folder and up to three above it are searched; `--game-exe FILE` names it) into
+`build/builder/text` (`tools/textdb.py materialize`; about 20 seconds). The Windows build words the four gallery
+"cancel" hints and the credits differently from the Linux one; you get your own version's text.
 
 ### Windows Assets.dat
 
@@ -133,6 +139,14 @@ transparent. Result: 16,879 of 16,885 images are identical to the Linux extracti
 `--elf FILE` uses another Dreamcast program.
 
 **Only the data dir**: `python3 tools/builder/fpbuild.py data <Assets.dat> [--out DIR] [--work DIR] [-j N] [--force]`.
+
+**A quick test build**: `--only dv1,adv_opening,dv_meet --no-music` builds only the named acts and Adventure scenes (with
+their story rooms) and leaves the music out (silent); everything else (front end, sounds, voices, gallery, ending) is built
+as usual. For checking a change, not for playing.
+
+**The game's text for the developer tools** (tools/import_story.py, the tests): `python3 tools/textdb.py materialize
+/path/to/FP.exe` (or `bin64/Chowdren`) writes `build/text`, or set `FP_TEXT_DIR`. `tools/textdb.py check` confirms that
+`tables/` holds no plain text; `make_tables.py` writes tokens itself.
 
 **The manual pipeline** (ASSET_PIPELINE.md) still works as documented: `tools/build_level.sh`, `tools/import_ending.sh`,
 `tools/audio/convert_bgm.sh` / `convert_sfx.sh` / `convert_gallery.sh` call the Python versions, `make cdi` /

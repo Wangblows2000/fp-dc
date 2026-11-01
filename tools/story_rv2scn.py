@@ -32,7 +32,8 @@ DROP = re.compile(r'^(dialog|lipsync|levelparallax|levelcard|levelcardfade|fade|
                   r'effectfallingleaf)')   # ambient falling leaves (random sine paths: 36k entries a scene) are left out (INFERRED)
 
 def load_dialog(handle):
-    d = json.load(open(os.path.join(ROOT, 'tables', 'story', 'dialog.json'), encoding='utf-8'))
+    import textdb                                         # (D-123: the text from the game program)
+    d = json.load(open(textdb.path('story/dialog.json'), encoding='utf-8'))
     return d['dialog'].get(str(handle), [])
 
 # ---- actor positions (session 26): constant-speed runs as 'm', jumps as 'p', and paths that change by at most 40 px a

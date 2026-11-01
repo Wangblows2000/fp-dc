@@ -20,7 +20,8 @@ Native Dreamcast (KallistiOS) port of Freedom Planet. A custom C engine plays da
 - User PC: `C:\Users\wobbles\Desktop\Freedom Planet` (read-only input); deliverables go to its `fpdc\` subfolder.
 
 ## Pipeline
-See ASSET_PIPELINE.md (levels, UI, font, audio). Then:
+The game's text is not committed (D-123): first `python3 tools/textdb.py materialize /home/claude/fprun/bin64/Chowdren` (writes
+build/text, which import_story, story_rv2scn and the Adventure tests read; or set FP_TEXT_DIR). See ASSET_PIPELINE.md (levels, UI, font, audio). Then:
 ```sh
 for l in "21 dv1" "22 dv2" "23 dv3" "24 dv4" "17 at1" "18 at2" "19 at3" "20 at4" "25 rm1" "26 rm2" "27 rm3" "28 rm4" "29 rm5"; do set -- $l; tools/build_level.sh $1 $2 converted2; done
 make -C host && for t in gameplay frontend carol milla aqua levels saves rm_gimmicks_b rm_claw rm_mantalith; do python3 tests/test_$t.py; done

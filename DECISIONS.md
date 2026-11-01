@@ -529,3 +529,17 @@ whenever a scene is ported (arc 3 inserted jc_cave_cm), so an old save would hav
 permanent number in tables/story/sids.json (append-only; tests/test_story_sids.py freezes the given ones), written into
 story.txt as sid=. A character variant (the same json frame and g4, chosen by chr_variant()) names its base scene with
 "sid_of" and shares its number, so the 64 numbers are enough (44 used + 3 in groups D / E at the end of session 25).
+
+## D-123 (session 26): no game text in the repository; the builder reads it from the player's game program
+The dialogue, captions, subtitles, gallery descriptions and credits were committed as text in tables/story/dialog.json and
+tables/strings.json. They are the game's writing, so they are now tokens (`~T~<sha256[:20]>~<len>~<sha256(first 24 bytes)[:12]>`)
+and tools/textdb.py materialize reads them back at build time from the program next to the player's Assets.dat (FP.exe or
+bin64/Chowdren), like the art and sound come from Assets.dat. Matching: every NUL-terminated literal and the text part of a
+"<dd> <dd|xx> <voice> <text>" dialogue literal by hash; literals the linker merged into the tail of a longer one by length
+before a NUL; and texts the Windows build words differently (4 gallery hints: "Select this option again to cancel"; the
+credits cast / testing lists) by the 24-byte prefix hash, which gives the player's own version. RV: 1436 / 1436 found in the
+Linux program (14 tails, identical to the old tables) and in the Windows GOG FP.exe (1 tail, 6 variants).
+The builder needs the program next to the Assets.dat (or --game-exe); materializing takes ~20 s and is stamped.
+The text was also removed from the whole git history (git filter-repo: the two files' old versions and the long dialogue
+lines elsewhere); forks and copies made before that keep it. Short titles (stage, achievement and UI labels) stay in code
+and tests where the port needs them.
