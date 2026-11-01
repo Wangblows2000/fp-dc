@@ -51,7 +51,8 @@ def dumps(ev): return [dict(zip(l.split()[1::2], l.split()[2::2])) for f, l in e
 
 # ------------------------------------------------------------------------------------------------------------ inventory
 sc = json.load(open(os.path.join(TAB, 'scenes.json'), encoding='utf-8'))['scenes']
-dlg = json.load(open(os.path.join(TAB, 'dialog.json'), encoding='utf-8'))
+sys.path.insert(0, os.path.join(HERE, '..', 'tools')); import textdb   # D-123: the text from the game program
+dlg = json.load(open(textdb.path('story/dialog.json'), encoding='utf-8'))
 rows = json.load(open(os.path.join(TAB, 'rows.json'), encoding='utf-8'))
 ids = [s['id'] for s in sc]
 check('inventory_unique_ids', len(ids) == len(set(ids)), len(ids))

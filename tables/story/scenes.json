@@ -4,7 +4,7 @@
 {
 "id": "adv_opening",
 "list": null,
-"title": "(Adventure opening: Brevon's ship crashes in the snowfields; 'Three days later, In a valley to the East...')",
+"title": "(Adventure opening: Brevon's ship crashes in the snowfields; the two caption texts)",
 "room": 82,
 "g4": 2,
 "triggers": [
@@ -17,7 +17,7 @@
 "dialog": null,
 "lines": null,
 "evidence": "RE hub 'c1' / chsel 800 (a new Adventure: frame index 81, g4 2); RV s81_g2 / a81_g2 (no DialogBox; brevon_bigno voice; START skips at once to frame 75 g4 0, k81_g2_start; A does nothing, k81_g2_j)",
-"missing": "the caption text objects ('Three days later,' / 'In a valley to the East...') are drawn by their own Text objects: shown as script actors only if they have images (INFERRED: the port draws them with the font, port_captions)"
+"missing": "the caption text objects (the two captions) are drawn by their own Text objects: shown as script actors only if they have images (INFERRED: the port draws them with the font, port_captions)"
 },
 {
 "id": "dv_meet",

@@ -9,7 +9,8 @@ Inputs (all committed, read from the Linux 1.21.5 program once: tables/README.md
   tables/story/scenes.json   the scene inventory: id, the original's debug name, room (json frame), g4, trigger, next / skip
                              steps, characters, status ("ported" = a script exists in tables/story/scripts)
   tables/story/scripts/<id>.scn   the ported scenes' scripts (tools/story_rv2scn.py from RV traces; format src/game/story.h)
-  tables/story/dialog.json   every DialogData object's paragraphs (tools/re/dump_dialog.py)
+  tables/story/dialog.json   every DialogData object's paragraphs (tools/re/dump_dialog.py); its text is read back from the
+                             player's game program (tools/textdb.py, D-123: $FP_TEXT_DIR or build/text)
   tables/story/rows.json     the sprite rows each script draws (tools/import_frame.py story_rows puts them in st<json>_ens)
 Outputs:
   story/story.txt            the scene table the game reads (only the ported scenes; src/game/story.c)
@@ -23,6 +24,8 @@ Voices (story/vo/<voice>.wav) are converted by tools/audio/convert_audio.py stor
 Host-only tool (FP_HOST_ENV world): nothing here runs on the Dreamcast.
 """
 import concurrent.futures, json, os, shutil, subprocess, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import textdb          # the game's text comes from the player's own game program (D-123)
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 TABLES = os.path.join(ROOT, 'tables', 'story')
@@ -30,8 +33,10 @@ TABLES = os.path.join(ROOT, 'tables', 'story')
 def scenes():
     return json.load(open(os.path.join(TABLES, 'scenes.json'), encoding='utf-8'))['scenes']
 
+ONLY = [x for x in os.environ.get('FP_STORY_ONLY', '').split(',') if x]   # the builder's --only (a developers' test build)
+
 def ported(sc):
-    return [s for s in sc if os.path.isfile(os.path.join(TABLES, 'scripts', s['id'] + '.scn'))]
+    return [s for s in sc if os.path.isfile(os.path.join(TABLES, 'scripts', s['id'] + '.scn')) and (not ONLY or s['id'] in ONLY)]
 
 def step(s):
     return s if s else 'menu'
@@ -84,15 +89,15 @@ def main():
         n = write_table(out, sc); n += write_table(out, sc, 'inline')
         for s in ported(sc):
             shutil.copyfile(os.path.join(TABLES, 'scripts', s['id'] + '.scn'), os.path.join(out, 'story', s['id'] + '.scn'))
-        D = json.load(open(os.path.join(TABLES, 'dialog.json'), encoding='utf-8'))['dialog']
+        D = json.load(open(textdb.path('story/dialog.json'), encoding='utf-8'))['dialog']
         for h in dialog_handles(sc):
             with open(os.path.join(out, 'story', 'dlg_%s.txt' % h), 'w', encoding='latin-1', newline='\n') as f:
                 for spk, anim, vo, text in D[h]:
                     f.write('%02d %02d %s %s\n' % (spk, anim, vo, text.replace('\n', ' ')))
-        caps = json.load(open(os.path.join(TABLES, 'dialog.json'), encoding='utf-8')).get('captions', {})
+        caps = json.load(open(textdb.path('story/dialog.json'), encoding='utf-8')).get('captions', {})
         with open(os.path.join(out, 'story', 'captions.txt'), 'w', encoding='latin-1', newline='\n') as f:
             for k in sorted(caps): f.write('%s %s\n' % (k, caps[k]))
-            subs = json.load(open(os.path.join(TABLES, 'dialog.json'), encoding='utf-8')).get('subtitles', {})
+            subs = json.load(open(textdb.path('story/dialog.json'), encoding='utf-8')).get('subtitles', {})
             for h in sorted(subs, key=int):                   # session 26: SubtitleData paragraphs, keys sub<handle>_<k> ('sub' entries)
                 for k, t in enumerate(subs[h]): f.write('sub%s_%d %s\n' % (h, k, t.replace('\n', ' ')))
         print('story: %d scenes of %d ported, %d dialogue objects' % (n, len(sc), len(dialog_handles(sc))))

@@ -11,7 +11,7 @@ constructor's code. A class without its own constructor symbol has it inlined in
 Every paragraph has the form "<speaker> <anim> <voice id> <text>" (two-digit speaker = the DialogBox2 name label frame,
 two-digit anim = the speaker actor's animation, voice id = Data/voices/eng/<xx>/<id>.ogg; "xx_xx_xx" / "<who>_xx_xx" =
 a continuation without a voice; its anim may be "xx" too, kept as -1: it still counts as a paragraph, the line index E
-counts every paragraph, RV DialogData_3923 E 76 = "It's an ambush!"). LipSynchingData_<handle> objects (same layout) are dumped too.
+counts every paragraph, RV DialogData_3923 E 76). LipSynchingData_<handle> objects (same layout) are dumped too.
 
 Output: {"binary_md5", "dialog": {"<handle>": [[speaker, anim, voice, text], ...]}, "lipsync": {...},
         "subtitles": {"<handle>": [text, ...]} (SubtitleData objects: the subtitle paragraphs, session 26)}
@@ -21,7 +21,7 @@ from elftools.elf.elffile import ELFFile
 from capstone import Cs, CS_ARCH_X86, CS_MODE_64
 from capstone.x86 import X86_OP_IMM
 
-LINE = re.compile(rb'^(\d\d) (\d\d|xx) ([a-z0-9_]+) (.*)$', re.S)   # "03 xx xx_xx_xx like in the stories!": anim xx -> -1
+LINE = re.compile(rb'^(\d\d) (\d\d|xx) ([a-z0-9_]+) (.*)$', re.S)   # "03 xx xx_xx_xx <text>": anim xx -> -1
 
 def main(path, out):
     f = open(path, 'rb'); e = ELFFile(f)

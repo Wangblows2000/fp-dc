@@ -52,7 +52,8 @@ def ported(i): return os.path.isfile(os.path.join(TAB, 'scripts', i + '.scn'))
 # ------------------------------------------------------------------------------------------------------------ inventory
 sc = {s['id']: s for s in json.load(open(os.path.join(TAB, 'scenes.json'), encoding='utf-8'))['scenes']}
 rows = json.load(open(os.path.join(TAB, 'rows.json'), encoding='utf-8'))
-dlg = json.load(open(os.path.join(TAB, 'dialog.json'), encoding='utf-8'))['dialog']
+sys.path.insert(0, os.path.join(HERE, '..', 'tools')); import textdb   # D-123: the text from the game program
+dlg = json.load(open(textdb.path('story/dialog.json'), encoding='utf-8'))['dialog']
 check('inventory_mine_ported', all(i in sc and ported(i) for i in MINE), [i for i in MINE if i not in sc or not ported(i)])
 def rows_ok(i):                                   # a split room (scenes.json 'frame'): rows.json json = the room, frame, its views
     r = rows.get(i, {})

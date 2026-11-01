@@ -28,6 +28,7 @@ Developer tool: (re)generate the builder's committed tables. End users never run
         frames/frame_<N>.json, classes.json  tools/re/dump_frames.py (objdump)   level / screen layouts
         frames/anims.json                    tools/re/dump_anims.py (pyelftools) animation tables
         frames/backdrops.json                tools/re/dump_backdrops.py          backdrop (tiled) layers
+        (D-123: the text in story/dialog.json and strings.json is committed as tokens; the full text goes to build/text)
         story/dialog.json                    the Adventure dialogue (DialogData paragraphs) and scene captions
                                              (tools/re/dump_dialog.py; session 25)
         strings.json                         the gallery / credits text: the string literals that the List* / credits
@@ -172,13 +173,14 @@ def layout(binary, re_dir, out):
     subprocess.run(py + [os.path.join(tools, 're', 'dump_frames.py'), binary, fr], check=True)
     subprocess.run(py + [os.path.join(tools, 're', 'dump_anims.py'), binary, os.path.join(fr, 'anims.json')], check=True)
     subprocess.run(py + [os.path.join(tools, 're', 'dump_backdrops.py'), binary, os.path.join(fr, 'backdrops.json')], check=True)
-    story(binary, out)
+    story(binary, out, False)
     res = {'binary_md5': BIN_MD5, 'files': {f: elf_strings_all(binary, os.path.join(re_dir, f)) for f in STRING_FILES}}
     with open(os.path.join(out, 'strings.json'), 'w', encoding='utf-8', newline='\n') as o:
         json.dump(res, o, indent=1, ensure_ascii=False); o.write('\n')
+    tokenize_text(out)
     print('%d frame files; strings: %s' % (len(os.listdir(fr)), ', '.join('%s %d' % (f.split('_')[0], len(v)) for f, v in res['files'].items())))
 
-def story(binary, out):
+def story(binary, out, tok=True):
     """tables/story/dialog.json: every DialogData object's paragraphs and the scene captions (tools/re/dump_dialog.py).
     tables/story/scenes.json, scripts/ and rows.json are made by hand / tools/story_rv2scn.py from RV traces."""
     import subprocess
@@ -186,6 +188,14 @@ def story(binary, out):
     if hashlib.md5(open(binary, 'rb').read()).hexdigest() != BIN_MD5: sys.exit('%s is not the Linux 1.21.5 program' % binary)
     os.makedirs(os.path.join(out, 'story'), exist_ok=True)
     subprocess.run([sys.executable, '-B', os.path.join(tools, 're', 'dump_dialog.py'), binary, os.path.join(out, 'story', 'dialog.json')], check=True)
+    if tok: tokenize_text(out)
+
+def tokenize_text(out):
+    """D-123: the committed tables hold no game text. The full text goes to build/text (never committed), the tables get
+    tokens that tools/textdb.py materialize resolves from the player's game program at build time."""
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+    import textdb
+    textdb.tokenize(out, out, keep=os.path.join(textdb.ROOT, 'build', 'text'))
 
 if __name__ == '__main__':
     if len(sys.argv) == 5 and sys.argv[1] == 'winmap': winmap(*sys.argv[2:])

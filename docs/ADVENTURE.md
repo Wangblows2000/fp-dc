@@ -104,7 +104,7 @@ Each entry in scenes.json carries `evidence` (per field, RE / RV / INFERRED) and
 
 | id | list | title | room / g4 | trigger | chr | next ; skip ; panel | dialog: lines (voices) | status |
 |---|---|---|---|---|---|---|---|---|
-| adv_opening |  | (Adventure opening: Brevon's ship crashes in the snowfields; 'Three days later, In a valley to the East...') | 82 / 2 | new | LCM | scene:dv_meet ; scene:dv_meet ; 0 | - | ported (RV) |
+| adv_opening |  | (Adventure opening: Brevon's ship crashes in the snowfields; the two caption texts) | 82 / 2 | new | LCM | scene:dv_meet ; scene:dv_meet ; 0 | - | ported (RV) |
 | dv_meet | 1 | Dragon Valley (Meet Lilac and Carol) | 76 / 0 | (chain) | LCM | stage:dv1 ; mark:chsel ; 1 | 3903: 0-11 (12 clips: ca li) | ported (RV) |
 | dv_crash | 2 | Crash Site (Meet Serpentine and Torque) | 76 / 1 | end:1 | LCM | scene:dv_crash2 ; scene:dv_crash2 ; 2 | 3903: 13-41 (29 clips: ca li se to) | ported (RV) |
 | dv_crash2 | 2 | Crash Site (Meet Serpentine and Torque), part 2 (the forest: Torque's request) | 15 / 11 | (chain) | LCM | scene:rm_gong ; scene:rm_gong ; 2 | 550: 0-13 (14 clips: ca li to) | ported (RV) |
